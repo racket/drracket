@@ -2,12 +2,8 @@
 	  (lambda (request failure)
 	    (case request
 	      [(name) "DrScheme"]
-	      [(install-collection)
-	       (lambda(plt-dir)
-		 (require-library "launcher.ss" "launcher")
-		 (make-mred-launcher
-		  (list "-mvqL" "drscheme.ss" "drscheme")
-		  (mred-program-launcher-path "DrScheme")))]
+	      [(mred-launcher-libraries) (list "drscheme.ss")]
+	      [(mred-launcher-names) (list "DrScheme")]
 	      [(compile-prefix) 
 	       '(begin
 		  (require-library "refer.ss")
