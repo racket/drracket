@@ -370,8 +370,12 @@
               (when success?
                 (let ([filename (get-filename)])
                   (when filename
-                    (let-values ([(creator type) (file-creator-and-type filename)])
-                      (file-creator-and-type filename "DrSc" type)))))
+                    ;; if a filesystem error happens, just give up
+                    ;; on setting the file creator and type.
+                    (with-handlers ([exn:i/o:filesystem?
+                                     void])
+                      (let-values ([(creator type) (file-creator-and-type filename)])
+                        (file-creator-and-type filename "DrSc" type))))))
               (super-after-save-file success?))
               
             (rename [super-set-modified set-modified]
@@ -1038,17 +1042,19 @@
 
           (override get-canvas%)
           [define get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
-          (public ensure-defs-shown ensure-rep-shown)
-          [define ensure-defs-shown
-            (lambda ()
-              (unless definitions-shown?
-                (toggle-show/hide-definitions)
-                (update-shown)))]
-          [define ensure-rep-shown
-            (lambda ()
-              (unless interactions-shown?
-                (toggle-show/hide-interactions)
-                (update-shown)))]
+          
+          (define/public (ensure-defs-shown)
+            (unless definitions-shown?
+              (toggle-show/hide-definitions)
+              (update-shown)))
+          (define/public (ensure-rep-shown)
+            (unless interactions-shown?
+              (toggle-show/hide-interactions)
+              (update-shown)))
+          (define/public (ensure-rep-hidden)
+            (when interactions-shown?
+              (toggle-show/hide-interactions)
+              (update-shown)))
           
           (override get-editor%)
           [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text))]
@@ -1081,6 +1087,7 @@
           (define/public (change-to-file name)
             (cond
               [(and name (file-exists? name))
+               (ensure-rep-hidden)
                (send definitions-text load-file/gui-error name)]
               [name
                (send definitions-text set-filename name)]
@@ -1516,32 +1523,43 @@
             (set! custodian-to-kill-box (make-weak-box cust)))
           
           (define/public (execute-callback)
-            (cond
-              [(send definitions-text save-file-out-of-date?)
-               (message-box 
-                (string-constant drscheme)
-                (string-constant definitions-modified)
-                this)]
-              [else
-               (ensure-rep-shown)
-               (when logging
-                 (log-definitions)
-                 (log-interactions))
-               (send definitions-text just-executed)
-               (send interactions-canvas focus)
-               (send interactions-text reset-console)
-               (send interactions-text clear-undos)
-               (let ([start (if (and ((send definitions-text last-position) . >= . 2)
-                                     (char=? (send definitions-text get-character 0) #\#)
-                                     (char=? (send definitions-text get-character 1) #\!))
-                                (send definitions-text paragraph-start-position 1)
-                                0)])
-                 (send definitions-text split-snip start)
-                 (send interactions-text do-many-text-evals
-                       definitions-text 
-                       start
-                       (send definitions-text last-position)))
-               (send interactions-text clear-undos)]))
+            (check-if-save-file-up-to-date)
+            (ensure-rep-shown)
+            (when logging
+              (log-definitions)
+              (log-interactions))
+            (send definitions-text just-executed)
+            (send interactions-canvas focus)
+            (send interactions-text reset-console)
+            (send interactions-text clear-undos)
+            (let ([start (if (and ((send definitions-text last-position) . >= . 2)
+                                  (char=? (send definitions-text get-character 0) #\#)
+                                  (char=? (send definitions-text get-character 1) #\!))
+                             (send definitions-text paragraph-start-position 1)
+                             0)])
+              (send definitions-text split-snip start)
+              (send interactions-text do-many-text-evals
+                    definitions-text 
+                    start
+                    (send definitions-text last-position)))
+            (send interactions-text clear-undos))
+          
+          (inherit revert save)
+          (define/private (check-if-save-file-up-to-date)
+            (when (send definitions-text save-file-out-of-date?)
+              (let ([user-choice 
+                     (message-box/custom
+                      (string-constant drscheme)
+                      (string-constant definitions-modified)
+                      (string-constant ignore)
+                      (string-constant revert)
+                      #f
+                      this
+                      '(caution no-default number-order)
+                      1)])
+                (case user-choice
+                  [(1) (void)]
+                  [(2) (revert)]))))
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
           [define language-menu 'uninited-language-menu]
@@ -1907,7 +1925,6 @@
           (send interactions-canvas set-editor interactions-text)
           (send definitions-canvas set-editor definitions-text)
           
-          (inherit save)
           (set! save-button
                 (make-object button% 
                   (make-save-bitmap this)

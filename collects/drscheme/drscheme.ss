@@ -1,3 +1,4 @@
+
 (module drscheme mzscheme
 
   ;; except for the mred and class libraries
@@ -13,14 +14,17 @@
     (define t (make-object text%))
     (define ec (make-object editor-canvas% f t))
     (define p (open-output-string))
-
+    
     (parameterize ([current-output-port p])
       ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #t)
       (newline)
       (newline)
       ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #f))
     (send t insert (get-output-string p))
-    (send t auto-wrap #t)
+    (call-with-output-file "/home/robby/OUTPUT"
+      (lambda (op) (display (get-output-string p) op))
+      'truncate
+      'text)
     (send t change-style (make-object style-delta% 'change-family 'modern) 0 (send t last-position))
     (send t lock #t)
     (send f show #t))

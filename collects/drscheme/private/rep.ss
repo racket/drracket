@@ -744,15 +744,13 @@
           
           ;; =User= (probably doesn't matter)
           (define queue-system-callback
-            (case-lambda
-              [(ut thunk) (queue-system-callback ut thunk #f)]
-              [(ut thunk always?)
-               (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                 (queue-callback 
-                  (lambda ()
-                    (when (or always? (eq? ut (get-user-thread)))
-                      (thunk)))
-                  #f))]))
+            (opt-lambda (ut thunk [always? #f])
+              (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                (queue-callback 
+                 (lambda ()
+                   (when (or always? (eq? ut (get-user-thread)))
+                     (thunk)))
+                 #f))))
           
           ;; =User=
           (define queue-system-callback/sync

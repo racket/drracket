@@ -11,6 +11,9 @@
            (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
+  (define op (current-output-port))
+  (define (oprintf . args) (apply fprintf op args))
+  
   (define module-language@
     (unit/sig drscheme:module-language^
       (import [drscheme:language-configuration : drscheme:language-configuration/internal^]

@@ -8,6 +8,9 @@
            (lib "toplevel.ss" "syntax")
            "drsig.ss")
   
+  (define op (current-output-port))
+  (define (oprintf . args) (apply fprintf op args))
+  
   (provide eval@)
   (define eval@
     (unit/sig drscheme:eval^
