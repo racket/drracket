@@ -6,7 +6,8 @@
 	  mzlib:string^
 	  mzlib:url^
 	  (bullet : bullet-snip^)
-	  mred^)
+	  mred^
+	  framework^)
 
   (define bullet-size bullet:bullet-size)
 
@@ -549,7 +550,7 @@
 	      (auto-wrap wrapping-on?)
 	      (lock #t)))))))
 
-  (define hyper-text% (hyper-text-mixin text%))
+  (define hyper-text% (hyper-text-mixin text:keymap%))
 
   (define (hyper-canvas-mixin super%)
     (class super% args

@@ -7,6 +7,8 @@
 
 (require-library "url.ss" "net")
 
+(require-library "framework.ss" "framework")
+
 (begin-elaboration-time
  (require-library "invoke.ss"))
 
@@ -17,4 +19,5 @@
   mzlib:string^
   mzlib:file^
   mzlib:url^
-  mred^)
+  mred^
+  framework^)
