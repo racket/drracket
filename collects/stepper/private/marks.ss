@@ -1,6 +1,7 @@
 (module marks mzscheme
 
-  (require (lib "list.ss"))
+  (require (lib "list.ss")
+           "my-macros.ss")
   
   (provide
    cheap-mark?
@@ -18,6 +19,13 @@
    lookup-binding-list
    debug-key
    extract-mark-list)
+  
+  (make-contract-checker SYNTAX-OBJECT
+                         syntax?)
+  
+  (make-contract-checker MARK-LIST
+                         (lambda (x)
+                           (andmap procedure? x)))
   
   ; debug-key: this key will be used as a key for the continuation marks.
   (define-struct debug-key-struct ())
@@ -113,20 +121,22 @@
   (define (binding-matches mark binding)
     (let ([matches
            (filter (lambda (b)
-                     (eq? binding (mark-binding-binding b)))
+                     (fprintf (current-error-port) "binding name: ~a" (syntax-e (mark-binding-binding b)))
+                     (free-identifier=? (mark-binding-binding b) binding))
                    (mark-bindings mark))])
       (if (> (length matches) 1)
           (error 'lookup-binding "multiple bindings found for ~a" binding)
           matches)))
   
-  (define (lookup-binding mark-list binding)
-    (if (null? mark-list)
-        (error 'lookup-binding "variable not found in environment: ~a" binding)
-        (let ([matches (binding-matches (car mark-list) binding)])
-          (cond [(null? matches)
-                 (lookup-binding (cdr mark-list) binding)]
-                [else
-                 (car matches)]))))
+  (define lookup-binding
+    (checked-lambda ((mark-list MARK-LIST) (binding SYNTAX-OBJECT))
+                    (if (null? mark-list)
+                        (error 'lookup-binding "variable not found in environment: ~a~n" (syntax-e binding))
+                        (let ([matches (binding-matches (car mark-list) binding)])
+                          (cond [(null? matches)
+                                 (lookup-binding (cdr mark-list) binding)]
+                                [else
+                                 (car matches)])))))
   
   (define (lookup-binding-list mark-list binding)
     (apply append (map (lambda (x) (binding-matches x binding)) mark-list))))
