@@ -6,9 +6,11 @@
 (require-library "sig.ss" "userspce")
 (require-library "gusrspcs.ss" "gusrspce")
 (require-library "pconvers.ss")
-(require-library "frameworks.ss" "framework")
 
+(require-library "frameworks.ss" "framework")
 (require-library "mred-interfaces.ss" "framework")
+
+(require-library "sig.ss" "help")
 
 (define-signature drscheme:get-collection^
   (get-file/collection))
