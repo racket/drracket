@@ -61,7 +61,7 @@
                                      (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
       
-      (preferences:set-default 'drscheme:show-interactions-on-execute #f boolean?)
+      (preferences:set-default 'drscheme:show-interactions-on-execute #t boolean?)
       (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
       (preferences:set-default 'drscheme:user-defined-keybindings '() (lambda (x) (and (list? x) (andmap path? x))))

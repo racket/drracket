@@ -82,8 +82,8 @@
                         (preferences:add-callback
                          'framework:standard-style-list:font-name
                          (lambda (p v)
-                           (when (send choice find-string font-name)
-                             (send choice set-string-selection font-name))))
+                           (when (send choice find-string v)
+                             (send choice set-string-selection v))))
                         (when (send choice find-string font-name)
                           (send choice set-string-selection font-name))
                         choice)]
