@@ -31,6 +31,7 @@
      (struct exn:file-saved-instead (pathname))
      (struct exn:cancelled ())
      
+     hyper-text<%>
      hyper-text-mixin
      hyper-text%
      

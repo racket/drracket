@@ -90,7 +90,7 @@ A test case:
 
       (define hyper-text<%>
         (interface ()
-          ))
+          url-allows-evaling?))
       
       (define hyper-text-mixin
         (mixin ((class->interface text%) editor:keymap<%>) (hyper-text<%>)
@@ -103,10 +103,11 @@ A test case:
           
           (init-field url top-level-window)
           (init progress)
-          (init-field [post-data #f] [base-url (and (url? url) url)])
+          (init-field [post-data #f])
           
-          (define url-allows-evaling?
+          (define/pubment (url-allows-evaling? url)
             (cond
+              [(port? url) #f]
               [(and (url? url)
                     (equal? "file" (url-scheme url)))
                (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
@@ -115,7 +116,7 @@ A test case:
                                                                 'up
                                                                 'up)))
                   (normal-case-path (normalize-path (apply build-path (url-path url))))))]
-              [else #f]))
+              [else (inner #f url-allows-evaling? url)]))
           
           (define doc-notes null)
           (define title #f)
@@ -211,7 +212,7 @@ A test case:
               (set-clickback 
                start end 
                (lambda (edit start end)
-                 (if url-allows-evaling?
+                 (if (url-allows-evaling? url)
                      (parameterize ([current-load-relative-directory dir])
                        (eval-scheme-string scheme-string))
                      (message-box (string-constant help-desk)
@@ -235,8 +236,10 @@ A test case:
                                           (if (exn? exn)
                                               (exn-message exn)
                                               (format "~s" exn))))])
+                        (printf "evalling ~s\n" s)
                         (eval-string s)))
                     end-busy-cursor)])
+              (printf "v ~s\n" v)
               (when (string? v)
                 (send (get-canvas) goto-url
                       (open-input-string v)
@@ -266,33 +269,38 @@ A test case:
                                    (string->url loc)]))))))))))
           
           (define/private (get-headers/read-from-port progress)
-            (let* ([busy? #t]
-                   [stop-busy (lambda ()
-                                (when busy?
-                                  (set! busy? #f)
-                                  (end-busy-cursor)))])
-              (with-handlers ([(lambda (x) (and (exn:fail? x) busy?))
-                               (lambda (x) 
-                                 (printf "exn.4 ~s\n" (and (exn? x)
-                                                           (exn-message x)))
-                                 (call/input-url 
-                                  url
-                                  (if post-data 
-                                      (lambda (u s) (post-pure-port u post-data s))
-                                      get-pure-port)
-                                  (lambda (p)
-                                    (stop-busy)
-                                    (read-from-port p empty-header progress))))])
-                (call/input-url 
-                 url 
-                 (if post-data 
-                     (lambda (u s) (post-impure-port u post-data s))
-                     get-impure-port)
-                 (lambda (p)
-                   (let ([headers (purify-port p)])
-                     (stop-busy)
-                     (read-from-port p headers progress)
-                     headers))))))
+            (cond
+              [(port? url) 
+               (read-from-port url empty-header progress)
+               empty-header]
+              [else
+               (let* ([busy? #t]
+                      [stop-busy (lambda ()
+                                   (when busy?
+                                     (set! busy? #f)
+                                     (end-busy-cursor)))])
+                 (with-handlers ([(lambda (x) (and (exn:fail? x) busy?))
+                                  (lambda (x) 
+                                    (printf "exn.4 ~s\n" (and (exn? x)
+                                                              (exn-message x)))
+                                    (call/input-url 
+                                     url
+                                     (if post-data 
+                                         (lambda (u s) (post-pure-port u post-data s))
+                                         get-pure-port)
+                                     (lambda (p)
+                                       (stop-busy)
+                                       (read-from-port p empty-header progress))))])
+                   (call/input-url 
+                    url 
+                    (if post-data 
+                        (lambda (u s) (post-impure-port u post-data s))
+                        get-impure-port)
+                    (lambda (p)
+                      (let ([headers (purify-port p)])
+                        (stop-busy)
+                        (read-from-port p headers progress)
+                        headers)))))]))
           
           (define/private (read-from-port p mime-headers progress)
             (let ([wrapping-on? #t])
@@ -437,6 +445,7 @@ A test case:
                      [(or (and (url? url)
                                (not (null? (url-path url)))
                                (regexp-match "[.]html?$" (car (last-pair (url-path url)))))
+                          (port? url)
                           html?)
                       ; HTML
                       (progress #t)
@@ -454,7 +463,7 @@ A test case:
                                         (lambda (s)
                                           (update-browser-status-line top-level-window s))]
                                        [current-load-relative-directory directory]
-                                       [html-eval-ok url-allows-evaling?])
+                                       [html-eval-ok (url-allows-evaling? url)])
                           (html-convert p this)))]
                      [else
                       ; Text
@@ -640,11 +649,14 @@ A test case:
             (send (get-parent) on-url-click k url post-data))
           (define/public goto-url
             (opt-lambda (in-url relative [progress void] [post-data #f])
-              (let* ([pre-url (if (url? in-url)
-                                  in-url
-                                  (if relative
-                                      (combine-url/relative relative in-url)
-                                      (string->url in-url)))])
+              (let* ([pre-url (cond
+                                [(url? in-url) in-url]
+                                [(port? in-url) in-url]
+                                [(string? in-url)
+                                 (if relative
+                                     (combine-url/relative relative in-url)
+                                     (string->url in-url))]
+                                [else (error 'goto-url "unknown url ~e\n" in-url)])])
                 (let-values ([(e url)
                               (let ([e-now (get-editor)])
                                 (if (and e-now
