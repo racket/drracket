@@ -79,6 +79,11 @@
                                        'framework:standard-style-list:font-name
                                        (send font-name get-string-selection)))))]
                              [font-name (preferences:get 'framework:standard-style-list:font-name)])
+                        (preferences:add-callback
+                         'framework:standard-style-list:font-name
+                         (lambda (p v)
+                           (when (send choice find-string font-name)
+                             (send choice set-string-selection font-name))))
                         (when (send choice find-string font-name)
                           (send choice set-string-selection font-name))
                         choice)]

@@ -679,10 +679,10 @@ TODO
           ;;  specialization
           ;;
           
-          (define/override (get-err-style-delta) (make-modern (super get-err-style-delta)))
-          (define/override (get-out-style-delta) (make-modern (super get-out-style-delta)))
-          (define/override (get-value-style-delta) (make-modern (super get-value-style-delta)))
-          
+          ;(define/override (get-err-style-delta) (make-modern (super get-err-style-delta)))
+          ;(define/override (get-out-style-delta) (make-modern (super get-out-style-delta)))
+          ;(define/override (get-value-style-delta) (make-modern (super get-value-style-delta)))
+          #;
           (define/private (make-modern sup)
             (let ([new (make-object style-delta%)])
               (send new copy sup)
