@@ -26,7 +26,7 @@
                          (lambda (exn)
                            (message-box 
                             "DrScheme"
-                            (format (string-constant error-finding-docs)
+                            (format (string-constant plt:hd:error-finding-docs)
                                     (if (exn? exn)
                                         (exn-message exn)
                                         (format "~s" exn)))))])
