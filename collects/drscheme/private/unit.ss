@@ -1549,13 +1549,14 @@
           (send interactions-canvas set-editor interactions-text)
           (send definitions-canvas set-editor definitions-text)
           
+          (inherit save)
           (set! save-button
                 (make-object button% 
                   (make-save-bitmap this)
                   top-panel
                   (lambda args
                     (when definitions-text
-                      (send definitions-text save-file/gui-error)
+                      (save)
                       (send definitions-canvas focus)))))
           
           (set! name-message (make-object drscheme:frame:name-message% name-panel))
