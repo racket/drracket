@@ -407,10 +407,11 @@
 		 (>= (string-length label) 4)
 		 (string=? (substring label 0 4) "Show"))))]
 	[save-as-text-from-text
-	 (lambda (win)
-	   (let ([file (mred:put-file)])
+	 (lambda (text)
+	   (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
+			 (fw:finder:put-file))])
 	     (when file
-		   (send win save-file file 'text))))])
+	       (send text save-file file 'text))))])
 
       (public
 	[toggle-show/hide
@@ -452,7 +453,8 @@
 	     "Save Interactions As..."
 	     file-menu
 	     (lambda (_1 _2) 
-	       (let ([file (mred:put-file)])
+	       (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
+			     (fw:finder:put-file))])
 		 (when file
 		   (send interactions-text save-file 
 			 file 'standard)))))
