@@ -153,7 +153,7 @@
 	   [release-notes-button (make-release-notes-button top-button-panel)]
 	   [close-button (make-object button% "Close" bottom-button-panel
 				      (lambda x
-					(send f show #f)))]
+					(send f close)))]
 	   [messages-panel (make-object vertical-panel% left-vp)]
 	   
 	   [this-version (version:version)]

@@ -313,13 +313,18 @@
       (sequence
 	(super-init))))
 
+  (define name-message-inset 2)
+
+  (define black-color (make-object mred:color% "BLACK"))
+
   (define name-message%
     (class/d mred:canvas% (parent)
       ((inherit get-dc get-size get-client-size min-width min-height stretchable-width stretchable-height)
        (public set-message) ;; set-message : (union #f string) string -> void
        (override on-event on-paint))
 
-      (define font (send parent get-label-font))
+      (define font (send mred:the-font-list find-or-create-font 10 'decorative 'normal 'normal #f))
+      ;(define font (send parent get-label-font))
       
       (define label #f)
       (define short-label "Untitled")
@@ -365,15 +370,13 @@
 		
       (define (update-min-sizes)
 	(let ([dc (get-dc)])
-	  (send dc set-font (send mred:the-font-list find-or-create-font 12 'system 'normal 'normal #f))
+	  (send dc set-font font)
 	  (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
-	    (min-width (+ 4 (inexact->exact (floor tw))))
-            (min-height (+ 4 (inexact->exact (floor th)))))
+	    (min-width (+ name-message-inset name-message-inset (inexact->exact (floor tw))))
+            (min-height (+ name-message-inset name-message-inset (inexact->exact (floor th)))))
 	  (send parent reflow-container)))
 
       (define inverted? #f)
-
-      (define black-color (make-object mred:color% "BLACK"))
 
       (define (on-paint)
 	(let ([dc (get-dc)])
@@ -492,7 +495,7 @@
 
       (define inverted? #f)
 
-      (define font (send mred:the-font-list find-or-create-font 12 'decorative 'normal 'normal #f))
+      (define font (send mred:the-font-list find-or-create-font 10 'decorative 'normal 'normal #f))
       (define label "(define")
       (define black (make-object mred:color% "BLACK"))
       (define white (make-object mred:color% "WHITE"))
@@ -501,22 +504,22 @@
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
 	    (if inverted?
-		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
-		       (send dc set-brush (send mred:the-brush-list find-or-create-brush "BLACK" 'solid))
-		       (send dc set-text-foreground white))
-		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
-		       (send dc set-brush (send mred:the-brush-list find-or-create-brush "WHITE" 'solid))
-		       (send dc set-text-foreground black)))
+		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen black-color 1 'solid))
+		       (send dc set-brush (send mred:the-brush-list find-or-create-brush black-color 'solid))
+		       (send dc set-text-foreground (mred:get-panel-background)))
+		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
+		       (send dc set-brush (send mred:the-brush-list find-or-create-brush (mred:get-panel-background) 'solid))
+		       (send dc set-text-foreground black-color)))
 	    (send dc set-font font)
 	    (send dc draw-rectangle 0 0 w h)
-	    (send dc draw-text label 1 1))))
+	    (send dc draw-text label name-message-inset name-message-inset))))
 
       (define (on-event evt)
 	(cond
 	 [(send evt button-down?)
 	  (set! inverted? #t)
 	  (on-paint)
-	  (let ([menu (make-object mred:popup-menu% "Definitions")])
+	  (let ([menu (make-object mred:popup-menu% #f)])
 	    (let loop ([defns (get-definitions)])
 	      (unless (null? defns)
 		(let* ([defn (car defns)]
@@ -546,8 +549,8 @@
 		    (send item check #t))
 		  (loop (cdr defns)))))
 	    (popup-menu menu
-			(inexact->exact (send evt get-x))
-			(inexact->exact (send evt get-y))))]
+			0
+			height))]
 	 [(send evt button-up?)
 	  (set! inverted? #f)
 	  (on-paint)]
@@ -555,9 +558,14 @@
 
       (super-init parent)
 
-      (let-values ([(w h a d) (send (get-dc) get-text-extent label font)])
-	(min-width (+ 2 (inexact->exact (ceiling w))))
-	(min-height (+ 2 (inexact->exact (ceiling h)))))
+      (define-values (width height)
+	(let-values ([(w h a d) (send (get-dc) get-text-extent label font)])
+	  (values
+	   (+ name-message-inset name-message-inset (inexact->exact (ceiling w)))
+	   (+ name-message-inset name-message-inset (inexact->exact (ceiling h))))))
+
+      (min-width width)
+      (min-height height)
       (stretchable-width #f)
       (stretchable-height #f)))
 
@@ -945,7 +953,11 @@
                            "Show the interactions window")))
       
       (private
-	[top-panel (make-object mred:horizontal-panel% (get-area-container))])
+	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
+	[name-panel (make-object mred:vertical-panel% top-panel)])
+      (sequence
+	(send name-panel stretchable-width #f)
+	(send name-panel stretchable-height #f))
       
       (public
 	[definitions-canvas (get-canvas)]
@@ -973,7 +985,7 @@
 				 (send text save-file)
 				 (send definitions-canvas focus))))))
 	
-	(set! name-message (make-object name-message% top-panel)))
+	(set! name-message (make-object name-message% name-panel)))
       (private 
 	[teachpack-items null]
 	[update-teachpack-menu
@@ -1001,7 +1013,7 @@
 	[button-panel (make-object mred:horizontal-panel% top-panel)])
       
       (private
-	[func-defs-canvas (make-object func-defs-canvas% button-panel definitions-text)])
+	[func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)])
 
       (sequence
 	(set! execute-button
@@ -1019,6 +1031,12 @@
 		  (send (send interactions-text get-canvas) focus))))
 	(send button-panel stretchable-height #f)
 	(send button-panel stretchable-width #f) 
+
+	(send top-panel change-children
+	      (lambda (l)
+		(list save-button name-panel
+		      (make-object mred:vertical-panel% top-panel) ;; spacer
+		      button-panel)))
 	(send top-panel stretchable-height #f))
       
       (private
@@ -1029,17 +1047,14 @@
 	    (update-teachpack-menu v)
 	    (send definitions-text teachpack-changed)))])
       
-      (private
-	[build-top-panel-children
-	 (lambda ()
-	   (list name-message save-button button-panel))])
-      
       (inherit get-label)
       (sequence
 	
 	;; (get-label) shouldn't be #f, but I'm not sure....
 	(send name-message set-message
-	      filename
+	      (if filename
+		  (mzlib:file:normalize-path filename)
+		  (or (get-label) "Untitled"))
 	      (or (get-label) "Untitled"))
 	'(send name-message set-message
 	      filename
