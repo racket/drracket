@@ -259,6 +259,11 @@
         (define check-updates-state-panel (instantiate vertical-panel% ()
                                             (parent sp)
                                             (alignment '(center center))))
+        (define check-updates-msgs-panel (instantiate vertical-panel% ()
+                                           (parent check-updates-state-panel)
+                                           (stretchable-width #f)
+                                           (stretchable-height #f)
+                                           (alignment '(left center))))
 
         ;; note that `cu-message' is bound to the last message% object,
         ;; but it is not used anyway.
@@ -266,8 +271,8 @@
           (let ([add (lambda (str)
                        (instantiate message% ()
                          (label str)
-                         (parent check-updates-state-panel)))])
-            (let loop ([message (format (string-constant vc-wizard-check-prompt))])
+                         (parent check-updates-msgs-panel)))])
+            (let loop ([message (format (string-constant vc-wizard-check-note))])
               (cond [(regexp-match #rx"^(.+?)\n(.+)$" message) =>
                      (lambda (m) (add (cadr m)) (loop (caddr m)))]
                     [else (add message)]))))
@@ -283,11 +288,6 @@
             (label (string-constant vc-wizard-check-button))
             (parent check-updates-state-panel)
             (callback (lambda (x y) (check-version dlg)))))
-        (define cu-no-button
-          (instantiate button% ()
-            (label (string-constant vc-wizard-no-check-button))
-            (parent check-updates-state-panel)
-            (callback (lambda (x y) (next-state)))))
         
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
