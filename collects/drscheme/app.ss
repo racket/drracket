@@ -128,7 +128,7 @@
           (insert #\newline)
           (insert "  MrEd version ")
           (insert (fw:version:version))
-          (insert ", Copyright (c) 1995-1998 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
+          (insert ", Copyright (c) 1995-1999 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
           (insert #\newline)
           (auto-wrap #t)
           (set-autowrap-bitmap #f)
