@@ -562,7 +562,7 @@
                                (callback void))))
         (define base-panel (make-object horizontal-panel% type/base-panel))
         (define base-rb (and (boolean? show-base)
-                             (instantiate radio-box% ()                         
+                             (instantiate radio-box% ()
                                (label (string-constant executable-base))
                                (choices (list "MzScheme" "MrEd"))
                                (parent base-panel)
@@ -592,23 +592,15 @@
            (lambda (x y) (send dlg show #f))
            (string-constant create)
            (string-constant cancel)))
-        
+
         (define (browse-callback)
           (let-values ([(base name dir) 
                         (with-handlers ([not-break-exn?
                                          (lambda (exn)
                                            (values #f (send filename-text-field get-value) #f))])
                           (split-path (send filename-text-field get-value)))])
-            (let* ([mzscheme?
-		    (cond
-		      [base-rb
-		       (= 0 (send base-rb get-selection))]
-		      [else (eq? show-base 'mzscheme)])]
-		   [launcher?
-		    (cond
-		      [type-rb
-		       (= 0 (send type-rb get-selection))]
-		      [else (eq? show-type 'launcher)])]
+            (let* ([mzscheme? (currently-mzscheme-binary?)]
+		   [launcher? (currently-launcher?)]
 		   [filename 
 		    (put-executable/defaults
 		     dlg
@@ -626,9 +618,42 @@
               (when filename
                 (send filename-text-field set-value filename)))))
         
-        (define (filename-ok?)
-          (not (string=? "" (send filename-text-field get-value))))
+        (define (currently-mzscheme-binary?)
+          (cond
+            [base-rb
+             (= 0 (send base-rb get-selection))]
+            [else (eq? show-base 'mzscheme)]))
+          
+        (define (currently-launcher?)
+          (cond
+            [type-rb
+             (= 0 (send type-rb get-selection))]
+            [else (eq? show-type 'launcher)]))
         
+        (define (filename-ok?)
+          (let ([filename-str (send filename-text-field get-value)]
+                [launcher-is-dir?
+                 (cond
+                   [(currently-mzscheme-binary?)
+                    (mzscheme-launcher-is-directory?)]
+                   [else
+                    (mred-launcher-is-directory?)])])
+            (cond
+              [(string=? "" filename-str) #f]
+              [launcher-is-dir?
+               (or (not (directory-exists? filename-str))
+                   (ask-user-can-clobber? filename-str))]
+              [else
+               (or (not (file-exists? filename-str))
+                   (ask-user-can-clobber? filename-str))])))
+           
+        ;; ask-user-can-clobber-directory? : (is-a?/c top-level-window<%>) string -> boolean
+        (define (ask-user-can-clobber? filename)
+          (message-box (string-constant drscheme)
+                       (format (string-constant are-you-sure-delete?) filename)
+                       dlg
+                       '(yes-no)))
+            
         (define cancelled? #t)
         
         (send dlg show #t)
