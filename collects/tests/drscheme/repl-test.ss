@@ -266,6 +266,17 @@
     "context expected 1 value, received 2 values: 1 1"
     #f
     #f)
+
+   (make-test
+    (format "(queue-callback (lambda () (car)))~n(m)")
+    "1.26-1.31: car: expects 1 argument, given 0"
+    #t
+    "car: expects 1 argument, given 0"
+    (vector 25 30)
+    "car: expects 1 argument, given 0"
+    "car: expects 1 argument, given 0"
+    #f
+    #f)
    
    ;; breaking tests
    ; (make-test

@@ -10,7 +10,6 @@
 		  (mred-program-launcher-path "DrScheme")))]
 	      [(compile-prefix) 
 	       '(begin
-		  (read-case-sensitive #t)
 		  (require-library "refer.ss")
 		  (require-library "wxs.ss" "system")
 		  (require-library "invsig.ss" "system")
