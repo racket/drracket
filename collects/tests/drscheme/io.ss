@@ -70,7 +70,10 @@
   (do-input-test "(begin (read-char) (sleep 1) (read-char))" "ab~ncd~n" "#\\b")
   (do-input-test "(list (read) (sleep 1) (read) (read))" "a b~nc d~n" "(a #<void> b c)")
   
-  (do-input-test "(begin (display 1) (read))" "2~n" "2"))
+  (do-input-test "(begin (display 1) (read))" "2~n" "2")
+
+  (do-input-test "(read-line)" "~n" "\"\"")
+  (do-input-test "(read-char)" "~n" "#\\newline"))
 
 (define drs-frame (wait-for-drscheme-frame))
 (define interactions-text (ivar drs-frame interactions-text))
