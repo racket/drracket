@@ -284,15 +284,15 @@
       
       (scheme:add-preferences-panel)
       (preferences:add-editor-checkbox-panel)
-      (preferences:add-misc-checkbox-panel)
+      (preferences:add-warnings-checkbox-panel)
       (preferences:add-scheme-checkbox-panel)
-      (preferences:add-to-misc-checkbox-panel
-       (lambda (misc-panel)
+      (preferences:add-to-warnings-checkbox-panel
+       (lambda (warnings-panel)
          (let ([make-check-box
                 (lambda (pref-sym string)
                   (let ([q (make-object check-box%
                              string
-                             misc-panel
+                             warnings-panel
                              (lambda (checkbox evt)
                                (preferences:set 
                                 pref-sym 
