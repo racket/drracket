@@ -4,7 +4,8 @@
           [mzlib : mzlib:core^]
           [fw : framework^]
           [drscheme:unit : drscheme:unit^]
-          [drscheme:frame : drscheme:frame^])
+          [drscheme:frame : drscheme:frame^]
+	  [help : help:drscheme-interface^])
   
   (define about-frame%
     (class (drscheme:frame:basics-mixin fw:frame:standard-menus%) (main-media)
@@ -116,10 +117,7 @@
                [_ (send e insert url)]
                [after (send e get-start-position)])
           (send e set-clickback before after 
-                (lambda args (mred:message-box
-                              "DrScheme"
-                              (format "Browser not yet supported in DrScheme ~a"
-                                      (version))))
+                (lambda args (help:open-url url))
                 d-http))
         (send* e
           (insert #\newline)
