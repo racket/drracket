@@ -1,3 +1,11 @@
+Version 103:
+
+103d1 
+
+  - primitives in the teaching languages now restricted to 
+    only the appropriate ones, instead of all of the primatives
+    available in mzscheme
+
 Version 102:
 
 General

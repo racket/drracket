@@ -344,7 +344,7 @@
       (set-language #t)
       (do-execute drs))
     
-    (test-expression "call/cc" "reference to undefined identifier: call/cc")
+    (test-expression "call/cc" "call-with-current-continuation")
 
     (test-expression "(error 'a \"~a\" 1)"
 		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
