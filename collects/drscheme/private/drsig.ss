@@ -94,7 +94,7 @@
      clear-all-teachpacks))
   
   (define-signature drscheme:tools^
-    ((struct successful-tool (spec bitmap name))
+    ((struct successful-tool (spec bitmap name url))
      get-successful-tools
      only-in-phase
      load/invoke-all-tools))

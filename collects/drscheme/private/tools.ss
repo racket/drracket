@@ -28,8 +28,11 @@
               [drscheme:eval : drscheme:eval^]
               [drscheme:teachpack : drscheme:teachpack^])
       
-      ;; successful-tool = (make-successful-tool module-spec (union #f (instanceof bitmap%)) (union #f string))
-      (define-struct successful-tool (spec bitmap name))
+      ;; successful-tool = (make-successful-tool module-spec 
+      ;;                                         (union #f (instanceof bitmap%))
+      ;;                                         (union #f string)
+      ;;                                         (union #f string))
+      (define-struct successful-tool (spec bitmap name url))
       
       ;; successful-tools : (listof successful-tool)
       (define successful-tools null)
@@ -39,9 +42,9 @@
 
       ;; successfully-loaded-tool = 
       ;; (make-successfully-loaded-tool 
-      ;;    module-spec (union #f (instanceof bitmap%)) (union #f string)
+      ;;    module-spec (union #f (instanceof bitmap%)) (union #f string) (union #f string)
       ;;    (-> void) (-> void))
-      (define-struct successfully-loaded-tool (spec bitmap name phase1 phase2))
+      (define-struct successfully-loaded-tool (spec bitmap name url phase1 phase2))
                      
       ;; successfully-loaded-tools : (listof successfully-loaded-tool)
       ;; this list contains the tools that successfully were loaded
@@ -100,7 +103,8 @@
           (when table
             (let* ([tools (table 'tools (lambda () null))]
                    [tool-icons (table 'tool-icons (lambda () (map (lambda (x) #f) tools)))]
-                   [tool-names (table 'tool-names (lambda () (map (lambda (x) #f) tools)))])
+                   [tool-names (table 'tool-names (lambda () (map (lambda (x) #f) tools)))]
+                   [tool-urls (table 'tool-urls (lambda () (map (lambda (x) #f) tools)))])
               (unless (= (length tools) (length tool-icons))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-icons-same-length)
@@ -115,11 +119,19 @@
                              #f
                              '(ok stop))
                 (set! tool-names (map (lambda (x) #f) tools)))
-              (for-each (load/invoke-tool coll) tools tool-icons tool-names)))))
+              (unless (= (length tools) (length tool-urls))
+                (message-box (string-constant drscheme)
+                             (format (string-constant tool-tool-urls-same-length)
+                                     coll tools tool-urls)
+                             #f
+                             '(ok stop))
+                (set! tool-urls (map (lambda (x) #f) tools)))
+              (for-each (load/invoke-tool coll) tools tool-icons tool-names tool-urls)))))
       
       ;; load/invoke-tool :    string[collection-name] 
       ;;                    -> (listof string[sub-collection-name]) 
       ;;                       (union #f (cons string[filename] (listof string[collection-name])))
+      ;;                       (union #f string)
       ;;                       (union #f string)
       ;;                    -> void
       ;; `coll' is a collection to load the tool from
@@ -127,7 +139,7 @@
       ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
       ;; `name' is the name of the tool (only used in about box)
       (define (load/invoke-tool coll)
-        (lambda (in-path icon-spec name)
+        (lambda (in-path icon-spec name tool-url)
           (let ([tool-bitmap
                  (and icon-spec
                       (install-tool-bitmap icon-spec))])
@@ -166,8 +178,9 @@
                     (set! successfully-loaded-tools 
                           (cons (make-successfully-loaded-tool
                                  tool-path
-                                 tool-bitmap 
-                                 name 
+                                 tool-bitmap
+                                 name
+                                 tool-url 
                                  phase1-thunk
                                  phase2-thunk)
                                 successfully-loaded-tools)))))))))
@@ -288,7 +301,8 @@
                 (map (lambda (x) (make-successful-tool
                                   (successfully-loaded-tool-spec x)
                                   (successfully-loaded-tool-bitmap x)
-                                  (successfully-loaded-tool-name x)))
+                                  (successfully-loaded-tool-name x)
+                                  (successfully-loaded-tool-url x)))
                      after-phase2))))
       
       ;; run-one-phase : string 

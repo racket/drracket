@@ -69,8 +69,10 @@
                                (and (equal? "file" (url-scheme url))
                                     (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
                                       (path-below?
-                                       (normalize-path (build-path (collection-path "mzlib") 'up 'up))
-                                       (normalize-path (url-path url)))))]
+                                       (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
+                                                                                     'up
+                                                                                     'up)))
+                                       (normal-case-path (normalize-path (url-path url))))))]
                               [else #f])])
 
             (rename [super-after-set-position after-set-position])

@@ -615,15 +615,19 @@
                (lambda (successful-tool)
                  (let ([name (or (drscheme:tools:successful-tool-name successful-tool)
                                  (format "~s" (drscheme:tools:successful-tool-spec successful-tool)))]
-                       [bm (drscheme:tools:successful-tool-bitmap successful-tool)])
+                       [bm (drscheme:tools:successful-tool-bitmap successful-tool)]
+                       [url (drscheme:tools:successful-tool-url successful-tool)])
                    (send e insert "  ")
                    (when bm
                      (send* e
                        (insert (make-object image-snip% bm))
                        (insert #\space)))
-                   (send* e 
-                     (insert name)
-                     (insert #\newline))))
+                   (cond
+                     [url
+                      (insert-url/external-browser name url)]
+                     [else
+                      (send e insert name)])
+                   (send e insert #\newline)))
                tools)))
           
           (send e insert "\n")
