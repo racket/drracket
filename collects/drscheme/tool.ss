@@ -17,7 +17,7 @@
 		       (not (string=? "CVS" dir)))
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
 			 [link-sym (string->symbol dir)])
-		    `((,link-sym : () ((reference-unit/sig ,unit-path)
+		    `((,link-sym : () ((require-unit/sig ,unit-path)
 				       wx mred mzlib print-convert export zodiac))
 		      .
 		      ,(loop (cdr dirs))))
