@@ -10,6 +10,7 @@
   (define sc-smoothing-none (string-constant font-smoothing-none))
   (define sc-smoothing-some (string-constant font-smoothing-some))
   (define sc-smoothing-all (string-constant font-smoothing-all))
+  (define sc-smoothing-default "Use system-wide default")
   
   (provide font@)
   
@@ -115,20 +116,23 @@
                         (label sc-smoothing-label)
                         (choices (list sc-smoothing-none
                                        sc-smoothing-some
-                                       sc-smoothing-all))
+                                       sc-smoothing-all
+                                       sc-smoothing-default))
                         (parent choice-panel)
                         (stretchable-width #t)
                         (selection (case (preferences:get 'framework:standard-style-list:font-smoothing)
                                      [(unsmoothed) 0]
                                      [(partly-smoothed) 1]
-                                     [(smoothed) 2]))
+                                     [(smoothed) 2]
+                                     [(default) 3]))
                         (callback (lambda (x y) 
                                     (preferences:set 
                                      'framework:standard-style-list:font-smoothing
                                      (case (send x get-selection)
                                        [(0) 'unsmoothed]
                                        [(1) 'partly-smoothed]
-                                       [(2) 'smoothed])))))]
+                                       [(2) 'smoothed]
+                                       [(3) 'default])))))]
                   
                   [text (make-object (editor:standard-style-list-mixin text%))]
                   [ex-panel (make-object horizontal-panel% main)]

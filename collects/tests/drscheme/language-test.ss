@@ -46,7 +46,7 @@
       
       (test-expression 'xml "(a () (b ()))")
 
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#<struct:spider>")
       
       (test-expression "(sqrt -1)" "0+1i")
 
@@ -132,7 +132,7 @@
       
       (prepare-for-test-expression)
       
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#<struct:spider>")
       
       (test-expression "(sqrt -1)" "0+1i")
 
@@ -617,90 +617,6 @@
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
 
-
-                            
-   ;;;         ;;;    ;;;   
-  ;              ;      ;   
-  ;              ;      ;   
- ;;;;; ;;  ;;    ;      ;   
-  ;     ;   ;    ;      ;   
-  ;     ;   ;    ;      ;   
-  ;     ;   ;    ;      ;   
-  ;     ;   ;    ;      ;   
- ;;;;    ;;; ; ;;;;;; ;;;;;;
-                            
-                            
-                            
-
-
-  
-  (define (full)
-    (parameterize ([language (list "How to Design Programs" "Full")])
-      (check-top-of-repl)
-      
-      (generic-settings #t)
-      (generic-output #t #t #t)
-      (teaching-language-fraction-output)
-      
-      (test-hash-bang)
-      
-      (prepare-for-test-expression)
-      
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
-      
-      (test-expression "(sqrt -1)" "0+1i")
-      
-      (test-expression "class" "class: bad syntax")
-      
-      (test-expression "shared" "shared: bad syntax")
-      
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
-      (test-expression "'(1 . 2)" "(cons 1 2)")
-      
-      (test-expression "call/cc" "call-with-current-continuation")
-      
-      (test-expression "(error 'a \"~a\" 1)" "a: 1")
-      (test-expression "(error \"a\" \"a\")" "a \"a\"")
-      
-      (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
-            
-      (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
-      (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
-      (test-expression "(cond [(= 1 2) 3])" "??")
-      (test-expression "(cons 1 2)" "(cons 1 2)")
-      (test-expression "'(1)" "(list 1)")
-      (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(shared ((-1- (list 1))) (list -1- -1-))")
-      (test-expression "(local ((define x x)) 1)" (regexp "define: allowed only in definition contexts"))
-      (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
-      (test-expression "(if 1 1 1)" "1")
-      (test-expression "(+ 1)" "1")
-      
-      (test-expression "1.0" "1")
-      (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1.3\" decimal}")
-      (test-expression "1/3" "{number 1/3 \"0.3\" decimal}")
-      (test-expression "-4/3" "{number -4/3 \"-1.3\" decimal}")
-      (test-expression "-1/3" "{number -1/3 \"-0.3\" decimal}")
-      (test-expression "3/2" "{number 3/2 \"1.5\" decimal}")
-      (test-expression "1/2" "{number 1/2 \"0.5\" decimal}")
-      (test-expression "-1/2" "{number -1/2 \"-0.5\" decimal}")
-      (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
-      (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
-      (test-expression "(exact? 1.5)" "true")
-      
-      (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
-      (test-expression ",1" "unquote: not in quasiquote")
-      
-      (test-expression "(list 1)" "(list 1)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
-
-
                                                  
                                                  
                                             ;    
@@ -997,7 +913,6 @@
     (go intermediate)
     (go intermediate/lambda)
     (go advanced)
-    ;(full) ;; not there anymore
     (go mred)
     (go mzscheme)
     ))

@@ -308,37 +308,35 @@
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) number -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip width)
-        (parameterize ([current-inspector drscheme-inspector])
-          (if (eq? (simple-settings-printing-style settings) 'current-print)
-              (parameterize ([current-output-port port])
-                ((current-print) value))
-              (let ([converted-value
-                     (simple-module-based-language-convert-value value settings)])
-                (parameterize ([print-graph
-                                ;; only turn on print-graph when using `write' printing 
-                                ;; style because the sharing is being taken care of
-                                ;; by the print-convert sexp construction when using
-                                ;; other printing styles.
-                                (and (eq? (simple-settings-printing-style settings) 'write)
-                                     (simple-settings-show-sharing settings))]
-                               [drscheme:rep:which-number-snip
-                                (lambda (n)
-                                  (simple-settings-fraction-style settings))])
-                  (cond
-                    [(simple-settings-insert-newlines settings)
-                     (if (number? width)
-                         (parameterize ([pretty-print-columns width])
-                           (pretty-print converted-value port))
-                         (pretty-print converted-value port))]
-                    [else
-                     (parameterize ([pretty-print-columns 'infinity])
-                       (pretty-print converted-value port))
-                     (newline port)]))))))
+        (if (eq? (simple-settings-printing-style settings) 'current-print)
+            (parameterize ([current-output-port port])
+              ((current-print) value))
+            (let ([converted-value
+                   (simple-module-based-language-convert-value value settings)])
+              (parameterize ([print-graph
+                              ;; only turn on print-graph when using `write' printing 
+                              ;; style because the sharing is being taken care of
+                              ;; by the print-convert sexp construction when using
+                              ;; other printing styles.
+                              (and (eq? (simple-settings-printing-style settings) 'write)
+                                   (simple-settings-show-sharing settings))]
+                             [drscheme:rep:which-number-snip
+                              (lambda (n)
+                                (simple-settings-fraction-style settings))])
+                (cond
+                  [(simple-settings-insert-newlines settings)
+                   (if (number? width)
+                       (parameterize ([pretty-print-columns width])
+                         (pretty-print converted-value port))
+                       (pretty-print converted-value port))]
+                  [else
+                   (parameterize ([pretty-print-columns 'infinity])
+                     (pretty-print converted-value port))
+                   (newline port)])))))
       
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
         (parameterize ([pretty-print-columns 'infinity]
-                       [current-inspector drscheme-inspector]
                        [drscheme:rep:use-number-snip
                         (lambda (x)
                           (if (and (number? x)
@@ -402,8 +400,6 @@
            
            (provide init-code)
            
-           (define root-inspector (current-inspector))
-           
            (define (executable-error-value->string-handler val size)
              (let ([o (open-output-string)])
                (render-value val o)
@@ -415,8 +411,7 @@
                       "...")))))
            
            (define (render-value value port)
-             (parameterize ([pretty-print-columns 'infinity]
-                            [current-inspector root-inspector])
+             (parameterize ([pretty-print-columns 'infinity])
                (pretty-print (convert-value value) port)))
            
            (define (convert-value value)
