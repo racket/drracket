@@ -287,6 +287,7 @@
 	   (send definitions-edit lock #f)
 	   (send interactions-edit lock #f))])
       
+      (inherit set-label)
       (public
 	[update-save-button
 	 (lambda (mod?)
@@ -296,14 +297,14 @@
 	[update-save-message
 	 (lambda (name)
 	   (when save-button
-	     (let ([msg (make-object 
-			 mred:message%
-			 (if name
-			     (or (mzlib:file:file-name-from-path name)
-				 "Untitlesd") 
-			     "Untitled")
-			 top-panel)])
+	     (let* ([name 
+		     (if name
+			 (or (mzlib:file:file-name-from-path name)
+			     "Untitled") 
+			 "Untitled")]
+		    [msg (make-object mred:message% name top-panel)])
 	       (set! name-message msg)
+	       (set-label name)
 	       (send top-panel change-children
 		     (lambda (l) (build-top-panel-children))))))])
       (override
@@ -626,16 +627,6 @@
 	  (set-editor interactions-edit))
 	(send interactions-edit auto-wrap #t)
 
-	(set! name-message
-	      (make-object mred:message%
-		(let ([fn (send definitions-edit get-filename)])
-		  (cond
-		   [(not fn) "Untitled"]
-		   [(mzlib:file:file-name-from-path fn)]
-		   [else "Untitled"]))
-		top-panel))
-	
-	
 	(set! save-button
 	      (make-object mred:button% 
 			   (make-save-bitmap this)
@@ -645,7 +636,8 @@
 			       (when edit
 				 (send edit save-file)
 				 (send definitions-canvas focus))))))
-	(update-save-button #f))
+	
+	(set! name-message (make-object mred:message% "" top-panel)))
       (private 
 	[make-library-name-msg
 	 (lambda (panel n)
@@ -706,6 +698,16 @@
 		 button-panel))])
       
       (sequence
+	
+	(update-save-button #f)
+
+	(update-save-message
+	 (let ([fn (send definitions-edit get-filename)])
+	   (cond
+	     [(not fn) "Untitled"]
+	     [(mzlib:file:file-name-from-path fn) => (lambda (x) x)]
+	     [else "Untitled"])))
+	
 	(send interactions-edit initialize-console)
 
 	(when (or (ivar interactions-edit repl-initially-active?)
