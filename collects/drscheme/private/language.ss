@@ -79,16 +79,16 @@
 	  ;; a mixin that delegates item clicks to the item clicked on, if it
 	  ;; is a language.
 	  (define selectable-hierlist%
-            (init parent)
-	    (class hierarchical-list%
-	      (override on-select)
-	      (rename [super-on-select on-select])
-	      (define (on-select i)
-		(when (is-a? hieritem-language<%>)
-		  (send i show-details)))
-	      (super-instantiate (parent))))
+            (class hierarchical-list%
+              (init parent)
+              (override on-select)
+              (rename [super-on-select on-select])
+              (define (on-select i)
+                (when (is-a? i hieritem-language<%>)
+                  (send i show-details)))
+              (super-instantiate (parent))))
 
-          (define dialog (make-object dialog% configure-language-title parent))
+          (define dialog (make-object dialog% configure-language-title parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
 	  (define details-panel (make-object panel:single% outermost-panel))
@@ -105,15 +105,17 @@
 		      (send language config-panel panel))))
 		 languages))
 
-	  ;; language-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
+	  ;; language-mixin : (implements language<%>) -> ((implements hierlist<%>) -> (implements hierlist<%>))
 	  ;; a mixin that responds to language selections and updates the details-panel
-	  (define (language-mixin % language)
-	    (class* % (hieritem-language<%>)
-	      (public show-details)
-	      (define (show-details)
-		(send details-panel active-child
-		      (second (assoc language details-panels-associations))))
-              (super-instantiate ())))
+	  (define (language-mixin language)
+            (lambda (%)
+              (class* % (hieritem-language<%>)
+                (init-rest args)
+                (public show-details)
+                (define (show-details)
+                  (send details-panel active-child
+                        (second (assoc language details-panels-associations))))
+                (apply super-make-object args))))
 
 	  ;; add-language : (instanceof language<%>) -> void
 	  ;; adds the language to the dialog
@@ -123,7 +125,7 @@
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let ([item (send hier-list new-item language-mixin)])
+		 (let ([item (send hier-list new-item (language-mixin language))])
 		   (send (send item get-editor) insert (car lng)))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
@@ -303,22 +305,12 @@
                
                [case-sensitive? (make-check-box basis:set-setting-case-sensitive?!
                                                 basis:setting-case-sensitive?
-                                                "Case sensitive"
+                                                (string-constant case-sensitive?-label)
                                                 input-syntax-panel)]
-               [unmatched-cond/case-is-error?
-                (make-check-box basis:set-setting-unmatched-cond/case-is-error?!
-                                basis:setting-unmatched-cond/case-is-error?
-                                "Unmatched cond/case is an error"
-                                dynamic-panel)]
-               [signal-undefined
-                (make-check-box basis:set-setting-signal-undefined!
-                                basis:setting-signal-undefined
-                                "Signal undefined variables when first referenced"
-                                dynamic-panel)]
                [teaching-primitives-and-syntax?
                 (make-check-box basis:set-setting-teaching-primitives-and-syntax?!
                                 basis:setting-teaching-primitives-and-syntax?
-                                "Teaching language primitives and syntax"
+                                (string-constant teaching-primitives-and-syntax?-label)
                                 dynamic-panel)]
                [printer-number->symbol
                 (lambda (which)
@@ -331,16 +323,12 @@
                 (right-align
                  (lambda (main)
                    (make-object radio-box%
-                     "Output Style"
-                     (list "Constructor"
-                           "Quasiquote"
-                           "write")
+                     (string-constant output-style-label)
+                     (list (string-constant contructor-printing-style)
+                           (string-constant quasiquote-printing-style)
+                           (string-constant write-printing-style))
                      main
-                     (lambda (box evt)
-                       (let* ([which (send box get-selection)]
-                              [symbol-which (printer-number->symbol which)])
-                         (basis:set-setting-printing! settings symbol-which)
-                         (update-to settings)))))
+                     void))
                  output-syntax-panel)]
                [sharing-printing?
                 (make-check-box basis:set-setting-sharing-printing?!
