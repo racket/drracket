@@ -57,8 +57,7 @@
       (define (pop-status)
         (status-stack (cdr (status-stack)))
         (status "~a" (car (status-stack))))
-      
-      (define (not-break x) (not (exn:misc:user-break? x)))
+
       
       (define (call-with-output-file* file proc flag)
         ; Closes on escape
@@ -74,7 +73,7 @@
             (load-status #t "image" url)
             (call-with-output-file* tmp-filename
                                     (lambda (op)
-                                      (with-handlers ([not-break void])
+                                      (with-handlers ([not-break-exn? void])
                                         (call/input-url 
                                          url
                                          get-pure-port
@@ -259,7 +258,7 @@
                   (lambda (s)
                     (let ([src (get-src s)])
                       (and src
-                           (with-handlers ([not-break (lambda (x) #f)])
+                           (with-handlers ([not-break-exn? (lambda (x) #f)])
                              (if base-path
                                  (combine-url/relative base-path src)
                                  (string->url src)))))))]
@@ -626,7 +625,7 @@
                           (let ([skip-one? #f])
                             (let ([code (parse-mzscheme args)])
                               (when code
-                                (let ([s (with-handlers ([not-break
+                                (let ([s (with-handlers ([not-break-exn?
                                                           (lambda (exn)
                                                             (format
                                                              "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"

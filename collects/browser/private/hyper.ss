@@ -95,7 +95,7 @@
                    (on-url-click
                     (lambda (url-string)
                       (with-handlers ([void (lambda (x)
-                                              (unless (or (exn:misc:user-break? x)
+                                              (unless (or (exn:break? x)
                                                           (exn:file-saved-instead? x)
                                                           (exn:cancelled? x))
                                                 (message-box
@@ -293,7 +293,7 @@
                                               (semaphore-wait wait-to-start)
                                               (with-handlers ([void
                                                                (lambda (x)
-                                                                 (when (not (exn:misc:user-break? x))
+                                                                 (when (not (exn:break? x))
                                                                    (set! exn x)))]
                                                               [void ; throw away break exceptions
                                                                void])
@@ -635,7 +635,7 @@
                  [(or (url? init-page) (string? init-page))
                   
                   ; handle stopping when loading the home page
-                  (with-handlers ([exn:misc:user-break? 
+                  (with-handlers ([exn:break? 
                                    (lambda (x) (void))])
                     (send c goto-url init-page #f)
                     (set! init-page (send c current-page))
