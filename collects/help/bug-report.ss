@@ -16,9 +16,9 @@
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
-    (namespace-variable-value 'get-language-level #f (lambda () 'unknown)))
+    (namespace-variable-value 'get-language-level #f (lambda () (lambda () 'unknown))))
   (define get-teachpack-filenames
-    (namespace-variable-value 'get-teachpack-filenames #f (lambda () 'unknown)))
+    (namespace-variable-value 'get-teachpack-filenames #f (lambda () (lambda () 'unknown))))
   
   ;; this one should be defined by help desk.
   (define frame-mixin
