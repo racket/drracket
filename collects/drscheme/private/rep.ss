@@ -884,7 +884,8 @@ TODO
                  (user-custodian #f)
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
-                 (user-thread-box (make-weak-box #f)))
+                 (user-thread-box (make-weak-box #f))
+                 (user-parameterization #f))
 
           (define/public (get-user-language-settings) user-language-settings)
           (define/public (get-user-custodian) user-custodian)
@@ -893,6 +894,7 @@ TODO
           (define/public (get-user-eventspace) (weak-box-value user-eventspace-box))
           (define/public (get-user-thread) (weak-box-value user-thread-box))
           (define/public (get-user-namespace) (weak-box-value user-namespace-box))
+          (define/public (get-user-parameterization) user-parameterization)
           
           (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                  (should-collect-garbage? #f)
@@ -936,8 +938,8 @@ TODO
           (define/override (on-submit)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
-            ;; an eof really does come thru the calls to `read'. handle-repl-evaluation
-            ;; clears out the extra eof, if one is still there after evaluation
+            ;; an eof really does come thru the calls to `read'. 
+            ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
             (send-eof-to-in-port)
             (send-eof-to-in-port)
             (evaluate-from-port 
@@ -991,7 +993,10 @@ TODO
                             (unless (eof-object? sexp/syntax/eof)
                               (call-with-values
                                (lambda ()
-                                 (eval-syntax sexp/syntax/eof))
+                                 (call-with-parameterization
+                                  (get-user-parameterization)
+                                  (lambda ()
+                                    (eval-syntax sexp/syntax/eof))))
                                (lambda x (display-results x)))
                               (loop))))
                         (set! cleanup? #t))
@@ -1106,6 +1111,9 @@ TODO
               (set! user-eventspace-box (make-weak-box
 					 (parameterize ([current-custodian user-custodian])
 					   (make-eventspace))))
+              (set! user-parameterization (make-weak-box
+                                           (parameterize ([break-enabled #t]) 
+                                             (current-parameterization))))
               (set! user-break-enabled #t)
               (set! eval-thread-thunks null)
               (set! eval-thread-state-sema (make-semaphore 1))
@@ -1132,9 +1140,7 @@ TODO
                      ; No user code has been evaluated yet, so we're in the clear...
                      (break-enabled #f)
                      (set! user-thread-box (make-weak-box (current-thread)))
-                     (initialize-parameters snip-classes)
-                     (set! user-parameterization (new-parameterization))
-                     )))
+                     (initialize-parameters snip-classes))))
                 
                 ;; disable breaks until an evaluation actually occurs
                 (send context set-breakables #f #f)
