@@ -827,7 +827,7 @@
               (let ([file (parameterize ([finder:dialog-parent-parameter this])
                             (finder:put-file))])
                 (when file
-                  (send text save-file file 'text))))]
+                  (send text save-file/gui-error file 'text))))]
           
           [define (toggle-show/hide-definitions)
             (set! definitions-shown? (not definitions-shown?))
@@ -861,7 +861,7 @@
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions)
                   sub-menu
-                  (lambda (_1 _2) (send interactions-text save-file)))
+                  (lambda (_1 _2) (send interactions-text save-file/gui-error)))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as)
                   sub-menu
@@ -869,8 +869,7 @@
                     (let ([file (parameterize ([finder:dialog-parent-parameter this])
                                   (finder:put-file))])
                       (when file
-                        (send interactions-text save-file 
-                              file 'standard)))))
+                        (send interactions-text save-file/gui-error file 'standard)))))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as-text)
                   sub-menu
@@ -1469,10 +1468,9 @@
                   (make-save-bitmap this)
                   top-panel
                   (lambda args
-                    (let* ([text definitions-text])
-                      (when text
-                        (send text save-file)
-                        (send definitions-canvas focus))))))
+                    (when definitions-text
+                      (send definitions-text save-file/gui-error)
+                      (send definitions-canvas focus)))))
           
           (set! name-message (make-object drscheme:frame:name-message% name-panel))
           [define teachpack-items null]

@@ -38,6 +38,7 @@
       (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
+      (test-expression "'(1 . 2)" "(1 . 2)")
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -115,6 +116,7 @@
       (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
+      (test-expression "'(1 . 2)" "(1 . 2)")
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -190,7 +192,8 @@
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
 
-      (test-expression "(define (. x y) (* x y)) ." ".")
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -239,11 +242,90 @@
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
-      (test-expression ",1" "read: illegal use of `,'")
+      (test-expression ",1"
+                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(cons 1 empty)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
+  (define (beginner/abbrev)
+    (parameterize ([language (list "How to Design Programs" 
+                                   "Beginning Student with List Abbreviations")])
+      (check-top-of-repl)
+  
+      (generic-settings #t)
+      (generic-output #t #f #f)
+      
+      (test-hash-bang)
+      
+      (let ([drs (wait-for-drscheme-frame)])
+        (clear-definitions drs)
+        (set-language #t)
+        (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      
+      (test-expression "(sqrt -1)" "0+1i")
+
+      (test-expression "class" "reference to undefined identifier: class")
+      (test-expression "shared" "reference to undefined identifier: shared")
+
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "read: illegal use of \".\"")
+      
+      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      
+      (test-expression "(error 'a \"~a\" 1)"
+                       "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
+      (test-expression "(error \"a\" \"a\")"
+                       "error: expected a symbol and a string, got \"a\" and \"a\"")
+      
+      (test-expression "(time 1)" "reference to undefined identifier: time")
+      
+      (test-expression "(list make-posn posn-x posn-y posn?)"
+                       "(list make-posn posn-x posn-y posn?)")
+      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+      
+      (test-expression "true" "true")
+      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "false")
+      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
+      (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
+      (test-expression "'(1)" "(list 1)")
+      (test-expression "(define shrd (list 1)) (list shrd shrd)"
+                       "(list (list 1) (list 1))")
+      (test-expression "(local ((define x x)) 1)"
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
+      (test-expression "(letrec ([x x]) 1)"
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
+      (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
+      (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
+      
+      (test-expression "1.0" "1")
+      (test-expression "#i1.0" "#i1.0")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
+      (test-expression "1/3" "{number 1/3 \"1/3\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
+      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
+      (test-expression "+1/3i" "0+1/3i")
+      (test-expression "+1/2i" "0+0.5i")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "(exact? 1.5)" "true")
+      
+      (test-expression "(let ([f (lambda (x) x)]) f)" 
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
+      (test-expression ",1"
+                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
+
+      (test-expression "(list 1)" "(list 1)")
+      (test-expression "argv" "reference to undefined identifier: argv")))
+
   (define (intermediate)
     (parameterize ([language (list "How to Design Programs" "Intermediate Student")])
       (check-top-of-repl)
@@ -270,7 +352,8 @@
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." ".")
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -316,7 +399,8 @@
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "function:f")
-      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+      (test-expression ",1"
+                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
@@ -347,7 +431,8 @@
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." ".")
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -393,7 +478,8 @@
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
-      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+      (test-expression ",1"
+                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
@@ -425,7 +511,8 @@
 
       (test-expression "shared" "shared: found a use of `shared' that does not follow an open parenthesis")
       
-      (test-expression "(define (. x y) (* x y)) ." ".")
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -471,11 +558,89 @@
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
-      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+      (test-expression ",1"
+                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
+  (define (full)
+    (parameterize ([language (list "How to Design Programs" "Full")])
+      (check-top-of-repl)
+      
+      (generic-settings #t)
+      (generic-output #t #t #t)
+      ;      (set-language #f)
+      ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
+      ;                    "local variable used before its definition: x")
+      ;      (set-language #f)
+      ;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      
+      (test-hash-bang)
+      
+      (let ([drs (wait-for-drscheme-frame)])
+        (clear-definitions drs)
+        (set-language #t)
+        (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      
+      (test-expression "(sqrt -1)" "0+1i")
+      
+      (test-expression "class" "class: bad syntax")
+      
+      (test-expression "shared" "shared: bad syntax")
+      
+      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "'(1 . 2)" "(cons 1 2)")
+      
+      (test-expression "call/cc" "call-with-current-continuation")
+      
+      (test-expression "(error 'a \"~a\" 1)" "a: 1")
+      (test-expression "(error \"a\" \"a\")" "a \"a\"")
+      
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      
+      (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
+      (test-expression "set-posn-x!" "set-posn-x!")
+      (test-expression "set-posn-y!" "set-posn-y!")
+      
+      (test-expression "true" "true")
+      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "false")
+      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+      (test-expression "(cond [(= 1 2) 3])" "??")
+      (test-expression "(cons 1 2)" "(cons 1 2)")
+      (test-expression "'(1)" "(list 1)")
+      (test-expression "(define shrd (list 1)) (list shrd shrd)"
+                       "(shared ((-1- (list 1))) (list -1- -1-))")
+      (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
+      (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
+      (test-expression "(if 1 1 1)" "1")
+      (test-expression "(+ 1)" "1")
+      
+      (test-expression "1.0" "1")
+      (test-expression "#i1.0" "#i1.0")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
+      (test-expression "1/3" "{number 1/3 \"1/3\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
+      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
+      (test-expression "+1/3i" "0+1/3i")
+      (test-expression "+1/2i" "0+0.5i")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "(exact? 1.5)" "true")
+      
+      (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
+      (test-expression ",1" "unquote: not in quasiquote")
+      
+      (test-expression "(list 1)" "(list 1)")
+      (test-expression "argv" "reference to undefined identifier: argv")))
+
   (define (test-setting setting-name value expression result)
     (fw:test:set-check-box! setting-name value)
     (let ([f (get-top-level-focus-window)])
@@ -674,9 +839,11 @@
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
-    (mred)
-    (mzscheme)
-    (beginner)
+    ;(mred)
+    ;(mzscheme)
+    ;(beginner)
+    (beginner/abbrev)
     (intermediate)
     (intermediate/lambda)
-    (advanced)))
+    (advanced)
+    (full)))
