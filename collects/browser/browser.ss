@@ -1,4 +1,4 @@
-(define start-file "file:D:/Program Files/PLT/collects/doc/mzscheme/index.htm")
+(define start-file "file:~/proj/plt/src/doc/mz/index.htm")
 
 (require-library "url.ss" "net")
 (load-relative "html.ss")
@@ -65,18 +65,19 @@
 	   (let ([e (car page)]
 		 [spos (cadr page)]
 		 [epos (caddr page)]
-		 [c (get-canvas)])
+		 [c (get-canvas)]
+		 [current (current-page)])
 	     ; Pre-size the editor to avoid visible reflow
 	     (let ([wbox (box 0)])
 	       (get-view-size wbox (box 0))
 	       (send e set-max-width (unbox wbox)))
 	     (send e begin-edit-sequence)
 	     (when notify?
-	       (send (send c get-top-level-window) leaving-page (current-page) (list e 0 0)))
-	     (send c set-editor e (zero? spos))
+	       (send (send c get-top-level-window) leaving-page current (list e 0 0)))
+	     (send c set-editor e (and (zero? (cadr current)) (zero? spos)))
 	     (send e scroll-to-position spos #f epos 'start)
 	     (send e end-edit-sequence)
-	     (when (positive? spos)
+	     (when (or (positive? spos) (positive? (cadr current)))
 	       (send c refresh))))]
 	[current-page
 	 (lambda ()
@@ -189,7 +190,7 @@
     (private
       [past null] [future null]
       [hp (make-object horizontal-panel% this)]
-      [back (make-object button% "< Back" hp
+      [back (make-object button% "< Backward" hp
 			 (lambda (b ev) 
 			   (let ([page (car past)]
 				 [e (send c get-editor)])
@@ -212,17 +213,17 @@
 			(for-each
 			 (lambda (page)
 			   (send choice append (send (car page) get-title)))
-			 (append (reverse past)
+			 (append (reverse future)
 				 (list page)
-				 future))
-			(send choice set-selection (length past)))]
+				 past))
+			(send choice set-selection (length future)))]
       [choice (make-object choice% #f null hp
 			   (lambda (ch e)
 			     (let* ([e (send c get-editor)]
 				    [l (append (reverse past)
 					       (list (send e current-page))
 					       future)]
-				    [pos (send choice get-selection)])
+				    [pos (- (length l) (send choice get-selection) 1)])
 			       (let loop ([l l][pre null][pos pos])
 				 (cond
 				  [(zero? pos)
@@ -252,4 +253,4 @@
       (update-buttons (send (send c get-editor) current-page))
       (show #t))))
 
-(define f (make-object (hyper-frame-mixin frame%) "Browser" #f 400 300))
+(define f (make-object (hyper-frame-mixin frame%) "Browser" #f 500 450))

@@ -9,15 +9,16 @@
     (let ([tmp-filename (make-temporary-file "mredimg~a")])
       (call-with-output-file tmp-filename
 	(lambda (op)
-	  (call/input-url 
-	   url
-	   get-pure-port
-	   (lambda (ip)
-	     (let loop ()
-	       (let ([c (read-char ip)])
-		 (unless (eof-object? c)
-		   (write-char c op)
-		   (loop)))))))
+	  (with-handlers ([void void])
+	    (call/input-url 
+	     url
+	     get-pure-port
+	     (lambda (ip)
+	       (let loop ()
+		 (let ([c (read-char ip)])
+		   (unless (eof-object? c)
+		     (write-char c op)
+		     (loop))))))))
 	'truncate)
       (let* ([upath (url-path url)])
 	(begin0
@@ -129,7 +130,8 @@
 	      (let ([m (or (regexp-match re:quote-img s)
 			   (regexp-match re:img s))])
 		(if m
-		    (combine-url/relative base-path (cadr m))
+		    (with-handlers ([void (lambda (x) null)])
+		      (combine-url/relative base-path (cadr m)))
 		    null))))]
 	 
 	 [parse-href
@@ -161,7 +163,7 @@
 				  #f))])
 		(values url-string label))))]
 	 
-	 ;; Make sure newline strength before pos is count
+	 ;; Make sure newline strength before pos is count; returns number inserted
 	 [try-newline
 	  (lambda (pos count)
 	    (cond
@@ -260,6 +262,7 @@
 				   [(nbsp) #\space]
 				   [(gt) #\>]
 				   [(lt) #\<]
+				   [(quot) #\"]
 				   [else ""]))
 				(loop (cons ch l)))))))]
 		 [else 
@@ -349,17 +352,21 @@
 	     [(memq tag atomic-tags)
 	      (let* ([atomic-values (lambda (pos del-white?)
 				      (values pos del-white? #f #f))]
-		     [break (lambda (newlines)
+		     [break (lambda (bullet? newlines)
 			      (insert (make-string enum-depth #\tab) pos)
-			      (atomic-values (+ pos enum-depth (try-newline pos newlines)) #t))])
+			      (when bullet?
+				(insert "* " (+ pos enum-depth)))
+			      (atomic-values (+ pos enum-depth 
+						(try-newline pos newlines)
+						(if bullet? 2 0))
+					     #t))])
 		(case tag
 		  [(!) (atomic-values pos del-white?)]
-		  [(br)
-		   (break 1)]
-		  [(p hr)
-		   (break 2)]
-		  [(li dd) (break 1)]
-		  [(dt) (break 2)]
+		  [(br) (break #f 1)]
+		  [(p hr) (break #f 2)]
+		  [(li) (break #t 1)]
+		  [(dd) (break #f 1)]
+		  [(dt) (break #t 2)]
 		  [(img)
 		   (let* ([url (parse-image-source args)]
 			  [b (cache-image url)])
@@ -425,7 +432,7 @@
 		       (change-style delta:fixed pos end-pos)
 		       (normal)]
 		      [(pre)
-		       (normal)]
+		       (result (+ end-pos (try-newline end-pos 2) (try-newline pos 2)) #t)]
 		      [(h1) (heading delta:h1)]
 		      [(h2) (heading delta:h2)]
 		      [(h3) (heading delta:h3)]
