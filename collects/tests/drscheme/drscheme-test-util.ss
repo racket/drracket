@@ -165,8 +165,8 @@
       (let-values ([(cw ch) (send window get-client-size)]
 		   [(w h) (send window get-size)])
 	(fw:test:mouse-click 'left
-			     (+ cw (floor (/ (- w cw) 2)))
-			     (+ ch (floor (/ (- h ch) 2))))))
+			     (inexact->exact (+ cw (floor (/ (- w cw) 2))))
+			     (inexact->exact (+ ch (floor (/ (- h ch) 2)))))))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
@@ -292,8 +292,8 @@
                          [between-threshold (send editor get-between-threshold)])
                     (send editor get-snip-location snip b1 b2)
                     (let-values ([(gx gy) (send editor editor-location-to-dc-location (unbox b1) (unbox b2))])
-                      (let ([x (+ gx between-threshold 1)]
-                            [y (+ gy between-threshold 1)])
+                      (let ([x (inexact->exact (+ gx between-threshold 1))]
+                            [y (inexact->exact (+ gy between-threshold 1))])
                         (fw:test:mouse-click 'left x y)))))])
           (send language-choice focus)
           (let loop ([list-item language-choice]

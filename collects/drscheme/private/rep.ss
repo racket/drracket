@@ -308,6 +308,9 @@
       (send result-delta set-delta-foreground (make-object color% 0 0 175))
       (send output-delta set-delta-foreground (make-object color% 150 0 150))
       
+      (define grey-delta (make-object style-delta%))
+      (send grey-delta set-delta-foreground "GREY")
+      
       (define welcome-delta (make-object style-delta% 'change-family 'decorative))
       (define click-delta (gui-utils:get-clickback-delta))
       (define red-delta (make-object style-delta%))
@@ -527,6 +530,7 @@
               get-user-custodian
               get-user-eventspace
               get-user-thread
+              get-user-namespace
               
               kill-evaluation
               
@@ -1146,11 +1150,13 @@
             (field (user-language-settings 'uninitialized-user-language-settings)
 		   (user-custodian (make-custodian))
                    (user-eventspace #f)
+                   (user-namespace #f)
                    (user-thread #f))
             
             (define (get-user-custodian) user-custodian)
             (define (get-user-eventspace) user-eventspace)
             (define (get-user-thread) user-thread)
+            (define (get-user-namespace) user-namespace)
             
             (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                    (should-collect-garbage? #f)
@@ -1432,6 +1438,17 @@
                        (set! user-thread (current-thread))
                        (initialize-parameters snip-classes))))
 
+                                  
+                  ;; re-loads any teachpacks that have changed
+                  ;; re-invokes all of the teachpacks
+                  ;; must happen after user-namespace is initialized (in initialize-parameters)
+                  (drscheme:teachpack:load-teachpacks user-namespace (preferences:get 'drscheme:teachpacks))
+	      
+                  ;; installs the teachpacks
+                  (queue-user/wait
+                   (lambda () ; =User=, =No-Breaks=
+                     (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))))
+                  
 		  ;; initialize the language
 		  (send (drscheme:language-configuration:language-settings-language user-language-settings)
 			on-execute
@@ -1558,10 +1575,8 @@
                 
                 (exit-handler (lambda (arg) ; =User=
                                 (custodian-shutdown-all user-custodian)))
-                
-                (current-namespace (make-namespace 'empty))
-                
-                (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))
+                (set! user-namespace (make-namespace 'empty))
+                (current-namespace user-namespace)
                 
                 (current-output-port this-out)
                 (current-error-port this-err)
@@ -1640,14 +1655,11 @@
 	      (set! in-evaluation? #f)
 	      (update-running)
 	      
-	      ;; re-loads any teachpacks that have changed.
-	      (drscheme:teachpack:load-teachpacks (preferences:get 'drscheme:teachpacks))
-	      
 	      ;; must init-evaluation-thread before determining
 	      ;; the language's name, since this updates user-language-settings
 	      (init-evaluation-thread)
 	      
-	      (begin-edit-sequence)
+              (begin-edit-sequence)
 	      (set-resetting #t)
 	      (delete (paragraph-start-position 1) (last-position))
 	      (set-prompt-mode #f)
@@ -1661,11 +1673,15 @@
 	      (insert-delta (format ".~n") welcome-delta)
 	      
 	      (for-each
-	       (lambda (fn)
-		 (insert-delta (string-append (string-constant teachpack) ": ") welcome-delta)
-		 (insert-delta fn dark-green-delta)
-		 (insert-delta (format ".~n") welcome-delta))
-	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
+	       (lambda (fn applies?)
+		 (insert-delta (string-append (string-constant teachpack) ": ")
+                               (if applies? welcome-delta grey-delta))
+		 (insert-delta fn
+                               (if applies? dark-green-delta grey-delta))
+		 (insert-delta (format ".~n") 
+                               (if applies? welcome-delta grey-delta)))
+	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks))
+               (drscheme:teachpack:teachpack-cache-applies (preferences:get 'drscheme:teachpacks)))
 	      
 	      (set! repl-initially-active? #t)
 	      (end-edit-sequence)

@@ -147,6 +147,7 @@
      new-teachpack-cache
      teachpack-cache?
      teachpack-cache-filenames
+     teachpack-cache-applies
      set-teachpack-cache-filenames!))
   
   (define-signature drscheme:tool^

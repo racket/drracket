@@ -301,12 +301,6 @@
         (let* ([snip (send text find-snip start 'after-or-none)]
                [str #f]
                [pos 0]
-               [read-special-object #f]
-               [read-special-length 1]
-               [read-special-proc
-                (lambda ()
-                  (values read-special-object 
-                          read-special-length))]
                [update-str-to-snip
                 (lambda ()
                   (cond
@@ -314,33 +308,31 @@
                      (set! str #f)]
                     [((send text get-snip-position snip) . >= . end)
                      (set! str #f)]
-                    [(is-a? snip drscheme:snip:special<%>)
-                     (let-values ([(_read-special-object _read-special-length)
-                                   (send snip read-special)])
-                       (set! read-special-object _read-special-object)
-                       (set! read-special-length _read-special-length)
-                       (set! str " #$ "))]
                     [(is-a? snip string-snip%)
                      (set! str (send snip get-text 0 (send snip get-count)))]
                     [else
-                     (set! read-special-object (send snip copy))
-                     (set! read-special-length 1)
-                     (set! str " #$ ")]))]
+                     (set! str 'snip)]))]
                [next-snip
                 (lambda ()
                   (set! snip (send snip next))
                   (set! pos 0)
                   (update-str-to-snip))]
-               [read-char (lambda () 
-                            (when (and str
-                                       ((string-length str) . <= . pos))
-                              (next-snip))
+               [read-char (lambda ()
                             (cond
                               [(not str) eof]
-                              [else
+                              [(string? str)
+                               (begin0 (string-ref str pos)
+                                       (set! pos (+ pos 1))
+                                       (when ((string-length str) . <= . pos)
+                                         (next-snip)))]
+                              [(eq? str 'snip)
                                (begin0
-                                 (string-ref str pos)
-                                 (set! pos (+ pos 1)))]))]
+                                 (let ([the-snip snip])
+                                   (lambda (file line col pos)
+                                     (if (is-a? the-snip drscheme:snip:special<%>)
+                                         (send the-snip read-special file line col pos)
+                                         (values (send the-snip copy) 1))))
+                                 (next-snip))]))]
                [char-ready? (lambda () #t)]
                [close (lambda () (void))]
                [peek-char #f])
@@ -348,5 +340,4 @@
           (make-input-port read-char 
                            char-ready?
                            close
-                           peek-char 
-                           read-special-proc))))))
+                           peek-char))))))
