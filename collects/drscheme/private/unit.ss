@@ -121,21 +121,23 @@
             str
             (substring str 0 len)))
       
-      
-      
-       ;;;                                ;                            ;;    ;           ;;;                 
-      ;                           ;                                     ;                  ;                 
-      ;                           ;                                     ;                  ;                 
-     ;;;;;  ; ;;;  ;;;;    ;;;   ;;;;;  ;;;     ;;;  ; ;;;           ;;;;  ;;;    ;;;;     ;     ;;;    ;;; ;
-      ;      ;         ;  ;   ;   ;       ;    ;   ;  ;;  ;         ;   ;    ;        ;    ;    ;   ;  ;   ; 
-      ;      ;      ;;;;  ;       ;       ;    ;   ;  ;   ;         ;   ;    ;     ;;;;    ;    ;   ;  ;   ; 
-      ;      ;     ;   ;  ;       ;       ;    ;   ;  ;   ;         ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
-      ;      ;     ;   ;  ;   ;   ;   ;   ;    ;   ;  ;   ;         ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
-     ;;;;   ;;;;    ;;; ;  ;;;     ;;;  ;;;;;   ;;;  ;;;  ;;         ;;; ; ;;;;;   ;;; ; ;;;;;;  ;;;    ;;;; 
-                                                                                                           ; 
-                                                                                                           ; 
-                                                                                                         ;;;  
-      
+
+      ;                                                                                              
+      ;                                                                                              
+      ;                                                                                              
+      ;    ;;;                         ;                           ;   ;          ;                  
+      ;   ;                                                        ;              ;                  
+      ;   ;                       ;                                ;              ;                  
+      ;  ;;;;  ; ;  ;;;     ;;;  ;;;;  ;    ;;;    ; ;;         ;; ;   ;   ;;;    ;    ;;;     ;; ;  
+      ;   ;    ;;  ;   ;   ;   ;  ;    ;   ;   ;   ;;  ;       ;  ;;   ;  ;   ;   ;   ;   ;   ;  ;;  
+      ;   ;    ;       ;  ;       ;    ;  ;     ;  ;   ;      ;    ;   ;      ;   ;  ;     ; ;    ;  
+      ;   ;    ;    ;;;;  ;       ;    ;  ;     ;  ;   ;      ;    ;   ;   ;;;;   ;  ;     ; ;    ;  
+      ;   ;    ;   ;   ;  ;       ;    ;  ;     ;  ;   ;      ;    ;   ;  ;   ;   ;  ;     ; ;    ;  
+      ;   ;    ;   ;   ;   ;   ;  ;    ;   ;   ;   ;   ;       ;  ;;   ;  ;   ;   ;   ;   ;   ;  ;;  
+      ;   ;    ;    ;;;;;   ;;;    ;;  ;    ;;;    ;   ;        ;; ;   ;   ;;;;;  ;    ;;;     ;; ;  
+      ;                                                                                           ;  
+      ;                                                                                      ;    ;  
+      ;                                                                                       ;;;;   
       
       (define (get-fraction-from-user parent)
         (let* ([dlg (make-object dialog% (string-constant enter-fraction))]
@@ -995,6 +997,22 @@
                 (send logging-parent-panel change-children (lambda (l) null)))
               root))
 
+          (inherit show-info hide-info)
+          (field [toolbar-shown? (preferences:get 'drscheme:toolbar-shown)])
+          (define/override (on-toolbar-button-click) 
+            (set! toolbar-shown? (not toolbar-shown?))
+            (preferences:set 'drscheme:toolbar-shown toolbar-shown?)
+            (update-toolbar-visiblity))
+          (define/private (update-toolbar-visiblity)
+            (cond
+              [toolbar-shown?
+               (when (preferences:get 'framework:show-status-line)
+                 (show-info))
+               (send top-outer-panel change-children (lambda (l) (list top-panel)))]
+              [else
+               (hide-info)
+               (send top-outer-panel change-children (lambda (l) '()))]))
+          
           (inherit get-currently-running?)
           (rename [super-can-close? can-close?])
           (define/override (can-close?)
@@ -1093,8 +1111,10 @@
           
           (inherit set-label)
           (public update-save-button update-save-message)
+          (inherit modified)
           [define update-save-button
             (lambda (mod?)
+              (modified mod?)
               (if save-button
                   (unless (eq? mod? (send save-button is-shown?))
                     (send save-button show mod?))
@@ -1869,6 +1889,7 @@
           
           (super-instantiate ()
             (filename filename)
+            (style '(toolbar-button))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
           
@@ -2117,8 +2138,13 @@
             (callback (lambda (x y) (collapse)))
             (demand-callback (lambda (item) (collapse-demand item))))
           
-          [define top-panel (make-object horizontal-panel% (get-area-container))]
-          [define name-panel (instantiate vertical-panel% ()
+          ;; most contain only top-panel (or nothing)
+          (define top-outer-panel (new horizontal-pane% 
+                                       (parent (get-area-container))
+                                       (stretchable-height #f)))
+          
+          [define top-panel (make-object horizontal-panel% top-outer-panel)]
+          [define name-panel (instantiate vertical-pane% ()
                                (parent top-panel)
                                (stretchable-width #f)
                                (stretchable-height #f))]
@@ -2226,6 +2252,8 @@
                       (list p (- 1 p))))))
           
           (set-label-prefix (string-constant drscheme))
+          
+          (update-toolbar-visiblity)
           
           (send definitions-canvas focus)
           (cond
