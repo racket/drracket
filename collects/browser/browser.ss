@@ -1,7 +1,9 @@
 (module browser mzscheme
-  (require (lib "unit-sig.ss")
+  (require (lib "unitsig.ss")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
+           (lib "plt-installer-sig.ss" "setup")
+           (lib "plt-installer.ss" "setup")
            "browser-sig.ss"
            "browser-unit.ss")
   

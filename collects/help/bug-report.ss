@@ -9,11 +9,11 @@
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
-    (with-handlers ([(lambda (x) (not (exn:misc:user-break? x)))
+    (with-handlers ([(lambda (x) (not (exn:break? x)))
                      (lambda (x) (lambda () 'unknown))])
       (namespace-variable-binding 'get-language-level)))
   (define get-teachpack-names
-    (with-handlers ([(lambda (x) (not (exn:misc:user-break? x)))
+    (with-handlers ([(lambda (x) (not (exn:break? x)))
                      (lambda (x) (lambda () 'unknown))])
       (namespace-variable-binding 'get-teachpack-names)))
   
@@ -170,15 +170,6 @@
        #f))
     
     (define modern-style-list (make-object style-list%))
-    (let ([delta (make-object style-delta% 'change-normal)]
-          [style (send modern-style-list find-named-style "Standard")])
-      (send delta set-delta 'change-family 'modern)
-      (if style
-          (send style set-delta delta)
-          (send modern-style-list new-named-style "Standard"
-                (send modern-style-list find-or-create-style
-                      (send modern-style-list find-named-style "Basic")
-                      delta))))
     
     (define (make-big-text label)
       (let ([canvas 
@@ -421,6 +412,15 @@
     (define (cleanup-frame)
       (send bug-frame close))
     
+    (let ([delta (make-object style-delta% 'change-normal)]
+          [style (send modern-style-list find-named-style "Standard")])
+      (send delta set-delta 'change-family 'modern)
+      (if style
+          (send style set-delta delta)
+          (send modern-style-list new-named-style "Standard"
+                (send modern-style-list find-or-create-style
+                      (send modern-style-list find-named-style "Basic")
+                      delta))))
     
     (send severity set-selection 1)
     (send priority set-selection 1)
