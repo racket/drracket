@@ -95,7 +95,7 @@
       ;; Show expanded language dialog when version changes
       ;; 
       (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
-      (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (string? x) (not x))))
+      (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (symbol? x) (not x))))
       (drscheme:app:check-new-version)
       
       ;; the initial window doesn't set the 

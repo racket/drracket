@@ -8,6 +8,24 @@
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
 
+  (define (show-profiling-results)
+    (define f (make-object frame% "Profile Results" #f 400 600))
+    (define t (make-object text%))
+    (define ec (make-object editor-canvas% f t))
+    (define p (open-output-string))
+
+    (parameterize ([current-output-port p])
+      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #t)
+      (newline)
+      (newline)
+      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #f))
+    (send t insert (get-output-string p))
+    (send t auto-wrap #t)
+    (send t change-style (make-object style-delta% 'change-family 'modern) 0 (send t last-position))
+    (send t lock #t)
+    (send f show #t))
+
+  (define profiling? (equal? (getenv "MREDDEBUG") "profile"))
 
   (when (getenv "MREDDEBUG")
     (let ([main-eventspace-thread (current-thread)])
@@ -23,6 +41,9 @@
 		   [quit-button (make-object button% "Quit" button-panel (lambda (x y) (exit)))]
 		   [break-button (make-object button% "Break" button-panel 
 					      (lambda (x y) (break-thread main-eventspace-thread)))]
+		   [profile-button (make-object button% "Profile Results" button-panel
+						(lambda (x y)
+						  (show-profiling-results)))]
 		   [onb (make-object bitmap% (build-path (collection-path "icons")
 							 "recycle.gif"))]
 		   [offb
@@ -34,7 +55,7 @@
 		      (send bdc clear)
 		      (send bdc set-bitmap #f)
 		      bitmap)])
-	      
+              
 	      (thread
 	       (lambda ()
 		 (let loop ()
@@ -58,6 +79,9 @@
 	      (send c stretchable-width #f)
 	      (send c stretchable-height #f)
 	      (send button-panel set-alignment 'center 'center)
+              (unless profiling?
+                (send profile-button enable #f))
+              (send profile-button stretchable-height #t)
 	      (send quit-button stretchable-height #t)
 	      (send break-button stretchable-height #t))
 	    
@@ -114,6 +138,9 @@
 			 (update-messages)))))))))
 
     (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
+    (when profiling?
+      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t))
+
     (error-print-width 200))
 
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)

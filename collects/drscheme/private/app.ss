@@ -284,7 +284,7 @@
             (exit:insert-on-callback 
              (lambda ()
                (when set-language?
-                 (write-resource "mred" "gui_language" other-language))))
+                 (set-language-pref other-language))))
             (exit:exit #t)
             (set! set-language? #f))))
       

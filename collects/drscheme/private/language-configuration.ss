@@ -375,10 +375,11 @@
                                               (lambda (_1 _2)
                                                 (revert-to-defaults-callback))))
           (define button-gap (make-object horizontal-panel% button-panel))
-	  (define cancel-button (make-object button% 
-                                  (string-constant cancel)
-                                  button-panel
-                                  (lambda (x y) (cancel-callback))))
+	  (define cancel-button (and (not show-welcome?)
+                                     (make-object button% 
+                                       (string-constant cancel)
+                                       button-panel
+                                       (lambda (x y) (cancel-callback)))))
 	  (define ok-button (make-object button%
                               (string-constant ok)
                               button-panel
