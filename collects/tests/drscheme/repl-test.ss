@@ -368,7 +368,9 @@
                 #f)
      
      (make-test
-      "(define s (make-semaphore 0))\n(queue-callback\n(lambda ()\n(dynamic-wind\nvoid\n(lambda () (car))\n(lambda () (semaphore-post s)))))\n(yield s)"
+      ;; the begin/void combo is to make sure that no value printout
+      ;; comes and messes up the source location for the error.
+      "(define s (make-semaphore 0))\n(queue-callback\n(lambda ()\n(dynamic-wind\nvoid\n(lambda () (car))\n(lambda () (semaphore-post s)))))\n(begin (yield s) (void))"
       "car: expects 1 argument, given 0"
       "car: expects 1 argument, given 0"
       2
