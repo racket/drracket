@@ -1,7 +1,7 @@
 (module marks mzscheme
 
   (require (lib "list.ss")
-	   (lib "contracts.ss")
+	   (lib "contract.ss")
            "my-macros.ss"
            "shared.ss")
 
