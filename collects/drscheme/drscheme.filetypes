@@ -7,4 +7,4 @@
   ("CFBundleTypeOSTypes"
    (array "TEXT" "WXME"))
   ("CFBundleTypeExtensions"
-   (array ".scm" ".ss"))))
+   (array "scm" "ss"))))
