@@ -12,7 +12,7 @@
 	      "syntax error: missing close paren"
 	      (vector 0 1)
 	      "read: expected a ')'; started at position 1 in "
-	      "read: expected a ')'; started at position 1, line 1 in "
+	      "read: expected a ')'; started at position 1 in "
 	      #t
 	      #f)
    (make-test "."
@@ -21,7 +21,7 @@
 	      "syntax error: can't use `.' outside list"
 	      (vector 0 1)
 	      "read: illegal use of \".\" at position 1 in "
-	      "read: illegal use of \".\" at position 1, line 1 in "
+	      "read: illegal use of \".\" at position 1 in "
 	      #t
 	      #f)
    (make-test "(lambda ())"
@@ -136,7 +136,7 @@
 	      (format "1~n2~nsyntax error: missing close paren")
 	      (vector 4 5)
 	      (format "1~n2~nread: expected a ')'; started at position 5 in ")
-	      (format "read: expected a ')'; started at position 5, line 1 in ")
+	      (format "read: expected a ')'; started at position 5 in ")
 	      #t
 	      #f)
    (make-test "1 2 . 3 4"
@@ -145,7 +145,7 @@
 	      (format "1~n2~nsyntax error: can't use `.' outside list")
 	      (vector 4 5)
 	      (format "1~n2~nread: illegal use of \".\" at position 5 in ")
-	      (format "read: illegal use of \".\" at position 5, line 1 in ")
+	      (format "read: illegal use of \".\" at position 5 in ")
 	      #t
 	      #f)
    (make-test "1 2 x 3 4"
@@ -473,18 +473,38 @@
 		(printf "FAILED: repl in edit-sequence")
 		(escape)))))))))
 
-(define run-test-in-language-level
-  (lambda (raw?)
-    (let ([level (if raw? "Graphical without Debugging (MrEd)" "Graphical (MrEd)")])
-      (printf "running ~a tests~n" level)
-      (set-language-level! level)
-      (fw:test:new-window definitions-canvas)
-      (fw:test:menu-select "Edit" "Select All")
-      (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
-				      "Clear"
-				      "Delete"))
-      (do-execute drscheme-frame)
-      (let/ec escape (for-each (run-test (get-int-pos) escape raw?) test-data)))))
+(define (run-test-in-language-level raw?)
+  (let ([level (if raw? "Graphical without Debugging (MrEd)" "Graphical (MrEd)")]
+	[drs (wait-for-drscheme-frame)])
+    (printf "running ~a tests~n" level)
+    (set-language-level! level)
+    (fw:test:new-window definitions-canvas)
+    (clear-definitions drscheme-frame)
+    (do-execute drscheme-frame)
+    (let/ec escape (for-each (run-test (get-int-pos) escape raw?) test-data))))
 
-(run-test-in-language-level #f)
+(define (kill-tests)
+  (let ([drs (wait-for-drscheme-frame)])
+    (clear-definitions drs)
+    (do-execute drs)
+
+    (fw:test:menu-select "Scheme" "Kill")
+
+    (let ([win (wait-for-new-frame drs)])
+      (fw:test:button-push "Ok")
+      (let ([drs2 (wait-for-new-frame win)])
+	(unless (eq? drs2 drs)
+	  (error 'kill-tests "expected original drscheme frame to come back to the front"))))
+	
+    (type-in-definitions drs "(kill-thread (current-thread))")
+    (do-execute drs #f)
+
+    (let ([win (wait-for-new-frame drs)])
+      (fw:test:button-push "Ok")
+      (let ([drs2 (wait-for-new-frame win)])
+	(unless (eq? drs2 drs)
+	  (error 'kill-tests "expected original drscheme frame to come back to the front"))))))
+
 (run-test-in-language-level #t)
+(run-test-in-language-level #f)
+(kill-tests)
