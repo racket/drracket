@@ -2432,18 +2432,25 @@ tab panels new behavior:
                                                       this)])
                          (when str
                            (let ()
+                             (define language-settings (send definitions-text get-next-settings))
+                             (define-values (comment-prefix comment-character)
+                               (if language-settings
+                                   (send (drscheme:language-configuration:language-settings-language
+                                          language-settings)
+                                         get-comment-character)
+                                   (values ";" #\;)))
                              (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 #t)))
                              (define-values (tw th td ta) (send bdc get-text-extent str))
                              (define tmp-color (make-object color%))
                              (define (get-char x y)
                                (send bdc get-pixel x y tmp-color)
                                (if (zero? (send tmp-color red))
-                                   #\;
+                                   comment-character
                                    #\space))
                              
                              (define bitmap
                                (make-object bitmap% 
-                                 (+ 3 (inexact->exact tw))
+                                 (inexact->exact tw)
                                  (inexact->exact th) 
                                  #t))
                              
@@ -2456,8 +2463,7 @@ tab panels new behavior:
                              
                              (send bdc set-bitmap bitmap)
                              (send bdc clear)
-                             (send bdc draw-line 0 0 0 th)
-                             (send bdc draw-text str 3 0)
+                             (send bdc draw-text str 0 0)
                              
                              (send edit begin-edit-sequence)
                              (let ([start (send edit get-start-position)]
@@ -2467,6 +2473,7 @@ tab panels new behavior:
                                (let loop ([y (send bitmap get-height)])
                                  (unless (zero? y)
                                    (send edit insert (fetch-line (- y 1)) start start)
+                                   (send edit insert comment-prefix start start)
                                    (send edit insert "\n" start start)
                                    (loop (- y 1)))))
                              (send edit end-edit-sequence)))))))]

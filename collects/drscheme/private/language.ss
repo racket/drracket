@@ -58,7 +58,8 @@
           get-style-delta
           get-language-numbers
           get-one-line-summary
-          get-language-url))
+          get-language-url
+          get-comment-character))
       
       (define module-based-language<%>
 	(interface ()
@@ -464,6 +465,8 @@
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
                    get-init-code use-mred-launcher get-reader)
 
+
+          (define/public (get-comment-character) (values ";  " #\;))
           (define/public (order-manuals x) (values x #t))
           
           (inherit get-language-position)
