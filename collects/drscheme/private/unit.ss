@@ -1813,7 +1813,8 @@
                                       (drscheme:teachpack:teachpack-cache-filenames
                                        user-teachpack-cache)))])
                                (send (get-interactions-text) set-user-teachpack-cache new-teachpacks)
-                               (preferences:set 'drscheme:teachpacks new-teachpacks)))))
+                               (preferences:set 'drscheme:teachpacks new-teachpacks)
+                               (send (get-definitions-text) teachpack-changed)))))
                        (drscheme:teachpack:teachpack-cache-filenames
                         user-teachpack-cache))))
           
@@ -2083,7 +2084,8 @@
               (string-constant add-teachpack-menu-item-label)
               language-menu
               (lambda (_1 _2)
-                (drscheme:language-configuration:add-new-teachpack this)))
+                (when (drscheme:language-configuration:add-new-teachpack this)
+                  (send (get-definitions-text) teachpack-changed))))
             (let ([clear-all-on-demand
                    (lambda (menu-item)
                      (send menu-item enable
@@ -2092,7 +2094,9 @@
               (make-object menu:can-restore-menu-item% 
                 (string-constant clear-all-teachpacks-menu-item-label)
                 language-menu
-                (lambda (_1 _2) (drscheme:language-configuration:clear-all-teachpacks))
+                (lambda (_1 _2) 
+                  (when (drscheme:language-configuration:clear-all-teachpacks)
+                    (send (get-definitions-text) teachpack-changed)))
                 #f
                 #f
                 clear-all-on-demand))

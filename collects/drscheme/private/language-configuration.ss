@@ -852,9 +852,10 @@
                                    ;;;                                
 
       
-      ;; add-new-teachpack : (instanceof frame%) -> void
+      ;; add-new-teachpack : (instanceof frame%) -> boolean
       ;; querys the user for the name of a teachpack and adds it to the
       ;; current teachpacks. Uses the argument as the parent to the dialog
+      ;; the result indicates if the teachpacks changed #t if they did and #f if not
       (define (add-new-teachpack frame)
         (let ([lib-file
                (parameterize ([finder:dialog-parent-parameter frame])
@@ -862,31 +863,38 @@
                   teachpack-directory
                   (string-constant select-a-teachpack)
                   ".*\\.(ss|scm)$"))])
-          (when lib-file
-            (let* ([interactions-text (send frame get-interactions-text)]
-                   [tp-cache (send interactions-text get-user-teachpack-cache)]
-                   [tp-filenames (drscheme:teachpack:teachpack-cache-filenames tp-cache)]
-                   [new-item (normalize-path lib-file)])
-              (cond
-                [(member (normal-case-path new-item) (map normal-case-path tp-filenames))
-                 (message-box (string-constant drscheme-teachpack-message-title)
-                              (format (string-constant already-added-teachpack)
-                                      new-item)
-                              frame)]
-                [else
-                 (let ([new-teachpacks 
-                        (drscheme:teachpack:new-teachpack-cache
-                         (append tp-filenames (list new-item)))])
-                   (send interactions-text set-user-teachpack-cache new-teachpacks)
-                   (preferences:set 'drscheme:teachpacks new-teachpacks))]))
-            (set! teachpack-directory (path-only lib-file)))))
+          (if lib-file
+              (let* ([interactions-text (send frame get-interactions-text)]
+                     [tp-cache (send interactions-text get-user-teachpack-cache)]
+                     [tp-filenames (drscheme:teachpack:teachpack-cache-filenames tp-cache)]
+                     [new-item (normalize-path lib-file)])
+                (cond
+                  [(member (normal-case-path new-item) (map normal-case-path tp-filenames))
+                   (message-box (string-constant drscheme-teachpack-message-title)
+                                (format (string-constant already-added-teachpack)
+                                        new-item)
+                                frame)]
+                  [else
+                   (let ([new-teachpacks 
+                          (drscheme:teachpack:new-teachpack-cache
+                           (append tp-filenames (list new-item)))])
+                     (send interactions-text set-user-teachpack-cache new-teachpacks)
+                     (preferences:set 'drscheme:teachpacks new-teachpacks))])
+                (set! teachpack-directory (path-only lib-file))
+                #t)
+              #f)))
       
-      ;; clear-all-teachpacks : -> void
+      ;; clear-all-teachpacks : -> boolean
       ;; clears all of the teachpack settings
+      ;; the result indicates if the teachpacks changed #t if they did and #f if not
       (define (clear-all-teachpacks)
-        (drscheme:teachpack:set-teachpack-cache-filenames!
-         (preferences:get 'drscheme:teachpacks)
-         null))
+        (let ([old (preferences:get 'drscheme:teachpacks)])
+          (cond
+            [(null? (drscheme:teachpack:teachpack-cache-filenames old))
+             #f]
+            [else
+             (drscheme:teachpack:set-teachpack-cache-filenames! old null)
+             #t])))
 
    ;             ;;;                             
                 ;                                
