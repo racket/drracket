@@ -1,7 +1,7 @@
 (unit/sig drscheme:text^
   (import [fw : framework^]
 	  [aries : plt:aries^]
-	  [zodiac : drscheme:zodiac^])
+	  [zodiac : zodiac:system^])
   
   (define text%
     (class fw:scheme:text% args

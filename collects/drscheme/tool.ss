@@ -4,7 +4,7 @@
 	      [mzlib : mzlib:core^]
 	      [framework : framework^]
 	      [print-convert : mzlib:print-convert^]
-	      [zodiac : drscheme:zodiac^]
+	      [zodiac : zodiac:system^]
 	      [export : drscheme:export^])
     (link 
      ,@(let loop ([dirs drscheme:tool-directories])
