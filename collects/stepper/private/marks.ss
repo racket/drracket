@@ -57,7 +57,7 @@
     (make-full-mark-struct source label-num bindings))
   
   (define (make-full-mark location label bindings)
-    (datum->syntax-object #f `(lambda () (,make-full-mark-varargs (quote-syntax ,location) ,(get-label-num label) ,@(apply append bindings)))))
+    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs (quote-syntax ,location) ,(get-label-num label) ,@(apply append bindings)))))
   
   (define-struct cheap-mark (source))
   
