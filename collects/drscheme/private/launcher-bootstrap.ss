@@ -24,14 +24,14 @@
   (define init-code-tmp-filename (make-temporary-file "drs-launcher-init~a"))
   (define-values (_1 init-code-mod-name _2) (split-path init-code-tmp-filename))
 
-  (set-car! (cdr init-code) (string->symbol init-code-mod-name))
+  (set-car! (cdr init-code) (string->symbol (path->string init-code-mod-name)))
 
   (call-with-output-file init-code-tmp-filename
     (lambda (port)
       (write init-code port))
     'truncate 'text)
   
-  (define init-code-proc (dynamic-require `(file ,init-code-tmp-filename) 'init-code))
+  (define init-code-proc (dynamic-require init-code-tmp-filename 'init-code))
   
   (define original-namespace (current-namespace))
   (current-namespace (make-namespace 'empty))

@@ -170,7 +170,7 @@
                 (let ([stand-alone? (eq? 'stand-alone (car executable-specs))]
                       [gui? (eq? 'mred (cadr executable-specs))]
                       [executable-filename (caddr executable-specs)])
-                  (with-handlers ([exn:fail?
+                  (with-handlers ([(lambda (x) #f) ;exn:fail?
                                    (lambda (x)
                                      (message-box
                                       (string-constant drscheme)
@@ -180,28 +180,28 @@
                     (if stand-alone?
                         (let ([short-program-name (let-values ([(base name dir) (split-path program-filename)])
                                                     (cond
-                                                      [(regexp-match #rx"(.*)\\...." name)
+                                                      [(regexp-match #rx#"(.*)\\...." (path->bytes name))
                                                        =>
                                                        cadr]
-                                                      [(regexp-match #rx"(.*)\\..." name)
+                                                      [(regexp-match #rx#"(.*)\\..." (path->bytes name))
                                                        =>
                                                        cadr]
-                                                      [(regexp-match #rx"(.*)\\.." name)
+                                                      [(regexp-match #rx#"(.*)\\.." (path->bytes name))
                                                        =>
                                                        cadr]
-                                                      [else name]))])
+                                                      [else (path->bytes name)]))])
                           (make-embedding-executable
                            executable-filename
                            gui?
                            #f ;; verbose?
-                           (list (list #f `(file ,program-filename)))
+                           (list (list #f program-filename))
                            null
                            null
                            (list (if gui? "-Zmvqe-" "-mvqe-")
-                                 (format "~s" `(require ,(string->symbol short-program-name))))))
-                        ((if gui? make-mred-launcher make-mzscheme-launcher)
-                         (list "-mvqt-" program-filename)
-                         executable-filename)))))))
+                                 (format "~s" `(require ,(string->symbol (bytes->string/latin-1 short-program-name)))))))
+                        (let ([make-launcher (if gui? make-mred-launcher make-mzscheme-launcher)])
+                          (make-launcher (list "-mvqt-" (path->string program-filename))
+                                         executable-filename))))))))
           
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))

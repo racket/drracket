@@ -254,12 +254,13 @@ tab panels new behavior:
                         (string-constant drscheme)
                         #f
                         frame))
-               (let ([settings (send (send frame get-definitions-text) get-next-settings)])
+               (let ([settings (send definitions-text get-next-settings)])
                  (send (drscheme:language-configuration:language-settings-language settings)
                        create-executable
                        (drscheme:language-configuration:language-settings-settings settings)
                        frame
-                       program-filename)))])))
+                       program-filename
+                       (send (send frame get-interactions-text) get-user-teachpack-cache))))])))
       
       (define make-bitmap 
         (case-lambda 

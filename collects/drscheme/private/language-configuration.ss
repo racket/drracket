@@ -1269,7 +1269,7 @@
                              executable-fn
                              (get-module)
                              (get-transformer-module)
-                             (get-init-code teachpacks setting)
+                             (get-init-code setting teachpacks)
                              mred-launcher?
                              (use-namespace-require/copy?)))))
                       (super-instantiate ()))))]

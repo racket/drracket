@@ -559,7 +559,7 @@
         (define filename-text-field (instantiate text-field% ()
                                       (label (string-constant filename))
                                       (parent filename-panel)
-                                      (init-value (default-executable-filename program-filename #t))
+                                      (init-value (path->string (default-executable-filename program-filename #t)))
                                       (min-width 400)
                                       (callback void)))
         (define filename-browse-button (instantiate button% ()
@@ -752,7 +752,7 @@
           [(macosx) 
            (cond
              [(not dir?) #t] ;; non dir executables are shell scripts and all names are okay
-             [(regexp-match ".app$" name) #t]
+             [(regexp-match #rx#".app$" (path->bytes name)) #t]
              [else
               (message-box (string-constant drscheme)
                            (format
@@ -762,7 +762,7 @@
               #f])]
           [(windows) 
            (cond
-             [(regexp-match ".exe$" name) #t]
+             [(regexp-match #rx#".exe$" (path->bytes name)) #t]
              [else
               (message-box (string-constant drscheme)
                            (format (string-constant windows-executables-must-end-with-exe)
@@ -771,23 +771,26 @@
               #f])]
           [else #t]))
       
-      ;; default-executable-filename : string[filename] -> string[filename]
+      ;; default-executable-filename : path -> path
       (define (default-executable-filename program-filename mred?)
         (let* ([ext (filename-extension program-filename)]
+               [program-bytename (path->bytes program-filename)]
+               ;; ext-less : bytes
                [ext-less (if ext
-                             (substring program-filename
-                                        0
-                                        (- (string-length program-filename)
-                                           (string-length ext)
-                                           1 ;; sub1 for the period in the extension
-                                           ))
-                             program-filename)])
-          (case (system-type)
-            [(windows) (string-append ext-less ".exe")]
-            [(macosx) (if mred?
-                          (string-append ext-less ".app")
-                          ext-less)]
-            [else ext-less])))
+                             (subbytes program-bytename
+                                       0
+                                       (- (bytes-length program-bytename)
+                                          (bytes-length ext)
+                                          1 ;; sub1 for the period in the extension
+                                          ))
+                             program-bytename)])
+          (bytes->path
+           (case (system-type)
+             [(windows) (bytes-append ext-less #".exe")]
+             [(macosx) (if mred?
+                           (bytes-append ext-less #".app")
+                           ext-less)]
+             [else ext-less]))))
       
       ;; create-module-based-stand-alone-executable : ... -> void (see docs)
       (define (create-module-based-stand-alone-executable program-filename 
@@ -798,7 +801,7 @@
                                                           gui?
                                                           use-copy?)
         
-        (with-handlers ([exn:fail?
+        (with-handlers ([(lambda (x) #f) ;exn:fail?
                          (lambda (x)
                            (message-box 
                             (string-constant drscheme)
@@ -806,11 +809,10 @@
                            (void))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
-          
           (let ([init-code-mod-name
                  (let-values ([(base name dir?) 
                                (split-path init-code-tmp-filename)])
-                   (string->symbol name))])
+                   (string->symbol (path->string name)))])
           
             (call-with-output-file bootstrap-tmp-filename
               (lambda (port)
@@ -843,7 +845,7 @@
                             pre-to-be-embedded-module-specs0)
                       pre-to-be-embedded-module-specs0)]
                  [pre-to-be-embedded-module-specs2
-                  (cons `(file ,init-code-tmp-filename)
+                  (cons `(file ,(path->string init-code-tmp-filename))
                         pre-to-be-embedded-module-specs1)]
                  [pre-to-be-embedded-module-specs3
                   (append (drscheme:teachpack:launcher-modules-to-embed
@@ -921,7 +923,7 @@
                                             gui?
                                             use-copy?)
 
-        (with-handlers ([exn:fail?
+        (with-handlers ([(lambda (x) #f) ;exn:fail?
                          (lambda (x)
                            (message-box 
                             (string-constant drscheme)
@@ -931,18 +933,19 @@
           ((if gui? make-mred-launcher make-mzscheme-launcher)
            (list
             "-qmvt"
-            (build-path (collection-path "drscheme" "private") 
-                        "launcher-bootstrap.ss")
+            (path->string
+             (build-path (collection-path "drscheme" "private") 
+                         "launcher-bootstrap.ss"))
             "--"
             (condense-scheme-code-string (format "~s" init-code))
-            program-filename
+            (path->string program-filename)
             (format "~s" module-language-spec)
             (format "~s" transformer-module-language-spec)
             (format "~s" use-copy?)
             (format "~s" (if gui?  
                              (list 'mzscheme '(lib "mred.ss" "mred"))
                              (list 'mzscheme))))
-           executable-filename)))
+           (path->string executable-filename))))
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy?
