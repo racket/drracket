@@ -1628,28 +1628,30 @@
                                    #\;
                                    #\space))
                              
+                             (define bitmap
+                               (make-object bitmap% 
+                                 (+ 3 (inexact->exact tw))
+                                 (inexact->exact th) 
+                                 #t))
+                             
                              (define (fetch-line y)
-                               (let loop ([x tw]
+                               (let loop ([x (send bitmap get-width)]
                                           [chars null])
                                  (cond
                                    [(zero? x) (apply string chars)]
                                    [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
                              
-                             
-                             (send bdc set-bitmap (make-object bitmap% 
-                                                    (+ 2 (inexact->exact tw))
-                                                    (inexact->exact th) 
-                                                    #t))
+                             (send bdc set-bitmap bitmap)
                              (send bdc clear)
                              (send bdc draw-line 0 0 0 th)
-                             (send bdc draw-text str 2 0)
+                             (send bdc draw-text str 3 0)
                              
                              (send edit begin-edit-sequence)
                              (let ([start (send edit get-start-position)]
                                    [end (send edit get-end-position)])
                                (send edit delete start end)
                                (send edit insert "\n" start start)
-                               (let loop ([y th])
+                               (let loop ([y (send bitmap get-height)])
                                  (unless (zero? y)
                                    (send edit insert (fetch-line (- y 1)) start start)
                                    (send edit insert "\n" start start)
