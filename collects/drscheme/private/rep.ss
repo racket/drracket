@@ -418,7 +418,7 @@
              [list-of-snip/strings? (list-of? snip/string?)]
              [list-of-lists-of-snip/strings? (list-of? list-of-snip/strings?)])
         (preferences:set-default
-         'console-previous-exprs
+         'drscheme:console-previous-exprs
          null
          list-of-lists-of-snip/strings?))
       (let ([marshall 
@@ -434,7 +434,7 @@
                     lls))]
             [unmarshall (lambda (x) x)])
         (preferences:set-un/marshall
-         'console-previous-exprs
+         'drscheme:console-previous-exprs
          marshall unmarshall))
       
       (define error-color (make-object color% "PINK"))
@@ -2303,11 +2303,10 @@
           (define clear-previous-expr-positions
             (lambda ()
               (set! previous-expr-positions null)))
+          
           (define copy-previous-expr
             (lambda ()
-              (let ([snip/strings (list-ref (preferences:get
-                                             'console-previous-exprs) 
-                                            previous-expr-pos)])
+              (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
                 (begin-edit-sequence)
                 (unless prompt-mode?
                   (insert-prompt))
@@ -2320,9 +2319,10 @@
                           snip/strings)
                 (set-position (last-position))
                 (end-edit-sequence))))
+          
           (define copy-next-previous-expr
             (lambda ()
-              (let ([previous-exprs (preferences:get 'console-previous-exprs)])
+              (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
                         (if (< (add1 previous-expr-pos) (length previous-exprs))
@@ -2331,13 +2331,39 @@
                   (copy-previous-expr)))))
           (define copy-prev-previous-expr
             (lambda ()
-              (let ([previous-exprs (preferences:get 'console-previous-exprs)])
+              (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
                         (if (previous-expr-pos . <= . 0)
                             (sub1 (length previous-exprs))
                             (sub1 previous-expr-pos)))
                   (copy-previous-expr)))))
+          
+          ;; private fields
+          (define global-previous-exprs (preferences:get 'drscheme:console-previous-exprs))
+          (define local-previous-exprs null)
+          (define/private (get-previous-exprs)
+            (append global-previous-exprs local-previous-exprs))
+          (define/private (add-to-previous-exprs snips)
+            (let* ([new-previous-exprs 
+                    (let* ([trimmed-previous-exprs (trim-previous-exprs local-previous-exprs)])
+                      (let loop ([l trimmed-previous-exprs])
+                        (if (null? l)
+                            (list snips)
+                            (cons (car l) (loop (cdr l))))))])
+              (set! local-previous-exprs new-previous-exprs)))
+          (rename [super-on-close on-close])
+          (define/override (on-close)
+            (preferences:set 'drscheme:console-previous-exprs 
+                             (trim-previous-exprs
+                              (append 
+                               (preferences:get 'drscheme:console-previous-exprs)
+                               local-previous-exprs)))
+            (super-on-close))
+          (define/private (trim-previous-exprs lst)
+            (if ((length lst). >= .  console-max-save-previous-exprs)
+                (cdr lst)
+                lst))
           
           (define do-save-and-eval
             (lambda (start end)
@@ -2354,17 +2380,7 @@
                          [else snips]))])
                 (set! previous-expr-positions (cons (cons start end) previous-expr-positions))
                 (set! previous-expr-pos -1)
-                (let* ([previous-exprs (preferences:get 'console-previous-exprs)]
-                       [new-previous-exprs 
-                        (let* ([trimmed-previous-exprs
-                                (if (>= (length previous-exprs) console-max-save-previous-exprs)
-                                    (cdr previous-exprs)
-                                    previous-exprs)])
-                          (let loop ([l trimmed-previous-exprs])
-                            (if (null? l)
-                                (list snips)
-                                (cons (car l) (loop (cdr l))))))])
-                  (preferences:set 'console-previous-exprs new-previous-exprs))
+                (add-to-previous-exprs snips)
                 (do-eval start end))))
           
           (define reset-pretty-print-width
