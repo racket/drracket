@@ -515,7 +515,7 @@
 		     "(shared ((-1- (list 1))) (list -1- -1-))")
     (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
-    (test-expression "(if 1 1 1)" "1")
+    (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
