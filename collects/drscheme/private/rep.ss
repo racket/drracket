@@ -385,7 +385,7 @@
             [(is-a? editor-admin editor-admin%)
              (send text get-canvas)]
             [else #f])))
-      
+            
       ;; instances of this interface provide a context for a rep:text%
       ;; its connection to its graphical environment (ie frame) for
       ;; error display and status infromation is all mediated
@@ -525,6 +525,7 @@
                       reset-console)
             
             (public
+              expand-program
               reset-highlighting
 	      highlight-error
 	      highlight-error/forward-sexp
@@ -1085,6 +1086,64 @@
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+            ;; expand-program : language-settings ((union sexp syntax) ((-> void) -> void) (-> void) -> void) -> void
+            (define (expand-program language-settings iter)
+              (let ([eventspace (make-eventspace)]
+                    [language (drscheme:language-configuration:language-settings-language language-settings)]
+                    [settings (drscheme:language-configuration:language-settings-settings language-settings)]
+                    [user-custodian (make-custodian)]
+                    [run-in-eventspace
+                     (lambda (thnk)
+                       (parameterize ([current-eventspace eventspace])
+                         (let ([s (make-semaphore 0)]
+                               [ans #f])
+                           (queue-callback
+                            (lambda ()
+                              (set! ans (thnk))
+                              (semaphore-post sema)))
+                           (semaphore-wait s)
+                           ans)))]
+                    [drs-snip-classes (get-snip-classes)])
+                (run-in-eventspace
+                 (lambda ()
+                   (current-custodian user-custodian)
+                   (set-basic-parameters drs-snip-classes)
+                   (current-language-settings language-settings)
+                   (break-enabled #t)))
+                (send language on-execute settings run-in-eventspace)
+                (let ([read-thnk
+                       (run-in-eventspace
+                        (lambda ()
+                          (send language front-end input settings)))])
+                  (let loop ()
+                    (let ([in (run-in-eventspace read-thnk)])
+                      (unless (eof-object? in)
+                        (iter
+                         in
+                         run-in-eventspace
+                         (lambda () (loop)))))))))
+            
+            ;; set-basic-parameters : -> void
+            ;; sets the parameters that are shared between the repl's initialization
+            ;; and expand-program
+            (define (set-basic-parameters snip-classes)
+              (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
+                        snip-classes)
+              (current-rep this)
+              (read-curly-brace-as-paren #t)
+              (read-square-bracket-as-paren #t)
+              (error-print-width 250)
+              (current-load drscheme-load-handler)
+              (let ([dir (or (send context get-directory)
+                             drscheme:init:first-dir)])
+                (current-directory dir)
+                (current-load-relative-directory dir))
+              
+              (let ([user-custodian (current-custodian)])
+                (exit-handler (lambda (arg) ; =User=
+                                (custodian-shutdown-all user-custodian))))
+              (current-namespace (make-namespace 'empty)))
+            
             ;; drscheme-port-print-handler : TST port -> void
             ;; effect: prints the value on the port
             ;; default setting for the behavior of the `print' primitive.
@@ -1401,6 +1460,16 @@
                 (set! eval-thread-thunks (append eval-thread-thunks (list thunk)))
                 (semaphore-post eval-thread-state-sema)
                 (semaphore-post eval-thread-queue-sema)))
+
+            ;; get-snip-classes : -> (listof snipclass)
+            ;; returns a list of the snip classes in the current eventspace
+            (define (get-snip-classes)
+              (let loop ([n (send (get-the-snip-class-list) number)])
+                (if (zero? n)
+                    null
+                    (cons (send (get-the-snip-class-list) nth (- n 1))
+                          (loop (- n 1))))))
+
             (define init-evaluation-thread ; =Kernel=
               (lambda ()
                 (set! user-language-settings
@@ -1429,11 +1498,7 @@
 		  ; setup standard parameters
                   (let ([snip-classes
                          ; the snip-classes in the DrScheme eventspace's snip-class-list
-                         (let loop ([n (send (get-the-snip-class-list) number)])
-                           (if (zero? n)
-                               null
-                               (cons (send (get-the-snip-class-list) nth (- n 1))
-                                     (loop (- n 1)))))])
+                         (get-snip-classes)])
                     (queue-user/wait
                      (lambda () ; =User=, =No-Breaks=
                        ; No user code has been evaluated yet, so we're in the clear...
@@ -1543,9 +1608,7 @@
             ;; initialize-paramters : (listof snip-class%) -> void
             (define initialize-parameters ; =User=
               (lambda (snip-classes)
-                (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
-                          snip-classes)
-		(current-rep this)
+                
               	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
 		(error-display-handler drscheme-error-display-handler)
@@ -1556,36 +1619,21 @@
                 (setup-display/write-handlers)
                 (pretty-print-size-hook drscheme-pretty-print-size-hook)
                 (pretty-print-print-hook drscheme-pretty-print-print-hook)
-                
-                (break-enabled #t)
-                (read-curly-brace-as-paren #t)
-                (read-square-bracket-as-paren #t)
-                
-                (error-print-width 250)
-                
                 (print-convert:current-print-convert-hook
                  (lambda (expr basic-convert sub-convert)
 		   (if (is-a? expr snip%)
 		       expr
 		       (basic-convert expr))))
                 
-                (current-load drscheme-load-handler)
-                
-                (let ([dir (or (send context get-directory)
-                               drscheme:init:first-dir)])
-                  (current-directory dir)
-                  (current-load-relative-directory dir))
-                
-                (exit-handler (lambda (arg) ; =User=
-                                (custodian-shutdown-all user-custodian)))
+                (set-basic-parameters snip-classes)
                 (set! user-namespace (make-namespace 'empty))
-                (current-namespace user-namespace)
+                (current-namespace (current-namespace))
                 
                 (current-output-port this-out)
                 (current-error-port this-err)
                 (current-value-port this-result)
                 (current-input-port this-in)
-                
+                (break-enabled #t)
                 (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                   (event-dispatch-handler
                    (rec drscheme-event-dispatch-handler ; <= a name for #<...> printout
@@ -1710,7 +1758,7 @@
             (super-instantiate ())
             
             (set-styles-sticky #f))))
-     
+      
       (define make-console-text%
         (lambda (super%)
           (rec console-text%

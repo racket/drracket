@@ -29,6 +29,9 @@
       (define settings-preferences-symbol 
         (string->symbol (format "drscheme:~a-settings" (version:version))))
       
+      ;; get-settings-preferences-symbol : -> symbol
+      (define (get-settings-preferences-symbol) settings-preferences-symbol)
+
       ;; default-language-position : (listof string)
       ;; if a language is registered with this position, it is
       ;; considered the default language

@@ -48,11 +48,13 @@
   
   (define-signature drscheme:language-configuration/internal^
     ((struct language-settings (language settings))
+     
      get-default-language-settings
      (open drscheme:language-configuration^)
      get-languages
      fill-language-menu
      settings-preferences-symbol
+     get-settings-preferences-symbol
      choose-language))
   
   (define-signature drscheme:tools^
