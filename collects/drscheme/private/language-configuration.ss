@@ -1,3 +1,8 @@
+#|
+
+todo: key strokes get stuck at boundaries; they should skip over them
+
+|#
 
 (module language-configuration mzscheme
   (require (lib "unitsig.ss")
