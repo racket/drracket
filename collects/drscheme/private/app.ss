@@ -327,6 +327,7 @@
                               (parent bp)
                               (style '(border))
                               (callback (lambda (x y) (next-state)))))
+        (send next-button focus)
         
         (set-state 'natural-language)
         
