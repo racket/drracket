@@ -11,7 +11,8 @@
 	  [drscheme:rep : drscheme:rep^]
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
-	  [drscheme:graph : drscheme:graph^])
+	  [drscheme:graph : drscheme:graph^]
+	  [drscheme:snip : drscheme:snip^])
 
   (define (get-fraction-from-user)
     (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
@@ -801,6 +802,7 @@
 	   (make-object mred:separator-menu-item% file-menu))])
 
       (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
+      (inherit get-menu-item%)
       (override
        [add-edit-menu-snip-items
 	(lambda (edit-menu)
@@ -812,13 +814,13 @@
 		       [on-demand
 			(lambda ()
 			  (let ([edit (get-edit-target-object)])
-			    (enable (and edit (is-a? edit editor<%>)))))])
+			    (enable (and edit (is-a? edit mred:editor<%>)))))])
 		      (sequence (apply super-init args)))])
-	    (make-object c% "Insert Fraction" edit-menu
+	    (make-object c% "Insert Fraction..." edit-menu
 			 (lambda (menu evt)
 			   (let ([edit (get-edit-target-object)])
 			     (when (and edit
-					(is-a? edit editor<%>))
+					(is-a? edit mred:editor<%>))
 			       (let ([number (get-fraction-from-user)])
 				 (when number
 				   (send edit insert

@@ -82,8 +82,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "3/2")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -135,8 +135,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "3/2")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -197,8 +197,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "3/2")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -259,8 +259,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "3/2")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -281,9 +281,9 @@
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-    (test-expression "(define (f #%empty) 1)" "keyword: invalid use of keyword #%empty")
-    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
@@ -342,9 +342,9 @@
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-    (test-expression "(define (f #%empty) 1)" "keyword: invalid use of keyword #%empty")
-    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
@@ -399,11 +399,11 @@
       (do-execute drs))
     
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
-    (test-expression "(define (f define) 1)" "keyword: invalid use of keyword #define")
+    (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-    (test-expression "(define (f #%empty) 1)" "keyword: invalid use of keyword #%empty")
-    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "call-with-current-continuation")
 
@@ -511,6 +511,7 @@
       (test "Quasiquote" 'off #f #t "`((4/3) (4/3))")
       (test "Quasiquote" 'on #t #t "(shared ((-1- `(<number 4/3>))) `(,-1- ,-1-))")
       (test "Quasiquote" 'on #f #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))"))
+
     (test "Constructor" 'off #f #t
 	  (if list?
 	      "(list (list 4/3) (list 4/3))"
@@ -527,7 +528,6 @@
 	  (if list?
 	      "(shared ((-1- (list <number 4/3>))) (list -1- -1-))"
 	      "(shared ((-1- (cons <number 4/3> empty))) (cons -1- (cons -1- empty)))"))
-
 
     ;; setup comment box
     (clear-definitions drs)
@@ -652,10 +652,10 @@
 (let ([drs (wait-for-drscheme-frame)])
   (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
+(mred)
+(mzscheme)
+(mred-debug)
+(mzscheme-debug)
 (zodiac-beginner)
 (zodiac-intermediate)
 (zodiac-advanced)
-(mzscheme-debug)
-(mred-debug)
-(mzscheme)
-(mred)
