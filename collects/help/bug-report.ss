@@ -9,8 +9,9 @@
   
   (provide help-desk:report-bug)
   
-  (define bug-email-server "bugs.drscheme.org")
+  (define bug-email-server "bugs.plt-scheme.org")
   (define bug-email-server-port 1025)
+  (define bug-report-email-address "bugs@plt-scheme.org")
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
@@ -322,7 +323,7 @@
          (send summary get-value)
          (insert-field
           "To"
-          "plt-gnats@cs.rice.edu"
+          bug-report-email-address
           (insert-field
            "From"
            (preferences:get 'drscheme:email)
