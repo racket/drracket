@@ -36,8 +36,8 @@
        (let ([default (application-file-handler)])
          (lambda (name)
            (if (null? (get-top-level-windows))
-               (handler:edit-file name)
-               (default name)))))
+              (handler:edit-file name)
+              (default name)))))
       
       (application-quit-handler
        (let ([default (application-quit-handler)])
@@ -274,10 +274,8 @@
             [else (if (member (car files) (cdr files))
                       (loop (cdr files))
                       (cons (car files) (loop (cdr files))))])))
-
-      (define get-dropped-files (dynamic-require '(lib "splash.ss" "framework") 'get-dropped-files))
-      (let* ([files-to-open (append (reverse (get-dropped-files))
-				    (reverse (vector->list argv)))]
+      
+      (let* ([files-to-open (reverse (vector->list argv))]
              [normalized/filtered
               (let loop ([files files-to-open])
                 (cond

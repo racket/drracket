@@ -8,12 +8,6 @@
   ;; we have to do it explicitly.
   (current-load text-editor-load-handler)
   
-  ;; abstraction breaking -- matthew will change cm
-  ;; so that I don't need this here (?)
-  (when addl-load-handler
-    (printf "PLTDRCM: reinstalling CM load handler after setting mred load handler\n")
-    (current-load/use-compiled (addl-load-handler)))
-  
   (define texas-independence-day?
     (let ([date (seconds->date (current-seconds))])
       (and (= 3 (date-month date))
