@@ -30,10 +30,11 @@
     (define about-drscheme
       (lambda ()
 	(let* ([names (string-append
-		       "Gann Bierner, Corky Cartwright, Richard Cobbe, Moy Easwaran, "
-		       "Matthias Felleisen, Robby Findler, Cormac Flanagan, Matthew Flatt, "
-		       "Sebastian Good, Mark Krentel, Shriram Krishnamurthi, "
-		       "Paul Steckler, and Stephanie Weirich")]
+                       "John Clements, Matthias Felleisen, Robby Findler, "
+                       "Cormac Flanagan, Matthew Flatt, "
+		       "Shriram Krishnamurthi, "
+                       "and "
+		       "Paul Steckler")]
 	       [wrap-edit% 
 		(class-asi mred:text%
 		  (inherit begin-edit-sequence end-edit-sequence
