@@ -208,7 +208,7 @@ profile todo:
                                    (is-a? src text:basic%))
                           (highlight-errors text 
                                             (list (list src position (+ position span)))
-                                            (map mark-source cms))))))))]
+                                            (map st-mark-source cms))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
