@@ -21,7 +21,12 @@
                 stx))
              (if (member fn cache)
                  (syntax (void))
-                 (with-syntax ([full-fn (build-path (collection-path "solutions") fn)]
+                 (with-syntax ([full-fn (build-path 
+                                         (with-handlers ([not-break-exn?
+                                                          (lambda (x)
+                                                            (current-load-relative-directory))])
+                                           (collection-path "solutions"))
+                                         fn)]
                                [orig stx])
                    (set! cache (cons fn cache))
                    (syntax
