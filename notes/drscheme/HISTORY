@@ -11,10 +11,15 @@ General
 - a "Windows" menu has been added which keeps track of the currently
   open drscheme windows.
 
+- the source locations for "load"ed files now match the numbers 
+  in the bottom of the drscheme window.
+
 - the thread that evaluations (including execution) take place on is
   the same as the eventspace's main thread, unless the evaluation
   thread is killed. In that case, the eventspace's main thread is
   re-generated, but the execution thread does not.
+
+- The REPL implementation has been cleaned up.
 
 - the turtles window does not survive across executions anymore
 
@@ -22,6 +27,8 @@ General
 
 DrScheme Tools/Libraries
 ------------------------
+
+- send-scheme is outdated. Use run-in-evaluation-thread instead
 
 - the drscheme:tool^ signature has changed. A new subunit, "basis" has
   been aded and the process-finish struct is now in that subunit. So,
