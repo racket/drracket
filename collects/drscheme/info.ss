@@ -35,5 +35,6 @@
 		  (require-library "debug.ss" "system"))]
 	      [(compile-elaboration-zos)
 	       (list "drsig.ss")]
+	      [(mred-launcher-name) "DrScheme"]
 	      [else (failure)]))])
   drscheme-info)
