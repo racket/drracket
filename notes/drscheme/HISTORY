@@ -8,6 +8,7 @@ Version 103:
   1578: can't interrupt parse
   1582: Help-desk configurability
   1566: Bug icon broken in project window
+  1565: Invoking drscheme executable on project file has unexpected results
 
  FUNCTIONALITY CHANGES
 
