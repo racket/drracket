@@ -847,14 +847,14 @@
            (make-simple '(lib "plt-mzscheme.ss" "lang") 
                         (list (string-constant plt)
                               (string-constant mzscheme-w/debug))
-                        (list -10 2)
+                        (list -10 1)
                         #f
                         (string-constant mzscheme-one-line-summary)))
           (add-language
            (make-simple '(lib "plt-mred.ss" "lang")
                         (list (string-constant plt)
                               (string-constant mred-w/debug))
-                        (list -10 1)
+                        (list -10 2)
                         #t
                         (string-constant mred-one-line-summary)))
           (add-language
