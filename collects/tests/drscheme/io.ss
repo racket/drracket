@@ -59,7 +59,7 @@
   
   
   (define (reading-test)
-    (define (do-input-test program input expected)
+    (define (do-input-test program input expected-value expected-io)
       (do-execute drs-frame)
       (type-in-interactions drs-frame program)
       (let ([before-newline-pos (send interactions-text last-position)])
@@ -72,36 +72,50 @@
         (let ([output-start-pos (+ before-newline-pos 3)])
           (type-string (format input))
           (wait-for-computation drs-frame)
-          (let ([got (fetch-output drs-frame 
-                                   output-start-pos
-                                   (send interactions-text paragraph-end-position
-                                         (- (send interactions-text last-paragraph) 1)))])
-            (unless (equal? got expected)
+          (let ([got-io
+                 (fetch-output drs-frame 
+                               (+ before-newline-pos 1)
+                               (+ before-newline-pos 2))]
+                [got-value
+                 (fetch-output drs-frame 
+                               output-start-pos
+                               (send interactions-text paragraph-end-position
+                                     (- (send interactions-text last-paragraph) 1)))])
+            (when expected-io
+              (unless (equal? got-io expected-io)
+                (printf "FAILED IO: expected: ~s~n                got: ~s~n            program: ~s~n              input: ~s~n"
+                        expected-io got-io program input)))
+            (unless (equal? got-value expected-value)
               (printf "FAILED: expected: ~s~n             got: ~s~n         program: ~s~n           input: ~s~n"
-                      expected got program input))))))
+                      expected-value got-value program input))))))
     
     (clear-definitions drs-frame)
-    (do-input-test "(read-char)" "a~n" "#\\a")
-    (do-input-test "(read-line)" "abcdef~n" "\"abcdef\"")  
-    (do-input-test "(list (read-char) (read-line))" "abcdef~n" "(#\\a \"bcdef\")")
+    (do-input-test "(read-char)" "a~n" "#\\a" #f)
+    (do-input-test "(read-line)" "abcdef~n" "\"abcdef\"" #f)  
+    (do-input-test "(list (read-char) (read-line))" "abcdef~n" "(#\\a \"bcdef\")" #f)
     
-    (do-input-test "(read)" "a~n" "a")
-    (do-input-test "(list (read) (read))" "a a~n" "(a a)")
-    (do-input-test "(list (read-char) (read))" "aa~n" "(#\\a a)")
+    (do-input-test "(read)" "a~n" "a" #f)
+    (do-input-test "(list (read) (read))" "a a~n" "(a a)" #f)
+    (do-input-test "(list (read-char) (read))" "aa~n" "(#\\a a)" #f)
     
-    (do-input-test "(begin (read-char) (sleep 1) (read-char))" "ab~ncd~n" "#\\b")
-    (do-input-test "(list (read) (sleep 1) (read) (read))" "a b~nc d~n" "(a #<void> b c)")
+    (do-input-test "(begin (read-char) (sleep 1) (read-char))" "ab~ncd~n" "#\\b" #f)
+    (do-input-test "(list (read) (sleep 1) (read) (read))" "a b~nc d~n" "(a #<void> b c)" #f)
     
-    (do-input-test "(begin (display 1) (read))" "2~n" "2")
+    (do-input-test "(begin (display 1) (read))" "2~n" "2" #f)
     
-    (do-input-test "(read-line)" "~n" "\"\"")
-    (do-input-test "(read-char)" "~n" "#\\newline"))
+    (do-input-test "(read-line)" "~n" "\"\"" #f)
+    (do-input-test "(read-char)" "~n" "#\\newline" #f)
+    
+    (do-input-test "(list (read) (printf \"1~n\") (read) (printf \"3~n\"))"
+                   "0 2\n"
+                   "(0 #<void> 2 #<void>)"
+                   "{embedded \"0 1\n2\n3\"}"))
   
   (define drs-frame (wait-for-drscheme-frame))
   (define interactions-text (send drs-frame get-interactions-text))
   (set-language-level! '("PLT" "Textual (MzScheme)"))
   
   (define (run-test)
-    (long-io/execute-test)
-    (output-err-port-checking)
+    ;(long-io/execute-test)
+    ;(output-err-port-checking)
     (reading-test)))

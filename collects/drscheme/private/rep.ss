@@ -849,6 +849,8 @@
                                   (set! char-fetched eof)
                                   (let ([text (init-transparent-input)])
                                     (set! char-fetched (send text fetch-char))
+                                    ;; fetch-char might return void, 
+                                    ;; is there a race condition here, when peeking?
                                     (when (eof-object? char-fetched)
                                       (set! eof-received? #t))))
                               (semaphore-post char-fetched-sema))))
@@ -860,7 +862,7 @@
                            (semaphore-wait/enable-break char-fetched-sema))
                          ; Got the char (no breaks)
                          (if peek?
-                             ; preserve the fecthed cahr
+                             ; preserve the fecthed char
                              (semaphore-post char-fetched-sema)
                              ; Next reader'll have to spawn a fetcher
                              (set! fetcher-spawned? #f))
@@ -2401,7 +2403,7 @@
                       (begin
                         (yield wait-for-sexp)
                         (if shutdown? 
-                            eof
+                            (void)
                             (loop)))))))]
           [define/override get-prompt (lambda () "")]
           (field
