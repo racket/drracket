@@ -155,14 +155,27 @@
                                           (format "~a" (exn-message x))
                                           (format "uncaught exception: ~s" x))))])
                     (if stand-alone?
-                        (make-embedding-executable
-                         executable-filename
-                         gui?
-                         #f ;; verbose?
-                         (list (list #f `(file ,program-filename)))
-                         null
-                         null
-                         (list (if gui? "-Zmvqt" "-mvqt") program-filename))
+                        (let ([short-program-name (let-values ([(base name dir) (split-path program-filename)])
+                                                    (cond
+                                                      [(regexp-match #rx"(.*)\\...." name)
+                                                       =>
+                                                       cadr]
+                                                      [(regexp-match #rx"(.*)\\..." name)
+                                                       =>
+                                                       cadr]
+                                                      [(regexp-match #rx"(.*)\\.." name)
+                                                       =>
+                                                       cadr]
+                                                      [else name]))])
+                          (make-embedding-executable
+                           executable-filename
+                           gui?
+                           #f ;; verbose?
+                           (list (list #f `(file ,program-filename)))
+                           null
+                           null
+                           (list (if gui? "-Zmvqe" "-mvqe")
+                                 (format "~s" `(require ,(string->symbol short-program-name))))))
                         ((if gui? make-mred-launcher make-mzscheme-launcher)
                          (list "-mvqt" program-filename)
                          executable-filename)))))))
