@@ -890,26 +890,29 @@
       
       (inherit get-edit-target-window)
       (private
-	[split (lambda ()
-		 (let ([target (get-edit-target-window)])
-		   (cond
-		    [(memq target definitions-canvases)
-		     (set! definitions-canvases
-			   (cons (make-object definitions-canvas%
-				   resizable-panel definitions-text)
-				 definitions-canvases))
+	[split
+	 (lambda ()
+	   (let* ([target (get-edit-target-window)]
+		  [update
+		   (lambda (set-canvases! canvases canvas% text)
+		     (set-canvases!
+		      (cons (make-object canvas% resizable-panel text)
+			    canvases))
 		     (send resizable-panel change-children
 			   (lambda (l)
-			     (append definitions-canvases interactions-canvases)))]
-		    [(memq target interactions-canvases)
-		     (set! interactions-canvases
-			   (cons (make-object interactions-canvas%
-				   resizable-panel interactions-text)
-				 interactions-canvases))
-		     (send resizable-panel change-children
-			   (lambda (l)
-			     (append definitions-canvases interactions-canvases)))]
-		    [else (mred:bell)])))]
+			     (append definitions-canvases interactions-canvases))))])
+	     (cond
+	      [(memq target definitions-canvases)
+	       (update (lambda (x) (set! definitions-canvases x))
+		       definitions-canvases
+		       definitions-canvas%
+		       definitions-text)]
+	      [(memq target interactions-canvases)
+	       (update (lambda (x) (set! interactions-canvases x))
+		       interactions-canvases
+		       interactions-canvas%
+		       interactions-text)]
+	      [else (mred:bell)])))]
 	[collapse (lambda ()
 		    (let ([target (get-edit-target-window)])
 		      (cond
