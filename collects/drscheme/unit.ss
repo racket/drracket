@@ -74,7 +74,10 @@
 				   (collection-path "icons")
 				   (string-append filename ".bmp"))])
 		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
-		       (make-bitmap path capd)))
+		       (make-bitmap path
+				    (if (string=? "Break" capd)
+					"Kavork"
+					capd))))
 		   (list "execute" "help" "save" "break"))))
   
   ;; this is the old definition of the interactions canvas.

@@ -49,6 +49,7 @@
 		    signal-not-boolean
 		    eq?-only-compares-symbols?
 		    printing))
+   set-use-zodiac
    use-zodiac
    setting-name
    install-language
