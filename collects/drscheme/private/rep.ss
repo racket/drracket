@@ -679,17 +679,6 @@ TODO
           ;;  specialization
           ;;
           
-          ;(define/override (get-err-style-delta) (make-modern (super get-err-style-delta)))
-          ;(define/override (get-out-style-delta) (make-modern (super get-out-style-delta)))
-          ;(define/override (get-value-style-delta) (make-modern (super get-value-style-delta)))
-          #;
-          (define/private (make-modern sup)
-            (let ([new (make-object style-delta%)])
-              (send new copy sup)
-              (send new set-family 'modern)
-              new))
-            
-          
           (define/override (after-io-insertion) (send context ensure-rep-shown this))
           
           (define/augment (after-insert start len)
