@@ -1,0 +1,25 @@
+
+#undef DO_OK_CHECK
+#ifdef DrawsForCanvas
+#define DO_OK_CHECK(v)
+#else
+#define DO_OK_CHECK(v) if (!((wxDC *)((Scheme_Class_Object *)obj)->primdata)->Ok()) return v;
+#endif
+
+@MACRO CheckOkGen[ret] = DO_OK_CHECK(<ret>)
+@MACRO CheckGen[p.ret] = if (!x<p>->Ok()) return <ret>;
+@MACRO CheckOk = $$CheckOkGen[scheme_void]
+@MACRO Check[p] = $$CheckGen[<p>.scheme_void]
+@MACRO CheckOkFalse = $$CheckOkGen[scheme_false]
+@MACRO CheckFalse[p] = $$CheckGen[<p>.scheme_false]
+
+extern Scheme_Object *objscheme_bundle_wxPoint(wxPoint *);
+extern wxPoint *objscheme_unbundle_wxPoint(Scheme_Object *, const char *, int);
+
+@SET TYPE = wxPoint
+@SET INDIRECT = 1
+@SET POINTWISE = 1
+@INCLUDE list.xci
+
+/* The methods are here: */
+@INCLUDE wxs_drwf.xci

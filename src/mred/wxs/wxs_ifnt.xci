@@ -1,0 +1,5 @@
+@ "set-control-font" : void SetButtonFont(wxFont!);
+@ "get-control-font" : wxFont! GetButtonFont();
+@ "set-label-font" : void SetLabelFont(wxFont!);
+@ "get-label-font" : wxFont! GetLabelFont();
+

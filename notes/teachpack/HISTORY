@@ -1,0 +1,91 @@
+------------------------------------------------------------------------
+
+VERSION 101				  [Tue Oct 26 22:28:38 CDT 1999]
+
+
+* TERMINOLOGY: We decided to eliminate the terminology "teaching
+  library", because it is easily confused with a plain library. As of
+  release 101, we refer to one of these objects as a
+
+    teachpack
+
+* USAGE: Inside of DrScheme, the menu choice called "Language|Set
+  library to..."  is now called "Language|Set teachpack to...".
+
+* LOCATION of Files: The distributed teachpacks are found at
+
+    $PLTHOME/teachpack/
+    PLTHOME is the location of the PLT software
+
+  The htdp subdirectory contains those files that matter to students who
+  use HtDP. 
+
+* CHANGES in individual teachpacks: The most important and most visible
+  change in the teachpack support concerns
+
+    hangman.ss 
+
+  It now provides two GUI interfaces: (1) hangman for three-letter words
+  and (2) hangman-list for words of arbitrary length. See the teachpack
+  documentation for details. 
+
+  The teachpack 
+
+    master.ss
+
+  now exports the procedure _master_, which is exactly like the procedure
+  _repl_ in the old master-lib.ss library. 
+
+  The corresponding exercises in HtDP have been rewritten and are posted
+  on the HtDP Web site.
+
+* REMINDER: The *purpose* of teachpacks is to supplement student programs
+  with code that is beyond the teaching languages (Beginner, Intermediate,
+  Advanced). For example, to enable students to play hangman, we supply a
+  teachpack that 
+    - implements the random choosing of a word 
+    - maintains the state variable of how many guesses have gone wrong 
+    - manages the GUI. 
+  All these tasks are beyond students in the third week and/or impose
+  nothing memorization of currently useless knowledge on students. 
+
+  A teachpack is a signed unit that imports the interface:   
+
+    plt:userspace^
+
+  The exported names are added to the read-eval-print loop at the end of
+  an EXECUTE step.
+
+------------------------------------------------------------------------
+
+Version 100
+
+The plt:userspace^ signature does not contain the
+graphics library. In order to use the graphics library in your
+teachpacks, use a compound unit and link in graphics directly. For example:
+
+  (require-library "graphics.ss" "graphics")
+  
+  (define-signature my-teachpack^ (four))
+  
+  (define my-teachpack
+    (unit/sig my-teachpack^
+      
+      (import plt:userspace^ 
+              graphics^)
+      
+      '...
+      
+      (define four 4)))
+  
+  (compound-unit/sig 
+   (import [P : plt:userspace^])
+   (link [G : graphics^ ((require-library "graphicr.ss" "graphics")
+                         (P : mzlib:file^)
+                         (P : mred^))]
+         [TP : my-teachpack^ (my-teachpack P G)])
+   (export (open TP)))
+
+The graphics^ signature contains all of the primitives in the
+graphic.ss library. Search for "graphics" in Help Desk for more
+information on those primitives.

@@ -1,0 +1,200 @@
+
+This is the MzScheme source code distribution. Please see the file
+plt/LICENSE for license information.
+
+Compiled binaries, documentation, and up-to-date information about
+MzScheme are at:
+ http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
+
+MzScheme should compile (via `mzmake') and execute without
+modification on most platforms. You may have to adjust some flags in
+the Makefile and "sconfig.h".  Special per-platform instructions are
+below, followed by some general notes on compilation and changing
+MzScheme. (Please read the general notes if you plan on changing
+MzScheme or the default compilation flags.)
+
+-Matthew Flatt
+ PLT
+ mflatt@cs.utah.edu
+ http://www.cs.utah.edu/~mflatt/
+
+========================================================================
+ Compiling for Unix (or Cygwin or BeOS)
+========================================================================
+
+Compile
+-------
+
+Run the `mzmake' script to compile the `mzscheme' executable for the
+following platforms:
+
+  Alpha OSF1
+  BeOS
+  DEC Ultrix
+  HP/UX
+  i386 FreeBSD
+  i386 Linux
+  i386 Solaris [see note below]
+  i386 Win32 with Cygwin [beta 20]
+  PPC Linux
+  RS6000 AIX
+  SGI IRIX
+  Sparc Solaris [see note below]
+  Sparc SunOS4    
+
+[Solaris Note: To ensure that dynamic extensions work right, make sure
+ your compiler uses the native Solaris `ld' rather than GNU's `ld'.]
+
+[Solaris 2.7 Note: gcc 2.8.1 does not work correctly under Solaris
+ 2.7, producing a MzScheme binary that crashes. Thanks to Stever Hall
+ for figuring this out in a long--and presumably torturous--process.
+ Compiling under Solaris 2.6 or compiling without -O under Solaris 2.7
+ apparently solves the problem.]
+
+To compile the `mzscheme' executable for other Unix platforms:
+
+  1) Edit the Makefile if necessary. Common changes include the C
+     compiler name, compiler flags, the ranlib processor (if your
+     machine does not have `ranlib', set RANLIB to ':'), and
+     libraries. If Boehm's conservative garbage collector is not
+     supported for the platform, use SenoraGC by setting GCDIR to
+     'sgc' and including '-DUSE_SENORA_GC' in OPTIONS.
+
+  2) Edit "sconfig.h" to set platform-specific flags if necessary.
+
+  3) Execute `make bin' (or just `make').
+
+  [Cygwin note: either use `mzmake', or run `make cygwin-dll-setup'
+   and `make starter' before `make bin'.]
+
+Install
+-------
+
+After compiling MzScheme, `[mz]make install' copies the binary and
+libraries into their normal places in the plt tree relative to the
+source directory. (For example, mzscheme is copied to to
+../../.bin/<platform-id>/mzscheme for unix, ../../mzscheme.exe for
+Cygwin.)
+
+Unix and BeOS: After running `[mz]make install', run ./install in the
+plt directory (two directories up from here). Afterwards,
+plt/bin/setup-plt and plt/bin/mzc work. If you move the plt tree,
+re-run plt/install.
+
+Cygwin: Create the other executables (besides mred.exe
+and mzscheme.exe) by running
+   mzscheme.exe -mvqL- setup.ss compiler
+in the plt directory (two directories up from here). The above makes
+the .zo files, too, but add -n to the end of the command to skip the
+.zo-compiling step. Afterwards, `plt/Setup PLT.exe' and `plt/mzc.exe'
+work.
+
+Compiling Parts
+---------------
+
+To compile parts of MzScheme for embedding or extending:
+
+  * `[mz]make mzschemelib' (or `mzmake mzschemelib') compiles 
+     libmzscheme.a and libgc.a and puts them in lib/sys
+
+  * `[mz]make libguile' creates lib/sys/libguile.a; this is
+     libmzscheme.a + libgc.a + compatibility routines to support
+     GNU's emerging GUILE high-level interface specification
+     (still experimental, and with an unpromising future)
+
+  * `[mz]make dynlib' compiles mzdyn.o (for linking
+     dynamically-loaded extensions to MzScheme) and puts
+     it in lib/sys
+
+  * `[mz]make g-c' compiles /lib/sys/libgc.a only
+
+See also plt/collects/mzscheme/examples/ for some example extensions.
+
+------------------------------------------------------------------------
+ Compiling for Multiple Unix Platforms
+------------------------------------------------------------------------
+
+MzScheme's Unix makefiles are set up to support compilation for
+multiple platforms in the same filesystem. To differentiate platforms
+for the makefiles, set the MZPLTFORMSUFFIX environment
+variable. Object files (.o files) are placed in the subdirectory
+  objects/sys${MZPLTFORMSUFFIX} 
+and library files (.a files) are placed in the subdirectory 
+  objects/lib${MZPLTFORMSUFFIX}
+
+MZPLTFORMSUFFIX does not need to be defined if you are only compiling
+for a single platform. In this case, object files are put in
+  objects/sys
+and library files are put in
+  lib/sys
+
+The destination for the `mzscheme' binary does not use the
+MZPLTFORMSUFFIX environment variable. (That would be too easy.)
+Instead, the MZBUILDDIR environment variable designates a destination
+directory for the binary. If MZBUILDDIR is not defined, the binary is
+placed in the same directory as the main "Makefile".
+
+========================================================================
+ Compiling for Windows
+========================================================================
+
+To compile with MSVC, read the instructions in "plt\src\worksp\README".
+
+To compile with Cygwin's gcc, follow the Unix instructions above.
+
+========================================================================
+ Compiling for MacOS
+========================================================================
+
+Unpack the Compactor archive plt:src:cw.cpt to plt:src:cw and then
+see `ABOUT MZSCHEME' in that folder.
+
+========================================================================
+ Compiling the OSKit-based kernel
+========================================================================
+
+Run `./oskmake' to build the OSKit-based MzScheme kernel. See `oskmake'
+for information about build options.
+
+For simplicity, the MzScheme kernel uses SGC rather than Boehm's
+conservative garbage collector. The `oskmake' script sets the
+necessary compilation flags.
+
+========================================================================
+ General Compilation Notes
+========================================================================
+
+By default, MzScheme is compiled:
+
+ * without image dumps (since the application will probably be linked
+   dynamically);
+
+ * without using any OS-specific threads; and
+
+ * without support for simple-precision floating point numbers.
+
+These options can be changed by modifying sconfig.h or specifying -D
+compiler flags for the macros described in sconfig.h. (In the latter
+case, you may find it convenient to edit `mzmake'.)
+
+------------------------------------------------------------------------
+
+If you modify MzScheme and change any primitive syntax or the
+collection of built-in identifers, be sure to turn off
+USE_COMPILED_MACROS in schminc.h. Otherwise, MzScheme won't start.
+See schminc.h for details.
+
+------------------------------------------------------------------------
+
+The conservative garbage collector distributed with MzScheme has been
+modified slightly from Boehm's standard distribution.
+
+========================================================================
+ Bug Reports
+========================================================================
+
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Bugs/
+or (as a last resort) send mail to
+  plt-bugs@cs.rice.edu
+

@@ -1,0 +1,18 @@
+
+#ifndef wx_mac
+# define wxBITMAP_TYPE_PICT 101
+#endif
+
+#define wxBITMAP_TYPE_UNKNOWN 0
+
+@BEGINSYMBOLS bitmapType > ONE > PRED
+@SYM "bmp" : wxBITMAP_TYPE_BMP
+@SYM "gif" : wxBITMAP_TYPE_GIF
+@SYM "xbm" : wxBITMAP_TYPE_XBM
+@SYM "xpm" : wxBITMAP_TYPE_XPM
+@SYM "pict" : wxBITMAP_TYPE_PICT
+@SYM "unknown" : wxBITMAP_TYPE_UNKNOWN
+@ENDSYMBOLS
+
+@MACRO USEALLFUEL[ok] = if (<ok>) scheme_process_block(0.0);
+

@@ -1,0 +1,173 @@
+INSTALL
+SLaTeX Version 2.4
+(c) Dorai Sitaram
+
+Installation instructions for SLaTeX
+
+                            ...
+
+1. Configuring SLaTeX for your system
+
+1) Go to the directory slatex.
+
+2) Edit the file config.dat as suggested in the
+comments there.  Some sample config.dat's are provided in
+the configs/ subdirectory.
+
+3) Invoke your Scheme interpreter.  (If you're using
+Common Lisp, invoke the Common Lisp interpreter.)  Load
+the file config.scm into Scheme (or Common Lisp).  This
+is done by typing
+
+(load "config.scm")
+
+at the Scheme (or Common Lisp) prompt.
+
+This will configure SLaTeX for your Scheme dialect and
+operating system, creating an appropriate slatex.scm file.
+(For Chez and MzScheme, slatex.scm is a compiled version.) A
+script file (called slatex.bat on DOS, slatex.cmd on OS/2,
+and just slatex on Unix) is also created for convenient
+invocation on your operating system command line.  A
+Scheme/Common Lisp file callsla.scm is also created to
+provide access to SLaTeX from Scheme/Common Lisp.
+
+4) Exit Scheme (or Common Lisp).
+
+(Note: In many Schemes and Common Lisps on Unix, you can
+combine steps 3 and 4 with a command such as
+
+echo '(load "config.scm")' | scheme
+
+)
+
+                            ...
+
+2. Setting paths and modifying script file
+
+(If your dialect is Bigloo, you may ignore this section.)
+
+1) Copy or move or link slatex.scm into a suitable
+place, e.g., your bin or lib, or the system bin or
+lib.
+
+2) Copy or move or link slatex.sty into a suitable
+place, e.g., somewhere in your TEXINPUT(S) path.  For
+installing on system, place in directory containing
+the LaTeX style files (on mine this is
+/usr/local/lib/tex/macros).
+
+3) (If your platform is a Mac, ignore this.)  Copy or move
+or link the shellscript slatex or batfile slatex.bat to a
+suitable place in your PATH, e.g., your bin or the system
+bin.  Note that slatex(.bat) sets SLaTeX.*texinputs*.  If
+you're making the same shellscript/batfile available to
+multiple users, you should change the line
+
+(set! slatex::*texinputs* "...")
+
+to
+
+(set! slatex::*texinputs* <dialect-dependent-way
+                              of obtaining TEXINPUT(S)>)
+
+(But see scripts/readme.)
+
+4) Run slatex on slatxdoc.tex for documentation.
+(This also checks that slatex does indeed work on your
+machine.)  Refer to slatxdoc.dvi when befuddled.
+
+                            ...
+
+3. Other ways of invoking SLaTeX
+
+The configuration process creates shellscript/batfile
+slatex(.bat) for a standard invoking mechanism for
+SLaTeX.  The shellscript/batfile is created to exploit
+the way your Scheme is called, e.g., matters like
+whether it accepts echo'd s-expressions (e.g., Chez),
+whether it loads command line files (e.g., SCM), and
+whether it always checks for an "init" file (e.g., MIT
+C Scheme).
+
+1) If your Scheme doesn't fall into either of these
+categories, you may have to write your own
+shellscript/batfile or devise some other mechanism.
+
+2) The shellscript/batfile invokes Scheme.  If,
+however, you are already in Scheme and spend most of
+the time continuously at the Scheme prompt rather than
+the operating system prompt, you may want to avoid some
+of the delays inherent in the shellscript/batfile.
+
+3) If your platform is a Macintosh, no shellscript/batfile
+is created.  The idea mentioned below is your only choice.
+However, it is so easy to use that it may soon become your
+preferred way of invoking SLaTeX, even on Unix or OS/2.
+
+The file callsla.scm, which contains just one small
+procedure named call-slatex, and which is created by
+the configuration process, provides a simple calling
+mechanism from Scheme/Common Lisp, as opposed to the
+operating system command line.  You may use it as an
+alternative to the slatex shellscript/batfile.  The
+usage is as follows: load callsla.scm into
+Scheme/Common Lisp
+
+(load "callsla.scm")
+
+and type
+
+(call-slatex <tex-file>)
+
+when you need to call SLaTeX on the (La)TeX file
+<tex-file>.  This invokes the SLaTeX preprocessor on
+<tex-file>.  If your Scheme has a "system" procedure
+that can call the operating system command line,
+call-slatex will also send your file to TeX or LaTeX.
+If your Scheme does not have such a procedure,
+call-slatex will simply prod you to call TeX or LaTeX
+yourself.
+
+The outline of the shellscript/batfile or callsla.scm
+or of any strategy you devise for using SLaTeX should
+include the following actions:
+
+1) Load the file slatex.scm (created by the
+configuration process) into Scheme.
+
+2) Set the variable slatex::*texinputs-list* to the
+list of directories in which TeX looks for \input
+files.  If you have a a "regular" TEXINPUTS, you could
+set slatex::*texinputs-list* to
+
+(slatex::path-to-list <the value of TEXINPUTS>)
+
+(In shell scripts, <the value of TEXINPUTS> can be
+obtained with some for unquoting.  In Schemes with
+getenv, you could use (getenv "TEXINPUTS").)
+
+3) Call the procedure slatex::process-main-tex-file on the
+.tex file to be processed.
+
+4) Call either latex or tex on the .tex file.
+
+You may devise your own way of calling
+process-main-tex-file, provided your method makes sure
+that slatex.scm has been loaded, slatex::.*texinputs* set
+appropriately _before_ the call and latex/tex is called
+_after_ the call.
+
+Note that if you prefer to stay in Scheme most of the
+time, it is a good idea to pre-load the procedure
+call-slatex, perhaps through an init file.  Call-slatex
+is just a "one-liner" "call-by-need" hook to SLaTeX and
+does not take up much resources.  (Global name clashes
+between your own code and SLaTeX code won't occur
+unless you use variable names starting with 'slatex::')
+If you made no calls to call-slatex, the bigger file
+slatex.scm is not loaded at all.  If you make several
+calls to call-slatex, slatex.scm is loaded only once,
+at the time of the first call.
+
+;end of file

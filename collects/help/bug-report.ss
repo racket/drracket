@@ -257,7 +257,7 @@
       ;; send-bug-report : (-> boolean)
       ;; returns true if uncancelled
       (define (send-bug-report)
-        (letrec ([f (make-object dialog% "Sending Bug Report")]
+        (letrec ([f (make-object dialog% "Sending Bug Report" bug-frame)]
                  [sema (make-semaphore 0)]
                  [msg (make-object message% "Sending Bug Report" f)]
                  [button (make-object button% "Cancel" f (lambda (x y)
@@ -271,7 +271,8 @@
                      (parameterize ([smtp-sending-end-of-message
                                      (lambda ()
                                        (send button enable #f))])
-                       (smtp-send-bug-report)
+                       ;(smtp-send-bug-report)
+		       (sleep 5)
                        (set! sucess? #t)
                        (send f show #f))))]
                  [sucess? #f])

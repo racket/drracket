@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# This script helps manage the internal distribution process at Rice.
+# Please ignore it.
+
+RDIST=rdist
+HOMESCHEME=/home/scheme
+
+if [ "-r" = "$1" ] ; then
+  shift
+  RDIST=$1
+  shift
+fi
+
+if [ "-self" = "$1" ] ; then
+  shift
+  FARHOST=`hostname`
+elif [ "-utah" = "$1" ] ; then
+  shift
+  FARHOST=`hostname`
+  HOMESCHEME=/home/mflatt/proj
+elif [ "-local" = "$1" ] ; then
+  shift
+  FARHOST=localhost
+else
+  FARHOST=asia.cs.rice.edu
+fi
+
+MRSYS=`${HOMESCHEME}/plt/bin/archsys -`$1
+
+MRDEST=${HOMESCHEME}/plt/.bin/${MRSYS}/mred
+
+echo ${MRBUILDDIR}mred to ${MRDEST}
+
+strip ${MRBUILDDIR}mred
+
+echo Installing MrEd
+echo "${MRBUILDDIR}mred -> ${FARHOST} install $MRDEST ;" | $RDIST -f -

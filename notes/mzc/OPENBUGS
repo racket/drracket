@@ -1,0 +1,2 @@
+
+invoke-unit[/sig] crashes when a dynamic link source is an unbound global

@@ -1,0 +1,3 @@
+- Dim (or vanish) the Step button when not in appropriate language level
+- Error messages don't wrap
+- ugly stepper reductions for unannotated code

@@ -1,0 +1,34 @@
+
+A tight loop creating weak hash table entries or wills can accumulate
+ memory indefinitely
+
+(let loop ([x 0]) (call/cc loop)) accumulates memory
+
+"synrule.ss" is missing `let-syntax' and `letrec-syntax' and doesn't
+ handle macro-in-macro interactions properly
+
+Under Windows and Unix, a DNS lookup by tcp-connect blocks all
+ MzScheme threads; note that the "net" collection contains a
+ DNS client implementation that does not have this problem
+
+Under Unix, opening a special file can block all MzScheme threads
+ (e.g., a FIFO with no connected writer)
+
+Under MacOS, in the standalone MzScheme application, a blocking read 
+ from stdin blocks all MzScheme threads
+
+Under MacOS, an input expression that is longer than 256 characters
+ makes the console get stuck (CodeWarrior SIOUX bug)
+
+Under Windows, the `system' procedure blocks all MzScheme threads
+ (`system*' works correctly)
+
+Under AIX 3.2, write to tcp output port blocks MzScheme when the
+  low-level buffer is full
+
+Under HP/UX, (- 0.0 0.0) produces 0.0 instead of -0.0; input, output,
+ multiplication, and division operations produce -0.0 correctly (e.g.,
+ (* -1 0.0) produces -0.0)
+
+On Alpha machines, floating-point overflow is not handled properly
+ (so +inf.0, -inf.0, and +nan.0 behave incorrectly)

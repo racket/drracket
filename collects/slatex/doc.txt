@@ -1,0 +1,22 @@
+_SLaTeX_
+========
+
+The use SLaTeX as a standalone program, either drag your .tex file onto
+SLaTeX (on the macintosh or windows), or type "slatex file" at the command
+prompt (under windows or X).
+
+Under the macintosh, SLaTeX will attempt to run OzTeX. If you do not have
+OzTeX installed, or use another version of LaTeX, this will fail and you
+can run your own version manually.
+
+To use SLaTeX in a program, require _slatex.ss_:
+
+  (require-library "slatex.ss" "slatex")
+
+The file slatex.ss defines one procedure:
+
+> (slatex filename)
+
+which accepts a string naming a file and runs slatex and latex on the
+file. Note that this must be the correct filename -- do include the ".tex"
+suffix.

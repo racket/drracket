@@ -1,0 +1,51 @@
+#!/bin/sh
+
+# This script helps manage the internal distribution process at Rice.
+# Please ignore it.
+
+RDIST=rdist
+HOMESCHEME=/home/scheme
+
+if [ "-r" = "$1" ] ; then
+  shift
+  RDIST=$1
+  shift
+fi
+
+if [ "-self" = "$1" ] ; then
+  shift
+  FARHOST=`hostname`
+elif [ "-utah" = "$1" ] ; then
+  shift
+  FARHOST=`hostname`
+  HOMESCHEME=/home/mflatt/proj
+elif [ "-local" = "$1" ] ; then
+  shift
+  FARHOST=localhost
+else
+  FARHOST=asia.cs.rice.edu
+fi
+
+MZSYS=`${HOMESCHEME}/plt/bin/archsys -`$1
+
+MZDEST=${HOMESCHEME}/plt/.bin/${MZSYS}/mzscheme
+MZDYNDEST=${HOMESCHEME}/plt/collects/mzscheme/lib/${MZSYS}
+
+echo strip binary
+strip ${MZBUILDDIR}mzscheme
+
+echo ${MZBUILDDIR}mzscheme to ${MZDEST}
+
+echo "${MZBUILDDIR}mzscheme -> ${FARHOST} install $MZDEST ;" | $RDIST -f -
+
+echo objects/sys${MZPLATFORMSUFFIX}/mzdyn.o to ${MZDYNDEST}/mzdyn.o
+
+echo "lib/sys${MZPLATFORMSUFFIX}/mzdyn.o -> ${FARHOST} install ${MZDYNDEST}/mzdyn.o ;" | $RDIST -f -
+
+echo objects/sys${MZPLATFORMSUFFIX}/libmzscheme.a to ${MZDYNDEST}/libmzscheme.a
+
+echo "lib/sys${MZPLATFORMSUFFIX}/libmzscheme.a -> ${FARHOST} install ${MZDYNDEST}/libmzscheme.a ;" | $RDIST -f -
+
+echo objects/sys${MZPLATFORMSUFFIX}/libgc.a to ${MZDYNDEST}/libgc.a
+
+echo "lib/sys${MZPLATFORMSUFFIX}/libgc.a -> ${FARHOST} install ${MZDYNDEST}/libgc.a ;" | $RDIST -f -

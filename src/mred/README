@@ -1,0 +1,98 @@
+
+This is the MrEd source code distribution. Please see the file
+plt/LICENSE for license information.
+
+Compiled binaries, documentation, and up-to-date information about
+MrEd are at
+  http://www.cs.rice.edu/CS/PLT/packages/mred/
+
+MrEd should compile and execute with little or no modification if you
+have GNU's make, an ANSI C/C++ compiler, and a platform supported by
+Boehm's conservative garbage collector.  Special per-platform
+instructions are below.
+
+-Matthew Flatt
+ PLT
+ mflatt@cs.utah.edu
+ http://www.cs.utah.edu/~mflatt/
+
+========================================================================
+ Compiling for Unix/X
+========================================================================
+
+Compiling MrEd requires `gnumake' (or `gmake' or `make', but it must
+be GNU's `make') and around 20-30 MB of disk space.
+
+Compile MzScheme first. See plt/src/mzscheme/README.
+
+In Make.env, change variables as necessary:
+
+       [Note: the distributed file is configured for Linux]
+
+   * Set the program names, such as the C compiler
+
+   * Set OPTIONS:
+        * Add -DOPERATOR_NEW_ARRAY if the C++ compiler uses separate new
+          and new[] operators. For example, this flag is needed for gcc
+          version 2.6.3 and later, but not for version 2.5.8.
+
+   * Probably the XLIB and/or XINCLUDE directory lists need to be
+     adjusted.
+
+   * Perhaps some other flags should be changed for your local 
+     configuration.
+
+Once all of the setup files are ready, run `gnumake' in plt/src/mred.
+(Did you get a "no targets" make error? In that case, are you using
+GNU's make, which reads "GNUmakefile"?)
+
+After MrEd is built, run `gnumake install' to install the binary into
+the plt/ hierarchy.
+
+------------------------------------------------------------------------
+ Compiling for Multiple Unix Platforms
+------------------------------------------------------------------------
+
+MrEd's Unix makefiles are set up to support compilation for
+multiple platforms in the same filesystem. To differentiate platforms
+for the makefiles, set the MZPLTFORMSUFFIX environment
+variable. Object files (.o files) are placed in the subdirectory
+  objects/sys${MZPLTFORMSUFFIX} 
+and library files (.a files) are placed in the subdirectory 
+  objects/lib${MZPLTFORMSUFFIX}
+Instead of the make.env configuration file, compilation uses
+  make${MZPLATFORMSUFFIX}.env
+
+MZPLTFORMSUFFIX does not need to be defined if you are only compiling
+for a single platform. In this case, object files are put in
+  objects/sys
+and library files are put in
+  lib/sys
+
+The destination for the `mred' binary does not use the
+MZPLTFORMSUFFIX enrionment variable. (That would be too easy.)
+Instead, the MRBUILDDIR environment variable designates a destination
+directory for the binary. If MRBUILDDIR is not defined, the binary is
+placed in the same directory as the main "Makefile".
+
+========================================================================
+ Compiling for Windows
+========================================================================
+
+Read the instructions in plt\src\worksp\README.
+
+========================================================================
+ Compiling for MacOS
+========================================================================
+
+Unpack the Compactor archive plt:src:cw.cpt to plt:src:cw and then
+see `ABOUT MrEd' in that folder.
+
+========================================================================
+ Bug Reports
+========================================================================
+
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Bugs/
+or (as a last resort) send mail to
+  plt-bugs@cs.rice.edu

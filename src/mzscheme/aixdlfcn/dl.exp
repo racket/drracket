@@ -1,0 +1,7 @@
+#!
+dlopen
+dlclose
+dlsym
+dlerror
+dl_version
+dlVersionCheck

@@ -1,0 +1,1777 @@
+%slatxdoc.tex
+%SLaTeX Version 2.4
+%Documentation for SLaTeX
+%(c) Dorai Sitaram
+%dorai@cs.rice.edu
+
+\input slatex.sty
+
+\slatexdisable{enableslatex}
+\input tex2html
+\magnification\magstephalf
+
+%\advance\hoffset -.1true in
+%\advance\voffset -.1 true in
+%\advance\hsize .2 true in
+%\advance\vsize .2 true in
+
+\input 8pt
+\input 2col
+\input defun
+
+%%%% other definitions
+
+%\frenchspacing
+
+% color, if possible
+
+\InputIfFileExists{colordvi}{}{\let\Red\relax
+\let\Blue\relax
+\let\Green\relax}
+
+%\def\section{\bigbreak\begingroup\noindent\bf
+%\def\par{\endgroup\nobreak\smallskip}}
+
+\def\bs{{\tt\char`\\}}
+\def\{{\ifmmode\lbrace\else$\lbrace$\fi}
+\def\}{\ifmmode\rbrace\else$\rbrace$\fi}
+
+% sans-serif
+
+\font\sf cmss10
+
+% \newcheapcount\bibitemnumber
+
+% \def\bibitem{\par\globaladvancecheapcount\bibitemnumber 1%
+% \edef\recentlabel{\bibitemnumber}%
+% [\bibitemnumber]\label}
+
+%
+\overfullrule 0pt
+
+%\parindent1.5em
+\pretolerance0
+\tolerance4000
+
+%\raggedbottom
+
+\hyphenation{def-sla-tex-env-style dorai env-name
+kyo-to left-code-skip right-code-skip
+scheme-case-sen-si-tive scheme-dis-play scheme-in-put
+scheme-re-gion scheme-re-sponse-box scheme-re-sult SLaTeX}
+
+% glossary items
+
+\def\re{\defun{}}
+
+\def\wideline{\par\centerline{\hrulefill}\par}
+
+\let\footnotehook\eightpoint
+\hyphenchar\eighttt=-1
+
+% abbrevs
+
+\let\n\noindent
+\let\f\numfootnote
+
+%\packindex
+
+\leftcodeskip\parindent
+
+\enableslatex
+
+\centerline{How to Use SLaTeX}
+
+\bigskip
+
+\centerline{Dorai Sitaram}
+\centerline{{\tt dorai@cs.rice.edu}}
+\centerline{Department of Computer Science}
+\centerline{Rice University}
+\centerline{Houston, TX 77251-1892}
+
+\bigskip
+
+SLaTeX \index{introduction} is a Scheme program that allows
+you to write programs or program fragments ``as is'' in your
+TeX or LaTeX source.  It is particularly geared to the
+programming languages Scheme and other Lisps, e.g., Common
+Lisp.  The formatting of the code includes assigning
+appropriate fonts and colors to the various tokens in the
+code (keywords, variables, constants, data), at the same
+time retaining the proper indentation when going to the
+non-monospace (non-typewriter) fonts provided by TeX.
+SLaTeX comes with two databases that recognize the
+identifier conventions of Scheme and Common Lisp
+respectively. These can be modified by the user with easy
+TeX commands.  In addition, the user can tell SLaTeX to
+typeset certain identifiers as specially suited TeX
+expressions (i.e., beyond just fonting them).  All this is
+done without interfering with the identifier conventions of
+the language of the programming code.  In sum, no change
+need be made to your (presumably running) program code in
+order to get a typeset version with a desired look: You can
+get a spectrum of styles ranging from {\it no\/} fonting
+through basic default fonting to various
+``math\-e\-mat\-i\-cal''-looking output for pedagogic or
+other reasons.
+
+Popular packages for typesetting Scheme code, e.g.,
+Queinnec's LiSP2TeX~\cite{lisp2tex}
+and Ramsdell's SchemeWeb~\cite{schemeweb}, use
+a {\tt verbatim}-like environment
+where all the characters are in a {\tt monospace typewriter}
+font.  While the {\tt monospace} ensures that the indentation
+is not affected, it fails to distinguish between the various
+tokens used in the code.  On the other hand, SLaTeX can
+font- or even color-code\f{To get color, you need a dvi
+driver such as  Rokicki's {\tt dvips} and a color printer.  If
+you don't have a color printer, you can still view your
+color-coded document on screen, but will have to settle for
+grayscaling on your paper output.} the tokens, e.g., {\bf
+boldface} and/or red for keywords like \scheme{define} and
+\scheme{lambda}, {\sf sans-serif} and/or green for
+constants like \scheme{#t} and \scheme{42}, and {\it italics\/}
+and/or blue for variables such as
+\scheme{x} and \scheme{y} in \scheme{(lambda (x y)
+(cons x (cons y '())))}.  SLaTeX provides a
+convenient way of capturing the indentation
+information as well as assigning distinguishing fonts
+to code tokens without requiring the user to worry
+about fonting and spacing.  It uses temporary files
+to store its typeset version of the user's code
+fragments and then calls TeX or LaTeX on the user's
+TeX files as well as these temporaries.
+
+\slatexdisable{enableslatex}
+
+The rest of this manual has the following outline:
+section~\ref{intro-example} introduces a small example
+that covers the SLaTeX control sequences you will need
+the most.  Both LaTeX~\cite{latex} and plain
+TeX~\cite{tex} versions are
+shown. Section~\ref{slatex-sty-files} describes the
+SLaTeX style files {\tt slatex.sty} and {\tt cltl.sty}.
+Section~\ref{glossary} provides a complete description
+of all the SLaTeX control sequences.  These include
+commands for manipulating output positioning, enhancing
+the database, changing the fonting defaults, adding
+special symbols, and selective disabling of
+SLaTeX. Section~\ref{preamble} offers guidelines for
+setting up a preamble that reflects your typesetting
+taste. Section~\ref{ftp} contains information on
+obtaining and installing SLaTeX.
+
+\section{Introductory example}
+\label{intro-example}
+
+\index{quick introduction}
+We now present a short text that illustrates the
+most basic features of SLaTeX.  Luckily, these
+cover the commands you will need and use the most.
+There are a couple of minor differences between the
+ways SLaTeX is used in LaTeX and in plain TeX (but
+see the entry in section~\ref{glossary} for \p{\defslatexenvstyle} if
+you wish to use the plain-TeX style with the LaTeX
+format, or the LaTeX style with the plain format).
+
+\subsection{SLaTeX for LaTeX users}
+
+\index{LaTeX}
+\index{scheme@{\tt\bs scheme}}
+\index{schemedisplay@{\tt\{schemedisplay\}}!in LaTeX}
+\index{in-text Scheme code}
+\index{displayed Scheme code}
+\index{slatex.sty@{\tt slatex.sty}}
+\index{slatex.sty@{\tt slatex.sty}!as document style}
+Consider the following LaTeX ({\it and\/}
+SLaTeX) file
+{\tt quick.tex}:
+
+\goodbreak
+
+---
+
+\verbatim+
+% quick.tex
+\documentclass{article}
+\usepackage{slatex}
+%
+%That was LaTeX2e.  If you use
+%LaTeX2.09, or LaTeX2e in
+%2.09 compatibility mode, use
+%
+%\documentstyle[slatex]{article}
+%
+%or
+%
+%\documentstyle{article}
+%\input slatex.sty
+\begin{document}
+
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\begin{schemedisplay}
+(define-syntax setq
+  (syntax-rules ()
+    [(setq x a)
+     (begin (set! x a)
+            x)]))
+\end{schemedisplay}
+
+\end{document}
++
+
+---
+
+First, the SLaTeX definitions in the style file
+{\tt slatex.sty} are loaded into your LaTeX file. This may
+be done either via \p{\usepackage} or
+\p{\input} --- or, if you use LaTeX 2.09, as a
+\p{\documentstyle} option.
+
+\index{scheme@{\tt\bs scheme}!using grouped argument}
+
+In-text code is introduced by the SLaTeX control
+sequence \p{\scheme} and is flanked by a pair of
+identical characters that are not alphabetic letters
+or ``\p|{|''.  As a special convenient case,
+SLaTeX also allows the form \p{\scheme{...}}.
+
+The SLaTeX control sequences for
+displayed code are the opening
+
+\verbatim{
+\begin{schemedisplay}
+}
+
+\n and the closing
+
+\verbatim{
+\end{schemedisplay}
+}
+
+The file is now SLaTeX'd by running the command {\tt slatex}
+on it from the Unix or DOS or OS/2 command
+line:
+
+\verbatim{
+slatex quick
+}
+
+\n or
+
+\verbatim{
+slatex quick.tex
+}
+
+\n Alternatively, you can load the file {\tt callsla.scm} into
+your Scheme or Common Lisp, and then call
+
+\verbatim{
+(call-slatex "quick")
+}
+
+\n This calls a Scheme program {\tt slatex.scm} that
+typesets the Scheme code fragments from {\tt quick.tex} into
+temporary files.  Thereafter, {\tt quick.tex} along with the
+temporary files are passed
+to LaTeX.  (For information on judiciously
+reusing temporary files, see
+\p{\separateincludes}.)
+The resulting
+{\tt quick.dvi} file, when viewed or printed, looks like:
+
+\enableslatex
+
+---
+
+\n
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\schemedisplay
+(define-syntax setq
+  (syntax-rules ()
+    [(setq x a)
+     (begin (set! x a)
+            x)]))
+\endschemedisplay
+
+---
+
+\index{recognizing new syntactic keywords automatically}
+
+Note that \scheme{setq}, although not normally a
+syntactic keyword in Scheme, is nevertheless
+automatically recognized as such because of the context
+in which it occurs.  No special treatment is needed to
+ensure that it will continue be treated as such in any
+subsequent Scheme code in the document.
+\slatexdisable{enableslatex}
+
+\subsection{SLaTeX for plain TeX users}
+
+\index{plain TeX}
+\index{scheme@{\tt\bs scheme}}
+\index{schemedisplay@{\tt\{schemedisplay\}}!in plain TeX}
+\index{in-text Scheme code}
+\index{displayed Scheme code}
+SLaTeX works much the same way with plain TeX as with
+LaTeX, but for only two exceptions.  First, since plain TeX
+doesn't have \p{\documentstyle}, the file
+{\tt slatex.sty} must be introduced via an \p{\input}
+statement before its commands can be used in the plain
+TeX source.
+
+\index{environments}
+
+Second, since plain TeX does not have LaTeX's
+\p|\begin{|{\it env\/}\p|} ... \end{|{\it env\/}\p|}|
+style of environments, any
+environment commands in SLaTeX are invoked with the
+opening \p{\}{\it env\/} and the closing
+\p{\end}{\it env}.
+
+The plain TeX version of {\tt quick.tex} looks like:
+
+---
+
+\verbatim+
+% quick.tex
+\input slatex.sty
+
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\schemedisplay
+(define-syntax setq
+  (syntax-rules ()
+    [(setq x a)
+     (begin (set! x a)
+            x)]))
+\endschemedisplay
+\bye
++
+
+---
+
+The file is now SLaTeX'd by invoking {\tt slatex} as
+before --- SLaTeX is clever enough to figure out
+whether the file it operates on should later be sent to
+LaTeX or plain TeX.
+
+\section{The SLaTeX style files}
+\label{slatex-sty-files}
+
+\index{slatex.sty@{\tt slatex.sty}}
+The LaTeX (or TeX) file that is given to SLaTeX
+undergoes some code-setting preprocessing and is then
+handed over to LaTeX (or TeX).  The style file
+{\tt slatex.sty} defines the appropriate commands so that
+LaTeX (or TeX) can recognize the SLaTeX-specific
+directives and deal with them appropriately.  As
+mentioned above, you may
+either \p{\input} the file {\tt slatex.sty},
+or use it as the \p{\documentstyle} option
+{\tt slatex}.
+
+\index{cltl.sty@{\tt cltl.sty}}
+\index{SLaTeX database!for Scheme}
+\index{SLaTeX database!for Common Lisp}
+\index{SLaTeX database!modifying}
+
+The default database of SLaTeX recognizes the keywords
+and constants of Scheme.  The database can be modified
+with the commands \p{\setkeyword},
+\p{\setconstant}, \p{\setvariable},
+\p{\setdata},
+\p{\setspecialsymbol} and \p{\unsetspecialsymbol}
+(q.v.).  If you're using Common Lisp rather than
+Scheme, use {\tt cltl.sty} instead of {\tt slatex.sty}.
+{\tt cltl.sty} loads {\tt slatex.sty} and modifies the
+database to reflect Common Lisp.  You may also fashion your
+own {\tt .sty} files on the model of {\tt cltl.sty}.
+
+\section{SLaTeX's control sequences}
+\label{glossary}
+
+\index{SLaTeX control sequences}
+You've already seen the SLaTeX control sequence
+\p{\scheme} and the environment
+\p{{schemedisplay}}.\f{The notation
+\p|{|{\it envname\/}\p|}|
+is used to denote an environment
+named {\it envname}.  Usually, in plain TeX, this is the pair
+\p{\}{\it envname\/} and \p{\end}{\it envname}, while in
+LaTeX, it is the environment formed with
+\p|\begin{|{\it envname\/}\p|}| and
+\p|\end{|{\it envname\/}\p|}|.
+But see
+\p{\defslatexenvstyle}.} These suffice for quite a
+few instances of handling code.  However, you will
+occasionally require more control on the typesetting
+process.  To help you in such situations, here is a
+complete\f{At least that's what you're supposed to
+think~\dots} list of SLaTeX control sequences with
+examples.
+
+\re{\p{{schemedisplay}}}
+\index{schemedisplay@{\tt\{schemedisplay\}}}
+\index{displayed Scheme code}
+
+Typesets the enclosed code, which is typically several
+lines of code indented as is common in Scheme files.  E.g.,
+
+\verbatim{
+\begin{schemedisplay}
+(define compose
+  ;this is also known as $B$
+  (lambda (f g)
+    (lambda (x)
+      (apply f (g x)))))
+\end{schemedisplay}
+is the ``compose'' function.
+}
+
+\n produces
+
+\enableslatex
+\schemedisplay
+(define compose
+  ;this is also known as $B$
+  (lambda (f g)
+    (lambda (x)
+      (apply f (g x)))))
+\endschemedisplay
+is the ``compose'' function.
+\slatexdisable{enableslatex}
+
+As with all LaTeX environment enders, if the line
+after \p{\end{schemedisplay}} contains
+non-whitespace text, the paragraph continues.
+Otherwise --- i.e., when \p{\end{schemedisplay}}
+is followed by at least one blank line --- a fresh
+paragraph is started.  Similarly, in plain TeX, a
+fresh paragraph is started after a
+\p{{schemedisplay}} only if
+\p{\endschemedisplay} is followed by at least one
+blank line.
+
+\index{Scheme comments}
+
+Comments in Scheme are usually introduced by ``{\tt ;}''
+(semicolon).  The rest of the line after a ``{\tt ;}''
+is set in paragraph mode.
+
+\index{TeX paragraphs amidst Scheme code}
+
+Separate {\it blocks\/} of code can either be
+introduced in different \p{{schemedisplay}}
+environments or put in a single
+\p{{schemedisplay}} and separated by a line with a
+``{\tt ;}'' in the first column.  This ``{\tt ;}'' is
+not typeset and anything following it on the line is
+set in paragraph mode.  Consecutive lines with ``{\tt ;}'' in
+the first column are treated as input for a
+TeX paragraph, with words possibly moved around from
+line to line to ensure justification. When in
+paragraph mode, the first line that has {\it no\/}
+leading ``{\tt ;}'' signals a fresh block of Scheme
+code within the \p{{schemedisplay}}.  (The
+\p{{schemedisplay}} may end, or commence, on
+either a paragraph or a Scheme code block.)
+
+E.g.,
+
+\verbatim{
+\begin{schemedisplay}
+(define even?
+  ;testing evenness
+  (lambda (n)
+    (if (= n 0) #t
+        (not (odd? (- n 1))))
+  ))
+; The procedures {\it even?\/}
+; above and {\it odd?\/} below
+; are mutually recursive.
+(define odd?
+  ;testing oddness
+  (lambda (n)
+    (if (= n 0) #f
+        (not (even? (- n 1))))
+  ))
+\end{schemedisplay}
+}
+
+\n produces
+
+\enableslatex
+\schemedisplay
+(define even?
+  ;testing evenness
+  (lambda (n)
+    (if (= n 0) #t
+        (not (odd? (- n 1))))
+  ))
+; The procedures {\it even?\/}
+; above and {\it odd?\/} below
+; are mutually recursive.
+(define odd?
+  ;testing oddness
+  (lambda (n)
+    (if (= n 0) #f
+        (not (even? (- n 1))))
+  ))
+\endschemedisplay
+
+\slatexdisable{enableslatex}
+SLaTeX can recognize that blocks of code are separate
+if you have at least one empty line separating them.
+I.e., there is no need for empty ``{\tt ;}'' lines.
+This convenience is to accommodate Scheme files where
+definitions are usually separated by one or more
+blank lines.
+
+\index{schemedisplay@{\tt\{schemedisplay\}}!allowing page
+breaks in}
+
+Intervening paragraphs, either with lines with a
+leading ``{\tt ;}'', or with blank lines, are ideal
+spots for \p{{schemedisplay}} to allow pagebreaks.
+In fact, the default setting for
+\p{{schemedisplay}} also allows pagebreaks {\it within\/} a
+Scheme block, but it is easy to disable
+this (see entry for
+\p{\rightcodeskip}).
+
+{\tolerance100000 The space surrounding displayed
+Scheme code can be modified by setting the {\it skips\/}
+\p{\abovecodeskip}, \p{\belowcodeskip}, \p{\leftcodeskip},
+and \p{\rightcodeskip} (q.v.).\par}
+
+Note: see \p{{schemeregion}}.
+
+\re{\p{{schemeresponse}}}
+\index{schemeresponse@{\tt\{schemeresponse\}}}
+\index{displayed Scheme result}
+
+This is like \p{{schemedisplay}}, except that the
+code is displayed as the output of a Scheme
+evaluation, i.e., as data.  In other words, keyword
+and variable fonts are disabled.
+
+Note: see \p{\schemeresult} and
+\p{{schemeresponsebox}}.
+
+\re{\p{\scheme}}
+\index{scheme@{\tt\bs scheme}}
+\index{in-text Scheme code}
+
+{\tolerance100000 Typesets its argument, which is
+enclosed in arbitrary but identical non-alphabetic and
+non-\p|{| characters, as in-text code.  Special case:
+\p{\scheme{...}} is a convenience (provided the `\p{...}'\
+doesn't contain a `\p|}|').  E.g., \p+\scheme|(call/cc+
+\p+(lambda (x) x))|+ and \p+\scheme{(call/cc+ \p+(lambda (x)
+x))}+ both produce
+\enableslatex
+\scheme{(call/cc (lambda (x) x))}.
+\slatexdisable{enableslatex}
+\index{scheme@{\tt\bs scheme}!using grouped argument}
+\par}
+
+\index{nesting SLaTeX control sequences}
+It {\it is\/} permitted to intermix calls to
+\p{{schemedisplay}} and
+\p{\scheme}.  Thus,
+
+\verbatim{
+\begin{schemedisplay}
+(define factorial
+  (lambda (n)
+    (if (= n 0)
+        ;\scheme{(zero? n)}
+        ;also possible
+        1 (* n (factorial
+                 (- n 1))))))
+    ;or \scheme{... (sub1 1)}
+\end{schemedisplay}
+}
+
+\n produces
+
+\enableslatex
+\schemedisplay
+(define factorial
+  (lambda (n)
+    (if (= n 0)
+        ;\scheme{(zero? n)}
+        ;also possible
+        1 (* n (factorial
+                 (- n 1))))))
+   ;or \scheme{... (sub1 1)}
+\endschemedisplay
+
+\slatexdisable{enableslatex}
+Note: see \p{{schemeregion}}.
+
+\re{\p{\schemeresult}}
+\index{schemeresult@{\tt\bs schemeresult}}
+
+Typesets its argument, which is enclosed in arbitrary
+but identical non-alphabetic and non-\p|{|
+characters, as in-text Scheme ``result'' or data:
+i.e., keyword and variable fonts are disabled.
+Special convenient case (as for \p{\scheme}):
+\p{\schemeresult{...}}.  E.g.,
+\index{schemeresult@{\tt\bs schemeresult}!using grouped argument}
+
+\verbatim+
+\scheme|((lambda () (cons 'lambda
+'cons)))| yields
+\schemeresult|(lambda . cons)|.
++
+
+\n produces
+
+\enableslatex
+\scheme|((lambda () (cons 'lambda
+'cons)))| yields
+\schemeresult|(lambda . cons)|.
+\slatexdisable{enableslatex}
+
+\re{\p{{schemebox}}}
+\index{schemebox@{\tt\{schemebox\}}}
+\index{boxed Scheme code}
+
+The \p{{schemebox}} environment is similar to
+\p{{schemedisplay}} except that the code is
+provided as a ``box'' (i.e., it is not ``displayed''
+in the standard way).  Indeed, when the appropriate
+skip parameters are set, \p{{schemedisplay}}
+itself {\it may\/}\f{Yes, {\it may\/}: Not all
+\p{{schemedisplay}}s invoke \p{{schemebox}},
+and if you're curious why, see entry for
+\p{\rightcodeskip}.  It is a matter of whether
+pagebreaks within Scheme code are allowed or not.}
+use a \p{{schemebox}} to create a box of code that
+is set off with all-round space as a display.
+
+Saving a \p{{schemebox}} in an explicit box allows you
+to move your typeset code arbitrarily.
+
+Note: see \p{{schemeregion}}.
+
+\re{\p{{schemeresponsebox}}}
+\index{schemeresponsebox@{\tt\{schemeresponsebox\}}}
+
+This is like \p{{schemebox}}, except that the
+contents are displayed as Scheme data.  See also
+\p{\schemeresult} and \p{{schemeresponse}}.
+
+\re{\p{\schemeinput}}
+\index{schemeinput@{\tt\bs schemeinput}}
+\index{inputting Scheme files as is}
+
+This can be used to input Scheme files as typeset code.
+(Unlike (La)TeX's \p{\input}, \p{\schemeinput}'s
+argument must always be grouped.)  The Scheme file can
+be specified either by its full name, or without its
+extension, if the latter is \p{.scm}, \p{.ss} or
+\p{.s}.  E.g.,
+
+\verbatim{
+\schemeinput{evenodd.scm}
+% the .scm is optional!
+}
+
+\n {\tolerance100000 (where \p{evenodd.scm} is the
+name of a Scheme file containing the code for
+\enableslatex
+\scheme{even?} and \scheme{odd?} above) produces the same
+effect as the
+\slatexdisable{enableslatex}
+\p{{schemedisplay}} version.\par}
+
+Note: see \p{{schemeregion}}.
+
+\re{\p{{schemeregion}}}
+\index{schemeregion@{\tt\{schemeregion\}}}
+\index{nesting SLaTeX control sequences}
+
+{\tolerance100000
+Calls to \p{\scheme}, \p{\schemeresult},
+\p{{schemedisplay}}, \p{{schemebox}} or
+\p{\schemeinput} can be nested in (a Scheme comment)
+of other calls.  In (La)TeX source, they can occur in
+bodies of environments or be otherwise grouped.
+However, they cannot normally be passed as arguments to
+macros or included in bodies of macro definitions (even
+though these are complete calls and not parameterized
+with respect to macro arguments).  To be able to do
+these things, you should first cordon off such a text with
+the
+\p{{schemeregion}} environment.  SLaTeX is fairly
+generous about where exactly you throw the cordon.\par}
+
+E.g., you cannot have
+
+\verbatim{
+...
+The code fragment $\underline
+{\hbox{\scheme{(call/cc I)}}}$ is ...
+...
+}
+
+\n but you {\it can\/} have
+
+\verbatim{
+\begin{schemeregion}
+...
+The code fragment $\underline
+{\hbox{\scheme{(call/cc I)}}}$ is ...
+...
+\end{schemeregion}
+}
+
+\n and this will produce
+
+\enableslatex
+\schemeregion
+\dots
+
+The code fragment $\underline
+{\hbox{\scheme{(call/cc I)}}}$ is \dots
+
+\dots
+\endschemeregion
+\slatexdisable{enableslatex}
+
+Thus, the \p{{schemeregion}} environment makes it
+possible to put SLaTeX-specific commands inside macro
+arguments or macro definitions without causing
+rupture. Normally, this can't be done since once
+SLaTeX is done preprocessing your text, all
+SLaTeX-specific commands correspond to \p{comment}-like
+regions --- the actual typeset code is
+in an external, temporary file.  These \p{comment}
+regions share the characteristic of LaTeX's {\tt verbatim}
+regions, which also can't appear in macro
+arguments or definitions.
+
+To solve this, you enclose the offending text in a
+\p{{schemeregion}} environment.  This ``inlines''
+all the the enclosed calls to SLaTeX as actual
+typeset code instead of treating such calls as \p{comment}
+regions --- thus escaping the fate described
+above.  A \p{{schemeregion}} is a perfect no-op as
+far as the enclosed {\it non\/}-SLaTeX commands are
+concerned.
+
+However, while a \p{{schemeregion}} allows its
+enclosed SLaTeX commands to be included in macro
+arguments and bodies, it itself cannot be so
+included.  This is because \p{{schemeregion}} is
+now a super-\p{comment}. The solution is simple:
+just pull the \p{{schemeregion}} cordon as outward
+as possible so that all the SLaTeX calls that you
+need treated specially are enclosed.  A safe approach
+is to call \p{{schemeregion}} at the ``top
+level'', i.e., outside any nesting of groups --- it
+does not hurt that the cordon is too wide.  Indeed,
+you may even wrap each of your TeX files in one huge
+\p{{schemeregion}} if you so wish. This will cover
+any obscure ``non-robust''\f{The term ``robust'' is not
+necessarily used in the same sense as in the LaTeX manual
+(Lamport).} use of the SLaTeX primitives --- the only
+downside is that SLaTeX may run slower.
+
+Note: TeX files that are loaded using \p{\input}
+from within a \p{{schemeregion}} will not
+automatically inherit the robust lifestyle.  A SLaTeX
+command is made robust only by an enclosing
+\p{{schemeregion}} {\it in the same file as
+itself}.  In other words, region markers have textual
+or ``lexical'' scope, not ``dynamic'' scope.
+
+\re{\p{\setkeyword}
+\p{\setconstant}
+\p{\setvariable}
+\p{\setdata}}
+\index{setkeyword@{\tt\bs setkeyword}}
+\index{setconstant@{\tt\bs setconstant}}
+\index{setvariable@{\tt\bs setvariable}}
+\index{setdata@{\tt\bs setdata}}
+\index{SLaTeX database!modifying}
+
+SLaTeX has a database containing information about
+which code tokens are to be treated as {\bf keywords},
+which as {\sf constants}, which as {\it variables}, and
+which as {\sf data}.  However, it is very likely that
+you will want to add your own tokens to these
+categories.  The control sequences that enable you to
+do this are \p{\setkeyword},
+\p{\setconstant},
+\p{\setvariable}, and \p{\setdata}.  Their arguments are entered
+as a (space-separated) list enclosed in braces
+(\p{{}}): SLaTeX learns that these are henceforth to
+be typeset in the appropriate category.  E.g.,
+
+\enableslatex
+\verbatim{
+\setconstant{infinity -infinity}
+}
+
+\n tells SLaTeX that \scheme{infinity} and
+\scheme{-infinity} are to be typeset as constants.
+\slatexdisable{enableslatex}
+
+\index{recognizing new syntactic keywords automatically}
+
+The user need not use \p{\setkeyword} to specify such
+new keywords as are introduced by Scheme's and Common
+Lisp's syntactic definition facilities
+\enableslatex
+(\scheme{define-syntax}/\scheme{syntax-rules},
+\scheme{defmacro}, \scheme{extend-syntax},
+\scheme{define-macro!}.) SLaTeX automatically recognizes
+new macros and auxiliary keywords defined using these
+facilities.
+\slatexdisable{enableslatex}
+
+In addition, quoted material is recognized as
+``constant'', and strings, numbers, booleans and
+characters are recognized as ``data'' without the need
+to identify them with \p{\setconstant} and
+\p{\setdata} respectively.
+
+\re{\p{\setspecialsymbol}
+\p{\unsetspecialsymbol}}
+\index{setspecialsymbol@{\tt\bs setspecialsymbol}}
+\index{unsetspecialsymbol@{\tt\bs unsetspecialsymbol}}
+\index{SLaTeX database!modifying}
+\index{recognizing special symbols}
+
+These commands are useful to generate
+``math\-e\-mat\-i\-cal''-looking typeset versions of
+your code, over and beyond the fonting capabilities
+provided by default.  Although your program code is
+naturally restricted to using ascii identifiers that
+follow some convention, the corresponding typeset
+code could be more mnemonic and utilize the full
+suite of mathematical and other symbols provided by
+TeX. This of course should not require you to
+interfere with your code itself, which should run in
+its ascii representation.  It is only the typeset
+version that has the new look.  For instance, you
+might want all occurrences of \p{lambda}, \p{and},
+\p{equiv?}, \p{below?}, \p{above?}, \p{a1} and \p{a2} in
+your code to be typeset as
+$\lambda$, $\land$, $\equiv$, $\subseteq$,
+$\supseteq$, $a_1$ and $a_2$ respectively.  To do
+this, you should \p{\setspecialsymbol} the
+concerned identifier to the desired TeX expansion,
+viz.,
+
+\enableslatex
+\verbatim{
+\setspecialsymbol{lambda}{$\lambda$}
+\setspecialsymbol{and}{$\land$}
+\setspecialsymbol{equiv?}{$\equiv$}
+\setspecialsymbol{below?}{$\subseteq$}
+\setspecialsymbol{above?}{$\supseteq$}
+\setspecialsymbol{a1}{$a_1$}
+\setspecialsymbol{a2}{$a_2$}
+}
+
+\n Now, typing\slatexdisable{enableslatex}
+
+\verbatim{
+\begin{schemedisplay}
+(define equiv?
+  (lambda (a1 a2)
+    (and (below? a1 a2)
+         (above? a1 a2))))
+\end{schemedisplay}
+}
+
+\n produces
+
+\enableslatex
+\schemedisplay
+(define equiv?
+  (lambda (a1 a2)
+    (and (below? a1 a2)
+         (above? a1 a2))))
+\endschemedisplay
+Note\slatexdisable{enableslatex} that with the above
+settings, \p{lambda} and \p{and} have lost their
+default keyword status, i.e., they will not be typed
+{\bf boldface}.  To retrieve the original status of
+special symbols, you should use
+\p{\unsetspecialsymbol}, e.g.,
+
+\enableslatex
+\verbatim{
+\unsetspecialsymbol{lambda and}
+}
+
+\n Typing the same program after unsetting the
+special symbols as above produces, as expected:
+
+\schemedisplay
+(define equiv?
+  (lambda (a1 a2)
+    (and (below? a1 a2) (above? a1 a2))))
+\endschemedisplay
+
+In effect, \slatexdisable{enableslatex}
+\p{\setspecialsymbol} extends the
+basic ``fonting'' capability to arbitrarily special
+typeset versions.
+
+\re{\p{\schemecasesensitive}}
+\index{schemecasesensitive@{\tt\bs schemecasesensitive}}
+\index{case sensitivity}
+
+SLaTeX always typesets output that is of the same case
+as your input, regardless of the setting of the
+\p{\schemecasesensitive} command.  However, this command
+can be used to signal to SLaTeX that all case variations of
+an identifier are to be treated identically.  E.g., typing
+\p{\schemecasesensitive{false}} ensures
+that \p{lambda}, \p{lambda} and \p{lambda} will
+all be treated as keywords, just as \p{lambda}.
+\p{\schemecasesensitive{true}} reverts to the
+default mode where case is significant in determining
+the class of a token.
+
+Note that the status \p{\schemecasesensitive} also
+affects the ``special symbols'' of the previous item.
+Thus, in the default case-{\it sensitive\/} setting, only the
+case-significant symbol as mentioned in the call to
+\p{\setspecialsymbol} will be replaced by the
+corresponding TeX expansion.  In a case-{\it in\/}sensitive
+setting, all case variations of the special symbol will
+be replaced.
+
+\re{\p{\abovecodeskip}
+\p{\belowcodeskip}
+\p{\leftcodeskip}
+\p{\rightcodeskip}}
+\index{abovecodeskip@{\tt\bs abovecodeskip}}
+\index{belowcodeskip@{\tt\bs belowcodeskip}}
+\index{leftcodeskip@{\tt\bs leftcodeskip}}
+\index{rightcodeskip@{\tt\bs rightcodeskip}}
+\index{schemedisplay@{\tt\{schemedisplay\}}!adjusting display parameters}
+
+These are the parameters used by \p{{schemedisplay}} for
+positioning  displayed code.  The default values are
+
+\verbatim{
+\abovecodeskip \medskipamount
+\belowcodeskip \medskipamount
+\leftcodeskip 0pt
+\rightcodeskip 0pt
+}
+
+\n This produces a flushleft display.  The defaults can be
+changed to get new display styles.  E.g., this manual
+sets
+
+\verbatim{
+\leftcodeskip\parindent
+}
+
+\n which shifts the display from the left by the same
+amount as a paragraph indentation.
+
+\index{schemedisplay@{\tt\{schemedisplay\}}!allowing page
+breaks in}
+\index{schemedisplay@{\tt\{schemedisplay\}}!disallowing
+pagebreaks in}
+
+In both the above cases, the \p{{schemedisplay}}
+environment will be broken naturally across page
+boundaries at the right spot if the code is too long to
+fit a single page.  In fact, automatic pagebreaks
+within the Scheme code are allowed if and only if
+\p{\rightcodeskip} is 0pt (its default value).  For
+all other values of \p{\rightcodeskip}, each Scheme
+code block in a \p{{schemedisplay}} is guaranteed
+to be on the same page.  If you have decided on a left
+indentation, and you're not sure what value to give to
+\p{\rightcodeskip}, but nevertheless don't want
+Scheme code broken across pages, you could set
+
+\verbatim{
+\rightcodeskip=0.01pt %or
+\rightcodeskip=0pt plus 1fil
+}
+
+\n To understand why this would disable pagebreaks
+within the Scheme block, suppose instead you'd set
+
+\verbatim{
+\leftcodeskip=0pt plus 1fil
+\rightcodeskip=0pt plus 1fil
+}
+
+\n This will get you a {\it centered\/} display style.
+This is of course because the skip on each side of the
+code produces a ``spring''\f{Springs, or rather
+``glue'', are discussed in detail in {\em The
+TeXbook}~\cite[pp.\ 70ff.]{tex}.}  that 
+pushes the code to the center.  But for this spring
+action to work nicely, the code must have been
+collected into an unbreakable box --- which is
+precisely what
+\p{{schemedisplay}} does for each of its code blocks
+whenever it notices that the prevailing value of
+\p{\rightcodeskip} is not the default
+zero.\f{0pt plus 1fil $\ne$ 0pt}  Clearly, such
+unbreakable boxes cannot tolerate pagebreaks.
+
+Thus, the behind-the-scenes selective boxing dictates
+whether a \p{{schemedisplay}} block can or cannot be
+broken across a page boundary.  And the value of
+\p{\rightcodeskip} is used to govern this selection
+in a ``reasonable'' manner.
+
+\re{\p{\keywordfont}
+\p{\constantfont}
+\p{\variablefont}
+\p{\datafont}}
+\index{keywordfont@{\tt\bs keywordfont}}
+\index{constantfont@{\tt\bs constantfont}}
+\index{variablefont@{\tt\bs variablefont}}
+\index{datafont@{\tt\bs datafont}}
+\index{specifying SLaTeX's fonts}
+
+These decide the typefaces used for keywords,
+constants, variables, and data.  The default
+definitions are:\f{\p{\sf} in LaTeX is the
+sans-serif font.  Since plain TeX does not define
+\p{\sf}, you may define one before
+\p{\input}ing \p{slatex.sty}.  If no \p{\sf}
+is found, \p{slatex.sty} has \p{\let\sf=\rm}.  You
+may redefine it before or after to an appropriate
+font of your choice.  This manual set
+\p{\font\sf=cmss10}.  Of course, you could
+redefine \p{\constantfont} itself to not rely on
+(the name) \p{\sf}.}
+
+\verbatim{
+\def\keywordfont#1{{\bf#1}}
+\def\constantfont#1{{\sf#1}}
+\def\variablefont#1{{\it#1\/}}
+\let\datafont\constantfont
+}
+
+\n This is close to the {\em Little
+Schemer}~\cite{tls,tss} style.
+Redefine these control 
+sequences for font changes.  As an extreme case, defining
+all of them to
+\p|{{\tt#1}}| typesets everything in monospace
+typewriter font, as, for instance, in SICP~\cite{sicp}.
+
+Note that ``constants'' and ``data'' {\it can\/} be
+distinguished, although by default SLaTeX does not do
+so.  Typically, primitive data such as booleans,
+numbers, characters and strings are set as ``data'';
+whereas quoted material is set as ``constant''.
+
+The control sequences \p{\keywordfont}, \&c., can be
+defined to be anything at all, not just font switches.
+For instance, if you use  Rokicki's dvips, you can
+use these SLaTeX sequences to color-code your programs!
+Simply use:
+
+\begingroup
+\def\keywordfont#1{\Red{#1}}
+\def\variablefont#1{\Blue{#1}}
+\def\constantfont#1{\Green{#1}}
+
+\verbatim{
+\input colordvi
+\def\keywordfont#1{\Red{#1}}
+\def\variablefont#1{\Blue{#1}}
+\def\constantfont#1{\Green{#1}}
+}
+
+\n The following example will appear in color if
+you've processed this document with dvips and have a
+color-capable viewer or printer:
+
+\enableslatex
+\schemedisplay
+(define factorial
+  (lambda (n)
+    (if (= n 0) 1
+        (* n (+ n 1)))))
+\endschemedisplay
+
+\endgroup\slatexdisable{enableslatex}
+
+\re{\p{\defschemedisplaytoken}
+\p{\defschemetoken}
+\p{\defschemeboxtoken}
+\p{\defschemeresulttoken}
+\p{\defschemeresponsetoken}
+\p{\defschemeresponseboxtoken}
+\p{\defschemeinputtoken}
+\p{\defschemeregiontoken}}
+\index{defschemedisplaytoken@{\tt\bs defschemedisplaytoken}}
+\index{defschemetoken@{\tt\bs defschemetoken}}
+\index{defschemeboxtoken@{\tt\bs defschemeboxtoken}}
+\index{defschemeresulttoken@{\tt\bs defschemeresulttoken}}
+\index{defschemeresponsetoken@{\tt\bs defschemeresponsetoken}}
+\index{defschemeresponseboxtoken@{\tt\bs defschemeresponseboxtoken}}
+\index{defschemeinputtoken@{\tt\bs defschemeinputtoken}}
+\index{defschemeregiontoken@{\tt\bs defschemeregiontoken}}
+\index{defining SLaTeX control sequences}
+
+These define the tokens used by SLaTeX to trigger
+typesetting of in-text code, displayed code, boxed
+code, Scheme program files and robust regions.  The
+default tokens are, as already described,
+\p{{schemedisplay}}, \p{\scheme},
+\p{{schemebox}}, \p{\schemeresult},
+\p{{schemeresponse}}, \p{{schemeresponsebox}},
+\p{\schemeinput} and \p{{schemeregion}}
+respectively.   You can use the \p{\defscheme*token}
+control sequences to get alternate tokens, e.g.,
+shorter or more mnemonic ones.  Thus,
+if you want \p{\code} to be
+your new control sequence for in-text code, use
+\p|\defschemetoken{code}|.  All instances of
+\p{\code+...+} after this definition produce
+in-text code, unless overridden by an
+\p{\undefschemetoken} command.
+
+One can have at any time any number of tokens for the
+same activity.  One consequence of this is that one can
+have nested \p{{schemeregion}}s, provided one has
+different names for the nested call.  Otherwise, the
+\p{\end} of an inner region will prematurely
+terminate an outer region.
+
+\re{\p{\undefschemedisplaytoken}
+\p{\undefschemetoken}
+\p{\undefschemeboxtoken}
+\p{\undefschemeresulttoken}
+\p{\undefschemeresponsetoken}
+\p{\undefschemeresponseboxtoken}
+\p{\undefschemeinputtoken}
+\p{\undefschemeregiontoken}}
+\index{undefschemedisplaytoken@{\tt\bs undefschemedisplaytoken}}
+\index{undefschemetoken@{\tt\bs undefschemetoken}}
+\index{undefschemeboxtoken@{\tt\bs undefschemeboxtoken}}
+\index{undefschemeresulttoken@{\tt\bs undefschemeresulttoken}}
+\index{undefschemeresponsetoken@{\tt\bs undefschemeresponsetoken}}
+\index{undefschemeresponseboxtoken@{\tt\bs undefschemeresponseboxtoken}}
+\index{undefschemeinputtoken@{\tt\bs undefschemeinputtoken}}
+\index{undefschemeregiontoken@{\tt\bs undefschemeregiontoken}}
+\index{undefining SLaTeX control sequences}
+
+These {\it un\/}define the tokens used for triggering
+the typesetting of in-text code, displayed code, boxed
+code, Scheme program files, and robust regions.
+Typically, tokens are undefined so you can use the
+names for other purposes without tripping up the SLaTeX
+system.
+
+\re{\p{\defschememathescape}
+\p{\undefschememathescape}}
+\index{defschememathescape@{\tt\bs defschememathescape}}
+\index{undefschememathescape@{\tt\bs undefschememathescape}}
+\index{TeX mathmode in SLaTeX}
+\index{escape character for mathmode within Scheme}
+
+{\tolerance100000
+\p|\defschememathescape{$}| defines the character
+\p{$} as a mathematical escape character to be used
+within Scheme code.  (Any character other than
+\p|}| and whitespace may be chosen instead of
+\p{$}.)  This allows one to use TeX
+mathematical subformulas within Scheme code, e.g.,\par}
+
+\verbatim{
+\defschememathescape{$}
+
+\begin{schemedisplay}
+(define $\equiv$
+  (lambda (a$_1$ a$_2$)
+    ($\land$
+      ($\subseteq$ a$_1$ a$_2$)
+      ($\supseteq$ a$_1$ a$_2$))))
+\end{schemedisplay}
+}
+
+\n produces
+
+\enableslatex
+\defschememathescape{$}
+
+\schemedisplay
+(define $\equiv$
+  (lambda (a$_1$ a$_2$)
+    ($\land$
+      ($\subseteq$ a$_1$ a$_2$)
+      ($\supseteq$ a$_1$ a$_2$))))
+\endschemedisplay
+\undefschememathescape{$}
+\slatexdisable{enableslatex}
+\p|\undefschememathescape{$}| disables the
+math-escape nature, if any, of \p{$}.
+
+\re{\p{\slatexdisable}}
+\index{slatexdisable@{\tt\bs slatexdisable}}
+\index{disabling SLaTeX}
+
+The tokens for typesetting code, as also the token
+\p{\input} (which is sensitive to SLaTeX, since
+the latter uses it to recursively process files within
+files), can only be used as calls.  If they occur in
+the bodies of macro definitions, or their names are
+used for defining other control sequences, SLaTeX could
+misprocess them.  Sometimes, one wants TeX to
+\p{\input} a file, without wanting SLaTeX to process
+the inputted file.  Or the name
+\p{\scheme} can occur in a verbatim environment,
+and we don't want such an occurrence to cause SLaTeX to
+look for and ``find'' Scheme code that is not really
+there.
+
+Avoiding such uses altogether can be unduly
+restrictive.\f{Especially when one is writing
+a ``How to \dots'' manual like this where one both uses
+{\it and\/} mentions the control sequences!} One way
+out is to judiciously employ the
+\p{\undefscheme*token} commands to temporarily
+remove the SLaTeX-specificity of these names.  Even
+this can be painful.  SLaTeX therefore provides the
+command \p{\slatexdisable}.  This takes one
+argument word and makes the corresponding control
+sequence out of it.  Further, from this point in the
+text, SLaTeX is disabled {\it until\/} the
+manufactured control sequence shows up.  This
+mechanism makes it possible to restrict SLaTeX to only
+appropriate portions of the text.  Note that the token
+\p{\slatexdisable} itself can appear in the text
+succeeding its call.  The only token that can restore
+SLaTeX-sensitivity is the one created during the call
+to \p{\slatexdisable}.
+
+The following is a typical example of the
+\p{\slatexdisable} approach.  You want the names
+\p{\scheme} and
+\p|\begin{schemedisplay}| in a {\tt verbatim}
+environment:
+
+\verbatim{
+\slatexdisable{slatexenable}
+\begin{verbatim}
+SLaTeX provides the command \scheme
+and the pair \begin{schemedisplay}
+and \end{schemedisplay} to typeset
+in-text and displayed Scheme code
+respectively.
+\end{verbatim}
+\slatexenable
+}
+
+\n produces the required
+
+\verbatim{
+SLaTeX provides the command \scheme
+and the pair \begin{schemedisplay}
+and \end{schemedisplay} to typeset
+in-text and displayed Scheme code
+respectively.
+}
+
+\re{\p{\slatexignorecurrentfile}}
+\index{slatexignorecurrentfile@{\tt\bs slatexignorecurrentfile}}
+\index{disabling SLaTeX}
+
+This is a SLaTeX pragma included to improve efficiency.
+If you're sure that the remaining portion of a certain
+(La)TeX file (including the files that would be
+\p{\input}ed by it) don't contain any SLaTeX
+commands, then you may place this control sequence in
+it at this point to signal SLaTeX that no preprocessing
+is necessary for the rest of the file.
+
+\re{\p{\defslatexenvstyle}}
+\index{defslatexenvstyle@{\tt\bs defslatexenvstyle}}
+\index{plain TeX}
+\index{LaTeX}
+\index{environments}
+
+As shown previously, the differences in SLaTeX usage
+between plain TeX and LaTeX is simply a matter of the
+difference in the ``environment'' styles of the two
+formats.  It is easy get the behavior of the one format
+with the other.
+
+1.  If you wish to use the plain-TeX style in LaTeX,
+type
+
+\verbatim{
+\defslatexenvstyle{tex}
+}
+
+\n before first such use.
+
+2. Similarly, if you wish to use the LaTeX
+\p{\begin}/\p{\end} style in plain TeX, use
+
+\verbatim{
+\defslatexenvstyle{latex}
+}
+
+\n {\it provided you have already defined \p{\begin} and
+\p{\end} appropriately!\/}  One way to accomplish
+this is:
+
+\verbatim{
+\def\begin#1{\begingroup
+  \csname#1\endcsname
+  \let\end\endenvironment}
+\def\endenvironment#1{%
+  \csname end#1\endcsname
+  \endgroup}
+}
+
+\n Here, \p{\end} is defined within a group because
+TeX already has an \p{\end} command whose global
+definition is used by commands such as \p{\bye} and
+therefore should not be changed lightly.
+
+{\tolerance100000
+In either case, you can revert to the default style with
+\p|\defslatexenvstyle{latex}| and
+\p|\defslatexenvstyle{tex}|
+respectively.\par}
+
+\re{\p{\slatexseparateincludes}}
+\index{slatexseparateincludes@{\tt\bs slatexseparateincludes}}
+\index{reusing SLaTeX's temporary files}
+
+By default, the temporary files of SLaTeX use the name
+of the topmost TeX file, i.e., the name stored under
+\p{\jobname}.  In large LaTeX documents using
+\p{\include}, this may be unduly restrictive.
+
+To recapitulate, the \p{slatex} command creates
+temporary files to store typeset code and then passes
+the baton on to TeX or LaTeX.  If no significant change
+has been made to the Scheme code (either in content or
+in relative positioning) in the document, then
+successive calls to (La)TeX could be made directly
+using the old temporary files.  This could be a time-saver,
+since it avoids calling up the Scheme typesetter.
+
+However, in a large LaTeX document with
+\p{\include}s, these successive calls to LaTeX often
+entail juggling the \p{\include}s that are chosen.
+In this case, even though the relative position of the
+Scheme code is preserved within each \p{\include}d
+file, the sequence perceived by the main file changes.
+This spoils the invariance we needed if we'd wanted to
+avoid calling SLaTeX unnecessarily.
+
+\index{reusing SLaTeX's temporary files!exploiting
+LaTeX's {\tt\bs include}}
+
+To solve this, the SLaTeX command sequence
+\p{\slatexseparateincludes} --- which must be called
+before the first occurrence of Scheme code in your
+document --- guarantees that each
+\p{\include}d file will generate its own pool of
+temp files.  Thus, if the SLaTeX
+files are created once for each \p{\include}, they
+will be correctly loaded no matter what sequence of
+\p{\include}s is taken.
+
+\re{\p{\schemecodehook}}
+\index{schemecodehook@{\tt\bs schemecodehook}}
+\index{hook for {\tt\bs schemedisplay} and
+{\tt\bs schemebox}}
+
+The user can define \p{\schemecodehook} to be
+anything.  The hook will be evaluated inside each
+subsequent call to \p{{schemedisplay}} and
+\p{{schemebox}}.  E.g.,  if you have \p{\tiny}
+defined (as in LaTeX) to reduce font size, then
+
+\verbatim{
+\let\schemecodehook\tiny
+}
+
+\n converts your Scheme displays and boxes into {\fiverm
+small print}.
+
+The default value of the hook is \p{\relax}, a
+no-op.
+
+\section{Resetting SLaTeX's defaults}
+\label{preamble}
+
+\index{writing personal preamble}
+\index{SLaTeX database!modifying}
+{\tolerance100000 A sample style modification file for
+SLaTeX would include redefinition of the names of the
+codesetting control sequences; adjustment of the
+display parameters; modification of the font
+assignments for keywords, constants, variables, and
+special symbols; and addition of new keywords,
+constants, variables, and special symbols to SLaTeX's
+database.\par}
+
+Let's assume you want
+
+1. a centered display style with no vertical skips;
+
+{\tolerance100000 2.  the names \p{\code},
+\p|{schemefrag}|,
+\p|{scmbox}|, \p{\sinput} instead of
+\p{\scheme}, \p{{schemedisplay}},
+\p{{schemebox}} and
+\p{\schemeinput};\par}
+
+3. tokens to disregard case;
+
+4. the keywords to come out in \p{typewriter}, the
+constants in roman, and the variables in {\bf bold};
+
+5. \p{und} and \p{oder} as keywords,
+\p{true} and \p{false} as constants,
+\p{define} as a variable (overriding default as
+keyword!), \p{F} as a constant (\p{f} will also
+be a constant, due to case-insensitivity!);
+
+6. \p{top} and \p{bottom} to print as
+$\top$ and $\bot$ respectively.
+
+This could be set up as
+
+\verbatim{
+\abovecodeskip 0pt
+\belowcodeskip 0pt
+\leftcodeskip 0pt plus 1fil
+\rightcodeskip 0pt plus 1fil
+
+\undefschemetoken{scheme}
+\undefschemeboxtoken{schemebox}
+\undefschemedisplaytoken{schemedisplay}
+\undefschemeinputtoken{schemeinput}
+
+\defschemetoken{code}
+\defschemeboxtoken{scmbox}
+\defschemedisplaytoken{schemefrag}
+\defschemeinputtoken{sinput}
+
+\schemecasesensitive{false}
+
+\def\keywordfont#1{{\tt#1}}
+\def\constantfont#1{{\rm#1}}
+\def\variablefont#1{{\bf#1\/}}
+
+\setkeyword{und oder}
+\setconstant{true false}
+\setvariable{define}
+\setconstant{F}
+
+\setspecialsymbol{top}{$\top$}
+\setspecialsymbol{bottom}{$\bottom$}
+}
+
+\n This file can then be \p{\input} in the preamble of
+your (La)TeX document.
+
+\section{Obtaining and installing SLaTeX}
+\label{ftp}
+
+\index{obtaining and installing SLaTeX}
+{\tolerance100000
+SLaTeX is available from the Rice University PLT website at
+the URL \path{http://www.cs.rice.edu/CS/PLT/packages/slatex/slatex.tar.gz}.
+Un\p{gzip}ping and
+un\p{tar}ring produces a directory \p{slatex},
+containing the SLaTeX files. (The file \p{manifest}
+lists the files in the distribution --- make sure that
+nothing is missing.)\par}
+
+To install SLaTeX on your system:
+
+1. First change directory (\p{cd}) to \p{slatex},
+the directory housing the SLaTeX files.\f{The SLaTeX
+files use Unix-style newlines.  If you're using OS/2 or
+DOS, you may want to use an appropriate newline
+modifier to make the files comply
+with your operating system's newline format.}
+
+2. Edit the file \p{config.dat} as suggested by the
+comments in the file itself.
+
+3. Invoke your Scheme or Common Lisp interpreter.
+Load the file \p{config.scm}, i.e., type
+
+\enableslatex
+\schemedisplay
+(load "config.scm")
+\endschemedisplay
+at \slatexdisable{enableslatex} the Scheme (or Common
+Lisp) prompt.  This will configure SLaTeX for your
+Scheme dialect and operating system, creating a Scheme
+file called \p{slatex.scm}.  (If you informed \p{config.dat}
+that your Scheme dialect is Chez, the file
+\p{slatex.scm} is a compiled version rather than
+Scheme source.) The configuration process also creates
+a shell script (\p{slatex} on Unix, \p{slatex.cmd}
+on OS/2, and \p{slatex.bat} on DOS) to let you invoke
+SLaTeX from your operating system command line.  A
+Scheme/Common Lisp file \p{callsla.scm} is also
+created --- this lets you call SLaTeX from the
+Scheme/Common Lisp prompt.  This is a convenient alternative
+to using a shell script from the operating-system
+commandline.  It is also the only alternative for those
+using SLaTeX on a Macintosh.
+
+4. Exit Scheme/Common Lisp.
+
+To set up paths and modify shell script:
+
+1. Copy (or move, or link) \p{slatex.scm} into a
+suitable place, e.g., your \p{bin} or \p{lib}
+directory, or the system \p{bin} or \p{lib}.
+
+2. Copy (or move, or link) \p{slatex.sty} into a
+suitable place, i.e., somewhere in your
+\p{TEXINPUTS} path.  For installing on a multiuser
+system, place in the directory containing the LaTeX
+files (on mine this is {\tt
+/usr/local/lib/tex/macros}).
+
+3. \enableslatex
+Copy (or move, or link) the shell script
+\p{slatex} to a
+suitable place in your \p{PATH}, e.g., your {bin} or
+the system {bin} directory.  Note that
+\p{slatex} sets
+\scheme{slatex::*texinputs*}.  If you're making the same
+shell script available to multiple users, you should
+change the line
+
+\schemedisplay
+(set! slatex::*texinputs* "...")
+\endschemedisplay
+to
+\schemedisplay
+(set! slatex::*texinputs*
+  (getenv "TEXINPUTS"))
+\endschemedisplay
+or some other dialect-dependent way of obtaining the
+\p{TEXINPUTS} environment variable.
+\slatexdisable{enableslatex}
+
+4. Run \p{slatex} on \p{slatxdoc.tex} (this
+file!) for documentation.  (This also serves as a check
+that SLaTeX does indeed work on your machine.)  Refer
+to \p{slatxdoc.dvi} when befuddled.
+
+If your dialect did not allow a nice enough shell script, or
+if your platform is a Macintosh, the following provides an
+alternate route to unlocking SLaTeX.
+
+\subsection{Other ways of invoking SLaTeX}
+
+The configuration process creates a shell script for a
+standard invoking mechanism for SLaTeX.  The
+script exploits the way your Scheme is called, e.g.,
+matters like whether it accepts \p{echo}'d
+s-expressions (e.g., Chez), whether it loads its first
+command line argument (e.g., SCM), and whether it
+always checks for an ``init'' file (e.g., MIT
+Scheme).
+
+1.  If your Scheme doesn't fall into either of these
+categories, you may have to write your own
+shell script or devise some other mechanism.
+
+2.  The shell script invokes
+Scheme/\allowbreak Common Lisp.  If, however, you are
+already in Scheme/\allowbreak Common Lisp and spend most of the
+time continuously at the Scheme/\allowbreak Common Lisp prompt
+rather than the operating system prompt, you may avoid
+some of the delays inherent in the shell script.
+
+3.  If your platform is a Macintosh, no shell script is
+created.  The idea mentioned below is your only choice.
+However, it is so easy to use that it may soon become your
+preferred way of invoking SLaTeX, even on Unix or OS/2.
+
+\enableslatex
+The file \p{callsla.scm}, which contains just one
+small procedure named \scheme{call-slatex}, and which
+is created by the configuration process, provides a
+simple calling mechanism from Scheme/Common Lisp, in
+contrast to the operating system command line.  You may
+use it as an alternative to the
+\p{slatex} shell script.
+The usage is as follows: load
+\p{callsla.scm} into Scheme/Common Lisp
+
+\schemedisplay
+(load "callsla.scm")
+\endschemedisplay
+and type
+
+\setspecialsymbol{<tex-file>}{\va{$\langle$tex-file$\rangle$}}
+\schemedisplay
+(call-slatex <tex-file>)
+\endschemedisplay
+when you need to call SLaTeX on the (La)TeX file
+\scheme{<tex-file>}.  This invokes the SLaTeX preprocessor on
+\scheme{<tex-file>}.  If your Scheme has a
+\scheme{system} procedure
+that can call the operating system command line,
+\scheme{call-slatex} will also send your file to TeX or
+LaTeX. If your Scheme does not have such a procedure,
+\scheme{call-slatex} will simply prod you to call TeX
+or LaTeX yourself.
+\slatexdisable{enableslatex}
+
+The outline of the shell script or
+\p{callsla.scm} or of any strategy you devise for
+using SLaTeX should include the following actions:
+
+1. Load the file \p{slatex.scm} (created by the
+configuration process) into Scheme/Common Lisp.
+
+2. \enableslatex
+Set the variable \scheme{slatex::*texinputs*} to the
+path \p{TEXINPUTS} or \p{TEXINPUT} used by
+TeX\f{There is some variation on the name of
+this environment variable.  Unix TeXs prefer
+\p{TEXINPUTS} with an \p{S}, while OS/2 and DOS (e.g.,
+Eberhard Mattes's emTeX) favor the 8-letter \p{TEXINPUT} ---
+no \p{S}.}
+to look for
+\slatexdisable{enableslatex}
+\p{\input}
+files.
+
+3. \enableslatex
+Call the procedure
+\scheme{slatex::process-main-tex-file} on the \p{.tex}
+file to be processed.
+\slatexdisable{enableslatex}
+
+4. Call either \p{latex} or \p{tex} on the \p{.tex} file.
+
+\enableslatex
+You may devise your own way of calling
+\scheme{slatex::process-main-tex-file}, provided your
+method makes sure that \p{slatex.scm} has been
+loaded, \scheme{slatex::*texinputs*} set appropriately
+{\it before\/} the call and \p{latex}/\p{tex} is called
+{\it after\/} the call.
+
+Note that if you prefer to stay in Scheme/\allowbreak
+Common Lisp most of the time, it is a good idea to
+pre-load the procedure \scheme{call-slatex}, perhaps
+through an ``init'' file.  \scheme{call-slatex} is just
+a small ``call-by-need'' hook to SLaTeX and
+does not take up much resources.  (Global name clashes
+between your own code and SLaTeX code won't occur
+unless you use variable names starting with
+``\scheme{slatex::}'') If you made no calls to
+\scheme{call-slatex}, the bigger file \p{slatex.scm}
+is not loaded at all.  If you make several calls to
+\scheme{call-slatex},
+\p{slatex.scm} is loaded only once, at the time of
+the first call.
+\slatexdisable{enableslatex}
+
+\subsection{Dialects SLaTeX runs on}
+
+\index{dialects SLaTeX runs on}
+SLaTeX is implemented
+\enableslatex
+in R5RS-compliant~\cite{r5rs} Scheme (macros are not
+needed).  The code uses the non-standard procedures
+\scheme{delete-file},
+\scheme{file-exists?} and \scheme{force-output}, but
+a Scheme without these procedures can also run SLaTeX
+(the configuration defines the corresponding
+variables to be dummy procedures, since they are not
+crucial). The distribution comes with code to allow
+SLaTeX to run also on Common Lisp.  The files \p{readme} and
+\p{install} contain all the information
+necessary to configure SLaTeX for your system.
+\slatexdisable{enableslatex}
+
+SLaTeX has been tested successfully in the following
+dialects:
+
+1.  On Unix: Allegro Common Lisp; Bigloo; Chez Scheme;
+CLISP; Elk;  Gambit;
+Gnu Common
+Lisp; Guile;
+Ibuki Common Lisp (1987); MIT C Scheme; Scheme-to-C; SCM;
+STk; UMB Scheme; VSCM.
+
+2. On Windows 95: MzScheme.
+
+3. On OS/2: CLISP; SCM.
+
+4. On MS-DOS: Austin Kyoto Common Lisp; CLISP; MIT C
+Scheme; SCM.
+%PCScheme/Geneva
+
+5. On Mac OS: Macintosh Common Lisp 3.0.
+
+If your Scheme is not mentioned here but {\it is\/}
+R5RS-compliant, please send a note to the author at
+\p{dorai@cs.rice.edu} describing your Scheme's
+procedures for deleting files, testing file existence,
+and forcing output, if any, and the configuration file
+will be enhanced to accommodate the new dialect.
+
+Bug reports are most welcome --- send to
+\p{dorai@cs.rice.edu}.
+\index{bug reports}
+
+\section{References}
+
+\bibliographystyle{plain}
+
+\iffileexists{slatxdoc.bib}
+{\bibliography{slatxdoc}}
+{\bibliography{bigbib}}
+
+\section{Index}
+
+%\begincolumns2
+\inputindex
+%\endcolumns
+
+\bye

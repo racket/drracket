@@ -1,0 +1,27 @@
+This directory contains a few example MzScheme extensions implemented
+in C:
+
+ * hello.c - returns the string "Hello, World!". Demonstrates creating
+   a Scheme value.
+
+ * fmod.c - defines the `fmod' procedure, which calculates modulo on
+   floating-point numbers. Demonstrates creating Scheme procedures
+   from C and adding top-level definitions.
+
+ * curses.c - links MzScheme to the curses library. Demonstrates more
+   procedures and definitions, a little more type dispatching, and
+   returning multiple values.
+
+ * makeadder.c - defines `make-adder', whch takes a number and returns
+   a procedure that takes another number to add to it. Demonstrates
+   closure creation in C, getting Scheme global values, and calling
+   Scheme procedures from C.
+
+ * bitmatrix.c - implements two-dimentional bit matrixes with some
+   operations. Demonstrates defining a new Scheme data type, data
+   allocation, fancy integer type checking, general exception raising,
+   and registering static variables.
+
+ * helloprint.c - prints "Hello, World!" directly to the current
+   output port rather than relying on the read-eval-print-loop.
+   Demonstrates using built-in Scheme parameter values from C.
