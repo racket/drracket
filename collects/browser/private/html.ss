@@ -226,8 +226,26 @@
 	     (ecirc 234) (euml 235) (igrave 236) (iacute 237) (icirc 238) (iuml 239)
 	     (eth 240) (ntilde 241) (ograve 242) (oacute 243) (ocirc 244) (otilde 245)
 	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
-	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
-
+	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)
+             (OElig 338) (oelig 339)
+             (tilde 732) (circ 710)
+             (Alpha    913) (Beta     914) (Gamma    915) (Delta    916) (Epsilon  917)
+             (Zeta     918) (Eta      919) (Theta    920) (Iota     921) (Kappa    922)
+             (Lambda   923) (Mu       924) (Nu       925) (Xi       926) (Omicron  927)
+             (Pi       928) (Rho      929) (Sigma    931) (Tau      932) (Upsilon  933)
+             (Phi      934) (Chi      935) (Psi      936) (Omega    937) (alpha    945)
+             (beta     946) (gamma    947) (delta    948) (epsilon  949) (zeta     950)
+             (eta      951) (theta    952) (iota     953) (kappa    954) (lambda   955)
+             (mu       956) (nu       957) (xi       958) (omicron  959) (pi       960)
+             (rho      961) (sigmaf   962) (sigma    963) (tau      964) (upsilon  965)
+             (phi      966) (chi      967) (psi      968) (omega    969)
+             
+             (prime 8242) (Prime 8243) (frasl 8260) (minus 8722) (lowast 8727) (sim 8764)
+             (le 8804) (ge 8805)
+             (ndash 8211) (mdash 8212) 
+             
+             ))
+      
       (define re:quot (regexp "[&][qQ][uU][oO][tT][;]"))
       (define re:amp (regexp "[&][aA][mM][pP][;]"))
 
@@ -438,7 +456,8 @@
 				      d)]
 
 		       [delta:center (make-object style-delta% 'change-alignment 'center)]
-
+                       [delta:symbol (make-object style-delta% 'change-family 'symbol)]
+                       
 		       [html-error
 			(lambda args
 			  (when #f ; treat them all as ignored warnings
@@ -633,6 +652,41 @@
 					       (unless (= para last-para)
 						 (loop (add1 para)))))
 					   (r))))]
+                       
+                       ;; translate-number : number -> void
+                       ;; input number must be between 0 and 255 or
+                       ;; in the table `latin-1-symbols' above
+                       [translate-number
+                        (lambda (e)
+                          (cond
+                            [(<= 0 e 255)
+                             (insert (or (latin-1-integer->char e) #\?))
+                             void]
+                            [(<= 913 e 969)
+                             (let ([lp (current-pos)])
+                               (insert (string (integer->char (+ (- e 913) (char->integer #\A)))))
+                               (lambda ()
+                                 (change-style delta:symbol lp (+ lp 1))))]
+                            
+                            ;; poor ascii approximaions. probably these
+                            ;; (and other) characters exist somewhere,
+                            ;; but I don't know where.
+                            [(= e 338) (insert "OE") void]
+                            [(= e 339) (insert "oe") void]
+                            [(= e 732) (insert "~") void]
+                            [(= e 710) (insert "^") void]
+                            [(= e 8242) (insert "'") void]
+                            [(= e 8243) (insert "''") void]
+                            [(= e 8260) (insert "/") void]
+                            [(= e 8722) (insert "-") void]
+                            [(= e 8727) (insert "*") void]
+                            [(= e 8764) (insert "~") void]
+                            [(= e 8804) (insert "<") void]
+                            [(= e 8805) (insert ">") void]
+                            [(= e 8211) (insert "--") void]
+                            [(= e 8212) (insert "---") void]
+
+                            [else (insert (format "&#~a;" e))]))]
 
 		       ;; ========================================
 		       ;; This is the main formatting function.
@@ -652,16 +706,15 @@
 			(lambda (e para-base enum-depth form)
 			  (cond
 			   [(string? e) (insert e) void]
-			   [(symbol? e) (let ([a (assq e latin-1-symbols)])
-					  (if a
-					      (insert (or (latin-1-integer->char (cadr a)) #\?))
-					      (insert (format "&~a;" e)))
-					  void)]
+			   [(symbol? e) 
+                            (let ([a (assq e latin-1-symbols)])
+                              (if a
+                                  (translate-number (cadr a))
+                                  (begin
+                                    (insert (format "&~a;" e))
+                                    void)))]
 			   [(number? e) 
-			    (if (<= 0 e 255)
-				(insert (or (latin-1-integer->char e) #\?))
-				(insert (format "&~a;" e)))
-			    void]
+			    (translate-number e)]
                            [(or (comment? e) (pi? e)) void]
 			   [else (let* ([tag (car e)]
 					[rest/base/depth/form

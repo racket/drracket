@@ -66,6 +66,7 @@
                         (custodian-shutdown-all installer-cust)
                         (fprintf output "\n~a\n" (string-constant plt-installer-aborted))
                         (send done enable #t))]
+                     [completed-successfully? #f]
                      [done-callback
                       (lambda ()
                         (send dlg show #f)
@@ -88,7 +89,12 @@
                          (thread
                           (lambda ()
                             (thread-wait installer-thread)
-                            (send kill-button enable #f)))))
+                            (send kill-button enable #f)
+                            (unless completed-successfully? 
+                              (parameterize ([current-eventspace orig-eventspace])
+                                (queue-callback
+                                 (lambda ()
+                                   (cleanup-thunk)))))))))
                     
                      (parameterize ([current-output-port output]
                                     [current-error-port output])
@@ -96,6 +102,7 @@
                      (parameterize ([current-eventspace orig-eventspace])
                        (queue-callback
                         (lambda ()
+                          (set! completed-successfully? #t)
                           ((on-installer-run))
                           (cleanup-thunk))))
                      

@@ -17,9 +17,9 @@
     (compound-unit/sig
       (import (plt-installer : setup:plt-installer^)
               (mred : mred^)
-              (tcp : net:tcp^))
-      (link [url : net:url^ (url@ tcp)]
-            [bullet : bullet^ (bullet@ mred)]
+              (tcp : net:tcp^)
+              (url : net:url^))
+      (link [bullet : bullet^ (bullet@ mred)]
             [html : html^ (html@ bullet mred url)]
             [hyper : browser^ (hyper@ html bullet mred plt-installer url)])
       (export (open hyper)

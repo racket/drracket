@@ -34,6 +34,8 @@
       (application-about-handler
        (lambda ()
          (drscheme:app:about-drscheme)))
+
+      (namespace-set-variable-value! 'help-desk:frame-mixin drscheme:frame:basics-mixin)
       
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))

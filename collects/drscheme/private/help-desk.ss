@@ -14,42 +14,53 @@
   (define help-desk@
     (unit/sig  drscheme:help-desk^
       (import [drscheme:frame : drscheme:frame^]
-              [drscheme:language-configuration : drscheme:language-configuration/internal^])
+              [drscheme:language-configuration : drscheme:language-configuration/internal^]
+              [drscheme:teachpack : drscheme:teachpack^])
 
-      ;; : -> (listof (list symbol string))
+      ;; : -> string
       (define (get-computer-language-info)
-        (list
-         (list
-          "Computer language"
-          (format "~s"
-                  (send 
-                   (drscheme:language-configuration:language-settings-language
-                    (preferences:get drscheme:language-configuration:settings-preferences-symbol))
-                   get-language-position)))))
+        (let* ([language/settings (preferences:get 
+                                   drscheme:language-configuration:settings-preferences-symbol)]
+               [language (drscheme:language-configuration:language-settings-language
+                          language/settings)]
+               [settings (drscheme:language-configuration:language-settings-settings
+                          language/settings)])
+          (format
+           "~s"
+           (list
+            (send language get-language-position)
+            (send language marshall-settings settings)))))
       
-      (set-bug-report-info! get-computer-language-info)
+      (define (get-teachpack-filenames)
+        (format "~s"
+                (drscheme:teachpack:teachpack-cache-filenames
+                 (preferences:get 'drscheme:teachpacks))))
       
-      ; to decide if an internal browser connected to the web server by pipes will be used
-      ; : browser-preference -> bool
-      (define (use-internal-browser? browser)
-        (eq? 'plt browser))
+      (set-bug-report-info! "Computer Language" get-computer-language-info)
+      (set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
 
       (define get-hd-cookie
-        (let ([hd-cookie #f]
-              [internal? (use-internal-browser? (preferences:get 'plt:help-browser))])
-          (preferences:add-callback
-           'plt:help-browser
-           (lambda (k v)
-             (let ([new-internal? (use-internal-browser? v)])
-               (unless (eq? new-internal? internal?)
-                 (when hd-cookie
-                   ((hd-cookie->exit-proc hd-cookie))
-                   (set! hd-cookie #f)))
-               (set! internal? new-internal?))))
+        (let ([hd-cookie #f])
           (lambda ()
             (unless hd-cookie
-              (set! hd-cookie (start-help-server drscheme:frame:basics-mixin)))
+              (set! hd-cookie (start-help-server 
+                               (lambda (x)
+                                 (drscheme:frame:basics-mixin
+                                  (drscheme-help-desk-mixin
+                                   x))))))
             hd-cookie)))
+      
+      (define drscheme-help-desk-mixin
+        (mixin (frame:standard-menus<%>) ()
+          (define/override (file-menu:create-open-recent?) #t)
+          (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
+          (define/override (file-menu:between-new-and-open file-menu)
+            (instantiate menu:can-restore-menu-item% ()
+              (label (string-constant plt:hd:new-help-desk))
+              (parent file-menu)
+              (callback (lambda (x y) ((hd-cookie-new-browser (get-hd-cookie))))))
+            (super-file-menu:between-new-and-open file-menu))
+          (super-instantiate ())))
       
       (define (goto-help manual link)
         (with-handlers ([not-break-exn?
@@ -63,10 +74,6 @@
 	  (when (get-hd-cookie)
 	    (goto-manual-link (get-hd-cookie) manual link))))
       
-      (define (goto-front-page)
-	(when (get-hd-cookie)
-	  (help-desk-browser (get-hd-cookie))))
-        
       (define (goto-hd-loc cookie where)
 	(when cookie
 	  (goto-hd-location cookie where)))
@@ -82,8 +89,12 @@
       
       (define help-desk
         (case-lambda
-          [() (when (get-hd-cookie)
-		(help-desk-browser (get-hd-cookie)))]
+          [() 
+           (let* ([cookie (get-hd-cookie)]
+                  [already-frame ((hd-cookie-find-browser cookie))])
+             (if already-frame
+                 (send already-frame show #t)
+                 (goto-hd-location cookie 'front-page)))]
           [(key) (help-desk key #t)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'exact)]

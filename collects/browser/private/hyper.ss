@@ -1,3 +1,4 @@
+
 (module hyper mzscheme
   (require (lib "unitsig.ss")
            (lib "class.ss")
@@ -15,6 +16,16 @@
            (lib "plt-installer-sig.ss" "setup"))
   
   (provide hyper@)
+  
+  (define error-evalling-scheme-format
+    (string-append
+     "<html><head><title>Error Evaluating Scheme</title></head>"
+     "<body>"
+     "<h2>Error Evaluating Scheme Code</h2>"
+     "<pre>\n~a\n</pre>"
+     "<p><p>"
+     "<font color=\"red\">~a</font>"
+     "</body></html>"))
   
   (define hyper@
     (unit/sig browser^
@@ -103,14 +114,18 @@
                    [url-allows-evaling?
                     (cond
                       [(port? url) #f]
-                      [(url? url)
-                       (and (equal? "file" (url-scheme url))
-                            (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
-                              (path-below?
-                               (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
-                                                                             'up
-                                                                             'up)))
-                               (normal-case-path (normalize-path (url-path url))))))]
+                      [(and (url? url)
+                            (equal? "file" (url-scheme url)))
+                       (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
+                         (path-below?
+                          (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
+                                                                        'up
+                                                                        'up)))
+                          (normal-case-path (normalize-path (url-path url)))))]
+                      [(and (url? url)
+                            (equal? "http" (url-scheme url)))
+                       (and (string=? (url-host url) "127.0.0.1")
+                            (equal? 8000 (url-port url)))]
                       [else #f])])
             
             (rename [super-after-set-position after-set-position])
@@ -261,12 +276,24 @@
             
             [define/public eval-scheme-string
               (lambda (s)
-                (let ([v (dynamic-wind
-                          begin-busy-cursor
-                          (lambda () (eval-string s))
-                          end-busy-cursor)])
+                (let ([v 
+                       (dynamic-wind
+                        begin-busy-cursor
+                        (lambda () 
+                          (with-handlers ([not-break-exn?
+                                           (lambda (exn)
+                                             (format
+                                              error-evalling-scheme-format
+                                              s
+                                              (if (exn? exn)
+                                                  (exn-message exn)
+                                                  (format "~s" exn))))])
+                            (eval-string s)))
+                        end-busy-cursor)])
                   (when (string? v)
-                    (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
+                    (send (get-canvas) goto-url
+                          (open-input-string v)
+                          (get-url)))))]
             
             ;; thread-with-cancel-dialog
             ;;  Should be called the a handler thread.
@@ -369,7 +396,7 @@
                 (yield wait-to-continue)
                 (when exn (raise exn))
                 result))
-                
+            
             [define/public reload
               (opt-lambda ([progress void])
                 (define (read-from-port p mime-headers)
@@ -504,9 +531,12 @@
                                   (queue-callback (lambda () (semaphore-post wait-to-start)))
                                   (send d show #t)
                                   (when exn (raise exn)))
-                                (when (and f install?)
-                                  (run-installer f)
-                                  (delete-file f)))
+                                (let ([sema (make-semaphore 0)])
+                                  (when (and f install?)
+                                    (run-installer f
+                                                   (lambda ()
+                                                     (semaphore-post sema)))
+                                    (yield sema))))
                               (raise
                                (if f
                                    (make-exn:file-saved-instead
@@ -737,50 +767,66 @@
             (send (get-parent) on-url-click k url post-data))
           (define/public goto-url
             (opt-lambda (in-url relative [progress void] [post-data #f])
-              (let* ([url (if (or (url? in-url) (port? in-url))
-                              in-url
-                              (if relative
-                                  (combine-url/relative 
-                                   relative
-                                   in-url)
-                                  (string->url in-url)))]
-                     [e (let ([e-now (get-editor)])
-                          (if (and e-now
-                                   (not post-data)
-                                   (same-page-url? url (send e-now get-url)))
-                              (begin
-                                (progress #t)
-                                e-now)
-                              (make-editor/follow-redirections url progress post-data)))]
-                     [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
-                                
-                (unless (and tag-pos (positive? tag-pos))
-                  (send e hide-caret #t))
-                (set-page (list e (or tag-pos 0) (send e last-position)) #t)
-                (send (get-parent) update-url-display
-                      (format "~s"
-                              (if (url? url)
-                                  (list (url->string url) (url-fragment url))
-                                  url)))
-                (when tag-pos (send e set-position tag-pos)))))
+              (let* ([pre-url (if (or (url? in-url) (port? in-url))
+                                  in-url
+                                  (if relative
+                                      (combine-url/relative 
+                                       relative
+                                       in-url)
+                                      (string->url in-url)))])
+                (let-values ([(e url)
+                              (let ([e-now (get-editor)])
+                                (if (and e-now
+                                         (not post-data)
+                                         (same-page-url? pre-url (send e-now get-url)))
+                                    (begin
+                                      (progress #t)
+                                      (values e-now pre-url))
+                                    (make-editor/follow-redirections pre-url progress post-data)))])
+                  (when e
+                    (let* ([tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+                      
+                      (unless (and tag-pos (positive? tag-pos))
+                        (send e hide-caret #t))
+                      (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+                      (send (get-parent) update-url-display
+                            (format "~s"
+                                    (if (url? url)
+                                        (list (url->string url) (url-fragment url))
+                                        url)))
+                      (when tag-pos (send e set-position tag-pos))))))))
           
-          ;; make-editor/follow-redirections : url (boolean??? -> void) ??? -> editor
+          ;; remap-url : url? -> (union #f url? string?)
+          ;; this method is intended to be overridden so that derived classes can change
+          ;; the behavior of the browser.
+          (define/public (remap-url url)
+            url)
+          
+          ;; make-editor/follow-redirections : url (boolean??? -> void) ??? -> (values (union #f editor) (union #f url))
           ;; builds an html editor using make-editor and follows any redictions,
           ;; but stops after 10 redirections (just in case there are too many
           ;; of these things, give the user a chance to stop)
           (define (make-editor/follow-redirections init-url progress post-data)
             (let loop ([n 10]
-                       [url init-url])
-              (let ([html-editor (make-editor url progress post-data)])
-                (cond
-                  [(zero? n) 
-                   html-editor]
-                  [(send html-editor get-redirection)
-                   =>
-                   (lambda (new-url)
-                     (loop (- n 1) new-url))]
-                  [else 
-                   html-editor]))))
+                       [unmapped-url init-url])
+              (let ([url (if (url? unmapped-url)
+                             (let ([rurl (remap-url unmapped-url)])
+                               (cond
+                                 [(string? rurl) (string->url rurl)]
+                                 [(url? rurl) rurl]
+                                 [else (error 'remap-url "expected a url struct or a string, got ~e" rurl)]))
+                             unmapped-url)])
+                (if url
+                    (let ([html-editor (make-editor url progress post-data)])
+                      (cond
+                        [(zero? n) 
+                         (values html-editor url)]
+                        [(send html-editor get-redirection)
+                         =>
+                         (lambda (new-url) (loop (- n 1) new-url))]
+                        [else
+                         (values html-editor url)]))
+                    (values #f #f)))))
           
 	    [define/public after-set-page (lambda () (void))]
             [define/public set-page

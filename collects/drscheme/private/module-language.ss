@@ -375,8 +375,8 @@
                               (syntax->list
                                (syntax (bodies ...)))))]
                            [(no-provide-bodies ...)
-                            (filter
-                             not-provide?
+                            (map
+                             rewrite-provide
                              (syntax->list
                               (syntax (bodies ...))))])
                (values
@@ -523,11 +523,15 @@
               (cons module-spec-sym other-specs))))
       
       ;; extract-provided-vars : (listof syntax) -> (listof syntax[identifier])
-      (define (not-provide? body)
+      ;; rewrite provide expressions into `if #f' with the same variables,
+      ;; so that the variables still appear in the program. Check Syntax
+      ;; treats the provided variables as variable references for highlighting,
+      ;; this makes that still work properly.
+      (define (rewrite-provide body)
         (syntax-case body (provide)
           [(provide vars ...)
-           #f]
-          [_ #t]))
+           (syntax (if #f (begin vars ...)))]
+          [_ body]))
       
       (define module-language-put-file-mixin
         (mixin (text:basic<%>) ()

@@ -3,7 +3,6 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   (lib "mred.ss" "mred")
            (lib "browser.ss" "net")
            "drsig.ss"
@@ -21,25 +20,22 @@
               [drscheme:tools : drscheme:tools^])
 
       (define about-frame%
-        (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (_main-text)
-          (private-field [main-text _main-text])
-          (private
-            [edit-menu:do 
-             (lambda (const)
-	       (send main-text do-edit-operation const))])
-          (override
-            [file-menu:create-revert? (lambda () #f)]
-            [file-menu:create-save? (lambda () #f)]
-            [file-menu:create-save-as? (lambda () #f)]
-            [file-menu:between-close-and-quit (lambda (x) (void))]
-            [file-menu:between-print-and-close (lambda (x) (void))]
-            [edit-menu:between-redo-and-cut (lambda (x) (void))]
-            [edit-menu:between-select-all-and-find (lambda (x) (void))]
-            [edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]
-            [edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
-            [edit-menu:create-find? (lambda () #f)])
-          (sequence
-            (super-init (string-constant about-drscheme-frame-title)))))
+        (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
+          (init-field main-text)
+          (define/private (edit-menu:do const)
+            (send main-text do-edit-operation const))
+            [define/override file-menu:create-revert? (lambda () #f)]
+            [define/override file-menu:create-save? (lambda () #f)]
+            [define/override file-menu:create-save-as? (lambda () #f)]
+            [define/override file-menu:between-close-and-quit (lambda (x) (void))]
+            [define/override file-menu:between-print-and-close (lambda (x) (void))]
+            [define/override edit-menu:between-redo-and-cut (lambda (x) (void))]
+            [define/override edit-menu:between-select-all-and-find (lambda (x) (void))]
+            [define/override edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]
+            [define/override edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
+            [define/override edit-menu:create-find? (lambda () #f)]
+          (super-instantiate ()
+            (label (string-constant about-drscheme-frame-title)))))
       
       ;; check-new-version : -> void
       (define (check-new-version)
@@ -344,39 +340,39 @@
           (for-each (lambda (x) (send x min-height max-height)) items)))
       
       (define wrap-edit% 
-        (class100-asi text:hide-caret/selection%
+        (class text:hide-caret/selection%
           (inherit begin-edit-sequence end-edit-sequence
                    get-max-width find-snip position-location)
           (rename [super-after-set-size-constraint after-set-size-constraint])
-          (override
-            [on-set-size-constraint
-             (lambda ()
-               (begin-edit-sequence)
-               (let ([snip (find-snip 1 'after-or-none)])
-                 (when (is-a? snip editor-snip%)
-                   (send (send snip get-editor) begin-edit-sequence))))]
-            [after-set-size-constraint
-             (lambda ()
-               (super-after-set-size-constraint)
-               (let ([width (get-max-width)]
-                     [snip (find-snip 1 'after-or-none)])
-                 (when (is-a? snip editor-snip%)
-                   (let ([b (box 0)])
-                     (position-location 1 b #f #f #t)
-                     (let ([new-width (- width 4 (unbox b))])
-                       (when (> new-width 0)
-                         (send snip resize new-width
-                               17) ; smallest random number
-                         (send snip set-max-height 'none))))
-                   (send (send snip get-editor) end-edit-sequence)))
-               (end-edit-sequence))])))
+          [define/override on-set-size-constraint
+            (lambda ()
+              (begin-edit-sequence)
+              (let ([snip (find-snip 1 'after-or-none)])
+                (when (is-a? snip editor-snip%)
+                  (send (send snip get-editor) begin-edit-sequence))))]
+          [define/override after-set-size-constraint
+            (lambda ()
+              (super-after-set-size-constraint)
+              (let ([width (get-max-width)]
+                    [snip (find-snip 1 'after-or-none)])
+                (when (is-a? snip editor-snip%)
+                  (let ([b (box 0)])
+                    (position-location 1 b #f #f #t)
+                    (let ([new-width (- width 4 (unbox b))])
+                      (when (> new-width 0)
+                        (send snip resize new-width
+                              17) ; smallest random number
+                        (send snip set-max-height 'none))))
+                  (send (send snip get-editor) end-edit-sequence)))
+              (end-edit-sequence))]
+          (super-instantiate ())))
       
       (define (get-plt-bitmap)
         (make-object bitmap%
           (build-path (collection-path "icons")
                       (if (< (get-display-depth) 8)
                           "pltbw.gif"
-                          "plt.gif"))))
+                          "PLTnolarval.jpg"))))
       
       (define (make-release-notes-button button-panel)
         (make-object button% (string-constant release-notes) button-panel
@@ -559,7 +555,6 @@
             (stretchable-width #t)
             (stretchable-height #t))
           
-          ;; 50 is close enough to the space
           (if (send plt-bitmap ok?)
               (send* editor-canvas
                 (min-width (floor (+ (* 5/2 (send plt-bitmap get-width)) 50)))
@@ -631,21 +626,6 @@
           (send e insert "\n")
           (send e insert (get-translating-acks))
           
-          (send* e
-            (auto-wrap #t)
-            (set-autowrap-bitmap #f)
-            (lock #t))
-          (send* main-text 
-            (set-autowrap-bitmap #f)
-            (auto-wrap #t)
-            (insert plt-icon)
-            (insert editor-snip)
-            (change-style top 0 2)
-            (set-position 1)
-            (hide-caret #t)
-            (scroll-to-position 0)
-            (lock #t))
-          
           (let* ([tour-button (make-object button% (string-constant take-a-tour) button-panel
                                 (lambda (x y)
                                   (help-desk:goto-tour)))]
@@ -654,6 +634,30 @@
             (send tour-button focus))
           (send button-panel stretchable-height #f)
           (send button-panel set-alignment 'center 'center)
+          
+          (send* e
+            (auto-wrap #t)
+            (set-autowrap-bitmap #f))
+          (send* main-text 
+            (set-autowrap-bitmap #f)
+            (auto-wrap #t)
+            (insert plt-icon)
+            (insert editor-snip)
+            (change-style top 0 2)
+            (hide-caret #t))
+          
+          (send f reflow-container)
+          
+          (send* main-text
+            (set-position 1)
+            (scroll-to-position 0)
+            (lock #t))
+          
+          (send* e
+            (set-position 0)
+            (scroll-to-position 0)
+            (lock #t))
+          
           (send f show #t)
           f))
 

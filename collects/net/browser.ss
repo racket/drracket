@@ -8,7 +8,6 @@
            (lib "tool.ss" "drscheme")
            (prefix fw: (lib "framework.ss" "framework")))
   (provide send-url
-	   send-help-desk-url
            (rename raw:browser-preference? browser-preference?)
            update-browser-preference
 	   set-plt-browser!
@@ -46,17 +45,6 @@
 						   (equal? (car x) "http")
 						   (string? (cadr x))
 						   (number? (caddr x))))))
-
-  ; : str [bool] -> void
-  (define send-help-desk-url
-    (lambda (mk-browser url . args)
-      (when (or (not (unix-browser?))
-		(get-preference 'external-browser (lambda () #f))
-		(eq? 'plt (get-preference help-browser-preference (lambda () #f)))
-		;; either the preference doesn't exist or is #f
-		(update-browser-preference url))
-	(parameterize ([raw:external-browser mk-browser])
-	  (apply raw:send-url url args)))))
 
   (define send-url
     (if (unix-browser?)

@@ -183,7 +183,6 @@
     (goto-help
      goto-tour
      goto-release-notes
-     goto-front-page
      goto-plt-license
      help-desk
      open-url))

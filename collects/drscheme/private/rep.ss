@@ -289,9 +289,11 @@
                         [str (if (= start end)
                                  (drscheme:unit:find-symbol obj start)
                                  (send obj get-text start end))])
-                   (drscheme:help-desk:help-desk str #f 'keyword+index 'contains))]
+                   (if (equal? "" str)
+                       (drscheme:help-desk:help-desk)
+                       (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))]
                 [else                   
-                 (drscheme:help-desk:goto-front-page)])))
+                 (drscheme:help-desk:help-desk)])))
       (send drs-bindings-keymap add-function
             "toggle-focus-between-definitions-and-interactions"
             (lambda (obj evt)

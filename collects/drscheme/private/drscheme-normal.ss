@@ -1,11 +1,5 @@
 
 (module drscheme-normal mzscheme
-
-  ;; except for the mred and class libraries
-  ;; (which should already be in this namespace anyway)
-  ;; this module only has dynamic-requires to
-  ;; get the timing right of the debug display, etc.
-  
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
 
@@ -13,15 +7,12 @@
          (and (not (getenv "PLTDRDEBUG"))
               (getenv "PLTDRCM")
               (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))])
-    (printf "two\n")
     
     ;; this used to be done by mred, but
     ;; since drscheme uses the -Z flag now,
     ;; we have to do it explicitly.
     (current-load text-editor-load-handler)
   
-    (printf "three\n")
-    
     ;; abstraction breaking -- matthew will change cm
     ;; so that I don't need this here.
     (when addl-load-handler

@@ -5,6 +5,8 @@
            (lib "plt-installer-sig.ss" "setup")
            (lib "plt-installer.ss" "setup")
            (lib "tcp-sig.ss" "net")
+           (lib "url-sig.ss" "net")
+           (lib "url.ss" "net")
            "browser-sig.ss"
            "browser-unit.ss")
   
@@ -13,4 +15,5 @@
   (define-values/invoke-unit/sig browser^ browser@ #f
                                  setup:plt-installer^
                                  mred^
-                                 net:tcp^))
+                                 net:tcp^
+                                 net:url^))
