@@ -144,28 +144,29 @@
                            [start
                             (format "::~a" start)]
                            [else ""])])
-                   (if (file-exists? source-name)
-                       (let* ([normalized-name (normalize-path source-name)]
-                              [short-name (if user-dir
-                                              (find-relative-path user-dir normalized-name)
-                                              source-name)])
-                         (let-values ([(icon-start icon-end) (insert/delta text (send file-icon copy))]
-                                      [(space-start space-end) (insert/delta text " ")]
-                                      [(name-start name-end) (insert/delta text short-name)]
-                                      [(range-start range-end) (insert/delta text range-spec)]
-                                      [(colon-start colon-ent) (insert/delta text ": ")])
-                           (when (number? start)
-                             (send text set-clickback icon-start range-end
-                                   (lambda (_1 _2 _3)
-                                     (open-file-and-highlight normalized-name
-                                                              (- start 1) 
-                                                              (if span
-                                                                  (+ start -1 span)
-                                                                  start)))))))
-                       (begin
-                         (insert/delta text source-name)
-                         (insert/delta text range-spec)
-                         (insert/delta text ": ")))))])
+                   (cond
+                     [(file-exists? source-name)
+                      (let* ([normalized-name (normalize-path source-name)]
+                             [short-name (if user-dir
+                                             (find-relative-path user-dir normalized-name)
+                                             source-name)])
+                        (let-values ([(icon-start icon-end) (insert/delta text (send file-icon copy))]
+                                     [(space-start space-end) (insert/delta text " ")]
+                                     [(name-start name-end) (insert/delta text short-name)]
+                                     [(range-start range-end) (insert/delta text range-spec)]
+                                     [(colon-start colon-ent) (insert/delta text ": ")])
+                          (when (number? start)
+                            (send text set-clickback icon-start range-end
+                                  (lambda (_1 _2 _3)
+                                    (open-file-and-highlight normalized-name
+                                                             (- start 1) 
+                                                             (if span
+                                                                 (+ start -1 span)
+                                                                 start)))))))]
+                     [else
+                      (insert/delta text source-name)
+                      (insert/delta text range-spec)
+                      (insert/delta text ": ")])))])
           (send text begin-edit-sequence)
           (send text lock #f)
           (cond
