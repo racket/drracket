@@ -6,6 +6,7 @@
 	   (lib "class100.ss")
 	   (lib "mred.ss" "mred")
            "drsig.ss"
+           "../acks.ss"
            (lib "framework.ss" "framework")
            (lib "file.ss"))
   
@@ -55,15 +56,6 @@
       (define (same-heights items)
         (let ([max-height (apply max (map (lambda (x) (send x get-height)) items))])
           (for-each (lambda (x) (send x min-height max-height)) items)))
-      
-      (define names
-        (string-append
-         "PLT is "
-         "John Clements, Matthias Felleisen, Robby Findler, "
-         "Cormac Flanagan, Matthew Flatt, "
-         "Shriram Krishnamurthi, "
-         "and "
-         "Paul Steckler."))
       
       (define wrap-edit% 
         (class100-asi text%
@@ -339,7 +331,7 @@
           ;; 50 is close enough to the space
           (if (send plt-bitmap ok?)
               (send* editor-canvas
-                (min-width (+ (* 2 (send plt-bitmap get-width)) 50))
+                (min-width (floor (+ (* 5/2 (send plt-bitmap get-width)) 50)))
                 (min-height (+ (send plt-bitmap get-height) 50)))
               (send* editor-canvas
                 (min-width 500)
@@ -360,7 +352,7 @@
           (send* e
             (insert ".")
             (insert #\newline)
-            (insert names)
+            (insert (get-authors))
             (insert #\newline)
             (insert "For licensing information see "))
           
@@ -411,7 +403,8 @@
                      (insert #\newline))))
                tools)))
           
-          (send e insert "\nThanks to Ian Barland, Tim Hanson, Philippe Meunier, Francisco Solsona, and Reini Urban for their help translating DrScheme's GUI to other languages.")
+          (send e insert "\n")
+          (send e insert (get-translating-acks))
           
           (send* e
             (auto-wrap #t)

@@ -142,90 +142,95 @@
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
         (let ([rep (current-rep)])
-          (send rep begin-edit-sequence)
-          (send rep wait-for-io-to-complete/user)
-          
-          (let ([insert-file-name/icon
-                 (lambda (filename start span row col)
-                   (let ([locked? (send rep is-locked?)]
-                         [short-filename (find-relative-path (current-directory) filename)]
-                         [range-spec
-                          (cond
-                            [(and row col)
-                             (format ":~a:~a" row col)]
-                            [start
-                             (format "::~a" start)]
-                            [else ""])])
-                     (send rep lock #f)
-                     (let-values ([(icon-start icon-end) (insert/delta rep (send file-icon copy))]
-                                  [(space-start space-end) (insert/delta rep " ")]
-                                  [(filename-start filename-end) (insert/delta rep short-filename)]
-                                  [(range-start range-end) (insert/delta rep range-spec)])
-                       (when (number? start)
-                         (send rep set-clickback icon-start range-end
-                               (lambda (_1 _2 _3)
-                                 (open-file-and-highlight filename 
-                                                          (- start 1) 
-                                                          (if span
-                                                              (+ start -1 span)
-                                                              start))))))
-                     (insert/delta rep ": ")
-                     (send rep lock locked?)))])
-            
-            (cond
-              [(exn:syntax? exn)
-               (let* ([expr (exn:syntax-expr exn)]
-                      [src (and expr (syntax-source expr))]
-                      [pos (and expr (syntax-position expr))]
-                      [span (and expr (syntax-span expr))]
-                      [col (and expr (syntax-column expr))]
-                      [line (and expr (syntax-line expr))])
-                 (when (string? src)
-                   (insert-file-name/icon (syntax-source expr) pos span line col))
-                 (display (exn-message exn) (current-error-port))
-                 (send rep wait-for-io-to-complete/user)
-                 (when (syntax? expr)
-                   (let ([locked? (send rep is-locked?)])
-                     (send rep lock #f)
-                     (insert/delta rep " in: ")
-                     (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta)
-                     (send rep lock locked?)))
-                 (insert/delta rep "\n")
-                 (when (and (is-a? src text:basic%)
+          (cond
+            [(eq? (current-error-port) (send rep get-this-err))
+             (send rep begin-edit-sequence)
+             (send rep wait-for-io-to-complete/user)
+             
+             (let ([insert-file-name/icon
+                    (lambda (filename start span row col)
+                      (let ([locked? (send rep is-locked?)]
+                            [short-filename (find-relative-path (current-directory) filename)]
+                            [range-spec
+                             (cond
+                               [(and row col)
+                                (format ":~a:~a" row col)]
+                               [start
+                                (format "::~a" start)]
+                               [else ""])])
+                        (send rep lock #f)
+                        (let-values ([(icon-start icon-end) (insert/delta rep (send file-icon copy))]
+                                     [(space-start space-end) (insert/delta rep " ")]
+                                     [(filename-start filename-end) (insert/delta rep short-filename)]
+                                     [(range-start range-end) (insert/delta rep range-spec)])
+                          (when (number? start)
+                            (send rep set-clickback icon-start range-end
+                                  (lambda (_1 _2 _3)
+                                    (open-file-and-highlight filename 
+                                                             (- start 1) 
+                                                             (if span
+                                                                 (+ start -1 span)
+                                                                 start))))))
+                        (insert/delta rep ": ")
+                        (send rep lock locked?)))])
+               
+               (cond
+                 [(exn:syntax? exn)
+                  (let* ([expr (exn:syntax-expr exn)]
+                         [src (and expr (syntax-source expr))]
+                         [pos (and expr (syntax-position expr))]
+                         [span (and expr (syntax-span expr))]
+                         [col (and expr (syntax-column expr))]
+                         [line (and expr (syntax-line expr))])
+                    (when (string? src)
+                      (insert-file-name/icon (syntax-source expr) pos span line col))
+                    (display (exn-message exn) (current-error-port))
+                    (send rep wait-for-io-to-complete/user)
+                    (when (syntax? expr)
+                      (let ([locked? (send rep is-locked?)])
+                        (send rep lock #f)
+                        (insert/delta rep " in: ")
+                        (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta)
+                        (send rep lock locked?)))
+                    (insert/delta rep "\n")
+                    (when (and (is-a? src text:basic%)
+                               (number? pos)
+                               (number? span))
+                      (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+                 [(exn:read? exn)
+                  (let ([src (exn:read-source exn)]
+                        [pos (exn:read-position exn)]
+                        [span (exn:read-span exn)]
+                        [line (exn:read-line exn)]
+                        [col (exn:read-column exn)])
+                    (when (string? src)
+                      (insert-file-name/icon src pos span line col))
+                    (display (exn-message exn) (current-error-port))
+                    (newline (current-error-port))
+                    (send rep wait-for-io-to-complete/user)
+                    (cond
+                      [(and (is-a? src text:basic%)
+                            (number? line)
+                            (number? col))
+                       (send rep highlight-error src (- pos 1) (+ pos -1 span))]
+                      [(and (is-a? src text:basic%)
                             (number? pos)
                             (number? span))
-                   (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
-              [(exn:read? exn)
-               (let ([src (exn:read-source exn)]
-                     [pos (exn:read-position exn)]
-                     [span (exn:read-span exn)]
-                     [line (exn:read-line exn)]
-                     [col (exn:read-column exn)])
-                 (when (string? src)
-                   (insert-file-name/icon src pos span line col))
-                 (display (exn-message exn) (current-error-port))
-                 (newline (current-error-port))
-                 (send rep wait-for-io-to-complete/user)
-                 (cond
-                   [(and (is-a? src text:basic%)
-                         (number? line)
-                         (number? col))
-                    (send rep highlight-error src (- pos 1) (+ pos -1 span))]
-                   [(and (is-a? src text:basic%)
-                         (number? pos)
-                         (number? span))
-                    (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
-              [(exn? exn)
-               (display (exn-message exn) (current-error-port))
-               (newline (current-error-port))
-               (send rep wait-for-io-to-complete/user)]
-              [else
-               (display "uncaught exception: " (current-error-port))
-               (write exn (current-error-port))
-               (newline (current-error-port))
-               (send rep wait-for-io-to-complete/user)])
-            
-            (send rep end-edit-sequence))))
+                       (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
+                 [(exn? exn)
+                  (display (exn-message exn) (current-error-port))
+                  (newline (current-error-port))
+                  (send rep wait-for-io-to-complete/user)]
+                 [else
+                  (display "uncaught exception: " (current-error-port))
+                  (write exn (current-error-port))
+                  (newline (current-error-port))
+                  (send rep wait-for-io-to-complete/user)])
+               
+               (send rep end-edit-sequence))]
+            [else
+             (display msg (current-error-port))
+             (newline (current-error-port))])))
 
       ;; open-file-and-highlight : string (union number #f) (union number #f)
       ;; =Kernel, =Handler=
@@ -1315,7 +1320,6 @@
                                                           (set! exn-raised? #t)
                                                           (k (void)))])
                                                    drscheme-expand-program-error-escape-handler)])
-                                   (printf "running: ~s~n" thnk)
                                    (set! ans (thnk))))
                                (semaphore-post sema)))
                             (semaphore-wait sema)
@@ -1323,15 +1327,17 @@
                      [drs-snip-classes (get-snip-classes)])
                 (run-in-eventspace
                  (lambda ()
+                   (current-custodian user-custodian)
+                   (set-basic-parameters drs-snip-classes)
+                   (current-language-settings language-settings)))
+                (send language on-execute settings run-in-eventspace)
+                (run-in-eventspace
+                 (lambda ()
                    (error-display-handler
                     (lambda (msg exn)
                       (set! err-msg msg)
                       (set! err-exn exn)))
-                   (current-custodian user-custodian)
-                   (set-basic-parameters drs-snip-classes)
-                   (current-language-settings language-settings)
                    (break-enabled #t)))
-                (send language on-execute settings run-in-eventspace)
                 (let ([read-thnk
                        (run-in-eventspace
                         (lambda ()
@@ -1339,15 +1345,11 @@
                   (let loop ()
                     (let ([in (run-in-eventspace
                                (lambda ()
-                                 (printf "1~n")
                                  (let ([rd (read-thnk)])
-                                   (printf "2~n")
                                    (if (eof-object? rd)
                                        rd
                                        (let ([expanded (expand rd)])
-                                         (printf "3.expanded~n")
                                          (eval-compile-time-part-of-top-level expanded)
-                                         (printf "4.compile-time-eval'd~n")
                                          expanded)))))])
                       (cond
                         [(eof-object? in)

@@ -312,13 +312,15 @@
             (lambda (item evt)
               (drscheme:unit:open-drscheme-window))]
           
+          (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define file-menu:between-open-and-revert
             (lambda (file-menu) 
               (make-object menu-item% 
                 (string-constant open-url...)
                 file-menu
                 (lambda (item evt)
-                  (help:open-users-url this))))]
+                  (help:open-users-url this)))
+              (super-file-menu:between-open-and-revert file-menu))]
           
           [define edit-menu:between-find-and-preferences
             (lambda (menu)

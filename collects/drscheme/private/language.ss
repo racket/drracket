@@ -90,14 +90,15 @@
           (define (marshall-settings settings)
 	    (simple-settings->vector settings))
           (define (unmarshall-settings printable)
-	    (and (vector? printable)
-		 (= (vector-length printable)
-		    (+ (procedure-arity make-simple-settings) 1))
-		 (boolean? (vector-ref printable 1))
-		 (memq (vector-ref printable 2) '(constructor quasiquote write))
-		 (boolean? (vector-ref printable 3))
-		 (boolean? (vector-ref printable 4))
-		 (apply make-simple-settings (cdr (vector->list printable)))))
+            (and (vector? printable)
+                 (= (vector-length printable)
+                    (procedure-arity make-simple-settings))
+                 (boolean? (vector-ref printable 0))
+                 (memq (vector-ref printable 1) '(constructor quasiquote write))
+                 (boolean? (vector-ref printable 2))
+                 (boolean? (vector-ref printable 3))
+                 (boolean? (vector-ref printable 4))
+                 (apply make-simple-settings (vector->list printable))))
           (define (default-settings) 
             (make-simple-settings #f 'write #f #t #t))
           (define (default-settings? x)
@@ -301,6 +302,7 @@
                                          (char=? c2 #\!))
                                     (close-input-port tmp)))])
                            (let ([port (open-input-file input)])
+                             (port-count-lines! port)
                              (if skip-first-line?
                                  (begin (read-line port 'any)
                                         (values port input (file-position port) 1 0))
@@ -313,13 +315,24 @@
                                 [start-col (- start (send text paragraph-start-position start-line))])
                            (send text split-snip start)
                            (send text split-snip end)
-                           (values (open-input-text text start end)
-                                   text
-                                   start
-                                   start-line
-                                   start-col))])])
-          (lambda ()
-            (read-syntax source port (list line col offset)))))
+                           (let ([port (open-input-text text start end)])
+                             (port-count-lines! port)
+                             (values port
+                                     text
+                                     start
+                                     start-line
+                                     start-col)))])])
+          (let ([closed? #f])
+            (lambda ()
+              (if closed?
+                  eof
+                  (let ([result (read-syntax source port (list line col offset))])
+                    (if (eof-object? result)
+                        (begin
+                          (set! closed? #t)
+                          (close-input-port port)
+                          eof)
+                        result)))))))
       
       ;; open-input-text : (instanceof text%) num num -> input-port
       ;; creates a user port whose input is taken from the text%,

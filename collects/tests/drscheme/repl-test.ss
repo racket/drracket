@@ -444,8 +444,6 @@
                                 (number->string (+ 1 (loc-line (car source-location)))))]
                [start-col (and source-location-in-message
                                (number->string (+ 1 (loc-col (car source-location)))))]
-	       [error-start (and source-location-in-message
-				 (number->string (+ 1 (loc-offset (car source-location)))))]
 	       [formatted-execute-answer
 		(let* ([w/backtrace
 			(if (and (test-has-backtrace? in-vector)
@@ -489,9 +487,10 @@
                                  w/file-icon)])
                        (if source-location-in-message
                            (format w/docs-icon 
-                                   (format "~a::~a: "
+                                   (format "~a:~a:~a: "
                                            short-tmp-load-filename
-                                           error-start))
+                                           start-line
+                                           start-col))
                            w/docs-icon)))]
                [breaking-test? (test-breaking-test? in-vector)])
           
