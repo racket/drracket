@@ -21,16 +21,16 @@
                 stx))
              (if (member fn cache)
                  (syntax (void))
-                 (with-syntax ([full-fn (build-path 
-                                         (with-handlers ([not-break-exn?
-                                                          (lambda (x)
-                                                            (current-load-relative-directory))])
-                                           (collection-path "solutions"))
-                                         fn)]
+                 (with-syntax ([full-fn (build-path (with-handlers ([exn:i/o:filesystem?
+                                                                     (lambda (x)
+                                                                       (current-load-relative-directory))])
+                                                      (collection-path "solutions"))
+                                                    fn)]
                                [orig stx])
                    (set! cache (cons fn cache))
                    (syntax
                     (include-at/relative-to orig orig full-fn)))))]))))
   
   (provide sqr)
+
   (define (sqr x) (* x x)))
