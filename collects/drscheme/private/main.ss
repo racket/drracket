@@ -37,7 +37,6 @@
       
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
-      ;(version:add-spec 'd 7)
       
       (preferences:set-default 'drscheme:unit-window-size-percentage 1/2 
                                (lambda (x) (and (number? x) (<= 0 x 1))))
@@ -226,7 +225,11 @@
       
       ;;
       ;; Check for any files lost last time.
-      ;;
+      ;; Ignore the framework's empty frames test, since
+      ;;   the autosave information window may appear and then
+      ;;   go away (leaving no frames temporarily) but we are
+      ;;   not going to be exiting yet.
+      (send (group:get-the-frame-group) set-ignore-empty-test #t)
       (autosave:restore-autosave-files/gui)
       
       ;; the initial window doesn't set the 
@@ -271,4 +274,9 @@
 				(lambda () (drscheme:unit:open-drscheme-window f))))
 		   no-dups)])
 	(when (null? (filter (lambda (x) x) frames))
-	  (make-basic))))))
+	  (make-basic)))
+
+      ;;
+      ;;  Turn the framework test back on.
+      ;;
+      (send (group:get-the-frame-group) set-ignore-empty-test #f))))
