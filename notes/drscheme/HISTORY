@@ -1,3 +1,66 @@
+199d4
+
+TRANSLATIONS
+
+- changed the way menu strings are constructed (used
+  to concatenate things in a very English specific
+  way). So, the menus section of string constants
+  should be double checked. I fixed it as best I
+  could, based on what was already there.
+
+- added r5rs-like string constant, removed full-languages
+  constant. This shows up in the language dialog. The second
+  turn down tab used to be "Full" (in English). It is now
+  "R5RS-like".
+  
+- added bring-frame-to-front and bring-frame-to-front...
+  for the title of a new menu item in the windows menu
+  and the title of the dialog that it brings up.
+
+FUNCTIONALITY CHANGES
+
+- the framework no longer implicit string-appends various strings
+  to construct menu labels. This means that the methods
+  of the form file-menu:new-string now specify the entire
+  label of the menu, not just the bit after `New'.
+
+- all languages created by the simple-module-based-language
+  mixin have 'mzscheme set as the initial contents
+  of the transformer portion of their namespace.
+
+- drscheme:language:make-simple-settings/parse has been
+  eliminated; use drscheme:language:make-simple-settings
+  instead.
+  
+- added gui-utils:alphabetic-list-box% to framework
+
+MINOR CHANGES AND BUG FIXES
+
+- improved print-convert (and thus, drscheme's 
+  non-write printers) for syntax and regexps.
+
+- added an emacs-like c-x c-b feature to drscheme.
+  type <menukey>-b to popup a window of the open frames
+  and choose one without using the mouse by typing.
+
+- changed "Full" to "R5RS-like" for language category.
+
+- added r5rs and r5rs debugging languages to "R5RS-like".
+
+- fixed misc Check Syntax problems -- it should now
+  be in good shape (please report any bugs or bug-like
+  behavior now)
+
+- search dialog only shows replacing bit if the 
+  buffer is unlocked.
+
+- The enter key now submits the interaction in the REPL,
+  even if the cursor isn't at the end of a sexpression.
+
+- fixed a long standing bug where the paren highlighter
+  would highlight parens inside single semi-colon comments
+  in a funny way.
+
 199d3
 
 !!! WARNINGS !!!

@@ -1673,8 +1673,7 @@
 		       (basic-convert expr))))
                 
                 (set-basic-parameters snip-classes)
-                (set! user-namespace (make-namespace 'empty))
-                (current-namespace (current-namespace))
+                (set! user-namespace (current-namespace))
                 
                 (current-output-port this-out)
                 (current-error-port this-err)

@@ -278,7 +278,7 @@
                   (bell)))]
           
           (override file-menu:open-callback file-menu:open-string
-                    file-menu:new-callback file-menu:new-string
+                    file-menu:new-callback  file-menu:new-string
 		    help-menu:about-callback help-menu:about-string help-menu:create-about?
                     help-menu:before-about
 		    file-menu:between-open-and-revert
@@ -298,16 +298,15 @@
                   (drscheme:app:invite-tour))))]
           
           [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-          [define help-menu:about-string (lambda () (string-constant drscheme))]
+          [define help-menu:about-string (lambda () (string-constant about-drscheme))]
           [define help-menu:create-about? (lambda () #t)]
           
           (define/override (help-menu:after-about menu)
             (drscheme:app:add-language-items-to-help-menu menu))
           
           [define (file-menu:open-callback item evt) (handler:open-file)]
-          [define (file-menu:open-string) ""]
-          
-          [define (file-menu:new-string) ""]
+          (define (file-menu:new-string) (string-constant new-menu-item))
+          (define (file-menu:open-string) (string-constant open-menu-item))
           [define file-menu:new-callback
             (lambda (item evt)
               (drscheme:unit:open-drscheme-window))]

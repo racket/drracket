@@ -817,8 +817,8 @@
             (lambda (file-menu)
               (super-file-menu:between-open-and-revert file-menu)
               (make-object separator-menu-item% file-menu))]
-          [define file-menu:save-string (lambda () (string-constant definitions))]
-          [define file-menu:save-as-string (lambda () (string-constant definitions))]
+          [define file-menu:save-string (lambda () (string-constant save-definitions))]
+          [define file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
           [define file-menu:between-save-as-and-print
             (lambda (file-menu)
               (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
@@ -846,7 +846,7 @@
                   (lambda (_1 _2)
                     (save-as-text-from-text interactions-text)))
                 (make-object separator-menu-item% file-menu)))]
-          [define file-menu:print-string (lambda () (string-constant definitions))]
+          [define file-menu:print-string (lambda () (string-constant print-definitions))]
           [define file-menu:between-print-and-close
             (lambda (file-menu)
               (set! file-menu:print-transcript-item
@@ -871,7 +871,8 @@
             (let* ([canvas-to-be-split (get-edit-target-window)]
                    [update
                     (lambda (set-canvases! canvases canvas% text)
-                      (let-values ([(ox oy ow oh) (get-visible-region canvas-to-be-split)])
+                      (let-values ([(ox oy ow oh cursor-y)
+                                    (get-visible-region canvas-to-be-split)])
                         (let ([orig-percentages (send resizable-panel get-percentages)]
                               [orig-canvases (send resizable-panel get-children)]
                               [new-canvas (make-object canvas% resizable-panel text)])
@@ -910,14 +911,8 @@
                                                  (loop (cdr canvases)
                                                        (cdr percentages)))))])))
 
-			  (printf "new: ~a x ~a old: ~a x ~a~n"
-				  (send new-canvas get-width)
-				  (send new-canvas get-height)
-				  (send canvas-to-be-split get-width)
-				  (send canvas-to-be-split get-height))
-
-                          (set-visible-region new-canvas ox oy ow oh)
-                          (set-visible-region canvas-to-be-split ox oy ow oh)
+                          (set-visible-region new-canvas ox oy ow oh cursor-y)
+                          (set-visible-region canvas-to-be-split ox oy ow oh cursor-y)
                           
                           (send new-canvas focus))))])
               (cond
@@ -933,41 +928,65 @@
                          interactions-text)]
                 [else (bell)]))]
           
-          ;; get-visible-region : editor-canvas -> number number number number
-          ;; calculates the visible region of the editor in this editor-canvas
+          ;; get-visible-region : editor-canvas -> number number number number (union #f number)
+          ;; calculates the visible region of the editor in this editor-canvas, returning
+          ;; four numbers for the x, y, width and height of the visible region
+          ;; also, the last two booleans indiciate if the beginning and the end
+          ;; of the selection was visible before the split, respectively.
           (define (get-visible-region canvas)
-            (let ([admin
-                   (send canvas call-as-primary-owner
-                         (lambda ()
-                           (send (send canvas get-editor) get-admin)))]
-                  [xb (box 0)]
-                  [yb (box 0)]
-                  [wb (box 0)]
-                  [hb (box 0)])
-              (send admin get-view xb yb wb hb)
-              (values (unbox xb)
-                      (unbox yb)
-                      (unbox wb)
-                      (unbox hb))))
+            (send canvas call-as-primary-owner
+                  (lambda ()
+                    (let* ([text (send canvas get-editor)]
+                           [admin (send text get-admin)]
+                           [start (send text get-start-position)]
+                           [end (send text get-end-position)])
+                      (let-values ([(x y w h) (get-visible-area admin)])
+                        (let ([ysb (box 0)])
+                          (send text position-location (send text get-start-position) #f ysb)
+                          (values x y w h
+                                  (and (= start end)
+                                       (<= y (unbox ysb) (+ y h))
+                                       (unbox ysb)))))))))
           
-          ;; set-visible-region : editor-canvas number number number number -> void
+          ;; set-visible-region : editor-canvas number number number number (union #f number) -> void
           ;; sets the visible region of the text displayed by the editor canvas
           ;; to be the middle of the region (vertically) specified by x, y, w, and h.
-          (define (set-visible-region canvas x y w h)
-            (let ([admin 
-                   (send canvas call-as-primary-owner
-                         (lambda ()
-                           (send (send canvas get-editor) get-admin)))]
-                  [wb (box 0)]
-                  [hb (box 0)])
-              (send admin get-view #f #f wb hb)
-              (let ([nx x]
-                    [ny (- (+ y (/ h 2)) (/ (unbox hb) 2))]
-                    [nw (unbox wb)]
-                    [nh (- (unbox hb) 5)])
-                (printf "moving from (~a, ~a) to (~a, ~a) ~a~n" x y nx ny
-                        (send admin scroll-to nx ny nw nh)))))
+          ;; if start-visible? and/or end-visible? are true, some special handling
+          ;; is done to try to keep the start and end visible, with precendence
+          ;; given to start if both are #t.
+          (define (set-visible-region canvas x y w h cursor-y)
+            (send canvas call-as-primary-owner
+                  (lambda ()
+                    (let* ([text (send canvas get-editor)]
+                           [admin (send text get-admin)]
+                           [nwb (box 0)]
+                           [nhb (box 0)])
+                      (send admin get-view #f #f nwb nhb)
+                      (let* ([nw (unbox nwb)]
+                             [nh (unbox nhb)]
+                             
+                             [nx x]
+                             [raw-y (- (+ y (/ h 2)) (/ nh 2))]
+                             [ny (if (and cursor-y 
+                                          (not (<= raw-y cursor-y (+ raw-y nh))))
+                                     (- cursor-y (/ nh 2))
+                                     raw-y)])
+                        (send canvas scroll-to nx ny nw nh #t)
+                        (void))))))
           
+          ;; get-visible-area : admin -> number number number number
+          ;; returns the visible area for this admin
+          (define (get-visible-area admin)
+            (let ([bx (box 0)]
+                  [by (box 0)]
+                  [bw (box 0)]
+                  [bh (box 0)])
+              (send admin get-view bx by bw bh)
+              (values (unbox bx)
+                      (unbox by)
+                      (unbox bw)
+                      (unbox bh))))
+
           [define (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
@@ -975,15 +994,18 @@
                       (if (= 1 (length (get-canvases)))
                           (bell)
                           (let* ([old-percentages (send resizable-panel get-percentages)]
+                                 [soon-to-be-bigger-canvas #f]
                                  [percentages
                                   (if (eq? (car (get-canvases)) target)
-                                      (cons (+ (car old-percentages)
-                                               (cadr old-percentages))
-                                            (cddr old-percentages))
-                                      (let loop ([canvases (get-canvases)]
-                                                 [prev-percentage
-                                                  (car old-percentages)]
-                                                 [percentages (cdr old-percentages)])
+                                      (begin
+                                        (set! soon-to-be-bigger-canvas (cadr (get-canvases)))
+                                        (cons (+ (car old-percentages)
+                                                 (cadr old-percentages))
+                                              (cddr old-percentages)))
+                                      (let loop ([canvases (cdr (get-canvases))]
+                                                 [prev-canvas (car (get-canvases))]
+                                                 [percentages (cdr old-percentages)]
+                                                 [prev-percentage (car old-percentages)])
                                         (cond
                                           [(null? canvases)
                                            (error 'collapse "internal error.1")]
@@ -991,22 +1013,43 @@
                                            (error 'collapse "internal error.2")]
                                           [else
                                            (if (eq? (car canvases) target)
-                                               (if prev-percentage
-                                                   (cons (+ (car percentages)
-                                                            prev-percentage)
-                                                         (cdr percentages))
-                                                   (cons (+ (car percentages)
-                                                            (cadr percentages))
-                                                         (cddr percentages)))
+                                               (begin
+                                                 (set! soon-to-be-bigger-canvas prev-canvas)
+                                                 (cons (+ (car percentages)
+                                                          prev-percentage)
+                                                       (cdr percentages)))
                                                (cons prev-percentage
                                                      (loop (cdr canvases)
-                                                           (car percentages)
-                                                           (cdr percentages))))])))])
-                            (set-canvases!
-                             (mzlib:list:remq target (get-canvases)))
+                                                           (car canvases)
+                                                           (cdr percentages)
+                                                           (car percentages))))])))])
+                            (unless soon-to-be-bigger-canvas
+                              (error 'collapse "internal error.3"))
+                            (set-canvases! (mzlib:list:remq target (get-canvases)))
                             (update-shown)
-                            (send resizable-panel set-percentages percentages)
-                            (send (car (get-canvases)) focus))))])
+
+                            (let ([target-admin 
+                                   (send target call-as-primary-owner
+                                         (lambda ()
+                                           (send (send target get-editor) get-admin)))]
+                                  [to-be-bigger-admin 
+                                   (send soon-to-be-bigger-canvas call-as-primary-owner
+                                         (lambda ()
+                                           (send (send soon-to-be-bigger-canvas get-editor) get-admin)))])
+                              (let-values ([(bx by bw bh) (get-visible-area target-admin)])
+                                
+                                ;; this line makes the soon-to-be-bigger-canvas bigger
+                                (send resizable-panel set-percentages percentages)
+
+                                (let-values ([(ax ay aw ah) (get-visible-area to-be-bigger-admin)])
+                                  (send soon-to-be-bigger-canvas scroll-to
+                                        bx
+                                        (- by (/ (- ah bh) 2))
+                                        aw
+                                        ah
+                                        #t))))
+
+                            (send soon-to-be-bigger-canvas focus))))])
               (cond
                 [(memq target definitions-canvases)
                  (handle-collapse
