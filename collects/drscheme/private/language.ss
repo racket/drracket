@@ -692,6 +692,7 @@
         (let-values ([(port source offset line col)
                       (cond
                         [(string? input)
+                         (error 'module-based-front-end "got string ~e" input)
                          (let ([skip-first-line? 
                                 (let* ([tmp (open-input-file input)]
                                        [c1 (read-char tmp)]
@@ -788,7 +789,7 @@
        ;;;                                       ;;;                                                     
 
       
-      ;; open-input-text : (instanceof text%) num num boolean -> input-port
+      ;; open-input-text : (instanceof text%) num num -> input-port
       ;; creates a user port whose input is taken from the text%,
       ;; starting at position `start-in' (taking into account #!)
       ;; and ending at position `end'.

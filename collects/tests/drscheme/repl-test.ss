@@ -183,6 +183,17 @@
                 #f
                 #f)
      
+     (make-test (list "#!\n" 
+                      '("Special" "Insert XML Box")
+                      "<a>")
+                "(a ())"
+                "(a ())"
+                #f
+		'interactions
+                #f
+                #f
+                #f)
+     
      ;; eval tests
      (make-test "    (eval '(values 1 2))"
                 "1\n2"
@@ -712,6 +723,6 @@
     
     ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
-    ;(run-test-in-language-level #t)
+    (run-test-in-language-level #t)
     (run-test-in-language-level #f)
     ))

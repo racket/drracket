@@ -131,42 +131,47 @@
                      ((current-module-name-resolver) spec #f #f)))])
           (map get-name to-be-copied-module-specs)))
       
-      ;; drscheme-load-handler : string ??? ->* TST
+      ;; drscheme-load-handler : string boolean -> TST
       ;; =User=
       ;; the default load handler for programs running in DrScheme
       (define (drscheme-load-handler filename expected-module)
         (unless (string? filename)
 	  (raise-type-error 'drscheme-load-handler "string" filename))
-        (let* ([input (build-input filename)]
-               [ls (drscheme:rep:current-language-settings)]
-               [language (drscheme:language-configuration:language-settings-language ls)]
-               [settings (drscheme:language-configuration:language-settings-settings ls)]
-               [thnk (send language front-end input settings)])
-          (parameterize ([read-accept-compiled #t])
-	    (if expected-module
-		(with-module-reading-parameterization 
-		 (lambda ()
-		   (let* ([first (thnk)]
-			  [module-ized-exp (check-module-form first expected-module filename)]
-			  [second (thnk)])
-		     (unless (eof-object? second)
-		       (raise-syntax-error
-			'drscheme-load-handler
-			(format "expected only a `module' declaration for `~s', but found an extra expression"
-				expected-module)
-			second))
-		     (eval module-ized-exp))))
-		(let loop ([last-time-values (list (void))])
-		  (let ([exp (thnk)])
-		    (if (eof-object? exp)
-			(apply values last-time-values)
-			(call-with-values
-			 (lambda () (eval exp))
-			 (lambda x (loop x))))))))))
+        (unless (file-exists? filename)
+	  (raise-type-error 'drscheme-load-handler "existing file" filename))
+        (let-values ([(in-port src) (build-input-port filename)])
+          (dynamic-wind
+           (lambda () (void))
+           (lambda ()
+             (parameterize ([read-accept-compiled #t])
+               (if expected-module
+                   (with-module-reading-parameterization 
+                    (lambda ()
+                      (let* ([first (read-syntax src in-port)]
+                             [module-ized-exp (check-module-form first expected-module filename)]
+                             [second (read in-port)])
+                        (unless (eof-object? second)
+                          (raise-syntax-error
+                           'drscheme-load-handler
+                           (format "expected only a `module' declaration for `~s', but found an extra expression"
+                                   expected-module)
+                           second))
+                        (eval module-ized-exp))))
+                   (let loop ([last-time-values (list (void))])
+                     (let ([exp (read-syntax src in-port)])
+                       (if (eof-object? exp)
+                           (apply values last-time-values)
+                           (call-with-values
+                            (lambda () (eval exp))
+                            (lambda x (loop x)))))))))
+           (lambda ()
+             (close-input-port in-port)))))
       
-      ;; build-input : string[file-exists?] -> input
-      ;; returns an input to be used with a language's `front-end' method
-      (define (build-input filename)
+      ;; build-input-port : string[file-exists?] -> (values input any)
+      ;; constructs an input port for the load handler. Also
+      ;; returns a value representing the source of code read from the file.
+      ;; if the file's first lines begins with #!, skips the first chars of the file.
+      (define (build-input-port filename)
         (let* ([p (open-input-file filename)]
                [chars (list (read-char p)
                             (read-char p)
@@ -177,7 +182,17 @@
             [(equal? chars (string->list "WXME"))
              (let ([text (make-object text%)])
                (send text load-file filename)
-               (drscheme:language:make-text/pos text 0 (send text last-position)))]
-            [else filename])))
-      
-      )))
+               (let ([port (drscheme:language:open-input-text text 0 (send text last-position))])
+                 (port-count-lines! port)
+                 (when (and ((send text last-position) . >= . 2)
+                            (char=? #\# (send text get-character 0))
+                            (char=? #\! (send text get-character 1)))
+                   (read-line port))
+                 (values port text)))]
+            [else
+             (let ([port (open-input-file filename)])
+               (port-count-lines! port)
+               (when (and (equal? #\# (car chars))
+                          (equal? #\! (cadr chars)))
+                 (read-line port))
+               (values port filename))]))))))
