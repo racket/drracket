@@ -220,7 +220,7 @@
 	      [super-after-delete after-delete])
       (public
 	[needs-execution? #f]
-	[library-changed
+	[teachpack-changed
 	 (lambda ()
 	   (set! needs-execution? #t))]
 	[language-changed
@@ -510,7 +510,7 @@
 	
 	[on-close
 	 (lambda ()
-	   (remove-library-callback)
+	   (remove-teachpack-callback)
 	   (when (eq? this created-frame)
 	     (set! created-frame #f))
 	   (send interactions-text shutdown)
@@ -643,7 +643,7 @@
 	
 	(set! name-message (make-object mred:message% "" top-panel)))
       (private 
-	[make-library-name-msg
+	[make-teachpack-name-msg
 	 (lambda (panel n)
 	   (make-object mred:message%
 	     (if n
@@ -651,9 +651,9 @@
 		   name)
 		 "") 
 	     panel))]
-	[library-msg (make-library-name-msg
-		      top-panel
-		      (fw:preferences:get 'drscheme:library-file))])
+	[teachpack-msg (make-teachpack-name-msg
+			top-panel
+			(fw:preferences:get 'drscheme:teachpack-file))])
       
       (public
 	[stop-execute-button (void)]
@@ -679,18 +679,18 @@
 	(send top-panel stretchable-height #f))
       
       (private
-	[remove-library-callback
+	[remove-teachpack-callback
 	 (fw:preferences:add-callback
-	  'drscheme:library-file
-	  (let ([last-one (fw:preferences:get 'drscheme:library-file)])
+	  'drscheme:teachpack-file
+	  (let ([last-one (fw:preferences:get 'drscheme:teachpack-file)])
 	    (lambda (p v)
 	      (unless (or (and (not last-one) (not v))
 			  (and last-one v
 			       (string=? v last-one)))
 		(set! last-one v)
-		; (send top-panel change-children (lambda (l) (mzlib:function:remq library-msg l)))
-		(set! library-msg (make-library-name-msg top-panel v))
-		(send definitions-text library-changed)
+		; (send top-panel change-children (lambda (l) (mzlib:function:remq teachpack-msg l)))
+		(set! teachpack-msg (make-teachpack-name-msg top-panel v))
+		(send definitions-text teachpack-changed)
 		(send top-panel change-children 
 		      (lambda (l) (build-top-panel-children)))))))])
       
@@ -698,7 +698,7 @@
 	[build-top-panel-children
 	 (lambda ()
 	   (list name-message save-button
-		 library-msg
+		 teachpack-msg
 		 button-panel))])
       
       (inherit get-label)

@@ -14,10 +14,6 @@
       
       (define bug-frame%
         (class frame:basic% (title)
-          (override
-            [on-close
-             (lambda ()
-               (cancel))])
           (sequence (super-init title))))
       
       (define bug-frame (make-object bug-frame% "Bug Report Form"))
@@ -304,7 +300,7 @@
         (cleanup-frame))
       
       (define (cleanup-frame)
-        (send bug-frame show #f))
+        (send bug-frame close))
       
       (send bug-frame show #t))
     mred^

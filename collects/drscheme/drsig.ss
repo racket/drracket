@@ -1,3 +1,4 @@
+(require-library "macro.ss")
 (require-library "refer.ss")
 (require-library "match.ss")
 (require-library "sig.ss" "mred")
@@ -98,7 +99,7 @@
 (define-signature drscheme:rep^
   (text%
    show-interactions-history
-   invoke-library
+   invoke-teachpack
    process-text/zodiac
    process-text/no-zodiac))
 
