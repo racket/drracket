@@ -144,4 +144,5 @@
            (thunk)
            (end-busy-cursor)]
           [else
-           (send help-desk-frame show #t)])))))
+           (send help-desk-frame show #t)
+           (thunk)])))))
