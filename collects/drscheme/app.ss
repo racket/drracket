@@ -73,7 +73,9 @@
 				   [edit-menu:between-select-all-and-find (lambda (x) (void))]
 				   [edit-menu:copy (edit-menu:do wx:const-edit-copy)]
 				   [edit-menu:select-all (edit-menu:do wx:const-edit-select-all)]
-				   [edit-menu:find #f]))
+				   [edit-menu:find #f]
+				   [help-menu:about (lambda () (about-drscheme))]
+				   [help-menu:about-string "DrScheme"]))
 			       '() "About DrScheme")]
 	       [p (ivar f panel)]
 	       [c (make-object mred:wrapping-canvas% p)]

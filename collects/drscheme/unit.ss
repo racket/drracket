@@ -342,9 +342,7 @@
 	     (super-update-shown)
 	     (send panel change-children
 		   (lambda (l)
-		     (cons (if (send show-menu checked? definitions-id)
-			       top-panel
-			       scheme-only-panel)
+		     (cons top-panel
 			   (mzlib:function@:foldl
 			    (lambda (id sofar)
 			      (if (send show-menu checked? id)
@@ -524,39 +522,14 @@
 			      (let-values ([(base name must-be-dir) (split-path n)])
 				name)
 			      "")))]
-	  [space1 (make-object mred:horizontal-panel% top-panel)]
 	  [library-msg (make-library-name-msg
 			top-panel
-			(mred:get-preference 'drscheme:library-file))]
-	  [space2 (make-object mred:horizontal-panel% top-panel)])
+			(mred:get-preference 'drscheme:library-file))])
 	
 	(public
 	  [stop-execute-button (void)]
 	  [execute-button (void)]
-	  [button-panel (make-object mred:horizontal-panel% top-panel)]
-	  [scheme-only-panel (make-object mred:horizontal-panel% panel)])
-	
-	(private
-	 [scheme-only-library-msg
-	  (make-library-name-msg scheme-only-panel
-				 (mred:get-preference 'drscheme:library-file))]
-	 [scheme-only-space
-	  (make-object mred:vertical-panel% scheme-only-panel)]
-	 [scheme-only-stop-executing
-	  (make-object mred:button% scheme-only-panel
-		       (lambda args
-			 (send interactions-edit break)
-			 (ensure-interactions-shown)
-			 (send (send interactions-edit get-canvas) set-focus))
-		       break-bitmap)]
-	 [scheme-only-help
-	  (make-object mred:button% scheme-only-panel
-		       (lambda args (do-help))
-		       help-bitmap)])
-	 (sequence
-	  (send panel delete-child scheme-only-panel)
-
-	  (send save-button show save-init-shown?))
+	  [button-panel (make-object mred:horizontal-panel% top-panel)])
 	
 	 (sequence
 	  (set! execute-button
@@ -574,7 +547,6 @@
 		       (lambda args (do-help))
 		       help-bitmap)
 	  
-	  (send scheme-only-panel stretchable-in-y #f)
 	  (send button-panel stretchable-in-y #f)
 	  (send button-panel stretchable-in-x #f) 
 	  (send top-panel stretchable-in-y #f))
@@ -589,25 +561,22 @@
 			     (and last-one v
 				  (string=? v last-one)))
 		   (set! last-one v)
-		   (set! scheme-only-library-msg
-			 (make-library-name-msg scheme-only-panel v))
 		   (set! library-msg (make-library-name-msg top-panel v))
-		   (send scheme-only-panel change-children
-			 (lambda (l) (list scheme-only-library-msg
-					   scheme-only-space
-					   scheme-only-stop-executing
-					   scheme-only-help)))
 		   (send top-panel change-children 
 			 (lambda (l) (build-top-panel-children)))))))])
 		     
 	(private
 	  [build-top-panel-children
 	   (lambda ()
-	     (list name-message save-button space1 library-msg space2 button-panel))])
+	     (list name-message save-button
+		   library-msg
+		   button-panel))])
 	
 	(sequence
 	  (send show-menu check definitions-id #t)
-	  (send show-menu check interactions-id #t)
+	  (send show-menu check interactions-id 
+		(not (mred:get-preference 
+		      'drscheme:repl-active-after-execution)))
 
 	  (send interactions-edit initialize-console)
 	  (send interactions-edit enable-autoprompt)
