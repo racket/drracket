@@ -1596,7 +1596,8 @@
 			   (semaphore-wait wait)))])
 
                   (let ([errortrace-name ((current-module-name-resolver) '(lib "errortrace.ss" "errortrace") #f #f)]
-                        [orig-namespace (current-namespace)])
+                        [orig-namespace (current-namespace)]
+			)
 		  ;; setup standard parameters
                     (queue-user/wait
                      (lambda () ; =User=, =No-Breaks=
@@ -1604,8 +1605,13 @@
                        (break-enabled #f)
                        (set! user-thread (current-thread))
                        (initialize-parameters)
+		       (printf "1~n")
                        (namespace-attach-module orig-namespace errortrace-name)
-                       (namespace-require '(lib "errortrace.ss" "errortrace")))))
+		       (printf "2~n")
+                       ;(namespace-require '(lib "errortrace.ss" "errortrace"))
+                       (namespace-require errortrace-name)
+		       (printf "3~n")
+		       )))
 
 		  ;; initialize the language
 		  (send (drscheme:language:language-settings-language user-language-settings)
