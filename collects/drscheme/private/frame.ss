@@ -457,6 +457,14 @@
                 (lambda (x y)
                   (handler:edit-file #f)
                   #t)))
+	  (new menu-item%
+               (label (string-constant open-menu-item))
+               (parent file-menu)
+               (shortcut #\o)
+               (callback
+                (lambda (x y)
+                  (handler:open-file)
+                  #t)))
           (make-help-desk-menu-item help-menu)))
       
       (define (make-help-desk-menu-item help-menu)
