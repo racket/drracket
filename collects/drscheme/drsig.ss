@@ -62,10 +62,14 @@
    get-definitions-canvas%
    get-unit-frame%))
 
+(define-signature drscheme:graph^
+  (graph-pasteboard%
+   node-snip%))
+
 (define-signature drscheme:unit^
   (frame% 
-   ;snip-class% snip%
-   ;make-bitmap
+   snip-class% snip%
+   make-bitmap
    definitions-canvas%
    definitions-edit%
    interactions-canvas%

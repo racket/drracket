@@ -10,7 +10,8 @@
 	  [drscheme:rep : drscheme:rep^]
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
-	  [drscheme:face : drscheme:face^])
+	  [drscheme:face : drscheme:face^]
+	  [drscheme:graph : drscheme:graph^])
   
   (define (make-bitmap button-name)
     (lambda (area-container-window)
@@ -708,9 +709,8 @@
 	   (set! created-frame #f)]
 	  [else (void)]))))
   
-#|
   (define snip%
-    (class* mred:node-snip% (drscheme:face:unit-snipI) (unit)
+    (class* drscheme:graph:node-snip% (drscheme:face:unit-snipI) (unit)
       (inherit get-admin set-snipclass invalidate-to)
       (rename [super-get-flags get-flags])
       (public
@@ -853,8 +853,6 @@
 	  (set! buffer (make-object buffer% this))
 	  (apply set-filename filename-arg collections-arg)))))
 
-  |#
-
 
   (define make-unit
     (lambda (filename . collections)
@@ -862,9 +860,9 @@
 
   (define created-frame 'nothing-yet)
   
-  (fw:preference:set-default 'drscheme:open-all-files-in-scheme-mode
-			       #t
-			       boolean?)
+  (fw:preferences:set-default 'drscheme:open-all-files-in-scheme-mode
+			      #t
+			      boolean?)
   
   (define (open-as-unit name)
     (if (and created-frame
@@ -877,7 +875,7 @@
 	  (send f show #t)
 	  f)))
     
-  (mred:insert-format-handler 
+  (fw:handler:insert-format-handler 
    "Units"
    (lambda (filename)
      (or (fw:preferences:get 'drscheme:open-all-files-in-scheme-mode)
