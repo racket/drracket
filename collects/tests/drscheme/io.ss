@@ -1,7 +1,9 @@
+(set-language-level! "MzScheme")
+
 (define frame (wait-for-drscheme-frame))
 
 (define (check-output expression expected)
-  '(begin
+  (begin
      (clear-definitions frame)
      (type-in-definitions frame expression)
      (do-execute frame)
