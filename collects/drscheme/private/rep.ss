@@ -1516,7 +1516,7 @@
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
                  (user-thread-box (make-weak-box #f)))
-          
+
           (define/public (get-user-custodian) user-custodian)
           (define/public (get-user-teachpack-cache) user-teachpack-cache)
           (define/public (set-user-teachpack-cache tpc) (set! user-teachpack-cache tpc))

@@ -23,6 +23,9 @@ todo :
     - status line messages timing is wrong (can be closed and still sending messages)
     - shutdown the custodian when expansion is finished
 
+ - disable module browser in all languages except module language
+   (popup message box when selecting menu item)
+    
 |#
 (module module-overview mzscheme
   (require (lib "mred.ss" "mred")
@@ -33,6 +36,7 @@ todo :
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants")
            (lib "graph.ss" "mrlib")
+           (lib "errortrace.ss" "errortrace")
            "drsig.ss"
            (lib "unitsig.ss"))
   
@@ -48,6 +52,8 @@ todo :
       (define laying-out-graph-label (string-constant module-browser-laying-out-graph-label))
       (define open-file-format (string-constant module-browser-open-file-format))
       (define lib-paths-checkbox-constant (string-constant module-browser-show-lib-paths))
+      
+      (define unknown-module-name "? unknown module name")
       
       (preferences:set-default 'drscheme:module-overview:label-font-size 12 number?)
       (preferences:set-default 'drscheme:module-overview:window-height 500 number?)
@@ -180,13 +186,11 @@ todo :
               (with-handlers ([not-break-exn?
                                (lambda (x) 
                                  (let ([p (open-output-string)])
-                                   (parameterize ([current-output-port p]
-                                                  [current-error-port p])
-                                     ((error-display-handler) 
-                                      (if (exn? x)
-                                          (format "~a" (exn-message x))
-                                          (format "uncaught exn: ~s" x))
-                                      x))
+                                   (display (if (exn? x)
+                                                (format "~a" (exn-message x))
+                                                (format "uncaught exn: ~s" x))
+                                            p)
+                                   (print-error-trace p x)
                                    (set! error (get-output-string p))))])
                 (cond
                   [(string? filename/stx)
@@ -230,7 +234,7 @@ todo :
                          [snip (find/create-snip name #f)]
                          [base (if (regexp-match #rx"^," name)
                                    (substring name 1 (string-length name))
-                                   name)])
+                                   (build-path (current-load-relative-directory) name))])
                     (hash-table-put! visited-hash-table visited-key #t)
                     (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
                       (let ([requires (extract-filenames imports base)]
@@ -257,11 +261,12 @@ todo :
                                   syntax-requires)))))))
             
             (define (extract-module-name stx)
-              (syntax-case stx (module)
+              (syntax-case stx ()
                 [(module m-name rest ...)
-                 (identifier? (syntax m-name))
+                 (and (eq? (syntax-e (syntax module)) 'module)
+                      (identifier? (syntax m-name)))
                  (format "~a" (syntax-object->datum (syntax m-name)))]
-                [else "<<unknown>>"]))
+                [else unknown-module-name]))
             
             ;; add-filename-connections : string hash-table (number -> void) (string -> void)  -> void
             (define/private (add-filename-connections filename visited-hash-table update-max-lines update-progress)

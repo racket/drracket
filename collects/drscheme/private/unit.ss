@@ -13,7 +13,6 @@
            (lib "mred.ss" "mred")
            (prefix mred: (lib "mred.ss" "mred"))
 
-           (prefix launcher: (lib "launcher.ss" "launcher"))
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:date: (lib "date.ss")))
   
@@ -21,6 +20,7 @@
   
   (define module-browser-progress-constant "Module Browser: ~a")
   (define status-compiling-definitions "Module Browser: compiling definitions")
+  (define refresh "Refresh")
   
   (define unit@
     (unit/sig drscheme:unit^
@@ -1696,44 +1696,61 @@
                  [module-browser-parent-panel #f]
                  [module-browser-panel #f]
                  [module-browser-ec #f]
+                 [module-browser-button #f]
                  [module-browser-pb #f])
 
           (inherit open-status-line close-status-line update-status-line)
           
           (define/private (show-module-browser)
             (when module-browser-panel
-              (open-status-line 'plt:module-browser:mouse-over)
-              
-              ;; open twice here -- once for the callbacks from make-module-overview-pasteboard
-              ;; and once for the status messages during drscheme:init:expand-program
-              (open-status-line 'plt:module-browser)
-              (open-status-line 'plt:module-browser)
-              
-              (update-status-line 'plt:module-browser status-compiling-definitions)
-              (unless module-browser-ec 
-                (set! module-browser-pb 
-                      (drscheme:module-overview:make-module-overview-pasteboard
-                       #t
-                       #f 
-                       (lambda (x) (mouse-currently-over x))
-                       (lambda (msg)
-                         (if (eq? msg 'done)
-                             (close-module-browser-status)
-                             (show-module-browser-status msg)))))
-                (set! module-browser-ec (make-object editor-canvas%
-                                          module-browser-panel
-                                          module-browser-pb)))
-              (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
-                (send module-browser-parent-panel begin-container-sequence)
-                (send module-browser-parent-panel change-children
-                      (lambda (l)
-                        (cons module-browser-panel
-                              (remq module-browser-panel l))))
-                (send module-browser-parent-panel set-percentages
-                      (list p (- 1 p)))
-                (send module-browser-parent-panel end-container-sequence)
-                (calculate-module-browser))))
+              (update-module-browser-pane)))
           
+          (define/private (hide-module-browser)
+            (when module-browser-panel
+              (close-status-line 'plt:module-browser:mouse-over)
+              (send module-browser-parent-panel change-children
+                    (lambda (l) 
+                      (remq module-browser-panel l)))))
+          
+          (define/private (update-module-browser-pane)
+            (open-status-line 'plt:module-browser:mouse-over)
+            
+            ;; open twice here -- once for the callbacks from make-module-overview-pasteboard
+            ;; and once for the status messages during drscheme:init:expand-program
+            (open-status-line 'plt:module-browser)
+            (open-status-line 'plt:module-browser)
+            
+            (update-status-line 'plt:module-browser status-compiling-definitions)
+            (send module-browser-panel begin-container-sequence)
+            (unless module-browser-ec 
+              (set! module-browser-pb 
+                    (drscheme:module-overview:make-module-overview-pasteboard
+                     #t
+                     #f 
+                     (lambda (x) (mouse-currently-over x))
+                     (lambda (msg)
+                       (if (eq? msg 'done)
+                           (close-module-browser-status)
+                           (show-module-browser-status msg)))))
+              (set! module-browser-ec (make-object editor-canvas%
+                                        module-browser-panel
+                                        module-browser-pb))
+              (set! module-browser-button (instantiate button% ()
+                                            (parent module-browser-panel)
+                                            (label refresh)
+                                            (callback (lambda (x y) (update-module-browser-pane)))
+                                            (stretchable-width #t))))
+            
+            (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
+              (send module-browser-parent-panel change-children
+                    (lambda (l)
+                      (cons module-browser-panel
+                            (remq module-browser-panel l))))
+              (send module-browser-parent-panel set-percentages
+                    (list p (- 1 p)))
+              (send module-browser-parent-panel end-container-sequence)
+              (calculate-module-browser)))
+            
           (field [status-callback-running? #f]
                  [status-callback-close? #f]
                  [status-callback-str #f]
@@ -1773,13 +1790,6 @@
                       (semaphore-post status-callback-sema))
                     #f))))))
           
-          (define/private (hide-module-browser)
-            (when module-browser-panel
-              (close-status-line 'plt:module-browser:mouse-over)
-              (send module-browser-parent-panel change-children
-                    (lambda (l) 
-                      (remq module-browser-panel l)))))
-          
           (define/private (mouse-currently-over snips)
             (if (null? snips)
                 (update-status-line 'plt:module-browser:mouse-over #f)
@@ -1798,25 +1808,29 @@
                               defs
                               0
                               (send defs last-position))]
-                   [language-settings (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))]
-                   [kill-termination (lambda ()
-                                       (close-status-line 'plt:module-browser))]
+                   [shutdown
+                    (lambda ()
+                      (send module-browser-button enable #t)
+                      (close-status-line 'plt:module-browser))]
+                   [kill-termination (lambda () (shutdown))]
                    [init (lambda () (set-directory defs))]
                    [complete-program? #t]
                    [iter 
                     (lambda (exp cont)
                       (cond
                         [(eof-object? exp) 
-                         (close-status-line 'plt:module-browser)]
-                        [(pair? exp) (void)]
+                         (shutdown)]
+                        [(pair? exp) 
+                         (shutdown)]
                         [else
                          (let ([err (send module-browser-pb add-connections exp)])
                            (when err
-                             (message-box "DrScheme" err)))
+                             (message-box (string-constant drscheme) err)))
                          (update-status-line 'plt:module-browser status-compiling-definitions)
                          (cont)]))])
+              (send module-browser-button enable #f)
               ((drscheme:eval:traverse-program/multiple
-                language-settings init kill-termination)
+                next-settings init kill-termination)
                text-pos iter complete-program?)))
           
           ;; set-directory : text -> void
