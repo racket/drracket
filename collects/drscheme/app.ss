@@ -40,7 +40,7 @@
 	       [e (make-object wrap-edit%)]
 	       [main-media (make-object wrap-edit%)]
 	       [image-snip (make-object wx:image-snip% 
-					(build-path mred:plt-home-directory
+					(build-path mred:constants:plt-home-directory
 						    "icons"
 						    (if (< (wx:display-depth) 8)
 							"bwlambda.gif"

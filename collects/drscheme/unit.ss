@@ -64,7 +64,7 @@
 		     (lambda (filename)
 		       (let* ([capd (string-copy filename)]
 			      [path (build-path
-				     mred:plt-home-directory
+				     mred:constants:plt-home-directory
 				     "icons"
 				     (string-append filename ".bmp"))])
 			 (string-set! capd 0 (char-upcase (string-ref capd 0)))
@@ -150,7 +150,7 @@
       (lambda ()
 	(mred:open-hyper-view (string-append
 			       "file:"
-			       (build-path mred:plt-home-directory
+			       (build-path mred:constants:plt-home-directory
 					   "doc"
 					   "drscheme"
 					   "index.htm")))))
