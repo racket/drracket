@@ -5,6 +5,9 @@
 (reference-library "gusrspcs.ss" "gusrspce")
 (reference-library "pconvers.ss")
 
+(define-signature drscheme:get-collection^
+  (get-file/collection))
+
 (define-signature drscheme:main^ ())
 
 (define-signature drscheme:init^
@@ -20,6 +23,12 @@
 
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
+
+(define-signature drscheme:face^
+  (unitI compound-unitI 
+	 unit-displayI 
+	 unit-frameI compound-unit-frameI
+	 unit-snipI compound-unit-snipI))
 
 (define-signature drscheme:interface^ 
   ((open zodiac:interface^)
@@ -56,25 +65,38 @@
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
-(define-signature drscheme:parameters^
-  (current-interactions-edit%
-   current-definitions-edit%
-   current-interactions-canvas%
-   current-definitions-canvas%
-   current-frame%))
+(define-signature drscheme:get/extend^
+  (extend-interactions-edit%
+   extend-definitions-edit%
+   extend-interactions-canvas%
+   extend-definitions-canvas%
+   extend-unit-frame%
+   get-interactions-edit%
+   get-definitions-edit%
+   get-interactions-canvas%
+   get-definitions-canvas%
+   get-unit-frame%))
 
 (define-signature drscheme:unit^
   (frame% 
    snip-class% snip% make-bitmap
    definitions-canvas%
    definitions-edit%
-   interactions-canvas%))
+   interactions-canvas%
+   unit%
+   make-unit))
 
 (define-signature drscheme:frame^
   (make-frame%))
 
 (define-signature drscheme:compound-unit^
-  (frame% snip%))
+  (frame% snip% compound-unit% make-compound-unit))
+
+(define-signature drscheme:signature^
+  (frame%))
+
+(define-signature drscheme:program^
+  (frame%))
 
 (define-signature drscheme:edit^
   (edit%))
@@ -107,7 +129,9 @@
   ((unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit compound-unit : drscheme:compound-unit^)
-   (unit parameters : drscheme:parameters^)
+   (unit signature : drscheme:signature^)
+   (unit program : drscheme:program^)
+   (unit get/extend : drscheme:get/extend^)
    (unit rep : drscheme:rep^)))
 
 (begin-construction-time
