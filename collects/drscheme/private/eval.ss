@@ -14,20 +14,17 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program input language-settings init error iter)
+      (define (expand-program input language-settings init error-termination kill-termination iter)
         (let* ([eventspace (make-eventspace)]
                [language (drscheme:language-configuration:language-settings-language
                           language-settings)]
                [settings (drscheme:language-configuration:language-settings-settings
                           language-settings)]
                [user-custodian (make-custodian)]
-               [exn-raised? #f]
-               [err-msg #f]
-               [err-exn #f]
+               [eventspace-main-thread #f]
                [run-in-eventspace
                 (lambda (thnk)
                   (parameterize ([current-eventspace eventspace])
-                    (set! exn-raised? #f)
                     (let ([sema (make-semaphore 0)]
                           [ans #f])
                       (queue-callback
@@ -35,9 +32,7 @@
                          (let/ec k
                            (parameterize ([error-escape-handler
                                            (let ([drscheme-expand-program-error-escape-handler
-                                                  (lambda ()
-                                                    (set! exn-raised? #t)
-                                                    (k (void)))])
+                                                  (lambda () (k (void)))])
                                              drscheme-expand-program-error-escape-handler)])
                              (set! ans (thnk))))
                          (semaphore-post sema)))
@@ -52,11 +47,16 @@
           (send language on-execute settings run-in-eventspace)
           (run-in-eventspace
            (lambda ()
+             (set! eventspace-main-thread (current-thread))
              (error-display-handler
               (lambda (msg exn)
-                (error msg exn)))
+                (error-termination msg exn)))
              (init)
              (break-enabled #t)))
+          (thread
+           (lambda ()
+             (thread-wait eventspace-main-thread)
+             (kill-termination)))
           (parameterize ([current-eventspace eventspace])
             (queue-callback
              (lambda ()

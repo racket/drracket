@@ -9,7 +9,6 @@
 ;;          original stdin/stdout of drscheme, instead of the 
 ;;          user's io ports, to aid any debugging printouts.
 ;;          (esp. useful when debugging the users's io)
-
 (module rep mzscheme
   (require (lib "unitsig.ss")
            (lib "class.ss")
@@ -411,6 +410,19 @@
 	  ;; make the context enable all methods of evaluation
 	  ;; (disable buttons, menus, etc)
           
+          set-breakables ;; (union thread #f) (union custodian #f) -> void
+          ;; the context might initiate breaks or kills to
+          ;; the thread passed to this function
+
+          get-breakables ;; -> (values (union thread #f) (union custodian #f))
+          ;; returns the last values passed to set-breakables.
+
+          reset-offer-kill ;; (-> void)
+          ;; the next time the break button is pushed, it will only
+          ;; break. (if the break button is clicked twice without
+          ;; this method being called in between, it will offer to
+          ;; kill the user's program)
+
           running            ;; (-> void)
 	  ;; a callback to indicate that the repl is evaluating code
 
@@ -550,9 +562,6 @@
           
           kill-evaluation
           
-          break
-          set-offer-break-state
-          
           display-results
           
           run-in-evaluation-thread
@@ -632,9 +641,6 @@
             get-user-namespace
             
             kill-evaluation
-            
-            break
-            set-offer-break-state
             
             display-results
             
@@ -1457,7 +1463,8 @@
                 (lock c-locked?)))
             (cleanup)
             (end-edit-sequence)
-            (send context enable-evaluation))
+            (send context enable-evaluation)
+            (send context set-breakables #f #f))
           
           ; =Kernel, =Handler=
           (define (do-many-text-evals text start end)
@@ -1491,6 +1498,7 @@
             ;; breaking state and calls the thunk it was called with.
             (lambda (run-loop)  ;; (((-> void) -> void) -> void)
               (send context disable-evaluation)
+              (send context set-breakables user-thread user-custodian)
               (cleanup-transparent-io)
               (reset-pretty-print-width)
               (ready-non-prompt)
@@ -1503,7 +1511,7 @@
               
               (run-in-evaluation-thread
                (lambda () ; =User=, =Handler=, =No-Breaks=
-                 (set-offer-break-state #f)
+                 (send context reset-offer-kill)
                  
                  (protect-user-evaluation
                   ; Evaluate the expression(s)
@@ -1547,28 +1555,6 @@
               (for-each (lambda (i) (semaphore-post limiting-sema)) io-collected-thunks)
               (set! io-collected-thunks null)
               (semaphore-post io-semaphore)))
-          
-          (define (set-offer-break-state new-ask-about-kill?)
-            (set! ask-about-kill? new-ask-about-kill?))
-          (define (break)  ; =Kernel=, =Handler=
-            (cond
-              [(not in-evaluation?)
-               (bell)]
-              [ask-about-kill? 
-               (if (gui-utils:get-choice
-                    (string-constant kill-evaluation?)
-                    (string-constant just-break)
-                    (string-constant kill)
-                    (string-constant kill?)
-                    'diallow-close
-                    (let ([canvas (get-active-canvas)])
-                      (and canvas
-                           (send canvas get-top-level-window))))
-                   (break-thread user-thread)
-                   (custodian-shutdown-all user-custodian))]
-              [else
-               (break-thread user-thread)
-               (set-offer-break-state #t)]))
           
           (define (kill-evaluation) ; =Kernel=, =Handler=
             (custodian-shutdown-all user-custodian))
@@ -1679,6 +1665,9 @@
                      (set! user-thread (current-thread))
                      (initialize-parameters snip-classes))))
                 
+                ;; set up break button.
+                (send context set-breakables user-thread user-custodian)
+
                 ;; re-loads any teachpacks that have changed
                 (drscheme:teachpack:load-teachpacks 
                  user-namespace 
@@ -1825,9 +1814,8 @@
                           
                           (cond
                             [(not in-evaluation?)
-                             
-                             (set-offer-break-state #f)
-                             
+                             (send context reset-offer-kill)
+                             (send context set-breakables user-thread user-custodian)
                              (protect-user-evaluation
                               ; Run the dispatch:
                               (lambda () ; =User=, =Handler=, =No-Breaks=
@@ -1849,7 +1837,8 @@
                              
                              ; Restore break:
                              (when ub?
-                               (break-enabled break-ok?))]
+                               (break-enabled break-ok?))
+                             (send context set-breakables #f #f)]
                             [else
                              ; Nested dispatch; don't adjust interface, and restore break:
                              (break-enabled break-ok?)

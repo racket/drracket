@@ -706,8 +706,7 @@
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
-          execute-callback
-          run-breakable/killable))
+          execute-callback))
 
       (define -frame%
         (class* super-frame% (drscheme:rep:context<%> -frame<%>)
@@ -1287,55 +1286,52 @@
                (send interactions-text on-close)
                (super-on-close))]
           
-          [define running? #t]
-          
-          ;; run-breakable/killable : (-> void) -> void
-          ;; creates a new thread to run the thunk
-          ;; and sets up the frame's GUI to allow
-          ;; breaking and killing and disallow other
-          ;; types of evaluation (so the break button 
-          ;; still has a single meaning)
-          (define/public (run-breakable/killable thunk)
-            (disable-evaluation)
-            (let* ([done (make-semaphore 0)]
-                   [before-beginning (make-semaphore 0)]
-                   [main-thread
-                    (thread
-                     (lambda ()
-                       (semaphore-wait before-beginning)
-                       (thunk)
-                       (semaphore-post done)))])
-              (set-break-callback
-               (lambda ()
-                 (make-break-callback main-thread)))
-              (thread
-               (lambda ()
-                 (thread-wait main-thread)
-                 (semaphore-post done)))
-              (thread
-               (lambda ()
-                 (semaphore-wait done)
-                 (queue-callback
-                  (lambda ()
-                    (enable-evaluation)
-                    (set-break-callback void)))))
-              (semaphore-post before-beginning)))
-
-          ;; make-break-callback : thread -> void
-          (define (make-break-callback thread)
-            ;; should handle killing, too.
-            (break-thread thread))
-
-          ;; internal-break-callback : (-> void)
-          (field (internal-break-callback void))
+          (field [thread-to-break #f]
+                 [custodian-to-kill #f]
+                 [offer-kill? #f])
           
           ;; break-callback : -> void
           (define/public (break-callback)
-            (internal-break-callback))
+            (cond
+              [(or (not thread-to-break)
+                   (not custodian-to-kill))
+               (bell)]
+              [offer-kill? 
+               (if (user-wants-kill?)
+                   (when thread-to-break
+                     (break-thread thread-to-break))
+                   (when custodian-to-kill
+                     (custodian-shutdown-all custodian-to-kill)))]
+              [else
+               (break-thread thread-to-break)
+               ;; only offer a kill the next time if 
+               ;; something got broken.
+               (set! offer-kill? #t)]))
+
+          ;; user-wants-kill? : -> boolean
+          ;; handles events, so be sure to check state
+          ;; after calling to avoid race conditions.
+          (define/private (user-wants-kill?)
+            (gui-utils:get-choice
+             (string-constant kill-evaluation?)
+             (string-constant just-break)
+             (string-constant kill)
+             (string-constant kill?)
+             'diallow-close
+             this))
+
+          ;; reset-offer-kill
+          (define/public (reset-offer-kill)
+            (set! offer-kill? #f))
           
-          ;; set-break-callback : (-> void) -> void
-          (define/public (set-break-callback thnk)
-            (set! internal-break-callback thnk))
+          ;; get-breakables : -> (union #f thread) (union #f cust) -> void
+          (define/public (get-breakables)
+            (values thread-to-break custodian-to-kill))
+
+          ;; set-breakables : (union #f thread) (union #f cust) -> void
+          (define/public (set-breakables thd cust)
+            (set! thread-to-break thd)
+            (set! custodian-to-kill cust))
           
           (define/public (execute-callback)
             (cond
@@ -1346,16 +1342,10 @@
                 this)]
               [else
                (ensure-rep-shown)
-               (set-break-callback
-                (lambda ()
-                  (send interactions-text break)
-                  (ensure-rep-shown)
-                  (send (send interactions-text get-canvas) focus)))
                (send definitions-text just-executed)
                (send interactions-canvas focus)
                (send interactions-text reset-console)
                (send interactions-text clear-undos)
-               
                (let ([start (if (and ((send definitions-text last-position) . >= . 2)
                                      (char=? (send definitions-text get-character 0) #\#)
                                      (char=? (send definitions-text get-character 1) #\!))
