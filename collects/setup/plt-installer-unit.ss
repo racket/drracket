@@ -3,7 +3,20 @@
            (lib "mred-sig.ss" "mred")
            (lib "class.ss")
            (lib "class100.ss")
-           "plt-installer-sig.ss")
+
+           "plt-installer-sig.ss"
+
+	   ;; All the rest are to get the imports for setup@:
+	   "option-sig.ss"
+	   "setup-unit.ss"
+	   "option-unit.ss"
+	   (lib "launcher-sig.ss" "launcher")
+	   (lib "launcher-unit.ss" "launcher")
+	   (lib "dynext-sig.ss" "dynext")
+	   (lib "dynext-unit.ss" "dynext")
+	   (lib "sig.ss" "compiler")
+	   (lib "option-unit.ss" "compiler")
+	   (lib "compiler-unit.ss" "compiler"))
   
   (provide plt-installer@)
   
@@ -43,11 +56,36 @@
                       (lambda ()
                         (current-output-port output)
                         (current-error-port output)
-                        (parameterize ([current-namespace (make-namespace)]
-                                       [exit-handler (lambda (v) (custodian-shutdown-all cust))])
-                          (printf "Loading installer...~n")
-                          (namespace-variable-binding 'argv (vector file))
-                          (dynamic-require '(lib "setup.ss" "setup") #f)))))])
+                        (parameterize ([exit-handler (lambda (v) (custodian-shutdown-all cust))])
+			  (invoke-unit/sig
+			   (compound-unit/sig
+			    (import)
+			    (link [launcher : launcher^ (launcher@ dcompile dlink)]
+				  [dcompile : dynext:compile^ (dynext:compile@)]
+				  [dlink : dynext:link^ (dynext:link@)]
+				  [dfile : dynext:file^ (dynext:file@)]
+				  [option : compiler:option^ (compiler:option@)]
+				  [compiler : compiler^ (compiler@
+							 option
+							 dcompile
+							 dlink
+							 dfile)]
+				  [soption : setup-option^ (setup:option@)]
+				  [set-options : () ((unit/sig ()
+						       (import setup-option^)
+						       ;; >>>>>>>>>>>>>> <<<<<<<<<<<<<<<
+						       ;; Here's where we tell setup the archive file!
+						       (archives (list file))
+						       ;; Here's where we make get a directory:
+						       (current-target-directory-getter
+							(lambda () (get-directory "Select the destination for unpacked items"))))
+						     soption)]
+				  [setup : () (setup@
+					       SOPTION
+					       compiler
+					       option
+					       launcher)])
+			    (export)))))))])
             (thread (lambda () (send f show #t) (semaphore-post s)))
             (thread (lambda () 
                       (thread-wait t) 
