@@ -2471,7 +2471,8 @@ tab panels new behavior:
                        (let ([str (get-text-from-user (string-constant large-semicolon-letters)
                                                       (string-constant text-to-insert)
                                                       this)])
-                         (when str
+                         (when (and str
+                                    (not (equal? str "")))
                            (let ()
                              (define language-settings (send definitions-text get-next-settings))
                              (define-values (comment-prefix comment-character)
@@ -2481,17 +2482,60 @@ tab panels new behavior:
                                          get-comment-character)
                                    (values ";" #\;)))
                              (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 #t)))
-                             (define-values (tw th td ta) (send bdc get-text-extent str))
+                             (define the-font (send (send (editor:get-standard-style-list)
+                                                          find-named-style
+                                                          "Standard")
+                                                    get-font))
+                             (define-values (tw th td ta) (send bdc get-text-extent str the-font))
                              (define tmp-color (make-object color%))
+                             
+                             
+                             (define chars #f)
+                             (define (compute-chars)
+                               (unless chars
+                                 (let* ([bdc (make-object bitmap-dc% (make-object bitmap% 20 20 #t))]
+                                        [index-char
+                                         (lambda (s)
+                                           (send bdc clear)
+                                           (let-values ([(w h a d) (send bdc get-text-extent s)])
+                                             (send bdc draw-text s 0 0)
+                                             (let loop ([x w])
+                                               (if (zero? x)
+                                                   0
+                                                   (+ (let loop ([y h])
+                                                        (if (zero? y)
+                                                            0
+                                                            (begin
+                                                              (send bdc get-pixel (- x 1) (- y 1) tmp-color)
+                                                              (+ (if (= (send tmp-color red) 255) 0 1)
+                                                                 (loop (- y 1))))))
+                                                      (loop (- x 1)))))))])
+                                   (send bdc set-font the-font)
+                                   (let* ([all-chars '(#\@ #\# #\+ #\- #\: #\$ #\& #\* #\space)]
+                                          [prs 
+                                           (quicksort
+                                            (map (lambda (c) (cons c (index-char (string c))))
+                                                 all-chars)
+                                            (lambda (x y) (> (cdr x) (cdr y))))]
+                                          [biggest (cdr (car prs))]
+                                          [smallest (cdr (car (last-pair prs)))]
+                                          [normalized
+                                           (map (lambda (x)
+                                                  (cons (car x)
+                                                        (- 255 (floor (* (/ (- (cdr x) smallest)
+                                                                            (- biggest smallest))
+                                                                         255)))))
+                                                prs)])
+                                     (set! chars normalized)))))
                              (define (get-char x y)
                                (send bdc get-pixel x y tmp-color)
                                (let ([red (send tmp-color red)])
-                                 (cond
-                                   [(<= red 63) (integer->char #x2739) #\@]
-                                   [(<= red 127) (integer->char #x2734) #\+]
-                                   [(<= red 191) (integer->char #x2731) #\:]
-                                   [else #\space])))
-                             
+                                 (or (ormap (lambda (pr)
+                                              (if (<= red (cdr pr))
+                                                  (car pr)
+                                                  #f))
+                                            chars)
+                                     #\space)))
                              (define bitmap
                                (make-object bitmap% 
                                  (inexact->exact tw)
@@ -2505,8 +2549,11 @@ tab panels new behavior:
                                    [(zero? x) (apply string chars)]
                                    [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
                              
+                             (compute-chars)
+                             
                              (send bdc set-bitmap bitmap)
                              (send bdc clear)
+                             (send bdc set-font the-font)
                              (send bdc draw-text str 0 0)
                              
                              (send edit begin-edit-sequence)
