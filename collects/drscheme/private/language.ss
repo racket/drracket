@@ -162,7 +162,7 @@
                  (memq (vector-ref printable 5) '(none debug debug/profile))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'current-print 'mixed-fraction-e #f #t 'debug))
+            (make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
