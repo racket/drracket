@@ -320,7 +320,7 @@
       (public
 	[ensure-interactions-shown
 	 (lambda ()
-	   (unless (send interactions-item is-checked?)
+	   (when (hidden? interactions-item)
 	     (toggle-show/hide interactions-item)
 	     (update-shown)))])
       
@@ -440,7 +440,7 @@
 		     (cons top-panel
 			   (mzlib:function:foldl
 			    (lambda (item sofar)
-			      (if (send item is-checked?)
+			      (if (hidden? item)
 				  sofar
 				  (cons (item->child item) sofar)))
 			    null
@@ -570,7 +570,7 @@
 		     #f
 		     "Show the imports to this unit"))
 	(set! definitions-item
-	      (make-object mred:checkable-menu-item%
+	      (make-object mred:menu-item%
 		"Hide &Definitions"
 		show-menu
 		(lambda (_1 _2) 
@@ -579,7 +579,7 @@
 		#\d
 		"Show the definitions window"))
 	(set! interactions-item
-	      (make-object mred:checkable-menu-item%
+	      (make-object mred:menu-item%
 		"Show &Interactions"
 		show-menu
 		(lambda (_1 _2) 

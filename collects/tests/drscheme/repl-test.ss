@@ -30,7 +30,7 @@
 		    #t
 		    #f)
 	    (make-test "(lambda ())"
-		    "1.1-1.8: Malformed lambda"
+		    "1.1-1.12: Malformed lambda"
 		    #t
 		    "Malformed lambda"
 		    (vector 0 11)
@@ -104,12 +104,12 @@
 		    #f
 		    #f)
 	    (make-test "    (eval '(lambda ()))"
-		    "1.5-1.20: Malformed begin"
+		    "1.5-1.20: Malformed lambda"
 		    #t
-		    "Malformed begin"
-		    (vector 4 19)
-		    "begin: bad syntax (empty form) in: (lambda ())"
-		    "begin: bad syntax (empty form) in: (lambda ())"
+		    "Malformed lambda"
+		    (vector 4 23)
+		    "lambda: bad syntax in: (lambda ())"
+		    "lambda: bad syntax in: (lambda ())"
 		    #f
 		    #f)
 	    (make-test "    (eval 'x)"
