@@ -5,7 +5,7 @@
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "mred.ss" "mred")
-           (lib "sendurl.ss" "net")
+           (lib "browser.ss" "net")
            "drsig.ss"
            "../acks.ss"
            (lib "framework.ss" "framework")

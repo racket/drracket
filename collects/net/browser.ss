@@ -1,12 +1,12 @@
 (module browser mzscheme
-  (require (lib "mred.ss" "mred")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "file.ss")
            (prefix raw: (lib "sendurl.ss" "net"))
            (lib "unitsig.ss")
            (lib "tool.ss" "drscheme")
-           (prefix fw: (lib "framework.ss" "framework"))
-           (lib "list.ss"))
+           (prefix fw: (lib "framework.ss" "framework")))
   (provide send-url
            update-browser-preference
            tool@)
@@ -35,10 +35,11 @@
   ; : -> (U symbol #f)
   ; to prompt the user for a browser preference
   (define (choose-browser)
-    (let* ([d (make-object dialog% "Choose a Browser")]
+    (let* ([title (string-constant choose-browser)]
+           [d (make-object dialog% title)]
            [v (make-object vertical-pane% d)]
            [choice (box #f)])
-      (make-object message% "Choose a Browser" v) ; more here - use a string constant
+      (make-object message% title v)
       (for-each (lambda (b)
                   (instantiate button% () (label (symbol->string b)) (parent v)
                     (callback (lambda (? ??)
@@ -47,12 +48,11 @@
                                 (send d show #f)))
                     (enabled (find-executable-path (symbol->string b) #f))))
                 raw:unix-browser-list)
-      (instantiate button% () (label "None") (parent v) (callback (lambda (? ??) (send d show #f))))
+      (instantiate button% () (label (string-constant no-browser)) (parent v) (callback (lambda (? ??) (send d show #f))))
       (send d show #t)
       (unbox choice)))
   
   ; to add a preference pannel to drscheme that sets the browser preference
-  ; more here - only update the preference when they click okay (somehow)
   (define tool@
     (unit/sig drscheme:tool-exports^
       (import drscheme:tool^)
@@ -61,30 +61,33 @@
       (define phase2 void)
       
       (when (eq? (system-type) 'unix)
-	(let ([found-browsers
-               (filter (lambda (b) (find-executable-path (symbol->string b) #f)) raw:unix-browser-list)]
-              ; more here - use a string constant
-              [box-label "Browser"])
+	(let ([box-label (string-constant browser)])
           (fw:preferences:add-panel
            box-label
            (lambda (parent)
              (let* ([v (instantiate vertical-panel% () (parent parent) (alignment '(center center)))]
 		    [r (instantiate radio-box% ()
 			 (label box-label)
-			 (choices (append (map symbol->string found-browsers) (list "None")))
+			 (choices (append (map symbol->string raw:unix-browser-list) (list (string-constant no-browser))))
 			 (parent v)
 			 (callback
 			  (lambda (radio event)
 			    ; This is dumb.  It leaks. Each radio button should have its own callback.
 			    (let ([n (send radio get-selection)])
-			      (set-browser! (if (= n (length found-browsers))
+			      (set-browser! (if (= n (length raw:unix-browser-list))
 						#f
-						(list-ref found-browsers n)))))))])
+						(list-ref raw:unix-browser-list n)))))))])
                (let ([pref (get-preference 'external-browser (lambda () #f))])
-                 (let init ([x found-browsers] [n 0])
+                 (let init ([x raw:unix-browser-list] [n 0])
 		   (cond
 		     [(null? x) (send r set-selection n)]
 		     [else (if (eq? pref (car x))
 			       (send r set-selection n)
 			       (init (cdr x) (add1 n)))])))
+               (let disable ([x raw:unix-browser-list] [n 0])
+                 (cond
+                   [(null? x) (void)]
+                   [else (unless (find-executable-path (symbol->string (car x)) #f)
+                           (send r enable n #f))
+                         (disable (cdr x) (add1 n))]))
                v))))))))

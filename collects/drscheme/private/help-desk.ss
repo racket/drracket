@@ -14,7 +14,7 @@
            (lib "framework.ss" "framework")
            (lib "framework-sig.ss" "framework")
            
-           (lib "sendurl.ss" "net")
+           (lib "browser.ss" "net")
            
            (lib "help-desk.ss" "help")
            

@@ -7,7 +7,7 @@
            "private/bullet.ss"
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
-	   (lib "sendurl.ss" "net"))
+	   (lib "browser.ss" "net"))
            
   (define-values/invoke-unit/sig 
    html^
