@@ -359,8 +359,8 @@
      
      ; fraction snip test
      (make-test 'fraction-sum
-                "{number 5/6 \"5/6\" #t}"
-                "{number 5/6 \"5/6\" #t}"
+                "{number 5/6 \"5/6\" mixed}"
+                "{number 5/6 \"5/6\" mixed}"
                 #f
                 'interactions
                 #f

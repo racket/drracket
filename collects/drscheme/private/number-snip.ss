@@ -313,7 +313,13 @@
           [(offset num flattened?) 
            (case fraction-view
              [(mixed)
-              (string-append wholes/frac " " nums "/" dens)]
+              (cond
+                [(string=? wholes/frac "")
+                 (string-append nums "/" dens)]
+                [(string=? wholes/frac "-")
+                 (string-append wholes/frac nums "/" dens)]
+                [else
+                 (string-append wholes/frac " " nums "/" dens)])]
              [(decimal)
               (string-append 
                unbarred-portion
