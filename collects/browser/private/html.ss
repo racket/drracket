@@ -21,15 +21,6 @@
               bullet^
               mred^)
       
-      (define extra-colors-table
-        `(("mediumvioletred" ,(make-object color% 199  21  133))
-          ("orangered" ,(make-object color% 255  69  0))
-          ("purple" ,(make-object color% 160  32  240))
-          ("darkgreen" ,(make-object color% 0  100  0))
-          ("darkorange" ,(make-object color% 255 140 0))
-          ("crimson" ,(make-object color% #xDC #x14 #x3C))
-          ("darkblue" ,(make-object color% 0  0  100))))
-      
       ;; CACHE
       (define NUM-CACHED 10)
       (define cached (make-vector 10 null))
@@ -107,11 +98,7 @@
 			     (string->number (cadr m) 16)
 			     (string->number (caddr m) 16)
 			     (string->number (cadddr m) 16))
-		(or (send the-color-database find-color str)
-		    (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
-				    extra-colors-table)])
-		      (and pr
-			   (cadr pr))))))))
+		(send the-color-database find-color str)))))
 
       (define (call-with-output-file* file proc flag)
         ;; Closes on escape
@@ -611,12 +598,12 @@
 			   [(string? e) (insert e) void]
 			   [(symbol? e) (let ([a (assq e latin-1-symbols)])
 					  (if a
-					      (insert (latin-1-integer->char (cadr a)))
+					      (insert (or (latin-1-integer->char (cadr a)) #\?))
 					      (insert (format "&~a;" e)))
 					  void)]
 			   [(number? e) 
 			    (if (<= 0 e 255)
-				(insert (latin-1-integer->char e))
+				(insert (or (latin-1-integer->char e) #\?))
 				(insert (format "&~a;" e)))
 			    void]
 			   [else (let* ([tag (car e)]
