@@ -114,11 +114,10 @@
 
   (define (wait-for-computation frame)
     (verify-drscheme-frame-frontmost 'wait-for-computation frame)
-    (let* ([button (ivar frame execute-button)]
-	   [wait-for-computation-pred
+    (let* ([wait-for-computation-pred
 	    (lambda ()
 	      (fw:test:reraise-error)
-	      (send button is-enabled?))])
+	      (send (ivar frame execute-button) is-enabled?))])
       (poll-until
        wait-for-computation-pred
        60)))

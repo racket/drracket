@@ -80,6 +80,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "reference to undefined identifier: shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
@@ -140,6 +142,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "reference to undefined identifier: shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
@@ -207,6 +211,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "reference to undefined identifier: shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
@@ -274,6 +280,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "reference to undefined identifier: shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
@@ -334,6 +342,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "keyword: invalid use of keyword shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." ".")
@@ -401,6 +411,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "keyword: invalid use of keyword shared")
+
     (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." ".")
@@ -466,6 +478,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "shared" "keyword: invalid use of keyword shared")
+
     (test-expression "turtles" "turtles")
     
     (test-expression "(define (. x y) (* x y)) ." ".")
@@ -702,6 +716,9 @@
 	   (list #t (whitespace-string=? "a " "a"))
 	   (list #t (whitespace-string=? "a" "a "))))
 
+(define re:out-of-sync
+  (regexp
+   "WARNING: Interactions window is out of sync with the definitions window\\."))
 (define (test-expression expression expected)
   (let* ([drs (wait-for-drscheme-frame)]
 	 [interactions-text (ivar drs interactions-text)]
@@ -718,6 +735,8 @@
 	    (send interactions-text paragraph-start-position (+ last-para 1))
 	    (send interactions-text paragraph-end-position
 		  (- (send interactions-text last-paragraph) 1)))])
+      (when (regexp-match re:out-of-sync got)
+	(error 'text-expression "got out of sync message"))
       (unless (whitespace-string=? got expected)
 	(printf "FAILED: ~a expected ~s to produce ~s, got ~s instead~n"
 		(language) expression expected got)))))
