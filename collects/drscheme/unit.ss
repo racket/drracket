@@ -205,12 +205,8 @@
   
   (define definitions-canvas%
     (class (make-searchable-canvas% fw:canvas:info%) args
-      (inherit get-top-level-window get-editor)
       (sequence
-	(apply super-init args)
-	(let ([m (get-editor)])
-	  (send (get-top-level-window) set-save-init-shown?
-		(and m (send m is-modified?)))))))
+	(apply super-init args))))
   
   (define (program-editor-mixin text%)
     (class/d text% args
@@ -814,7 +810,7 @@
 		    [short-name (mzlib:file:file-name-from-path long-name)])
 	       (send name-message set-message long-name short-name))))])
       (override
-	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
+       [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
 	[ensure-rep-shown
 	 (lambda ()
@@ -1226,6 +1222,11 @@
       (inherit get-label)
       (sequence
 	
+
+	(let ([m (send definitions-canvas get-editor)])
+	  (set-save-init-shown?
+	   (and m (send m is-modified?))))
+
 	;; (get-label) shouldn't be #f, but I'm not sure....
 	(send name-message set-message
 	      (if filename
