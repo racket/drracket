@@ -1,5 +1,92 @@
 Version 102:
 
+102d9:
+
+  NEW DIRECTORY: plt/collects/defaults
+ 
+  be sure to get the new directory with:
+
+       cvs update -d plt/collects/defaults
+  
+  or DrScheme will fail to start up.
+
+  WARNINGS: 
+    - this release breaks the stepper.
+    - the "create launcher" menu item is 
+      not yet fully functional, so use at your
+      own risk.
+
+ PRS: 1424, 1437
+
+ FUNCTIONALITY CHANGES
+
+ - drscheme-jr now supports teachpacks 
+   (those that don't use GUIs, like htdp/dir.ss)
+
+ - the graphics library (sometimes known as sixlib) no longer 
+   accepts any scaling arguments. 
+
+ - drscheme:rep:process-text/zodiac and
+   drscheme:rep:process-text/no-zodiac
+   are now called drscheme:load-handler:process-text/zodiac and
+   drscheme:load-handler:process-text/no-zodiac.
+
+ - Windows and unix launchers can now be run from any directory.
+   They do not need to be saved in a particular place (this has been
+   true for some time, but it is officially true now.).
+
+ - the debug full scheme languages now allow loading of files
+   that contain graphics.
+
+ - the framework's preferences system now requires you to
+   set the marshall/unmarshalling functions (if any) before
+   setting the default preference.
+
+ - drscheme now supports site-specific default preferences.
+   To use, create a file prefs.ss in the defaults collection
+   that is a copy of the preferences file that you want to 
+   be the defaults. Then, if the user-specific preferences file
+   doesn't exist (or the preferences in it are from an old version),
+   the contents of the prefs.ss file in the defaults collection is
+   used as the preferences.
+
+ - drscheme now wraps uses with-handlers so that if a tool 
+   signals an error when it is loaded or invoked, it just
+   puts a window with the error message and continues, instead
+   of keeping drscheme from starting up.
+
+ - the .plt installer no longer automatically deletes compiled
+   files when installing a .plt file. 
+
+ - setup-plt now uses the 'clean flag in info.ss to determine
+   the files to be deleted when --clean-ing a collection. It
+   defaults to the files in the "compiled" sub-collection of a
+   collection.
+
+ - setup-plt no longer automatically runs --clean when installing
+   a .plt file.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - the searching dialog now has two-line find and replace editors.
+
+ - #! is treated like a comment when executing the defintions window,
+   if it is the first two characters in the definitions window.
+
+ - constructing the project manager's "collection projects" menu
+   was adding something like a 25% overhead to drscheme's startup,
+   so that menu is gone (I doubt anyone really used it anyway...)
+
+ - rarely used save menu items relegated to sub-menu.
+
+ - wrap text is now a checkable item that is checked when the editor
+   is wrapped.
+   
+ - drscheme-jr now has a doc.txt file that explains its implementation.
+   The implementation was factored so that DrScheme's new launchers
+   can re-use drscheme-jr's implementation. So, if you change
+   drscheme-jr, be aware that you might affecting these launchers.
+
 102d8
 
  PRS: 1358, 1344, 1341, 1329, 1322, 1242 (docs not yet built), 1235 
