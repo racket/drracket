@@ -236,6 +236,108 @@
                   (when (string? v)
                     (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
             
+            ;; thread-with-cancel-dialog
+            ;;  Should be called the a handler thread.
+            ;;  `work' will be called with a status proc
+            ;;   in a different thread with breaks enabled.
+            (define/private (in-thread-with-cancel-dialog work init-status)
+              (let* ([progress-dlg #f]
+                     [show-progress void]
+                     [e-text init-status] ; in case show-progress isn't ready yet
+                     [exn #f]
+                     [result (void)]
+                     [done? #f]
+                     ; Semaphores to avoid race conditions:
+                     [wait-to-continue (make-semaphore 0)]
+                     [wait-to-break (make-semaphore 0)]
+                     [wait-to-show (make-semaphore 1)]
+                     [orig-eventspace (current-eventspace)]
+                     [timeout-thread
+                      (parameterize ([break-enabled #f])
+                        (thread (lambda () 
+                                  (error-display-handler void) 
+                                  (break-enabled #t)
+                                  (sleep 1))))]
+                     ; Thread to perform the work (e.g., download):
+                     [t (parameterize ([break-enabled #f])
+                          (thread
+                           (lambda ()
+                             (define (finished-work)
+                               (semaphore-wait wait-to-show)
+                               (set! done? #t)
+                               (show-progress "")
+                               (when progress-dlg
+                                 (send progress-dlg show #f))
+                               (break-thread timeout-thread)
+                               (semaphore-post wait-to-show))
+                             (with-handlers ([void (lambda (x)
+                                                     (set! exn x))])
+                               (parameterize ([break-enabled #t])
+                                 (semaphore-post wait-to-break)
+                                 (set! result
+                                       (work (lambda (s)
+                                               (set! e-text s)
+                                               (semaphore-wait wait-to-show)
+                                               (show-progress s)
+                                               (semaphore-post wait-to-show))
+                                             (lambda (finisher)
+                                               (finished-work)
+                                               (set! finished-work #f)
+                                               (let ([wait-for-finish (make-semaphore)]
+                                                     [exn #f])
+                                                 (parameterize ([current-eventspace orig-eventspace])
+                                                   (queue-callback
+                                                    (lambda ()
+                                                      (with-handlers ([void (lambda (x)
+                                                                              (set! exn x))])
+                                                        (finisher))
+                                                      (semaphore-post wait-for-finish))))
+                                                 (semaphore-wait wait-for-finish)
+                                                 (when exn (raise exn))))))))
+                             (when finished-work
+                               (finished-work))
+                             (semaphore-post wait-to-continue))))]
+                     [make-dialog
+                      (lambda ()
+                        (semaphore-wait wait-to-show)
+                        (unless done?
+                          (cond
+                            [(send top-level-window has-status-line?)
+                             (set! show-progress
+                                   (lambda (s)
+                                     (send top-level-window set-status-text s)))]
+                            [else
+                             (set! progress-dlg (make-object dialog% (string-constant getting-page)
+                                                  top-level-window 400))
+                             (let* ([c (make-object editor-canvas% progress-dlg #f
+                                         '(no-hscroll no-vscroll))]
+                                    [progress-text (make-object text%)])
+                               (set! show-progress
+                                     (lambda (s)
+                                       (send progress-text erase)
+                                       (send progress-text insert s)))
+                               (send progress-text insert e-text)
+                               (send progress-text auto-wrap #t)
+                               (send c set-editor progress-text)
+                               (send c set-line-count 3)
+                               (send c enable #f))
+                             (send (make-object button% (string-constant &stop) progress-dlg
+                                     (lambda (b e)
+                                       (semaphore-wait wait-to-break)
+                                       (semaphore-post wait-to-break)
+                                       (break-thread t)))
+                                   focus)
+                             (send progress-dlg center)
+                             (thread (lambda () (send progress-dlg show #t)))
+                             (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
+                        (semaphore-post wait-to-show))])
+                (thread-wait timeout-thread)
+                (unless done?
+                  (make-dialog))
+                (yield wait-to-continue)
+                (when exn (raise exn))
+                result))
+                
             [define/public reload
               (opt-lambda ([progress void])
                 (define (read-from-port p mime-headers)
@@ -389,16 +491,7 @@
                                 html?)
                             ; HTML
                             (progress #t)
-                            (let* ([progress-dlg #f]
-                                   [show-progress void]
-                                   [e-text ""]
-                                   [exn #f]
-                                   [done? #f]
-                                   ; Semaphores to avoid race conditions:
-                                   [wait-to-continue (make-semaphore 0)]
-                                   [wait-to-break (make-semaphore 0)]
-                                   [wait-to-show (make-semaphore 1)]
-                                   [directory
+                            (let* ([directory
                                     (or (if (and (url? url)
                                                  (string=? "file" (url-scheme url)))
                                             (let ([path (url-path url)])
@@ -407,91 +500,31 @@
                                                     base
                                                     #f)))
                                             #f)
-                                        (current-load-relative-directory))]
-                                   [timeout-thread
-                                    (parameterize ([break-enabled #f])
-                                      (thread (lambda () 
-                                                (error-display-handler void) 
-                                                (break-enabled #t)
-                                                (sleep 1))))]
-                                   ; Thread to perform the download:
-                                   [t (parameterize ([break-enabled #f])
-                                        (thread
-                                         (lambda ()
-                                           (with-handlers ([void (lambda (x)
-                                                                   (set! exn x))])
-                                             (parameterize ([break-enabled #t])
-                                               (semaphore-post wait-to-break)
-                                               (parameterize ([html-status-handler
-                                                               (lambda (s) 
-                                                                 (set! e-text s)
-                                                                 (semaphore-wait wait-to-show)
-                                                                 (show-progress s)
-                                                                 (semaphore-post wait-to-show))]
-                                                              [current-load-relative-directory directory]
-                                                              [html-eval-ok url-allows-evaling?])
-                                                 (html-convert p this))))
-                                           (semaphore-wait wait-to-show)
-                                           (set! done? #t)
-                                           (show-progress "")
-                                           (when progress-dlg
-                                             (send progress-dlg show #f))
-                                           (break-thread timeout-thread)
-                                           (semaphore-post wait-to-show)
-                                           (semaphore-post wait-to-continue))))]
-                                   [make-dialog
-                                    (lambda ()
-                                      (semaphore-wait wait-to-show)
-                                      (unless done?
-                                        (cond
-                                          [(send top-level-window has-status-line?)
-                                           (set! show-progress
-                                                 (lambda (s)
-                                                   (send top-level-window set-status-text s)))]
-                                          [else
-                                           (set! progress-dlg (make-object dialog% (string-constant getting-page)
-                                                                top-level-window 400))
-                                           (let* ([c (make-object editor-canvas% progress-dlg #f
-                                                       '(no-hscroll no-vscroll))]
-                                                  [progress-text (make-object text%)])
-                                             (set! show-progress
-                                                   (lambda (s)
-                                                     (send progress-text erase)
-                                                     (send progress-text insert s)))
-                                             (send progress-text insert e-text)
-                                             (send progress-text auto-wrap #t)
-                                             (send c set-editor progress-text)
-                                             (send c set-line-count 3)
-                                             (send c enable #f))
-                                           (send (make-object button% (string-constant &stop) progress-dlg
-                                                   (lambda (b e)
-                                                     (semaphore-wait wait-to-break)
-                                                     (semaphore-post wait-to-break)
-                                                     (break-thread t)))
-                                                 focus)
-                                           (send progress-dlg center)
-                                           (thread (lambda () (send progress-dlg show #t)))
-                                           (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
-                                      (semaphore-post wait-to-show))])
-                              (thread-wait timeout-thread)
-                              (unless done?
-                                (make-dialog))
-                              (yield wait-to-continue)
-                              (when exn (raise exn)))]
+                                        (current-load-relative-directory))])
+                              (in-thread-with-cancel-dialog
+                               (lambda (show-status finish-without-dialog)
+                                 (parameterize ([html-status-handler show-status]
+                                                [current-load-relative-directory directory]
+                                                [html-eval-ok url-allows-evaling?])
+                                   (html-convert p this)))
+                               "Loading page..."))]
                            [else
                             ; Text
                             (progress #t)
-                            (begin-edit-sequence)
-                            (let loop ()
-                              (let ([r (read-line p 'any)])
-                                (unless (eof-object? r)
-                                  (insert r)
-                                  (insert #\newline)
-                                  (loop))))
-                            (change-style (make-object style-delta% 'change-family 'modern)
-                                          0 (last-position))
-                            (set! wrapping-on? #f)
-                            (end-edit-sequence)])))
+                            (in-thread-with-cancel-dialog
+                             (lambda (show-status finish-without-dialog)
+                               (begin-edit-sequence)
+                               (let loop ()
+                                 (let ([r (read-line p 'any)])
+                                   (unless (eof-object? r)
+                                     (insert r)
+                                     (insert #\newline)
+                                     (loop))))
+                               (change-style (make-object style-delta% 'change-family 'modern)
+                                             0 (last-position))
+                               (set! wrapping-on? #f)
+                               (end-edit-sequence))
+                             "Loading text...")])))
                      (lambda ()
                        (end-edit-sequence)
                        (end-busy-cursor)
@@ -511,6 +544,7 @@
                                (read-from-port url empty-header)
                                empty-header)
                              (let* ([busy? #t]
+                                    [cust (make-custodian)]
                                     [stop-busy (lambda ()
                                                  (when busy?
                                                    (set! busy? #f)
@@ -519,33 +553,47 @@
                                 ;; Turn on the busy cursor:
                                 begin-busy-cursor
                                 (lambda ()
-                                  ;; Try to get mime info, but use get-pure-port if it fails.
-                                  (with-handlers ([(lambda (x)
-                                                     (and (not-break-exn? x)
-                                                          busy?))
-                                                   (lambda (x) 
-                                                     (call/input-url 
-                                                      url
-                                                      (if post-string 
-                                                          (lambda (u s) (post-pure-port u post-string s))
-                                                          get-pure-port)
-                                                      (lambda (p)
-                                                        (stop-busy)
-                                                        (read-from-port p empty-header)
-                                                        empty-header)
-                                                      null))])
-                                    (call/input-url 
-                                     url 
-                                     (if post-string 
-                                         (lambda (u s) (post-impure-port u post-string s))
-                                         get-impure-port)
-                                     (lambda (p)
-                                       (let ([headers (purify-port p)])
-                                         (stop-busy)
-                                         (read-from-port p headers)
-                                         headers))
-                                     null)))
-                                stop-busy)))])
+                                  (in-thread-with-cancel-dialog
+                                   (lambda (show-status finish-without-dialog)
+                                     ;; Try to get mime info, but use get-pure-port if it fails.
+                                     ;; Use a custodian to capture all TCP connections so we
+                                     ;;  can break at any time (in which case a conneciton might
+                                     ;;  have been created but not yet delivered to some dyn-wind-based
+                                     ;;  close).
+                                     (parameterize ([current-custodian cust])
+                                       (with-handlers ([(lambda (x)
+                                                          (and (not-break-exn? x)
+                                                               busy?))
+                                                        (lambda (x) 
+                                                          (call/input-url 
+                                                           url
+                                                           (if post-string 
+                                                               (lambda (u s) (post-pure-port u post-string s))
+                                                               get-pure-port)
+                                                           (lambda (p)
+                                                             (stop-busy)
+                                                             (finish-without-dialog
+                                                              (lambda ()
+                                                                (read-from-port p empty-header)))
+                                                             empty-header)
+                                                           null))])
+                                         (call/input-url 
+                                          url 
+                                          (if post-string 
+                                              (lambda (u s) (post-impure-port u post-string s))
+                                              get-impure-port)
+                                          (lambda (p)
+                                            (let ([headers (purify-port p)])
+                                              (stop-busy)
+                                              (finish-without-dialog
+                                               (lambda ()
+                                                 (read-from-port p headers)))
+                                              headers))
+                                          null))))
+                                   "Connecting to server..."))
+                                (lambda ()
+                                  (stop-busy)
+                                  (custodian-shutdown-all cust)))))])
                     ;; Page is a redirection?
                     (let ([m (regexp-match "^HTTP/[^ ]+ 301 " headers)])
                       (when m
