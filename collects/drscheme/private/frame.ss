@@ -227,7 +227,7 @@
                                    (string-append
                                     (case (system-type)
                                       [(windows) "c:"]
-                                      [(macos) "d:"]
+                                      [(macosx macos) "d:"]
                                       [(unix)
                                        (case (send item get-x-shortcut-prefix)
                                          [(meta) "m:"]
