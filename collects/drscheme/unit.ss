@@ -895,12 +895,47 @@
 	   (let* ([target (get-edit-target-window)]
 		  [update
 		   (lambda (set-canvases! canvases canvas% text)
-		     (set-canvases!
-		      (cons (make-object canvas% resizable-panel text)
-			    canvases))
-		     (send resizable-panel change-children
-			   (lambda (l)
-			     (append definitions-canvases interactions-canvases))))])
+		     (let ([orig-percentages (send resizable-panel get-percentages)]
+			   [new-canvas (make-object canvas% resizable-panel text)])
+		       
+		       (send new-canvas focus)
+
+		       (send resizable-panel set-percentages
+			     (let loop ([canvases (append definitions-canvases
+							  interactions-canvases)]
+					[percentages orig-percentages])
+			       (cond
+				[(null? canvases)
+				 (error 'split "couldn't split; didn't find canvas")]
+				[(null? percentages)
+				 (error 'split "wrong number of percentages: ~s ~s"
+					orig-percentages
+					(append definitions-canvases interactions-canvases))]
+				[else (let ([canvas (car canvases)])
+					(if (eq? target canvas)
+					    (list* (/ (car percentages) 2)
+						   (/ (car percentages) 2)
+						   (cdr percentages))
+					    (cons
+					     (car percentages)
+					     (loop (cdr canvases)
+						   (cdr percentages)))))])))
+
+		       (set-canvases!
+			(let loop ([canvases canvases])
+			  (cond
+			   [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
+			   [else
+			    (let ([canvas (car canvases)])
+			      (if (eq? canvas target)
+				  (list* new-canvas
+					 canvas
+					 (cdr canvases))
+				  (cons canvas (loop (cdr canvases)))))])))
+
+		       (send resizable-panel change-children
+			     (lambda (l)
+			       (append definitions-canvases interactions-canvases)))))])
 	     (cond
 	      [(memq target definitions-canvases)
 	       (update (lambda (x) (set! definitions-canvases x))
