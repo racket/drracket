@@ -148,12 +148,15 @@
 
     (define do-help
       (lambda ()
-	(mred:open-hyper-view (string-append
-			       "file:"
-			       (build-path mred:constants:plt-home-directory
-					   "doc"
-					   "drscheme"
-					   "index.htm")))))
+	(mred:show-busy-cursor
+	 (lambda ()
+	   (mred:open-hyper-view
+	    (string-append
+	     "file:"
+	     (build-path mred:constants:plt-home-directory
+			 "doc"
+			 "drscheme"
+			 "index.htm")))))))
 
       (define definitions-canvas%
 	(class mred:frame-title-canvas% args
