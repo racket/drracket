@@ -1,25 +1,21 @@
 ;;; repl-test.ss
 
 (require-library "function.ss")
+(require-library "file.ss")
 
 (load "drscheme-test-util.ss")
 
-(define get-slash
-  (lambda ()
-    (case wx:platform
-      [(unix) "/"]
-      [(windows) "\\"]
-      [else ":"])))
+(printf "Starting REPL tests~n")
 
-(letrec* ([drs-frame (wait-for-drscheme-frame)]
+(letrec* ([drscheme-frame (wait-for-drscheme-frame)]
+	  [user-directory ((in-parameterization (ivar (ivar drscheme-frame interactions-edit) user-param) current-directory))]
 	  [test-file-nums ; list of test file numbers in repl-test subdirectory
 	  '(1 2 3 4 5 6 7 8 11 12 13 14 15 16 17 18 19 24)]
 	  [dir (build-path (current-load-relative-directory) "repl-tests")]
 	  [test-files (map 
 		       (lambda (n)
-			 (string-append dir (get-slash) (number->string n) ".")) 
+			 (build-path dir  (string-append (number->string n) ".")))
 		       test-file-nums)]
-	  [drscheme-frame (mred:test:get-active-frame)]
 	  [interactions-edit (ivar drscheme-frame interactions-edit)]
 	  [interactions-canvas (ivar drscheme-frame interactions-canvas)]
 	  [definitions-edit (ivar drscheme-frame definitions-edit)]
@@ -60,59 +56,63 @@
 	  ;; an .execute and a .load file
 	  
 	  [run-test
-	   (lambda (file)
-	     (let ([answer-load (get-answer (string-append file "load"))]
-		   [answer-execute (get-answer (string-append file "execute"))]
-		   [test-file (string-append file "ss")])
-	       
-	       (mred:test:new-window definitions-canvas)
-	       (mred:test:menu-select "Edit" "Select All")
-	       (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
-						 "Clear"
-						 "Delete"))
-	       (do-execute)
-	       (mred:test:new-window definitions-canvas)
-	       
-	       ; load contents of test-file into the REPL, recording
-	       ; the start and end positions of the text
-	       
-	       (let ([execute-text-start (get-int-pos)])
-		 (insert-file test-file)
+	   (lambda (escape)
+	     (lambda (file)
+	       (let ([answer-load (get-answer (string-append file "load"))]
+		     [answer-execute (get-answer (string-append file "execute"))]
+		     [test-file (string-append file "ss")])
+		 
+		 (mred:test:new-window definitions-canvas)
+		 (mred:test:menu-select "Edit" "Select All")
+		 (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
+						   "Clear"
+						   "Delete"))
 		 (do-execute)
-		 (let ([execute-text-end (get-int-pos)])
-		   (mred:test:new-window interactions-canvas)
-		   
-		   ; stuff the load command into the REPL 
-		   
-		   (for-each (lambda (c) (mred:test:keystroke c))
-			     (string->list (format "(load ~s)" test-file)))
-		   
-		   ; record current text position, then stuff a CR into the REPL
-		   
-		   (let ([load-text-start (+ 1 (send interactions-edit last-position))])
+		 (mred:test:new-window definitions-canvas)
+		 
+		 ; load contents of test-file into the REPL, recording
+		 ; the start and end positions of the text
+		 
+		 (let ([execute-text-start (get-int-pos)])
+		   (insert-file test-file)
+		   (do-execute)
+		   (let ([execute-text-end (get-int-pos)])
+		     (mred:test:new-window interactions-canvas)
 		     
-		     (mred:test:keystroke #\return)
+		     ; stuff the load command into the REPL 
 		     
-		     (wait-for-execute)
+		     (for-each mred:test:keystroke
+			       (string->list (format "(load ~s)" (find-relative-path user-directory test-file))))
 		     
-		     (let* ([load-text-end (get-int-pos)]
-			    [received-execute
-			     (send interactions-edit get-text 
-				   execute-text-start execute-text-end)]
-			    [received-load 
-			     (send interactions-edit get-text 
-				   load-text-start load-text-end)])
+		     ; record current text position, then stuff a CR into the REPL
+		     
+		     (let ([load-text-start (+ 1 (send interactions-edit last-position))])
 		       
-		       (unless (string=? received-execute answer-execute)
-			       (printf "FAILED execute test for ~a~n" file))
+		       (mred:test:keystroke #\return)
 		       
-		       (unless (string=? received-load answer-load)
-			       (printf "FAILED load test for ~a~n" file))))))))])
+		       (wait-for-execute)
+		       
+		       (let* ([load-text-end (get-int-pos)]
+			      [received-execute
+			       (send interactions-edit get-text 
+				     execute-text-start execute-text-end)]
+			      [received-load 
+			       (send interactions-edit get-text 
+				     load-text-start load-text-end)])
+			 
+			 (unless (string=? received-execute answer-execute)
+			   (printf "FAILED execute test for ~a~nexpected: ~s~n     got: ~s~n"
+				   file received-execute answer-execute))
+			 
+			 (unless (string=? received-load answer-load)
+			   (printf "FAILED load test for ~a~n" file))
+			 
+			 (when (repl-in-edit-sequence?)
+			   (printf "FAILED: repl in edit-sequence")
+			   (escape)))))))))])
 	 
-   	 (set-language-level! "Quasi-R4RS" drs-frame)
-	 
-	 (printf "Starting REPL tests~n")
-	 
-	 (for-each run-test test-files)
+   	 (set-language-level! "Quasi-R4RS" drscheme-frame)
+	 	 
+	 (let/ec escape (for-each (run-test escape) test-files))
 	 
 	 (printf "Finished REPL tests~n"))

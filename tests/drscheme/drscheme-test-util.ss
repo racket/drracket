@@ -133,6 +133,6 @@
     (mred:test:set-choice! choice level)
     (mred:test:button-push "OK")))
 
-
-
-
+(define (repl-in-edit-sequence?)
+  (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
+	 
