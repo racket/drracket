@@ -12,7 +12,9 @@
   (define-struct test (definitions   ;; string
                        interactions  ;; (union #f string)
                        result))      ;; string
-  
+
+  (define this-dir (collection-path "tests" "drscheme"))
+
   (define tests
     (list
      
@@ -58,10 +60,7 @@
                 (regexp "foldl>"))
      
      (make-test (format "~s"
-                        `(module m (file
-                                    ,(build-path 
-                                      (this-expression-source-directory)
-                                      "module-lang-test-tmp.ss"))
+                        `(module m (file ,(build-path this-dir "module-lang-test-tmp.ss"))
                            x))
                 "x"
                 "1")
@@ -69,9 +68,7 @@
      ;; + shouldn't be bound in the REPL because it isn't bound
      ;; in the module.
      (make-test (format "~s"
-                        `(module m (file ,(build-path 
-                                           (this-expression-source-directory)
-                                           "module-lang-test-tmp.ss"))
+                        `(module m (file ,(build-path this-dir "module-lang-test-tmp.ss"))
                            x))
                 "+"
                 ". reference to undefined identifier: +")
@@ -102,16 +99,14 @@
      
      (make-test
       (format "~s" `(module m mzscheme
-                      (require-for-syntax 
-                       (file ,(build-path (this-expression-source-directory) 
-                                          "module-lang-test-tmp2.ss")))
+                      (require-for-syntax (file ,(build-path this-dir "module-lang-test-tmp2.ss")))
                       (provide s)
                       (define-syntax (s stx) e)))
       (format "~s ~s" '(require m) 's)
       ". module-lang-test-tmp2.ss:1:69: compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1")))
   
   ;; set up for tests that need external files
-  (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp.ss")
+  (call-with-output-file (build-path this-dir "module-lang-test-tmp.ss")
     (lambda (port)
       (write `(module module-lang-test-tmp mzscheme
                 (provide (all-from-except mzscheme +)
@@ -121,7 +116,7 @@
     'truncate
     'text)
   
-  (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp2.ss")
+  (call-with-output-file (build-path this-dir "module-lang-test-tmp2.ss")
     (lambda (port)
       (write `(module module-lang-test-tmp2 mzscheme
                 (provide e)
