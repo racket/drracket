@@ -1,3 +1,96 @@
+199 final
+
+THINGS STILL MISSING (and promised to be broken...)
+
+ - launchers
+ - project manager
+
+CONTROVERSIAL
+
+- The language dialog contains a full language that
+  is the combination of the graphical mred language
+  and the advanced HtDP language (each contains something
+  the other doesn't). Some people seem to think that will
+  make the language dialog too cluttered, but I think that
+  people who might use that language won't be able to find
+  it otherwise. I put it in for one iteration so people can
+  at least see it there. With strenuous complaints, I will
+  remove it.
+
+TRANSLATIONS
+
+- added `open-recent-menu-item' string constant. This is the
+  label of a menu that contains all of the recently opened
+  filenames, accessible via the file menu.
+- added `open-recent-info' string constant. It is the 
+  help string for the previous item.
+
+- removed r5rs-w/debug and changed r5rs-lang-name so
+  it match the English:
+ 
+     Standard (R5RS)
+
+- added `full-language', as the name of a new language
+  that includes all of the functionality of the
+  teaching languages plus the Graphical (MrEd) language.
+
+- added `introduction-to-language-dialog' a string
+  that appears above the language dialog when the language
+  dialog is first displayed (at the startup of drscheme).
+  It asks the user to select a language and explains that
+  many intro courses need no changes.
+
+- added `show-overview' and `hide-overview' string
+  constants. They are menu labels that show and hide the
+  new definitions window overview.
+
+LIBRARY FUNCTIONALITY CHANGES
+
+OTHER
+
+- added a code overview window that is
+  visible along the rhs of the drscheme
+  window. Use the `show' menu to make 
+  it visible.
+
+- found 3 more dialogs that didn't have
+  parents and gave them parents.
+
+- revert is disabled when the editor is locked.
+
+- keybindings menu works again.
+
+- drscheme's new version window is now a 
+  modified version of the language dialog
+
+- the language dialog is rearranged.
+
+- the language settings are now frame-specific.
+  If you change the language in one
+  window, it won't affect execute in another window;
+  the most recently set language is what is
+  used for newly created windows.
+
+- changed "Bring window to front..." shortcut to
+  `h' -- it used to conflict with Break.
+
+- fixed c-x;) keybinding and added something
+  to the info panel to show when a recording
+  is in progress.
+
+- when error-port isn't the original error port,
+  the fancy error display in drscheme goes away.
+
+- fixed bug for saved language preferences.
+  they are now restored.
+
+- added "Open recent" menu item
+
+- fixed up the teachpacks to load faster.
+
+- bug reports now go to the new bugs.plt-scheme.org
+  server (and to bugs@plt-scheme.org)
+
 199d7
 
 THINGS STILL MISSING (and promised to be broken...)
