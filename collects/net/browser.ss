@@ -32,11 +32,12 @@
           (apply raw:send-url url args))
         raw:send-url))
   
-  ; : -> void
+  ; : str -> void
   ; to prompt the user for a browser preference and update the preference
   (define (update-browser-preference url)
-    (let ([browser (choose-browser url)])
-      (set-browser! browser)))
+    (when (unix-browser?)
+      (let ([browser (choose-browser url)])
+        (set-browser! browser))))
   
   ; : (U symbol #f) -> void
   ; to set the default browser
