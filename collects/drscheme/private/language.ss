@@ -340,10 +340,10 @@
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
         (parameterize ([pretty-print-columns 'infinity]
-                       [pretty-print-print-hook
+                       #;[pretty-print-print-hook
                         (lambda (value display? port)
                           ..)]
-                       [pretty-print-size-hook
+                       #;[pretty-print-size-hook
                         (lambda (value display? port)
                           (let ([use-snip?
                                  (and (number? x)
