@@ -223,6 +223,7 @@
       (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
       (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (symbol? x) (not x))))
       (drscheme:app:check-new-version)
+      (define autosave/restore-frame (autosave:restore-autosave-files/gui))
       
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
@@ -243,7 +244,7 @@
             [else (if (member (car files) (cdr files))
                       (loop (cdr files))
                       (cons (car files) (loop (cdr files))))])))
-      
+
       (define get-dropped-files (dynamic-require '(lib "splash.ss" "framework") 'get-dropped-files))
       (let* ([files-to-open (append (reverse (get-dropped-files))
 				    (reverse (vector->list argv)))]
@@ -267,5 +268,6 @@
 		   no-dups)])
 	(when (null? (filter (lambda (x) x) frames))
 	  (make-basic)))
- 
-      (autosave:restore-autosave-files/gui))))
+      
+      (when autosave/restore-frame
+        (send autosave/restore-frame show #t)))))

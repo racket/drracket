@@ -2020,8 +2020,7 @@
       (define console-text-mixin
         (mixin ((class->interface text%)
                 editor:basic<%>
-                editor:keymap<%>
-                editor:backup-autosave<%>) (console-text<%>)
+                editor:keymap<%>) (console-text<%>)
           (inherit position-line position-location
                    line-location get-admin
                    set-position set-caret-owner
@@ -2054,8 +2053,7 @@
                   [super-after-edit-sequence after-edit-sequence]
                   
                   [super-after-set-position after-set-position])
-          (override autosave?
-                    get-keymaps
+          (override get-keymaps
                     can-insert?
                     can-delete?
                     can-change-style?
@@ -2096,8 +2094,6 @@
                   do-eval
                   do-post-eval
                   eval-busy?)
-          
-          (define autosave? (lambda () #f))
           
           (define edit-sequence-count 0)
           
@@ -2436,7 +2432,8 @@
       (define transparent-io-super% 
         (console-text-mixin
          (scheme:text-mixin
-          text:searching%)))
+          (text:searching-mixin
+           text:autowrap%))))
       
       (define consumed-delta (make-object style-delta% 'change-bold))
 	   
@@ -2573,4 +2570,8 @@
         (drs-bindings-keymap-mixin
          (text-mixin 
           (console-text-mixin
-           scheme:text%)))))))
+           (scheme:text-mixin
+            (text:info-mixin
+             (editor:info-mixin
+              (text:searching-mixin
+               text:clever-file-format%)))))))))))
