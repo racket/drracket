@@ -23,6 +23,7 @@
            drscheme:draw-arrow^
 	   drscheme:load-handler^
            drscheme:help-interface^
+           drscheme:language-tower^
            drscheme:export^
            drscheme^)
   
@@ -130,6 +131,14 @@
     (help-desk
      open-url
      open-users-url))
+  
+  (define-signature drscheme:language-tower^
+    (language<%>
+     module-based-language<%>
+     simple-module-based-language<%>
+     simple-module-based-language
+     simple-module-based-language->module-based-language
+     module-based-language->language))
   
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)

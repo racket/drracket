@@ -7,6 +7,7 @@
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "list.ss")
+           (lib "etc.ss")
            (lib "file.ss")
            (lib "pconvert.ss")
            (prefix basis: (lib "basis.ss" "userspce")))
@@ -15,7 +16,10 @@
   
   (define language@
     (unit/sig drscheme:language^
-      (import [drscheme:unit : drscheme:unit^])
+      (import [drscheme:unit : drscheme:unit^]
+              [drscheme:language-tower : drscheme:language-tower^])
+      
+      (define configure-language-title "Configure Language")
       
       (define settings-preferences-symbol 
         (string->symbol (format "drscheme:~a-settings" (version))))
@@ -31,7 +35,68 @@
       
       (define re:mred (regexp "MrEd"))
       
+      ;; (union #f (listof (instanceof language<%>)))
+      ;; #f indicates uninitialized
+      (define available-languages #f)
+      
+      (define (calculate-available-languages)
+        (let ([make-simple
+               (lambda (lang ps)
+                 (drscheme:language-tower:module-based-language->language
+                  (drscheme:language-tower:simple-module-based-language->module-based-language
+                   (make-object drscheme:language-tower:simple-module-based-language 
+                     `(lib ,lang "langs")
+                     ps))))])
+          (list (make-simple "beginner.ss" '("HtDP" "Beginning Student"))
+                (make-simple "intermediate.ss" '("HtDP" "Intermediate Student"))
+                (make-simple "advanced.ss" '("HtDP" "Intermediate Student"))
+                (make-simple "full-mred.ss" '("Full" "Graphical (MrEd)"))
+                (make-simple "full-mred.ss" '("Full" "Textual (MzScheme)")))))
+      
+      (define (get-available-languages)
+        (unless available-languages
+          (set! available-languages (calculate-available-languages)))
+        available-languages)
+      
+      ;; type language-setting = (make-language-setting (instanceof language<%>) setting)
+      (define-struct language-setting (language setting))
+       
+      ;; language-dialog : (language-setting -> language-setting)
+      ;;                   (language-setting (union #f (instanceof top-level-window%)) -> language-setting
+      ;; allows the user to configure their language. The input language-setting is used
+      ;; as the defaults in the dialog and the output language setting is the user's choice
       (define language-dialog
+        (opt-lambda (settings-to-show [parent #f])
+          (define dialog (make-object dialog% configure-language-title parent))
+          (define outermost-panel (make-object horizontal-panel% dialog))
+          (define languages-hier-list (make-object hierarchical-list% outermost-panel))
+          (define table-hierarchy (make-hash-table))
+          (define languages (get-available-languages))
+          
+          (define (add-language language)
+            (let add-sub-language ([ht outer-ht]
+                                   [hier-list languages-hier-list]
+                                   [lng language])
+              (cond
+                [(null? (cdr lng)) (send hier-list add-item (car lng))]
+                [else (let ([sub-lng (car ln)]
+                            [sub-hier-list/sub-ht
+                             (hash-table-get
+                              ht
+                              (string->symbol (car lng))
+                              (lambda ()
+                                (let ([x (cons (send hier-list add-list (car lng)) (make-hash-table))])
+                                  (hash-table-put! ht (string->symbol (car lng)) x)
+                                  x)))])
+                        (add-sub-language (cdr sub-hier-list/sub-ht)
+                                          (car sub-hier-list/sub-ht)
+                                          (cdr lng)))])))
+          
+          (for-each add-language languages)
+          (send dialog show #t)))
+ 
+      
+      '(define language-dialog
         (case-lambda
          [(original-settings) (language-dialog original-settings #f)]
          [(original-settings parent) 

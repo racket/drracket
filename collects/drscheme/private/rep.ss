@@ -652,7 +652,6 @@
               get-user-setting
               get-user-custodian
               get-user-eventspace
-              get-user-namespace
               get-user-thread
               
               insert-warning
@@ -1185,16 +1184,6 @@
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
-            (field (recent-error-text #f)
-                   (error-range #f))
-            
-            (define (get-error-range)
-              (if color?
-                  error-range
-                  (if recent-error-text
-                      (cons (send recent-error-text get-start-position)
-                            (send recent-error-text get-end-position)))))
-            
             (define (reset-highlighting) (void))
             
             ;; format-source-loc : syntax -> string
@@ -1228,12 +1217,10 @@
             (field (user-setting (get-user-setting))
                    (user-custodian (make-custodian))
                    (user-eventspace #f)
-                   (user-namespace #f)
                    (user-thread #f))
             
             (define (get-user-custodian) user-custodian)
             (define (get-user-eventspace) user-eventspace)
-            (define (get-user-namespace) user-namespace)
             (define (get-user-thread) user-thread)
             
             (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
@@ -1438,12 +1425,12 @@
             
             (define protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
               (lambda (thunk cleanup)
-            ;; We only run cleanup if thunk finishes normally or tries to
-            ;; error-escape. Otherwise, it must be a continuation jump
-            ;; into a different call to protect-user-evaluation.
+                ;; We only run cleanup if thunk finishes normally or tries to
+                ;; error-escape. Otherwise, it must be a continuation jump
+                ;; into a different call to protect-user-evaluation.
                 
-            ;; `thunk' is responsible for ensureing that breaks are off when
-            ;; it returns or jumps out.
+                ;; `thunk' is responsible for ensuring that breaks are off when
+                ;; it returns or jumps out.
                 
                 (set! in-evaluation? #t)
                 (update-running)
@@ -1492,10 +1479,8 @@
                        ; No user code has been evaluated yet, so we're in the clear...
                        (break-enabled #f)
                        (set! user-thread (current-thread))
-                       
+                       (current-language language)
 		       (initialize-parameters user-setting)
-                       
-                       (set! user-namespace (current-namespace))
                        
                        (let ([drscheme-error-escape-handler
                               (lambda ()
@@ -1506,8 +1491,8 @@
                        (set! in-evaluation? #f)
                        (update-running)
                        
-                   ;; let init-thread procedure return,
-                   ;; now that parameters (and user-namespace) are set
+                       ;; let init-thread procedure return,
+                       ;; now that parameters are set
                        (semaphore-post init-thread-complete)
                        
                        ; We're about to start running user code.
