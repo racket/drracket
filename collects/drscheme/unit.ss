@@ -53,7 +53,7 @@
 			  (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
 			  filename)
                          (launcher:make-mred-launcher
-			  (append '("-mV") definitions '("-L" "mr-launcher.ss" "userspce"))
+			  (append '("-mv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
 			  filename))))))))])))
   
   (define make-bitmap 
