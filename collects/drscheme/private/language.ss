@@ -1,3 +1,7 @@
+;; WARNING: printf is rebound in this module to always use the 
+;;          original stdin/stdout of drscheme, instead of the 
+;;          user's io ports, to aid any debugging printouts.
+;;          (esp. useful when debugging the users's io)
 
 (module language mzscheme
   (require "drsig.ss"
@@ -15,7 +19,11 @@
 
   (define language@
     (unit/sig drscheme:language^
-      (import [drscheme:rep : drscheme:rep^])
+      (import [drscheme:rep : drscheme:rep^]
+              [drscheme:snip : drscheme:snip^])
+      
+      (define original-output-port (current-output-port))
+      (define (printf . args) (apply fprintf original-output-port args)) 
       
       (define-struct text/pos (text start end))
       ;; text/pos = (make-text/pos (instanceof text% number number))
@@ -193,25 +201,28 @@
 	      [(simple-settings-insert-newlines settings)
 	       (pretty-print converted-value port)]
 	      [else
-	       (write converted-value port)]))))
+               (parameterize ([pretty-print-columns 'infinity])
+                 (pretty-print converted-value port))
+               (newline port)]))))
       
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
-        (write (simple-module-based-language-convert-value value settings) port))
-
+        (parameterize ([pretty-print-columns 'infinity])
+          (pretty-print (simple-module-based-language-convert-value value settings) port)))
+      
       ;; simple-module-based-language-convert-value : TST settings -> TST
-    (define (simple-module-based-language-convert-value value settings)
-      (case (simple-settings-printing-style settings)
-        [(write) value]
-        [(constructor)
-         (parameterize ([constructor-style-printing #t]
-			[show-sharing (simple-settings-show-sharing settings)])
-           (print-convert value))]
-        [(quasiquote)
-         (parameterize ([constructor-style-printing #f]
-			[show-sharing (simple-settings-show-sharing settings)])
-           (print-convert value))]))
-        
+      (define (simple-module-based-language-convert-value value settings)
+        (case (simple-settings-printing-style settings)
+          [(write) value]
+          [(constructor)
+           (parameterize ([constructor-style-printing #t]
+                          [show-sharing (simple-settings-show-sharing settings)])
+             (print-convert value))]
+          [(quasiquote)
+           (parameterize ([constructor-style-printing #f]
+                          [show-sharing (simple-settings-show-sharing settings)])
+             (print-convert value))]))
+      
     ;; initialize-simple-module-based-language : setting ((-> void) -> void)
     (define (initialize-simple-module-based-language setting run-in-user-thread)
       (run-in-user-thread
@@ -288,19 +299,38 @@
         (send text split-snip start)
         (send text split-snip end)
         (let* ([snip (send text find-snip start 'after-or-none)]
-               [str (and (object? snip) (send snip get-text 0 (send snip get-count)))]
+               [str #f]
                [pos 0]
-               [next-snip
+               [read-special-object #f]
+               [read-special-length 1]
+               [read-special-proc
                 (lambda ()
-                  (set! snip (send snip next))
-                  (set! pos 0)
+                  (values read-special-object 
+                          read-special-length))]
+               [update-str-to-snip
+                (lambda ()
                   (cond
                     [(not snip)
                      (set! str #f)]
                     [((send text get-snip-position snip) . >= . end)
                      (set! str #f)]
+                    [(is-a? snip drscheme:snip:special<%>)
+                     (let-values ([(_read-special-object _read-special-length)
+                                   (send snip read-special)])
+                       (set! read-special-object _read-special-object)
+                       (set! read-special-length _read-special-length)
+                       (set! str " #$ "))]
+                    [(is-a? snip string-snip%)
+                     (set! str (send snip get-text 0 (send snip get-count)))]
                     [else
-                     (set! str (send snip get-text 0 (send snip get-count)))]))]
+                     (set! read-special-object (send snip copy))
+                     (set! read-special-length 1)
+                     (set! str " #$ ")]))]
+               [next-snip
+                (lambda ()
+                  (set! snip (send snip next))
+                  (set! pos 0)
+                  (update-str-to-snip))]
                [read-char (lambda () 
                             (when (and str
                                        ((string-length str) . <= . pos))
@@ -314,4 +344,9 @@
                [char-ready? (lambda () #t)]
                [close (lambda () (void))]
                [peek-char #f])
-          (make-input-port read-char char-ready? close peek-char))))))
+          (update-str-to-snip)
+          (make-input-port read-char 
+                           char-ready?
+                           close
+                           peek-char 
+                           read-special-proc))))))

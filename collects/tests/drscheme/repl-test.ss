@@ -13,7 +13,7 @@
   ;; loc = (make-loc number number number)
   ;; numbers in loc structs start at zero.
   
-  (define-struct test (program               ;; : (union string 'abc-text-box)
+  (define-struct test (program               ;; : (union string 'abc-text-box 'fraction-sum)
                        execute-answer        ;; : string
                        load-answer           ;; : (union #f string)
 
@@ -175,7 +175,7 @@
                 #f
 		#f)
      
-   ;; printer setup test
+     ; printer setup test
      (make-test "(car (void))"
                 "car: expects argument of type <pair>; given #<void>"
                 "car: expects argument of type <pair>; given #<void>"
@@ -185,12 +185,11 @@
                 #f
                 #f)
      
-     
    ;; error in the middle
      (make-test "1 2 ( 3 4"
                 "1\n2\nread: expected a ')'; started in~a"
                 "read: expected a ')'; started in~a"
-		2
+		#f
 		(cons (make-loc 0 5 4) (make-loc 0 5 5))
                 'read
                 #f
@@ -198,7 +197,7 @@
      (make-test "1 2 . 3 4"
                 "1\n2\nread: illegal use of \".\" in~a"
                 "read: illegal use of \".\" in~a"
-		2
+		#f
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
@@ -206,15 +205,15 @@
      (make-test "1 2 (lambda ()) 3 4"
                 "1\n2\nlambda: bad syntax in~a: (lambda ())"
                 "lambda: bad syntax in~a: (lambda ())"
-		2
-		(cons (make-loc 0 4 4) (make-loc 0 5 5))
+		#f
+		(cons (make-loc 0 4 4) (make-loc 0 15 15))
                 'expand
                 #t
                 #f)
      (make-test "1 2 x 3 4"
                 "1\n2\nreference to undefined identifier: x"
                 "reference to undefined identifier: x"
-		2
+		#f
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 #f
                 #f
@@ -260,21 +259,33 @@
       "(let ([old (error-escape-handler)])\n(+ (let/ec k\n(dynamic-wind\n(lambda () (error-escape-handler (lambda () (k 5))))\n(lambda () (car))\n(lambda () (error-escape-handler old))))\n10))"
       "car: expects 1 argument, given 0\n15"
       "car: expects 1 argument, given 0\n15"
-      #f
+      #t
       'definitions
       #f
       #f
       #f)
      
-   ;; non-strings snip test
+     ; non-strings snip test
      (make-test 'abc-text-box
-                "non-string-snip"
-                "non-string-snip"
+                "{embedded \"abc\"}"
+                "{embedded \"abc\"}"
                 #f
 		'interactions
                 #f
                 #f
                 #f)
+     
+     ; fraction snip test
+     (make-test 'fraction-sum
+                "{number 5/6 \"5/6\"}"
+                "{number 5/6 \"5/6\"}"
+                #f
+                'interactions
+                #f
+                #f
+                #f)
+     
+
      
      (make-test
       "(define s (make-semaphore 0))\n(queue-callback\n(lambda ()\n(dynamic-wind\nvoid\n(lambda () (car))\n(lambda () (semaphore-post s)))))\n(yield s)"
@@ -338,6 +349,10 @@
                 #f
                 #f)))
   
+  (define docs-image-string "{image #f}")
+  (define backtrace-image-string "{image #f}")
+  (define file-image-string "{image #f}")
+  
   (define drscheme-frame (wait-for-drscheme-frame))
   
   (define interactions-text (send drscheme-frame get-interactions-text))
@@ -364,14 +379,35 @@
       (build-path (collection-path "tests" "drscheme")
                   tmp-load-short-filename))))
   
+
+  ;; setup-fraction-sum-interactions : -> void 
+  ;; clears the definitions window, and executes `1/2' to
+  ;; get a fraction snip in the interactions window.
+  ;; Then, copies that and uses it to construct the sum
+  ;; of the 1/2 image and 1/3.
+  (define (setup-fraction-sum-interactions)
+    (clear-definitions drscheme-frame)
+    (type-in-definitions drscheme-frame "1/2")
+    (do-execute drscheme-frame)
+    (let* ([start (send interactions-text paragraph-start-position 2)]
+           
+          ;; since the fraction is supposed to be one char wide, we just
+          ;; select one char, so that, if the regular number prints out,
+          ;; this test will fail.
+           [end (+ start 1)])
+      (send interactions-text set-position start end)
+      (fw:test:menu-select "Edit" "Copy"))
+    (clear-definitions drscheme-frame)
+    (type-in-definitions drscheme-frame "(+ ")
+    (fw:test:menu-select "Edit" "Paste")
+    (type-in-definitions drscheme-frame " 1/3)"))
   
   
-;; given a filename "foo", we perform two operations on the contents 
-;; of the file "foo.ss".  First, we insert its contents into the REPL
-;; directly, and second, we use the load command.  We compare the
-;; the results of these operations against expected results.
-  
-  (define run-single-test
+    ; given a filename "foo", we perform two operations on the contents 
+    ; of the file "foo.ss".  First, we insert its contents into the REPL
+    ; directly, and second, we use the load command.  We compare the
+    ; the results of these operations against expected results.
+    (define run-single-test
     (lambda (execute-text-start escape raw?)
       (lambda (in-vector)
         (let* ([program (test-program in-vector)]
@@ -397,31 +433,35 @@
 		       [w/backtrace
 			(if (and (test-has-backtrace? in-vector)
 				 (not raw?))
-			    (string-append "{image} " pre)
+			    (string-append backtrace-image-string " " pre)
 			    pre)]
 		       [w/docs-icon
 			(if (test-docs-icon? in-vector)
-			    (string-append "{image} " w/backtrace)
+			    (string-append docs-image-string " " w/backtrace)
 			    w/backtrace)])
 		  w/docs-icon)]
                [load-answer (test-load-answer in-vector)]
                [formatted-load-answer
 		(and load-answer
                      (let* ([w/backtrace
-                             (if (and (not raw?)
-                                      (test-has-backtrace? in-vector))
-                                 (string-append "{image} " load-answer)
-                                 load-answer)]
-                            [w/file-icon
                              (if raw?
-                                 w/backtrace
+                                 load-answer
                                  (if (or (eq? source-location 'definitions)
                                          (pair? source-location))
-                                     (string-append "{image} " w/backtrace)
+                                     (string-append backtrace-image-string " " load-answer)
+                                     load-answer))]
+                            [w/file-icon
+                             (if raw?
+                                 (if source-location-in-message
+                                     (string-append file-image-string " " w/backtrace)
+                                     w/backtrace)
+                                 (if (or (eq? source-location 'definitions)
+                                         (pair? source-location))
+                                     (string-append file-image-string " " w/backtrace)
                                      w/backtrace))]
                             [w/docs-icon
                              (if (test-docs-icon? in-vector)
-                                 (string-append "{image} " w/file-icon)
+                                 (string-append docs-image-string " " w/file-icon)
                                  w/file-icon)])
                        (if source-location-in-message
                            (format w/docs-icon (string-append " " tmp-load-filename ":" error-start))
@@ -435,6 +475,8 @@
           (cond
             [(string? program)
              (insert-string program)]
+            [(eq? program 'fraction-sum)
+             (setup-fraction-sum-interactions)]
             [(eq? program 'abc-text-box)
              (fw:test:menu-select "Edit" "Insert Text Box")
              (fw:test:keystroke #\a)
@@ -533,7 +575,8 @@
       (fw:test:new-window definitions-canvas)
       (clear-definitions drscheme-frame)
       (do-execute drscheme-frame)
-      (let/ec escape (for-each (run-single-test (get-int-pos) escape raw?) test-data))))
+      (let/ec escape 
+        (for-each (run-single-test (get-int-pos) escape raw?) test-data))))
   
   (define (kill-tests)
     (let ([drs (wait-for-drscheme-frame)])

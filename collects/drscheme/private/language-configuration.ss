@@ -64,7 +64,7 @@
       ;; get-default-language-settings : -> language-settings
       ;; uses `default-language-position' to find the default language.
       ;; if that language is not available, just takes the first language.
-      ;; if there are no languages defined yet, signal an error -- drscheme is screwed.
+      ;; if there are no languages defined yet, signal an error -- drscheme is in trouble.
       (define (get-default-language-settings)
 	(when (null? languages)
 	  (error 'get-default-language-settings "no languages registered!"))
@@ -111,7 +111,7 @@
 		   (nothing-selected)]))
               (super-instantiate (parent))))
 
-          (define dialog (make-object dialog% (string-constant language-dialog-title)
+	  (define dialog (make-object dialog% (string-constant language-dialog-title)
                            parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
@@ -157,21 +157,29 @@
 	    (set! get/set-selected-language-settings #f)
 	    (set! selected-language #f))
 
-	  ;; add-language : (instanceof language<%>) -> void
+          ;; add-language-to-dialog : (instanceof language<%>) -> void
 	  ;; adds the language to the dialog
 	  ;; opens all of the turn-down tags
-          (define (add-language language)
+          ;; when `language' matches language-to-show, update the settings
+          ;;   panel to match language-to-show, otherwise set to defaults.
+          (define (add-language-to-dialog language)
             (let add-sub-language ([ht languages-table]
                                    [hier-list languages-hier-list]
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let-values ([(language-details-panel get/set-settings)
-			       (make-details-panel language)])
-		   (let ([item
-			  (send hier-list new-item
-				(language-mixin language language-details-panel get/set-settings))])
-		   (send (send item get-editor) insert (car lng))))]
+                 (let-values ([(language-details-panel get/set-settings)
+                               (make-details-panel language)])
+                   (let ([item
+                          (send hier-list new-item
+                                (language-mixin language language-details-panel get/set-settings))])
+                     (send (send item get-editor) insert (car lng))
+                     (cond
+                       [(equal? (send language-to-show get-language-position)
+                                (send language get-language-position))
+                        (get/set-settings settings-to-show)]
+                       [else
+                        (get/set-settings (send language default-settings))])))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
                              (hash-table-get
@@ -179,16 +187,16 @@
                               (string->symbol (car lng))
                               (lambda ()
                                 (let* ([new-list (send hier-list new-list)]
-				       [x (cons (make-hash-table) new-list)])
-				  (send new-list open)
-				  (send (send new-list get-editor) insert (car lng))
+                                       [x (cons (make-hash-table) new-list)])
+                                  (send new-list open)
+                                  (send (send new-list get-editor) insert (car lng))
                                   (hash-table-put! ht (string->symbol (car lng)) x)
                                   x)))])
                         (add-sub-language (car sub-ht/sub-hier-list)
                                           (cdr sub-ht/sub-hier-list)
                                           (cdr lng)))])))
-          
-	  ;; make-details-panel : ((instanceof language<%>) -> (values panel (case-> (-> settings) (settings -> void))))
+
+          ;; make-details-panel : ((instanceof language<%>) -> (values panel (case-> (-> settings) (settings -> void))))
 	  ;; adds a details panel for `language', using
 	  ;; the language's default settings, unless this is
 	  ;; the to-show language.
@@ -307,7 +315,7 @@
 
           (update-show/hide-details)
 
-          (for-each add-language languages)
+          (for-each add-language-to-dialog languages)
 	  (send dialog reflow-container)
 	  (send languages-hier-list stretchable-width #f)
 	  (send languages-hier-list min-client-width
@@ -317,7 +325,7 @@
           (get/set-selected-language-settings 
            (send selected-language default-settings))
           (send dialog show #t)
-	  (make-language-settings
+          (make-language-settings
 	   selected-language
 	   (get/set-selected-language-settings))))
  

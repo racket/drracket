@@ -415,7 +415,7 @@
 				 strings))]))]
 	       [(is-a? snip image-snip%)
 		(loop (send snip previous)
-		      (cons "{image}"
+		      (cons (format "{image ~s}" (send snip get-filename)) 
 			    strings))]
 	       [;; this test is an approximation of
                 ;; (is-a? snip drscheme:snip:whole/part-number-snip%)

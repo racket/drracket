@@ -26,7 +26,7 @@
             [snip : drscheme:snip^ (snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
             [rep : drscheme:rep^ (rep@ init snip language-configuration language app frame unit text help-desk teachpack)]
-            [language : drscheme:language^ (language@ rep)]
+            [language : drscheme:language^ (language@ rep snip)]
             [frame : drscheme:frame^ (frame@ unit app help-desk)]
             [unit : drscheme:unit^ (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]

@@ -1,7 +1,6 @@
 
 (module language-test mzscheme
   (require "drscheme-test-util.ss"
-           "lang-names.ss"
            (lib "gui.ss" "tests" "utils")
            (lib "class.ss")
            (lib "list.ss")
@@ -17,13 +16,13 @@
   (define (set-language close-dialog?)
     (set-language-level! (language) close-dialog?))
   
-  (define (mred)
-    (parameterize ([language (list "Full" "Graphical (MrEd)")])
+  (define (raw-mred)
+    (parameterize ([language (list "Full" "Graphical without debugging (MrEd)")])
 
       (check-top-of-repl)
 
       (generic-settings #f)
-      (generic-output #t #t)
+      (generic-output #t #t #t)
       
 ;      (set-language #f)
 ;      (test-setting "Unmatched cond/case is an error"
@@ -39,11 +38,10 @@
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image}class: bad syntax")
+      (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:105: class")
       (test-expression "shared" "reference to undefined identifier: shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
       
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" in USERPORT:265")
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -62,7 +60,7 @@
       (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
       
       (test-expression "true" "reference to undefined identifier: true")
-      (test-expression "mred^" "compile: illegal use of an expansion-time value name in: mred^")
+      (test-expression "mred^" "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
       (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
@@ -72,27 +70,34 @@
                        "(#&1 #&1)")
       (test-expression
        "(local ((define x x)) 1)"
-       "{image}define-values: illegal use (not at top-level) in #<struct:object:derived-from-rep-text%>:1003: (define-values (x) x)")
+       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
+      
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "1/2" "{number 1/2 \"1/2\"}")
+      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+3/2i")
+      (test-expression "+1/2i" "0+1/2i")
+      (test-expression "(exact? 1.5)" "#f")
+      
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
   
-  (define (mzscheme)
-    (parameterize ([language (list "Full" "Textual (MzScheme)")])
+  (define (raw-mzscheme)
+    (parameterize ([language (list "Full" "Textual without debugging (MzScheme)")])
 
       (check-top-of-repl)
 
       (generic-settings #f)
-      (generic-output #t #t)
+      (generic-output #t #t #t)
 ;      (set-language #f)
 ;      (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
       
@@ -107,9 +112,8 @@
 
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
       
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" in USERPORT:194")
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -137,33 +141,40 @@
                        "(#&1 #&1)")
       (test-expression
        "(local ((define x x)) 1)"
-       "{image}define-values: illegal use (not at top-level) in #<struct:object:derived-from-rep-text%>:1003: (define-values (x) x)")
+       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
+      
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "1/2" "{number 1/2 \"1/2\"}")
+      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+3/2i")
+      (test-expression "+1/2i" "0+1/2i")
+      (test-expression "(exact? 1.5)" "#f")
+      
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
   
-  (define (mred-debug)
+  (define (mred)
     (parameterize ([language (list "Full" "Graphical (MrEd)")])
       (check-top-of-repl)
 
       (generic-settings #f)
-      (generic-output #t #t)
+      (generic-output #t #t #t)
 ;      (set-language #f)
 ;      (test-setting "Unmatched cond/case is an error" #t
 ;                    "(cond [#f 1])"
-;                    "{image} cond: all question results were false")
+;                    "{image #f} cond: all question results were false")
 ;      (set-language #f)
 ;      (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
-;                    "{image} local variable used before its definition: x")
+;                    "{image #f} local variable used before its definition: x")
 ;      (set-language #f)
 ;      (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
       
@@ -176,11 +187,10 @@
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "bad syntax")
-      (test-expression "shared" "reference to undefined identifier: shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
+      (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:87: class")
+      (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -188,18 +198,18 @@
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "a: 1")
-      (test-expression "(error \"a\" \"a\")" "a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
       
       (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
-                       "{image} reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+                       "{image #f} reference to undefined identifier: make-posn")
+      (test-expression "set-posn-x!" "{image #f} reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "{image #f} reference to undefined identifier: set-posn-y!")
       
-      (test-expression "true" "reference to undefined identifier: true")
-      (test-expression "mred^" "signature: invalid use of signature name mred^")
+      (test-expression "true" "{image #f} reference to undefined identifier: true")
+      (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
       (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
@@ -207,37 +217,37 @@
       (test-expression "'(1)" "(1)")
       (test-expression "(define shrd (box 1)) (list shrd shrd)"
                        "(#&1 #&1)")
-      (test-expression "(local ((define x x)) 1)"
-                       "definition: invalid position for internal definition")
+      (test-expression 
+       "(local ((define x x)) 1)"
+       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
+      
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "1/2" "{number 1/2 \"1/2\"}")
+      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+3/2i")
+      (test-expression "+1/2i" "0+1/2i")
+      (test-expression "(exact? 1.5)" "#f")
+      
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
   
-  (define (mzscheme-debug)
+  (define (mzscheme)
     (parameterize ([language (list "Full" "Textual (MzScheme)")])
 
       (check-top-of-repl)
 
       (generic-settings #f)
-      (generic-output #t #t)
-;      (set-language #f)
-;      (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])"
-;                    "{image} cond: all question results were false")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
-;                    "{image} local variable used before its definition: x")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
+      (generic-output #t #t #t)
       
       (test-hash-bang)
       
@@ -248,11 +258,10 @@
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
+      (test-expression "class" "{image #f} reference to undefined identifier: class")
+      (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -260,18 +269,18 @@
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "a: 1")
-      (test-expression "(error \"a\" \"a\")" "a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
       
       (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
-                       "{image} reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+                       "{image #f} reference to undefined identifier: make-posn")
+      (test-expression "set-posn-x!" "{image #f} reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "{image #f} reference to undefined identifier: set-posn-y!")
       
-      (test-expression "true" "reference to undefined identifier: true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "true" "{image #f} reference to undefined identifier: true")
+      (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
       (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
@@ -279,19 +288,27 @@
       (test-expression "'(1)" "(1)")
       (test-expression "(define shrd (box 1)) (list shrd shrd)"
                        "(#&1 #&1)")
-      (test-expression "(local ((define x x)) 1)"
-                       "definition: invalid position for internal definition")
+      (test-expression 
+       "(local ((define x x)) 1)"
+       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
+
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "1/2" "{number 1/2 \"1/2\"}")
+      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+3/2i")
+      (test-expression "+1/2i" "0+1/2i")
+      (test-expression "(exact? 1.5)" "#f")
+
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
   
@@ -299,10 +316,8 @@
     (parameterize ([language (list "How to Design Programs" "Beginning Student")])
       (check-top-of-repl)
   
-      (test-names-defined beginner-names)
-      
       (generic-settings #t)
-      (generic-output #f #f)
+      (generic-output #f #f #f)
       
       (test-hash-bang)
       
@@ -314,14 +329,9 @@
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "keyword: invalid use of keyword shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
+      (test-expression "shared" "reference to undefined identifier: shared")
 
       (test-expression "(define (. x y) (* x y)) ." ".")
-      
-      (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -343,23 +353,30 @@
       (test-expression "(set! x 1)" "reference to undefined identifier: set!")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
-      (test-expression "'(1)" "quote: misused: '(1) is not a symbol")
+      (test-expression "'(1)" "quote: expected a name after a ', found something else")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
                        "(cons (cons 1 empty) (cons (cons 1 empty) empty))")
       (test-expression "(local ((define x x)) 1)"
-                       "definition: must be at the top level")
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(letrec ([x x]) 1)"
-                       "illegal application: first term in application must be a function name")
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
       (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
+      
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+1.5i")
+      (test-expression "+1/2i" "0+0.5i")
+      (test-expression "(exact? 1.5)" "true")
+      
       (test-expression "(list 1)" "(cons 1 empty)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
@@ -367,10 +384,8 @@
     (parameterize ([language (list "How to Design Programs" "Intermediate Student")])
       (check-top-of-repl)
 
-      (test-names-defined (append beginner-names intermediate-adds))
-
       (generic-settings #t)
-      (generic-output #t #f)
+      (generic-output #t #f #f)
 ;      (set-language #f)
 ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
 ;                    "local variable used before its definition: x")
@@ -387,14 +402,9 @@
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "keyword: invalid use of keyword shared")
-      (test-expression "turtles" "reference to undefined identifier: turtles")
+      (test-expression "shared" "reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." ".")
-      
-      (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
@@ -422,14 +432,21 @@
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
       (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
+      
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+1.5i")
+      (test-expression "+1/2i" "0+0.5i")
+      
+      (test-expression "(exact? 1.5)" "true")
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
@@ -437,10 +454,8 @@
     (parameterize ([language (list "How to Design Programs" "Advanced Student")])
       (check-top-of-repl)
 
-      (test-names-defined (append beginner-names intermediate-adds advanced-adds))
-      
       (generic-settings #t)
-      (generic-output #t #t)
+      (generic-output #t #t #t)
 ;      (set-language #f)
 ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
 ;                    "local variable used before its definition: x")
@@ -457,14 +472,9 @@
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "keyword: invalid use of keyword shared")
-      (test-expression "turtles" "turtles")
+      (test-expression "shared" "reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." ".")
-      
-      (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "call-with-current-continuation")
       
@@ -484,7 +494,7 @@
       (test-expression "(eq? 'a 'A)" "false")
       (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
-      (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
+      (test-expression "(cons 1 2)" "cons: second argument must be of type <list or cyclic list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
                        "(shared ((-1- (list 1))) (list -1- -1-))")
@@ -492,27 +502,23 @@
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
       (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
+
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
       (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
       (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+3/2i" "0+1.5i")
+      (test-expression "+1/2i" "0+0.5i")
+      (test-expression "(exact? 1.5)" "true")
+      
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
-  
-  (define re:undefined (regexp "undefined identifier"))
-  (define (test-names-defined names)
-    (set-language #t)
-    (for-each
-     (lambda (name)
-       (test-expression 
-        (symbol->string name) 
-        (let ([must-be-defined (lambda (x) (not (regexp-match re:undefined x)))])
-          must-be-defined)))
-     names))
   
   (define (test-setting setting-name value expression result)
     (fw:test:set-check-box! setting-name value)
@@ -573,14 +579,14 @@
 ;                  "")
     )
   
-  (define (generic-output list? quasi-quote?)
+  (define (generic-output list? quasi-quote? has-sharing?)
     (let* ([drs (wait-for-drscheme-frame)]
            [expression (format "(define x (list 4/3))~n(list x x)")]
            [set-output-choice
             (lambda (option show-sharing pretty?)
               (set-language #f)
               (fw:test:set-radio-box! "Output Style" option)
-              (when show-sharing
+              (when (and has-sharing? show-sharing)
                 (fw:test:set-check-box!
                  "Show sharing in values"
                  (if (eq? show-sharing 'on) #t #f)))
@@ -612,19 +618,22 @@
       (type-in-definitions drs expression)
       
       (test "write" 'off #t "(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
-      (test "write" 'on #t "(#0=({number 4/3 \"1 1/3\"}) #0#)")
+      (when has-sharing?
+        (test "write" 'on #t "(#0=({number 4/3 \"1 1/3\"}) #0#)"))
       (when quasi-quote?
         (test "Quasiquote" 'off #t "`(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
-        (test "Quasiquote" 'on #t "(shared ((-1- `({number 4/3 \"1 1/3\"}))) `(,-1- ,-1-))"))
+        (when has-sharing?
+          (test "Quasiquote" 'on #t "(shared ((-1- `({number 4/3 \"1 1/3\"}))) `(,-1- ,-1-))")))
       
       (test "Constructor" 'off #t
             (if list?
                 "(list (list {number 4/3 \"1 1/3\"}) (list {number 4/3 \"1 1/3\"}))"
                 "(cons (cons {number 4/3 \"1 1/3\"} empty) (cons (cons {number 4/3 \"1 1/3\"} empty) empty))"))
-      (test "Constructor" 'on #t
-            (if list?
-                "(shared ((-1- (list {number 4/3 \"1 1/3\"}))) (list -1- -1-))"
-                "(shared ((-1- (cons {number 4/3 \"1 1/3\"} empty))) (cons -1- (cons -1- empty)))"))
+      (when has-sharing?
+        (test "Constructor" 'on #t
+              (if list?
+                  "(shared ((-1- (list {number 4/3 \"1 1/3\"}))) (list -1- -1-))"
+                  "(shared ((-1- (cons {number 4/3 \"1 1/3\"} empty))) (cons -1- (cons -1- empty)))")))
       
       ;; setup comment box
       (clear-definitions drs)
@@ -634,20 +643,19 @@
       (fw:test:keystroke #\c)
       
       ;; test comment box in print-convert and print-convert-less settings
-      (test "Constructor" 'on #t "{embedded \"abc\"}")
-      (test "write" 'on #t "{embedded \"abc\"}")
+      (test "Constructor" #f #t "{embedded \"abc\"}")
+      (test "write" #f #t "{embedded \"abc\"}")
       
       ;; setup write / pretty-print difference
       (clear-definitions drs)
       (for-each fw:test:keystroke
                 (string->list
-                 (format
-                  "(define (f n)~n(cond [(zero? n) null]~n[else (cons n (f (- n 1)))]))~n(f 200)")))
-      (test "Constructor" 'on #f
+                 "(define (f n)\n(cond [(zero? n) null]\n[else (cons n (f (- n 1)))]))\n(f 200)"))
+      (test "Constructor" #f #f
             (case-lambda
              [(x) (not (member #\newline (string->list x)))]
              [() "no newlines in result"]))
-      (test "Constructor" 'on #t
+      (test "Constructor" #f #t
             (case-lambda
              [(x) (member #\newline (string->list x))]
              [() "newlines in result (may need to make the window smaller)"]))
@@ -729,7 +737,7 @@
     (regexp
      "WARNING: Interactions window is out of sync with the definitions window\\."))
   
-  ;; test-expression : string (union string (string -> boolean)) -> void
+  ;; test-expression : string (union string regexp (string -> boolean)) -> void
   ;; types an expression in the REPL and tests the output from the REPL.
   (define (test-expression expression expected)
     (let* ([drs (wait-for-drscheme-frame)]
@@ -740,8 +748,18 @@
               (cond
                 [(string? expected)
                  (whitespace-string=? expected got)]
+                [(regexp? expected)
+                 (regexp-match expected got)]
                 [(procedure? expected)
-                 (expected got)]))])
+                 (expected got)]))]
+           [err-msg
+            (cond
+              [(string? expected)
+               "FAILED: ~s expected ~s to produce ~s, got ~s instead~n"]
+              [(regexp? expected)
+               "FAILED: ~s expected ~s to match ~s, got ~s instead~n"]
+              [(procedure? expected)
+               "FAILED: ~s expected ~s to pass predicate ~s, got ~s~n"])])
       (send interactions-text set-position
             (send interactions-text last-position)
             (send interactions-text last-position))
@@ -757,8 +775,7 @@
         (when (regexp-match re:out-of-sync got)
           (error 'text-expression "got out of sync message"))
         (unless (check-expectation got)
-          (printf "FAILED: ~s expected ~s to produce ~s, got ~s instead~n"
-                  (language) expression expected got)))))
+          (printf err-msg (language) expression expected got)))))
   
   
   (define (run-test)
@@ -766,10 +783,10 @@
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
-    ;(mred)
-    ;(mzscheme)
-    ;(mred-debug)
-    ;(mzscheme-debug)
+    (raw-mred)
+    (raw-mzscheme)
+    (mred)
+    (mzscheme)
     (beginner)
     (intermediate)
     (advanced)))

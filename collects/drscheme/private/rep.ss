@@ -5,6 +5,10 @@
 ; =Handler= means in the handler thread of some eventspace; it must
 ;  be combined with either =Kernel= or =User=
 
+;; WARNING: printf is rebound in this module to always use the 
+;;          original stdin/stdout of drscheme, instead of the 
+;;          user's io ports, to aid any debugging printouts.
+;;          (esp. useful when debugging the users's io)
 
 (module rep mzscheme
   (require (lib "unitsig.ss")
@@ -34,6 +38,8 @@
               (drscheme:help : drscheme:help-desk^)
               (drscheme:teachpack : drscheme:teachpack^))
       
+      (rename [-text% text%])
+
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -41,6 +47,16 @@
 	  ;; for use in pretty printing the snip.
 	  get-character-width))
 
+      ;; use-number-snip : (parameter (TST -> boolean))
+      ;; returns true if this value can be turned into a number snip for displaying
+      (define use-number-snip
+        (make-parameter
+         (lambda (x)
+           (and (number? x)
+                (exact? x)
+                (real? x)
+                (not (integer? x))))))
+      
       ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
       (define current-language-settings (make-parameter #f))
@@ -53,6 +69,7 @@
       (define current-value-port (make-parameter 'uninitialized-value-port))
             
       ;; drscheme-load-handler : string ->* TST
+      ;; =User=
       ;; the default load handler for programs running in DrScheme
       (define (drscheme-load-handler filename)
         (unless (string? filename)
@@ -90,6 +107,7 @@
             [else filename])))
       
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
+      ;; =User=
       ;; the timing is a little tricky here. 
       ;; the file icon must appear before the error message in the text, so tha happens first.
       ;; the highlight must be set after the error message because inserting into the text resets
@@ -131,6 +149,7 @@
 		  (send rep highlight-error/forward-sexp src position))))))
 
       ;; open-file-and-highlight : string (union number #f) (union number #f)
+      ;; =Kernel, =Handler=
       ;; opens the file named by filename. If position is #f,
       ;; doesn't highlight anything. If position is a number and other-position
       ;; is #f, highlights the range from position to the end of sexp.
@@ -241,10 +260,10 @@
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
       
-  ;; drs-bindings-keymap-mixin :
-  ;;   ((implements editor:keymap<%>) -> (implements editor:keymap<%>))
-  ;;   for any x that is an instance of the resulting class,
-  ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
+      ;; drs-bindings-keymap-mixin :
+      ;;   ((implements editor:keymap<%>) -> (implements editor:keymap<%>))
+      ;;   for any x that is an instance of the resulting class,
+      ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
       (define drs-bindings-keymap-mixin
 	(mixin (editor:keymap<%>) (editor:keymap<%>)
 	  (rename [super-get-keymaps get-keymaps])
@@ -555,6 +574,7 @@
                      (proc ut))
                    drscheme:init:system-custodian))))
             
+            ;; =User= (probably doesn't matter)
             (define queue-system-callback
               (case-lambda
                [(ut thunk) (queue-system-callback ut thunk #f)]
@@ -566,10 +586,17 @@
                        (thunk)))
                    #f))]))
             
+            ;; =User=
             (define queue-system-callback/sync
               (lambda (ut thunk)
-                (let ([s (make-semaphore)])
-                  (queue-system-callback ut (lambda () (thunk) (semaphore-post s)))
+                (let ([s (make-semaphore 0)])
+                  (queue-system-callback 
+                   ut 
+                   (lambda ()
+                     (when (eq? ut user-thread)
+                       (thunk))
+                     (semaphore-post s))
+                   #t)
                   (semaphore-wait s))))
             
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -660,7 +687,7 @@
                     (send transparent-text balance-required #f)
                     (send transparent-text set-styles-fixed #f)
                     
-                ;; ensure that there is a newline before the snip is inserted
+                    ;; ensure that there is a newline before the snip is inserted
                     (unless (member 'hard-newline
                                     (send (find-snip (last-position) 'before) get-flags))
                       (insert newline-string (last-position) (last-position) #f))
@@ -760,13 +787,11 @@
                      (semaphore-wait/enable-break s)
                      answer)))))
             
-            (define this-in-read-char ; =User=
-              (lambda ()
-                (this-in-fetch-char #f)))
+            (define (this-in-read-char) ; =User=
+              (this-in-fetch-char #f))
             
-            (define this-in-peek-char ; =User=
-              (lambda ()
-                (this-in-fetch-char #t)))
+            (define (this-in-peek-char) ; =User=
+              (this-in-fetch-char #t))
             
             (field (flushing-event-running (make-semaphore 1))
                    (limiting-sema (make-semaphore output-limit-size))) ; waited once foreach in io-collected-thunks
@@ -774,60 +799,61 @@
             (field (io-semaphore (make-semaphore 1))
                    (io-collected-thunks null) ; protected by semaphore
                    (io-collected-texts null)) ; always set in the kernel's handler thread
-            (define run-io-collected-thunks ; =Kernel=, =Handler=
-              (lambda ()
-            ;; also need to start edit-sequence in any affected
-            ;; transparent io boxes.
-                (semaphore-wait io-semaphore)
-                (let ([io-thunks io-collected-thunks])
-                  (set! io-collected-thunks null)
-                  (semaphore-post io-semaphore)
-                  
+       
+            (define (run-io-collected-thunks) ; =Kernel=, =Handler=
+              ; also need to start edit-sequence in any affected
+              ; transparent io boxes.
+              (semaphore-wait io-semaphore)
+              (let ([io-thunks io-collected-thunks])
+                (set! io-collected-thunks null)
+                (semaphore-post io-semaphore)
+                (unless (null? io-thunks)
                   (begin-edit-sequence)
                   (for-each (lambda (t) (semaphore-post limiting-sema) (t))
                             (reverse io-thunks))
                   (for-each (lambda (e) (send e end-edit-sequence)) io-collected-texts)
-                  (unless (null? io-thunks)
-                    (scroll-to-position (last-position)))
-                  (end-edit-sequence)
-                  
-                  (set! io-collected-texts null))))
+                  (scroll-to-position (last-position))
+                  (end-edit-sequence))))
             
             (define (wait-for-io-to-complete) ; =Kernel=, =Handler=
-              (unless (null? io-collected-thunks)
-                (let ([semaphore (make-semaphore 0)])
-                  (queue-callback
-                   (lambda () ; =Kernel=, =Handler=
-                     (run-io-collected-thunks)
-                     (semaphore-post semaphore))
-                   #f)
-                  (yield semaphore))))
-            (define queue-output ; =User=
-              (lambda (thunk)
-                (protect
-                 (lambda (ut) ; =Protected-User=
-                   ; limiting-sema prevents queueing too much output from the user
-                   (semaphore-wait/enable-break limiting-sema)
-                   ; Queue the output:
-                   (let ([this-eventspace user-eventspace])
-                     (semaphore-wait io-semaphore)
-                     (if (eq? ut user-thread)
-                         ; Queue output:
-                         (set! io-collected-thunks
-                               (cons thunk io-collected-thunks))
-                         ; Release limit allocation, instead:
-                         (semaphore-post limiting-sema))
-                     (semaphore-post io-semaphore))
-                   ; If there's not one, queue an event that will flush the output queue
-                   (when (semaphore-try-wait? flushing-event-running)
-                     ; Unlike most callbacks, this one has to run always, even if
-                     ;   the user thread changes.
-                     (queue-system-callback
-                      ut
-                      (lambda () ; =Kernel=, =Handler=
-                        (semaphore-post flushing-event-running)
-                        (run-io-collected-thunks))
-                      #t))))))
+              (let ([semaphore (make-semaphore 0)])
+                (queue-callback
+                 (lambda () ; =Kernel=, =Handler=
+                   (run-io-collected-thunks)
+                   (semaphore-post semaphore))
+                 #f)
+                (yield semaphore)))
+            
+            (define (wait-for-io-to-complete/user) ; =User=, =Handler=
+              (queue-system-callback/sync
+               (lambda () ; =Kernel=, =Handler=
+                 (run-io-collected-thunks))
+               user-thread))
+            
+            (define (queue-output thunk) ; =User=
+              (protect
+               (lambda (ut) ; =Protected-User=
+                 ; limiting-sema prevents queueing too much output from the user
+                 (semaphore-wait/enable-break limiting-sema)
+                 ; Queue the output:
+                 (semaphore-wait io-semaphore)
+                 (if (eq? ut user-thread)
+                     ; Queue output:
+                     (set! io-collected-thunks
+                           (cons thunk io-collected-thunks))
+                     ; Release limit allocation, instead:
+                     (semaphore-post limiting-sema))
+                 (semaphore-post io-semaphore)
+                 ; If there's not one, queue an event that will flush the output queue
+                 (when (semaphore-try-wait? flushing-event-running)
+                   ; Unlike most callbacks, this one has to run always, even if
+                   ;   the user thread changes.
+                   (queue-system-callback
+                    ut
+                    (lambda () ; =Kernel=, =Handler=
+                      (semaphore-post flushing-event-running)
+                      (run-io-collected-thunks))
+                    #t)))))
             
             (define generic-write ; =Kernel=, =Handler=
               (lambda (text s style-func)
@@ -1011,10 +1037,12 @@
                                  (+ start 1))
                              (+ start 1))])
                 (highlight-error text start end)))
+
+            ;; =User=
 	    (define (highlight-error file start finish)
               (when (is-a? file text:basic%)
 		(send file begin-edit-sequence)
-		(wait-for-io-to-complete)
+		(wait-for-io-to-complete/user)
 		(reset-highlighting)
 		(set! error-range (cons start finish))
 		(if color?
@@ -1076,7 +1104,7 @@
                    (cond
                      [(is-a? x sized-snip<%>) (send x get-character-width)]
                      [(is-a? x snip%) 1]
-                     [(use-number-snip? x)
+                     [((use-number-snip) x)
                       (+ (string-length (number->string (floor x)))
                          (max (string-length
                                (number->string 
@@ -1098,19 +1126,11 @@
                 (if port-out-write
                     (let ([snip/str
                            (cond
-                             [(use-number-snip? x)
+                             [((use-number-snip) x)
                               (make-object drscheme:snip:whole/part-number-snip% x)]
                              [else x])])
                       (port-out-write snip/str))
                     (display x))))
-            
-            ;; use-number-snip? : TST -> boolean
-            ;; returns true if this value can be turned into a number snip for displaying
-            (define (use-number-snip? x)
-              (and (number? x)
-                   (exact? x)
-                   (real? x)
-                   (not (integer? x))))
             
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;                                            ;;;
@@ -1182,9 +1202,12 @@
               (set! need-interaction-cleanup? #f)
               (send (get-canvas) set-cursor saved-cursor)
               (begin-edit-sequence)
+              (printf "cleanup.waiting for io~n")
               (wait-for-io-to-complete)
+              (printf "cleanup.cleaning up transparent-io~n")
               (cleanup-transparent-io)
               (set-caret-owner #f 'display)
+              (printf "cleanup.inserting prompt ~s~n" (and user-thread (thread-running? user-thread)))
               (when (and user-thread (thread-running? user-thread))
                 (let ([c-locked? (is-locked?)])
                   (lock #f)
@@ -1194,12 +1217,14 @@
               (end-edit-sequence)
               (send context enable-evaluation))
             
+            ; =Kernel, =Handler=
             (define (do-many-text-evals text start end)
               (do-many-evals
-               (lambda (single-loop-eval)
+               (lambda (single-loop-eval)  ; =User=, =Handler=
                  (let* ([text/pos (drscheme:language:make-text/pos text start end)]
-                        [lang (drscheme:language-configuration:language-settings-language (current-language-settings))]
-                        [settings (drscheme:language-configuration:language-settings-settings (current-language-settings))]
+                        [settings (current-language-settings)]
+                        [lang (drscheme:language-configuration:language-settings-language settings)]
+                        [settings (drscheme:language-configuration:language-settings-settings settings)]
                         [get-sexp/syntax/eof (send lang front-end text/pos settings)])
                    (let loop () 
                      (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
@@ -1212,9 +1237,11 @@
                              (call-with-values
                               (lambda ()
                                 (eval sexp/syntax/eof))
-                              (lambda x (display-results x)))))
+                              (lambda x (display-results x)))
+                             (printf "do-many-text-evals.wait-for-io-to-complete/user before~n")
+                             (wait-for-io-to-complete/user)
+                             (printf "do-many-text-evals.wait-for-io-to-complete/user after~n")))
                           (loop)])))))))
-            
             
 	    ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
             (define do-many-evals ; =Kernel=, =Handler=
@@ -1264,7 +1291,8 @@
                     (lambda () ; =User=, =Handler=, =No-Breaks=
                       (queue-system-callback/sync
 		       user-thread
-		       (lambda () (cleanup-interaction)))))))))
+		       (lambda () ; =Kernel=, =Handler= 
+                         (cleanup-interaction)))))))))
             
             (define shutdown-user-custodian ; =Kernel=, =Handler=
               ; Use this procedure to shutdown when in the middle of other cleanup
@@ -1321,15 +1349,15 @@
                 (kill-thread thread-killed))
               (set! thread-killed
                     (thread
-                     (lambda () ; =Other=
+                     (lambda () ; =Kernel=
                        (let ([ut user-thread])
                          (thread-wait ut)
-                         (queue-callback
-                          (lambda ()
-                            (when (eq? user-thread ut)
-                              (if need-interaction-cleanup?
-                                  (cleanup-interaction)
-                                  (cleanup))))))))))
+                         (queue-system-callback
+                          ut
+                          (lambda () ; =Kernel=, =Handler=
+                            (if need-interaction-cleanup?
+                                (cleanup-interaction)
+                                (cleanup)))))))))
             
             (define protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
               (lambda (thunk cleanup)
@@ -1352,11 +1380,13 @@
                        (set! error-escape-k (lambda () 
                                               (set! cleanup? #t)
                                               (k (void)))))
-                     (lambda () (thunk) 
+                     (lambda () 
+                       (thunk) 
                        ; Breaks must be off!
                        (set! cleanup? #t))
                      (lambda () 
                        (set! error-escape-k saved-error-escape-k)
+                       (printf "protect-user-evaluaton.cleanup? ~s~n" cleanup?)
                        (when cleanup?
                          (set! in-evaluation? #f)
                          (update-running)
@@ -1393,13 +1423,20 @@
 				(semaphore-post wait))))
 			   (semaphore-wait wait)))])
 
-		  ;; setup standard parameters
-		  (queue-user/wait
-		   (lambda () ; =User=, =No-Breaks=
-		     ;; No user code has been evaluated yet, so we're in the clear...
-		     (break-enabled #f)
-		     (set! user-thread (current-thread))
-		     (initialize-parameters)))
+		  ; setup standard parameters
+                  (let ([snip-classes
+                         ; the snip-classes in the DrScheme eventspace's snip-class-list
+                         (let loop ([n (send (get-the-snip-class-list) number)])
+                           (if (zero? n)
+                               null
+                               (cons (send (get-the-snip-class-list) nth (- n 1))
+                                     (loop (- n 1)))))])
+                    (queue-user/wait
+                     (lambda () ; =User=, =No-Breaks=
+                       ; No user code has been evaluated yet, so we're in the clear...
+                       (break-enabled #f)
+                       (set! user-thread (current-thread))
+                       (initialize-parameters snip-classes))))
 
 		  ;; initialize the language
 		  (send (drscheme:language-configuration:language-settings-language user-language-settings)
@@ -1489,8 +1526,11 @@
             
             (field (repl-initially-active? #f))
             
+            ;; initialize-paramters : (listof snip-class%) -> void
             (define initialize-parameters ; =User=
-              (lambda ()
+              (lambda (snip-classes)
+                (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
+                          snip-classes)
 		(current-rep this)
               	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
@@ -2174,7 +2214,7 @@
             (super-init)
             (insert-prompt))))
       
-      (define text% 
+      (define -text% 
         (drs-bindings-keymap-mixin
          (make-text% 
           (make-console-text% scheme:text%)))))))

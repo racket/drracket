@@ -40,10 +40,8 @@
      first-dir))
   
   (define-signature drscheme:snip^ 
-    (prompt-snip%
-     equal-snip% 
-     separator-snip%
-     whole/part-number-snip%))
+    (whole/part-number-snip%
+     special<%>))
   
   (define-signature drscheme:language-configuration^
     (add-language))
@@ -102,7 +100,8 @@
     (do-setup))
   
   (define-signature drscheme:rep^
-    (drs-bindings-keymap-mixin
+    (use-number-snip
+     drs-bindings-keymap-mixin
      current-rep
      text%
      context<%>))
