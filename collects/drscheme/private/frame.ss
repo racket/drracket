@@ -465,8 +465,8 @@
           [else 
            (run-installer (send file-text-field get-value))]))
 
-;; install-plt-from-url : string (union #f dialog%) -> void
-;; downloads and installs a .plt file from the given url
+      ;; install-plt-from-url : string (union #f dialog%) -> void
+      ;; downloads and installs a .plt file from the given url
       (define (install-plt-from-url s-url parent)
         (with-handlers ([(lambda (x) #f)
                          (lambda (exn)

@@ -37,7 +37,7 @@
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
-              (drscheme:help : drscheme:help-desk^)
+              (drscheme:help-desk : drscheme:help-desk^)
               (drscheme:teachpack : drscheme:teachpack^)
               (drscheme:debug : drscheme:debug^)
               [drscheme:eval : drscheme:eval^])
@@ -261,6 +261,10 @@
                       (when (is-a? frame drscheme:unit:frame%)
                         (send frame execute-callback))))))))
       (send drs-bindings-keymap add-function
+            "help-desk"
+            (lambda (obj evt)
+              (drscheme:help-desk:goto-front-page)))
+      (send drs-bindings-keymap add-function
             "toggle-focus-between-definitions-and-interactions"
             (lambda (obj evt)
               (when (is-a? obj editor<%>)
@@ -276,6 +280,7 @@
       
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
+      (send drs-bindings-keymap map-function "f1" "help-desk")
       
       (define (get-drs-bindings-keymap) drs-bindings-keymap)
 

@@ -255,10 +255,11 @@
                                  (string-constant drscheme)
                                  (format (string-constant cannot-open-because-dne) file))
                                 (loop (cdr files)))))]))]
-             [no-dups (remove-duplicates normalized/filtered)])
-        (if (null? no-dups)
-            (make-basic)
-            (for-each (lambda (f) (handler:edit-file
-                                   f
-                                   (lambda () (drscheme:unit:open-drscheme-window f))))
-                      no-dups))))))
+             [no-dups (remove-duplicates normalized/filtered)]
+	     [frames
+	      (map (lambda (f) (handler:edit-file
+				f
+				(lambda () (drscheme:unit:open-drscheme-window f))))
+		   no-dups)])
+	(when (null? (filter (lambda (x) x) frames))
+	  (make-basic))))))

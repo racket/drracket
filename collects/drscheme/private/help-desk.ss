@@ -1,3 +1,4 @@
+
 (module help-desk mzscheme
   (require (lib "list.ss")
            (lib "string.ss")
@@ -40,13 +41,11 @@
                                     (if (exn? exn)
                                         (exn-message exn)
                                         (format "~s" exn)))))])
-          (let* ([end-of-url (finddoc-page-anchor manual link)]
-                 [url
-                  (format "http://127.0.0.1:~a~a"
-                          (hd-cookie->port (get-hd-cookie))
-                          end-of-url)])
-            (send-url url))))
+          (goto-manual-link (get-hd-cookie) manual link)))
       
+      (define (goto-front-page)
+        (help-desk-browser (get-hd-cookie)))
+        
       (define (goto-tour)
         (send-url (format "http://127.0.0.1:~a/doc/tour"
                           (hd-cookie->port (get-hd-cookie)))))

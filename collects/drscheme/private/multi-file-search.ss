@@ -303,7 +303,7 @@
                         (set-position new-line-position new-line-position)
                         (send zoom-text begin-edit-sequence)
                         (send zoom-text lock #f)
-                        (send zoom-text load-file full-filename)
+                        (send zoom-text load-file/gui-error full-filename)
                         (send zoom-text set-position (send zoom-text paragraph-start-position line-number))
                         (let ([start (+ (send zoom-text paragraph-start-position line-number)
                                         col-number)])

@@ -911,7 +911,7 @@
           (define/public (change-to-file name)
             (cond
               [(and name (file-exists? name))
-               (send definitions-text load-file name)]
+               (send definitions-text load-file/gui-error name)]
               [name
                (send definitions-text set-filename name)]
               [else (send definitions-text clear)])
@@ -1738,9 +1738,11 @@
           (let ([m (send definitions-canvas get-editor)])
             (set-save-init-shown?
              (and m (send m is-modified?))))
-	  (send name-message set-message
-                (if filename #t #f)
-                (or filename (get-label) (string-constant untitled)))
+	  
+          (let ([ed-filename (send definitions-text get-filename)])
+            (send name-message set-message
+                  (if ed-filename #t #f)
+                  (or ed-filename (get-label) (string-constant untitled))))
           
           (update-save-button #f)
           

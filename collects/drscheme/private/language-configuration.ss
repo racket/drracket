@@ -176,7 +176,6 @@
 	  (define (cancel-callback)
             (send dialog show #f))
 
-
           (define show-details-label (string-constant show-details-button-label))
           (define hide-details-label (string-constant hide-details-button-label))
           
@@ -225,6 +224,79 @@
 	  (define selectable-hierlist%
             (class hierarchical-list%
               (init parent)
+
+              (rename [super-on-char on-char])
+              (inherit get-selected)
+              (define/override (on-char evt)
+                (let ([code (send evt get-key-code)])
+                  (cond
+                    [(eq? code 'up) (select-next sub1 (lambda (v) (- (vector-length v) 1)))]
+                    [(eq? code 'down) (select-next add1 (lambda (v) 0))]
+                    [else (super-on-char evt)])))
+              
+              (inherit get-items)
+              
+              ;; select-next : (int -> int) (vector -> int)
+              ;; finds the next leaf after the selected child,
+              ;; using `inc' and `start' to control the direction of the traversal.
+              (define/private (select-next inc start)
+                (let ([fst-selected (get-selected)])
+                  (when fst-selected
+                    (let loop ([item fst-selected])
+                      (let* ([parent (send item get-parent)]
+                             [siblings (list->vector (if parent
+                                                         (send parent get-items)
+                                                         (get-items)))])
+                        (let sibling-loop ([index (inc (find-index item siblings))])
+                          (cond
+                            [(and (<= 0 index)
+                                  (< index (vector-length siblings)))
+                             (let ([sibling (vector-ref siblings index)])
+                               (cond
+                                 [(find-first-leaf sibling inc start)
+                                  =>
+                                  (lambda (child)
+                                    (send fst-selected select #f)
+                                    (send child select #t)
+                                    (open-parents child))]
+                                 [else (sibling-loop (inc index))]))]
+                            [else (loop parent)])))))))
+              
+              ;; find-first-leaf : item (int -> int) (vec -> int)
+              ;; finds the first child, using `inc' and `start' to control
+              ;; the traversal over the children.
+              (define/private (find-first-leaf item inc start)
+                (let loop ([item item])
+                  (cond
+                    [(is-a? item hierarchical-list-compound-item<%>)
+                     (let ([children (list->vector (send item get-items))])
+                       (let child-loop ([i (start children)])
+                         (cond
+                           [(and (<= 0 i) (< i (vector-length children)))
+                            (or (loop (vector-ref children i))
+                                (child-loop (inc i)))]
+                           [else #f])))]
+                    [else item])))
+              
+              ;; find-index : tst (vectorof tst) -> int
+              ;; returns the index of `item' in `vec'
+              (define/private (find-index item vec)
+                (let loop ([i 0])
+                  (cond
+                    [(< i (vector-length vec))
+                     (if (eq? (vector-ref vec i) item)
+                         i
+                         (loop (+ i 1)))]
+                    [else (error 'find-index "didn't find ~e in ~e" item vec)])))
+
+              ;; open-parents : item -> void
+              ;; selects the item and opens all of its parents.
+              (define/private (open-parents item)
+                (let loop ([item (send item get-parent)])
+                  (when item
+                    (send item open)
+                    (loop (send item get-parent)))))
+              
               (define/override (on-select i)
                 (cond
 		  [(and i (is-a? i hieritem-language<%>))

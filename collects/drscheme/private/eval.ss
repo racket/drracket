@@ -1,3 +1,4 @@
+
 (module eval mzscheme
   (require (lib "mred.ss" "mred")
            (lib "unitsig.ss")
@@ -121,7 +122,6 @@
         (read-curly-brace-as-paren #t)
         (read-square-bracket-as-paren #t)
         (error-print-width 250)
-        ;(current-load drscheme-load-handler) ;yes!
         (current-ps-setup (make-object ps-setup%))
 
         (let ([user-custodian (current-custodian)])
@@ -145,42 +145,6 @@
                      spec
                      ((current-module-name-resolver) spec #f #f)))])
           (map get-name to-be-copied-module-specs)))
-      
-      ;; drscheme-load-handler : string boolean -> TST
-      ;; =User=
-      ;; the default load handler for programs running in DrScheme
-      (define (drscheme-load-handler filename expected-module)
-        (unless (string? filename)
-	  (raise-type-error 'drscheme-load-handler "string" filename))
-        (unless (file-exists? filename)
-	  (raise-type-error 'drscheme-load-handler "existing file" filename))
-        (let-values ([(in-port src) (build-input-port filename)])
-          (dynamic-wind
-           (lambda () (void))
-           (lambda ()
-             (parameterize ([read-accept-compiled #t])
-               (if expected-module
-                   (with-module-reading-parameterization 
-                    (lambda ()
-                      (let* ([first (read-syntax src in-port)]
-                             [module-ized-exp (check-module-form first expected-module filename)]
-                             [second (read in-port)])
-                        (unless (eof-object? second)
-                          (raise-syntax-error
-                           'drscheme-load-handler
-                           (format "expected only a `module' declaration for `~s', but found an extra expression"
-                                   expected-module)
-                           second))
-                        (eval module-ized-exp))))
-                   (let loop ([last-time-values (list (void))])
-                     (let ([exp (read-syntax src in-port)])
-                       (if (eof-object? exp)
-                           (apply values last-time-values)
-                           (call-with-values
-                            (lambda () (eval exp))
-                            (lambda x (loop x)))))))))
-           (lambda ()
-             (close-input-port in-port)))))
       
       ;; build-input-port : string[file-exists?] -> (values input any)
       ;; constructs an input port for the load handler. Also

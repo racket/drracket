@@ -783,5 +783,5 @@
                           (label native-lang-string)
                           (parent help-menu)
                           (callback (lambda (x1 x2) (switch-language-to #f language))))))
-                    (string-constants is-this-your-native-language)
+                    (string-constants interact-with-drscheme-in-language)
                     (all-languages)))))))

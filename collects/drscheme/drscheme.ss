@@ -184,9 +184,16 @@
 
               (error-print-width 200)))))))
 
+  (define texas-independence-day?
+    (let ([date (seconds->date (current-seconds))])
+      (and (= 3 (date-month date))
+           (= 2 (date-day date)))))
+  
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
    (build-path (collection-path "icons") 
                (cond
+                 [texas-independence-day?
+                  "texas-plt-bw.gif"]
                  [(= (get-display-depth) 1)
                   "pltbw.gif"]
                  [((get-display-depth) . <= . 8)

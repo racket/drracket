@@ -154,7 +154,7 @@
                  (= (vector-length printable)
                     (procedure-arity make-simple-settings))
                  (boolean? (vector-ref printable 0))
-                 (memq (vector-ref printable 1) '(constructor quasiquote write))
+                 (memq (vector-ref printable 1) '(constructor quasiquote write current-print))
                  (memq (vector-ref printable 2) 
                        '(mixed-fraction 
                          mixed-fraction-e
@@ -165,7 +165,7 @@
                  (memq (vector-ref printable 5) '(none debug debug/profile))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
+            (make-simple-settings #f 'current-print 'mixed-fraction-e #f #t 'debug))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -191,7 +191,7 @@
                                       insert-newlines
                                       annotations))
       ;;  case-sensitive  : boolean
-      ;;  printing-style  : (union 'write 'constructor 'quasiquote)
+      ;;  printing-style  : (union 'write 'constructor 'quasiquote 'current-print)
       ;;  fraction-style  : (union 'mixed-fraction 'mixed-fraction-e 'repeating-decimal 'repeating-decimal-e)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
@@ -200,57 +200,62 @@
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
       (define (simple-module-based-language-config-panel _parent)
-	(let* ([parent (make-object vertical-panel% _parent)]
-	       
-	       [input-msg (make-object message% (string-constant input-syntax) parent)]
-	       [input-panel (instantiate vertical-panel% ()
-                              (parent parent)
-                              (style '(border))
-                              (alignment '(left center)))]
-               
-               [dynamic-msg (make-object message% (string-constant dynamic-properties) parent)]
-	       [dynamic-panel (instantiate vertical-panel% ()
+	(letrec ([parent (make-object vertical-panel% _parent)]
+                 
+                 [input-msg (make-object message% (string-constant input-syntax) parent)]
+                 [input-panel (instantiate vertical-panel% ()
                                 (parent parent)
                                 (style '(border))
                                 (alignment '(left center)))]
-	       
-	       [output-msg (make-object message% (string-constant output-syntax) parent)]
-	       [output-panel (instantiate vertical-panel% ()
-                               (parent parent)
-                               (style '(border))
-                               (alignment '(left center)))]
-               
-	       [case-sensitive (make-object check-box%
-				 (string-constant case-sensitive-label)
-				 input-panel
-				 void)]
-               [debugging (instantiate radio-box% ()
-                            (label #f)
-                            (choices 
-                             (list (string-constant no-debugging-or-profiling)
-                                   (string-constant debugging)
-                                   (string-constant debugging-and-profiling)))
-                            (parent dynamic-panel)
-                            (callback void))]
-	       [output-style (make-object radio-box%
-			       (string-constant output-style-label)
-			       (list (string-constant constructor-printing-style)
-				     (string-constant quasiquote-printing-style)
-				     (string-constant write-printing-style))
-			       output-panel
-			       void)]
-               [fraction-style
-                (make-object check-box% (string-constant decimal-notation-for-rationals)
-                  output-panel
-                  void)]
-	       [show-sharing (make-object check-box%
-			       (string-constant sharing-printing-label)
-			       output-panel
-			       void)]
-	       [insert-newlines (make-object check-box%
-				  (string-constant use-pretty-printer-label)
-				  output-panel
-				  void)])
+                 
+                 [dynamic-msg (make-object message% (string-constant dynamic-properties) parent)]
+                 [dynamic-panel (instantiate vertical-panel% ()
+                                  (parent parent)
+                                  (style '(border))
+                                  (alignment '(left center)))]
+                 
+                 [output-msg (make-object message% (string-constant output-syntax) parent)]
+                 [output-panel (instantiate vertical-panel% ()
+                                 (parent parent)
+                                 (style '(border))
+                                 (alignment '(left center)))]
+                 
+                 [case-sensitive (make-object check-box%
+                                   (string-constant case-sensitive-label)
+                                   input-panel
+                                   void)]
+                 [debugging (instantiate radio-box% ()
+                              (label #f)
+                              (choices 
+                               (list (string-constant no-debugging-or-profiling)
+                                     (string-constant debugging)
+                                     (string-constant debugging-and-profiling)))
+                              (parent dynamic-panel)
+                              (callback void))]
+                 [output-style (make-object radio-box%
+                                 (string-constant output-style-label)
+                                 (list (string-constant constructor-printing-style)
+                                       (string-constant quasiquote-printing-style)
+                                       (string-constant write-printing-style)
+                                       (string-constant print-printing-style))
+                                 output-panel
+                                 (lambda (rb evt)
+                                   (let ([on? (not (= (send rb get-selection) 3))])
+                                     (send fraction-style enable on?)
+                                     (send show-sharing enable on?)
+                                     (send insert-newlines enable on?))))]
+                 [fraction-style
+                  (make-object check-box% (string-constant decimal-notation-for-rationals)
+                    output-panel
+                    void)]
+                 [show-sharing (make-object check-box%
+                                 (string-constant sharing-printing-label)
+                                 output-panel
+                                 void)]
+                 [insert-newlines (make-object check-box%
+                                    (string-constant use-pretty-printer-label)
+                                    output-panel
+                                    void)])
 	  
 	  ;; set the characteristics of the GUI
           (send _parent set-alignment 'center 'center)
@@ -258,64 +263,73 @@
 	  (send parent stretchable-width #f)
           
 	  (case-lambda
-           [()
-	    (make-simple-settings
-	     (send case-sensitive get-value)
-	     (case (send output-style get-selection)
-	       [(0) 'constructor]
-	       [(1) 'quasiquote]
-	       [(2) 'write])
-             (if (send fraction-style get-value)
-                 'repeating-decimal-e
-                 'mixed-fraction-e)
-	     (send show-sharing get-value)
-	     (send insert-newlines get-value)
-             (case (send debugging get-selection)
-               [(0) 'none]
-               [(1) 'debug]
-               [(2) 'debug/profile]))]
-           [(settings)
-            (send case-sensitive set-value (simple-settings-case-sensitive settings))
-            (send output-style set-selection
-                  (case (simple-settings-printing-style settings)
-                    [(constructor) 0]
-                    [(quasiquote) 1]
-                    [(write) 2]))
-            (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
-                                                'repeating-decimal-e))
-            (send show-sharing set-value (simple-settings-show-sharing settings))
-            (send insert-newlines set-value (simple-settings-insert-newlines settings))
-            (send debugging set-selection
-                  (case (simple-settings-annotations settings)
-                    [(none) 0]
-                    [(debug) 1]
-                    [(debug/profile) 2]))])))
+            [()
+             (make-simple-settings
+              (send case-sensitive get-value)
+              (case (send output-style get-selection)
+                [(0) 'constructor]
+                [(1) 'quasiquote]
+                [(2) 'write]
+                [(3) 'current-print])
+              (if (send fraction-style get-value)
+                  'repeating-decimal-e
+                  'mixed-fraction-e)
+              (send show-sharing get-value)
+              (send insert-newlines get-value)
+              (case (send debugging get-selection)
+                [(0) 'none]
+                [(1) 'debug]
+                [(2) 'debug/profile]))]
+            [(settings)
+             (send case-sensitive set-value (simple-settings-case-sensitive settings))
+             (send output-style set-selection
+                   (case (simple-settings-printing-style settings)
+                     [(constructor) 0]
+                     [(quasiquote) 1]
+                     [(write) 2]
+                     [(current-print) 3]))
+             (let ([on? (not (eq? 'current-print (simple-settings-printing-style settings)))])
+               (send fraction-style enable on?)
+               (send show-sharing enable on?)
+               (send insert-newlines enable on?))
+             (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
+                                                 'repeating-decimal-e))
+             (send show-sharing set-value (simple-settings-show-sharing settings))
+             (send insert-newlines set-value (simple-settings-insert-newlines settings))
+             (send debugging set-selection
+                   (case (simple-settings-annotations settings)
+                     [(none) 0]
+                     [(debug) 1]
+                     [(debug/profile) 2]))])))
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) number -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip width)
         (parameterize ([current-inspector drscheme-inspector])
-          (let ([converted-value
-                 (simple-module-based-language-convert-value value settings)])
-            (parameterize ([print-graph
-                            ;; only turn on print-graph when using `write' printing 
-                            ;; style because the sharing is being taken care of
-                            ;; by the print-convert sexp construction when using
-                            ;; other printing styles.
-                            (and (eq? (simple-settings-printing-style settings) 'write)
-                                 (simple-settings-show-sharing settings))]
-                           [drscheme:rep:which-number-snip
-                            (lambda (n)
-                              (simple-settings-fraction-style settings))])
-              (cond
-                [(simple-settings-insert-newlines settings)
-                 (if (number? width)
-                     (parameterize ([pretty-print-columns width])
+          (if (eq? (simple-settings-printing-style settings) 'current-print)
+              (parameterize ([current-output-port port])
+                ((current-print) value))
+              (let ([converted-value
+                     (simple-module-based-language-convert-value value settings)])
+                (parameterize ([print-graph
+                                ;; only turn on print-graph when using `write' printing 
+                                ;; style because the sharing is being taken care of
+                                ;; by the print-convert sexp construction when using
+                                ;; other printing styles.
+                                (and (eq? (simple-settings-printing-style settings) 'write)
+                                     (simple-settings-show-sharing settings))]
+                               [drscheme:rep:which-number-snip
+                                (lambda (n)
+                                  (simple-settings-fraction-style settings))])
+                  (cond
+                    [(simple-settings-insert-newlines settings)
+                     (if (number? width)
+                         (parameterize ([pretty-print-columns width])
+                           (pretty-print converted-value port))
+                         (pretty-print converted-value port))]
+                    [else
+                     (parameterize ([pretty-print-columns 'infinity])
                        (pretty-print converted-value port))
-                     (pretty-print converted-value port))]
-                [else
-                 (parameterize ([pretty-print-columns 'infinity])
-                   (pretty-print converted-value port))
-                 (newline port)])))))
+                     (newline port)]))))))
       
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
@@ -341,6 +355,7 @@
       (define (simple-module-based-language-convert-value value settings)
         (case (simple-settings-printing-style settings)
           [(write) value]
+          [(current-print) value]
           [(constructor)
            (parameterize ([constructor-style-printing #t]
                           [show-sharing (simple-settings-show-sharing settings)]
@@ -402,6 +417,7 @@
            (define (convert-value value)
              ,(case (simple-settings-printing-style setting)
                 [(write) `value]
+                [(current-print) `value]
                 [(constructor)
                  `(parameterize ([constructor-style-printing #t]
                                  [show-sharing ,(simple-settings-show-sharing setting)])
@@ -590,20 +606,21 @@
         (define cancelled? #t)
         
         (send dlg show #t)
-        (if cancelled?
-            #f
-            (list
-             (if type-rb
-                 (case (send type-rb get-selection)
-                   [(0) 'launcher]
-                   [(1) 'stand-alone])
-                 'now-show)
-             (if base-rb
-                 (case (send base-rb get-selection)
-                   [(0) 'mzscheme]
-                   [(1) 'mred])
-                 'no-show)
-             (send filename-text-field get-value))))
+        (cond
+          [cancelled? #f]
+          [else
+           (list
+            (if type-rb
+                (case (send type-rb get-selection)
+                  [(0) 'launcher]
+                  [(1) 'stand-alone])
+                'now-show)
+            (if base-rb
+                (case (send base-rb get-selection)
+                  [(0) 'mzscheme]
+                  [(1) 'mred])
+                'no-show)
+            (send filename-text-field get-value))]))
 
       ;; put-executable : parent string boolean boolean -> (union false? string)
       ;; invokes the put-file dialog with arguments specific to building executables
@@ -625,23 +642,63 @@
                               (mred-launcher-put-file-extension+style+filters)
                               (mzscheme-launcher-put-file-extension+style+filters))
                           (embedding-executable-put-file-extension+style+filters mred?))])
-          (let ([dir? (if launcher?
-                          (if mred?
-                              (mred-launcher-is-directory?)
-                              (mzscheme-launcher-is-directory?))
-                          (embedding-executable-is-directory? mred?))])
-            (if dir?
-                (get-directory (string-constant save-an-executable)
-                               parent
-                               default-dir
-                               style)
-                (put-file (string-constant save-an-executable)
-                          parent
-                          default-dir
-                          default-name
-                          extension
-                          style
-                          filters)))))
+          (let* ([dir? (if launcher?
+                           (if mred?
+                               (mred-launcher-is-directory?)
+                               (mzscheme-launcher-is-directory?))
+                           (embedding-executable-is-directory? mred?))]
+                 [users-name
+                  (if dir?
+                      (get-directory (string-constant save-an-executable)
+                                     parent
+                                     default-dir
+                                     style)
+                      (put-file (string-constant save-an-executable)
+                                parent
+                                default-dir
+                                default-name
+                                extension
+                                style
+                                filters))])
+            (and users-name
+                 (users-name-ok? dir? parent users-name)
+                 (or (not dir?)
+                     (gui-utils:get-choice
+                      (format (string-constant warning-directory-will-be-replaced)
+                              users-name)
+                      (string-constant yes)
+                      (string-constant no)
+                      (string-constant drscheme)
+                      #f
+                      parent))
+                 users-name))))
+      
+      ;; users-name-ok? : boolean? (union #f frame% dialog%) string -> boolean
+      ;; returns #t if the string is an acceptable name for
+      ;; a saved executable, and #f otherwise.
+      (define (users-name-ok? dir? parent name)
+        (case (system-type)
+          [(macosx) 
+           (cond
+             [(not dir?) #t] ;; non dir executables are shell scripts and all names are okay
+             [(regexp-match ".app$" name) #t]
+             [else
+              (message-box (string-constant drscheme)
+                           (format
+                            (string-constant macosx-executables-must-end-with-app)
+                            name)
+                           parent)
+              #f])]
+          [(windows) 
+           (cond
+             [(regexp-match ".exe$" name) #t]
+             [else
+              (message-box (string-constant drscheme)
+                           (format (string-constant windows-executables-must-end-with-exe)
+                                   name)
+                           parent)
+              #f])]
+          [else #t]))
       
       ;; default-executable-filename : string[filename] -> string[filename]
       (define (default-executable-filename program-filename mred?)
@@ -736,7 +793,9 @@
              #f
              (if gui?
                  (list "-mvqZ")
-                 (list "-mvq"))))))
+                 (list "-mvq"))))
+          (delete-file init-code-tmp-filename)
+          (delete-file bootstrap-tmp-filename)))
 
       (define (condense-scheme-code-string s)
         (let ([i (open-input-string s)]

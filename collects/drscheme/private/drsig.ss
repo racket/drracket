@@ -21,7 +21,6 @@
            drscheme:rep^
            drscheme:app^
            drscheme:draw-arrow^
-	   drscheme:load-handler^
            drscheme:help-desk^
            drscheme:language^
            drscheme:teachpack^
@@ -177,17 +176,11 @@
   (define-signature drscheme:draw-arrow^
     (draw-arrow))
   
-  (define-signature drscheme:load-handler^
-    ((struct process-finish ())
-     process
-     process-file
-     process-text
-     drscheme-load-handler))
- 
   (define-signature drscheme:help-desk^
     (goto-help
      goto-tour
      goto-release-notes
+     goto-front-page
      help-desk
      open-url))
   

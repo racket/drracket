@@ -436,22 +436,24 @@ profile todo:
                       (cond
                         [(symbol? file)
                          (let ([text (make-object simple-scheme-text%)])
-                           (send text load-file (symbol->string file))
-                           (values text 
-                                   (lambda () (send text on-close))))]
+                           (if (send text load-file (symbol->string file))
+			       (values text 
+				       (lambda () (send text on-close)))
+			       (values #f (lambda () (void)))))]
                         [(is-a? file editor<%>)
                          (values file void)])])
-          (let* ([finish (+ start span)]
-                 [context-text (copy/highlight-text from-text start finish)])
-            (send context-text change-style modern-style-delta 0 (send context-text last-position))
-            (send context-text lock #t)
-            (send context-text hide-caret #t)
-            (send text insert "  ")
-            (let ([snip (make-object editor-snip% context-text)])
-              (send editor-canvas add-wide-snip snip)
-              (send text insert snip))
-            (send text insert #\newline))
-          (close-text)))
+	  (when from-text
+	    (let* ([finish (+ start span)]
+		   [context-text (copy/highlight-text from-text start finish)])
+	      (send context-text change-style modern-style-delta 0 (send context-text last-position))
+	      (send context-text lock #t)
+	      (send context-text hide-caret #t)
+	      (send text insert "  ")
+	      (let ([snip (make-object editor-snip% context-text)])
+		(send editor-canvas add-wide-snip snip)
+		(send text insert snip))
+	      (send text insert #\newline))
+	    (close-text))))
 
       ;; copy/highlight-text : (instanceof scheme:text<%>) number number -> (instanceof scheme:text<%>)
       ;; copies the range from `start' to `finish', including the entire paragraph at

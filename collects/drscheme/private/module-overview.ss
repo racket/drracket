@@ -76,7 +76,6 @@
             (define/public (add-syntax-parent parent) 
               (set! syntax-parents (cons parent syntax-parents)))
             
-            
             (field (level #f))
             (define/public (get-level) level)
             (define/public (set-level _l) 
