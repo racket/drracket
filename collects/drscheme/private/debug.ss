@@ -10,6 +10,7 @@ profile todo:
            (lib "stacktrace.ss" "errortrace")
            (lib "class.ss")
            (lib "list.ss")
+           (lib "etc.ss")
            "drsig.ss"
            (lib "framework.ss" "framework")
            (lib "mred.ss" "mred")
@@ -601,13 +602,22 @@ profile todo:
       
       (define test-coverage-frame<%>
         (interface ()
-          show-test-coverage-annotations
-          get-test-coverage-info-visible?))
+          show-test-coverage-annotations ;; hash-table (union #f style) (union #f style) boolean -> void
+          get-test-coverage-info-visible?
+          ask-about-clearing-test-coverage?))
       
       (define test-coverage-interactions-text-mixin
         (mixin (drscheme:rep:text<%> text:basic<%>) (test-coverage-interactions-text<%>)
-          (field [test-coverage-info #f])
-          (define/public (set-test-coverage-info ht) (set! test-coverage-info ht))
+          (field [test-coverage-info #f]
+                 [test-coverage-on-style #f]
+                 [test-coverage-off-style #f]
+                 [ask-about-reset? #f])
+          (define/public set-test-coverage-info
+            (opt-lambda (ht [on-style #f] [off-style #f] [ask? #t])
+              (set! test-coverage-info ht)
+              (set! test-coverage-on-style on-style)
+              (set! test-coverage-off-style off-style)
+              (set! ask-about-reset? ask?)))
           (define/public (get-test-coverage-info) test-coverage-info)
           
           (rename [super-after-many-evals after-many-evals])
@@ -616,7 +626,11 @@ profile todo:
             (let ([tlw (get-top-level-window)])
               (when (and (is-a? tlw test-coverage-frame<%>)
                          test-coverage-info)
-                (send tlw show-test-coverage-annotations test-coverage-info)))
+                (send tlw show-test-coverage-annotations 
+                      test-coverage-info
+                      test-coverage-on-style
+                      test-coverage-off-style
+                      ask-about-reset?)))
             (super-after-many-evals))
           
           (super-instantiate ())))
@@ -653,6 +667,7 @@ profile todo:
                    (or (not canvas)
                        (let ([frame (send canvas get-top-level-window)])
                          (or (not (send frame get-test-coverage-info-visible?))
+                             (not (send frame ask-about-clearing-test-coverage?))
                              (clear-test-coverage?)))))))
           
           (rename [super-can-delete? can-delete?])
@@ -662,6 +677,7 @@ profile todo:
                    (or (not canvas)
                        (let ([frame (send canvas get-top-level-window)])
                          (or (not (send frame get-test-coverage-info-visible?))
+                             (not (send frame ask-about-clearing-test-coverage?))
                              (clear-test-coverage?)))))))
           
           (rename [super-after-insert after-insert])
@@ -698,10 +714,14 @@ profile todo:
               (internal-clear-test-coverage-display)
               (set! internal-clear-test-coverage-display #f)))
       
+          (field [ask-about-reset? #t])
+          (define/public (ask-about-clearing-test-coverage?) ask-about-reset?)
+          
           (define/public (get-test-coverage-info-visible?)
             (not (not internal-clear-test-coverage-display)))
           
-          (define/public (show-test-coverage-annotations ht)
+          (define/public (show-test-coverage-annotations ht on-style off-style ask?)
+            (set! ask-about-reset? ask?)
             (let* ([edit-sequence-ht (make-hash-table)]
                    [on/syntaxes (hash-table-map ht (lambda (_ pr) pr))]
                    [filtered (filter (lambda (pr)
@@ -714,13 +734,31 @@ profile todo:
                                                      pos
                                                      span)))))
                                      on/syntaxes)]
+
+                   ;; sorting predicate:
+                   ;;  x < y if
+                   ;;    x's span is bigger than y's (ie, do larger expressions first)
+                   ;;    unless x and y are the same source location.
+                   ;;    in that case, color red first and then green
                    [sorted
                     (quicksort
                      filtered
                      (lambda (x y)
-                       (>= (syntax-span (cadr x))
-                           (syntax-span (cadr y)))))])
-              
+                       (let* ([x-stx (cadr x)]
+                              [y-stx (cadr y)]
+                              [x-pos (syntax-position x-stx)]
+                              [y-pos (syntax-position y-stx)]
+                              [x-span (syntax-span x-stx)]
+                              [y-span (syntax-span y-stx)]
+                              [x-on (car x)]
+                              [y-on (car y)])
+                         (cond
+                           [(and (= x-pos y-pos)
+                                 (= x-span x-span))
+                            (or y-on
+                                (not x-on))]
+                           [else (>= x-span y-span)]))))])
+                           
               ;; turn on edit-sequences in all editors to be touched by new annotations
               ;; also fill in the edit-sequence-ht
               (for-each
@@ -752,8 +790,8 @@ profile todo:
                        (when locked? (send src lock #f))
                        (send src change-style
                              (if on?
-                                 test-covered-style-delta
-                                 test-not-covered-style-delta) 
+                                 (or on-style test-covered-style-delta)
+                                 (or off-style test-not-covered-style-delta))
                              (- pos 1)
                              (+ (- pos 1) span)
                              #f)
