@@ -13,14 +13,29 @@
   
   (provide browser@)
   
-  (define browser@
+  (define pre-browser@
     (compound-unit/sig
       (import (plt-installer : setup:plt-installer^)
               (mred : mred^)
               (tcp : net:tcp^)
               (url : net:url^))
       (link [bullet : bullet^ (bullet@ mred)]
-            [html : html^ (html@ bullet mred url)]
-            [hyper : browser^ (hyper@ html bullet mred plt-installer url)])
+            [html : html^ (html@ bullet hyper mred url)]
+            [hyper : hyper^ (hyper@ html mred plt-installer url)])
       (export (open hyper)
-              (open (html : html-export^))))))
+              (open (bullet : bullet-export^))
+              (open (html : html-export^)))))
+  
+  
+  ;; this extra layer of wrapper here is only to
+  ;; ensure that the browser^ signature actually matches
+  ;; the export of the pre-browser@ unit.
+  ;; (it didn't before, so now we check.)
+  (define browser@
+    (compound-unit/sig
+      (import  (plt-installer : setup:plt-installer^)
+               (mred : mred^)
+               (tcp : net:tcp^)
+               (url : net:url^))
+      (link [pre-browser : browser^ (pre-browser@ plt-installer mred tcp url)])
+      (export (open pre-browser)))))

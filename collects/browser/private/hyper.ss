@@ -28,14 +28,11 @@
      "</body></html>"))
   
   (define hyper@
-    (unit/sig browser^
+    (unit/sig hyper^
       (import html^
-              (bullet : bullet^)
               mred^
               setup:plt-installer^
               net:url^)
-      
-      (define bullet-size bullet:bullet-size)
       
       (define-struct (exn:file-saved-instead exn) (pathname))
       (define-struct (exn:cancelled exn) ())
@@ -58,6 +55,124 @@
 		 (equal? (url-params a) (url-params b))
 		 (equal? (url-query a) (url-query b)))))
 		 
+
+      (define-struct image-map-rect (href left top right bottom))
+      
+      (define image-map-snip%
+        (class image-snip%
+          
+          (init-field html-text)
+          
+          (field [key "#key"])
+          (define/public (set-key k) (set! key k))
+          (define/public (get-key) key)
+          
+          (field [rects null]
+                 [current-rect #f])
+          
+          (define/public (set-rects rs) (set! rects rs))
+          
+          (inherit get-admin)
+          (define/private (change-current-rect r)
+            (unless (eq? current-rect r)
+              (let ([old-rect current-rect])
+                (set! current-rect r)
+                (let ([admin (get-admin)])
+                  (when admin
+                    (cond
+                      [(and old-rect current-rect)
+                       (send admin needs-update
+                             this
+                             (min (image-map-rect-left old-rect)
+                                  (image-map-rect-left current-rect))
+                             (min (image-map-rect-top old-rect)
+                                  (image-map-rect-top current-rect))
+                             (max (image-map-rect-right old-rect)
+                                  (image-map-rect-right current-rect))
+                             (max (image-map-rect-bottom old-rect)
+                                  (image-map-rect-bottom current-rect)))]
+                      [old-rect
+                       (send admin needs-update
+                             this
+                             (image-map-rect-left old-rect)
+                             (image-map-rect-top old-rect)
+                             (image-map-rect-right old-rect)
+                             (image-map-rect-bottom old-rect))]
+                      [current-rect
+                       (send admin needs-update
+                             this
+                             (image-map-rect-left current-rect)
+                             (image-map-rect-top current-rect)
+                             (image-map-rect-right current-rect)
+                             (image-map-rect-bottom current-rect))]))))))
+          
+          (define/private (find-rect x y)
+            (let loop ([rects rects])
+              (cond
+                [(null? rects) #f]
+                [else
+                 (let ([rect (car rects)])
+                   (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
+                            (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
+                       rect
+                       (loop (cdr rects))))])))
+          
+          ;; add-area : string (listof number) string -> void
+          ;; currently only supports rect shapes
+          (define/public (add-area shape coords href)
+            (when (and (equal? shape "rect")
+                       (= 4 (length coords)))
+              (set! rects (cons (make-image-map-rect
+                                 href
+                                 (car coords)
+                                 (cadr coords)
+                                 (caddr coords)
+                                 (cadddr coords))
+                                rects))))
+          
+          (rename [super-on-event on-event])
+          (define/override (on-event dc x y editor-x editor-y evt)
+            (cond
+              [(send evt leaving?) (change-current-rect #f)]
+              [(or (send evt moving?) (send evt entering?))
+               (let ([snipx (- (send evt get-x) x)]
+                     [snipy (- (send evt get-y) y)])
+                 (change-current-rect (find-rect snipx snipy)))]
+              [(send evt button-up?)
+               (when current-rect
+                 (send html-text post-url (image-map-rect-href current-rect)))])
+            (super-on-event dc x y editor-x editor-y evt))
+          
+          (rename [super-draw draw])
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
+            (super-draw dc x y left top right bottom dx dy draw-caret)
+            (when current-rect
+              (let ([old-pen (send dc get-pen)]
+                    [old-brush (send dc get-brush)])
+                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'hilite))
+                (send dc set-brush (send the-brush-list find-or-create-brush "black" 'hilite))
+                (send dc draw-rectangle 
+                      (+ x (image-map-rect-left current-rect))
+                      (+ y (image-map-rect-top current-rect))
+                      (- (image-map-rect-right current-rect) (image-map-rect-left current-rect))
+                      (- (image-map-rect-bottom current-rect) (image-map-rect-top current-rect)))
+                (send dc set-pen old-pen)
+                (send dc set-brush old-brush))))
+          
+          
+          ;; warning: buggy. This doesn't actually copy the bitmap
+          ;; over because there's no get-bitmap method for image-snip%
+          ;; at the time of this writing.
+          (define/override (copy)
+            (let ([cp (new image-map-snip% (html-text html-text))])
+              (send cp set-key key)
+              (send cp set-rects rects)))
+          
+          (super-make-object)
+          
+          (inherit set-flags get-flags)
+          (set-flags (cons 'handles-events (get-flags)))))
+      
       (define hyper-text<%>
         (interface ()
           ))
@@ -608,6 +723,43 @@
                                   (if (url? url)
                                       (combine-url/relative url loc)
                                       (string->url loc))))))))))]
+            
+            (inherit find-position get-snip-location get-dc 
+                     editor-location-to-dc-location
+                     dc-location-to-editor-location)
+            ;; use on-event rather than on-default-event since we want
+            ;; to override the caret handling snip in the case that
+            ;; an image-map-snip is there.
+            (rename [super-on-event on-event])
+            (define/override (on-event event)
+              (let* ([edge-close-b (box 0)]
+                     [event-x (send event get-x)]
+                     [event-y (send event get-y)])
+                (let-values ([(editor-event-x editor-event-y) (dc-location-to-editor-location event-x event-y)])
+                  (let ([pos (find-position event-x event-y #f #f edge-close-b)])
+                    (let ([snip (find-snip pos 'after-or-none)])
+                      (cond
+                        [(and snip (is-a? snip image-map-snip%))
+                         ;(printf "pos: ~s edge-close ~s\n" pos (unbox edge-close-b))
+                         (let ([bsnip-left (box 0)]
+                               [bsnip-top (box 0)]
+                               [bsnip-right (box 0)]
+                               [bsnip-bot (box 0)])
+                           (get-snip-location snip bsnip-left bsnip-top #f)
+                           (get-snip-location snip bsnip-right bsnip-bot #t)
+                           (let ([snip-left (unbox bsnip-left)]
+                                 [snip-top (unbox bsnip-top)]
+                                 [snip-right (unbox bsnip-right)]
+                                 [snip-bot (unbox bsnip-bot)])
+                             (cond
+                               [(and (<= snip-left editor-event-x snip-right)
+                                     (<= snip-top editor-event-y snip-bot))
+                               ;(printf "forwarding ~s ~s\n" event-x event-y)
+                                (let-values ([(x y) (editor-location-to-dc-location snip-left snip-top)])
+                                  (send snip on-event (get-dc) x y snip-left snip-top event))]
+                               [else (super-on-event event)])))]
+                        [else (super-on-event event)]))))))
+            
             (super-instantiate ())
             ;; load url, but the user might break:
             (with-handlers ([exn:break? void])

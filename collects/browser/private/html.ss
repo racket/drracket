@@ -21,6 +21,7 @@
   (define html@
     (unit/sig html^
       (import bullet^
+              hyper^
               mred^
               net:url^)
       
@@ -184,140 +185,22 @@
               [else
                (loop (add1 n))]))))
 
-      (define-struct image-map-rect (href left top right bottom))
-      
-      (define image-map-snip%
-        (class image-snip%
-          
-          (init-field html-text)
-          
-          (field [key "#key"])
-          (define/public (set-key k) (set! key k))
-          (define/public (get-key) key)
-          
-          (field [rects null]
-                 [current-rect #f])
-          
-          (define/public (set-rects rs) (set! rects rs))
-          
-          (inherit get-admin)
-          (define/private (change-current-rect r)
-            (unless (eq? current-rect r)
-              (let ([old-rect current-rect])
-                (set! current-rect r)
-                (let ([admin (get-admin)])
-                  (when admin
-                    (cond
-                      [(and old-rect current-rect)
-                       (send admin needs-update
-                             this
-                             (min (image-map-rect-left old-rect)
-                                  (image-map-rect-left current-rect))
-                             (min (image-map-rect-top old-rect)
-                                  (image-map-rect-top current-rect))
-                             (max (image-map-rect-right old-rect)
-                                  (image-map-rect-right current-rect))
-                             (max (image-map-rect-bottom old-rect)
-                                  (image-map-rect-bottom current-rect)))]
-                      [old-rect
-                       (send admin needs-update
-                             this
-                             (image-map-rect-left old-rect)
-                             (image-map-rect-top old-rect)
-                             (image-map-rect-right old-rect)
-                             (image-map-rect-bottom old-rect))]
-                      [current-rect
-                       (send admin needs-update
-                             this
-                             (image-map-rect-left current-rect)
-                             (image-map-rect-top current-rect)
-                             (image-map-rect-right current-rect)
-                             (image-map-rect-bottom current-rect))]))))))
-          
-          (define/private (find-rect x y)
-            (let loop ([rects rects])
-              (cond
-                [(null? rects) #f]
-                [else
-                 (let ([rect (car rects)])
-                   (if (and (<= (image-map-rect-left rect) x (image-map-rect-right rect))
-                            (<= (image-map-rect-top rect) y (image-map-rect-bottom rect)))
-                       rect
-                       (loop (cdr rects))))])))
-          
-          ;; add-area : string (listof number) string -> void
-          ;; currently only supports rect shapes
-          (define/public (add-area shape coords href)
-            (when (and (equal? shape "rect")
-                       (= 4 (length coords)))
-              (set! rects (cons (make-image-map-rect
-                                 href
-                                 (car coords)
-                                 (cadr coords)
-                                 (caddr coords)
-                                 (cadddr coords))
-                                rects))))
-          
-          (rename [super-on-event on-event])
-          (define/override (on-event dc x y editorx editory evt)
-            (cond
-              [(send evt leaving?) (change-current-rect #f)]
-              [(or (send evt moving?) (send evt entering?))
-               (let ([snipx (- (send evt get-x) x)]
-                     [snipy (- (send evt get-y) y)])
-                 (change-current-rect (find-rect snipx snipy)))]
-              [(send evt button-up?)
-               (when current-rect
-                 (send html-text post-url (image-map-rect-href current-rect)))])
-            (super-on-event dc x y editorx editory evt))
-          
-          (rename [super-draw draw])
-          (define/override (draw dc x y left top right bottom dx dy draw-caret)
-            (super-draw dc x y left top right bottom dx dy draw-caret)
-            (when current-rect
-              (let ([old-pen (send dc get-pen)]
-                    [old-brush (send dc get-brush)])
-                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'hilite))
-                (send dc set-brush (send the-brush-list find-or-create-brush "black" 'hilite))
-                (send dc draw-rectangle 
-                      (+ x (image-map-rect-left current-rect))
-                      (+ y (image-map-rect-top current-rect))
-                      (- (image-map-rect-right current-rect) (image-map-rect-left current-rect))
-                      (- (image-map-rect-bottom current-rect) (image-map-rect-top current-rect)))
-                (send dc set-pen old-pen)
-                (send dc set-brush old-brush))))
-          
-          
-          ;; warning: buggy. This doesn't actually copy the bitmap
-          ;; over because there's no get-bitmap method for image-snip%
-          ;; at the time of this writing.
-          (define/override (copy)
-            (let ([cp (new image-map-snip% (html-text html-text))])
-              (send cp set-key key)
-              (send cp set-rects rects)))
-          
-          (super-make-object)
-          
-          (inherit set-flags get-flags)
-          (set-flags (cons 'handles-events (get-flags)))))
-      
       (define (update-image-maps image-map-snips image-maps)
-        (let loop ([image-map-snips image-map-snips])
-          (cond
-            [(null? image-map-snips) (void)]
-            [else 
-             (let* ([image-map-snip (car image-map-snips)]
-                    [image-map-key (send image-map-snip get-key)])
-               (let loop ([image-maps image-maps])
-                 (cond
-                   [(null? image-maps) (void)]
-                   [else
-                    (let* ([image-map (car image-maps)]
-                           [name (get-field image-map 'name)])
-                      (when (and name 
-                                 (equal? (format "#~a" name)
-                                         (send image-map-snip get-key)))
-                        (find/add-areas image-map-snip image-map)))])))])))
+        (for-each
+         (lambda (image-map-snip)
+           (let ([image-map-key (send image-map-snip get-key)])
+             (let loop ([image-maps image-maps])
+               (cond
+                 [(null? image-maps) (void)]
+                 [else
+                  (let* ([image-map (car image-maps)]
+                         [name (get-field image-map 'name)])
+                    (if (and name 
+                             (equal? (format "#~a" name)
+                                     (send image-map-snip get-key)))
+                        (find/add-areas image-map-snip image-map)
+                        (loop (cdr image-maps))))]))))
+         image-map-snips))
       
       (define (find/add-areas image-map-snip image-map)
         (let loop ([sexp image-map])
