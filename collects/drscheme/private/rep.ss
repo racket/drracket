@@ -1565,24 +1565,43 @@
                 
                 (let ([init-thread-complete (make-semaphore 0)]
                       [goahead (make-semaphore)]
-                      [o (current-output-port)])
-                  (parameterize ([current-eventspace user-eventspace])
-                    (queue-callback
-                     (lambda () ; =User=, =No-Breaks=
-                       ; No user code has been evaluated yet, so we're in the clear...
-                       (break-enabled #f)
-                       (set! user-thread (current-thread))
-		       (initialize-parameters)
+                      [o (current-output-port)]
+		      [queue-user/wait
+		       (lambda (thnk)
+			 (let ([wait (make-semaphore 0)])
+			   (parameterize ([current-eventspace user-eventspace])
+			     (queue-callback
+			      (lambda ()
+				(thnk)
+				(semaphore-post wait))))
+			   (semaphore-wait wait)))])
+
+		  ;; setup standard parameters
+		  (queue-user/wait
+		   (lambda () ; =User=, =No-Breaks=
+		     ;; No user code has been evaluated yet, so we're in the clear...
+		     (break-enabled #f)
+		     (set! user-thread (current-thread))
+		     (initialize-parameters)))
+
+		  ;; initialize the language
+		  (send (drscheme:language:language-settings-language user-language-settings)
+			on-execute
+			(drscheme:language:language-settings-settings user-language-settings)
+			queue-user/wait)
+                
+		  (parameterize ([current-eventspace user-eventspace])
+		    (queue-callback
+		     (lambda ()
+		       (let ([drscheme-error-escape-handler
+			      (lambda ()
+				(error-escape-k))])
+			 (error-escape-handler drscheme-error-escape-handler)
+			 (bottom-escape-handler drscheme-error-escape-handler))
                        
-                       (let ([drscheme-error-escape-handler
-                              (lambda ()
-                                (error-escape-k))])
-                         (error-escape-handler drscheme-error-escape-handler)
-                         (bottom-escape-handler drscheme-error-escape-handler))
-                       
-                       (set! in-evaluation? #f)
-                       (update-running)
-                       
+		       (set! in-evaluation? #f)
+		       (update-running)
+		     
                        ;; let init-thread procedure return,
                        ;; now that parameters are set
                        (semaphore-post init-thread-complete)
@@ -1707,12 +1726,6 @@
                                 (custodian-shutdown-all user-custodian)))
                 
                 (current-namespace (make-namespace 'empty))
-                
-                (send (drscheme:language:language-settings-language user-language-settings)
-                      on-execute
-                      (drscheme:language:language-settings-settings user-language-settings)
-                      (lambda (thnk)
-                        (run-in-user-thread thnk)))
                 
 	    ;; set all parameters before constructing eventspace
 	    ;; so that the parameters are set in the eventspace's
