@@ -187,10 +187,10 @@
           (define/public (get-init-code setting teachpacks)
             (simple-module-based-language-get-init-code setting teachpacks))
           
-          (define/public (render-value/format value settings port put-snip width)
-            (simple-module-based-language-render-value/format value settings port put-snip width))
-          (define/public (render-value value settings port put-snip)
-            (simple-module-based-language-render-value value settings port put-snip))
+          (define/public (render-value/format value settings port width)
+            (simple-module-based-language-render-value/format value settings port width))
+          (define/public (render-value value settings port)
+            (simple-module-based-language-render-value/format value settings port 'infinity))
 	  (super-instantiate ())))
 
       ;; settings for a simple module based language
@@ -309,23 +309,52 @@
                      [(debug/profile) 2]
                      [(test-coverage) 3]))])))
 
-      ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) number -> void
-      (define (simple-module-based-language-render-value/format value settings port put-snip width)
+      ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
+      (define (simple-module-based-language-render-value/format value settings port width)
         (if (eq? (simple-settings-printing-style settings) 'current-print)
             (parameterize ([current-output-port port])
               ((current-print) value))
             (let ([converted-value
-                   (simple-module-based-language-convert-value value settings)])
-              (parameterize ([print-graph
+                   (simple-module-based-language-convert-value value settings)]
+                  [use-number-snip?
+                   (lambda (x)
+                     (and (number? x)
+                          (exact? x)
+                          (real? x)
+                          (not (integer? x))))])
+              (parameterize ([pretty-print-columns width]
+                             [pretty-print-size-hook
+                              (lambda (value display? port)
+                                (cond
+                                  [(is-a? value snip%) 1]
+                                  [(use-number-snip? value) 1]
+                                  [else #f]))]
+                             [pretty-print-print-hook
+                              (lambda (value display? port)
+                                (cond
+                                  [(is-a? value snip%)
+                                   (write-special value port)
+                                   1]
+                                  [(use-number-snip? value)
+                                   (write-special
+                                    (case (simple-settings-fraction-style settings)
+                                      [(mixed-fraction) 
+                                       (number-snip:make-fraction-snip value #f)]
+                                      [(mixed-fraction-e)
+                                       (number-snip:make-fraction-snip value #t)]
+                                      [(repeating-decimal)
+                                       (number-snip:make-repeating-decimal-snip value #f)]
+                                      [(repeating-decimal-e)
+                                       (number-snip:make-repeating-decimal-snip value #t)])
+                                    port)
+                                   1]))]
+                             [print-graph
                               ;; only turn on print-graph when using `write' printing 
                               ;; style because the sharing is being taken care of
                               ;; by the print-convert sexp construction when using
                               ;; other printing styles.
                               (and (eq? (simple-settings-printing-style settings) 'write)
-                                   (simple-settings-show-sharing settings))]
-                             [drscheme:rep:which-number-snip
-                              (lambda (n)
-                                (simple-settings-fraction-style settings))])
+                                   (simple-settings-show-sharing settings))])
                 (cond
                   [(simple-settings-insert-newlines settings)
                    (if (number? width)
@@ -336,29 +365,6 @@
                    (parameterize ([pretty-print-columns 'infinity])
                      (pretty-print converted-value port))
                    (newline port)])))))
-      
-      ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
-      (define (simple-module-based-language-render-value value settings port put-snip)
-        (parameterize ([pretty-print-columns 'infinity]
-                       #;[pretty-print-print-hook
-                        (lambda (value display? port)
-                          ..)]
-                       #;[pretty-print-size-hook
-                        (lambda (value display? port)
-                          (let ([use-snip?
-                                 (and (number? x)
-                                      (exact? x)
-                                      (real? x)
-                                      (not (integer? x))
-                                      (if (memq (simple-settings-fraction-style settings)
-                                                '(repeating-decimal repeating-decimal-e))
-                                          (simple-settings-fraction-style settings)
-                                          #t))])
-                            (if use-snip?
-                                (let ([snip ...])
-                                  (send snip get-width))
-                                #f)))])
-          (pretty-print (simple-module-based-language-convert-value value settings) port)))
       
       ;; drscheme-inspector : inspector
       (define drscheme-inspector (current-inspector))

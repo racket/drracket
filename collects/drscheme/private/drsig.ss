@@ -164,8 +164,6 @@
   (define-signature drscheme:rep^
     (get-error-ranges
      reset-error-ranges
-     use-number-snip
-     which-number-snip
      drs-bindings-keymap-mixin
      current-rep
      current-language-settings
