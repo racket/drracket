@@ -92,7 +92,14 @@ tab panels new behavior:
                                           (send event get-y)))
                                   (lambda (x y)
                                     (send text find-position x y))))
-                                (send text get-text start end))])
+                                (send text get-text start end))]
+                       [language
+                        (let ([canvas (send text get-canvas)])
+                          (and canvas
+                               (let ([tlw (send canvas get-top-level-window)])
+                                 (and (is-a? tlw -frame<%>)
+                                      (send (send tlw get-definitions-text)
+                                            get-next-settings)))))])
                    (unless (string=? str "")
                      (make-object separator-menu-item% menu)
                      (make-object menu-item%
@@ -101,14 +108,14 @@ tab panels new behavior:
                                 str 
                                 (- 200 (string-length (string-constant search-help-desk-for)))))
                        menu
-                       (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
+                       (lambda x (help-desk:help-desk str #f 'keyword+index 'contains language)))
                      (make-object menu-item%
                        (format (string-constant exact-lucky-search-help-desk-for) 
                                (shorten-str 
                                 str 
                                 (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
                        menu
-                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact)))
+                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact language)))
 		     (void)))))))))
       
       ;; find-symbol : number -> string
