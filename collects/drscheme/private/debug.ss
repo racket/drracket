@@ -131,9 +131,77 @@ profile todo:
                                     (editor:keymap-mixin 
                                      text:basic%))))
       
+      ;; make-debug-error-display-handler/text : (-> (union #f (is-a?/c text%)))
+      ;;                                         ((is-a?/c text% (-> void)) -> void)
+      ;;                                         ((listof (list text% number number)) -> void)
+      ;;                                         (string (union TST exn) -> void)
+      ;;                                      -> string (union TST exn)
+      ;;                                      -> void
+      (define (make-debug-error-display-handler/text get-text 
+                                                     queue-output
+                                                     highlight-errors
+                                                     orig-error-display-handler)
+        (define (debug-error-display-handler msg exn)
+          (let ([text (get-text)])
+            (cond
+              [text
+	       (let* ([cms (and (exn? exn) 
+				(continuation-mark-set? (exn-continuation-marks exn))
+				(continuation-mark-set->list 
+				 (exn-continuation-marks exn)
+				 cm-key))]
+		      [src-to-display (find-src-to-display exn cms)])
+                 
+                 (queue-output
+                  text
+                  (lambda ()
+                    (let ([locked? (send text is-locked?)])
+                      (send text begin-edit-sequence)
+                      (send text lock #f)
+                      (when (and cms
+                                 (not (null? cms)))
+                        (insert/clickback text
+                                          (if (mf-bday?) mf-note bug-note)
+                                          (lambda ()
+                                            (show-backtrace-window msg cms))))
+                      (when src-to-display
+                        (let ([src (car src-to-display)])
+                          (when (symbol? src)
+                            (insert/clickback 
+                             text file-note
+                             (lambda ()
+                               (open-and-highlight-in-file src-to-display))))))
+                      (send text lock locked?)
+                      (send text end-edit-sequence))))
+                 (orig-error-display-handler msg exn)
+                 (queue-output
+                  text
+                  (lambda ()
+                    (when src-to-display
+                      (let* ([src (car src-to-display)]
+                             [position (cadr src-to-display)]
+                             [span (cddr src-to-display)])
+                        (when (and (object? src)
+                                   (is-a? src text:basic%))
+                          (highlight-errors text (list (list src position (+ position span))))))))))]
+              [else 
+               (orig-error-display-handler msg exn)])))
+        debug-error-display-handler)
+      
       ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string (union TST exn) -> void
       ;; adds in the bug icon, if there are contexts to display
       (define (make-debug-error-display-handler orig-error-display-handler)
+        (make-debug-error-display-handler/text 
+         (lambda () 
+           (let ([rep (drscheme:rep:current-rep)])
+             (and (is-a? rep drscheme:rep:text<%>)
+                  (eq? (send rep get-this-err) (current-error-port))
+                  rep)))
+         (lambda (rep t) (send rep queue-output t))
+         (lambda (rep x) (send rep highlight-errors x)) 
+         orig-error-display-handler))
+      
+      '(define (make-debug-error-display-handler orig-error-display-handler)
         (define (debug-error-display-handler msg exn)
           (let ([rep (drscheme:rep:current-rep)])
             (cond

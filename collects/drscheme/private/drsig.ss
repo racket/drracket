@@ -37,6 +37,7 @@
   
   (define-signature drscheme:debug^
     (make-debug-error-display-handler
+     make-debug-error-display-handler/text
      make-debug-eval-handler
      hide-backtrace-window
      profile-unit-frame-mixin
