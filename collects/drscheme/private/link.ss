@@ -1,5 +1,6 @@
 (module link mzscheme
-  (require "eval.ss"
+  (require "font.ss"
+           "eval.ss"
            "module-overview.ss"
            "multi-file-search.ss"
            "debug.ss"
@@ -26,9 +27,10 @@
     (compound-unit/sig
       (import)
       (link [init : drscheme:init^ (init@)]
-            [tools : drscheme:tools^ (tools@ frame unit rep get/extend language
-                                           (language-configuration : drscheme:language-configuration^)
-                                           help-desk init snip debug eval teachpack)]
+            [tools : drscheme:tools^ 
+                   (tools@ frame unit rep get/extend language
+                         (language-configuration : drscheme:language-configuration^)
+                         help-desk init snip debug eval teachpack)]
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@)]
@@ -50,13 +52,14 @@
                                     (language-configuration@ unit rep teachpack
                                                              init language app
                                                              tools)]
+            [font : drscheme:font^ (font@ language-configuration)]
             [module-language : drscheme:module-language^ 
                              (module-language@ language-configuration language unit rep)]
             [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
 	    [app : drscheme:app^ (app@ unit frame language-configuration help-desk tools)]
             [main : () (main@ 
                         app unit get/extend language-configuration language teachpack
-                        module-language snip tools debug frame)])
+                        module-language snip tools debug frame font)])
       (export
        (unit teachpack drscheme:teachpack)
        (unit language-configuration drscheme:language-configuration)))))

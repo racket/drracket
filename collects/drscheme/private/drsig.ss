@@ -27,10 +27,15 @@
            drscheme:teachpack^
            drscheme:multi-file-search^
            drscheme:module-overview^
+           drscheme:font^
            drscheme:tool-exports^
            drscheme:tool^
 	   drscheme^)
 
+  (define-signature drscheme:font^
+    (setup-preferences
+     get-default-font-name))
+  
   (define-signature drscheme:debug^
     (make-debug-error-display-handler
      make-debug-eval-handler
