@@ -1,5 +1,4 @@
 
-(define drscheme:unit@
   (unit/sig drscheme:unit^
     (import [mred : mred^]
 	    [mzlib : mzlib:core^]
@@ -13,9 +12,136 @@
     
     (mred:debug:printf 'invoke "drscheme:unit@")
 
-    (define interactions-canvas%
-      (mred:make-console-canvas% mred:wrapping-canvas%))
+    (define-values (execute-bitmap help-bitmap save-bitmap break-bitmap)
+      (let* ([font (send wx:the-font-list find-or-create-font
+			 12
+			 wx:const-default
+			 wx:const-normal
+			 wx:const-normal)]
+	     [outside-margin 2]
+	     [middle-margin 3]
+	     [make-bitmap
+	      (lambda (filename text)
+		(let* ([img-bitmap
+			(make-object wx:bitmap% filename wx:const-bitmap-type-bmp)]
+		       [img-width (send img-bitmap get-width)]
+		       [img-height (send img-bitmap get-height)]
+		       [img-memory-dc (make-object wx:memory-dc%)]
+		       [width (box 0.)]
+		       [height (box 0.)]
+		       [descent (box 0.)]
+		       [leading (box 0.)])
+		  (send img-memory-dc select-object img-bitmap)
+		  (send img-memory-dc get-text-extent text width height descent leading font)
+		  (let* ([new-width (+ outside-margin
+				       img-width
+				       middle-margin
+				       (unbox width)
+				       outside-margin)]
+			 [new-height (+ outside-margin
+					(max img-height
+					     (+ (unbox height)
+						(unbox descent)
+						(unbox leading)))
+					outside-margin)]
+			 [memory-dc (make-object wx:memory-dc%)]
+			 [new-bitmap (make-object wx:bitmap% new-width new-height -1)])
+		    (send memory-dc select-object new-bitmap)
+		    (send memory-dc set-font font)
+		    (send memory-dc clear) 
+		    (send memory-dc set-font font)
+		    (send memory-dc draw-text text (+ outside-margin img-width middle-margin)
+			  (- (/ new-height 2) (/ (unbox height) 2)))
+		    (send memory-dc blit
+			  outside-margin
+			  (- (/ new-height 2) (/ img-height 2))
+			  img-width img-height
+			  img-memory-dc 0 0 wx:const-copy)
+		    (send memory-dc select-object null)
+		    new-bitmap)))])
+	(apply values (map 
+		       (lambda (filename)
+			 (let* ([capd (string-copy filename)]
+				[path (build-path
+				       mred:plt-home-directory
+				       "icons"
+				       (string-append filename ".bmp"))])
+			   (string-set! capd 0 (char-upcase (string-ref capd 0)))
+			   (make-bitmap path capd)))
+		       (list "execute" "help" "save" "break")))))
 
+
+    (define interactions-canvas%
+      (class-asi mred:console-canvas% ; to match rep-new.ss, inherit from wrapping-canvas%
+	(inherit get-media)
+	(rename [super-on-size on-size]
+		[super-set-media set-media])
+	(public)
+	(private
+	  [snips null]
+	  [autowrap-snips? (mred:get-preference 'mred:auto-set-wrap?)]
+	  [update-snip-size
+	   (lambda (s)
+	     (if (is-a? s wx:media-snip%)
+		 (let* ([snip-x-pos&margins
+			 (let loop ([snip s])
+			   (let* ([snip-x-pos (box 0)]
+				  [containing-media (send (send snip get-admin) get-media)]
+				  [containing-admin (send containing-media get-admin)])
+			     (send containing-media get-snip-position-and-location
+				   snip (box 0) snip-x-pos (box 0))
+			     (+ (let ([lmargin (box 0)]
+				      [rmargin (box 0)])
+				  (send snip get-margin lmargin (box 0) rmargin (box 0))
+				  (+ (unbox lmargin) (unbox rmargin)))
+				(if (is-a? containing-admin wx:media-snip-media-admin%)
+				    (+ (unbox snip-x-pos)
+				       (loop (send containing-admin get-snip)))
+				    (unbox snip-x-pos)))))]
+			[outer-snip (let loop ([snip s])
+				      (let ([containing-admin
+					     (send (send (send snip get-admin)
+							 get-media) get-admin)])
+					(if (is-a? containing-admin wx:media-snip-media-admin%)
+					    (loop (send containing-admin get-snip))
+					    snip)))]					
+			[view-width (let* ([width (box 0)]
+					   [extra-space 2] ;; this is to allow the edit room
+					                   ;; to show the caret at the end
+							   ;; of the line
+					   [media (get-media)])
+				      (send (send media get-admin)
+					    get-view null null width null)
+				      (- (unbox width)
+					 extra-space))]
+			[snip-width (- view-width snip-x-pos&margins)])
+		   (send s set-min-width snip-width)
+		   (send s set-max-width snip-width)
+		   (when (is-a? s wx:media-snip%)
+		     (let ([snip-media (send s get-this-media)])
+		       (unless (null? snip-media)
+			 (send snip-media set-max-width
+			       (if autowrap-snips?
+				   snip-width
+				   0))))))
+		 (send (send s get-admin) resized s #t)))])
+	(public
+	  [set-media
+	   (lambda (x)
+	     (super-set-media x)
+	     (send x on-set-media this))]
+	  [wrap-snips
+	   (lambda (x)
+	     (set! autowrap-snips? x)
+	     (for-each update-snip-size snips))]
+	  [add-wide-snip
+	   (lambda (snip)
+	     (set! snips (cons snip snips))
+	     (update-snip-size snip))]
+	  [on-size
+	   (lambda (width height)
+	     (super-on-size width height)
+	     (for-each update-snip-size snips))])))
 
     (define do-help
       (lambda ()
@@ -238,16 +364,16 @@
 	   (lambda (button evt)
 	     (let* ([definitions-edit definitions-edit]
 		    [interactions-edit interactions-edit])
-	       (send show-menu check interactions-id #t)
-	       (update-shown)
+	       (ensure-interactions-shown)
 	       (send interactions-edit reset-console)
 	       (send interactions-edit do-many-buffer-evals
 		     definitions-edit
 		     0 (send definitions-edit last-position)
-		     (lambda () (void))
+		     void
 		     (lambda ()
 		       (send (send interactions-edit get-canvas) set-focus)
-		       (send interactions-edit insert-prompt)))))])
+		       (send interactions-edit insert-prompt) ; rep-new.ss -- get rid of this 
+		       ))))])
 	
 	(sequence
 	  (mred:debug:printf 'super-init "before drscheme:unit-frame%")
@@ -270,7 +396,9 @@
 	
 	(sequence
 	  (send definitions-edit set-mode (make-object mred:scheme-mode%))
-	  (send* interactions-canvas (set-media interactions-edit))
+	  (send* interactions-canvas 
+	    ;(scroll-with-bottom-base #t)
+	    (set-media interactions-edit))
 	  (send interactions-edit set-auto-set-wrap #t)
 	  (change-to-file filename))
 
@@ -291,7 +419,7 @@
 				 (unless (or (null? edit) (not edit))
 				   (send edit save-file)
 				   (send definitions-canvas set-focus))))
-			     "Save")))
+			     save-bitmap)))
 	(private 
 	  [make-library-name-msg
 	   (lambda (panel n)
@@ -320,12 +448,15 @@
 	  (make-object mred:vertical-panel% scheme-only-panel)]
 	 [scheme-only-stop-executing
 	  (make-object mred:button% scheme-only-panel
-		       (lambda args (send interactions-edit break))
-		       "Stop Executing")]
+		       (lambda args
+			 (send interactions-edit break)
+			 (ensure-interactions-shown)
+			 (send (send interactions-edit get-canvas) set-focus))
+		       break-bitmap)]
 	 [scheme-only-help
 	  (make-object mred:button% scheme-only-panel
 		       (lambda args (do-help))
-		       "Help")])
+		       help-bitmap)])
 	 (sequence
 	  (send panel delete-child scheme-only-panel)
 
@@ -335,14 +466,17 @@
 	  (set! execute-button
 	    (make-object mred:button% button-panel
 			 execute-callback
-			 "Execute"))
+			 execute-bitmap))
 	  (set! stop-execute-button
 		(make-object mred:button% button-panel 
-			     (lambda args (send interactions-edit break))
-			     "Break"))
+			     (lambda args
+			       (send interactions-edit break)
+			       (ensure-interactions-shown)
+			       (send (send interactions-edit get-canvas) set-focus))
+			     break-bitmap))
 	 (make-object mred:button% button-panel
 		       (lambda args (do-help))
-		       "Help")
+		       help-bitmap)
 	  
 	  (send scheme-only-panel stretchable-in-y #f)
 	  (send button-panel stretchable-in-y #f)
@@ -371,15 +505,17 @@
 	(sequence
 	  (send show-menu check definitions-id #t)
 	  (send show-menu check interactions-id #t)
-	  (update-shown)
 
 	  (send interactions-edit initialize-console)
 	  (send interactions-edit enable-autoprompt)
 	  (send interactions-edit insert-prompt)
 	  (send interactions-edit clear-undos)
+
+	  (update-shown)
+
 	  (set-title-prefix "DrScheme")
 
-	  (send definitions-canvas set-focus)
+	  (send interactions-canvas set-focus)
 	  (send group insert-frame this)
 	  (when show?
 	    (show #t))
@@ -551,4 +687,4 @@
   (mred:insert-format-handler "Units"
                               (list "ss" "scm" "sch" "mredrc")
 				(opt-lambda (name group)
-				  (make-object frame% name #f group)))))
+				  (make-object frame% name #f group))))

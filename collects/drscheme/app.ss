@@ -40,7 +40,7 @@
 	       [main-media (make-object wrap-edit%)]
 	       [image-snip (make-object wx:image-snip% 
 					(build-path mred:plt-home-directory
-						    "drscheme"
+						    "icons"
 						    (if (< (wx:display-depth) 8)
 							"bwlambda.gif"
 							"rblambda.gif"))
