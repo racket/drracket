@@ -145,13 +145,13 @@
 		     (list-ref (send panel get-children) (car path)))))])
       (loop path frame)))
   
-;;; get-text-pos returns the offset in an edit buffer of the beginning
+;;; get-text-pos returns the offset in an text buffer of the beginning
 ;;; of the last line
   
-  (define (get-text-pos edit)
-    (let* ([last-pos (send edit last-position)]
-	   [last-line (send edit position-line last-pos)])
-      (send edit line-start-position last-line)))
+  (define (get-text-pos text)
+    (let* ([last-pos (send text last-position)]
+	   [last-line (send text position-line last-pos)])
+      (send text line-start-position last-line)))
   
   ; poll for enabled button
   
@@ -177,30 +177,30 @@
       (fw:test:button-push "OK")))
   
   (define (repl-in-edit-sequence?)
-    (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
+    (send (ivar (wait-for-drscheme-frame) interactions-text) refresh-delayed?))
  
   (define fetch-output
     (case-lambda
      [(frame)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let* ([interactions-edit (ivar frame interactions-edit)]
-	     [last-para (send interactions-edit last-paragraph)])
+      (let* ([interactions-text (ivar frame interactions-text)]
+	     [last-para (send interactions-text last-paragraph)])
 	(unless (>= last-para 2)
 	  (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
 		 (+ last-para 1)))
 	(fetch-output frame
-		      (send interactions-edit paragraph-start-position 2)
-		      (send interactions-edit paragraph-end-position
-			    (- (send interactions-edit last-paragraph) 1))))]
+		      (send interactions-text paragraph-start-position 2)
+		      (send interactions-text paragraph-end-position
+			    (- (send interactions-text last-paragraph) 1))))]
      [(frame start end)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let ([interactions-edit (ivar frame interactions-edit)])
-	(send interactions-edit split-snip start)
-	(send interactions-edit split-snip end)
-	(let loop ([snip (send interactions-edit find-snip end 'before)]
+      (let ([interactions-text (ivar frame interactions-text)])
+	(send interactions-text split-snip start)
+	(send interactions-text split-snip end)
+	(let loop ([snip (send interactions-text find-snip end 'before)]
 		   [strings null])
 	  (cond
-	    [(< (send interactions-edit get-snip-position snip) start)
+	    [(< (send interactions-text get-snip-position snip) start)
 	     (apply string-append strings)]
 	    [else 
 	     (cond

@@ -23,7 +23,7 @@
     (fw:test:button-push "OK")
     (wait-for-new-frame f))
   (let* ([drs (get-top-level-focus-window)]
-	 [interactions (ivar drs interactions-edit)])
+	 [interactions (ivar drs interactions-text)])
     (clear-definitions drs)
     (type-in-definitions drs expression)
     (do-execute drs)
@@ -392,20 +392,20 @@
 
 (define (test-expression expression expected)
   (let* ([drs (wait-for-drscheme-frame)]
-	 [interactions-edit (ivar drs interactions-edit)]
-	 [last-para (send interactions-edit last-paragraph)])
-    (send interactions-edit set-position
-	  (send interactions-edit last-position)
-	  (send interactions-edit last-position))
+	 [interactions-text (ivar drs interactions-text)]
+	 [last-para (send interactions-text last-paragraph)])
+    (send interactions-text set-position
+	  (send interactions-text last-position)
+	  (send interactions-text last-position))
     (type-in-interactions drs expression)
     (type-in-interactions drs (string #\newline))
     (wait-for-computation drs)
     (let ([got
 	   (fetch-output
 	    drs
-	    (send interactions-edit paragraph-start-position (+ last-para 1))
-	    (send interactions-edit paragraph-end-position
-		  (- (send interactions-edit last-paragraph) 1)))])
+	    (send interactions-text paragraph-start-position (+ last-para 1))
+	    (send interactions-text paragraph-end-position
+		  (- (send interactions-text last-paragraph) 1)))])
       (unless (whitespace-string=? got expected)
 	(printf "FAILED: ~a expected ~s to produce ~s, got ~s instead~n"
 		(language) expression expected got)))))

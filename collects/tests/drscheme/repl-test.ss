@@ -294,9 +294,9 @@
 
 (define drscheme-frame (wait-for-drscheme-frame))
 
-(define interactions-edit (ivar drscheme-frame interactions-edit))
+(define interactions-text (ivar drscheme-frame interactions-text))
 (define interactions-canvas (ivar drscheme-frame interactions-canvas))
-(define definitions-edit (ivar drscheme-frame definitions-edit))
+(define definitions-text (ivar drscheme-frame definitions-text))
 (define definitions-canvas (ivar drscheme-frame definitions-canvas))
 (define execute-button (ivar drscheme-frame execute-button))
 (define insert-string
@@ -310,7 +310,7 @@
 	(loop (+ n 1))))))
 
 (define wait-for-execute (lambda () (wait-for-button execute-button)))
-(define get-int-pos (lambda () (get-text-pos interactions-edit)))
+(define get-int-pos (lambda () (get-text-pos interactions-text)))
 
 
 (define tmp-load-filename
@@ -346,7 +346,7 @@
 	(do-execute drscheme-frame)
 	(let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
 	       [received-execute
-		(send interactions-edit get-text 
+		(send interactions-text get-text 
 		      execute-text-start execute-text-end)])
 	  
 	  ; check focus and selection for execute test
@@ -357,14 +357,15 @@
 		 (printf "FAILED execute test for ~s~n  expected interactions to have the focus~n"
 			 program))]
 	      [(and execute-location (send definitions-canvas has-focus?))
-	       (unless (and (= (send definitions-edit get-start-position) (vector-ref execute-location 0))
-			    (= (send definitions-edit get-end-position) (vector-ref execute-location 1)))
-		 (printf "FAILED execute test for ~s~n  start/end position are ~a ~a~n  expected ~a ~a~n"
-			 program
-			 (send definitions-edit get-start-position)
-			 (send definitions-edit get-end-position)
-			 (vector-ref execute-location 0)
-			 (vector-ref execute-location 1)))]
+               (let ([error-range (send interactions-text get-error-range)])
+                 (unless (and error-range
+                              (= (car error-range) (vector-ref execute-location 0))
+                              (= (cdr error-range) (vector-ref execute-location 1)))
+                   (printf "FAILED execute test for ~s~n  error-range is ~s~n  expected ~a ~a~n"
+                           program
+                           error-range
+                           (vector-ref execute-location 0)
+                           (vector-ref execute-location 1))))]
 	      [execute-location
 	       (printf "FAILED execute test for ~s~n  expected definitions canvas to have the focus~n"
 		       program)]
@@ -399,7 +400,7 @@
 	  
 	  ; record current text position, then stuff a CR into the REPL
 	  
-	  (let ([load-text-start (+ 1 (send interactions-edit last-position))])
+	  (let ([load-text-start (+ 1 (send interactions-text last-position))])
 	    
 	    (fw:test:keystroke #\return)
 	    
@@ -407,7 +408,7 @@
 	    
 	    (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
 		   [received-load 
-		    (send interactions-edit get-text 
+		    (send interactions-text get-text 
 			  load-text-start load-text-end)])
 	      
 	      ; check load text 
