@@ -139,7 +139,7 @@ profile todo:
 			   [_else 
 			    ;; Not `begin', so proceed with normal expand and eval 
 			    (let* ([annotated
-				    (annotate-top (expand top-e) #f)])
+				    (annotate-top (expand-syntax top-e) #f)])
 			      (oe annotated))])))))])
 	  debug-tool-eval-handler))
       
