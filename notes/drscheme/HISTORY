@@ -2,9 +2,32 @@
         Version 205
 ------------------------------
 
-  - added a test coverage annotation; run the program and it
-    colors the code that was executed in green and code that
-    wasn't executed in red.
+  - the teaching languages color the portion of the program
+    that has not been tested in dark red (using a simple
+    syntactic coverage criterion -- dark red means tested,
+    but not dark red doesn't mean fully tested, of course).
+
+  - added a test coverage annotation for other languages in
+    the "details" portion of the languages dialog; run the
+    program and it colors the code that was executed in
+    green and code that wasn't executed in red.
+
+  - fixed up help desk fonts, so that the font size in help
+    desk is now linked to the font size in drscheme proper.
+
+  - added support for editor modes to drscheme.
+
+  - drscheme shows the stack via arrows on the program text
+    when an error occurs (and debugging is on)
+
+  - added to special menu item: "insert delta" (to mean
+    define) in parallel to the insert lambda menu item.
+
+  - framework's scheme-mode font changed to be in an editor
+    mixin.
+
+  - macos: drscheme doesn't quit when all windows are closed
+    anymore.
 
 ------------------------------
         Version 204
