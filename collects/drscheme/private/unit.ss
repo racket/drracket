@@ -18,10 +18,10 @@
   
   (provide unit@)
   
-  (define module-browser-progress-constant "Module Browser: ~a")
-  (define status-compiling-definitions "Module Browser: compiling definitions")
-  (define show-lib-paths "Follow lib requires")
-  (define refresh "Refresh")
+  (define module-browser-progress-constant (string-constant module-browser-progress))
+  (define status-compiling-definitions (string-constant module-browser-compiling-defns))
+  (define show-lib-paths (string-constant module-browser-show-lib-paths/short))
+  (define refresh (string-constant module-browser-refresh))
   
   (define unit@
     (unit/sig drscheme:unit^
@@ -1718,11 +1718,10 @@
               (send module-browser-parent-panel change-children
                     (lambda (l)
                       (remq module-browser-panel l)))
-              (let loop ()
-                (let ([snip (send module-browser-pb find-first-snip)])
-                  (when snip
-                    (send snip release-from-owner)
-                    (loop))))))
+              
+              ;; technically superflous, but ensures that when the window is next shown there
+              ;; won't be a flicker of the old module browser info.
+              (send module-browser-pb reset-all)))
           
           (define/private (update-module-browser-pane)
             (open-status-line 'plt:module-browser:mouse-over)
@@ -1758,11 +1757,17 @@
                          (let ([val (send module-browser-lib-path-check-box get-value)])
                            (preferences:set 'drscheme:module-browser:show-lib-paths? val)
                            (send module-browser-pb show-lib-paths val))))))
-              (set! module-browser-button (instantiate button% ()
-                                            (parent module-browser-panel)
-                                            (label refresh)
-                                            (callback (lambda (x y) (update-module-browser-pane)))
-                                            (stretchable-width #t))))
+              
+              (let* ([refresh-bitmap (make-object bitmap% 40 10)]
+                     [bdc (make-object bitmap-dc% refresh-bitmap)])
+                (send bdc clear)
+                (send bdc draw-text refresh 0 0)
+                (send bdc set-bitmap #f)
+                (set! module-browser-button (instantiate button% ()
+                                              (parent module-browser-panel)
+                                              (label refresh-bitmap)
+                                              (callback (lambda (x y) (update-module-browser-pane)))
+                                              (stretchable-width #t)))))
             
             (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
               (send module-browser-parent-panel change-children
@@ -1834,6 +1839,7 @@
                    [shutdown
                     (lambda () ;=user compile thread=
                       (send module-browser-pb render-snips)
+                      (send module-browser-pb show-lib-paths (send module-browser-lib-path-check-box get-value))
                       (send module-browser-button enable #t)
                       (send module-browser-lib-path-check-box enable #t)
                       (close-status-line 'plt:module-browser))]
@@ -1862,6 +1868,7 @@
                          (cont)]))])
               (send module-browser-button enable #f)
               (send module-browser-lib-path-check-box enable #f)
+              (send module-browser-pb reset-all)
               ((drscheme:eval:traverse-program/multiple
                 language-settings init kill-termination)
                text-pos iter complete-program?)))

@@ -9,11 +9,7 @@ todo :
  - lines field can be #f and filename field might not be a file, so double check everything
    and rename things!
  
- - double clicking should open the file (or maybe set the insertion point?)
- 
  - build abstraction for breakable drscheme:eval?
- 
- - test errors during compilation for module browser
  
  - in unit.ss
     - status line messages timing is wrong (can be closed and still sending messages)
@@ -70,6 +66,7 @@ todo :
       (define module-overview-pasteboard<%>
         (interface ()
           add-connections
+          reset-all
           set-label-font-size
           get-label-font-size
           show-lib-paths))
@@ -377,6 +374,16 @@ todo :
                      (hash-table-put! snip-table key snip)
                      snip)))))
             
+            ;; reset-all : -> void
+            ;; clears out the pasteboard in preparation to render another program
+            (define/public (reset-all)
+              (let loop ()
+                (let ([s (find-first-snip)])
+                  (when s
+                    (send s release-from-owner)
+                    (loop))))
+              (set! snip-table (make-hash-table)))
+            
             ;; count-lines : string[filename] -> (union #f number)
             (define (count-lines filename)
               (call-with-input-file filename
@@ -475,13 +482,13 @@ todo :
             ;; render-snips : -> void
             (define/public (render-snips)
               (begin-edit-sequence)
-              (let ([for-each-level (lambda (f) (hash-table-for-each level-ht f))]
-                    [max-minor 0])
+              (let ([max-minor 0])
                 
                 ;; major-dim is the dimension that new levels extend along
                 ;; minor-dim is the dimension that snips inside a level extend along
                 
-                (for-each-level
+                (hash-table-for-each
+                 level-ht
                  (lambda (n v)
                    (set! max-minor (max max-minor (apply + (map (if vertical?
                                                                     get-snip-width
@@ -669,7 +676,7 @@ todo :
                                          pasteboard:basic%)))
         (make-object draw-lines-pasteboard%))
       
-      (define (module-overview/file filename parent)
+      <(define (module-overview/file filename parent)
         (define update-label void)
 
         (define progress-frame (parameterize ([current-eventspace (make-eventspace)])

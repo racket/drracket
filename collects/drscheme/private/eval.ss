@@ -33,7 +33,6 @@
               (parameterize ([current-eventspace eventspace])
                 (queue-callback
                  (lambda ()
-                   (car)
                    (let ([read-thnk 
                           (if complete-program?
                               (send language front-end/complete-program input settings)
