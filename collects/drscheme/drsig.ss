@@ -95,8 +95,7 @@
   (text%
    invoke-library
    process-text/zodiac
-   process-text/no-zodiac
-   show-interactions-history))
+   process-text/no-zodiac))
 
 (define-signature drscheme:app^
   (about-drscheme))

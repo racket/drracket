@@ -421,11 +421,6 @@
 	     file-menu
 	     (lambda (_1 _2)
 	       (save-as-text-from-text interactions-text)))
-	   ; (make-object mred:separator-menu-item% file-menu)
-	   ; (make-object mred:menu-item%
-	   ;  "Show Interactions History"
-	   ;  file-menu
-	   ;  (lambda (_1 _2) (drscheme:rep:show-interactions-history)))
 	   (make-object mred:separator-menu-item% file-menu))]
 	[file-menu:print-string (lambda () "Definitions")]
 	[file-menu:between-print-and-close
