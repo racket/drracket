@@ -437,6 +437,7 @@ TODO
           (inherit auto-wrap
                    begin-edit-sequence
                    change-style
+                   clear-box-input-port
                    clear-undos
                    clear-input-port
                    clear-output-ports
@@ -1253,6 +1254,7 @@ TODO
             (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
             (clear-input-port)
+            (clear-box-input-port)
             (clear-output-ports)
             (set-allow-edits #t)
             (set! should-collect-garbage? #t)
