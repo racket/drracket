@@ -32,7 +32,7 @@
   (define magic-images
     (list 
      (magic-img "larval" "PLT-206-larval.png")
-     (magic-img "mars" "PLT-206-mars.png")))
+     (magic-img "mars" "PLT-206-mars.jpg")))
   
   (define (load-magic-images)
     (get-normal-bitmap)
