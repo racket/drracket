@@ -146,7 +146,7 @@
 				   [exit-handler (lambda (v) (custodian-shutdown-all cust))])
 		      (printf "Loading installer...~n")
 		      (global-defined-value 'argv (vector file))
-		      (require-library "setup.ss" "compiler")))))])
+		      (require-library "setup.ss" "setup")))))])
 	(thread (lambda () (send f show #t) (semaphore-post s)))
 	(thread (lambda () 
 		  (thread-wait t) 
