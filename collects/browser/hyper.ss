@@ -191,7 +191,7 @@
 					       "The downloaded file was saved."
 					       "The download was cancelled.")))]
 				 [(or (and (url? url)
-					   (regexp-match "[.]txt$" (url-path url)))
+					   (not (regexp-match "[.]html?$" (url-path url))))
 				      (and mime-type
 					   (regexp-match "text/plain" mime-type)))
 				  ; Text
