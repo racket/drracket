@@ -743,15 +743,14 @@
           [define was-locked? #f]
           [define execute-menu-item #f]
           
-          (public disable-evaluation enable-evaluation)
-          [define disable-evaluation
+          [define/public disable-evaluation
             (lambda ()
               (when execute-menu-item
                 (send execute-menu-item enable #f))
               (send execute-button enable #f)
               (send definitions-text lock #t)
               (send interactions-text lock #t))]
-          [define enable-evaluation
+          [define/public enable-evaluation
             (lambda ()
               (when execute-menu-item
                 (send execute-menu-item enable #t))
@@ -1262,8 +1261,13 @@
               (super-on-close))]
           
           [define running? #t]
-	  (public execute-callback)
-          [define (execute-callback)
+
+	  (define/public (break-callback)
+	    (send interactions-text break)
+	    (ensure-rep-shown)
+	    (send (send interactions-text get-canvas) focus))
+
+          (define/public (execute-callback)
             (cond
               [(send definitions-text save-file-out-of-date?)
                (message-box 
@@ -1287,7 +1291,7 @@
                        definitions-text 
                        start
                        (send definitions-text last-position)))
-               (send interactions-text clear-undos)])]
+               (send interactions-text clear-undos)]))
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
           [define language-menu 'uninited-language-menu]
@@ -1401,7 +1405,7 @@
             (make-object menu:can-restore-menu-item%
               (string-constant break-menu-item-label)
               scheme-menu
-              (lambda (_1 _2) (send interactions-text break))
+              (lambda (_1 _2) (break-callback))
               #\b
               (string-constant break-menu-item-help-string))
             (make-object menu:can-restore-menu-item%
@@ -1554,10 +1558,8 @@
                 (make-object button%
                   (make-break-bitmap this) 
                   button-panel
-                  (lambda args
-                    (send interactions-text break)
-                    (ensure-rep-shown)
-                    (send (send interactions-text get-canvas) focus))))
+                  (lambda (x y)
+		    (break-callback))))
           (send button-panel stretchable-height #f)
           (send button-panel stretchable-width #f) 
           
