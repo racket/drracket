@@ -26,12 +26,12 @@
       (define open-url-from-user #f)
       (define help-desk-frame #f)
       (define (set-font-size x) (void))
-      
       (define doc-collections-changed void)
-      
-      (preferences:add-callback
-       drscheme:language-configuration:settings-preferences-symbol
-       (lambda (p v) (doc-collections-changed)))
+       
+      ;; what does this do?
+      ;(preferences:add-callback
+      ; drscheme:language-configuration:settings-preferences-symbol
+      ; (lambda (p v) (doc-collections-changed)))
       
       (preferences:add-callback
        'drscheme:font-size
@@ -39,6 +39,7 @@
          (set-font-size v)
          #t))
       
+
       (define (user-defined-doc-position doc)
         (let ([lang (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
           (case (string->symbol doc)
