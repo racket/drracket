@@ -39,20 +39,25 @@
                             (mred:message-box 
                              "Create Launcher"
                              (format
-                              "Although MzScheme is the current language, you have a teachpack selected,~
-                              so this will create a MrEd launcher. Continue?")
+                              "Although MzScheme is the current language, you have a teachpack~
+                               selected, so this will create a MrEd launcher. Continue?")
                              '(yes-no)))
                        #t)
-               (let ([filename (mred:put-file "Save a Launcher" frame)])
+               (let ([filename (mred:put-file "Save a Launcher" frame #f #f
+					      (if (eq? (platform) 'windows)
+						  "exe"
+						  #f))])
                  (when filename
                    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
                                             "-e" (format "(define settings ~s)" v-settings)
                                             "-e" (format "(define teachpacks ~s)" teachpacks))])
                      (if (and in-mz? (null? teachpacks))
-                         (launcher:make-mzscheme-launcher (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
-                                                          filename)
-                         (launcher:make-mred-launcher (append '("-mV") definitions '("-L" "mr-launcher.ss" "userspce"))
-                                                      filename))))))))])))
+                         (launcher:make-mzscheme-launcher
+			  (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
+			  filename)
+                         (launcher:make-mred-launcher
+			  (append '("-mV") definitions '("-L" "mr-launcher.ss" "userspce"))
+			  filename))))))))])))
   
   (define make-bitmap 
     (case-lambda 
@@ -124,7 +129,7 @@
   ;; this is the old definition of the interactions canvas.
   ;; It should be integrated into fw:canvas:wide-snip% 
   ;; becuase it uses a better algorithm to find the snip
-  ;; wdie widths.
+  ;; wide widths.
   '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
      (inherit get-editor)
      (rename [super-on-size on-size]
