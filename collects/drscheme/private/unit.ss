@@ -186,7 +186,7 @@
                           #f #f
                           (string-constant save-an-executable)))])
                  (when executable-filename
-                   (let ([settings (send (send frame get-definitions-text) get-next-setting)])
+                   (let ([settings (send (send frame get-definitions-text) get-next-settings)])
                      (send (drscheme:language-configuration:language-settings-language settings)
                            create-executable
                            (drscheme:language-configuration:language-settings-settings settings)
