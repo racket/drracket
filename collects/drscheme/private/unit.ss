@@ -1027,8 +1027,7 @@
           (define/private (update-toolbar-visiblity)
             (cond
               [toolbar-shown?
-               (when (preferences:get 'framework:show-status-line)
-                 (show-info))
+               (show-info)
                (send top-outer-panel change-children (lambda (l) (list top-panel)))
                (send toolbar-menu-item set-label (string-constant hide-toolbar))]
               [else
