@@ -53,30 +53,4 @@
                                 [current-custodian system-custodian])
                    (queue-callback
                     (λ ()
-                      (message-box title text #f '(stop ok))))))))))
-      
-      ;; all-toplevel-collections : -> (listof string)
-      ;; returns the list of collections currently available
-      (define (all-toplevel-collections)
-        ;; collections-hash-table : hash-table[path -o> path]
-        ;; contains a list of the available collections.
-        ;; use a hash table to cancel out duplicate collections
-        (define collections-hash-table (make-hash-table 'equal))
-        
-        ;; add-collections-in-path : path -> void
-        ;; adds each collection in the given path
-        ;; to collections-hash-table
-        (define (add-collections-in-path path)
-          (for-each 
-           (λ (d) 
-             (when (and (directory-exists? (build-path path d))
-                        (not (string-ci=? (path->string d) "CVS")))
-               (hash-table-put! collections-hash-table d d)))
-           (with-handlers ([exn:fail:filesystem?
-                            (λ (x) null)])
-             (directory-list path))))
-        
-        (for-each add-collections-in-path (current-library-collection-paths))
-        (quicksort
-         (hash-table-map collections-hash-table (λ (x y) y))
-         (λ (x y) (string<=? (path->string x) (path->string y))))))))
+                      (message-box title text #f '(stop ok)))))))))))))

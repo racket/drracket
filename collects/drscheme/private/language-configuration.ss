@@ -1054,11 +1054,10 @@
 
       
       (define (add-info-specified-languages)
-        (for-each add-info-specified-language
-                  (drscheme:init:all-toplevel-collections)))
+        (for-each add-info-specified-language (find-relevant-collections '(drscheme-language-positions))))
       
-      (define (add-info-specified-language collection-name)
-        (let ([info-proc (get-info (list collection-name))])
+      (define (add-info-specified-language collection-names)
+        (let ([info-proc (get-info collection-names)])
           (when info-proc
             (let* ([lang-positions (info-proc 'drscheme-language-positions (λ () null))]
                    [lang-modules (info-proc 'drscheme-language-modules (λ () null))]

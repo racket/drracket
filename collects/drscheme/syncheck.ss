@@ -1293,13 +1293,13 @@ If the namespace does not, they are colored the unbound color.
                       (add-disappeared-bindings stx binders varrefs)
                       (add-disappeared-uses stx varrefs))])
               (collect-general-info sexp)
-              (syntax-case* sexp (λ case-lambda if begin begin0 let-values letrec-values set!
+              (syntax-case* sexp (lambda case-lambda if begin begin0 let-values letrec-values set!
                                    quote quote-syntax with-continuation-mark 
                                    #%app #%datum #%top #%plain-module-begin
                                    define-values define-syntaxes module
                                    require require-for-syntax provide)
                 (if high-level? module-transformer-identifier=? module-identifier=?)
-                [(λ args bodies ...)
+                [(lambda args bodies ...)
                  (begin
                    (annotate-raw-keyword sexp varrefs)
                    (annotate-tail-position/last sexp (syntax->list (syntax (bodies ...))) tail-ht)

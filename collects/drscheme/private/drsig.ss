@@ -83,8 +83,7 @@
      system-custodian
      system-eventspace
      system-namespace
-     first-dir
-     all-toplevel-collections))
+     first-dir))
   
   (define-signature drscheme:language-configuration^
     (add-language
