@@ -603,7 +603,7 @@ the settings above should match r5rs
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
       (test-expression "(time 1)" 
-                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1"))
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
             
       (test-expression "true" "true")
       (test-expression "mred^" 
