@@ -5,6 +5,8 @@
            "private/sig.ss"
            "private/html.ss"
            "private/bullet.ss"
+	   (lib "url.ss" "net")
+	   (lib "url-sig.ss" "net")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
 	   (lib "browser.ss" "net"))
@@ -12,12 +14,13 @@
   (define-values/invoke-unit/sig 
    html^
    (compound-unit/sig
-     (import (MRED : mred^))
-     (link [HTML : html^ (html@ BULLET MRED)]
+     (import (MRED : mred^) (URL : net:url^))
+     (link [HTML : html^ (html@ BULLET MRED URL)]
            [BULLET : bullet^ (bullet@ MRED)])
      (export (open HTML)))
    #f
-   mred^)
+   mred^
+   net:url^)
   
   (define html-text<%>
     (interface ((class->interface text%))
