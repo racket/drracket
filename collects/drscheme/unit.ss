@@ -178,7 +178,11 @@
          (lambda ()
            (let ([f (get-top-level-window)])
              (when f
-               (send (ivar f interactions-edit) reset-highlighting))))])
+			   (let ([interactions-edit (ivar f interactions-edit)])
+			     (when (object? interactions-edit)
+				   (let ([reset (ivar interactions-edit reset-highlighting)])
+				     (when (procedure? reset)
+					   (reset))))))))])
       (rename [super-on-insert on-insert]
               [super-on-delete on-delete])
       (override
