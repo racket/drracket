@@ -188,7 +188,6 @@
                              (label (string-constant limit-interactions-size))
                              (parent hp)
                              (callback (lambda (cb v) (cb-callback))))]
-                    
                     [sl (new slider% 
                              (label #f)
                              (parent hp)
