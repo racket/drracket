@@ -497,6 +497,47 @@
 	   (if gui?
 	       (list "-mvqZ")
 	       (list "-mvq")))))
+
+      (define (condense-scheme-code-string s)
+        (let ([i (open-input-string s)]
+              [o (open-output-string)])
+          (let loop ()
+            (let ([c (read-char i)])
+              (unless (eof-object? c)
+                (let ([next (lambda ()
+                              (display c o)
+                              (loop))])
+                  (case c
+                    [(#\space)
+                     (if (char=? #\( (peek-char i))
+                         (loop)
+                         (next))]
+                    [(#\))
+                     (if (eq? #\space (peek-char i))
+                         (begin
+                           (display #\) o)
+                           (read-char i)
+                           (loop))
+                         (next))]
+                    [(#\\)
+                     (begin
+                       (display #\\ o)
+                       (display (read-char i) o)
+                       (loop))]
+                    [(#\" #\|)
+                     (display c o)
+                     (let loop ()
+                       (let ([v (read-char i)])
+                         (cond
+                           [(eq? v c) (next)]
+                           [(eq? v #\\)
+                            (display v o)
+                            (display v (read-char i))
+                            (loop)]
+                           [else (display v o)
+                                 (loop)])))]
+                    [else (next)])))))
+          (get-output-string o)))
       
       (define (create-module-based-launcher program-filename 
                                             executable-filename
@@ -511,7 +552,7 @@
           (build-path (collection-path "drscheme" "private") 
                       "launcher-bootstrap.ss")
           "--"
-          (format "~s" init-code)
+          (condense-scheme-code-string (format "~s" init-code))
           program-filename
           (format "~s" module-language-spec)
           (format "~s" transformer-module-language-spec)
