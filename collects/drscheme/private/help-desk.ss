@@ -52,7 +52,7 @@
                           (hd-cookie->port (get-hd-cookie)))))
       
       (define (goto-release-notes)
-        (send-url (format "http://127.0.0.1:~a/servlets/release-info.ss"
+        (send-url (format "http://127.0.0.1:~a/servlets/releaseinfo.ss"
                           (hd-cookie->port (get-hd-cookie)))))
       
       (define help-desk
