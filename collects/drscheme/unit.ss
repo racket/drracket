@@ -312,6 +312,94 @@
 	    (void)))])
       (sequence
 	(super-init))))
+
+  (define name-message%
+    (class/d mred:canvas% (parent)
+      ((inherit get-dc get-client-size min-width min-height)
+       (public set-message)
+       (override on-event on-paint get-graphical-min-size))
+
+      (define label "Untitled")
+      (define short-label "Untitled")
+      (define (set-message name)
+	(set! label (mzlib:file:normalize-path name))
+	(set! short-label (mzlib:file:file-name-from-path label))
+	(update-min-sizes))
+      
+      (define full-name-window #f)
+
+      (define (show-full-name-window)
+	(mred:message-box "Full Name" label))
+
+      (define (on-event evt)
+	(cond
+	 [(send evt button-up? 'left)
+	  (cond
+	   [inverted?
+	    (set! inverted? #f)
+	    (on-paint)
+	    (show-full-name-window)]
+	   [else
+	    (void)])]
+	 [(send evt button-down? 'left)
+	  (set! inverted? #t)
+	  (on-paint)]
+	 [(send evt leaving?)
+	  (set! inverted? #f)
+	  (on-paint)]
+	 [(send evt entering?)
+	  (when (send evt get-left-down)
+	    (set! inverted? #t)
+	    (on-paint))]
+	 [else (void)]))
+		
+
+      (define (get-graphical-min-size)
+	(let ([dc (get-dc)])
+	  (send dc set-font (send mred:the-font-list find-or-create-font 12 'system 'normal 'normal #f))
+	  (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
+	    (values (inexact->exact (floor tw))
+		    (inexact->exact (floor th))))))
+
+      (define (update-min-sizes)
+	(let-values ([(tw th) (get-graphical-min-size)])
+	  (min-width tw)
+	  (min-height th)
+	  (send parent reflow-container)))
+
+      (define inverted? #f)
+
+      (define black-color (make-object mred:color% "BLACK"))
+
+      (define (on-paint)
+	(let ([dc (get-dc)])
+	  (let-values ([(w h) (get-client-size)])
+					;(send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
+
+	    (cond
+	     [inverted?
+	      (send dc set-text-foreground (mred:get-panel-background))
+	      (send dc set-text-background black-color)
+	      (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
+	      (send dc set-brush (send mred:the-brush-list find-or-create-brush "BLACK" 'solid))]
+	     [else
+	      (send dc set-text-foreground black-color)
+	      (send dc set-text-background (mred:get-panel-background))
+	      (send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
+	      ;(send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
+	      (send dc set-brush (send mred:the-brush-list find-or-create-brush (mred:get-panel-background) 'solid))])
+	    (send dc draw-rectangle 0 0 w h)
+	    (when short-label
+	      (send dc set-font (send mred:the-font-list find-or-create-font 12 'system 'normal 'normal #f))
+	      (let-values ([(_1 th _2 _3) (send dc get-text-extent short-label)])
+		(send dc draw-text short-label
+		      0
+		      (max (- (/ h 2)
+			      (/ th 2))
+			   0)))))))
+
+      (super-init parent)))
+
   
   (define super-frame%
     (drscheme:frame:mixin
@@ -391,13 +479,8 @@
 	       (set! save-init-shown? mod?)))]
 	[update-save-message
 	 (lambda (name)
-	   (when save-button
-		 (let* ([fname (and name (mzlib:file:file-name-from-path name))]
-			[msg (make-object mred:message% (or fname "") top-panel)])
-		   (set! name-message msg)
-		   (set-label fname)
-		   (send top-panel change-children
-			 (lambda (l) (build-top-panel-children))))))])
+	   (when name-message
+	     (send name-message set-message name)))])
       (override
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
@@ -712,7 +795,7 @@
 				 (send text save-file)
 				 (send definitions-canvas focus))))))
 	
-	(set! name-message (make-object mred:message% "" top-panel)))
+	(set! name-message (make-object name-message% top-panel)))
       (private 
 	[update-teachpack-panel
 	 (lambda (pack)
