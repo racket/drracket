@@ -43,4 +43,4 @@
         (manager-trace-handler
          (λ (x) (display "1: ") (display x) (newline))))))
 
-  (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f))
+  (time (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f)))
