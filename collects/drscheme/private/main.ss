@@ -148,6 +148,7 @@
        drscheme:teachpack:unmarshall-teachpack-cache)
       
       (drscheme:font:setup-preferences)
+      (color-prefs:add-preferences-panel)
       (scheme:add-preferences-panel)
       (scheme:add-coloring-preferences-panel)
       (preferences:add-editor-checkbox-panel)
