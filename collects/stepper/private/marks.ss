@@ -5,7 +5,7 @@
            "my-macros.ss"
            "shared.ss")
 
-  (define-struct full-mark-struct (source label bindings))
+  (define-struct full-mark-struct (source label bindings values))
 
   ; CONTRACTS
   (define mark? (-> ; no args  
@@ -14,7 +14,7 @@
   
   (provide/contract 
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
-   ;[expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
+   [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
    [make-top-level-mark (syntax? . -> . syntax?)]
    [lookup-binding (case-> (-> mark-list? identifier? any)
                            (-> mark-list? identifier? procedure? any)
@@ -28,7 +28,6 @@
    skipto-mark
    strip-skiptos
    mark-list?
-   stx-protector-stx ; : (protector -> identifier) FOR TESTING ONLY
    mark-source
    mark-bindings
    mark-label
@@ -66,70 +65,38 @@
   (define (extract-mark-list mark-set)
     (strip-skiptos (continuation-mark-set->list mark-set debug-key)))
   
-  ; get-label-num : symbol -> num
-  ;  returns a number n. get-label-num is a one-to-one mapping from
-  ;  symbols to numbers.
-  
-  (define label-list null)
-  (define (get-label-num sym)
-    (let loop ([l-list label-list] [count 0])
-      (if (null? l-list)
-          (begin
-            (set! label-list (append label-list (list sym)))
-            count)
-          (if (eq? sym (car l-list))
-              count
-              (loop (cdr l-list) (+ count 1))))))
-
-;  (equal?
-;   (list (get-label-num 'foo)
-;         (get-label-num 'bar)
-;         (get-label-num 'baz)
-;         (get-label-num 'bar)
-;         (get-label-num 'foo)
-;         (get-label-num 'baz)
-;         (get-label-num 'quux))
-;   '(0 1 2 1 0 2 3))
   
   ; the 'varargs' creator is used to avoid an extra cons cell in every mark:
-  (define (make-full-mark-varargs source label . bindings)
-    (make-full-mark-struct source label bindings))
-  
-  (define-struct stx-protector (stx))
-  (define-struct label-protector (label))
+  (define (make-make-full-mark-varargs source label bindings)
+    (lambda values 
+      (make-full-mark-struct source label bindings values)))
   
   ; see module top for type
   (define (make-full-mark location label bindings)
-    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
-                                              ,(make-stx-protector location) 
-                                              ,(make-label-protector label)
-                                              ,@(apply append (map make-mark-binding-stx bindings))))))
+    (datum->syntax-object #'here `(lambda () (,(make-make-full-mark-varargs location label bindings)
+                                              ,@(map make-mark-binding-stx bindings)))))
   
   (define (mark-source mark)
-    (stx-protector-stx (full-mark-struct-source (mark))))
+    (full-mark-struct-source (mark)))
   
   ;; extract-locations : mark-set -> (listof syntax-object)
   (define (extract-locations mark-set)
     (map mark-source (extract-mark-list mark-set)))
     
-  ; : identifier -> (list/p stx-protector? identifier?)
+  ; : identifier -> identifier
   (define (make-mark-binding-stx id)
-    `(,(make-stx-protector id) ,(syntax-property id 'stepper-dont-check-for-function #t))) ; 3D!
+    #`(lambda () #,(syntax-property id 'stepper-dont-check-for-function #t)))
   
   (define (mark-bindings mark)
-    (letrec ([pair-off
-              (lambda (lst)
-                (cond [(null? lst) null]
-                      [(null? (cdr lst)) (error 'mark-bindings 
-                                                           "uneven number of vars and bindings")]
-                      [else (cons (list (stx-protector-stx (car lst)) (cadr lst)) (pair-off (cddr lst)))]))])
-      (pair-off (full-mark-struct-bindings (mark)))))
+    (map list 
+         (full-mark-struct-bindings (mark)) 
+         (full-mark-struct-values (mark))))
   
   (define (mark-label mark)
-    (label-protector-label (full-mark-struct-label (mark))))
+    (full-mark-struct-label (mark)))
   
   (define (mark-binding-value mark-binding)
-    (cadr mark-binding))
+    ((cadr mark-binding)))
   
   (define (mark-binding-binding mark-binding)
     (car mark-binding))
