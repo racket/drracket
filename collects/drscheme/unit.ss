@@ -775,36 +775,37 @@
 	[file-menu:save-as-string (lambda () "Definitions")]
 	[file-menu:between-save-as-and-print
 	 (lambda (file-menu)
-	   (make-object mred:menu-item%
-	     "Save Definitions As Text..."
-	     file-menu
-	     (lambda (_1 _2)
-	       (save-as-text-from-text definitions-text)))
-	   (make-object mred:menu-item%
-	     "Save Interactions"
-	     file-menu
-	     (lambda (_1 _2) (send interactions-text save-file)))
-	   (make-object mred:menu-item%
-	     "Save Interactions As..."
-	     file-menu
-	     (lambda (_1 _2) 
-	       (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
-			     (fw:finder:put-file))])
-		 (when file
-		   (send interactions-text save-file 
-			 file 'standard)))))
-	   (make-object mred:menu-item%
-	     "Save Interactions As Text..."
-	     file-menu
-	     (lambda (_1 _2)
-	       (save-as-text-from-text interactions-text)))
-;	   (make-object mred:separator-menu-item% file-menu)
-;	   (make-object mred:menu-item%
-;	     "Show Interactions History"
-;	     file-menu
-;	     (lambda (_1 _2)
-;	       (drscheme:rep:show-interactions-history)))
-	   (make-object mred:separator-menu-item% file-menu))]
+	   (let ([sub-menu (make-object mred:menu% "Save Other" file-menu)])
+	     (make-object mred:menu-item%
+	       "Save Definitions As Text..."
+	       sub-menu
+	       (lambda (_1 _2)
+		 (save-as-text-from-text definitions-text)))
+	     (make-object mred:menu-item%
+	       "Save Interactions"
+	       sub-menu
+	       (lambda (_1 _2) (send interactions-text save-file)))
+	     (make-object mred:menu-item%
+	       "Save Interactions As..."
+	       sub-menu
+	       (lambda (_1 _2) 
+		 (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
+			       (fw:finder:put-file))])
+		   (when file
+		     (send interactions-text save-file 
+			   file 'standard)))))
+	     (make-object mred:menu-item%
+	       "Save Interactions As Text..."
+	       sub-menu
+	       (lambda (_1 _2)
+		 (save-as-text-from-text interactions-text)))
+					;	   (make-object mred:separator-menu-item% file-menu)
+					;	   (make-object mred:menu-item%
+					;	     "Show Interactions History"
+					;	     file-menu
+					;	     (lambda (_1 _2)
+					;	       (drscheme:rep:show-interactions-history)))
+	     (make-object mred:separator-menu-item% file-menu)))]
 	[file-menu:print-string (lambda () "Definitions")]
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)

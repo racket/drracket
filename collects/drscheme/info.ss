@@ -2,6 +2,7 @@
 	  (lambda (request failure)
 	    (case request
 	      [(name) "DrScheme"]
+	      [(clean) '("compiled")]
 	      [(mred-launcher-libraries) (list "drscheme.ss")]
 	      [(mred-launcher-names) (list "DrScheme")]
 	      [(compile-prefix) 
