@@ -101,10 +101,10 @@
 		   (list-ref (ivar panel children) (car path)))))])
     (loop path (send frame get-top-panel))))
 
-;;; get-text-pos returns the offset in an edit buffer of the beginning
+;;; get-start-of-last-line returns the offset in an edit buffer of the beginning
 ;;; of the last line
 
-(define (get-text-pos edit)
+(define (get-start-of-last-line edit)
   (let* ([last-pos (send edit last-position)]
 	 [last-line (send edit position-line last-pos)])
     (send edit line-start-position last-line)))
@@ -113,10 +113,15 @@
 
 (define (wait-for-button button)
   (poll-until
-   (lambda () (send button is-enabled?))))
+   (lambda ()
+     (send button is-enabled?))))
 
 (define (push-button-and-wait button)
   (mred:test:button-push button)
+  (poll-until
+   (lambda ()
+     (mred:test:reraise-error)
+     (= 0 (mred:test:number-pending-actions))))
   (wait-for-button button))
 
 ; set language level in a given DrScheme frame
