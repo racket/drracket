@@ -103,10 +103,10 @@
         (define stop-button (make-object button% (string-constant mfs-stop-search) button-panel (lambda (x y) (stop-callback))))
         (define grow-box-pane (make-object grow-box-spacer-pane% button-panel))
         
-        (define zoom-text (make-object text%))
+        (define zoom-text (make-object scheme:text%))
         (define results-text (make-object results-text% zoom-text))
-        (define results-ec (make-object editor-canvas% panel results-text))
-        (define zoom-ec (make-object editor-canvas% panel zoom-text))
+        (define results-ec (make-object canvas:basic% panel results-text))
+        (define zoom-ec (make-object canvas:basic% panel zoom-text))
         
         (define (open-file-callback)
           (send results-text open-file))
@@ -199,7 +199,7 @@
       ;;   add-match : string int in tint int -> void
       ;;   adds a match to the text
       (define results-text%
-        (class text% 
+        (class text:basic% 
           (init-field zoom-text)
           (inherit insert last-paragraph erase
                    paragraph-start-position paragraph-end-position
@@ -308,11 +308,12 @@
                   (unless match-shown?
                     (show-this-match)))))]
           
-          (inherit get-style-list set-styles-sticky)
+          (inherit get-style-list set-style-list set-styles-sticky)
           (super-instantiate ())
           (send zoom-text lock #t)
           (set-styles-sticky #f)
-          (let ([delta (make-object style-delta% 'change-normal)]
+          (set-style-list (scheme:get-style-list))
+          '(let ([delta (make-object style-delta% 'change-normal)]
                 [style (send (get-style-list) find-named-style "Standard")])
             (send delta set-delta 'change-family 'modern)
             (send zoom-text set-style-list (get-style-list))
@@ -592,7 +593,7 @@
       (define (exact-match-searcher params key)
         (let ([case-sensitive? (car params)])
           (lambda (filename add-entry)
-            (let ([text (make-object text%)])
+            (let ([text (make-object text:basic%)])
               (send text load-file filename)
               (let loop ([pos 0])
                 (let ([found (send text find-string key 'forward pos 'eof #t case-sensitive?)])
