@@ -119,51 +119,84 @@ profile todo:
             (cond
               [(and (is-a? rep drscheme:rep:text<%>)
                     (eq? (send rep get-this-err) (current-error-port)))
-               (let ([cms (and (exn? exn) 
-                               (continuation-mark-set? (exn-continuation-marks exn))
-                               (continuation-mark-set->list 
-                                (exn-continuation-marks exn)
-                                cm-key))])
+	       (let* ([cms (and (exn? exn) 
+				(continuation-mark-set? (exn-continuation-marks exn))
+				(continuation-mark-set->list 
+				 (exn-continuation-marks exn)
+				 cm-key))]
+		      [src-to-display (find-src-to-display exn cms)])
+
                  (send rep queue-output
                        (lambda ()
-                         
-                         (send rep begin-edit-sequence)
-                         
-                         (when (and cms
-                                    (not (null? cms)))
-                           (let ([locked? (send rep is-locked?)]
-                                 [mf-bday?
-                                  (let ([date (seconds->date (current-seconds))])
-                                    (and (= (date-month date) 10)
-                                         (= (date-day date) 29)))])
-                             (send rep lock #f)
-                             (insert/clickback rep
-                                               (if mf-bday? mf-note bug-note)
-                                               (lambda ()
-                                                 (show-backtrace-window rep msg cms mf-bday?)))
-                             (let ([debug-source (car (car cms))])
-                               (when (symbol? debug-source)
-                                 (insert/clickback 
-                                  rep file-note
-                                  (lambda ()
-                                    (open-and-highlight-in-file (car cms))))))
-                             (send rep lock locked?)))
-                         (send rep end-edit-sequence)))
+			 (let ([locked? (send rep is-locked?)])
+			   (send rep begin-edit-sequence)
+			   (send rep lock #f)
+			   (when (and cms
+				      (not (null? cms)))
+			     (let ([mf-bday?
+				    (let ([date (seconds->date (current-seconds))])
+				      (and (= (date-month date) 10)
+					   (= (date-day date) 29)))])
+			       (insert/clickback rep
+						 (if mf-bday? mf-note bug-note)
+						 (lambda ()
+						   (show-backtrace-window rep msg cms mf-bday?)))))
+			   (when src-to-display
+			     (let ([src (car src-to-display)])
+			       (when (symbol? src)
+				 (insert/clickback 
+				  rep file-note
+				  (lambda ()
+				    (open-and-highlight-in-file src-to-display))))))
+			   (send rep lock locked?)
+			   (send rep end-edit-sequence))))
                  (orig-error-display-handler msg exn)
                  (send rep queue-output
                        (lambda ()
-                         (when (and cms
-                                    (not (null? cms)))
-                           (let* ([first-cms (car cms)]
-                                  [src (car first-cms)]
-                                  [position (cadr first-cms)]
-                                  [span (cddr first-cms)])
-                             (when (and (object? src)
-                                        (is-a? src text:basic%))
-                               (send rep highlight-error src position (+ position span))))))))]
+			 (when src-to-display
+			   (let* ([src (car src-to-display)]
+				  [position (cadr src-to-display)]
+				  [span (cddr src-to-display)])
+			     (when (and (object? src)
+					(is-a? src text:basic%))
+			       (send rep highlight-error src position (+ position span))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
+
+      ;; find-src-to-display : exn (listof (cons <src> (cons number number)))
+      ;;                    -> (union #f (cons (union symbol <src>) (cons number number)))
+      ;; finds the source location to display, choosing between
+      ;; the stack trace and the exception record.
+      ;; returns #f if the source isn't a string.
+      (define (find-src-to-display exn cms)
+	(cond
+	  [(exn:read? exn)
+	   (let ([src (exn:read-source exn)]
+		 [position (exn:read-position exn)]
+		 [span (exn:read-span exn)])
+	     (and src
+		  position
+		  span
+		  (cons (if (string? src)
+			    (string->symbol src)
+			    src)
+			(cons (- position 1) span))))]
+	  [(exn:syntax? exn)
+	   (let* ([stx (exn:syntax-expr exn)])
+	     (and (syntax? stx)
+		  (let ([src (syntax-source stx)]
+			[position (syntax-position stx)]
+			[span (syntax-span stx)])
+		    (and src
+			 position
+			 span
+			 (cons (if (string? src)
+				   (string->symbol src)
+				   src)
+			       (cons (- position 1) span))))))]
+	  [else (and (not (null? cms))
+		     (car cms))]))
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
