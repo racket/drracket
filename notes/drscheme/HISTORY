@@ -1,5 +1,49 @@
 Version 102:
 
+102d2
+
+ PRS: 1297, 1306, 1171
+
+ FUNCTIONALITY CHANGES
+
+ - zodiac now supports graphical expressions. If a snip implements
+   zodiac's expand<%> interface, zodiac calls a method of the snip to
+   expand it. Docs updated but not built.
+
+ - the teaching languages now come with:
+
+     make-posn, posn-x, posn-y, and posn?
+
+   by default (no library required).
+
+ - added typeset tool. To get, there are two new directories:
+
+   plt/collects/typeset
+   plt/collects/drscheme/tools/typeset
+
+   be sure to check those out. Search for Typeset in help desk for
+   more info.
+
+ - teaching levels print exact numbers whose denominators are evenly
+   disivible by 2 and 5 as decimals.
+
+ - teaching levels treat input decimals as exact numbers.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - fixed a bug (PR 1297, steck submission) in a call to message-box
+   from the get-file dialog but was unable to repdoduce the bug. Paul,
+   can you see if the bug has gone away? Thanks.
+
+ - changed the new version "welcome to drs" window back to something
+   much like the one in previous versions.
+
+ - drscheme should now print with a fixed-width font.
+
+ - in the main help-desk window, space does pgdn and backspace does
+   pgup, ala netscape. Also, typing return or enter while the cursor
+   is on a link follows the link.
+
 102d1
 
  PRS: 1274, 1280, 1264, 1260, 1239, 1225, 1220, 1268, 1209, 1208,
