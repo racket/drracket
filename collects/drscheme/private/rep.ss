@@ -10,6 +10,7 @@
   (require (lib "unitsig.ss")
            (lib "class.ss")
            (lib "class100.ss")
+           (lib "list.ss")
            "drsig.ss"
            "string-constant.ss"
            (lib "etc.ss")
@@ -202,6 +203,17 @@
         (set-delta-foreground "BLACK")
         (set-delta-background "YELLOW"))
       
+      ;; is-default-settings? : language-settings -> boolean
+      ;; determines if the settings in `language-settings'
+      ;; correspond to the default settings of the language.
+      (define (is-default-settings? language-settings)
+        (send (drscheme:language:language-settings-language language-settings)
+              default-settings?
+              (drscheme:language:language-settings-settings language-settings)))
+      (define (extract-language-name language-settings)
+        (car (last-pair (send (drscheme:language:language-settings-language language-settings)
+                              get-language-position))))
+                         
       (preferences:set-default 'drscheme:teachpack-file
                                   null
                                   (lambda (x) 
@@ -1772,6 +1784,10 @@
                 (set! in-evaluation? #f)
                 (update-running)
                 
+                ;; must init-evaluation-thread before determining
+                ;; the language's name, since this updates user-language-settings
+                (init-evaluation-thread)
+                
                 (begin-edit-sequence)
                 (set-resetting #t)
                 (delete (paragraph-start-position 1) (last-position))
@@ -1794,8 +1810,6 @@
                 
                 (set! repl-initially-active? #t)
                 (end-edit-sequence)
-                
-                (init-evaluation-thread)
                 
                 (super-reset-console)))
             
