@@ -2096,29 +2096,35 @@ If the namespace does not, they are colored the unbound color.
                        (map (λ (id-set) (or (get-ids id-set stx) '()))
                             id-sets))
                       (λ (x y) 
-                        ((syntax-position x) . >= . (syntax-position y)))))])
-              (cond
-                [(name-duplication? to-be-renamed id-sets new-sym)
-                 (message-box (string-constant check-syntax)
-                              (format (string-constant cs-name-duplication-error) 
-                                      new-sym)
-                              parent
-                              '(ok stop))]
-                [else
-                 (unless (null? to-be-renamed)
-                   (let ([first-one-source (syntax-source (car to-be-renamed))])
-                     (when (is-a? first-one-source text%)
-                       (send first-one-source begin-edit-sequence)
-                       (for-each (λ (stx) 
-                                   (let ([source (syntax-source stx)])
-                                     (when (is-a? source text%)
-                                       (let* ([start (- (syntax-position stx) 1)]
-                                              [end (+ start (syntax-span stx))])
-                                         (send source delete start end #f)
-                                         (send source insert new-sym start start #f)))))
-                                 to-be-renamed)
-                       (send first-one-source invalidate-bitmap-cache)
-                       (send first-one-source end-edit-sequence))))])))))
+                        ((syntax-position x) . >= . (syntax-position y)))))]
+                   [do-renaming?
+                    (or (not (name-duplication? to-be-renamed id-sets new-sym))
+                        (equal?
+                         (message-box/custom
+                          (string-constant check-syntax)
+                          (format (string-constant cs-name-duplication-error) 
+                                  new-sym)
+                          (string-constant cs-rename-anyway)
+                          (string-constant cancel)
+                          #f
+                          parent
+                          '(stop default=2))
+                         1))])
+              (when do-renaming?
+                (unless (null? to-be-renamed)
+                  (let ([first-one-source (syntax-source (car to-be-renamed))])
+                    (when (is-a? first-one-source text%)
+                      (send first-one-source begin-edit-sequence)
+                      (for-each (λ (stx) 
+                                  (let ([source (syntax-source stx)])
+                                    (when (is-a? source text%)
+                                      (let* ([start (- (syntax-position stx) 1)]
+                                             [end (+ start (syntax-span stx))])
+                                        (send source delete start end #f)
+                                        (send source insert new-sym start start #f)))))
+                                to-be-renamed)
+                      (send first-one-source invalidate-bitmap-cache)
+                      (send first-one-source end-edit-sequence)))))))))
       
       ;; name-duplication? : (listof syntax) (listof id-set) symbol -> boolean
       ;; returns #t if the name chosen would be the same as another name in this scope.
