@@ -215,9 +215,10 @@
 	    #f
 	    synthesized-panel))
 	 (send environment set-value   
-	       (format "~a (~a)"
+	       (format "~a (~a) (get-display-depth) = ~a"
 		       (system-type)
-		       (system-library-subpath)))
+		       (system-library-subpath)
+		       (get-display-depth)))
 	 (define tools
 	   (build/label
 	    "Tools"
