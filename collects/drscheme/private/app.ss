@@ -311,6 +311,16 @@
                
                [this-version (version:version)]
                
+               [insert-url/external-browser
+                (lambda (str url)
+                  (send e change-style d-http)
+                  (let* ([before (send e get-start-position)]
+                         [_ (send e insert str)]
+                         [after (send e get-start-position)])
+                    (send e set-clickback before after 
+                          (lambda args (send-url url))
+                          d-http))
+                  (send e change-style d-usual))]
                [insert-url
                 (lambda (str url)
                   (send e change-style d-http)
@@ -355,7 +365,7 @@
           
           (send e insert " by ")
           
-          (insert-url "PLT" "http://www.plt-scheme.org/")
+          (insert-url/external-browser "PLT" "http://www.plt-scheme.org/")
           
           (send* e
             (insert ".")
