@@ -10,7 +10,7 @@
   ((open mred:application^)))
 
 (define-signature drscheme:aries^
-  (transform frame%))
+  (transform frame% console-edit%))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
