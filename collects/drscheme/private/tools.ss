@@ -9,6 +9,18 @@
   
   (provide tools@)
 
+  (define-syntax wrap-tool
+    (begin
+      (printf "wrap-tool read~n")
+      (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
+						     "tool-info.ss")
+		     read)])
+	(lambda (stx)
+	  (syntax-case stx ()
+	    [(_ name)
+	     (with-syntax ([type (assoc (syntax name) table)])
+	       (syntax name)]))))))
+
   (define tools@
     (unit/sig drscheme:tools^
       (import [drscheme:frame : drscheme:frame^]
@@ -118,18 +130,20 @@
                                     (format (string-constant error-invoking-tool-title)
                                             coll in-path)
                                     x))])
-                  (invoke-unit/sig unit
-                                   ((unit drscheme:frame : drscheme:frame^)
-                                    (unit drscheme:unit : drscheme:unit^)
-                                    (unit drscheme:rep : drscheme:rep^)
-                                    (unit drscheme:get/extend : drscheme:get/extend^)
-                                    (unit drscheme:language : drscheme:language^)
-                                    (unit drscheme:language-configuration : drscheme:language-configuration^)
-				    (unit drscheme:help-desk : drscheme:help-desk^)))
+                  (invoke-tool unit name)
                   
                   (set! successful-tools 
                         (cons (make-successful-tool tool-path tool-bitmap name)
                               successful-tools))))))))
+
+      ;; invoke-tool : unit/sig string -> void
+      (define (invoke-tool unit tool-name)
+
+	(let ([drscheme:help-desk:help-desk (wrap-tool drscheme:help-desk:help-desk)]
+	      [drscheme:help-desk:open-url (wrap-tool drscheme:help-desk:open-url)]
+	      [drscheme:help-desk:open-users-url (wrap-tool drscheme:help-desk:open-users-url)])
+
+	  (invoke-unit/sig unit drscheme:tool^)))
 
       ;; show-error : string exn -> void
       (define (show-error title x)

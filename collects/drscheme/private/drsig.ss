@@ -162,7 +162,7 @@
      (unit drscheme:get/extend : drscheme:get/extend^)
      (unit drscheme:language-configuration : drscheme:language-configuration^)
      (unit drscheme:language : drscheme:language^)
-     (unit drscheme:help-desk : drscheme:help-desk^)))
+     (open ((unit drscheme:help-desk : drscheme:help-desk^)))))
 
   (define-signature drscheme^
     ((unit drscheme:teachpack : drscheme:teachpack^)
