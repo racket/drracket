@@ -1,7 +1,7 @@
 (define drscheme:toplevel-tools
-  (list (list "Stepper" (build-path "drscheme" "donkstub"))
-	(list "Syntax Checker" (build-path "drscheme" "mrslatex"))
-	(list "Analyzer" (build-path "drscheme" "spidstub"))
+  (list (list "Syntax Checker" (build-path "drscheme" "mrslatex"))
+	(list "Stepper" (build-path "drscheme" "donkstub"))
+	(list "Static Debugger" (build-path "drscheme" "spidstub"))
 
 ;;          this is the example tool.
 	;(list "Toy" (build-path "drscheme" "toy"))
