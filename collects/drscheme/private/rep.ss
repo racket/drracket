@@ -99,15 +99,15 @@
       ;; must escape. this is called if the user's error-escape-handler doesn't escape
       (define bottom-escape-handler (make-parameter void))
       
-      ;; drscheme-error-display/debug-handler : (string (union #f exn) -> void
+      ;; drscheme-error-display-handler : (string (union #f exn) -> void
       ;; the timing is a little tricky here. 
       ;; the file icon must appear before the error message in the text, so tha happens first.
       ;; the highlight must be set after the error message because inserting into the text resets
       ;;     the highlighting.
-      (define (drscheme-error-display/debug-handler msg exn)
+      (define (drscheme-error-display-handler msg exn)
 	(let-values ([(src position other-position module form)
 		      (if (exn? exn)
-			  (extract-file/position-from-exn exn)
+			  (extract-info-from-exn exn)
 			  (values #f #f #f))])
 	  (let ([rep (current-rep)])
 	    
@@ -130,7 +130,7 @@
               (send rep lock locked?))
               
 	    
-	    ((error-display-handler) msg)
+	    (display msg (current-error-port))
 	    
 	    (when (and (object? src) (is-a? src text:basic%))
 	      (if other-position
@@ -177,9 +177,9 @@
       ;; the fourth result is a symbol naming the module defining the form that
       ;;     signalled the error
       ;; the fifth result is a symbol naming the form that signaled the error.
-      (define (extract-file/position-from-exn exn)
+      (define (extract-info-from-exn exn)
 	(cond
-	  [(exn:syntax? exn) 
+	  [(exn:syntax? exn)
            (let ([stx (exn:syntax-expr exn)])
              (if stx
                  (values (syntax-source stx)
@@ -192,13 +192,13 @@
                          (exn:syntax-module exn)
                          (exn:syntax-form exn))))]
           [(exn:read? exn)
-           (values (exn:read-source exn) #f #f #f #f)]
+           (values (exn:read-source exn)
+		   (- (exn:read-position exn) 1)
+		   (exn:read-position exn)
+		   #f #f)]
 	  [else
 	   (values #f #f #f #f #f)]))
 
-      ;; (parameter (string (union #f exn) -> void))
-      (define error-display/debug-handler (make-parameter drscheme-error-display/debug-handler))
-      
       ;; drscheme-error-value->string-handler : TST number -> string
       (define (drscheme-error-value->string-handler x n)
         (let ([port (open-output-string)])
@@ -221,17 +221,6 @@
                         (loop (sub1 i)))))
                   short-string)))))
 
-      ;; drscheme-exception-handler : exn -> A
-      ;; effect: displays the exn-message and escapes
-      (define (drscheme-exception-handler exn)
-	(let ([dh (error-display/debug-handler)])
-	  (if (exn? exn)
-	      (dh (exn-message exn) exn)
-	      (dh (format "uncaught exception: ~e" exn) #f)))
-	((error-escape-handler))
-	((error-display-handler) "Exception handler did not escape")
-	((bottom-escape-handler)))
-      
       (define raw-symbol-chars "a-z/!>:%\\+\\*\\?-")
       (define symbol-chars (format "[~a]" raw-symbol-chars))
       (define not-symbol-chars (format "[^~a]" raw-symbol-chars))
@@ -1839,7 +1828,7 @@
 		(current-rep this)
               	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
-                (current-exception-handler drscheme-exception-handler)
+		(error-display-handler drscheme-error-display-handler)
                 (current-load-relative-directory #f)
                 (current-custodian user-custodian)
                 
