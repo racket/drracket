@@ -520,6 +520,7 @@
 	   (when (eq? this created-frame)
 	     (set! created-frame #f))
 	   (send interactions-text shutdown)
+	   (send interactions-text on-close)
 	   (super-on-close))])
 	
       (public
