@@ -617,6 +617,7 @@ TODO
                    get-err-port
                    get-extent
                    get-in-port
+                   get-insertion-point
                    get-out-port
                    get-snip-position
                    get-start-position
@@ -964,20 +965,29 @@ TODO
                   (set! prompt-space (+ prompt-space 1)))
                 (insert-between pmt))
               
-              ;; trim extra space, according to preferences
-              (let* ([start (paragraph-start-position 2)]
-                     [end (- (get-unread-start-point) prompt-space)]
-                     [space (- end start)]
-                     [pref (preferences:get 'drscheme:repl-buffer-size)]
-                     [max-space (* 1000 (cdr pref))])
-                (when (and (car pref)
-                           (space . > . max-space))
-                  (let ([to-delete-end (+ start (- space max-space))])
-                    (delete/io start to-delete-end))))
-              
               (let ([sp (get-unread-start-point)])
                 (set! prompt-position sp)
                 (reset-region sp 'end))))
+          
+          (define/augment (after-insert start len)
+            (inner (void) after-insert start len)
+            (when (and prompt-position (<= start prompt-position))
+              
+              ;; trim extra space, according to preferences
+              #;
+              (let* ([start (get-repl-header-end)]
+                     [end (get-insertion-point)]
+                     [space (- end start)]
+                     [pref (preferences:get 'drscheme:repl-buffer-size)])
+                (when (car pref)
+                  (let ([max-space (* 1000 (cdr pref))])
+                    (when (space . > . max-space)
+                      (let ([to-delete-end (+ start (- space max-space))])
+                        (printf "deleting ~s ~s\n" start to-delete-end)
+                        (delete/io start to-delete-end))))))
+              
+              (set! prompt-position (get-unread-start-point))
+              (reset-region prompt-position 'end)))
           
           (field [submit-predicate
                   (lambda (text prompt-position)
@@ -1443,6 +1453,7 @@ TODO
             (set-insertion-point (last-position))
             (set-allow-edits #f)
             (thaw-colorer)
+            (set! repl-header-end #f)
             (end-edit-sequence))
           
           (define/public (initialize-console)
@@ -1466,11 +1477,19 @@ TODO
             (end-edit-sequence)
             (clear-undos))
           
+          ;; avoid calling paragraph-start-position very often.
+          (define repl-header-end #f)
+          (define/private (get-repl-header-end)
+            (if repl-header-end
+                repl-header-end
+                (begin (set! repl-header-end (paragraph-start-position 2))
+                       repl-header-end)))
+                    
           (define setting-up-repl? #f)
           (define/augment (can-change-style? start len)
             (and (inner #t can-change-style? start len)
                  (or setting-up-repl?
-                     (start . >= . (paragraph-start-position 2)))))
+                     (start . >= . (get-repl-header-end)))))
                     
           (define/private (last-str l)
             (if (null? (cdr l))
@@ -1479,19 +1498,18 @@ TODO
           
           (field (previous-expr-pos -1))
           
-          (define/public copy-previous-expr
-            (lambda ()
-              (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
-                (begin-edit-sequence)
-                (delete prompt-position (last-position) #f)
-                (for-each (lambda (snip/string)
-                            (insert (if (is-a? snip/string snip%)
-                                        (send snip/string copy)
-                                        snip/string)
-                                    prompt-position))
-                          snip/strings)
-                (set-position (last-position))
-                (end-edit-sequence))))
+          (define/public (copy-previous-expr)
+            (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
+              (begin-edit-sequence)
+              (delete prompt-position (last-position) #f)
+              (for-each (lambda (snip/string)
+                          (insert (if (is-a? snip/string snip%)
+                                      (send snip/string copy)
+                                      snip/string)
+                                  prompt-position))
+                        snip/strings)
+              (set-position (last-position))
+              (end-edit-sequence)))
           
           (define/public copy-next-previous-expr
             (lambda ()
