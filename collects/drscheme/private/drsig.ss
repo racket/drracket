@@ -45,8 +45,7 @@
   
   (define-signature drscheme:language-configuration^
     (add-language
-     ;get-settings-preferences-symbol
-     ))
+     get-settings-preferences-symbol))
   
   (define-signature drscheme:language-configuration/internal^
     ((struct language-settings (language settings))

@@ -1174,20 +1174,35 @@
                      [settings (drscheme:language-configuration:language-settings-settings
                                 language-settings)]
                      [user-custodian (make-custodian)]
+                     [exn-raised? #f]
+                     [err-msg #f]
+                     [err-exn #f]
                      [run-in-eventspace
                       (lambda (thnk)
                         (parameterize ([current-eventspace eventspace])
-                          (let ([s (make-semaphore 0)]
+                          (set! exn-raised? #f)
+                          (let ([sema (make-semaphore 0)]
                                 [ans #f])
                             (queue-callback
                              (lambda ()
-                               (set! ans (thnk))
-                               (semaphore-post s)))
-                            (semaphore-wait s)
+                               (let/ec k
+                                 (parameterize ([error-escape-handler
+                                                 (let ([drscheme-expand-program-error-escape-handler
+                                                        (lambda ()
+                                                          (set! exn-raised? #t)
+                                                          (k (void)))])
+                                                   drscheme-expand-program-error-escape-handler)])
+                                   (set! ans (thnk))))
+                               (semaphore-post sema)))
+                            (semaphore-wait sema)
                             ans)))]
                      [drs-snip-classes (get-snip-classes)])
                 (run-in-eventspace
                  (lambda ()
+                   (error-display-handler
+                    (lambda (msg exn)
+                      (set! err-msg msg)
+                      (set! err-exn exn)))
                    (current-custodian user-custodian)
                    (set-basic-parameters drs-snip-classes)
                    (current-language-settings language-settings)
@@ -1198,12 +1213,20 @@
                         (lambda ()
                           (send language front-end input settings)))])
                   (let loop ()
-                    (let ([in (run-in-eventspace read-thnk)])
+                    (let ([in (run-in-eventspace
+                               (lambda ()
+                                 (let ([rd (read-thnk)])
+                                   (if (eof-object? rd)
+                                       rd
+                                       (expand rd)))))])
                       (unless (eof-object? in)
                         (iter
-                         in
+                         exn-raised?
+                         (if exn-raised? (cons err-msg err-exn) in)
                          run-in-eventspace
-                         (lambda () (loop)))))))))
+                         (if exn-raised?
+                             (lambda () (void))
+                             (lambda () (loop))))))))))
             
             (define (get-prompt) "> ")
             (define (eval-busy?)

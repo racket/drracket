@@ -11,8 +11,8 @@
   
   ;; bw-default-code-styles : (listof (list symbol code-style
   (define bw-default-code-styles
-    (list (list 'keyword (make-code-style '(40 25 15) #f #t #t))
-          (list 'unbound-variable (make-code-style "black" #t #f #t))
+    (list (list 'keyword (make-code-style '(40 25 15) #f #t #f))
+          (list 'unbound-variable (make-code-style "black" #t #f #f))
           (list 'bound-variable (make-code-style "black" #f #f #t))
           (list 'primitive (make-code-style "navy" #f #f #f))
           (list 'constant (make-code-style '(51 135 39) #f #f #f))
@@ -20,8 +20,8 @@
   
   ;; color-default-code-styles : (listof (list symbol code-style))
   (define color-default-code-styles
-    (list (list 'keyword (make-code-style '(40 25 15) #f #t #t))
-          (list 'unbound-variable (make-code-style "red" #f #f #t))
+    (list (list 'keyword (make-code-style '(40 25 15) #f #t #f))
+          (list 'unbound-variable (make-code-style "red" #f #f #f))
           (list 'bound-variable (make-code-style "navy" #f #f #f))
           (list 'primitive (make-code-style "navy" #f #f #f))
           (list 'constant (make-code-style '(51 135 39) #f #f #f))
