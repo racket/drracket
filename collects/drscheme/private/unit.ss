@@ -3,8 +3,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-	   (prefix basis: (lib "basis.ss" "userspce"))
-           "drsig.ss"
+	   "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix launcher: (lib "launcher.ss" "launcher"))
@@ -134,7 +133,8 @@
             "Untitled"))
       
       (define (create-launcher frame)
-        (let* ([program-filename (send (send frame get-definitions-text) get-filename)]
+        (error 'create-lanuncher "not yet implemented")
+        '(let* ([program-filename (send (send frame get-definitions-text) get-filename)]
                [executable-filename
                 (if (eq? (system-type) 'windows)
                     (string-append (basename program-filename) ".exe")

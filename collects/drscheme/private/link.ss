@@ -1,5 +1,5 @@
 (module link mzscheme
-  (require "tool.ss"
+  (require "tools.ss"
            (lib "unitsig.ss")
 	   "language-tower.ss"
            "language.ss"
@@ -35,6 +35,6 @@
             [help-interface : drscheme:help-interface^ (help-interface@ frame language)]
 	    [app : drscheme:app^ (app@ unit frame help-interface)]
             [main-before : () (main-before@ app unit get/extend language)]
-            [tool : () (tool@ ...)]
+            [tool : () (tools@ frame unit rep get/extend)]
             [main : drscheme:main^ (main@ app unit get/extend language)])
       (export))))

@@ -11,7 +11,6 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
-           (prefix basis: (lib "basis.ss" "userspce"))
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -53,8 +52,7 @@
       (define (drscheme-pretty-print-size-hook x _ port)
         (cond
           [(is-a? x snip%) 1]
-          [(and (use-number-snip? x)
-                (basis:setting-print-whole/part-fractions (basis:current-setting)))
+          [(and (use-number-snip? x))
            (+ (string-length (number->string (floor x)))
               (max (string-length
                     (number->string 
@@ -107,12 +105,6 @@
   ;; Max length of output queue (user's thread blocks if the
   ;; queue is full):
       (define output-limit-size 2000)
-      
-  ;; note: the parameter basis:current-setting contains the setting
-  ;; currently in use in the repl. The preference drscheme:setting,
-  ;; however, contains the current settings in the language dialog.
-  ;; basis:initialize-parameters sets the value of that parameter in
-  ;; the user's eventspace's thread.
       
       (define (printf . args) (apply fprintf drscheme:init:original-output-port args))
       
@@ -995,8 +987,7 @@
                   (let ([to-be-inserted
                          (cond
                            [(is-a? s snip%) (send s copy)]
-                           [(and (use-number-snip? s)
-                                 (basis:setting-print-whole/part-fractions user-setting))
+                           [(use-number-snip? s)
                             (make-object drscheme:snip:whole/part-number-snip% s)]
                            [else s])])
                     (send text insert to-be-inserted start start #t)
@@ -1162,18 +1153,12 @@
                 (for-each 
                  (lambda (v)
                    (unless (void? v)
-                     (let* ([setting (basis:current-setting)]
-                            [v (if (basis:r4rs-style-printing? setting)
-                                   v
-                                   (print-convert:print-convert v))])
+                     (let* ([v (print-convert:print-convert v)])
                        (parameterize ([mzlib:pretty-print:pretty-print-size-hook
                                        drscheme-pretty-print-size-hook]
                                       [mzlib:pretty-print:pretty-print-print-hook
                                        (lambda (x _ port) (this-result-write x))])
-                         (if (basis:setting-use-pretty-printer? setting)
-                             (mzlib:pretty-print:pretty-print v this-result)
-                             (parameterize ([mzlib:pretty-print:pretty-print-columns 'infinity])
-                               (mzlib:pretty-print:pretty-print v this-result)))))))
+                         (mzlib:pretty-print:pretty-print v this-result)))))
                  anss)))
             
             
