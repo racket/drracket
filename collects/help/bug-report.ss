@@ -1,13 +1,12 @@
 (define saved-name "")
 (define saved-email "")
 
-(define (same-height l r)
-  (let-values ([(_1 l-min) (send l get-graphical-min-size)]
-               [(_2 r-min) (send r get-graphical-min-size)])
-    ;(printf "l-min ~a r-min ~a~n" l-min r-min)
-    (let ([height (max l-min r-min)])
-      (send l min-height height)
-      (send r min-height height))))
+(define bug-frame%
+  (class frame% (title)
+    (override
+      [on-close
+       (lambda ()
+         (cancel))])))
 
 (define bug-frame (make-object frame% "Bug Report Form"))
 (define top-panel (make-object horizontal-panel% bug-frame))
@@ -16,26 +15,31 @@
 (send label-panel set-alignment 'right 'center)
 (send item-panel set-alignment 'left 'center)
 
+(define (add-label text item)
+  (let*-values ([(panel) (make-object vertical-pane% label-panel)]
+                [(label) (make-object message% text panel)]
+                [(_1 l-min) (send item get-graphical-min-size)]
+                [(_2 r-min) (send label get-graphical-min-size)])
+    (send panel set-alignment 'center 'top)
+    (let ([height (max l-min r-min)])
+      (send panel min-height height)
+      (send item min-height height))))
+
 (define name (make-object text-field% #f item-panel void saved-name))
-(define name-label (make-object message% "Name" label-panel))
-(same-height name name-label)
+(add-label "Name" name)
 
 (define email (make-object text-field% #f item-panel void saved-email))
-(define email-label (make-object message% "Email" label-panel))
-(same-height email email-label)
+(add-label "Email" email)
 
 (define summary (make-object text-field% #f item-panel void))
-(define summary-label (make-object message% "Summary" label-panel))
-(same-height summary summary-label)
+(add-label "Summary" summary)
 
 (define severity (make-object choice% 
                    #f
                    (list "critical" "serious" "non-critical")
                    item-panel
                    void))
-(define severity-label (make-object message% "Severity" label-panel))
-(send severity set-selection 1)
-(same-height severity severity-label)
+(add-label "Severity" severity)
 
 (define class-choice 
   (make-object choice%
@@ -43,16 +47,41 @@
     (list "software bug" "documentation bug" "change request" "support")
     item-panel
     void))
-(define class-label (make-object message% "Class" label-panel))
-(same-height class-choice class-label)
+(add-label "Class" class-choice)
 
 (define priority (make-object choice%
                    #f
                    (list "high" "medium" "low")
-                   bug-frame
+                   item-panel
                    void))
-(define priority-label (make-object message% "Priority" label-panel))
+(add-label "Priority" priority)
 (send priority set-selection 1)
-(same-height priority priority-label)
+
+(define (make-big-text label)
+  (let* ([text (make-object text%)]
+         [canvas (make-object editor-canvas% item-panel text)])
+    (send canvas min-width 600)
+    (send canvas min-height 250)
+    (add-label label canvas)
+    text))
+
+(define description (make-big-text "Description"))
+(define reproduce (make-big-text "Reproduce"))
+
+(define button-panel (make-object panel% bug-frame))
+(send button-panel set-alignment 'right 'center)
+(send button-panel stretchable-height #f)
+(define cancel-button (make-object button% "Cancel" button-panel (lambda x (cancel))))
+(define ok-button (make-object button% "OK" button-panel (lambda x (ok))))
+
+
+(define (ok)
+  (cleanup-frame))
+
+(define (cancel)
+  (cleanup-frame))
+
+(define (cleanup-frame)
+  (send bug-frame show #t))
 
 (send bug-frame show #t)
