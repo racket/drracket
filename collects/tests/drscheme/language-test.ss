@@ -40,6 +40,8 @@
       (test-error-after-definition)
       
       (prepare-for-test-expression)
+
+      (test-expression "'|.|" "'|.|")
       
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "#f")
@@ -134,6 +136,7 @@
       
       (prepare-for-test-expression)
       
+      (test-expression "'|.|" "'|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "#f")
       (test-expression "(define x 1)(define x 2)" "")
@@ -225,6 +228,7 @@
       
       (prepare-for-test-expression)
 
+      (test-expression "'|.|" "'|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "true")
       
@@ -341,7 +345,7 @@
       
       (prepare-for-test-expression)
       
-      
+      (test-expression "'|.|" "'|.|")      
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "true")
       
@@ -456,6 +460,7 @@
       
       (prepare-for-test-expression)
       
+      (test-expression "'|.|" "'|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "true")
       
@@ -564,6 +569,7 @@
       
       (prepare-for-test-expression)
       
+      (test-expression "'|.|" "'|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "true")
       (test-expression "(define x 1)(define x 2)"
@@ -670,6 +676,7 @@
       
       (prepare-for-test-expression)
       
+      (test-expression "'|.|" "'|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "true")
       (test-expression "(define x 1)(define x 2)"
