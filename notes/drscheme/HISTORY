@@ -6,10 +6,6 @@
    See doc.txt in the parser-tools collection.
    (This isn't a DrScheme change per se.)
 
-- DrScheme only looks in subcollections of the drs-tools
-   collection for tools now, rather than in every
-   collection.
-
  - the PLTDRDEBUG environment variable now works much
    better. Thanks to improvements in cm, setting it now
    builds .zos with errortrace and should make porting tools

@@ -60,18 +60,8 @@
          phase2-extras))
 
       (define (all-tool-collections)
-        (let loop ([coll-dirs (current-library-collection-paths)]
-                   [acc null])
-          (cond
-            [(null? coll-dirs) (apply append acc)]
-            [else 
-             (let ([tool-dir (build-path (car coll-dirs) "drs-tools")])
-               (if (directory-exists? tool-dir)
-                   (loop (cdr coll-dirs)
-                         (cons (map (lambda (x) (build-path tool-dir x))
-                                    (directory-list tool-dir))
-                               acc))
-                   (loop (cdr coll-dirs) acc)))])))
+        (map (lambda (x) (apply collection-path x))
+             (find-relevant-collections '(tools tool-icons tool-names tool-urls))))
       
       ;; loads the the tools in each collection
       ;; unless PLTNOTOOLS is set, in which case it
