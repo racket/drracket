@@ -83,7 +83,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+1/2i")
-      (test-expression "779625/32258" "779625/32258")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "#f")
       
       (test-expression "(list 1)" "(1)")
@@ -157,7 +157,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+1/2i")
-      (test-expression "779625/32258" "779625/32258")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "#f")
 
       (test-expression "(list 1)" "(1)")
@@ -228,7 +228,7 @@
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(list 1)" "(cons 1 empty)")
@@ -302,7 +302,7 @@
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       
       (test-expression "(exact? 1.5)" "true")
       (test-expression "(list 1)" "(list 1)")
@@ -377,7 +377,7 @@
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(list 1)" "(list 1)")
