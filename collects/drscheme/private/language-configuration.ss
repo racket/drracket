@@ -853,7 +853,7 @@
                         #t
                         (string-constant mred-one-line-summary)))
           (add-language
-           (make-simple '(lib "htdp-full-graphics.ss" "lang")
+           (make-simple '(lib "plt-pretty-big.ss" "lang")
                         (list (string-constant plt)
                               (string-constant pretty-big-scheme))
                         (list -10 3)
