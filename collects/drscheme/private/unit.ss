@@ -25,7 +25,8 @@
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:teachpack : drscheme:teachpack^]
-              [drscheme:module-overview : drscheme:module-overview^])
+              [drscheme:module-overview : drscheme:module-overview^]
+              [drscheme:debug : drscheme:debug^])
       
       (rename [-frame% frame%])
       
@@ -671,7 +672,7 @@
       
       (define (set-box/f! b v) (when (box? b) (set-box! b v)))
       
-      (define vertical-dragable/pref%
+      (define vertical-dragable/def-int%
         (class panel:vertical-dragable%
           (init-field unit-frame)
           (inherit get-percentages)
@@ -685,18 +686,19 @@
           (super-instantiate ())))
       
       (define super-frame%
-        (drscheme:frame:mixin
-         (drscheme:frame:basics-mixin 
-          (frame:searchable-text-mixin 
-           (frame:searchable-mixin
-            (frame:file-mixin
-             (frame:text-info-mixin 
-              (frame:info-mixin
-               (frame:delegate-mixin
-                (frame:text-mixin
-                 (frame:editor-mixin
-                  (frame:standard-menus-mixin
-                   frame:basic%))))))))))))
+        (drscheme:debug:profile-unit-frame-mixin
+         (drscheme:frame:mixin
+          (drscheme:frame:basics-mixin 
+           (frame:searchable-text-mixin 
+            (frame:searchable-mixin
+             (frame:file-mixin
+              (frame:text-info-mixin 
+               (frame:info-mixin
+                (frame:delegate-mixin
+                 (frame:text-mixin
+                  (frame:editor-mixin
+                   (frame:standard-menus-mixin
+                    frame:basic%)))))))))))))
       
       (define -frame%
         (class* super-frame% (drscheme:rep:context<%>)
@@ -1518,10 +1520,9 @@
           
           [define top-panel (make-object horizontal-panel% (get-area-container))]
           [define name-panel (make-object vertical-panel% top-panel)]
-          [define resizable-panel (instantiate vertical-dragable/pref% ()
+          [define resizable-panel (instantiate vertical-dragable/def-int% ()
                                     (unit-frame this)
                                     (parent (get-definitions/interactions-panel-parent)))]
-          
           (send name-panel stretchable-width #f)
           (send name-panel stretchable-height #f)
           

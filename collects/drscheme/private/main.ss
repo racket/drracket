@@ -28,7 +28,8 @@
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-language : drscheme:module-language^]
               [drscheme:snip : drscheme:snip^]
-              [drscheme:tools : drscheme:tools^])
+              [drscheme:tools : drscheme:tools^]
+              [drscheme:debug : drscheme:debug^])
       
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
@@ -49,6 +50,38 @@
       
       (preferences:set-default 'drscheme:backtrace-window-width 400 number?)
       (preferences:set-default 'drscheme:backtrace-window-height 300 number?)
+      
+      (preferences:set-default 'drscheme:profile-how-to-count 'time
+                               (lambda (x)
+                                 (memq x '(time number))))
+      (preferences:set-default 'drscheme:profile:low-color
+                               (make-object color% 150 255 150)
+                               (lambda (x) (is-a? x color%)))
+      (preferences:set-default 'drscheme:profile:high-color
+                               (make-object color% 255 150 150)
+                               (lambda (x) (is-a? x color%)))
+      (preferences:set-default 'drscheme:profile:scale
+                               'linear
+                               (lambda (x) (memq x '(sqrt linear square))))
+      (let ([marshall-color 
+             (lambda (c)
+               (list (send c red) (send c green) (send c blue)))]
+            [unmarshall-color
+             (lambda (l)
+               (if (and (list? l) 
+                        (= 3 (length l))
+                        (andmap (lambda (x) (and number? (<= 0 x 255)))
+                                l))
+                   (make-object color% (car l) (cadr l) (caddr l))
+                   (make-object color% 0 0 0)))])
+        (preferences:set-un/marshall 
+         'drscheme:profile:low-color
+         marshall-color
+         unmarshall-color)
+        (preferences:set-un/marshall 
+         'drscheme:profile:high-color
+         marshall-color
+         unmarshall-color))
       
       (preferences:set-default 
        'drscheme:keybindings-window-size
@@ -250,8 +283,6 @@
       
       (scheme:add-preferences-panel)
       (preferences:add-general-panel)
-      (add-proxy-prefs-panel)
-      
       (preferences:add-panel
        (string-constant general-ii)
        (lambda (panel)
@@ -277,6 +308,8 @@
            (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once))
            (make-object vertical-panel% main)
            main)))
+      (add-proxy-prefs-panel)
+      (drscheme:debug:add-prefs-panel)
       
       ;; add a handler to open .plt files.
       (handler:insert-format-handler 

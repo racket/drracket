@@ -33,7 +33,9 @@
   (define-signature drscheme:debug^
     (make-debug-error-display-handler
      make-debug-eval-handler
-     hide-backtrace-window))
+     hide-backtrace-window
+     profile-unit-frame-mixin
+     add-prefs-panel))
   
   (define-signature drscheme:module-language^
     (add-module-language))
