@@ -4,7 +4,9 @@
 
  - release notes feature in drscheme now integrated with
    help desk release notes.
-					   
+			
+ - help desk docs install docs window is now 600 pixels wide
+
 ; ------------------------------------------------------------
 
 101d5
