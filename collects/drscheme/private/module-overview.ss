@@ -23,7 +23,7 @@ todo :
     - status line messages timing is wrong (can be closed and still sending messages)
     - shutdown the custodian when expansion is finished
 
- - disable module browser in all languages except module language
+ - disable module browser in all languages except module language and PLT languages
    (popup message box when selecting menu item)
     
 |#
@@ -36,7 +36,7 @@ todo :
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants")
            (lib "graph.ss" "mrlib")
-           (lib "errortrace.ss" "errortrace")
+           (lib "errortrace-lib.ss" "errortrace")
            "drsig.ss"
            (lib "unitsig.ss"))
   

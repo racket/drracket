@@ -375,14 +375,16 @@
                            (pair? numbers)
                            (andmap number? numbers)
                            (andmap string? positions)
-                           (= (length positions) (length numbers)))
+                           (= (length positions) (length numbers))
+                           ((length numbers) . >= . 2))
                 (error 'drscheme:language
-                       "languages position and numbers must be lists of strings and numbers, respectively, and must have the same length, got: ~e ~e"
+                       "languages position and numbers must be lists of strings and numbers, respectively, must have the same length,  and must each contain at least two elements, got: ~e ~e"
                        positions numbers))
               (let add-sub-language ([ht languages-table]
                                      [hier-list languages-hier-list]
                                      [positions positions]
-                                     [numbers numbers])
+                                     [numbers numbers]
+                                     [first? #t])
                 (cond
                   [(null? (cdr positions))
                    (let-values ([(language-details-panel get/set-settings)
@@ -425,18 +427,30 @@
                                  ht
                                  (string->symbol position)
                                  (lambda ()
-                                   (let* ([new-list (send hier-list new-list number-mixin)]
-                                          [x (cons (make-hash-table) new-list)])
-                                     (send new-list set-number number)
-                                     (send new-list set-allow-selection #f)
-                                     (send new-list open)
-                                     (send (send new-list get-editor) insert position)
-                                     (hash-table-put! ht (string->symbol position) x)
-                                     x)))])
+                                   (if first?
+                                       (let ([x (cons (make-hash-table) hier-list)])
+                                         (hash-table-put! ht (string->symbol position) x)
+                                         x)
+                                       (let* ([new-list (send hier-list new-list number-mixin)]
+                                              [x (cons (make-hash-table) new-list)])
+                                         (send new-list set-number number)
+                                         (send new-list set-allow-selection #f)
+                                         (send new-list open)
+                                         (send (send new-list get-editor) insert position)
+                                         (hash-table-put! ht (string->symbol position) x)
+                                         x))))])
+                          (when first
+                            (let* ([editor (send hier-list get-editor)]
+                                   [pos (send editor last-position)])
+                              (send editor insert position pos pos)
+                              (send editor insert "\n")
+                              (send editor change-style bold-style-delta pos 
+                                    (- (send editor last-position) 1))))
                           (add-sub-language (car sub-ht/sub-hier-list)
                                             (cdr sub-ht/sub-hier-list)
                                             (cdr positions)
-                                            (cdr numbers)))]))))
+                                            (cdr numbers)
+                                            #f))]))))
 
           ;; number-mixin : (extends object%) -> (extends object%)
           ;; adds the get/set-number methods to this class
@@ -565,6 +579,9 @@
            (lambda () selected-language)
            (lambda () (get/set-selected-language-settings)))))
 
+      (define bold-style-delta
+        (make-object style-delta% 'change-bold))
+      
       (define (add-welcome dialog welcome-before-panel welcome-after-panel)
         (let* ([outer-pb%
                 (class pasteboard%
@@ -1007,40 +1024,45 @@
                       (language-numbers numbers))))])
           (add-language
            (make-simple '(lib "plt-mzscheme.ss" "lang") 
-                        (list (string-constant plt)
+                        (list (string-constant professional-languages)
+                              (string-constant plt)
                               (string-constant mzscheme-w/debug))
-                        (list -10 1)
+                        (list -10 -10 1)
                         #f
                         (string-constant mzscheme-one-line-summary)
                         (lambda (x) x)))
           (add-language
            (make-simple '(lib "plt-mred.ss" "lang")
-                        (list (string-constant plt)
+                        (list (string-constant professional-languages)
+                              (string-constant plt)
                               (string-constant mred-w/debug))
-                        (list -10 2)
+                        (list -10 -10 2)
                         #t
                         (string-constant mred-one-line-summary)
                         (lambda (x) x)))
           (add-language
            (make-simple '(lib "plt-pretty-big.ss" "lang")
-                        (list (string-constant plt)
+                        (list (string-constant professional-languages)
+                              (string-constant plt)
                               (string-constant pretty-big-scheme))
-                        (list -10 3)
+                        (list -10 -10 3)
                         #t
                         (string-constant pretty-big-scheme-one-line-summary)
                         (lambda (x) x)))
           (add-language
            (make-simple '(lib "plt-mzscheme.ss" "lang")
-                        (list (string-constant plt)
+                        (list (string-constant professional-languages)
+                              (string-constant plt)
                               "Expander")
-                        (list -10 4)
+                        (list -10 -10 4)
                         #t
                         "Expands, rather than evaluates expressions"
                         add-expand-to-front-end))
           (add-language
            (make-simple '(lib "r5rs.ss" "lang")
-                        (list (string-constant r5rs-lang-name))
-                        (list -1000)
+                        (list (string-constant professional-languages)
+                              (string-constant r5rs-lang-name))
+                        (list -1000 -1000)
                         #f
                         (string-constant r5rs-one-line-summary)
                         (lambda (x) x))))))))
