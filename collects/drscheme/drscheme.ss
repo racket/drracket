@@ -17,15 +17,15 @@
       ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
       (let ([enable-initially?
              (with-handlers ([not-break-exn? (lambda (x) #f)])
-               (display "PLTDRDEBUG: Turn on profiling during startup? [Y/n] ")
+               (display "PLTDRDEBUG: Turn on profiling during startup? [y/N] ")
                (flush-output)
                (let ([l (read-line)])
                  (and (string? l)
                       (regexp-match "[yY]" l))))])
         (printf "PLTDRDEBUG: turning on profiling ")
         (if enable-initially?
-            (printf "(not during startup)\n")
-            (printf "(initially recording)\n"))
+            (printf "(initially recording)\n")
+            (printf "(not during startup)\n"))
         ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-record-enabled) enable-initially?))))
   
   (when install-cm?
