@@ -60,29 +60,37 @@
       ;; bottom-escape-handler : (parameter ( -> A))
       ;; must escape. this is called if the user's error-escape-handler doesn't escape
       (define bottom-escape-handler (make-parameter void))
+      
+      ;; drscheme-error-display/debug-handler : (string (union #f exn) -> void
+      ;; the timing is a little tricky here. 
+      ;; the file icon must appear before the error message in the text, so tha happens first.
+      ;; the highlight must be set after the error message because inserting into the text resets
+      ;;     the highlighting.
+      (define (drscheme-error-display/debug-handler msg exn)
+        (let* ([stx (and (exn:syntax? exn) (exn:syntax-expr exn))]
+               [src (and stx (syntax-source stx))]
+               [position (and stx (syntax-position stx))]
+               [rep (current-rep)])
+          
+          (when (string? src)
+            (let ([pos (send rep last-position)])
+              (send rep insert file-icon pos pos)
+              (send rep set-clickback pos (+ pos 1)
+                    (lambda (txt start end) 
+                      (let ([file (handler:edit-file src)])
+                        (when (is-a? file drscheme:unit:frame%)
+                          (send (send file get-interactions-text)
+                                highlight-error/forward-sexp
+                                (send file get-definitions-text)
+                                position)))))))
+          
+          ((error-display-handler) msg)
+          
+          (when (and (object? src) (is-a? src text:basic%))
+            (send rep highlight-error/forward-sexp src position))))
 
       ;; (parameter (string (union #f exn) -> void))
-      (define error-display/debug-handler
-        (make-parameter
-         (lambda (msg exn)
-	   (printf "error-display/debug-handler: ~s~n~s~n"
-		   (exn:syntax? exn)
-		   exn)
-	   (when (exn:syntax? exn)
-	     (let* ([stx (exn:syntax-expr exn)]
-		    [src (syntax-source stx)]
-		    [rep (current-rep)])
-	       (cond
-		 [(is-a? src text:basic%)
-		  (printf "1~n")
-		  (send rep highlight-error/forward-sexp src (syntax-position stx))]
-		 [else
-		  (printf "2~n")
-		  (let ([pos (send rep last-position)])
-		    (send rep insert file-icon pos pos)
-		    (send rep set-clickback pos (+ pos 1)
-			  (lambda (txt start end) (handler:edit-file src))))])))
-           ((error-display-handler) msg))))
+      (define error-display/debug-handler (make-parameter drscheme-error-display/debug-handler))
       
       ;; drscheme-error-value->string-handler : TST number -> string
       (define (drscheme-error-value->string-handler x n)
@@ -283,7 +291,7 @@
           (send f show #t)))
       
       (define error-color (make-object color% "PINK"))
-      (define color? (< 8 (get-display-depth)))
+      (define color? ((get-display-depth) . > . 8))
       
       (define (quote-regexp-specials s)
         (list->string
@@ -1311,9 +1319,13 @@
 	    (field (error-range #f)
 		   (reset-callback void))
 	    (define (highlight-error/forward-sexp text start)
-	      (highlight-error text start (+ start 1)))
+	      (let ([end (if (is-a? text scheme:text<%>)
+                             (or (send text get-forward-sexp start)
+                                 (+ start 1))
+                             (+ start 1))])
+                (highlight-error text start end)))
 	    (define (highlight-error file start finish)
-	      (when (is-a? file text:basic%)
+              (when (is-a? file text:basic%)
 		(send file begin-edit-sequence)
 		(wait-for-io-to-complete)
 		(reset-highlighting)
@@ -1322,8 +1334,8 @@
 		    (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
 		      (set! reset-callback
 			    (lambda ()
-			      (unless (get-inserting-prompt)
-				(set! error-range #f)
+                              (unless (get-inserting-prompt)
+                                (set! error-range #f)
 				(reset)
 				(set! reset-callback void)))))
 		    (send file set-position start finish))
