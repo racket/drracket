@@ -1,13 +1,6 @@
 ------------------------------
-        Version 300
+        Version 206
 ------------------------------
-
- - changed the defaults for frame:standard-menus-mixin --
-   the method file-menu:between-save-as-and-print method no
-   longer creates a separator menu item. 
-
- - changed the overriding method behavior of
-   drscheme:frame:basics-mixin. See docs for details.
 
  - Help Desk searching is now language-sensitive.
 
@@ -32,58 +25,9 @@
    Also added two keystrokes: c-x;n to go to the next bound
    occurrence and c-x;b to to the binding occurrence.
 
- - added object contracts. See mzlib docs on object-contract
-   for details.
-
- - added flat-rec-contract, for specifying recursive flat
-   contracts. For example, to specify (a simplified form of)
-   s-expressions you can now write:
-
-   (flat-rec-contract sexp
-     (cons/c sexp sexp)
-     (box/c sexp)
-     (vectorof sexp)
-     number?
-     symbol?)
-
- - modes are now based on the language settings, rather than
-   the filename
-
  - show menu => view menu, added show/hide for the toolbar
 
- - added get-field and field-bound to (lib "class.ss")
-
- - contracts internal interface changed; much faster now (3x
-   speedup for checking the contract (any? . -> . any?) for
-   example).
-
- - contracts interface changed slightly: and/f is now and/c
-   (and takes arbitrary contracts not just predicate
-   functions) and or/f is deprecated. Use union instead. In
-   addition, flat-contracts (without names) are a separate
-   type; use flat-contract-predicate rather than
-   flat-named-contract.
-
- - the teaching languages are now implicitly in a
-   module. This should enable even better syntax error
-   reporting in future versions (altho right now it is
-   slightly worse than it was)
-
- - struct printing in the DrScheme REPL does not use a more
-   powerful inspector that just `write' (same for
-   `print'). DrScheme now behaves more like MzScheme for
-   this case.
-
- - font smoothing in drscheme defaults to the system-wide
-   default now.
-
- - Help Desk's browser now supports image maps
-
  - multi file search works much better
-
- - added list-immutable/c cons-immutable/c list-immutableof
-   to the contract library. These accept arbitrary contracts
-   as arguments, not just flat-contracts.
 
 ------------------------------
         Version 205
