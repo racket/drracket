@@ -47,12 +47,13 @@
                           (iter in (lambda () (loop)))]))))))))))
       
       (define (build-user-eventspace/custodian language-settings init kill-termination)
-        (let* ([eventspace (make-eventspace)]
+        (let* ([user-custodian (make-custodian)]
+	       [eventspace (parameterize ([current-custodian user-custodian])
+			     (make-eventspace))]
                [language (drscheme:language-configuration:language-settings-language
                           language-settings)]
                [settings (drscheme:language-configuration:language-settings-settings
                           language-settings)]
-               [user-custodian (make-custodian)]
                [eventspace-main-thread #f]
                [run-in-eventspace
                 (lambda (thnk)
