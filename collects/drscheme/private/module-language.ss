@@ -187,7 +187,7 @@
           
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))
-            (language-position (list (string-constant professional-languages) "module"))
+            (language-position (list (string-constant professional-languages) "(module ...)"))
             (language-numbers (list -10 1000)))))
       
       ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))

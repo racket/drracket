@@ -29,6 +29,7 @@ todo :
 	   (lib "file.ss")
            (lib "list.ss")
            (lib "moddep.ss" "syntax")
+           (lib "toplevel.ss" "syntax")
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants")
            (lib "graph.ss" "mrlib")
@@ -223,38 +224,41 @@ todo :
             
             ;; add-syntax-connections : syntax hash-table (number -> void) (string -> void) -> void
             (define/private (add-syntax-connections stx visited-hash-table update-max-lines update-progress)
-              (let ([module-code (compile stx)])
-                (when (compiled-module-expression? module-code)
-                  (let* ([name (extract-module-name stx)]
-                         [visited-key (string->symbol name)]
-                         [snip (find/create-snip name #f)]
-                         [base (if (regexp-match #rx"^," name)
-                                   (substring name 1 (string-length name))
-                                   (build-path (current-load-relative-directory) name))])
-                    (hash-table-put! visited-hash-table visited-key #t)
-                    (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                      (let ([requires (extract-filenames imports base)]
-                            [syntax-requires (extract-filenames fs-imports base)])
-                        (for-each (lambda (require)
-                                    (add-connection name #f
-                                                    (req-filename require) #t
-                                                    (req-lib? require)
-                                                    #f)
-                                    (add-filename-connections (req-filename require)
-                                                              visited-hash-table
-                                                              update-max-lines
-                                                              update-progress))
-                                  requires)
-                        (for-each (lambda (syntax-require)
-                                    (add-connection name #f
-                                                    (req-filename syntax-require) #t
-                                                    (req-lib? syntax-require)
-                                                    #t)
-                                    (add-filename-connections (req-filename syntax-require) 
-                                                              visited-hash-table
-                                                              update-max-lines
-                                                              update-progress))
-                                  syntax-requires)))))))
+              (let ([module-codes (eval-compile-time-part-of-top-level/compile stx)])
+                (for-each
+                 (lambda (module-code)
+                   (when (compiled-module-expression? module-code)
+                     (let* ([name (extract-module-name stx)]
+                            [visited-key (string->symbol name)]
+                            [snip (find/create-snip name #f)]
+                            [base (if (regexp-match #rx"^," name)
+                                      (substring name 1 (string-length name))
+                                      (build-path (current-load-relative-directory) name))])
+                       (hash-table-put! visited-hash-table visited-key #t)
+                       (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
+                         (let ([requires (extract-filenames imports base)]
+                               [syntax-requires (extract-filenames fs-imports base)])
+                           (for-each (lambda (require)
+                                       (add-connection name #f
+                                                       (req-filename require) #t
+                                                       (req-lib? require)
+                                                       #f)
+                                       (add-filename-connections (req-filename require)
+                                                                 visited-hash-table
+                                                                 update-max-lines
+                                                                 update-progress))
+                                     requires)
+                           (for-each (lambda (syntax-require)
+                                       (add-connection name #f
+                                                       (req-filename syntax-require) #t
+                                                       (req-lib? syntax-require)
+                                                       #t)
+                                       (add-filename-connections (req-filename syntax-require) 
+                                                                 visited-hash-table
+                                                                 update-max-lines
+                                                                 update-progress))
+                                     syntax-requires))))))
+                 module-codes)))
             
             (define (extract-module-name stx)
               (syntax-case stx ()

@@ -1681,7 +1681,7 @@
                        (show-delegated-text))))))
             
             ;; waiting for support from compiler from matthew for this one.
-            '(instantiate menu:can-restore-menu-item% ()
+            (instantiate menu:can-restore-menu-item% ()
               (label (if module-browser-shown?
                          (string-constant hide-module-browser)
                          (string-constant show-module-browser)))
