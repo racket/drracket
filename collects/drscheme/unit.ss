@@ -457,6 +457,13 @@ get-directory: (-> (union string #f))
 	      [super-on-close on-close])
 
       (public
+	[get-directory
+	 (lambda ()
+	   (let ([filename (send definitions-text get-filename)])
+	     (if (string? filename)
+		 (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
+		   base)
+		 #f)))]
         [needs-execution?
          (lambda ()
            (send definitions-text needs-execution?))])
@@ -721,7 +728,7 @@ get-directory: (-> (union string #f))
 	   (send interactions-canvas focus)
 	   (send interactions-text reset-console)
 	   (send interactions-text clear-undos)
-	   (send interactions-text do-many-buffer-evals
+	   (send interactions-text do-many-text-evals
 		 definitions-text 0
 		 (send definitions-text last-position))
 	   (send interactions-text clear-undos))])

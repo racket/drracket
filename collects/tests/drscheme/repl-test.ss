@@ -180,7 +180,7 @@
 	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
 	      #t
 	      (format "car: expects 1 argument, given 0~n15")
-	      (vector 152 157)
+	      #f
 	      (format "car: expects 1 argument, given 0~n15")
 	      (format "car: expects 1 argument, given 0~n15")
 	      #f
@@ -247,10 +247,10 @@
     #f)
    (make-test
     "(define-macro m (values (let ([x (lambda (x) x)]) x) (let ([y (lambda (x) x)]) y)))"
-    "1.17-1.83: context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
-    #t
     "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
-    (vector 16 82)
+    #f
+    "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
+    #f
     "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
     "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
     #f
@@ -258,21 +258,21 @@
    
    (make-test
     (format "(define-macro m (lambda (x) (values x x)))~n(m 1)")
-    "1.29-1.41: context expected 1 value, received 2 values: 1 1"
-    #t
     "context expected 1 value, received 2 values: 1 1"
-    (vector 28 40)
+    #f
+    "context expected 1 value, received 2 values: 1 1"
+    #f
     "context expected 1 value, received 2 values: 1 1"
     "context expected 1 value, received 2 values: 1 1"
     #f
     #f)
 
    (make-test
-    (format "(queue-callback (lambda () (car)))")
-    "1.26-1.31: car: expects 1 argument, given 0"
+    (format "(define s (make-semaphore 0))~n(queue-callback~n(lambda ()~n(dynamic-wind~nvoid~n(lambda () (car))~n(lambda () (semaphore-post s)))))~n(yield s)")
+    "6.12-6.17: car: expects 1 argument, given 0"
     #t
     "car: expects 1 argument, given 0"
-    (vector 25 30)
+    (vector 99 104)
     "car: expects 1 argument, given 0"
     "car: expects 1 argument, given 0"
     #f

@@ -99,6 +99,7 @@
 
 (define-signature drscheme:rep^
   (text%
+   context<%>
    show-interactions-history
    invoke-teachpack
    process-text/zodiac
