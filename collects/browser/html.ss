@@ -307,7 +307,8 @@
 	    (let ([get-size (make-get-field "size")]
 		  [get-face (make-get-field "face")]
 		  [get-color (make-get-field "color")]
-		  [get-bg-color (make-get-field "bgcolor")])
+		  [get-bg-color (make-get-field "bgcolor")]
+                  [face-regexp (regexp "([^,]*), *(.*)")])
 	      (lambda (args)
 		(let ([size (get-size args)]
 		      [face (get-face args)]
@@ -326,7 +327,7 @@
 					 [else
 					  (make-object style-delta% 'change-size n)]))))]
 			[face (and face (let ([f (let loop ([f face])
-						   (let ([m (regexp-match "([^,]*), *(.*)" f)]
+						   (let ([m (regexp-match face-regexp f)]
 							 [try-face (lambda (s)
 								     (unless face-list
 								       (set! face-list (get-face-list)))
