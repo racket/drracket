@@ -1779,9 +1779,7 @@ If the namespace does not, they are colored the unbound color.
             (instantiate menu-item% ()
               (label (format (string-constant cs-open-file) (path->string name)))
               (parent menu)
-              (callback (lambda (x y)
-                          (printf "calling edit-file ~s\n" file)
-                          (fw:handler:edit-file file))))
+              (callback (lambda (x y) (fw:handler:edit-file file))))
             (void))))
       
       ;; possible-suffixes : (listof string)
