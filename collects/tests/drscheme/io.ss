@@ -1,6 +1,6 @@
-(set-language-level! "Textual (MzScheme)")
-
 (define frame (wait-for-drscheme-frame))
+
+(set-language-level! "Textual (MzScheme)")
 
 (define (check-output expression expected)
   (begin

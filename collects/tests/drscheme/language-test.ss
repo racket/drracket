@@ -79,6 +79,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "turtles" "reference to undefined identifier: turtles")
+    
     (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
 
     (test-expression "(define (f #%define) 1)" "lambda: illegal use of keyword at: #%define in: (#%lambda (#%define) 1)")
@@ -134,6 +136,8 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
 
@@ -198,6 +202,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "turtles" "reference to undefined identifier: turtles")
+    
     (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
 
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
@@ -261,6 +267,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "turtles" "reference to undefined identifier: turtles")
+    
     (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
 
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
@@ -316,6 +324,8 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "turtles" "reference to undefined identifier: turtles")
     
     (test-expression "(define (. x y) (* x y)) ." ".")
 
@@ -380,6 +390,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "turtles" "reference to undefined identifier: turtles")
+    
     (test-expression "(define (. x y) (* x y)) ." ".")
 
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
@@ -440,6 +452,8 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "turtles" "turtles")
     
     (test-expression "(define (. x y) (* x y)) ." ".")
 

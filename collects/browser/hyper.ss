@@ -658,6 +658,9 @@
 	      (update-buttons page)
 	      (on-navigate))])
       (public
+        [current-page
+         (lambda ()
+           (send c current-page))]
 	[rewind 
 	 (lambda ()
 	   (unless (null? past)
@@ -808,12 +811,16 @@
 
   (define (hyper-frame-mixin super%)
     (class super% (start-url . args)
+      (private
+        [p #f])
+      (public
+        [get-hyper-panel (lambda () p)])
       (inherit show)
       (sequence 
 	(apply super-init args)
-	(let ([p (make-object hyper-panel% #f this)])
-	  (show #t)
-	  (send (send p get-canvas) goto-url start-url #f)))))
+	(set! p (make-object hyper-panel% #f this))
+        (show #t)
+        (send (send p get-canvas) goto-url start-url #f))))
 
   (define hyper-frame% (hyper-frame-mixin frame%))
 
