@@ -1484,6 +1484,7 @@
           
           (inherit delegated-text-shown? hide-delegated-text show-delegated-text)
           (instantiate menu:can-restore-menu-item% ()
+            (shortcut #\u)
             (label 
              (if (delegated-text-shown?)
                  (string-constant hide-overview)
@@ -1504,11 +1505,13 @@
           (make-object separator-menu-item% (get-show-menu))
           
           (instantiate menu-item% ()
+            (shortcut #\m)
             (label (string-constant split-menu-item-label))
             (parent (get-show-menu))
             (callback (lambda (x y) (split)))
             (demand-callback (lambda (item) (split-demand item))))
           (instantiate menu-item% () 
+            (shortcut #\r)
             (label (string-constant collapse-menu-item-label))
             (parent (get-show-menu))
             (callback (lambda (x y) (collapse)))
