@@ -26,6 +26,9 @@ General
  - added save button and little "full name" thingy to project
    frames
 
+ - DrScheme permits the use of "." (period) as an identifier in the
+   student language levels.
+
 Version 102:
 
 General
