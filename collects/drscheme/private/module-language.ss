@@ -155,6 +155,14 @@
                           'module-language
                           "there can only be one expression in the definitions window"
                           super-result))]
+                    [(= 3 iteration-number)
+                     (with-syntax ([name 
+                                        ;; "clearing out" the module-name in this fashion ensures
+                                        ;; that check syntax doesn't think the original module name
+                                        ;; is being used in this require (so it doesn't get turned
+                                        ;; red)
+                                        (datum->syntax-object #'here (syntax-object->datum module-name))])
+                       (syntax (current-namespace (module->namespace 'name))))]
                     [else eof])))))
           
           ;; printer settings are just ignored here.
