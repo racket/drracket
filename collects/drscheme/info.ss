@@ -1,5 +1,6 @@
 (module info (lib "infotab.ss" "setup")
   (define name "DrScheme")
+  (define tools (list "syncheck.ss"))
   (define mred-launcher-libraries (list "drscheme.ss"))
   (define mred-launcher-names (list "DrScheme"))
   (define compile-omit-files '("drscheme.ss")))

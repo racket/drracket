@@ -14,6 +14,8 @@ WARNINGS
 
 FUNCTIONALITY CHANGES
 
+ - it is now possible to add languages to DrScheme,
+   as tools.
  - tools are now specified in info.ss files in top-level
    collections, rather than in a subcollection of the
    drscheme collection (see the tools manual for details).
