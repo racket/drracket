@@ -6,6 +6,7 @@
            (lib "browser.ss" "net")
            (lib "help-desk.ss" "help")
            (lib "framework.ss" "framework")
+           (lib "class.ss")
 	   "drsig.ss")
   
   (provide help-desk@)
@@ -14,6 +15,17 @@
     (unit/sig  drscheme:help-desk^
       (import [drscheme:frame : drscheme:frame^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^])
+
+      ;; : -> (listof (list symbol string))
+      (define (get-computer-language-info)
+        (list
+         (list
+          'computer-language
+          (format "~s"
+                  (send (preferences:get drscheme:language-configuration:settings-preferences-symbol)
+                        get-language-position)))))
+      
+      ;(set-bug-report-info! get-computer-language-info)
       
       ; to decide if an internal browser connected to the web server by pipes will be used
       ; : browser-preference -> bool
