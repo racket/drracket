@@ -602,10 +602,7 @@
 
         (define (browse-callback)
           (let-values ([(base name dir) 
-                        (with-handlers ([not-break-exn?
-                                         (lambda (exn)
-                                           (values #f (send filename-text-field get-value) #f))])
-                          (split-path (send filename-text-field get-value)))])
+                        (split-path (send filename-text-field get-value))])
             (let* ([mzscheme? (currently-mzscheme-binary?)]
 		   [launcher? (currently-launcher?)]
 		   [filename 
@@ -784,13 +781,11 @@
                                                           gui?
                                                           use-copy?)
         
-        (with-handlers ([not-break-exn?
+        (with-handlers ([exn:fail?
                          (lambda (x)
                            (message-box 
                             (string-constant drscheme)
-                            (if (exn? x)
-                                (format "~a" (exn-message x))
-                                (format "uncaught exception: ~s" x)))
+                            (format "~a" (exn-message x)))
                            (void))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
@@ -909,13 +904,11 @@
                                             gui?
                                             use-copy?)
 
-        (with-handlers ([not-break-exn?
+        (with-handlers ([exn:fail?
                          (lambda (x)
                            (message-box 
                             (string-constant drscheme)
-                            (if (exn? x)
-                                (format "~a" (exn-message x))
-                                (format "uncaught exception: ~s" x)))
+                            (format "~a" (exn-message x)))
                            (void))])
           
           ((if gui? make-mred-launcher make-mzscheme-launcher)

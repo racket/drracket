@@ -16,7 +16,7 @@
     (when profiling?
       ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
       (let ([enable-initially?
-             (with-handlers ([not-break-exn? (lambda (x) #f)])
+             (with-handlers ([exn:fail? (lambda (x) #f)])
                (display "PLTDRDEBUG: Turn on profiling during startup? [y/N] ")
                (flush-output)
                (let ([l (read-line)])

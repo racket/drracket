@@ -177,8 +177,8 @@ TODO
           (send text begin-edit-sequence)
           (send text lock #f)
           (cond
-            [(exn:syntax? exn)
-             (let* ([expr (exn:syntax-expr exn)]
+            [(exn:fail:syntax? exn)
+             (let* ([expr (exn:fail:syntax-expr exn)]
                     [src (and (syntax? expr) (syntax-source expr))]
                     [pos (and (syntax? expr) (syntax-position expr))]
                     [span (and (syntax? expr) (syntax-span expr))]
@@ -1180,12 +1180,8 @@ TODO
                 ;; must happen after language is initialized.
                 (queue-user/wait
                  (lambda () ; =User=, =No-Breaks=
-                   (with-handlers ([not-break-exn?
-                                    (lambda (exn)
-                                      (raise exn))])
-                     (drscheme:teachpack:install-teachpacks 
-                      user-teachpack-cache))))
-                
+                   (drscheme:teachpack:install-teachpacks 
+                    user-teachpack-cache)))
                 
                 (parameterize ([current-eventspace (get-user-eventspace)])
                   (queue-callback

@@ -37,7 +37,7 @@
        (lambda (msg exn)
          
          ;; this  may raise an exception if the port is gone.
-         (with-handlers ([not-break-exn? (lambda (x) (void))])
+         (with-handlers ([exn:fail? (lambda (x) (void))])
            (original-error-display-handler msg exn))
          
          (let ([title (error-display-handler-message-box-title)])
@@ -71,7 +71,7 @@
              (when (and (directory-exists? (build-path path d))
                         (not (string-ci=? (path->string d) "CVS")))
                (hash-table-put! collections-hash-table d d)))
-           (with-handlers ([not-break-exn?
+           (with-handlers ([exn:fail:filesystem?
                             (lambda (x) null)])
              (directory-list path))))
         

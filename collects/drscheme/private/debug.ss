@@ -235,8 +235,8 @@ profile todo:
       ;; returns #f if the source isn't a string.
       (define (find-src-to-display exn cms)
 	(cond
-	  [(or (exn:read? exn)
-               (exn:syntax? exn))
+	  [(or (exn:fail:read? exn)
+               (exn:fail:syntax? exn))     
            ;; assume that the original error-display-handler displays the 
            ;; error in this case.
            #f]

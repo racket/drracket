@@ -1053,7 +1053,7 @@ tab panels new behavior:
                       [(eq? query 'no) 
                        #f]
                       [(eq? query 'yes)
-                       (with-handlers ([not-break-exn?
+                       (with-handlers ([exn:fail:filesystem?
                                         (lambda (exn)
                                           (message-box 
                                            (string-constant drscheme)
@@ -1455,7 +1455,7 @@ tab panels new behavior:
                           
                           ;; with-handlers prevents bad calls to set-percentages
                           ;; might still leave GUI in bad state, however.
-                          (with-handlers ([not-break-exn? (lambda (x) (void))])
+                          (with-handlers ([exn:fail? (lambda (x) (void))])
                             (send resizable-panel set-percentages
                                   (let loop ([canvases orig-canvases]
                                              [percentages orig-percentages])
@@ -1625,7 +1625,7 @@ tab panels new behavior:
                                 
                                 ;; this line makes the soon-to-be-bigger-canvas bigger
                                 ;; if it fails, we're out of luck, but at least we don't crash.
-                                (with-handlers ([not-break-exn? (lambda (x) (void))])
+                                (with-handlers ([exn:fail? (lambda (x) (void))])
                                   (send resizable-panel set-percentages percentages))
                                 
                                 (let-values ([(ax ay aw ah) (get-visible-area to-be-bigger-admin)])
@@ -1715,7 +1715,7 @@ tab panels new behavior:
 	      (when (and (= 1 (length definitions-canvases))
 			 (= 1 (length interactions-canvases))
 			 (= 2 (length new-children)))
-		(with-handlers ([not-break-exn? (lambda (x) (void))])
+		(with-handlers ([exn:fail? (lambda (x) (void))])
 		  (send resizable-panel set-percentages
 			(list p (- 1 p))))))
 	    
@@ -2677,7 +2677,7 @@ tab panels new behavior:
 
           (when (= 2 (length (send resizable-panel get-children)))
             ;; should really test this, but too lazy to add inspector to framework (for now)
-            (with-handlers ([not-break-exn? (lambda (x) (void))])
+            (with-handlers ([exn:fail? (lambda (x) (void))])
               (send resizable-panel set-percentages
                     (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
                       (list p (- 1 p))))))

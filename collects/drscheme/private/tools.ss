@@ -99,7 +99,7 @@
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
       (define (load/invoke-tools coll)
-        (let ([table (with-handlers ([not-break-exn? 
+        (let ([table (with-handlers ([exn:fail? 
                                       (lambda (x)
                                         (show-error
                                          (format (string-constant error-getting-info-tool)
@@ -166,7 +166,7 @@
                           `(lib ,in-path ,coll)
                           `(lib ,(car in-path) ,coll ,@(cdr in-path)))]
                      [unit 
-                       (with-handlers ([not-break-exn? 
+                       (with-handlers ([exn:fail? 
                                         (lambda (x)
                                           (show-error
                                            (format (string-constant error-invoking-tool-title)
@@ -174,7 +174,7 @@
                                            x)
                                           (k (void)))])
                          (dynamic-require tool-path 'tool@))])
-                (with-handlers ([not-break-exn? 
+                (with-handlers ([exn:fail? 
                                  (lambda (x)
                                    (show-error 
                                     (format (string-constant error-invoking-tool-title)
@@ -217,7 +217,7 @@
       (define (install-tool-bitmap name bitmap-path)
         (let/ec k
           (let ([bitmap
-                 (with-handlers ([not-break-exn? (lambda (x) (k (void)))])
+                 (with-handlers ([exn:fail:filesystem? (lambda (x) (k (void)))])
                    (make-object bitmap%
                      (build-path (build-path (apply collection-path (cdr bitmap-path)) (car bitmap-path)))
 		     'unknown/mask))])
@@ -329,7 +329,7 @@
             [else 
              (let ([tool (car tools)])
                (let ([phase-thunk (selector tool)])
-                 (with-handlers ([not-break-exn?
+                 (with-handlers ([exn:fail?
                                   (lambda (exn) 
                                     (show-error
                                      (format err-fmt 

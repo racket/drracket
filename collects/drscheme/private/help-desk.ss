@@ -175,16 +175,8 @@
         (error 'goto-help "no ~s ~s" manual link)
         
         #;
-        (with-handlers ([not-break-exn?
-                         (lambda (exn)
-                           (message-box 
-                            "DrScheme"
-                            (format (string-constant plt:hd:error-finding-docs)
-                                    (if (exn? exn)
-                                        (exn-message exn)
-                                        (format "~s" exn)))))])
-	  (when (get-hd-cookie)
-	    (goto-manual-link (get-hd-cookie) manual link))))
+        (when (get-hd-cookie)
+          (goto-manual-link (get-hd-cookie) manual link)))
       
       (define (goto-hd-loc cookie where)
         (error 'goto-hd-loc "no ~s\n" where)

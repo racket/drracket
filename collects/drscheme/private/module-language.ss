@@ -176,7 +176,7 @@
                 (let ([stand-alone? (eq? 'stand-alone (car executable-specs))]
                       [gui? (eq? 'mred (cadr executable-specs))]
                       [executable-filename (caddr executable-specs)])
-                  (with-handlers ([not-break-exn?
+                  (with-handlers ([exn:fail?
                                    (lambda (x)
                                      (message-box
                                       (string-constant drscheme)
@@ -366,8 +366,7 @@
         (define (get-command-line-args)
           (let ([str (send args-text-box get-value)])
             (let ([read-res (parameterize ([read-accept-graph #f])
-                              (with-handlers ([not-break-exn? 
-                                               (lambda (x) #())])
+                              (with-handlers ([exn:fail:read? (lambda (x) #())])
                                 (read (open-input-string str))))])
               (cond
                 [(and (vector? read-res)

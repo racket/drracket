@@ -457,7 +457,7 @@
         
         (define (ok-button-callback)
           (cond
-            [(with-handlers ([exn:i/o:filesystem?
+            [(with-handlers ([exn:fail:filesystem?
                               (lambda (x) #f)])
                (directory-exists? (send dir-field get-value)))
              (let ([_searcher

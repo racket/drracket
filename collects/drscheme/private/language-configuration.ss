@@ -1130,7 +1130,7 @@
                               drscheme:language:simple-module-based-language%)))]
                           [reader
                            (if reader-spec
-                               (with-handlers ([not-break-exn?
+                               (with-handlers ([exn:fail?
                                                 (lambda (x)
                                                   (message-box (string-constant drscheme)
                                                                (if (exn? x)
