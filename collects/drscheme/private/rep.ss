@@ -787,8 +787,19 @@ TODO
           (inherit backward-containing-sexp)
           
           (define/augment (submit-to-port? key) 
-            (and prompt-position 
+            (and prompt-position
+                 (only-whitespace-after-insertion-point)
                  (submit-predicate this prompt-position)))
+          
+          (define/private (only-whitespace-after-insertion-point)
+            (let ([start (get-start-position)]
+                  [end (get-end-position)])
+              (and (= start end)
+                   (let loop ([pos start])
+                     (cond
+                       [(= pos (last-position)) #t]
+                       [else (and (char-whitespace? (get-character pos))
+                                  (loop (+ pos 1)))])))))
           
           (define/augment (on-submit)
             (inner (void) on-submit)
