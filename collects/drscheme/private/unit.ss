@@ -701,7 +701,7 @@
           frame:searchable%)))
       
       (define frame%
-        (class super-frame% (drscheme:rep:context<%>)
+        (class* super-frame% (drscheme:rep:context<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
                    show get-menu%

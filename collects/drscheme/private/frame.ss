@@ -217,10 +217,12 @@
           (super-instantiate ())))
       
       (define (show-keybindings-to-user bindings frame)
-        (letrec ([f (make-object keybindings-dialog% "Keybindings" frame 
-                      (car (preferences:get 'drscheme:keybindings-window-size))
-                      (cdr (preferences:get 'drscheme:keybindings-window-size))
-                      #f #f '(resize-border))]
+        (letrec ([f (instantiate keybindings-dialog% ()
+		      (label "Keybindings")
+		      (parent frame)
+                      (width (car (preferences:get 'drscheme:keybindings-window-size)))
+                      (height (cdr (preferences:get 'drscheme:keybindings-window-size)))
+                      (style '(resize-border)))]
                  [bp (make-object horizontal-panel% f)]
                  [b-name (make-object button% "Sort by Name" bp (lambda x (update-bindings #f)))]
                  [b-key (make-object button% "Sort by Key" bp (lambda x (update-bindings #t)))]
@@ -366,14 +368,14 @@
                      (lambda (menu-item)
                        (let ([last-edit-object (get-edit-target-window)])
                          (send menu-item enable (can-show-keybindings?))))])
-                (make-object menu-item% "Keybindings" menu
-                  (lambda x (show-keybindings))
-                  #f
-                  "Show the currently active keybindings"
-                  #f
-                  keybindings-on-demand))
+                (instantiate menu-item% ()
+		  (label "Keybindings")
+		  (menu menu)
+                  (callback (lambda x (show-keybindings)))
+                  (help-string "Show the currently active keybindings")
+                  (demand-callback keybindings-on-demand)))
               (make-object separator-menu-item% menu))]
-          
+
           (super-instantiate ())))
       
       (define <%> (interface (frame:editor<%> basics<%> frame:text-info<%>)))

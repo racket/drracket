@@ -43,11 +43,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" in USERPORT:265")
       
-      (test-expression "(define (f #%define) 1)" "")
       (test-expression "(define (f define) 1)" "")
-      (test-expression "(define (f #%car) 1)" "")
       (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "")
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
@@ -110,10 +107,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" in USERPORT:194")
       
-      (test-expression "(define (f #%define) 1)" "")
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f #%car) 1)" "")
       (test-expression "(define (f empty) 1)" "")
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
@@ -181,11 +176,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
       
-      (test-expression "(define (f #%define) 1)" "")
       (test-expression "(define (f define) 1)" "")
-      (test-expression "(define (f #%car) 1)" "")
       (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "")
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
@@ -254,11 +246,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
       
-      (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
       (test-expression "(define (f define) 1)" "")
-      (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
       (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "")
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
@@ -320,11 +309,8 @@
 
       (test-expression "(define (. x y) (* x y)) ." ".")
       
-      (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
       (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
       (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
@@ -355,7 +341,7 @@
       (test-expression "(letrec ([x x]) 1)"
                        "illegal application: first term in application must be a function name")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
-      (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
+      (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
       (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
@@ -394,11 +380,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." ".")
       
-      (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
       (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
       (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "reference to undefined identifier: call/cc")
@@ -426,7 +409,7 @@
       (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
-      (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
+      (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
       (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
@@ -465,11 +448,8 @@
       
       (test-expression "(define (. x y) (* x y)) ." ".")
       
-      (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
       (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
-      (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
       (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
-      (test-expression "(define (f #%empty) 1)" "")
       (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
       
       (test-expression "call/cc" "call-with-current-continuation")
@@ -497,7 +477,7 @@
       (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
-      (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
+      (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
       (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
