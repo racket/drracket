@@ -485,8 +485,8 @@
                               [m (and content-header
                                       (regexp-match "[0-9]+" content-header))])
                          (and m (string->number (car m))))]
-                 [d (make-object dialog% "Downloading" parent)] 
-                 [message (make-object message% "Downloading file..." d)] 
+                 [d (make-object dialog% (string-constant downloading) parent)] 
+                 [message (make-object message% (string-constant downloading-file...) d)] 
                  [gauge (if size 
                             (make-object gauge% #f 100 d) 
                             #f)] 
@@ -520,11 +520,13 @@
                            'binary 'truncate))
                        (send d show #f)))]) 
             (send d center) 
-            (make-object button% "&Stop" d (lambda (b e) 
-                                             (semaphore-wait wait-to-break) 
-                                             (set! tmp-filename #f) 
-                                             (send d show #f) 
-                                             (break-thread t))) 
+            (make-object button% (string-constant &stop)
+			 d
+			 (lambda (b e) 
+			   (semaphore-wait wait-to-break) 
+			   (set! tmp-filename #f) 
+			   (send d show #f) 
+			   (break-thread t))) 
             ; Let thread run only after the dialog is shown 
             (queue-callback (lambda () (semaphore-post wait-to-start))) 
             (send d show #t) 

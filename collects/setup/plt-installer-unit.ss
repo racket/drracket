@@ -52,8 +52,11 @@
                                      (parent dlg)
                                      (stretchable-height #f)
                                      (alignment '(center center)))]
-                     [kill-button (make-object button% "Kill" button-panel (lambda (b e) (kill)))]
-                     [done (make-object button% "Close" button-panel (lambda (b e) (done-callback)))]
+                     [kill-button (make-object button%
+				    (string-constant plt-installer-abort-installation)
+				    button-panel
+				    (lambda (b e) (kill)))]
+                     [done (make-object button% (string-constant close) button-panel (lambda (b e) (done-callback)))]
                      [output (make-custom-output-port
                               #f
                               (lambda (s start end flush?)
@@ -72,7 +75,7 @@
                      [kill
                       (lambda ()
                         (custodian-shutdown-all installer-cust)
-                        (fprintf output "\nKilled.\n")
+                        (fprintf output "\n~a\n" (string-constant plt-installer-aborted))
                         (send done enable #t))]
                      [done-callback
                       (lambda ()
@@ -143,6 +146,7 @@
                                                      (lambda ()
                                                        (sleep 0.2) ; kludge to allow f to appear first
                                                        (end-busy-cursor)
+						       ;; do these strings ever appear? (should move to string-constants, if so)
                                                        (let ([d (get-directory 
                                                                  "Select the destination for unpacking"
                                                                  parent)])
