@@ -251,23 +251,23 @@
 		       (lambda () (eval-string s))
 		       end-busy-cursor)])
 	       (when (string? v)
-		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))])
-        
-	(sequence
-	  (apply super-init args)
-	  (add-h-link-style)
-	  (when url
-	    (let-values ([(wrapping-on?) #t]
-                         [(p mime-headers)
-			  (if (port? url)
-			      (values url null)
-			      ; Try to get mime info, but use get-pure-port if that fails:
-			      (with-handlers ([void (lambda (x) 
-                                                      (values (get-pure-port url) null))])
-				(let ([p (get-impure-port url)])
-				  (let ([headers (purify-port p)])
-				    (values p headers)))))])
-	      (dynamic-wind
+		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
+          
+          [reload
+           (lambda ()
+             (when url
+               (let-values ([(wrapping-on?) #t]
+                            [(p mime-headers)
+                             (if (port? url)
+                                 (values url null)
+                                 ; Try to get mime info, but use get-pure-port if that fails:
+                                 (with-handlers ([void (lambda (x) 
+                                                         (values (get-pure-port url) null))])
+                                   (let ([p (get-impure-port url)])
+                                     (let ([headers (purify-port p)])
+                                       (values p headers)))))])
+                 (lock #f)
+                 (dynamic-wind
 		  (lambda ()
 		    (begin-busy-cursor)
                     ; (send progress start)
@@ -283,218 +283,223 @@
 			   [html? (and mime-type
 				       (regexp-match "text/html" mime-type))])
 		      (cond
-		       [(or (and mime-type (regexp-match "application/" mime-type))
-			    (and (url? url)
-				 (regexp-match "[.]plt$" (url-path url))
-					; document-not-found produces HTML:
-				 (not html?)))
-					; Save the file
-			(end-busy-cursor) ; turn off cursor for a moment...
-			(let* ([orig-name (and (url? url)
-					       (let ([m (regexp-match "([^/]*)$" (url-path url))])
-						 (and m (cadr m))))]
-			       [size (ormap (lambda (mh)
-					      (and (string=? (mime-header-name mh)
-							     "content-length")
-						   (let ([m (regexp-match
-							     "[0-9]+"
-							     (mime-header-value mh))])
-						     (and m (string->number (car m))))))
-					    mime-headers)]
-			       [install?
-				(and (and orig-name (regexp-match "[.]plt$" orig-name))
-				     (let ([d (make-object dialog% "Install?")]
-					   [d? #f]
-					   [i? #f])
-				       (make-object message%
-					 "You have selected an installable package." d)
-				       (make-object message% "Do you want to install it?" d)
-				       (when size
-					 (make-object message%
-					   (format "(The file is ~a bytes)" size) d))
-				       (let ([hp (make-object horizontal-panel% d)])
-					 (send hp set-alignment 'center 'center)
-					 (send (make-object button% "Download && Install" hp
-							    (lambda (b e)
-							      (set! i? #t)
-							      (send d show #f))
-							    '(border))
-					       focus)
-					 (make-object button% "Download" hp
-						      (lambda (b e)
-							(set! d? #t)
-							(send d show #f)))
-					 (make-object button% "Cancel" hp
-						      (lambda (b e)
-							(send d show #f))))
-				       (send d center)
-				       (send d show #t)
-				       (unless (or d? i?)
-
-					; turn the cursor back on before escaping
-					 (begin-busy-cursor)
-
-					 (raise (make-exn:cancelled
-						 "Package cancelled"
-						 (current-continuation-marks))))
-				       i?))]
-			       [f (if install?
-				      (make-temporary-file "tmp~a.plt")
-				      (put-file (format "Save downloaded file~a as"
-							(if size
-							    (format " (~a bytes)" size)
-							    ""))
-						#f ; should be calling window!
-						#f
-						orig-name))])
-			  (begin-busy-cursor) ; turn the cursor back on
-			  (when f
-			    (let* ([d (make-object dialog% "Downloading" top-level-window)]
-				   [message (make-object message% "Downloading file..." d)]
-				   [gauge (if size
-					      (make-object gauge% #f 100 d)
-					      #f)]
-				   [exn #f]
-					; Semaphores to avoid race conditions:
-				   [wait-to-start (make-semaphore 0)]
-				   [wait-to-break (make-semaphore 0)]
-					; Thread to perform the download:
-				   [t (thread
-				       (lambda ()
-					 (semaphore-wait wait-to-start)
-					 (with-handlers ([void
-							  (lambda (x)
-							    (when (not (exn:misc:user-break? x))
-							      (set! exn x)))]
-							 [void ; throw away break exceptions
-							  void])
-					   (semaphore-post wait-to-break)
-					   (with-output-to-file f
-					     (lambda ()
-					       (let loop ([total 0])
-						 (when gauge
-						   (send gauge set-value 
-							 (inexact->exact
-							  (floor (* 100 (/ total size))))))
-						 (let ([s (read-string 1024 p)])
-						   (unless (eof-object? s)
-						     (display s)
-						     (loop (+ total (string-length s)))))))
-					     'binary 'truncate))
-					 (send d show #f)))])
-			      (send d center)
-			      (make-object button% "&Stop" d (lambda (b e)
-							       (semaphore-wait wait-to-break)
-							       (set! f #f)
-							       (send d show #f)
-							       (break-thread t)))
-					; Let thread run only after the dialog is shown
-			      (queue-callback (lambda () (semaphore-post wait-to-start)))
-			      (send d show #t)
-			      (when exn (raise exn)))
-			    (when (and f install?)
-			      (run-installer f)
-			      (delete-file f)))
-			  (raise
-			   (if f
-			       (make-exn:file-saved-instead
-				(if install?
-				    "The package was installed."
-				    "The downloaded file was saved.")
-				(current-continuation-marks)
-				f)
-			       (make-exn:cancelled "The download was cancelled."
-						   (current-continuation-marks)))))]
-		       [(or (port? url)
-			    (and (url? url)
-				 (regexp-match "[.]html?$" (url-path url)))
-			    html?)
-					; HTML
-			(let* ([d #f]
-			       [e #f]
-			       [e-text ""]
-			       [exn #f]
-			       [done? #f]
-					; Semaphores to avoid race conditions:
-			       [wait-to-continue (make-semaphore 0)]
-			       [wait-to-break (make-semaphore 0)]
-			       [wait-to-show (make-semaphore 1)]
-					; Thread to perform the download:
-			       [t (parameterize ([break-enabled #f])
-				    (thread
-				     (lambda ()
-				       (with-handlers ([void (lambda (x) (set! exn x))])
-					 (parameterize ([break-enabled #t])
-					   (semaphore-post wait-to-break)
-					   (parameterize ([html-status-handler
-							   (lambda (s) 
-							     (set! e-text s)
-							     (semaphore-wait wait-to-show)
-							     (when e
-							       (send e erase)
-							       (send e insert s))
-							     (semaphore-post wait-to-show))])
-					     (html-convert p this))))
-				       (set! done? #t)
-				       (semaphore-wait wait-to-show)
-				       (when d
-					 (send d show #f))
-				       (semaphore-post wait-to-show)
-				       (semaphore-post wait-to-continue))))]
-			       [make-dialog
-				(lambda ()
-				  (semaphore-wait wait-to-show)
-				  (unless done?
-				    (set! d (make-object dialog% "Getting Page" top-level-window 400))
-				    (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
-				      (set! e (make-object text%))
-				      (send e insert e-text)
-				      (send e auto-wrap #t)
-				      (send c set-editor e)
-				      (send c set-line-count 3)
-				      (send c enable #f))
-				    (send (make-object button% "&Stop" d
-						       (lambda (b e)
-							 (semaphore-wait wait-to-break)
-							 (semaphore-post wait-to-break)
-							 (break-thread t)))
-					  focus)
-				    (send d center)
-				    (thread (lambda () (send d show #t)))
-				    (let loop () (sleep) (unless (send d is-shown?) (loop)))
-				    (semaphore-post wait-to-show)))])
-			  (thread (lambda ()
-				    (sleep 1)
-				    (unless done? (semaphore-post wait-to-continue))))
-			  (semaphore-wait wait-to-continue)
-			  (unless done?
-			    (make-dialog)
-			    (yield wait-to-continue))
-			  (when exn (raise exn)))]
-		       [else
-					; Text
-			(begin-edit-sequence)
-			(let loop ()
-			  (let ([r (read-line p 'any)])
-			    (unless (eof-object? r)
-			      (insert r)
-			      (insert #\newline)
-			      (loop))))
-			(change-style (make-object style-delta% 'change-family 'modern)
-				      0 (last-position))
-                        (set! wrapping-on? #f)
-			(end-edit-sequence)])))
+                        [(or (and mime-type (regexp-match "application/" mime-type))
+                             (and (url? url)
+                                  (regexp-match "[.]plt$" (url-path url))
+                                  ; document-not-found produces HTML:
+                                  (not html?)))
+                         ; Save the file
+                         (end-busy-cursor) ; turn off cursor for a moment...
+                         (let* ([orig-name (and (url? url)
+                                                (let ([m (regexp-match "([^/]*)$" (url-path url))])
+                                                  (and m (cadr m))))]
+                                [size (ormap (lambda (mh)
+                                               (and (string=? (mime-header-name mh)
+                                                              "content-length")
+                                                    (let ([m (regexp-match
+                                                              "[0-9]+"
+                                                              (mime-header-value mh))])
+                                                      (and m (string->number (car m))))))
+                                             mime-headers)]
+                                [install?
+                                 (and (and orig-name (regexp-match "[.]plt$" orig-name))
+                                      (let ([d (make-object dialog% "Install?")]
+                                            [d? #f]
+                                            [i? #f])
+                                        (make-object message%
+                                          "You have selected an installable package." d)
+                                        (make-object message% "Do you want to install it?" d)
+                                        (when size
+                                          (make-object message%
+                                            (format "(The file is ~a bytes)" size) d))
+                                        (let ([hp (make-object horizontal-panel% d)])
+                                          (send hp set-alignment 'center 'center)
+                                          (send (make-object button% "Download && Install" hp
+                                                  (lambda (b e)
+                                                    (set! i? #t)
+                                                    (send d show #f))
+                                                  '(border))
+                                                focus)
+                                          (make-object button% "Download" hp
+                                            (lambda (b e)
+                                              (set! d? #t)
+                                              (send d show #f)))
+                                          (make-object button% "Cancel" hp
+                                            (lambda (b e)
+                                              (send d show #f))))
+                                        (send d center)
+                                        (send d show #t)
+                                        (unless (or d? i?)
+                                          
+                                          ; turn the cursor back on before escaping
+                                          (begin-busy-cursor)
+                                          
+                                          (raise (make-exn:cancelled
+                                                  "Package cancelled"
+                                                  (current-continuation-marks))))
+                                        i?))]
+                                [f (if install?
+                                       (make-temporary-file "tmp~a.plt")
+                                       (put-file (format "Save downloaded file~a as"
+                                                         (if size
+                                                             (format " (~a bytes)" size)
+                                                             ""))
+                                                 #f ; should be calling window!
+                                                 #f
+                                                 orig-name))])
+                           (begin-busy-cursor) ; turn the cursor back on
+                           (when f
+                             (let* ([d (make-object dialog% "Downloading" top-level-window)]
+                                    [message (make-object message% "Downloading file..." d)]
+                                    [gauge (if size
+                                               (make-object gauge% #f 100 d)
+                                               #f)]
+                                    [exn #f]
+                                    ; Semaphores to avoid race conditions:
+                                    [wait-to-start (make-semaphore 0)]
+                                    [wait-to-break (make-semaphore 0)]
+                                    ; Thread to perform the download:
+                                    [t (thread
+                                        (lambda ()
+                                          (semaphore-wait wait-to-start)
+                                          (with-handlers ([void
+                                                           (lambda (x)
+                                                             (when (not (exn:misc:user-break? x))
+                                                               (set! exn x)))]
+                                                          [void ; throw away break exceptions
+                                                           void])
+                                            (semaphore-post wait-to-break)
+                                            (with-output-to-file f
+                                              (lambda ()
+                                                (let loop ([total 0])
+                                                  (when gauge
+                                                    (send gauge set-value 
+                                                          (inexact->exact
+                                                           (floor (* 100 (/ total size))))))
+                                                  (let ([s (read-string 1024 p)])
+                                                    (unless (eof-object? s)
+                                                      (display s)
+                                                      (loop (+ total (string-length s)))))))
+                                              'binary 'truncate))
+                                          (send d show #f)))])
+                               (send d center)
+                               (make-object button% "&Stop" d (lambda (b e)
+                                                                (semaphore-wait wait-to-break)
+                                                                (set! f #f)
+                                                                (send d show #f)
+                                                                (break-thread t)))
+                               ; Let thread run only after the dialog is shown
+                               (queue-callback (lambda () (semaphore-post wait-to-start)))
+                               (send d show #t)
+                               (when exn (raise exn)))
+                             (when (and f install?)
+                               (run-installer f)
+                               (delete-file f)))
+                           (raise
+                            (if f
+                                (make-exn:file-saved-instead
+                                 (if install?
+                                     "The package was installed."
+                                     "The downloaded file was saved.")
+                                 (current-continuation-marks)
+                                 f)
+                                (make-exn:cancelled "The download was cancelled."
+                                                    (current-continuation-marks)))))]
+                        [(or (port? url)
+                             (and (url? url)
+                                  (regexp-match "[.]html?$" (url-path url)))
+                             html?)
+                         ; HTML
+                         (let* ([d #f]
+                                [e #f]
+                                [e-text ""]
+                                [exn #f]
+                                [done? #f]
+                                ; Semaphores to avoid race conditions:
+                                [wait-to-continue (make-semaphore 0)]
+                                [wait-to-break (make-semaphore 0)]
+                                [wait-to-show (make-semaphore 1)]
+                                ; Thread to perform the download:
+                                [t (parameterize ([break-enabled #f])
+                                     (thread
+                                      (lambda ()
+                                        (with-handlers ([void (lambda (x) (set! exn x))])
+                                          (parameterize ([break-enabled #t])
+                                            (semaphore-post wait-to-break)
+                                            (parameterize ([html-status-handler
+                                                            (lambda (s) 
+                                                              (set! e-text s)
+                                                              (semaphore-wait wait-to-show)
+                                                              (when e
+                                                                (send e erase)
+                                                                (send e insert s))
+                                                              (semaphore-post wait-to-show))])
+                                              (html-convert p this))))
+                                        (set! done? #t)
+                                        (semaphore-wait wait-to-show)
+                                        (when d
+                                          (send d show #f))
+                                        (semaphore-post wait-to-show)
+                                        (semaphore-post wait-to-continue))))]
+                                [make-dialog
+                                 (lambda ()
+                                   (semaphore-wait wait-to-show)
+                                   (unless done?
+                                     (set! d (make-object dialog% "Getting Page" top-level-window 400))
+                                     (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
+                                       (set! e (make-object text%))
+                                       (send e insert e-text)
+                                       (send e auto-wrap #t)
+                                       (send c set-editor e)
+                                       (send c set-line-count 3)
+                                       (send c enable #f))
+                                     (send (make-object button% "&Stop" d
+                                             (lambda (b e)
+                                               (semaphore-wait wait-to-break)
+                                               (semaphore-post wait-to-break)
+                                               (break-thread t)))
+                                           focus)
+                                     (send d center)
+                                     (thread (lambda () (send d show #t)))
+                                     (let loop () (sleep) (unless (send d is-shown?) (loop)))
+                                     (semaphore-post wait-to-show)))])
+                           (thread (lambda ()
+                                     (sleep 1)
+                                     (unless done? (semaphore-post wait-to-continue))))
+                           (semaphore-wait wait-to-continue)
+                           (unless done?
+                             (make-dialog)
+                             (yield wait-to-continue))
+                           (when exn (raise exn)))]
+                        [else
+                         ; Text
+                         (begin-edit-sequence)
+                         (let loop ()
+                           (let ([r (read-line p 'any)])
+                             (unless (eof-object? r)
+                               (insert r)
+                               (insert #\newline)
+                               (loop))))
+                         (change-style (make-object style-delta% 'change-family 'modern)
+                                       0 (last-position))
+                         (set! wrapping-on? #f)
+                         (end-edit-sequence)])))
 		  (lambda ()
 		    (end-edit-sequence)
 		    (end-busy-cursor)
-					; (send progress stop)
+                    ; (send progress stop)
 		    (set! htmling? #f)
 		    (close-input-port p)))
-	      (set-style-list hyper-style-list)
-	      (set-modified #f)
-	      (auto-wrap wrapping-on?)
-              (set-autowrap-bitmap #f)
-	      (lock #t)))))))
+                 (set-style-list hyper-style-list)
+                 (set-modified #f)
+                 (auto-wrap wrapping-on?)
+                 (set-autowrap-bitmap #f)
+                 (lock #t))))])
+        
+	(sequence
+	  (apply super-init args)
+	  (add-h-link-style)
+          (reload)))))
 
   (define hyper-text% (hyper-text-mixin text:keymap%))
 
@@ -754,6 +759,15 @@
 	[filter-notes (lambda (l) (apply string-append l))]
 	[get-canvas (lambda () c)]
 	[on-url-click (lambda (k url) (k url))]
+
+        [reload
+         (lambda ()
+           (let ([c (get-canvas)])
+             (and c 
+                  (let ([e (send c get-editor)])
+                    (and e
+                         (send e reload))))))]
+
 	[leaving-page (lambda (page new-page)
 			(set! future null)
 			(when page
