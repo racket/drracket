@@ -117,7 +117,10 @@
     (error-print-width 200))
 
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
-   (build-path (collection-path "icons") "plt.jpg")
+   (build-path (collection-path "icons") 
+               (if ((get-display-depth) . <= . 8)
+                   "plt-flat.gif"
+                   "plt.jpg"))
    "DrScheme"
    99)
 
