@@ -244,13 +244,29 @@ profile todo:
                                      (display #\space (current-error-port))
                                      (display (path->string (find-relative-path (current-directory) src))
                                               (current-error-port))
+                                     (let ([line (srcloc-line src-to-display)]
+                                           [col (srcloc-column src-to-display)])
+                                       (when (and (number? line) 
+                                                  (number? col))
+                                         (fprintf (current-error-port) ":~a:~a" line col)))
                                      (display ": " (current-error-port))))))
                              srcs-to-display)
                    
-                   
                    (display msg (current-error-port))
                    (when (exn:fail:syntax? exn)
-                     (write-special (make-object string-snip% " in: ") (current-error-port)))
+                     (let ([error-text-style-delta (make-object style-delta%)])
+                       (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
+                       (write-special (make-object string-snip% " in:") (current-error-port))
+                       (for-each (lambda (expr)
+                                   (let ([snp (make-object string-snip%
+                                                (format "~s" (syntax-object->datum expr)))])
+                                     (display " " (current-error-port))
+                                     (send snp set-style
+                                           (send the-style-list find-or-create-style
+                                                 (send snp get-style)
+                                                 error-text-style-delta))
+                                     (write-special snp (current-error-port))))
+                                 (exn:fail:syntax-exprs exn))))
                    (newline (current-error-port))
                    
                    ;; need to flush here so that error annotations insrted in next line

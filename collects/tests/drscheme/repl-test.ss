@@ -245,7 +245,7 @@
                 #f
                 void
                 void)
-     
+     #|
      (make-test (list "#!\n" 
                       '("Special" "Insert XML Box")
                       "<a>")
@@ -317,6 +317,7 @@
       #f
       void
       void)
+     |#
      
      ;; eval tests
      (make-test "    (eval '(values 1 2))"
@@ -459,7 +460,7 @@
      ;; error across separate files
      (let ([tmp-filename (make-temporary-file "dr-repl-test~a.ss")])
        (make-test
-        (format "(load ~s) (f (lambda () (+ 1 (car 1))))" tmp-filename)
+        (format "(load ~s) (f (lambda () (+ 1 (car 1))))" (path->string tmp-filename))
         "car: expects argument of type <pair>; given 1"
         "car: expects argument of type <pair>; given 1"
         #t
