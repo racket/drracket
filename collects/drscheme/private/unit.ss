@@ -628,14 +628,16 @@
         (let* ([min-indent 0]
                [defs (let loop ([pos 0])
                        (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
-                         (if (and defn-pos
-                                  (not (in-semicolon-comment? text defn-pos)))
-                             (let ([indent (get-defn-indent text defn-pos)]
-                                   [name (get-defn-name text (+ defn-pos (string-length tag-string)))])
-                               (set! min-indent (min indent min-indent))
-                               (cons (make-defn indent name defn-pos defn-pos)
-                                     (loop (+ defn-pos (string-length tag-string)))))
-                             null)))])
+                         (cond
+                           [(not defn-pos) null]
+                           [(in-semicolon-comment? text defn-pos)
+                            (loop (+ defn-pos (string-length tag-string)))]
+                           [else
+                            (let ([indent (get-defn-indent text defn-pos)]
+                                  [name (get-defn-name text (+ defn-pos (string-length tag-string)))])
+                              (set! min-indent (min indent min-indent))
+                              (cons (make-defn indent name defn-pos defn-pos)
+                                    (loop (+ defn-pos (string-length tag-string)))))])))])
           
           ;; update end-pos's based on the start pos of the next defn
           (unless (null? defs)
