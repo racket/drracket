@@ -140,6 +140,12 @@
       (add-proxy-prefs-panel)
       (drscheme:debug:add-prefs-panel)
       
+      (handler:current-create-new-window
+       (let ([drscheme-current-create-new-window
+	      (lambda (filename)
+		(drscheme:unit:open-drscheme-window filename))])
+	 drscheme-current-create-new-window))
+
       ;; add a handler to open .plt files.
       (handler:insert-format-handler 
        "PLT Files"

@@ -289,7 +289,7 @@
                   (bell)))]
           
           (override file-menu:open-callback file-menu:open-string
-                    file-menu:new-callback  file-menu:new-string
+                    file-menu:new-string
                     help-menu:about-callback help-menu:about-string help-menu:create-about?
                     help-menu:before-about
                     file-menu:between-open-and-revert
@@ -333,9 +333,6 @@
           (define (file-menu:new-string) (string-constant new-menu-item))
           (define (file-menu:open-string) (string-constant open-menu-item))
 
-          (define (file-menu:new-callback item event)
-            (drscheme:unit:open-drscheme-window)) 
-          
           (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define file-menu:between-open-and-revert
             (lambda (file-menu) 
