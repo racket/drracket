@@ -1757,7 +1757,7 @@
                              (lambda ()
                                (thnk)
                                (semaphore-post wait))))
-                          (semaphore-wait wait)))]) 
+                          (semaphore-wait wait)))])
                 
                 ; setup standard parameters
                 (let ([snip-classes
@@ -1788,7 +1788,12 @@
                 ;; must happen after language is initialized.
                 (queue-user/wait
                  (lambda () ; =User=, =No-Breaks=
-                   (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))))
+                   (with-handlers ([not-break-exn?
+                                    (lambda (exn)
+                                      (raise exn))])
+                     (let ([pref (preferences:get 'drscheme:teachpacks)])
+                       (drscheme:teachpack:install-teachpacks pref)))))
+                
                 
                 (parameterize ([current-eventspace (get-user-eventspace)])
                   (queue-callback

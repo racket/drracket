@@ -4,7 +4,6 @@
   (require (lib "unitsig.ss")
            (lib "class.ss")
            (lib "list.ss")
-           (lib "file.ss")
            (lib "mred.ss" "mred")
            (lib "embed.ss" "compiler")
            (lib "launcher.ss" "launcher")
@@ -31,6 +30,9 @@
         (drscheme:language-configuration:add-language
          (instantiate module-language% ())))
       
+      (define-struct (module-language-settings drscheme:language:simple-settings)
+                     (collection-paths))
+      
       ;; module-mixin : (implements drscheme:language:language<%>)
       ;;             -> (implements drscheme:language:language<%>)
       (define (module-mixin %)
@@ -40,9 +42,61 @@
                   [super-front-end front-end])
           (field [iteration-number 0])
           
+          ;; config-panel : as in super class
+          ;; uses drscheme:language:simple-module-based-language-config-panel
+          ;; and adds a collection paths configuration to it.
+          (define/override (config-panel parent)
+            (module-language-config-panel parent))
+          
+          (rename [super-default-settings default-settings])
+          (define/override (default-settings)
+            (let ([super-defaults (super-default-settings)])
+              (apply make-module-language-settings
+                     (append
+                      (vector->list (drscheme:language:simple-settings->vector super-defaults))
+                      (list '(default))))))
+          
+          ;; default-settings? : -> boolean
+          (rename [super-default-settings? default-settings?])
+          (define/override (default-settings? settings)
+            (and (super-default-settings? settings)
+                 (equal? (module-language-settings-collection-paths settings)
+                         '(default))))
+          
+          (rename [super-marshall-settings marshall-settings])
+          (define/override (marshall-settings settings)
+            (let ([super-marshalled (super-marshall-settings settings)])
+              (list super-marshalled
+                    (module-language-settings-collection-paths settings))))
+          
+          (rename [super-unmarshall-settings unmarshall-settings])
+          (define/override (unmarshall-settings marshalled)
+            (and (pair? marshalled)
+                 (pair? (cdr marshalled))
+                 (null? (cddr marshalled))
+                 (list? (cadr marshalled))
+                 (andmap (lambda (x) (or (string? x) (symbol? x)))
+                         (cadr marshalled))
+                 (let ([super (super-unmarshall-settings (car marshalled))])
+                   (and super
+                        (apply make-module-language-settings
+                               (append 
+                                (vector->list (drscheme:language:simple-settings->vector super))
+                                (list (cadr marshalled))))))))
+          
           (define/override (on-execute settings run-in-user-thread)
             (set! iteration-number 0)
-            (super-on-execute settings run-in-user-thread))
+            (super-on-execute settings run-in-user-thread)
+            (run-in-user-thread
+             (lambda ()
+               (let ([default (current-library-collection-paths)])
+                 (current-library-collection-paths
+                  (apply 
+                   append
+                   (map (lambda (x) (if (symbol? x)
+                                        default
+                                        (list x)))
+                        (module-language-settings-collection-paths settings))))))))
 
           (define/override (get-one-line-summary)
             (string-constant module-language-one-line-summary))
@@ -117,6 +171,169 @@
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))
             (language-position (list "module")))))
+      
+      ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))
+      
+      ;; don't forget to remove the string constants to string-constants.ss
+      
+      (define (module-language-config-panel parent)
+        (define new-parent 
+          (instantiate vertical-panel% ()
+            (parent parent)
+            (alignment '(center center))
+            (stretchable-height #f)
+            (stretchable-width #f)))
+        (define simple-case-lambda (drscheme:language:simple-module-based-language-config-panel new-parent))
+        (define cp-message (make-object message% (string-constant ml-cp-collection-paths) new-parent))
+        (define cp-panel (instantiate vertical-panel% ()
+                           (parent new-parent)
+                           (style '(border))))
+        
+        ;; data associated with each item in listbox : boolean
+        ;; indicates if the entry is the default paths.
+        (define lb (instantiate list-box% ()
+                     (parent cp-panel)
+                     (choices '("a" "b" "c"))
+                     (label #f)
+                     (callback (lambda (x y) (update-buttons)))))
+        (define top-button-panel (instantiate horizontal-panel% ()
+                                   (parent cp-panel)
+                                   (alignment '(center center))
+                                   (stretchable-height #f)))
+        (define bottom-button-panel (instantiate horizontal-panel% ()
+                                      (parent cp-panel)
+                                      (alignment '(center center))
+                                      (stretchable-height #f)))
+        (define add-button (make-object button% (string-constant ml-cp-add) bottom-button-panel
+                             (lambda (x y) (add-callback))))
+        (define add-default-button (make-object button% (string-constant ml-cp-add-default) bottom-button-panel
+                                     (lambda (x y) (add-default-callback))))
+        (define remove-button (make-object button% (string-constant ml-cp-remove) bottom-button-panel
+                                (lambda (x y) (remove-callback))))
+        (define raise-button (make-object button% (string-constant ml-cp-raise) top-button-panel
+                               (lambda (x y) (raise-callback))))
+        (define lower-button (make-object button% (string-constant ml-cp-lower) top-button-panel
+                               (lambda (x y) (lower-callback))))
+        
+        (define (update-buttons)
+          (let ([lb-selection (send lb get-selection)]
+                [lb-tot (send lb get-number)])
+            (send remove-button enable lb-selection)
+            (send raise-button enable 
+                  (and lb-selection
+                       (not (= lb-selection 0))))
+            (send lower-button enable 
+                  (and lb-selection
+                       (not (= lb-selection (- lb-tot 1)))))))
+                
+        (define (add-callback)
+          (let ([dir (get-directory
+                      (string-constant ml-cp-choose-a-collection-path)
+                      (send parent get-top-level-window))])
+            (when dir
+              (send lb append dir #f)
+              (update-buttons))))
+        
+        (define (add-default-callback)
+          (cond
+            [(has-default?)
+             (message-box (string-constant drscheme)
+                          (string-constant ml-cp-default-already-present)
+                          (send parent get-top-level-window))]
+            [else
+             (send lb append (string-constant ml-cp-default-collection-path) #t)
+             (update-buttons)]))
+        
+        ;; has-default? : -> boolean
+        ;; returns #t if the `default' entry has already been added
+        (define (has-default?)
+          (let loop ([n (send lb get-number)])
+            (cond
+              [(= n 0) #f]
+              [(send lb get-data (- n 1)) #t]
+              [else (loop (- n 1))])))
+        
+        (define (remove-callback)
+          (let ([to-delete (send lb get-selection)])
+            (send lb delete to-delete)
+            (unless (zero? (send lb get-number))
+              (send lb set-selection (min to-delete
+                                          (- (send lb get-number) 1))))
+            (update-buttons)))
+        
+        (define (lower-callback)
+          (let* ([sel (send lb get-selection)]
+                 [vec (get-lb-vector)]
+                 [below (vector-ref vec (+ sel 1))])
+            (vector-set! vec (+ sel 1) (vector-ref vec sel))
+            (vector-set! vec sel below)
+            (set-lb-vector vec)
+            (send lb set-selection (+ sel 1))
+            (update-buttons)))
+        
+        (define (raise-callback) 
+          (let* ([sel (send lb get-selection)]
+                 [vec (get-lb-vector)]
+                 [above (vector-ref vec (- sel 1))])
+            (vector-set! vec (- sel 1) (vector-ref vec sel))
+            (vector-set! vec sel above)
+            (set-lb-vector vec)
+            (send lb set-selection (- sel 1))
+            (update-buttons)))
+        
+        (define (get-lb-vector)
+          (list->vector
+           (let loop ([n 0])
+             (cond
+               [(= n (send lb get-number)) null]
+               [else (cons (cons (send lb get-string n)
+                                 (send lb get-data n))
+                           (loop (+ n 1)))]))))
+        
+        (define (set-lb-vector vec)
+          (send lb clear)
+          (let loop ([n 0])
+            (cond
+              [(= n (vector-length vec)) (void)]
+              [else (send lb append (car (vector-ref vec n)))
+                    (send lb set-data n (cdr (vector-ref vec n)))
+                    (loop (+ n 1))])))
+        
+        (define (get-collection-paths)
+          (let loop ([n 0])
+            (cond
+              [(= n (send lb get-number)) null]
+              [else
+               (let ([data (send lb get-data n)])
+                 (cons (if data
+                           'default
+                           (send lb get-string n))
+                       (loop (+ n 1))))])))
+        
+        (define (install-collection-paths paths)
+          (send lb clear)
+          (for-each (lambda (cp)
+                      (if (symbol? cp)
+                          (send lb append
+                                (string-constant ml-cp-default-collection-path)
+                                #t)
+                          (send lb append cp #f)))
+                    paths))
+        
+        (send lb set '())
+        (update-buttons)
+        
+        (case-lambda
+          [() 
+           (let ([simple-settings (simple-case-lambda)])
+             (apply make-module-language-settings
+                    (append
+                     (vector->list (drscheme:language:simple-settings->vector simple-settings))
+                     (list (get-collection-paths)))))]
+          [(settings) 
+           (simple-case-lambda settings)
+           (install-collection-paths (module-language-settings-collection-paths settings))
+           (update-buttons)]))
       
       ;; module-language-style-delta : (instanceof style-delta%)
       (define module-language-style-delta (make-object style-delta% 'change-family 'modern))

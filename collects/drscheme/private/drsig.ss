@@ -208,6 +208,8 @@
              -setters)
      simple-settings->vector
 
+     simple-module-based-language-config-panel
+     
      language<%>
      module-based-language<%>
      simple-module-based-language<%>

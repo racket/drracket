@@ -202,7 +202,9 @@
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
       (define (simple-module-based-language-config-panel _parent)
-	(letrec ([parent (make-object vertical-panel% _parent)]
+	(letrec ([parent (instantiate vertical-panel% ()
+                           (parent _parent)
+                           (alignment '(center center)))]
                  
                  [input-msg (make-object message% (string-constant input-syntax) parent)]
                  [input-panel (instantiate vertical-panel% ()
@@ -258,11 +260,6 @@
                                     (string-constant use-pretty-printer-label)
                                     output-panel
                                     void)])
-	  
-	  ;; set the characteristics of the GUI
-          (send _parent set-alignment 'center 'center)
-	  (send parent stretchable-height #f)
-	  (send parent stretchable-width #f)
           
 	  (case-lambda
             [()

@@ -448,7 +448,10 @@
 	  ;; the language's default settings, unless this is
 	  ;; the to-show language.
 	  (define (make-details-panel language)
-	    (let ([panel (make-object vertical-panel% details-panel)])
+	    (let ([panel (instantiate vertical-panel% ()
+                           (parent details-panel)
+                           (stretchable-width #f)
+                           (stretchable-height #f))])
 	      (values
 	       panel
 	       (send language config-panel panel))))
