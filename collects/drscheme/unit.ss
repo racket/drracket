@@ -225,8 +225,9 @@
   
   (define super-frame% (mred:make-searchable-frame%
 			(mred:make-info-frame%
-			 (drscheme:frame:make-frame%
-			  mred:simple-menu-frame%))))
+			 (mred:make-file-frame%
+			  (drscheme:frame:make-frame%
+			   mred:simple-menu-frame%)))))
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
       (inherit get-canvas
@@ -320,6 +321,31 @@
 		(null? (send definitions-edit get-filename))))])
 
       (public
+	[file-menu:between-open-and-save
+	 (lambda (file-menu)
+	   (send file-menu append-separator))]
+	[file-menu:save-string "Definitions"]
+	[file-menu:save-as-string "Definitions"]
+	[file-menu:between-save-and-print
+	 (lambda (file-menu)
+	   (send file-menu append-item
+		 "Save Interactions"
+		 (lambda () (send interactions-edit save-file)))
+	   (send file-menu append-item
+		 "Save Interactions As..."
+		 (lambda () 
+		   (let ([file (mred:put-file)])
+		     (when file
+		       (send interactions-edit save-file 
+			     file wx:const-media-ff-std)))))
+	   (send file-menu append-item
+		 "Save Interactions As Text..."
+		 (lambda () 
+		   (let ([file (mred:put-file)])
+		     (when file
+		       (send interactions-edit save-file 
+			     file wx:const-media-ff-text)))))
+	   (send file-menu append-separator))]
 	[file-menu:print-string "Definitions"]
 	[file-menu:print-transcript-id #f]
 	[file-menu:between-print-and-close
