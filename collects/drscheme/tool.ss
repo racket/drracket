@@ -21,20 +21,22 @@
 			     (cdr fns)
 			     (cons (car fns) (loop (cdr fns))))]))))])
 
-  ;; load them first here, so the progress bar is right
+  ;; load them first here, so the progress bar is right.
   ;; they will be cached for the require-library/proc
   ;; in the body of the unit
   (for-each
    (lambda (dir)
-     (with-handlers ([(lambda (x) #t)
-		      (lambda (exn)
-			(rem dir)
-			(message-box
-			 (format "Tool ~s failed to load" dir)
-			 (if (exn? exn)
-			     (exn-message exn)
-			     (format "~s" exn))))])
-       (require-library/proc "unit.ss" "drscheme" "tools" dir)))
+     (if (file-exists? (build-path (collection-path "drscheme" "tools" dir) "unit.ss"))
+         (with-handlers ([(lambda (x) #t)
+                          (lambda (exn)
+                            (rem dir)
+                            (message-box
+                             (format "Tool ~s failed to load" dir)
+                             (if (exn? exn)
+                                 (exn-message exn)
+                                 (format "~s" exn))))])
+           (require-library/proc "unit.ss" "drscheme" "tools" dir))
+         (rem dir)))
    tool-filenames)
 
  (unit/sig ()

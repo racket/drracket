@@ -47,7 +47,7 @@
                  (when filename
                    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
                                             "-e" (format "(define settings ~s)" v-settings)
-                                            "-e" (format "(define teachpacks ~s)" teachpacks))])
+                                            "-e" (format "(define teachpacks '~s)" teachpacks))])
                      (if (and in-mz? (null? teachpacks))
                          (launcher:make-mzscheme-launcher
 			  (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
@@ -654,10 +654,74 @@
       (stretchable-width #f)
       (stretchable-height #f)))
 
+  (define lambda-snipclass
+    (make-object (class mred:snip-class% ()
+                   (override
+                     [read
+                      (lambda (p)
+                        (make-object lambda-snip%))])
+                   (sequence
+                     (super-init)))))
+  (send lambda-snipclass set-version 1)
+  (send lambda-snipclass set-classname "mred:lambda-snip%")
+  (send (mred:get-the-snip-class-list) add lambda-snipclass)
+
+  (define (set-box/f! b v) (when (box? b) (set-box! b v)))
+  (define lambda-snip% 
+    (class* mred:snip% (fw:gui-utils:text-snip<%>) ()
+      (private
+        [get-normal-font
+         (lambda ()
+           (send mred:the-font-list find-or-create-font
+                 (fw:preferences:get 'drscheme:font-size)
+                 'modern 'normal 'normal #f))]
+        [get-lambda-font
+         (lambda ()
+           (send mred:the-font-list find-or-create-font 
+                 (fw:preferences:get 'drscheme:font-size)
+                 'symbol 'normal 'normal #f))])
+      (public
+        [get-string
+         (lambda () " lambda ")])
+      (override
+        [get-text
+         (case-lambda
+          [(x y) " lambda "]
+          [(x y z) " lambda "])]
+        [copy
+         (lambda ()
+           (make-object lambda-snip%))]
+        [write
+         (lambda (p)
+           (void))]
+        [get-extent
+         (lambda (dc x y wb hb descentb spaceb lspaceb rspaceb)
+           (let-values ([(w h d s) (send dc get-text-extent "W" (get-normal-font))])
+             (set-box/f! wb w)
+             (set-box/f! hb h)
+             (set-box/f! descentb d)
+             (set-box/f! spaceb s)
+             (set-box/f! lspaceb 0)
+             (set-box/f! rspaceb 0)))]
+        [draw
+         (lambda (dc x y left top right bottom dx dy draw-caret)
+           (let ([font (send dc get-font)])
+             (let-values ([(ww wh wd ws) (send dc get-text-extent "W" (get-normal-font))])
+               (send dc set-font (get-lambda-font))
+               (let-values ([(lw lh ld ls) (send dc get-text-extent "l")])
+                 (send dc draw-text "l" 
+                       (+ x (/ (- ww lw) 2))
+                       (+ y (- (- wh wd) (- lh ld)))))
+               (send dc set-font font))))])
+      (inherit set-snipclass)
+      (sequence
+        (super-init)
+        (set-snipclass lambda-snipclass))))
+
   (define super-frame%
     (drscheme:frame:mixin
      (drscheme:frame:basics-mixin fw:frame:searchable%)))
-  
+
   (define frame%
     (class* super-frame% (drscheme:rep:context<%>) (filename)
       (inherit get-canvas
@@ -962,7 +1026,7 @@
       (public
 	[after-change-name void])
 
-      (inherit get-menu-bar get-focus-object)
+      (inherit get-menu-bar get-focus-object get-edit-target-object)
       (private
 	[language-menu 'uninited-language-menu])
       (sequence
@@ -1027,7 +1091,14 @@
 	  (make-object mred:menu-item%
 	    "&Uncomment"
 	    scheme-menu
-	    (send-method 'uncomment-selection)))
+	    (send-method 'uncomment-selection))	  
+          (make-object mred:separator-menu-item% scheme-menu)
+          (make-object mred:menu-item%
+            "Insert Lambda"
+            scheme-menu
+            (lambda x (let ([editor (get-edit-target-object)])
+                        (when editor
+                          (send editor insert (make-object lambda-snip%)))))))
 
 	(fw:frame:reorder-menus this)
 	     
