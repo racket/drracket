@@ -107,7 +107,9 @@
                   (eq? (current-error-port) (send rep get-this-err)))
              (send rep queue-output
                    (lambda ()  ;; =Kernel=, =Handler=
-                     (insert-error-in-text rep rep msg exn user-dir)))]
+                     (insert-error-in-text rep rep msg exn user-dir)
+                     (let ([context (send rep get-context)])
+                       (send context ensure-rep-shown))))]
             [else
              (display msg (current-error-port))
              (newline (current-error-port))])))
@@ -120,14 +122,12 @@
       ;;                        ->
       ;;                        void?
       (define (insert-error-in-text text interactions-text msg exn user-dir)
-        (let ([context (send interactions-text get-context)])
-          (send context ensure-rep-shown)
-          (insert-error-in-text/highlight-errors
-           text
-           (lambda (l) (send interactions-text highlight-errors l))
-           msg
-           exn
-           user-dir)))
+        (insert-error-in-text/highlight-errors
+         text
+         (lambda (l) (send interactions-text highlight-errors l))
+         msg
+         exn
+         user-dir))
       
       ;; insert-error-in-text/highlight-errors : (is-a?/c text%)
       ;;                                         ((listof (list text% number number)) -> void)
