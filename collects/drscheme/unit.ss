@@ -343,7 +343,14 @@
 	   (let ([item (send menu get-label id)])
 	     (and (string? item)
 		  (>= (string-length item) 4)
-		  (string=? (substring item 0 4) "Show"))))])
+		  (string=? (substring item 0 4) "Show"))))]
+	[save-as-text-from-edit
+	 (lambda (win)
+	   (let ([file (mred:put-file)])
+	     (when file
+		   (send win save-file 
+			 file wx:const-media-ff-text))))])
+
       (public
 	[toggle-show/hide
 	 (lambda (menu id)
@@ -370,6 +377,10 @@
 	[file-menu:between-save-and-print
 	 (lambda (file-menu)
 	   (send file-menu append-item
+		 "Save Definitions As Text..."
+		 (lambda ()
+		   (save-as-text-from-edit definitions-edit)))
+	   (send file-menu append-item
 		 "Save Interactions"
 		 (lambda () (send interactions-edit save-file)))
 	   (send file-menu append-item
@@ -381,11 +392,8 @@
 			     file wx:const-media-ff-std)))))
 	   (send file-menu append-item
 		 "Save Interactions As Text..."
-		 (lambda () 
-		   (let ([file (mred:put-file)])
-		     (when file
-		       (send interactions-edit save-file 
-			     file wx:const-media-ff-text)))))
+		 (lambda ()
+		   (save-as-text-from-edit interactions-edit)))
 	   (send file-menu append-separator)
 	   (send file-menu append-item
 		 "Show Interactions History..."
