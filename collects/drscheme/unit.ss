@@ -754,6 +754,7 @@
 	       (not (eq? created-frame 'nothing-yet)) 
 	       (send created-frame still-untouched?))
 	  (begin (send created-frame change-to-file name)
+		 (send created-frame show #t)
 		 created-frame)
 	  (let* ([frame% (drscheme:get/extend:get-unit-frame%)]
 		 [frame (make-object frame% name)])
