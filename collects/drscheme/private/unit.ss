@@ -1135,8 +1135,29 @@ tab panels new behavior:
               [else
                (hide-info)
                (send top-outer-panel change-children (lambda (l) '()))
-               (send toolbar-menu-item set-label (string-constant show-toolbar))]))
+               (send toolbar-menu-item set-label (string-constant show-toolbar))])
+            (update-defs/ints-resize-corner))
           
+          (define/private (update-defs/ints-resize-corner)
+            (let loop ([cs definitions-canvases])
+              (cond
+                [(null? cs) (void)]
+                [(null? (cdr cs))
+                 (send (car cs) set-resize-corner (and (not toolbar-shown?)
+                                                       (not interactions-shown?)))]
+                [else
+                 (send (car cs) set-resize-corner #f)
+                 (loop (cdr cs))]))
+            (let loop ([cs interactions-canvases])
+              (cond
+                [(null? cs) (void)]
+                [(null? (cdr cs))
+                 (send (car cs) set-resize-corner (and (not toolbar-shown?) 
+                                                       interactions-shown?))]
+                [else
+                 (send (car cs) set-resize-corner #f)
+                 (loop (cdr cs))])))
+            
           (public clear-annotations)
           [define clear-annotations
             (lambda ()
@@ -1456,7 +1477,10 @@ tab panels new behavior:
                                     (get-visible-region canvas-to-be-split)])
                         (let ([orig-percentages (send resizable-panel get-percentages)]
                               [orig-canvases (send resizable-panel get-children)]
-                              [new-canvas (make-object canvas% resizable-panel text)])
+                              [new-canvas (new canvas% 
+                                            (parent resizable-panel)
+                                            (editor text)
+                                            (style '(auto-hscroll)))])
                           
                           (set-canvases!
                            (let loop ([canvases canvases])
@@ -1714,6 +1738,8 @@ tab panels new behavior:
 			  definitions-canvases))]
 		  [p (preferences:get 'drscheme:unit-window-size-percentage)])
 	      
+              (update-defs/ints-resize-corner)
+              
 	      (send definitions-item set-label 
 		    (if definitions-shown?
 			(string-constant hide-definitions-menu-item-label)
