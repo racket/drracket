@@ -357,6 +357,7 @@
 			  (set! sucess? #t)
 			  (send f show #f))))]
 		    [sucess? #f])
+	     (send f center)
 	     (send button enable #f)
 	     (queue-callback (lambda () (semaphore-post sema)))
 	     (send f show #t)
