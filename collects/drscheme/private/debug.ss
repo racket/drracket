@@ -596,11 +596,16 @@ profile todo:
               (let ([ht (make-hash-table)])
                 (current-test-coverage-info ht)
                 (send rep set-test-coverage-info ht)))))
-        (hash-table-put! (current-test-coverage-info) key (list #f expr)))
+        (let ([ht (current-test-coverage-info)])
+          (when ht ;; if rep isn't around, we don't do test coverage...
+                   ;; this can happen when check syntax expands, for example
+            (hash-table-put! ht key (list #f expr)))))
   
       (define (test-covered key)
-        (let ([v (hash-table-get (current-test-coverage-info) key)])
-          (set-car! v #t)))
+        (let ([ht (current-test-coverage-info)])
+          (when ht ;; as in the `when' test in `initialize-test-coverage-point'
+            (let ([v (hash-table-get ht key)])
+              (set-car! v #t)))))
       
       (define test-coverage-interactions-text<%>
         (interface ()

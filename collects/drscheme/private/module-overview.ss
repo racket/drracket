@@ -569,7 +569,7 @@
           
           ;; add-syntax-connections : syntax -> void
           (define (add-syntax-connections stx)
-            (let ([module-codes (eval-compile-time-part-of-top-level/compile stx)])
+            (let ([module-codes (map compile (expand-syntax-top-level-with-compile-time-evals/flatten stx))])
               (for-each
                (lambda (module-code)
                  (when (compiled-module-expression? module-code)
