@@ -1,8 +1,5 @@
 #|
 
-startup failure is because of overridden enable-evaluations are 
-doing bad things.
-
 tab panels bug fixes:
   - can-close? needs to account for all tabs
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
@@ -19,10 +16,11 @@ tab panels new behavior:
 (module unit mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-           (lib "string-constant.ss" "string-constants")
-	   (lib "framework.ss" "framework")
+           (lib "file.ss")
            (lib "etc.ss")
            (lib "list.ss")
+           (lib "string-constant.ss" "string-constants")
+	   (lib "framework.ss" "framework")
            (lib "name-message.ss" "mrlib")
            
            "drsig.ss"
@@ -1893,6 +1891,11 @@ tab panels new behavior:
           (define/private (init-definitions-text)
             (send definitions-text set-interactions-text interactions-text)
             (send definitions-text change-mode-to-match))
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;; tabs
+          ;;
           
           ;; tabs : (listof tab)
           (define tabs (list (make-tab definitions-text interactions-text #f #f)))
@@ -1916,19 +1919,17 @@ tab panels new behavior:
                         (if (memq tabs-panel l)
                             l
                             (cons tabs-panel l))))
-                (change-to-tab (- (send tabs-panel get-number) 1))
+                (change-to-nth-tab (- (send tabs-panel get-number) 1))
                 (init-definitions-text)
                 (send ints initialize-console)
                 (send tabs-panel set-selection (- (send tabs-panel get-number) 1)))))
           
-          ;; change-to-tab : number -> void
+          ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
           ;; to be the nth tab. Also updates the GUI to show the new tab
-          (define (change-to-tab n)
-            (unless (< n (length tabs))
-              (error 'change-to-tab "number too big ~s" n))
+          (define/private (change-to-tab tab)
             (save-visible-tab-regions)
-            (set! current-tab (list-ref tabs n))
+            (set! current-tab tab)
             (set! definitions-text (tab-defs current-tab))
             (set! interactions-text (tab-ints current-tab))
             (for-each (lambda (defs-canvas) (send defs-canvas set-editor definitions-text))
@@ -1939,6 +1940,11 @@ tab panels new behavior:
             (update-save-message)
             (update-save-button)
             (send definitions-text update-frame-filename))
+          
+          (define/private (change-to-nth-tab n)
+            (unless (< n (length tabs))
+              (error 'change-to-nth-tab "number too big ~s" n))
+            (change-to-tab (list-ref tabs n)))
           
           (define/private (save-visible-tab-regions)
             (define (get-visible-regions txt)
@@ -1973,7 +1979,23 @@ tab panels new behavior:
                     #t))
             (set-visible-regions interactions-text (tab-visible-ints current-tab))
             (set-visible-regions definitions-text (tab-visible-defs current-tab)))
-              
+
+          (define/private (pathname-equal? p1 p2) (string=? (normalize-path p1) (normalize-path p2)))
+          (define/override (make-visible filename)
+            (let loop ([tabs tabs])
+              (unless (null? tabs)
+                (let* ([tab (car tabs)]
+                       [tab-filename (send (tab-defs tab) get-filename)])
+                  (if (and tab-filename
+                           (pathname-equal? filename tab-filename))
+                      (change-to-tab tab)
+                      (loop (cdr tabs)))))))
+          
+          ;;
+          ;; end tabs
+          ;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          
           (define (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
             (for-each (lambda (item) (send item delete)) teachpack-items)
@@ -2523,7 +2545,7 @@ tab panels new behavior:
                                   (callback (lambda (x y)
                                               (let ([sel (send tabs-panel get-selection)])
                                                 (when sel
-                                                  (change-to-tab sel)))))))
+                                                  (change-to-nth-tab sel)))))))
           [define resizable-panel (new vertical-dragable/def-int%
                                     (unit-frame this)
                                     (parent panel-with-tabs))]
