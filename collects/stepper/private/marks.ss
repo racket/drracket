@@ -15,7 +15,7 @@
   (provide/contract 
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
    ;[expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
-   [top-level-define-wrap (syntax? syntax? . -> . syntax?)]
+   [make-top-level-mark (syntax? . -> . syntax?)]
    [lookup-binding (case-> (-> mark-list? identifier? any)
                            (-> mark-list? identifier? procedure? any)
                            (-> mark-list? identifier? procedure? procedure? any))]
@@ -100,10 +100,10 @@
   
   ; see module top for type
   (define (make-full-mark location label bindings)
-    #`(lambda () (#,make-full-mark-varargs 
-                  #,(make-stx-protector location) 
-                  #,(make-label-protector label)
-                  #,@(apply append (map make-mark-binding-stx bindings)))))
+    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
+                                              ,(make-stx-protector location) 
+                                              ,(make-label-protector label)
+                                              ,@(apply append (map make-mark-binding-stx bindings))))))
   
   (define (mark-source mark)
     (stx-protector-stx (full-mark-struct-source (mark))))
@@ -162,6 +162,7 @@
            (filter (lambda (b)
                      (matcher (mark-binding-binding b) binding))
                    (mark-bindings mark))])
+      (printf "bindings: ~a\n" (map syntax-object->datum (map mark-binding-binding (mark-bindings mark))))
       (if (> (length matches) 1)
           (error 'lookup-binding "multiple bindings found for ~a" binding)
           matches)))
@@ -180,7 +181,9 @@
       ((mark-list binding binding-matcher)
        (lookup-binding mark-list binding binding-matcher 
                        (lambda ()
-                         (error 'lookup-binding "variable not found in environment: ~a~n" binding))))
+                         (error 'lookup-binding "variable not found in environment: ~a~n" (if (syntax? binding) 
+                                                                                              (syntax-object->datum binding)
+                                                                                              binding)))))
       ((mark-list binding)
        (lookup-binding mark-list
                        binding
@@ -222,11 +225,6 @@
                (make-full-mark source label (append kept-vars lifter-syms)))
              (make-full-mark source label kept-vars))))
   
-  ;; TOP-LEVEL-DEFINES : a special mark is placed at the outside of a define so that the shape of the define can be
-  ;; deduced.  We can't put the mark around the outside of the define because that would make the defines non-top-level.
   
-  (define (top-level-define-wrap source-expr annotated)
-    #`(with-continuation-mark #,debug-key #,(make-full-mark source-expr 'top-level-define null) 
-                              (call-with-values
-                               (lambda () #,annotated)
-                               (lambda args (apply values args))))))
+  (define (make-top-level-mark source-expr)
+    (make-full-mark source-expr 'top-level null)))
