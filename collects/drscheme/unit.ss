@@ -221,7 +221,7 @@
       (private
         [needs-execution-state #f]
         [already-warned-state #f]
-        [execute-language #f])
+        [execute-language (fw:preferences:get 'drscheme:settings)])
       (public
 	[needs-execution? 
          (lambda ()

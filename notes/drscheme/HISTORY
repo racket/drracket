@@ -1,149 +1,37 @@
-101
+Version 101:
 
- In fixing 1163, I changed help desk's searching data a
- little. I have tried many searches and things seem to work, but I
- cannot be sure that I have correctly identified all of the places I
- need to change. So, please try a few searches and tell me if they
- work.
+General
+-------
 
- PRS
+ - The teaching libraries are now called teachpacks. See the teachpack
+   release notes for more information.
 
-   635, 714, 770, 532, 771, 1162, 1076, 
-   1042, 1208, 1053, 1163, 1216, 1169
+ - DrScheme's languages have changed (again). The langauges are now:
 
- FUNCTIONALITY CHANGES
+   - Beginner 
+   - Intermediate
+   - Advanced
+   - Full Scheme, which contains:
+     - Graphical Full Scheme (with and without debugging), and
+     - Textual Full Scheme (with and without debugging)
 
- Renamed two files in the graphics collection:
+
+ - Help Desk now supports bug report submissions. Please use it in
+   favor of the web based form. To submit a bug, follow the "Sumbit a
+   Bug" link near the bottom of Help Desk's front page
+
+ - For tools, invoke-library is now called invoke-teachpack.
+
+ - Renamed two files in the graphics collection:
     graphic.ss is now graphics.ss
     graphics.ss is now graphicss.ss
 
- gui-utils:get-choice accepts a new (final) parameter that controls the 
- result when the user cancels the dialog. 
-
- added color-model:rgb-color-distance that accepts six numbers representing 
- two colors in rgb form and returns the distance between those colors. 
- Larger numbers mean that the human eye will see larger differences. 
- (Thanks, John!)
-
- DrScheme's print menu now inserts the time, date and filename as the first 
- line before printing (and removes it after printing). This works on the 
- mac, but does not seem to work under Unix. The jury is still out for 
- windows (Paul: can you test this?)
-
- MINOR CHANGES AND BUG FIXES
-
- - plugged leak: frames should now be collected
-
- - updated collects/htdp to load graphicss.ss instead of graphics.ss
-
- - Graphical languages come before textual languages in language
-   configuration dialog.
-
- - error messages now match line numbering preferences, instead
-   of always using line:pos - line:pos
+ - DrScheme's print menu now inserts the time, date and filename in the
+   header of the file to be printed.
 
  - comment/uncomment is improved. Now, it blindly adds a semicolon to the 
- front of each line (and doesn't add extra semicolons on following lines)
- and aways removes one semicolon (if present) from the front of each line.
-
- - added close button to new version frame
-
-; ------------------------------------------------------------
-
-
-101d11
-
- - PRS: 1208, 1209, 1225, 1203
- 
- FUNCTIONALITY CHANGES
-   
- - DrScheme's teaching libraries (distinct from the mzscheme
-   collection-based library system) are now called teachpacks.
-   The function drscheme:rep:invoke-library is now
-   drscheme:rep:invoke-teachpack
-
- MINOR CHANGES AND BUG FIXES
-
- - The "Take a Tour!" button now point to 
- PLTHOME/collects/doc/help/tour/index.html (There is nothing there yet)
-
-; ------------------------------------------------------------
-
-101d10
-
- - PRS: 1203
- 
- FUNCTIONALITY CHANGES
-   
- MINOR CHANGES AND BUG FIXES
- 
- - when the framework collection has a "CVS" subdirectory, 
-   drscheme shows the current memory usage in the info panel.
-   Clicking the button performs three gcs and updates the memory count.
-
- - bug submission form's severity choice now defaults to "serious"
-   instead of "critical".
-
- - bug submission form now inclues the installed manuals.
-
-; ------------------------------------------------------------
-
-101d9
-
- - PRS: 1183
- 
- FUNCTIONALITY CHANGES
-   
- - Bug reports can now be submitted using Help Desk. Please use this
-   in favor of the emacs or web-based submission, if possible.
-   [Steck's PR was premature; none of those problems exist]
-
- MINOR CHANGES AND BUG FIXES
-   
-; ------------------------------------------------------------
-
-101d8
-
- - PRS: 1115, 1173, 1168, 1169
- 
-
- FUNCTIONALITY CHANGES
- 
- - gui-utils:get-choice does now allow cancelling or closing
-   of the dialog. The user is forced to actually choose one of
-   the two buttons.
- 
- - all c:[ bindings are now gone. Use esc or meta
-   (alt on some platforms) instead
- 
- - editor:basic-mixin no longer has a `default-auto-wrap?' method.
-   Just set the parameter method `auto-wrap' directly.
- 
-   
- MINOR CHANGES AND BUG FIXES
-   
- - fixed a bug in help desk where help desk would try to open a
-   doc.txt/doc.txt file.
- 
- - rgb-red, rgb-blue, and rgb-green fixed (and added to test suite)
- 
- - collects/browser/html.ss now has a separate non-breaking space 
-   snip that it uses instead of regular spaces for &nbsp;
-
- - the page that help desk leads to when an installed html page is
-   accessed now explains what to do for proxy server users.
-   [Shriram: is the explanation satisfactory?]
-   
- - changed the bahavior of esc-space and esc-\. They should not
-   generate any error messages anymore, but they may not
-   be quite the same as they used to. Please try them and see if
-   you don't like the changes.
- 
-; ------------------------------------------------------------
-
-101d7
-
- - PRS: 1154, 1133,
+   front of each line (and doesn't add extra semicolons on following lines)
+   and aways removes one semicolon (if present) from the front of each line.
 
  - Parenthesis highlighting now turns unmatched parens red
    in addition to turning matched parenthesis regions grey.
@@ -153,132 +41,6 @@
    
    Thus, every time the cursor is next to an uncommented
    paren, the programmer sees some feedback about the paren.
- 
- - PR 1112 (matthew's submission). I cannot reject the bad preference
-   at drscheme startup (so drscheme will have this "badfont") 
-   without searching for all of the fixed with fonts on every
-   startup of drscheme. So, I only reject the preference when the
-   preferences dialog is opened. I hope that this is satisfactory.
-
-; ------------------------------------------------------------
-
-101d6
-
- - PRS: 1121 1068 1067 1066
-
- - release notes feature in drscheme now integrated with
-   help desk release notes.
-			
- - help desk docs install docs window is now 600 pixels wide
-
-; ------------------------------------------------------------
-
-101d5
-
- - added a new release notes and introduction framework
-
-; ------------------------------------------------------------
-
-101d4
-
- - PRS: 1156
-
- - If you set your language to be mred or mzscheme in 100 and then use
-   this version, instead of an internal error being raised (becuase
-   there is no mred language level anymore) the language we be
-   reset back to Beginner.
-
-; ------------------------------------------------------------
-
-101d3
-
- - various text displays in the preferences now work better with tab.
-
-; ------------------------------------------------------------
-
-101d2
-
- - PRS: 1133, 1121, 1120
- 
- - Changed the language dialog as specified in the meeting minutes. 
-   Comments, please.
- 
- - Using Save As when a filename has already been selected causes the 
-   standard file dialog to initially contain that name.
-
- - The old Configure Language menu item is now called "Choose Language".		
-
-; ------------------------------------------------------------
-
-
-101d1
-
- - An undocumented version of the new turtles is now available.
-   It supports everything the old turtles did, but now the turtle
-   window is a value. Set your library to PLT/lib/turtle.ss and try
-   the following program in the stepper! (there is a font problem in
-   the stepper, related to the turtles; we know) More info about the
-   new turtles is below the program.
-
-(define (draw-sides n theta side-len tv)
-  (cond
-    [(zero? n) tv]
-    [else
-     (draw-sides
-      (sub1 n)
-      theta
-      side-len
-      (turn/radians
-       theta
-       (draw side-len tv)))]))
-
-(define (regular-poly sides radius tv)
-  (merge
-   (clean
-    (draw-sides
-     sides
-     (/ pi 1/2 sides)
-     (* 2 radius (sin (/ pi sides)))
-     (turn/radians
-      (+ (/ pi 2) (/ pi sides))
-      (move
-       radius
-       tv))))
-   tv))
-
-(regular-poly 5 30 (turtles 70 70))
-
-
-   added value-turtler.ss, value-turtles.ss, value-turtle.ss,
-   and value-turtle-lib.ss to the graphics collection and
-   turtle.ss to PLT/lib
-
-   All of the basic turtle commands (turn, move,
-   draw, turn/radians) accept an extra argument, the turtles, and
-   produce a new turtle picture. 
-
-   (turtles X Y) produces a new turtle value of size X by Y.
-
-   Split and prompt are gone; they are replaced by merge and clean.
-   Clean accepts a turtles and erases all of the turtles in it,
-   leaving behind the drawing.
-
-   Merge accepts two turtle values. It result is a
-   turtle value whose drawing comes from the first argument and whose
-   turtles come from the concatenation of both argument's turtles.
-   For example,
-
-   (merge (draw 50 (turtles 170 40))
-          (draw 50 (turn 180 (turtles 170 40))))
-
-   Is a turtle value with two turtles pointing in opposite directions,
-   100 pixels apart, but with only a single 50 pixel line between
-   them.
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-------------------------------------------------------------------------
 
 Version 100:
 

@@ -85,7 +85,8 @@
   (frame%))
 
 (define-signature drscheme:text^
-  (text%))
+  (text<%>
+   text%))
 
 (define-signature drscheme:project^
   (scheme-project-frame%))
