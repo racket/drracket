@@ -1,6 +1,7 @@
 
 (module frame mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
            (lib "class.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
@@ -114,7 +115,7 @@
 	  (override on-event on-paint)
           
           (define paths #f)
-          (define label "Untitled")
+          (define label (string-constant untitled))
           (define (set-message file-name? path-name)
             (set! paths (if (and file-name? (file-exists? path-name))
                             (mzlib:file:explode-path (mzlib:file:normalize-path path-name))
@@ -176,7 +177,9 @@
                     [inverted?
                      (set! inverted? #f)
                      (on-paint)
-                     (message-box "DrScheme" "The file does not have a full name because it has not yet been saved.")]
+                     (message-box 
+                      "DrScheme"
+                      (string-constant no-full-name-since-not-saved))]
                     [else
                      (void)])]
                  [(send evt button-down? 'left)
@@ -288,7 +291,8 @@
                 (lambda (item evt)
                   (help:help-desk)))
               (make-object menu-item%
-                "Welcome to DrScheme"
+                (format (string-constant welcome-to-something)
+                        "DrScheme")
                 help-menu
                 (lambda (item evt)
                   (drscheme:app:invite-tour))))]
@@ -308,7 +312,7 @@
             [define file-menu:between-open-and-revert
              (lambda (file-menu) 
                (make-object menu-item% 
-                 "Open URL..."
+                 (string-constant open-url)
                  file-menu
                  (lambda (item evt)
                    (help:open-users-url this))))]
@@ -321,10 +325,10 @@
                        (let ([last-edit-object (get-edit-target-window)])
                          (send menu-item enable (can-show-keybindings?))))])
                 (instantiate menu-item% ()
-		  (label "Keybindings")
+		  (label (string-constant keybindings-menu-item))
 		  (parent menu)
                   (callback (lambda x (show-keybindings)))
-                  (help-string "Show the currently active keybindings")
+                  (help-string (string-constant keybindings-info))
                   (demand-callback keybindings-on-demand)))
               (make-object separator-menu-item% menu))]
 
@@ -342,18 +346,21 @@
       
       (define (show-keybindings-to-user bindings frame)
         (letrec ([f (instantiate keybindings-dialog% ()
-		      (label "Keybindings")
+		      (label (string-constant keybindings-frame-title))
 		      (parent frame)
                       (width (car (preferences:get 'drscheme:keybindings-window-size)))
                       (height (cdr (preferences:get 'drscheme:keybindings-window-size)))
                       (style '(resize-border)))]
                  [bp (make-object horizontal-panel% f)]
-                 [b-name (make-object button% "Sort by Name" bp (lambda x (update-bindings #f)))]
-                 [b-key (make-object button% "Sort by Key" bp (lambda x (update-bindings #t)))]
+                 [b-name (make-object button% (string-constant keybindings-sort-by-name)
+                           bp (lambda x (update-bindings #f)))]
+                 [b-key (make-object button% (string-constant keybindings-sort-by-key)
+                          bp (lambda x (update-bindings #t)))]
                  [lb
                   (make-object list-box% #f null f void)]
                  [bp2 (make-object horizontal-panel% f)]
-                 [cancel (make-object button% "Close" bp2 (lambda x (send f show #f)))]
+                 [cancel (make-object button% (string-constant close)
+                           bp2 (lambda x (send f show #f)))]
                  [space (make-object grow-box-spacer-pane% bp2)]
                  [update-bindings
                   (lambda (by-key?)
@@ -403,8 +410,8 @@
                    string)))]
           (field
            [currently-running? #f]
-           [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" "not running")]
-           [active-bitmap (get-bitmap/string "snoopy-active.gif" "running")])
+           [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" (string-constant not-running))]
+           [active-bitmap (get-bitmap/string "snoopy-active.gif" (string-constant running))])
           (public running not-running)
           [define running
             (lambda ()
@@ -419,7 +426,8 @@
           
           (inherit get-menu% get-menu-bar)
           (super-instantiate ())
-          (set! show-menu (make-object (get-menu%) "&Show" (get-menu-bar)))
+          (set! show-menu (make-object (get-menu%) (string-constant show-menu-label)
+                            (get-menu-bar)))
           
           (field
            [running-message
