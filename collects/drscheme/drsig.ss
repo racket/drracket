@@ -22,7 +22,6 @@
    original-error-port
    primitive-eval
    primitive-load
-   system-eventspace
    top-parameterization
    system-parameterization
    eval-thread-parameterization
