@@ -262,7 +262,7 @@
                          (set! tool-bitmap-y tool-bitmap-gap)))))))
             bitmap)))
       
-      (define tool-bitmap-gap 4)
+      (define tool-bitmap-gap 3)
       (define tool-bitmap-x tool-bitmap-gap)
       (define tool-bitmap-y tool-bitmap-gap)
       (define tool-bitmap-size 32)
