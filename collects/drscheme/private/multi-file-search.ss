@@ -436,11 +436,11 @@
              (if (= (length search-types) (length pref))
                  pref
                  (map (lambda (x) '()) search-types)))))
-        
-        (define ok-button (make-object button% (string-constant ok) button-panel
-                            (lambda (x y) (ok-button-callback)) '(border)))
-        (define cancel-button (make-object button% (string-constant cancel) button-panel
-                                (lambda (x y) (cancel-button-callback))))
+        (define-values (ok-button cancel-button)
+          (gui-utils:ok/cancel-buttons
+           button-panel
+           (lambda (x y) (ok-button-callback))
+           (lambda (x y) (cancel-button-callback))))
         (define spacer (make-object grow-box-spacer-pane% button-panel))
         
         ;; initialized to a searcher during the ok button callback

@@ -143,25 +143,30 @@
                               ans
                               #f))
                         #f)))]
-               [ok (make-object button% (string-constant ok) bp 
-                     (lambda x
-                       (cond
-                         [(validate-number)
-                          (set! ok? #t)
-                          (send dlg show #f)]
-                         [else 
-                          (message-box
-                           (string-constant drscheme)
-                           (string-constant invalid-number)
-                           dlg)]))
-                     '(border))]
-               [cancel (make-object button% (string-constant cancel) bp (lambda x (send dlg show #f)))])
-          (let ([mw (max (send den-m get-width) (send num-m get-width))])
-            (send den-m min-width mw)
-            (send num-m min-width mw))
-          (send bp set-alignment 'right 'center)
-          (send dlg show #t)
-          (and ok? (validate-number))))
+               [ok-callback
+                (lambda () 
+                  (cond
+                    [(validate-number)
+                     (set! ok? #t)
+                     (send dlg show #f)]
+                    [else 
+                     (message-box
+                      (string-constant drscheme)
+                      (string-constant invalid-number)
+                      dlg)]))]
+               [cancel-callback 
+                (lambda () (send dlg show #f))])
+          (let-values ([(ok cancel) 
+                        (gui-utils:ok/cancel-buttons
+                         bp
+                         (lambda (x y) (ok-callback))
+                         (lambda (x y) (cancel-callback)))])
+            (let ([mw (max (send den-m get-width) (send num-m get-width))])
+              (send den-m min-width mw)
+              (send num-m min-width mw))
+            (send bp set-alignment 'right 'center)
+            (send dlg show #t)
+            (and ok? (validate-number)))))
       
       (define (basename fn)
         (if fn

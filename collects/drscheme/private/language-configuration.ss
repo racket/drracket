@@ -419,16 +419,11 @@
                                               (lambda (_1 _2)
                                                 (revert-to-defaults-callback))))
           (define button-gap (make-object horizontal-panel% button-panel))
-	  (define cancel-button (and (not show-welcome?)
-                                     (make-object button% 
-                                       (string-constant cancel)
-                                       button-panel
-                                       (lambda (x y) (cancel-callback)))))
-	  (define ok-button (make-object button%
-                              (string-constant ok)
-                              button-panel
-                              (lambda (x y) (ok-callback))
-                              '(border)))
+	  (define-values (ok-button cancel-button)
+            (gui-utils:ok/cancel-buttons
+             button-panel
+             (lambda (x y) (ok-callback))
+             (lambda (x y) (cancel-callback))))
           (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
           
           (when show-welcome?

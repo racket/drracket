@@ -20,7 +20,7 @@
               [drscheme:multi-file-search : drscheme:multi-file-search^])
       
       (rename [-mixin mixin])
-      
+
       (define button-label-font
         (send the-font-list find-or-create-font
               (case (system-type)

@@ -254,13 +254,16 @@
           (define bp (instantiate horizontal-panel% ()
                        (parent dialog)
                        (alignment '(right center))))
-          (define quit (make-object button% quit-label bp
-                         (lambda (x y)
-                           (set! cancelled? #f)
-                           (send dialog show #f))))
-          (define cancel (make-object button% cancel-label bp
-                           (lambda (x y)
-                             (send dialog show #f))))
+          (define-values (quit cancel)
+            (gui-utils:ok/cancel-buttons
+             bp
+             (lambda (x y)
+               (set! cancelled? #f)
+               (send dialog show #f))
+             (lambda (x y)
+               (send dialog show #f))
+             quit-label
+             cancel-label))
           (send ec set-line-count 3)
           (send text auto-wrap #t)
           (send text set-autowrap-bitmap #f)
