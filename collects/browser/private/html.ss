@@ -75,16 +75,26 @@
 				 (send d set-style-on 'italic)
 				 d))
 
+      (define current-style-class (make-parameter null))
+
       (define (lookup-class-delta class)
-	(cond
-	 [(string=? class "scheme") scheme-code-delta]
-	 [(string=? class "keyword") scheme-code-delta/keyword]
-	 [(string=? class "variable") scheme-code-delta/variable]
-	 [(string=? class "global") scheme-code-delta/global]
-	 [(string=? class "selfeval") scheme-code-delta/selfeval]
-	 [(string=? class "comment") scheme-code-delta/comment]
-	 [(string=? class "navigation") navigation-delta]
-	 [else #f]))
+	(let ([class-path (cons class (current-style-class))])
+	  (cond
+	   [(equal? class-path '("scheme")) scheme-code-delta]
+	   [(equal? class-path '("keyword" "scheme")) scheme-code-delta/keyword]
+	   [(equal? class-path '("variable" "scheme")) scheme-code-delta/variable]
+	   [(equal? class-path '("global" "scheme")) scheme-code-delta/global]
+	   [(or (equal? class-path '("selfeval" "scheme"))
+		(equal? class-path '("schemeresponse"))) scheme-code-delta/selfeval]
+	   [(equal? class-path '("comment" "scheme")) scheme-code-delta/comment]
+	   [(equal? class-path '("navigation")) navigation-delta]
+	   [else #f])))
+
+      (define (with-style-class class thunk)
+	(if class
+	    (parameterize ([current-style-class (cons class (current-style-class))])
+	      (thunk))
+	    (thunk)))
 
       (define (lookup-span-class-delta class) (lookup-class-delta class))
 
@@ -230,7 +240,7 @@
       (define re:whitespace (regexp whitespace-string))
       (define re:starting-whitespace (regexp (format "^~a" whitespace-string)))
       (define re:ending-whitespace (regexp (format "~a$" whitespace-string)))
-      (define re:leading-newline (regexp "\r|\n|(\r\n)"))
+      (define re:leading-newline (regexp "^(\r|\n|(\r\n))"))
       
       (define (remove-leading-newline c)
 	(cond
@@ -706,18 +716,21 @@
 				      (let* ([align (get-field e 'align)]
 					     [class (get-field e 'class)]
 					     [delta (and class (lookup-class-delta class))])
-					(begin0
-					 (cond
-					  [(and (string? align) (string-ci=? align "center"))
-					   (para-aligner 'center delta rest)]
-					  [(and (string? align) (string-ci=? align "left"))
-					   (para-aligner 'left delta rest)]
-					  [(or (and (string? align) (string-ci=? align "right"))
-					       (and (string? class) (string-ci=? class "navigation")))
-					   (para-aligner 'right delta rest)]
-					  [else
-					   (rest)])
-					 (insert-newlines 2 para-base)))]
+					(with-style-class
+					 class
+					 (lambda ()
+					   (begin0
+					    (cond
+					     [(and (string? align) (string-ci=? align "center"))
+					      (para-aligner 'center delta rest)]
+					     [(and (string? align) (string-ci=? align "left"))
+					      (para-aligner 'left delta rest)]
+					     [(or (and (string? align) (string-ci=? align "right"))
+						  (and (string? class) (string-ci=? class "navigation")))
+					      (para-aligner 'right delta rest)]
+					     [else
+					      (rest)])
+					    (insert-newlines 2 para-base)))))]
 				     [(br)
 				      (insert-newlines 1 para-base)
 				      (rest)]
@@ -763,13 +776,16 @@
 				      (begin0
 				       (let* ([class (get-field e 'class)]
 					      [delta (and class (lookup-class-delta class))])
-					 (styler (if delta
-						     (let ([d (make-object style-delta% 'change-nothing)])
-						       (send d copy delta)
-						       (send d collapse delta:fixed)
-						       d)
-						     delta:fixed)
-						 rest))
+					 (with-style-class
+					  class
+					  (lambda ()
+					    (styler (if delta
+							(let ([d (make-object style-delta% 'change-nothing)])
+							  (send d copy delta)
+							  (send d collapse delta:fixed)
+							  d)
+							delta:fixed)
+						    rest))))
 				       (when (memq tag '(pre blockquote))
 					 (insert-newlines 2 para-base)))]
 				     [(span)
