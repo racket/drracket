@@ -5,18 +5,7 @@
            (lib "class.ss")
            (lib "etc.ss")
            "plt-installer-sig.ss"
-           
-	   ;; All the rest are to get the imports for setup@:
-	   "option-sig.ss"
-	   "setup-unit.ss"
-	   "option-unit.ss"
-	   (lib "launcher-sig.ss" "launcher")
-	   (lib "launcher-unit.ss" "launcher")
-	   (lib "dynext-sig.ss" "dynext")
-	   (lib "dynext-unit.ss" "dynext")
-	   (lib "sig.ss" "compiler")
-	   (lib "option-unit.ss" "compiler")
-	   (lib "compiler-unit.ss" "compiler")
+	   (prefix single: "plt-single-installer.ss")
            (lib "string-constant.ss" "string-constants"))
   
   (provide plt-installer@)
@@ -112,60 +101,22 @@
                      
                      (send done enable #t)))))))))
       
-      ;; run-single-installer : string (union (instanceof frame%) (instanceof dialog%)) -> void
-      ;; creates a separate thread, runs the installer in that thread,
-      ;; returns when the thread completes
-      (define (run-single-installer file parent)
-        (let ([cust (make-custodian)])
-          (parameterize ([current-custodian (make-custodian)]
-                         [exit-handler (lambda (v) (custodian-shutdown-all cust))])
-            (let ([thd
-                   (thread
-                    (lambda ()
-                      (invoke-unit/sig
-                       (compound-unit/sig
-                         (import)
-                         (link [launcher : launcher^ (launcher@ dcompile dlink)]
-                               [dcompile : dynext:compile^ (dynext:compile@)]
-                               [dlink : dynext:link^ (dynext:link@)]
-                               [dfile : dynext:file^ (dynext:file@)]
-                               [option : compiler:option^ (compiler:option@)]
-                               [compiler : compiler^ (compiler@
-                                                      option
-                                                      dcompile
-                                                      dlink
-                                                      dfile)]
-                               [soption : setup-option^ (setup:option@)]
-                               [set-options : () ((unit/sig ()
-                                                    (import setup-option^)
-                                                    ;; >>>>>>>>>>>>>> <<<<<<<<<<<<<<<
-                                                    ;; Here's where we tell setup the archive file!
-                                                    (archives (list file))
-                                                    ;; Here's where we make get a directory:
-                                                    (current-target-directory-getter
-                                                     (lambda ()
-                                                       (sleep 0.2) ; kludge to allow f to appear first
-                                                       (end-busy-cursor)
-						       ;; do these strings ever appear? (should move to string-constants, if so)
-                                                       (let ([d (get-directory 
-                                                                 "Select the destination for unpacking"
-                                                                 parent)])
-                                                         (unless d
-                                                           (printf ">>> Cancelled <<<~n"))
-                                                         (begin-busy-cursor)
-                                                         d))))
-                                                  soption)]
-                               [setup : () (setup@
-                                            SOPTION
-                                            compiler
-                                            option
-                                            launcher)])
-                         (export)))))])
-              (thread-wait thd)))))
+      (define run-single-installer single:run-single-installer)
       
       (define run-installer 
         (opt-lambda (file [cleanup-thunk void])
           (with-installer-window 
            (lambda (frame)
-             (run-single-installer file frame))
+             (run-single-installer file
+				   (lambda ()
+				     (sleep 0.2) ; kludge to allow f to appear first
+				     (end-busy-cursor)
+				     ;; do these strings ever appear? (should move to string-constants, if so)
+				     (let ([d (get-directory 
+					       "Select the destination for unpacking"
+					       frame)])
+				       (unless d
+					 (printf ">>> Cancelled <<<~n"))
+				       (begin-busy-cursor)
+				       d))))
            cleanup-thunk))))))
