@@ -28,10 +28,10 @@
       (link [init : drscheme:init^ (init@)]
             [tools : drscheme:tools^ (tools@ frame unit rep get/extend language
                                            (language-configuration : drscheme:language-configuration^)
-                                           help-desk init snip debug eval)]
+                                           help-desk init snip debug eval teachpack)]
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
-	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
+	    [teachpack : drscheme:teachpack^ (teachpack@)]
             [eval : drscheme:eval^ (eval@ language-configuration rep init language)]
             [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [rep : drscheme:rep^

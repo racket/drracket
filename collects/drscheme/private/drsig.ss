@@ -245,6 +245,7 @@
      (unit drscheme:help-desk : drscheme:help-desk^)
      (unit drscheme:eval : drscheme:eval^)
      ;(open ((unit drscheme:help-desk : drscheme:help-desk^)))
+     (unit drscheme:teachpack : drscheme:teachpack^)
      ))
 
   (define-signature drscheme^
