@@ -663,11 +663,11 @@
   
   (define frame%
     (class* super-frame% (drscheme:rep:context<%>) (filename)
-      (inherit get-canvas
-	       set-label-prefix show-menu
+      (inherit set-label-prefix show-menu
 	       show get-menu%
-	       get-editor
-	       get-area-container update-info
+	       get-area-container
+	       make-canvas
+	       update-info
 	       get-file-menu
 	       file-menu:get-open-item
 	       file-menu:get-new-item
@@ -924,16 +924,16 @@
 	 (lambda ()
 	   (let ([panel (get-area-container)])
 	     (super-update-shown)
-	     (send panel change-children
+	     (send resizable-panel change-children
 		   (lambda (l)
-		     (cons top-panel
-			   (mzlib:function:foldl
-			    (lambda (item sofar)
-			      (if (hidden? item)
-				  sofar
-				  (cons (item->child item) sofar)))
-			    null
-			    (get-sub-items)))))
+		     top-panel
+		     (mzlib:function:foldl
+		      (lambda (item sofar)
+			(if (hidden? item)
+			    sofar
+			    (cons (item->child item) sofar)))
+		      null
+		      (get-sub-items))))
 	     (when (ormap (lambda (child)
 			    (and (is-a? child mred:editor-canvas%)
 				 (not (send child has-focus?))))
@@ -1002,6 +1002,17 @@
            (fw:preferences:set 'drscheme:unit-window-width w)
            (fw:preferences:set 'drscheme:unit-window-height h)
            (super-on-size w h))])
+
+      (override
+       [get-editor (lambda () definitions-text)]
+       [get-canvas (lambda () definitions-canvas)])
+
+      (public
+	[definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
+	[interactions-text (make-object 
+                               (drscheme:get/extend:get-interactions-text%)
+                             this)])
+
       (sequence
 	(super-init filename
 		    #f
@@ -1084,20 +1095,17 @@
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
-	[name-panel (make-object mred:vertical-panel% top-panel)])
+	[name-panel (make-object mred:vertical-panel% top-panel)]
+	[resizable-panel (make-object fw:panel:vertical-resizable% top-panel)])
       (sequence
 	(send name-panel stretchable-width #f)
 	(send name-panel stretchable-height #f))
-      
+
       (public
-	[definitions-canvas (get-canvas)]
-	[definitions-text (get-editor)]
-	[interactions-canvas (make-object 
-                                 (drscheme:get/extend:get-interactions-canvas%)
-                               (get-area-container))]
-	[interactions-text (make-object 
-                               (drscheme:get/extend:get-interactions-text%)
-                             this)])
+	[definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
+			      resizable-panel)]
+	[interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
+                               resizable-panel)])
       
       (sequence
 	(send* interactions-canvas 
