@@ -10,9 +10,11 @@
   
   (provide help-desk:report-bug)
   
+  (define bug-report-recipient "bugs")
   (define bug-email-server "bugs.plt-scheme.org")
   (define bug-email-server-port 1025)
-  (define bug-report-email-address "bugs@plt-scheme.org")
+  (define bug-report-email-address 
+    (string-append bug-report-recipient "@plt-scheme.org"))
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
@@ -281,7 +283,7 @@
       (smtp-send-message
        bug-email-server
        (preferences:get 'drscheme:email)
-       (list "plt-gnats")
+       (list bug-report-recipient)
        (insert-field
         "X-Mailer"
         (format "Help Desk ~a (bug report form)" (version:version))
