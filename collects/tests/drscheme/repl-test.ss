@@ -640,7 +640,7 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
                 void)
 
      ;; graphical lambda tests
-     (make-test (list "((" '("Special" "Insert Lambda") "(x) x) 1)")
+     (make-test (list "((" '("Special" "Insert λ") "(x) x) 1)")
                 "1"
                 "1"
                 #f
@@ -651,9 +651,9 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
                 void
                 void)
      
-     (make-test (list "(" '("Special" "Insert Lambda") "())")
-                "~alambda: bad syntax in: (lambda ())"
-                "~alambda: bad syntax in: (lambda ())"
+     (make-test (list "(" '("Special" "Insert λ") "())")
+                "~aλ: bad syntax in: (λ ())"
+                "~aλ: bad syntax in: (λ ())"
                 #t
                 (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand

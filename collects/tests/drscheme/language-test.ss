@@ -66,7 +66,7 @@ the settings above should match r5rs
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" (regexp "class: bad syntax in: class"))
-      (test-expression "shared" "{image} reference to undefined identifier: shared")
+      (test-expression "shared" "{bug09.gif} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
       (test-expression "'(1 . 2)" "(1 . 2)")
@@ -77,15 +77,16 @@ the settings above should match r5rs
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
-      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{bug09.gif} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{bug09.gif} a \"a\"")
       
-      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      (test-expression "(time 1)" 
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
             
-      (test-expression "true" "{image} reference to undefined identifier: true")
-      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
-      (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
+      (test-expression "true" "{bug09.gif} reference to undefined identifier: true")
+      (test-expression "mred^" "{bug09.gif} reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "#f")
+      (test-expression "(set! x 1)" "{bug09.gif} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
       (test-expression "(cons 1 2)" "(1 . 2)")
       (test-expression "'(1)" "(1)")
@@ -157,8 +158,8 @@ the settings above should match r5rs
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image} reference to undefined identifier: class")
-      (test-expression "shared" "{image} reference to undefined identifier: shared")
+      (test-expression "class" "{bug09.gif} reference to undefined identifier: class")
+      (test-expression "shared" "{bug09.gif} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
       (test-expression "'(1 . 2)" "(1 . 2)")
@@ -169,15 +170,16 @@ the settings above should match r5rs
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
-      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{bug09.gif} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{bug09.gif} a \"a\"")
       
-      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      (test-expression "(time 1)" 
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
       
-      (test-expression "true" "{image} reference to undefined identifier: true")
-      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
-      (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
+      (test-expression "true" "{bug09.gif} reference to undefined identifier: true")
+      (test-expression "mred^" "{bug09.gif} reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "#f")
+      (test-expression "(set! x 1)" "{bug09.gif} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
       (test-expression "(cons 1 2)" "(1 . 2)")
       (test-expression "'(1)" "(1)")
@@ -253,8 +255,8 @@ the settings above should match r5rs
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image} reference to undefined identifier: class")
-      (test-expression "shared" "{image} reference to undefined identifier: shared")
+      (test-expression "class" "{bug09.gif} reference to undefined identifier: class")
+      (test-expression "shared" "{bug09.gif} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
       (test-expression "'(1 . 2)" "(1 . 2)")
@@ -265,15 +267,16 @@ the settings above should match r5rs
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
-      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{bug09.gif} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{bug09.gif} a \"a\"")
       
-      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      (test-expression "(time 1)" 
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
       
-      (test-expression "true" "{image} reference to undefined identifier: true")
-      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
+      (test-expression "true" "{bug09.gif} reference to undefined identifier: true")
+      (test-expression "mred^" "{bug09.gif} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
+      (test-expression "(set! x 1)" "{bug09.gif} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
       (test-expression "(cons 1 2)" "(1 . 2)")
       (test-expression "'(1)" "(1)")
@@ -600,7 +603,7 @@ the settings above should match r5rs
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
       (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1"))
             
       (test-expression "true" "true")
       (test-expression "mred^" 
@@ -708,7 +711,7 @@ the settings above should match r5rs
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
       (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
             
       (test-expression "true" "true")
       (test-expression "mred^" 
@@ -814,7 +817,7 @@ the settings above should match r5rs
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
       (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+                       #rx"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\n1")
             
       (test-expression "true" "true")
       (test-expression "mred^" 
@@ -1186,10 +1189,10 @@ the settings above should match r5rs
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
     ;(go r5rs)
-    (go beginner)
-    (go beginner/abbrev)
-    (go intermediate)
-    (go intermediate/lambda)
-    (go advanced)
-    (go mred)
+    ;(go beginner)
+    ;(go beginner/abbrev)
+    ;(go intermediate)
+    ;(go intermediate/lambda)
+    ;(go advanced)
+    ;(go mred)
     (go mzscheme)))

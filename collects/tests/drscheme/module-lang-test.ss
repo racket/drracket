@@ -44,7 +44,7 @@
                 (regexp "first>"))
      (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
                 "foldl"
-                ". reference to undefined identifier: foldl")
+                ". reference to an identifier before its definition: foldl")
      
      (make-test "(module m mzscheme (require (prefix mz: mzscheme)))" "mz:+" #rx"primitive:+")
      
@@ -60,7 +60,7 @@
                 (regexp "foldl>"))
      
      (make-test (format "~s"
-                        `(module m (file ,(build-path this-dir "module-lang-test-tmp.ss"))
+                        `(module m (file ,(path->string (build-path this-dir "module-lang-test-tmp.ss")))
                            x))
                 "x"
                 "1")
@@ -68,10 +68,10 @@
      ;; + shouldn't be bound in the REPL because it isn't bound
      ;; in the module.
      (make-test (format "~s"
-                        `(module m (file ,(build-path this-dir "module-lang-test-tmp.ss"))
+                        `(module m (file ,(path->string (build-path this-dir "module-lang-test-tmp.ss")))
                            x))
                 "+"
-                ". reference to undefined identifier: +")
+                ". reference to an identifier before its definition: +")
      
      (make-test (format "~s" '(module m mzscheme (provide lambda)))
                 "(lambda (x) x)"
@@ -86,10 +86,10 @@
      
      (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x))
                 "a"
-                ". reference to undefined identifier: a")
+                ". reference to an identifier before its definition: a")
      (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x))
                 "a"
-                ". reference to undefined identifier: a")
+                ". reference to an identifier before its definition: a")
      (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x (define a 77)))
                 "a"
                 "77")
@@ -99,11 +99,11 @@
      
      (make-test
       (format "~s" `(module m mzscheme
-                      (require-for-syntax (file ,(build-path this-dir "module-lang-test-tmp2.ss")))
+                      (require-for-syntax (file ,(path->string (build-path this-dir "module-lang-test-tmp2.ss"))))
                       (provide s)
                       (define-syntax (s stx) e)))
       (format "~s ~s" '(require m) 's)
-      ". module-lang-test-tmp2.ss:1:69: compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1")))
+      ". module-lang-test-tmp2.ss:1:70: compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1")))
   
   ;; set up for tests that need external files
   (call-with-output-file (build-path this-dir "module-lang-test-tmp.ss")
