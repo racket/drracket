@@ -5,6 +5,15 @@
 (reference-library "gusrspcs.ss" "gusrspce")
 (reference-library "pconvers.ss")
 
+(define-signature drscheme:init^
+  (primitive-eval
+   primitive-load
+   system-eventspace
+   top-parameterization
+   system-parameterization
+   eval-thread-parameterization
+   system-custodian))
+
 (define-signature drscheme:prefs^ ())
 
 (define-signature drscheme:snip^ 
@@ -15,8 +24,7 @@
    (struct zodiac-exn (message start-location end-location type))))
 
 (define-signature drscheme:language^
-  ((open plt:parameters^)
-   (struct setting (vocabulary-symbol
+  ((struct setting (vocabulary-symbol
 		    case-sensitive?
 		    allow-set!-on-undefined?
 		    unmatched-cond/case-is-error?
@@ -27,6 +35,9 @@
 		    signal-not-boolean
 		    eq?-only-compares-symbols?
 		    printing))
+   install-language
+   eq?-only-compares-symbols
+   r4rs-style-printing
    fill-language-menu))
 
 (define-signature drscheme:tool^
@@ -77,11 +88,13 @@
 
 (define-signature drscheme:rep^
   (edit%
-   top-parameterization
-   system-parameterization
-   eval-thread-parameterization
-   system-custodian
    (struct process/zodiac-finish (error?))))
+
+(define-signature drscheme:exported-zodiac^ zodiac:system^)
+
+(define-signature drscheme:zodiac^
+  ((open drscheme:exported-zodiac^)
+   current-vocabulary))
 
 (define-signature drscheme:app^
   ((open mred:application^)

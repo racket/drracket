@@ -1,7 +1,7 @@
   (unit/sig drscheme:edit^
     (import [mred : mred^]
 	    [aries : plt:aries^]
-	    [zodiac : zodiac:system^])
+	    [zodiac : drscheme:zodiac^])
 
     (define edit%
       (class-asi mred:scheme-mode-edit%

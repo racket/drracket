@@ -3,8 +3,7 @@
       (import [mred : mred^]
 	      [mzlib : mzlib:core^]
 	      [print-convert : mzlib:print-convert^]
-	      [zodiac : zodiac:system^]
-	      [plt:parameters : plt:parameters^]
+	      [zodiac : drscheme:zodiac^]
 	      [export : drscheme:export^])
     
     (link 
@@ -19,8 +18,7 @@
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
 			 [link-sym (string->symbol dir)])
 		    `((,link-sym : () ((reference-unit/sig ,unit-path)
-				       mred mzlib print-convert export zodiac
-				       plt:parameters))
+				       mred mzlib print-convert export zodiac))
 		      .
 		      ,(loop (cdr dirs))))
 		  (loop (cdr dirs))))])))

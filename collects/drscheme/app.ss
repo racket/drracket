@@ -3,6 +3,7 @@
     (import [drscheme:unit : drscheme:unit^]
 	    [drscheme:frame : drscheme:frame^]
 	    [drscheme:parameters : drscheme:parameters^]
+	    [I : mred:application-imports^]
 	    [mred : mred^]
 	    [mzlib : mzlib:core^])
     
@@ -137,9 +138,16 @@
 	  f)))
 
     (mred:debug:printf 'super-init "before console")
-    (define console (make-object (drscheme:parameters:current-frame%) #f #f))
-    (send console show #t)
+    (define console #f)
     (mred:debug:printf 'super-init "after console")
     (define eval-string (lambda args (void)))
 
-    (define startup (lambda args (for-each mred:edit-file args))))
+    (for-each (lambda (x)
+		(let ([f (mred:edit-file x)])
+		  (unless console
+		    (set! console f))))
+	      (vector->list I:argv))
+    
+    (unless console
+      (set! console (make-object (drscheme:parameters:current-frame%) #f #f))
+      (send console show #t)))
