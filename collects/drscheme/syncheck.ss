@@ -745,12 +745,7 @@ If the namespace does not, they are colored the unbound color.
                        [stx (def-link-syntax def-link)]
                        [frame (fw:handler:edit-file filename)])
                   (when (is-a? frame syncheck-frame<%>)
-                    (send frame syncheck:button-callback (syntax-e stx))
-                    #;
-                    (let ([mod-stx (with-syntax ([in-id stx]) 
-                                     (expand #'(module m mzscheme (define in-id 1))))])
-                      (with-syntax ([(module m mzscheme (a b (define-values (id) x))) mod-stx])
-                        (send frame syncheck:button-callback (syntax-e id)))))))
+                    (send frame syncheck:button-callback (syntax-e stx)))))
               
               (super-new)))))
       
