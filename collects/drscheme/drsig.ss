@@ -19,7 +19,9 @@
 (define-signature drscheme:main^ ())
 
 (define-signature drscheme:init^
-  (primitive-eval
+  (original-output-port
+   original-error-port
+   primitive-eval
    primitive-load
    system-eventspace
    top-parameterization
