@@ -67,7 +67,8 @@
           (preferences:set 'drscheme:font-name (get-default-font-name)))
         
         (preferences:add-panel
-         (string-constant font-prefs-panel-title)
+         (list (string-constant editor-prefs-panel-label) 
+               (string-constant font-prefs-panel-title))
          (lambda (panel)
            (let* ([main (make-object vertical-panel% panel)]
                   [options-panel (make-object horizontal-panel% main)]
