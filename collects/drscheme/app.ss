@@ -246,7 +246,7 @@
 
       (send e insert " by ")
 
-      (insert-url "PLT, Rice University"
+      (insert-url "PLT"
 		  "http://www.cs.rice.edu/CS/PLT/")
 
       (send* e
