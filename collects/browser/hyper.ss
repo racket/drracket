@@ -190,10 +190,14 @@
 				    (error (if f
 					       "The downloaded file was saved."
 					       "The download was cancelled.")))]
-				 [(or (and (url? url)
-					   (not (regexp-match "[.]html?$" (url-path url))))
+				 [(or (port? url)
+				      (and (url? url)
+					   (regexp-match "[.]html?$" (url-path url)))
 				      (and mime-type
-					   (regexp-match "text/plain" mime-type)))
+					   (regexp-match "text/html" mime-type)))
+				  ; HTML
+				  (html-convert p this)]
+				 [else
 				  ; Text
 				  (begin-edit-sequence)
 				  (let loop ()
@@ -204,10 +208,7 @@
 					(loop))))
 				  (change-style (make-object style-delta% 'change-family 'modern)
 						0 (last-position))
-				  (end-edit-sequence)]
-				 [else
-				  ; HTML
-				  (html-convert p this)])))
+				  (end-edit-sequence)])))
 			    (lambda ()
 			      (end-edit-sequence)
 			      (end-busy-cursor)
