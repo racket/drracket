@@ -1823,7 +1823,8 @@ tab panels new behavior:
                 (send definitions-text split-snip start)
                 (send interactions-text evaluate-from-port
                       (open-input-text-editor definitions-text start)
-                      #t))
+                      #t
+                      void))
               (send interactions-text clear-undos)))
           
           (inherit revert save)

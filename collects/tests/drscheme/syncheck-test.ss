@@ -618,7 +618,7 @@
       (clear-definitions drs)
       (cond
         [(dir-test? test)
-         (type-in-definitions drs (format input relative))]
+         (type-in-definitions drs (format input (path->string relative)))]
         [else (type-in-definitions drs input)])
       (test:button-push (send drs syncheck:get-button))
       (wait-for-computation drs)
@@ -627,6 +627,10 @@
       ;; wait-for-computation isn't waiting long enough?
       '(when (send defs in-edit-sequence?)
          (error 'syncheck-test.ss "still in edit sequence for ~s" input))
+      
+      (when (send drs syncheck:error-report-visible?)
+        (printf "FAILED ~s\n   error report window is visible\n"
+                input))
       
       ;; need to check for syntax error here
       (let ([got (get-annotated-output drs)])
@@ -666,6 +670,7 @@
           [(null? (cdr ids)) ids]
           [else (let ([fst (car ids)]
                       [snd (cadr ids)])
+                  (printf "sa: ~s ~s\n" (car fst) (car snd))
                   (if (eq? (cadr fst) (cadr snd))
                       (loop (cons (list (string-append (car fst) (car snd)) (cadr fst))
                                   (cddr ids)))

@@ -72,33 +72,60 @@ profile todo:
       (define error-color (make-object color% "PINK"))
       
       ;; bug-note : (union string (instanceof snip%))
-      (define bug-note 
-        (let ([b (make-object bitmap% 
-                   (build-path (collection-path "icons") "bug09.gif"))])
-          (if (send b ok?)
-              (make-object image-snip% b)
-              "[err trace]")))
+      (define bug-bitmap 
+        (make-object bitmap% 
+          (build-path (collection-path "icons") "bug09.gif")))
+      
+      (define clickable-image-snip%
+        (class image-snip%
+          (init-rest args)
+          (inherit get-flags set-flags get-admin)
+          
+          (define grabbed? #f)
+          (define clicked? #f)
+          (define mouse-x #f)
+          (define mouse-y #f)
+          
+          (rename [super-draw draw])
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
+            (super-draw dc x y left top right bottom dx dy draw-caret)
+            (when clicked?
+              (let ([brush (send dc get-brush)]
+                    [pen (send dc get-pen)])
+                (send dc set-brush (send the-brush-list find-or-create-brush "black" 'xor))
+                (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+                (send dc draw-rectangle x y 10 10)
+                (send dc set-pen pen)
+                (send dc set-brush brush))))
 
-      '(define clickable-img-snip%
-         (class image-snip%
-           (define grabbed? #f)
-           (define mouse-x #f)
-           (define mouse-y #f)
-           (define/override (on-event dc x y editorx editory evt)
-             (cond
-               [(send evt button-down 'left)
-                (set! grabbed? #t)
-                (set! mouse-x x)
-                (invalidate)]
-               [(send evt leaving?)
-                (set! clicked? #f)
-                (set! mouse-x #f)
-                (set! mouse-y #f)
-                (invalidate)]
-               [(send evt button-up 'left)
-                (set! clicked? #f)
-                (set! grabbed? #t)]))))
-               
+          (define/override (on-event dc x y editorx editory evt)
+            (cond
+              [(send evt button-down? 'left)
+               (set! grabbed? #t)
+               (set! mouse-x x)
+               (invalidate)]
+              [(send evt leaving?)
+               (set! clicked? #f)
+               (set! mouse-x #f)
+               (set! mouse-y #f)
+               (invalidate)]
+              [(send evt button-up? 'left)
+               (set! grabbed? #f)
+               (set! clicked? #f)
+               (invalidate)]))
+          
+          (define/private (invalidate)
+            (let ([admin (get-admin)])
+              (when admin
+                (send admin needs-update this 0 0 10 10))))
+          
+          (apply super-make-object args)
+          (set-flags (cons 'handles-events (get-flags)))))
+      
+      (define bug-note%
+        (class clickable-image-snip%
+          (define/override (copy) (new bug-note%))
+          (super-make-object bug-bitmap)))
       
       ;; mf-note : (union string (instanceof snip%))
       (define mf-note
@@ -186,9 +213,12 @@ profile todo:
 			   ;(and (exn:break? exn)
 			   ;     (exn:break-continuation exn))
 			 ]
-		      [src-to-display (find-src-to-display exn 
-                                                           (and cms
-                                                                (map st-mark-source cms)))])
+		      [src-to-display 
+                       (find-src-to-display exn 
+                                            (and cms
+                                                 (map st-mark-source cms)))])
+                 
+                 (write-special (new bug-note%) (current-error-port))
                  
                  #;
                  (when (and cms

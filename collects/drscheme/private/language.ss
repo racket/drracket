@@ -949,7 +949,7 @@
       ;; module-based-language-front-end : (port reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
       (define (module-based-language-front-end port reader)
-        (lambda () (reader "I don't know!" port (list 1 0 0))))
+        (lambda () (reader (object-name port) port (list 1 0 0))))
 
                                                                       
                                              ;                        

@@ -987,9 +987,6 @@ TODO
                       (lambda () 
                         (let loop ()
                           (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                            (printf "s/s/e ~s\n" (if (syntax? sexp/syntax/eof)
-                                                     (syntax-object->datum sexp/syntax/eof)
-                                                     sexp/syntax/eof))
                             (unless (eof-object? sexp/syntax/eof)
                               (call-with-values
                                (lambda ()
@@ -1111,9 +1108,8 @@ TODO
               (set! user-eventspace-box (make-weak-box
 					 (parameterize ([current-custodian user-custodian])
 					   (make-eventspace))))
-              (set! user-parameterization (make-weak-box
-                                           (parameterize ([break-enabled #t]) 
-                                             (current-parameterization))))
+              (set! user-parameterization (parameterize ([break-enabled #t]) 
+                                            (current-parameterization)))
               (set! user-break-enabled #t)
               (set! eval-thread-thunks null)
               (set! eval-thread-state-sema (make-semaphore 1))
