@@ -5,7 +5,7 @@
            "my-macros.ss"
            "shared.ss")
 
-  (define-struct full-mark-struct (source label-num bindings))
+  (define-struct full-mark-struct (source label bindings))
 
   ; CONTRACTS
   (define mark? (-> ; no args  
@@ -13,13 +13,14 @@
   (define mark-list? (listof procedure?))
 
   (provide/contract 
-   [make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
-   [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any)]
-   [expose-mark (-> mark? (list/p syntax? symbol? (listof (list/p identifier? any?))))]
+   ;[make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
+   [make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
+   [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
    [lookup-binding (-> mark-list? identifier? any)]
    [lookup-binding-with-symbol (-> mark-list? symbol? any)])
   
   (provide
+   make-full-mark ; contract above.  contract turned off for faster execution.
    skipto-mark?
    skipto-mark
    strip-skiptos
@@ -91,16 +92,17 @@
 ;   '(0 1 2 1 0 2 3))
   
   ; the 'varargs' creator is used to avoid an extra cons cell in every mark:
-  (define (make-full-mark-varargs source label-num . bindings)
-    (make-full-mark-struct source label-num bindings))
+  (define (make-full-mark-varargs source label . bindings)
+    (make-full-mark-struct source label bindings))
   
   (define-struct stx-protector (stx))
+  (define-struct label-protector (label))
   
   ; see module top for type
   (define (make-full-mark location label bindings)
     (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
                                               (quote-syntax ,location) 
-                                              ,(get-label-num label)
+                                              ,(make-label-protector label)
                                               ,@(apply append (map make-mark-binding-stx bindings))))))
   
   (define-struct cheap-mark (source))
@@ -114,9 +116,12 @@
   (define (extract-locations mark-set)
     (map mark-source (extract-mark-list mark-set)))
     
+  (define-struct not-captured-struct ())
+  (define not-captured (make-not-captured-struct))
+  
   ; : identifier -> (list identifier TST)
   (define (make-mark-binding-stx id)
-    (list id (make-stx-protector id)))
+    (list id (make-stx-protector id))) ; 3D!
   
   (define (mark-bindings mark)
     (letrec ([pair-off
@@ -128,7 +133,7 @@
       (pair-off (full-mark-struct-bindings (mark)))))
   
   (define (mark-label mark)
-    (list-ref label-list (full-mark-struct-label-num (mark))))
+    (label-protector-label (full-mark-struct-label (mark))))
   
   (define (mark-binding-value mark-binding)
     (car mark-binding))
@@ -196,7 +201,7 @@
   ;;
   ;; make-debug-info builds the thunk which will be the mark at runtime.  It contains 
   ;; a source expression and a set of binding/value pairs.
-  ;; (syntax-object BINDING-SET VARREF-SET symbol boolean) -> debug-info)
+  ;; (syntax-object BINDING-SET VARREF-SET any boolean) -> debug-info)
   ;;
   ;;;;;;;;;;
      
@@ -214,6 +219,4 @@
                                                 kept-vars)]
                           [lifter-syms (map get-lifted-var let-bindings)])
                (make-full-mark source label (append kept-vars lifter-syms)))
-             (make-full-mark source label kept-vars))))
-  
-)
+             (make-full-mark source label kept-vars)))))
