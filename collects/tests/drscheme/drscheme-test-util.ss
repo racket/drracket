@@ -118,6 +118,8 @@
     (case-lambda
      [(old-frame) (wait-for-new-frame old-frame null)]
      [(old-frame extra-eventspaces)
+      (wait-for-new-frame old-frame extra-eventspaces 10)]
+     [(old-frame extra-eventspaces timeout)
       (let ([wait-for-new-frame-pred
 	     (lambda ()
 	       (let ([active (or (get-top-level-focus-window)
@@ -130,7 +132,7 @@
 			  (not (eq? active old-frame)))
 		     active
 		     #f)))])
-	(poll-until wait-for-new-frame-pred))]))
+	(poll-until wait-for-new-frame-pred timeout))]))
 
   (define (wait-for-computation frame)
     (verify-drscheme-frame-frontmost 'wait-for-computation frame)

@@ -155,99 +155,91 @@
         (let ([rep (current-rep)])
           (cond
             [(eq? (current-error-port) (send rep get-this-err))
-             (send rep begin-edit-sequence)
-             (send rep wait-for-io-to-complete/user)
-             
-             (let ([insert-file-name/icon
-                    ;; insert-file-name/icon : string number number number number -> void
-                    (lambda (source-name start span row col)
-                      (let* ([locked? (send rep is-locked?)]
-                             [range-spec
-                              (cond
-                                [(and row col)
-                                 (format ":~a:~a" row col)]
-                                [start
-                                 (format "::~a" start)]
-                                [else ""])])
-                        (send rep lock #f)
-                        (if (file-exists? source-name)
-                            (let* ([normalized-name (normalize-path source-name)]
-                                   [short-name
-                                    (find-relative-path (current-directory) normalized-name)])
-                              (let-values ([(icon-start icon-end) 
-                                            (insert/delta rep (send file-icon copy))]
-                                           [(space-start space-end) (insert/delta rep " ")]
-                                           [(name-start name-end) (insert/delta rep short-name)]
-                                           [(range-start range-end) (insert/delta rep range-spec)]
-                                           [(colon-start colon-ent) (insert/delta rep ": ")])
-                                (when (number? start)
-                                  (send rep set-clickback icon-start range-end
-                                        (lambda (_1 _2 _3)
-                                          (open-file-and-highlight normalized-name
-                                                                   (- start 1) 
-                                                                   (if span
-                                                                       (+ start -1 span)
-                                                                       start)))))))
-                            (begin
-                              (insert/delta rep source-name)
-                              (insert/delta rep range-spec)
-                              (insert/delta rep ": ")
-                              (void)))
-                        (send rep lock locked?)))])
-               (cond
-                 [(exn:syntax? exn)
-                  (let* ([expr (exn:syntax-expr exn)]
-                         [src (and expr (syntax-source expr))]
-                         [pos (and expr (syntax-position expr))]
-                         [span (and expr (syntax-span expr))]
-                         [col (and expr (syntax-column expr))]
-                         [line (and expr (syntax-line expr))])
-                    (when (string? src)
-                      (insert-file-name/icon (syntax-source expr) pos span line col))
-                    (display (exn-message exn) (current-error-port))
-                    (send rep wait-for-io-to-complete/user)
-                    (when (syntax? expr)
-                      (let ([locked? (send rep is-locked?)])
-                        (send rep lock #f)
-                        (insert/delta rep " in: ")
-                        (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta)
-                        (send rep lock locked?)))
-                    (insert/delta rep "\n")
-                    (when (and (is-a? src text:basic%)
-                               (number? pos)
-                               (number? span))
-                      (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
-                 [(exn:read? exn)
-                  (let ([src (exn:read-source exn)]
-                        [pos (exn:read-position exn)]
-                        [span (exn:read-span exn)]
-                        [line (exn:read-line exn)]
-                        [col (exn:read-column exn)])
-                    (when (string? src)
-                      (insert-file-name/icon src pos span line col))
-                    (display (exn-message exn) (current-error-port))
-                    (newline (current-error-port))
-                    (send rep wait-for-io-to-complete/user)
-                    (cond
-                      [(and (is-a? src text:basic%)
-                            (number? line)
-                            (number? col))
-                       (send rep highlight-error src (- pos 1) (+ pos -1 span))]
-                      [(and (is-a? src text:basic%)
-                            (number? pos)
-                            (number? span))
-                       (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
-                 [(exn? exn)
-                  (display (exn-message exn) (current-error-port))
-                  (newline (current-error-port))
-                  (send rep wait-for-io-to-complete/user)]
-                 [else
-                  (display "uncaught exception: " (current-error-port))
-                  (write exn (current-error-port))
-                  (newline (current-error-port))
-                  (send rep wait-for-io-to-complete/user)])
-               
-               (send rep end-edit-sequence))]
+             (send rep queue-output
+                   (lambda ()  ;; =Kernel=, =Handler=
+                     (let ([locked? (send rep is-locked?)]
+                           [insert-file-name/icon
+                            ;; insert-file-name/icon : string number number number number -> void
+                            (lambda (source-name start span row col)
+                              (let* ([range-spec
+                                      (cond
+                                        [(and row col)
+                                         (format ":~a:~a" row col)]
+                                        [start
+                                         (format "::~a" start)]
+                                        [else ""])])
+                                (if (file-exists? source-name)
+                                    (let* ([normalized-name (normalize-path source-name)]
+                                           [short-name
+                                            (find-relative-path (current-directory) normalized-name)])
+                                      (let-values ([(icon-start icon-end) 
+                                                    (insert/delta rep (send file-icon copy))]
+                                                   [(space-start space-end) (insert/delta rep " ")]
+                                                   [(name-start name-end) (insert/delta rep short-name)]
+                                                   [(range-start range-end) (insert/delta rep range-spec)]
+                                                   [(colon-start colon-ent) (insert/delta rep ": ")])
+                                        (when (number? start)
+                                          (send rep set-clickback icon-start range-end
+                                                (lambda (_1 _2 _3)
+                                                  (open-file-and-highlight normalized-name
+                                                                           (- start 1) 
+                                                                           (if span
+                                                                               (+ start -1 span)
+                                                                               start)))))))
+                                    (begin
+                                      (insert/delta rep source-name)
+                                      (insert/delta rep range-spec)
+                                      (insert/delta rep ": ")
+                                      (void)))))])
+                       (send rep begin-edit-sequence)
+                       (send rep lock #f)
+                       (cond
+                         [(exn:syntax? exn)
+                          (let* ([expr (exn:syntax-expr exn)]
+                                 [src (and expr (syntax-source expr))]
+                                 [pos (and expr (syntax-position expr))]
+                                 [span (and expr (syntax-span expr))]
+                                 [col (and expr (syntax-column expr))]
+                                 [line (and expr (syntax-line expr))])
+                            (when (string? src)
+                              (insert-file-name/icon (syntax-source expr) pos span line col))
+                            (insert/delta rep (exn-message exn) error-delta)
+                            (when (syntax? expr)
+                              (insert/delta rep " in: ")
+                              (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta))
+                            (insert/delta rep "\n")
+                            (when (and (is-a? src text:basic%)
+                                       (number? pos)
+                                       (number? span))
+                              (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+                         [(exn:read? exn)
+                          (let ([src (exn:read-source exn)]
+                                [pos (exn:read-position exn)]
+                                [span (exn:read-span exn)]
+                                [line (exn:read-line exn)]
+                                [col (exn:read-column exn)])
+                            (when (string? src)
+                              (insert-file-name/icon src pos span line col))
+                            (insert/delta rep (exn-message exn) error-delta)
+                            (insert/delta rep "\n")
+                            (cond
+                              [(and (is-a? src text:basic%)
+                                    (number? line)
+                                    (number? col))
+                               (send rep highlight-error src (- pos 1) (+ pos -1 span))]
+                              [(and (is-a? src text:basic%)
+                                    (number? pos)
+                                    (number? span))
+                               (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
+                         [(exn? exn)
+                          (insert/delta rep (exn-message exn) error-delta)
+                          (insert/delta rep "\n")]
+                         [else
+                          (insert/delta rep "uncaught exception: " error-delta)
+                          (insert/delta rep (format "~s" exn) error-delta)
+                          (insert/delta rep "\n")])
+                       (send rep lock locked?)
+                       (send rep end-edit-sequence))))]
             [else
              (display msg (current-error-port))
              (newline (current-error-port))])))
@@ -918,6 +910,11 @@
                   (scroll-to-position (last-position))
                   (end-edit-sequence))))
             
+            (define (clear-io-collected-thunks)
+              (semaphore-wait io-semaphore)
+              (set! io-collected-thunks null)
+              (semaphore-post io-semaphore))
+            
             (define/public (wait-for-io-to-complete) ; =Kernel=, =Handler=
               (let ([semaphore (make-semaphore 0)])
                 (queue-callback
@@ -933,7 +930,7 @@
                  (run-io-collected-thunks))
                user-thread))
             
-            (define (queue-output thunk) ; =User=
+            (define/public (queue-output thunk) ; =User=
               (protect
                (lambda (ut) ; =Protected-User=
                  ; limiting-sema prevents queueing too much output from the user
@@ -942,8 +939,7 @@
                  (semaphore-wait io-semaphore)
                  (if (eq? ut user-thread)
                      ; Queue output:
-                     (set! io-collected-thunks
-                           (cons thunk io-collected-thunks))
+                     (set! io-collected-thunks (cons thunk io-collected-thunks))
                      ; Release limit allocation, instead:
                      (semaphore-post limiting-sema))
                  (semaphore-post io-semaphore)
@@ -955,7 +951,9 @@
                     ut
                     (lambda () ; =Kernel=, =Handler=
                       (semaphore-post flushing-event-running)
-                      (run-io-collected-thunks))
+                      (if (eq? ut user-thread)
+                          (run-io-collected-thunks)
+                          (clear-io-collected-thunks)))
                     #t)))))
             
             (define generic-write ; =Kernel=, =Handler=

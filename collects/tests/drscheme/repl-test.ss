@@ -619,26 +619,45 @@
       (fw:test:menu-select "Scheme" "Kill")
       
       (let ([win (wait-for-new-frame drs)])
-        (fw:test:button-push "Ok")
+        (fw:test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
           (unless (eq? drs2 drs)
-            (error 'kill-tests "expected original drscheme frame to come back to the front"))))
+            (error 'kill-test1 "expected original drscheme frame to come back to the front"))))
       
       (type-in-definitions drs "(kill-thread (current-thread))")
       (do-execute drs #f)
-      
       (let ([win (wait-for-new-frame drs)])
-        (fw:test:button-push "Ok")
+        (fw:test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
           (unless (eq? drs2 drs)
-            (error 'kill-tests "expected original drscheme frame to come back to the front"))))))
+            (error 'kill-test2 "expected original drscheme frame to come back to the front"))))
+
+      (clear-definitions drs)
+      (do-execute drs)
+      (type-in-definitions
+       drs
+       "(define (f) (queue-callback f) (error 'ouch)) (f)")
+      (do-execute drs #f)
+      (sleep 1/2)
+      (fw:test:menu-select "Scheme" "Kill")
+      (let ([win (wait-for-new-frame drs null 360)])
+        (fw:test:button-push "OK")
+        (let ([drs2 (wait-for-new-frame win)])
+          (unless (eq? drs2 drs)
+            (error
+	     'kill-test3
+	     "expected original drscheme frame to come back to the front"))))
+      (when (send (send drs get-interactions-text) local-edit-sequence?)
+	(error 'kill-test3 "in edit-sequence"))
+))
   
   (define (run-test)
     (when (file-exists? tmp-load-filename)
       (delete-file tmp-load-filename))
     (save-drscheme-window-as tmp-load-filename)
     
-    ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
+    (set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
-    (run-test-in-language-level #f)
-    (run-test-in-language-level #t)))
+    ;(run-test-in-language-level #f)
+    ;(run-test-in-language-level #t)
+    ))

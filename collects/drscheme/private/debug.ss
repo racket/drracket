@@ -99,44 +99,43 @@
                                (continuation-mark-set->list 
                                 (exn-continuation-marks exn)
                                 cm-key))])
-                 
-                 (send rep begin-edit-sequence)
-                 (send rep wait-for-io-to-complete/user)
-                 
-                 (when (and cms
-                            (not (null? cms)))
-                   (let ([locked? (send rep is-locked?)]
-                         [mf-bday?
-                          (let ([date (seconds->date (current-seconds))])
-                            (and (= (date-month date) 10)
-                                 (= (date-day date) 29)))])
-                     (send rep lock #f)
-                     (insert/clickback rep
-                                       (if mf-bday? mf-note bug-note)
-                                       (lambda ()
-                                         (show-backtrace-window rep msg cms mf-bday?)))
-                     (let ([debug-source (car (car cms))])
-                       (when (symbol? debug-source)
-                         (insert/clickback 
-                          rep file-note
-                          (lambda ()
-                            (open-and-highlight-in-file (car cms))))))
-                     (send rep lock locked?)))
-                 
+                 (send rep queue-output
+                       (lambda ()
+                         
+                         (send rep begin-edit-sequence)
+                         
+                         (when (and cms
+                                    (not (null? cms)))
+                           (let ([locked? (send rep is-locked?)]
+                                 [mf-bday?
+                                  (let ([date (seconds->date (current-seconds))])
+                                    (and (= (date-month date) 10)
+                                         (= (date-day date) 29)))])
+                             (send rep lock #f)
+                             (insert/clickback rep
+                                               (if mf-bday? mf-note bug-note)
+                                               (lambda ()
+                                                 (show-backtrace-window rep msg cms mf-bday?)))
+                             (let ([debug-source (car (car cms))])
+                               (when (symbol? debug-source)
+                                 (insert/clickback 
+                                  rep file-note
+                                  (lambda ()
+                                    (open-and-highlight-in-file (car cms))))))
+                             (send rep lock locked?)))
+                         (send rep end-edit-sequence)))
                  (orig-error-display-handler msg exn)
-                 
-                 (send rep wait-for-io-to-complete/user)
-                 (when (and cms
-                            (not (null? cms)))
-                   (let* ([first-cms (car cms)]
-                          [src (car first-cms)]
-                          [position (cadr first-cms)]
-                          [span (cddr first-cms)])
-                     (when (and (object? src)
-                                (is-a? src text:basic%))
-                       (send rep highlight-error src position (+ position span)))))
-                 
-                 (send rep end-edit-sequence))]
+                 (send rep queue-output
+                       (lambda ()
+                         (when (and cms
+                                    (not (null? cms)))
+                           (let* ([first-cms (car cms)]
+                                  [src (car first-cms)]
+                                  [position (cadr first-cms)]
+                                  [span (cddr first-cms)])
+                             (when (and (object? src)
+                                        (is-a? src text:basic%))
+                               (send rep highlight-error src position (+ position span))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
