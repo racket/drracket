@@ -12,7 +12,7 @@ tab panels bug fixes:
   - breaking & disable/enable should be global
   - running/not running message at bottom of screen should be global
   - ensure-rep-shown message must manipulate the tabs
-  - initializing the repl should disable/enable evaluation
+  - disable evaluation must disable all tabs, not just the current one
 
 tab panels new behavior:
   - closing a single tab
@@ -1172,16 +1172,16 @@ tab panels new behavior:
           
           (define evaluation-enabled? #t)
           (define/public (disable-evaluation)
-            (printf "disable-evaluation\n")
+            (printf "disable evaluation\n")
             (set! evaluation-enabled? #f)
             (when execute-menu-item
               (send execute-menu-item enable #f))
-            (printf "execute-button ~s\n" execute-button)
             (send execute-button enable #f)
             (send definitions-text lock #t)
             (send interactions-text lock #t)
             (send file-menu:create-new-tab-item enable #f))
           (define/public (enable-evaluation)
+            (printf "enable evaluation\n")
             (set! evaluation-enabled? #t)
             (when execute-menu-item
               (send execute-menu-item enable #t))
@@ -2556,7 +2556,6 @@ tab panels new behavior:
 	  
           (update-save-message)
           (update-save-button)
-          (send interactions-text initialize-console)
           
           (cond
             [filename
@@ -2700,10 +2699,14 @@ tab panels new behavior:
 	      (begin (send created-frame change-to-file name)
 		     (send created-frame show #t)
 		     created-frame)
-	      (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
-		     [frame (new drs-frame% (filename name))])
-		(send frame show #t)
-		frame))]))
+	      (create-new-drscheme-frame name))]))
+      
+      (define (create-new-drscheme-frame filename)
+        (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
+               [frame (new drs-frame% (filename filename))])
+          (send (send frame get-interactions-text) initialize-console)
+          (send frame show #t)
+          frame))
       
       (handler:insert-format-handler 
        "Units"

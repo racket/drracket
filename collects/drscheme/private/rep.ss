@@ -2087,7 +2087,6 @@
             (reset-region 0 'end))
           
           (define (initialize-console)
-            (printf "initialize console\n")
             (super-initialize-console)
             
             (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
@@ -2098,9 +2097,7 @@
               (set-clickback before after 
                              (lambda args (drscheme:app:about-drscheme))
                              click-delta))
-            (printf "disabling ~s\n" context)
             (send context disable-evaluation)
-            (printf "disabled\n")
             (reset-console)
             (send context enable-evaluation)
             (insert-prompt)
