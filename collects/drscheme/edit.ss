@@ -1,5 +1,8 @@
+
 (module mzscheme text
-  (require "date.ss"
+  (require (lib "unitsig.ss")
+           "drsig.ss"
+           "date.ss"
            "framework-wrap.ss"
            (lib "zodiac.ss" "syntax"))
   

@@ -1,6 +1,8 @@
 
 (module unit mzscheme
-  (require "mred-wrap.ss"
+  (require (lib "unitsig.ss")
+           "drsig.ss"
+           "mred-wrap.ss"
            "framework-wrap.ss"
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
