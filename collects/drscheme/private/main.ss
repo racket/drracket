@@ -64,6 +64,7 @@
         (drscheme:frame:create-root-menubar)
         (preferences:set 'framework:exit-when-no-frames #f))
       
+      (preferences:set-default 'drscheme:show-interactions-on-execute #f boolean?)
       (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
  
@@ -179,6 +180,9 @@
          (lambda (editor-panel)
            (make-check-box 'drscheme:open-in-tabs 
                            (string-constant open-files-in-tabs)
+                           editor-panel)
+           (make-check-box 'drscheme:show-interactions-on-execute 
+                           (string-constant show-interactions-on-execute)
                            editor-panel)
 
            ;; come back to this one.

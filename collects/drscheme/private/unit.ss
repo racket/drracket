@@ -1788,7 +1788,8 @@ tab panels new behavior:
           (define/public (execute-callback)
             (when (send execute-button is-enabled?)
               (check-if-save-file-up-to-date)
-              (ensure-rep-shown interactions-text)
+              (when (preferences:get 'drscheme:show-interactions-on-execute)
+                (ensure-rep-shown interactions-text))
               (when logging
                 (log-definitions)
                 (log-interactions))

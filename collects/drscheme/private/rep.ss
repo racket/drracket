@@ -699,6 +699,8 @@ TODO
           ;;  specialization
           ;;
           
+          (define/override (after-io-insertion) (send context ensure-rep-shown this))
+          
           (define/augment (after-insert start len)
             (inner (void) after-insert start len)
             (unless inserting-prompt?
