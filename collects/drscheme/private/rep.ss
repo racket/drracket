@@ -120,12 +120,14 @@
       ;;                        ->
       ;;                        void?
       (define (insert-error-in-text text interactions-text msg exn user-dir)
-        (insert-error-in-text/highlight-errors
-         text
-         (lambda (l) (send interactions-text highlight-errors l))
-         msg
-         exn
-         user-dir))
+        (let ([context (send interactions-text get-context)])
+          (send context ensure-rep-shown)
+          (insert-error-in-text/highlight-errors
+           text
+           (lambda (l) (send interactions-text highlight-errors l))
+           msg
+           exn
+           user-dir)))
       
       ;; insert-error-in-text/highlight-errors : (is-a?/c text%)
       ;;                                         ((listof (list text% number number)) -> void)
@@ -726,6 +728,8 @@
                    "expected an object that implements drscheme:rep:context<%> as initialization argument, got: ~e"
                    context))
           
+          (define/public (get-context) context)
+          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;					       ;;;
           ;;;            User -> Kernel                ;;;
@@ -766,9 +770,9 @@
                 (semaphore-wait s))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;;					     ;;;
+          ;;;                                          ;;;
           ;;;                  I/O                     ;;;
-          ;;;					     ;;;
+          ;;;                                          ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           (field (transparent-text #f)

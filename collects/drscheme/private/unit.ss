@@ -1711,8 +1711,13 @@
             (when module-browser-panel
               (close-status-line 'plt:module-browser:mouse-over)
               (send module-browser-parent-panel change-children
-                    (lambda (l) 
-                      (remq module-browser-panel l)))))
+                    (lambda (l)
+                      (remq module-browser-panel l)))
+              (let loop ()
+                (let ([snip (send module-browser-pb find-first-snip)])
+                  (when snip
+                    (send module-browser-pb delete snip)
+                    (loop))))))
           
           (define/private (update-module-browser-pane)
             (open-status-line 'plt:module-browser:mouse-over)
