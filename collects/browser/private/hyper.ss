@@ -380,7 +380,7 @@
                                  html?)
                              ; HTML
                              (progress #t)
-                             (let* ([d #f]
+                             (let* ([progress-dlg #f]
                                     [show-progress void]
                                     [e-text ""]
                                     [exn #f]
@@ -417,8 +417,9 @@
                                                   (html-convert p this))))
                                             (semaphore-wait wait-to-show)
                                             (set! done? #t)
-                                            (when d
-                                              (send d show #f))
+                                            (show-progress "")
+                                            (when progress-dlg
+                                              (send progress-dlg show #f))
                                             (semaphore-post wait-to-show)
                                             (semaphore-post wait-to-continue))))]
                                     [make-dialog
@@ -431,9 +432,9 @@
                                                   (lambda (s)
                                                     (send top-level-window set-status-text s)))]
                                            [else
-                                            (set! d (make-object dialog% (string-constant getting-page)
+                                            (set! progress-dlg (make-object dialog% (string-constant getting-page)
                                                       top-level-window 400))
-                                            (let* ([c (make-object editor-canvas% d #f
+                                            (let* ([c (make-object editor-canvas% progress-dlg #f
                                                         '(no-hscroll no-vscroll))]
                                                    [progress-text (make-object text%)])
                                               (set! show-progress
@@ -445,15 +446,15 @@
                                               (send c set-editor progress-text)
                                               (send c set-line-count 3)
                                               (send c enable #f))
-                                            (send (make-object button% (string-constant &stop) d
+                                            (send (make-object button% (string-constant &stop) progress-dlg
                                                     (lambda (b e)
                                                       (semaphore-wait wait-to-break)
                                                       (semaphore-post wait-to-break)
                                                       (break-thread t)))
                                                   focus)
-                                            (send d center)
-                                            (thread (lambda () (send d show #t)))
-                                            (let loop () (sleep) (unless (send d is-shown?) (loop)))])
+                                            (send progress-dlg center)
+                                            (thread (lambda () (send progress-dlg show #t)))
+                                            (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))])
                                          (semaphore-post wait-to-show)))])
                                (thread (lambda ()
                                          (sleep 1)
