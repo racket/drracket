@@ -41,6 +41,7 @@
       (generic-output #t #t #t)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -129,6 +130,7 @@
       (generic-output #t #t #t)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -215,6 +217,7 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -302,6 +305,7 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -388,6 +392,7 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
 
@@ -473,6 +478,7 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -557,6 +563,7 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
       
@@ -839,6 +846,26 @@
     (regexp
      "WARNING: Interactions window is out of sync with the definitions window\\."))
   
+  (define (test-error-after-definition)
+    (let* ([drs (wait-for-drscheme-frame)]
+           [interactions-text (send drs get-interactions-text)])
+      (clear-definitions drs)
+      (type-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
+      (do-execute drs)
+      (let ([last-para (send interactions-text last-paragraph)])
+        (type-in-interactions drs "y\n")
+        (wait-for-computation drs)
+        (let ([got
+               (fetch-output
+                drs
+                (send interactions-text paragraph-start-position (+ last-para 1))
+                (send interactions-text paragraph-end-position
+                      (- (send interactions-text last-paragraph) 1)))])
+          (printf "got: ~s\n" got)
+          (unless (equal? got "0")
+            (printf "FAILED: test-error-after-definition failed, expected 0, got ~s\n" got))))))
+
+  
   ;; test-expression : (union string 'xml)
   ;;                   (union string regexp (string -> boolean)) 
   ;;                -> void
@@ -921,15 +948,7 @@
     ;; clear teachpack
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
-    
-    ;; this exposes the race condition, after it runs for a while.
-    '(let loop ()
-      (parameterize ([language (list "PLT" (regexp "Graphical"))])
-        (check-top-of-repl))
-      (parameterize ([language (list "PLT" (regexp "Textual"))])
-        (check-top-of-repl))
-      (loop))
-    
+
     (go beginner)
     (go beginner/abbrev)
     (go intermediate)
