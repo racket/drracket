@@ -41,10 +41,6 @@
   ((struct tool (name file callback))
    tools))
 
-(define-signature drscheme:intro^
-  (check-new-version
-   show-introduction))
-
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
@@ -106,7 +102,8 @@
    process-text/no-zodiac))
 
 (define-signature drscheme:app^
-  (about-drscheme))
+  (check-new-version
+   about-drscheme))
 
 (define-signature drscheme:export^
   ((unit interface : drscheme:interface^)
