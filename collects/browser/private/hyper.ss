@@ -74,7 +74,7 @@ A test case:
       
       (define-struct hypertag (name position))
 
-      (define-struct faux-url (get-port/headers allows-eval?))
+      (define-struct faux-url (get-port/headers base-path allows-eval?))
       
       (define (same-page-url? a b)
         (or (eq? a b)
@@ -149,6 +149,14 @@ A test case:
           
           (define/public (make-link-style start end) (change-style hyper-delta start end))
           (define/public (get-url) (and (url? url) url))
+          
+          ;; return a base-url for use with combine-url/relative
+          ;; for links in the page and embedded images
+          (define/public (get-base-url)
+            (cond
+              [(faux-url? url) (faux-url-base-path url)]
+              [(url? url) url]
+              [else #f]))
           
           (define/public post-url
             (opt-lambda (url-string [post-data #f])
@@ -534,7 +542,7 @@ A test case:
           
           ;; load url, but the user might break:
           (with-handlers ([exn:break? void])
-            (printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
+            ;(printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
             (reload progress))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))

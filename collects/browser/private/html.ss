@@ -49,8 +49,8 @@
       
       (define (load-status push? what url)
         (let ([s (format "Loading ~a ~a~a..." what 
-                         (or (and url (url-host url)) "") 
-                         (or (and url (url-path url)) ""))])
+                         (or (and (url? url) (url-host url)) "") 
+                         (or (and (url? url) (url-path url)) ""))])
           (status-stack (cons s (if push? (status-stack) null)))
           (status "~a" s)))
       (define (pop-status)
@@ -564,9 +564,6 @@
                                     (backover-newlines (sub1 pos) base)
                                     pos))))]
                        
-                       [base-path (send a-text get-url)]
-                       [_ (printf "base-path ~s\n" base-path)]
-                       
                        [whitespaces (string #\space #\tab #\newline #\return)]
                        
                        [delta:fixed (make-object style-delta% 'change-family 'modern)]
@@ -609,11 +606,12 @@
                        [parse-image-source
                         (lambda (s)
                           (printf "parse-image-source ~s\n" s)
-                          (let ([src (get-field s 'src)])
+                          (let ([src (get-field s 'src)]
+                                [base-url (send a-text get-base-url)])
                             (and src
                                  (with-handlers ([exn:fail? (lambda (x) #f)])
-                                   (if base-path
-                                       (combine-url/relative base-path src)
+                                   (if base-url
+                                       (combine-url/relative base-url src)
                                        (string->url src))))))]
                        
                        [unescape 
@@ -1244,7 +1242,7 @@
                                              (styler delta rest)
                                              (rest)))]
                                       [else (rest)]))]))])
-                (load-status #f "page" base-path)
+                (load-status #f "page" (send a-text get-url))
                 (let-values ([(f fl) (translate content 0 0 0 (make-form #f #f #f null #f))])
                   (f))
                 (send a-text add-tag "top" 0)
