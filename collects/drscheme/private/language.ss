@@ -494,7 +494,9 @@
             bootstrap-tmp-filename
             program-filename)
            null
-           (list "-mvqZ"))))
+	   (if gui?
+	       (list "-mvqZ")
+	       (list "-mvq")))))
       
       (define (create-module-based-launcher program-filename 
                                             executable-filename
