@@ -56,7 +56,11 @@
                                           [(ctl) "c:"]
                                           [(ctl-m) "c:m;"])]
                                        [else ""])
-                                     (string short-cut))))])
+                                     (case short-cut
+                                       [(#\;) "semicolon"]
+                                       [(#\:) "colon"]
+                                       [(#\space) "space"]
+                                       [else (string short-cut)]))))])
                              (hash-table-put! name-ht keyname (send item get-plain-label))))))
                      (when (is-a? item menu-item-container<%>)
                        (loop item)))
