@@ -425,7 +425,7 @@ profile todo:
       
       ;; show-frame : (instanceof editor-canvas%)
       ;;              (instanceof text%) 
-      ;;              (cons debug-source (cons number number))
+      ;;              st-mark?
       ;;              -> 
       ;;              void 
       ;; shows one frame of the continuation
