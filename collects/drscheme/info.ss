@@ -17,8 +17,9 @@
 				(require-library "debug.ss" "system")
 				(require-library "drsig.ss" "drscheme"))]
 	   [(compile-omit-files)
-	    (list "drsig.ss" "toy.ss" ; file should be deleted?
-		  "link.ss" "phooks.ss")]
+	    (list "drsig.ss" 
+		  "phooks.ss" "toy.ss" ; should these files be deleted?
+		  "tool.ss" "link.ss")]
 	   [(compile-subcollections) (list (list "tools" "syncheck")
 					   (list "tools" "analysis"))]
 	   [else (failure)]))])
