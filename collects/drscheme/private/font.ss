@@ -22,11 +22,48 @@
          (list (string-constant font-prefs-panel-title))
          (lambda (panel)
            (let* ([main (make-object vertical-panel% panel)]
+		  [min-size 1]
+		  [max-size 72]
                   [options-panel (make-object horizontal-panel% main)]
-                  [size (make-object slider% (string-constant font-size) 1 72 options-panel
-                          (lambda (size evt)
-                            (preferences:set 'framework:standard-style-list:font-size (send size get-value)))
-                          (preferences:get 'framework:standard-style-list:font-size))]
+		  [size-panel (new vertical-panel%
+				   (parent options-panel)
+				   (style '(border)))]
+		  [size-msg (new message%
+				 (label (string-constant font-size))
+				 (parent size-panel))]
+                  [adjust-font-size
+                   (lambda (f)
+                     (preferences:set
+                      'framework:standard-style-list:font-size
+                      (f (preferences:get
+                          'framework:standard-style-list:font-size))))]
+                  [size-slider
+		   (new slider%
+			(label #f)
+			(min-value min-size)
+			(max-value max-size)
+			(parent size-panel)
+			(callback
+			 (lambda (size evt)
+                           (adjust-font-size
+                            (lambda (old-size)
+                              (send size get-value)))))
+			(init-value
+			 (preferences:get 'framework:standard-style-list:font-size)))]
+		  [size-hp (new horizontal-pane% (parent size-panel))]
+                  [mk-size-button
+                   (lambda (label chng)
+                     (new button%
+                          (parent size-hp)
+                          (stretchable-width #t)
+                          (callback
+                           (lambda (x y)
+                             (adjust-font-size
+                              (lambda (old-size)
+                                (min max-size (max min-size (chng old-size)))))))
+                          (label label)))]
+                  [size-sub1 (mk-size-button "-1" sub1)]
+                  [size-sub1 (mk-size-button "+1" add1)]
                   
                   [choice-panel (new vertical-panel% (parent options-panel))]
                   [font-name-control
@@ -126,7 +163,7 @@
              
              (preferences:add-callback
               'framework:standard-style-list:font-size
-              (lambda (p v) (send size set-value v)))
+              (lambda (p v) (send size-slider set-value v)))
              (preferences:add-callback
               drscheme:language-configuration:settings-preferences-symbol
               (lambda (p v)
