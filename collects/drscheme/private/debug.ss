@@ -79,7 +79,10 @@ profile todo:
       (define clickable-image-snip%
         (class image-snip%
           (init-rest args)
-          (inherit get-flags set-flags get-admin)
+          (inherit get-flags set-flags get-admin get-extent)
+          
+          (define callback void)
+          (define/public (set-callback cb) (set! callback cb))
           
           (define grabbed? #f)
           (define clicked? #f)
@@ -92,32 +95,46 @@ profile todo:
             (when clicked?
               (let ([brush (send dc get-brush)]
                     [pen (send dc get-pen)])
-                (send dc set-brush (send the-brush-list find-or-create-brush "black" 'xor))
-                (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-                (send dc draw-rectangle x y 10 10)
-                (send dc set-pen pen)
-                (send dc set-brush brush))))
+                (let-values ([(w h) (get-w/h dc)])
+                  (send dc set-brush (send the-brush-list find-or-create-brush "black" 'hilite))
+                  (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+                  (send dc draw-rectangle x y w h)
+                  (send dc set-pen pen)
+                  (send dc set-brush brush)))))
 
           (define/override (on-event dc x y editorx editory evt)
             (cond
               [(send evt button-down? 'left)
                (set! grabbed? #t)
+               (set! clicked? #t)
                (set! mouse-x x)
-               (invalidate)]
+               (invalidate dc)]
               [(send evt leaving?)
                (set! clicked? #f)
                (set! mouse-x #f)
                (set! mouse-y #f)
-               (invalidate)]
+               (invalidate dc)]
               [(send evt button-up? 'left)
+               (when clicked?
+                 (callback))
                (set! grabbed? #f)
                (set! clicked? #f)
-               (invalidate)]))
+               (invalidate dc)]))
           
-          (define/private (invalidate)
+          (define/private (invalidate dc)
             (let ([admin (get-admin)])
               (when admin
-                (send admin needs-update this 0 0 10 10))))
+                (let-values ([(w h) (get-w/h dc)])
+                  (send admin needs-update this 0 0 w h)))))
+          
+          (define/private (get-w/h dc)
+            (let ([wb (box 0)]
+                  [hb (box 0)])
+              ;; know that the snip is the same size everywhere, 
+              ;; so just use (0,0) for its position
+              (get-extent dc 0 0 wb hb #f #f #f #f)
+              (values (unbox wb)
+                      (unbox hb))))
           
           (apply super-make-object args)
           (set-flags (cons 'handles-events (get-flags)))))
@@ -217,8 +234,11 @@ profile todo:
                        (find-src-to-display exn 
                                             (and cms
                                                  (map st-mark-source cms)))])
+                 (let ([note (new bug-note%)])
+                   (send note set-callback (lambda () (show-backtrace-window msg cms k)))
+                   (write-special note (current-error-port)))
                  
-                 (write-special (new bug-note%) (current-error-port))
+                 (display #\space (current-error-port))
                  
                  #;
                  (when (and cms
