@@ -37,6 +37,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "{image}class: bad syntax")
       (test-expression "shared" "reference to undefined identifier: shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -101,6 +103,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -170,6 +174,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "bad syntax")
       (test-expression "shared" "reference to undefined identifier: shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -240,6 +246,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -303,6 +311,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "keyword: invalid use of keyword shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -374,6 +384,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "keyword: invalid use of keyword shared")
       (test-expression "turtles" "reference to undefined identifier: turtles")
@@ -442,6 +454,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(sqrt -1)" "0+1i")
+
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "keyword: invalid use of keyword shared")
       (test-expression "turtles" "turtles")

@@ -22,7 +22,7 @@
       (import (drscheme:app : drscheme:app^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:get/extend : drscheme:get/extend^)
-              (drscheme:language : drscheme:language/internal^))
+              (drscheme:language-configuration : drscheme:language-configuration/internal^))
       
       
   ;; no more extension after this point
@@ -31,14 +31,14 @@
       (drscheme:get/extend:get-unit-frame%)
       (drscheme:get/extend:get-interactions-text%)
       (drscheme:get/extend:get-definitions-text%)
-      (drscheme:language:get-languages)
+      (drscheme:language-configuration:get-languages)
       
       ;; this default can only be set *after* the
       ;; languages have all be registered by tools
       (preferences:set-default
-       drscheme:language:settings-preferences-symbol
-       (drscheme:language:get-default-language-settings)
-       drscheme:language:language-settings?)
+       drscheme:language-configuration:settings-preferences-symbol
+       (drscheme:language-configuration:get-default-language-settings)
+       drscheme:language-configuration:language-settings?)
 
       ;; if the unmarshaller returns #f, that will fail the
       ;; test for this preference, reverting back to the default.
@@ -46,10 +46,10 @@
       ;; of the default collection and may not be the default
       ;; specified below.
       (preferences:set-un/marshall
-       drscheme:language:settings-preferences-symbol
+       drscheme:language-configuration:settings-preferences-symbol
        (lambda (x)
-	 (let ([lang (drscheme:language:language-settings-language x)]
-	       [settings (drscheme:language:language-settings-settings x)])
+	 (let ([lang (drscheme:language-configuration:language-settings-language x)]
+	       [settings (drscheme:language-configuration:language-settings-settings x)])
 	   (list (send lang get-language-position)
 		 (send lang marshall-settings settings))))
        (lambda (x)
@@ -62,10 +62,10 @@
 			      (and (equal? lang-position
 					   (send x get-language-position))
 				   x))
-			    (drscheme:language:get-languages))])
+			    (drscheme:language-configuration:get-languages))])
 		(and lang
 		     (let ([settings (send lang unmarshall-settings marshalled-settings)])
-		       (drscheme:language:make-language-settings
+		       (drscheme:language-configuration:make-language-settings
 			lang
 			(or settings (send lang default-settings)))))))))
       

@@ -6,8 +6,8 @@
            drscheme:main^
            drscheme:init^
            drscheme:snip^
-           drscheme:language^
-           drscheme:language/internal^
+           drscheme:language-configuration^
+           drscheme:language-configuration/internal^
            drscheme:tools^
            drscheme:get/extend^
            drscheme:unit^
@@ -18,8 +18,8 @@
            drscheme:app^
            drscheme:draw-arrow^
 	   drscheme:load-handler^
-           drscheme:help-interface^
-           drscheme:language-tower^
+           drscheme:help-desk^
+           drscheme:language^
            drscheme:teachpack^
            drscheme:tool^)
   
@@ -44,13 +44,13 @@
      separator-snip%
      whole/part-number-snip%))
   
-  (define-signature drscheme:language^
+  (define-signature drscheme:language-configuration^
     (add-language))
   
-  (define-signature drscheme:language/internal^
+  (define-signature drscheme:language-configuration/internal^
     ((struct language-settings (language settings))
      get-default-language-settings
-     (open drscheme:language^)
+     (open drscheme:language-configuration^)
      get-languages
      fill-language-menu
      settings-preferences-symbol
@@ -101,8 +101,7 @@
     (do-setup))
   
   (define-signature drscheme:rep^
-    ((struct text/pos (text start end))
-     drs-bindings-keymap-mixin
+    (drs-bindings-keymap-mixin
      current-rep
      text%
      context<%>))
@@ -122,16 +121,16 @@
      process-text
      drscheme-load-handler))
  
-  (define-signature drscheme:help-interface^
+  (define-signature drscheme:help-desk^
     (help-desk
      open-url
      open-users-url))
   
-  (define-signature drscheme:language-tower^
-    ((struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
-     make-simple-settings/parse
+  (define-signature drscheme:language^
+    ((struct text/pos (text start end))
+     (struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
      simple-settings->vector
-     
+     make-simple-settings/parse
      language<%>
      module-based-language<%>
      simple-module-based-language<%>
@@ -151,9 +150,10 @@
      set-teachpack-cache-filenames!))
   
   (define-signature drscheme:tool^
-    ((unit drscheme:frame : drscheme:frame^)   ;; done
+    ((unit drscheme:frame : drscheme:frame^)
      (unit drscheme:unit : drscheme:unit^)
      (unit drscheme:rep : drscheme:rep^)
      (unit drscheme:get/extend : drscheme:get/extend^)
-     (unit drscheme:language-tower : drscheme:language-tower^)
-     (unit drscheme:language : drscheme:language^))))
+     (unit drscheme:language-configuration : drscheme:language-configuration^)
+     (unit drscheme:language : drscheme:language^)
+     (unit drscheme:help-desk : drscheme:help-desk^))))

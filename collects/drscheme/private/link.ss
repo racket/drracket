@@ -2,8 +2,8 @@
   (require "teachpack.ss"
 	   "tools.ss"
            (lib "unitsig.ss")
-	   "language-tower.ss"
-           "language.ss"
+	   "language.ss"
+           "language-configuration.ss"
            "drsig.ss"
 	   "init.ss"
            "text.ss"
@@ -15,7 +15,7 @@
            "frame.ss"
            "unit.ss"
            "get-extend.ss"
-           "help-interface.ss")
+           "help-desk.ss")
   (provide drscheme@)
   
   (define drscheme@
@@ -25,15 +25,15 @@
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
-            [rep : drscheme:rep^ (rep@ init snip language app frame unit text help-interface teachpack)]
-            [tower : drscheme:language-tower^ (language-tower@ rep)]
-            [frame : drscheme:frame^ (frame@ unit app help-interface)]
-            [unit : drscheme:unit^ (unit@ help-interface app frame text rep language get/extend snip teachpack)]
+            [rep : drscheme:rep^ (rep@ init snip language-configuration language app frame unit text help-desk teachpack)]
+            [language : drscheme:language^ (language@ rep)]
+            [frame : drscheme:frame^ (frame@ unit app help-desk)]
+            [unit : drscheme:unit^ (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
-            [language : drscheme:language/internal^ (language@ unit tower rep teachpack)]            
-            [help-interface : drscheme:help-interface^ (help-interface@ frame language)]
-	    [app : drscheme:app^ (app@ unit frame help-interface tool)]
-            [main-before : () (main-before@ app unit get/extend language tower teachpack)]
-            [tool : drscheme:tools^ (tools@ frame unit rep get/extend tower (language : drscheme:language^) init)]
-            [main : drscheme:main^ (main@ app unit get/extend language)])
+            [language-configuration : drscheme:language-configuration/internal^ (language-configuration@ unit rep teachpack)]            
+            [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
+	    [app : drscheme:app^ (app@ unit frame help-desk tool)]
+            [main-before : () (main-before@ app unit get/extend language-configuration language teachpack)]
+            [tool : drscheme:tools^ (tools@ frame unit rep get/extend language (language-configuration : drscheme:language-configuration^) init)]
+            [main : drscheme:main^ (main@ app unit get/extend language-configuration)])
       (export))))

@@ -1,4 +1,4 @@
-(module help-interface mzscheme
+(module help-desk mzscheme
   (require (lib "list.ss")
            (lib "string.ss")
            (lib "file.ss")
@@ -15,12 +15,12 @@
 	   (lib "help-sig.ss" "help")
 	   "drsig.ss")
   
-  (provide help-interface@)
+  (provide help-desk@)
   
-  (define help-interface@
-    (unit/sig  drscheme:help-interface^
+  (define help-desk@
+    (unit/sig  drscheme:help-desk^
       (import [drscheme:frame : drscheme:frame^]
-              [drscheme:language : drscheme:language/internal^])
+              [drscheme:language-configuration : drscheme:language-configuration/internal^])
       
       (define new-help-frame #f)
       (define open-url-from-user #f)
@@ -30,7 +30,7 @@
       (define doc-collections-changed void)
       
       (preferences:add-callback
-       drscheme:language:settings-preferences-symbol
+       drscheme:language-configuration:settings-preferences-symbol
        (lambda (p v) (doc-collections-changed)))
       
       (preferences:add-callback
@@ -40,7 +40,7 @@
          #t))
       
       (define (user-defined-doc-position doc)
-        (let ([lang (preferences:get drscheme:language:settings-preferences-symbol)])
+        (let ([lang (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
           (case (string->symbol doc)
             [(advanced) 100]
             [(intermediate) 101]

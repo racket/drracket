@@ -21,10 +21,13 @@
               [drscheme:frame : drscheme:frame^]
               [drscheme:text : drscheme:text^]
               [drscheme:rep : drscheme:rep^]
-              [drscheme:language : drscheme:language/internal^]
+              [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:teachpack : drscheme:teachpack^])
+
+      (rename [-frame% frame%])
+
       (keymap:add-to-right-button-menu
        (lambda (menu text event)
          (when (and (is-a? text text%)
@@ -143,7 +146,7 @@
                 (if (eq? (system-type) 'windows)
                     (string-append (basename program-filename) ".exe")
                     (basename program-filename))]
-               [settings (preferences:get drscheme:language:settings-preferences-symbol)])
+               [settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
           
           (cond
             [(not program-filename)
@@ -359,7 +362,8 @@
           
           (define (reset-highlighting)
             (let ([f (get-top-level-window)])
-              (when f
+              (when (and f
+			 (is-a? f -frame%))
                 (let ([interactions-text (send f get-interactions-text)])
                   (when (object? interactions-text)
                     (send interactions-text reset-highlighting))))))
@@ -382,33 +386,7 @@
       
       (define definitions-text%
         (class100 definitions-super% args
-          
-          (public
-            [clear-annotations
-             (lambda ()
-               (void))])
-          
           (inherit get-top-level-window)
-          (private
-            [reset-highlighting
-             (lambda ()
-               (let ([f (get-top-level-window)])
-                 (when f
-                   (let ([interactions-text (send f get-interactions-text)])
-                     (when (object? interactions-text)
-                       (send interactions-text reset-highlighting))))))])
-          (rename [super-on-insert on-insert]
-                  [super-on-delete on-delete])
-          (override
-            [on-insert
-             (lambda (x y)
-               (reset-highlighting)
-               (super-on-insert x y))]
-            [on-delete
-             (lambda (x y)
-               (reset-highlighting)
-               (super-on-delete x y))])
-          
           (rename
            [super-set-modified set-modified]
            [super-set-filename set-filename])
@@ -436,19 +414,19 @@
           (private-field
             [needs-execution-state #f]
             [already-warned-state #f]
-            [execute-language (preferences:get drscheme:language:settings-preferences-symbol)])
+            [execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
           (public
             [needs-execution? 
              (lambda ()
                (or needs-execution-state
                    (not (equal? execute-language
-                                (preferences:get drscheme:language:settings-preferences-symbol)))))]
+                                (preferences:get drscheme:language-configuration:settings-preferences-symbol)))))]
             [teachpack-changed
              (lambda ()
                (set! needs-execution-state #t))]
             [just-executed
              (lambda ()
-               (set! execute-language (preferences:get drscheme:language:settings-preferences-symbol))
+               (set! execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol))
                (set! needs-execution-state #f)
                (set! already-warned-state #f))]
             [already-warned? (lambda () already-warned-state)]
@@ -700,7 +678,7 @@
          (drscheme:frame:basics-mixin 
           frame:searchable%)))
       
-      (define frame%
+      (define -frame%
         (class* super-frame% (drscheme:rep:context<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
@@ -715,9 +693,14 @@
                    file-menu:get-revert-item
                    file-menu:get-print-item)
           
+	  (public clear-annotations)
+          [define clear-annotations
+            (lambda ()
+	      (void))]
+          
           (rename [super-update-shown update-shown]
                   [super-on-close on-close])
-          (public get-directory needs-execution? clear-annotations)
+          (public get-directory needs-execution?)
           [define get-directory
             (lambda ()
               (let ([filename (send definitions-text get-filename)])
@@ -728,10 +711,6 @@
           [define needs-execution?
            (lambda ()
              (send definitions-text needs-execution?))]
-          
-          [define clear-annotations
-            (lambda ()
-              (send definitions-text clear-annotations))]
           
           [define definitions-item #f]
           [define interactions-item #f]
@@ -1204,7 +1183,7 @@
                                   (eq? text interactions-text))
                           (method text)))))])
             
-            (drscheme:language:fill-language-menu this language-menu)
+            (drscheme:language-configuration:fill-language-menu this language-menu)
             
             (set! execute-menu-item
                   (make-object menu:can-restore-menu-item%

@@ -15,8 +15,9 @@
               [drscheme:unit : drscheme:unit^]
               [drscheme:rep : drscheme:rep^]
               [drscheme:get/extend : drscheme:get/extend^]
-              [drscheme:language-tower : drscheme:language-tower^]
               [drscheme:language : drscheme:language^]
+              [drscheme:language-configuration : drscheme:language-configuration^]
+	      [drscheme:help-desk : drscheme:help-desk^]
               [drscheme:init : drscheme:init^])
       
       ;; successful-tool = (make-successful-tool module-spec (union #f (instanceof bitmap%)) (union #f string))
@@ -122,8 +123,9 @@
                                     (unit drscheme:unit : drscheme:unit^)
                                     (unit drscheme:rep : drscheme:rep^)
                                     (unit drscheme:get/extend : drscheme:get/extend^)
-                                    (unit drscheme:language-tower : drscheme:language-tower^)
-                                    (unit drscheme:language : drscheme:language^)))
+                                    (unit drscheme:language : drscheme:language^)
+                                    (unit drscheme:language-configuration : drscheme:language-configuration^)
+				    (unit drscheme:help-desk : drscheme:help-desk^)))
                   
                   (set! successful-tools 
                         (cons (make-successful-tool tool-path tool-bitmap name)

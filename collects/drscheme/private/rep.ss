@@ -25,17 +25,14 @@
     (unit/sig drscheme:rep^
       (import (drscheme:init : drscheme:init^)
               (drscheme:snip : drscheme:snip^)
-              (drscheme:language : drscheme:language/internal^)
+              (drscheme:language-configuration : drscheme:language-configuration/internal^)
+	      (drscheme:language : drscheme:language^)
               (drscheme:app : drscheme:app^)
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
               (drscheme:help : drscheme:help-interface^)
               (drscheme:teachpack : drscheme:teachpack^))
-      
-      (define-struct text/pos (text start end))
-      ;; text/pos = (make-text/pos (instanceof text% number number))
-      ;; this represents a portion of a text to be processed.
       
       (define sized-snip<%>
 	(interface ((class->interface snip%))
@@ -65,8 +62,8 @@
                   filename)))
         (let* ([input (build-input filename)]
                [ls (current-language-settings)]
-               [language (drscheme:language:language-settings-language ls)]
-               [settings (drscheme:language:language-settings-settings ls)]
+               [language (drscheme:language-configuration:language-settings-language ls)]
+               [settings (drscheme:language-configuration:language-settings-settings ls)]
                [thnk (send language front-end input settings)])
           (let loop ([last-time-values (list (void))])
             (let ([exp (thnk)])
@@ -89,7 +86,7 @@
             [(equal? chars (string->list "WXME"))
              (let ([text (make-object text%)])
                (send text load-file filename)
-               (make-text/pos text 0 (send text last-position)))]
+               (drscheme:language:make-text/pos text 0 (send text last-position)))]
             [else filename])))
       
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
@@ -246,12 +243,11 @@
   ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
       (define drs-bindings-keymap-mixin
 	(mixin (editor:keymap<%>) (editor:keymap<%>)
-        (class100 editor% args
-          (rename [super-get-keymaps get-keymaps])
-          (override get-keymaps)
+	  (rename [super-get-keymaps get-keymaps])
+	  (override get-keymaps)
 	  [define (get-keymaps)
 	    (cons drs-bindings-keymap (super-get-keymaps))]
-          (super-instantiate ())))
+	  (super-instantiate ())))
       
   ;; Max length of output queue (user's thread blocks if the
   ;; queue is full):
@@ -308,11 +304,11 @@
       ;; determines if the settings in `language-settings'
       ;; correspond to the default settings of the language.
       (define (is-default-settings? language-settings)
-        (send (drscheme:language:language-settings-language language-settings)
+        (send (drscheme:language-configuration:language-settings-language language-settings)
               default-settings?
-              (drscheme:language:language-settings-settings language-settings)))
+              (drscheme:language-configuration:language-settings-settings language-settings)))
       (define (extract-language-name language-settings)
-        (car (last-pair (send (drscheme:language:language-settings-language language-settings)
+        (car (last-pair (send (drscheme:language-configuration:language-settings-language language-settings)
                               get-language-position))))
 
       (define-struct sexp (left right prompt))
@@ -489,41 +485,17 @@
                      set-prompt-position
                      get-canvases find-snip
                      release-snip)
-            (rename [super-on-insert on-insert]
-                    [super-on-delete on-delete]
-                    [super-initialize-console initialize-console]
+            (rename [super-initialize-console initialize-console]
                     [super-reset-console reset-console]
                     [super-on-close on-close])
             
-            (override on-insert on-delete on-close)
+            (override on-close)
             
             (override get-prompt eval-busy? do-eval
                       initialize-console
                       reset-console)
             
             (public
-              get-transparent-text
-              get-transparent-snip
-              cleanup-transparent-io
-              init-transparent-io
-              init-transparent-input
-              init-transparent-io-do-work
-              
-              this-in-char-ready?
-              this-in-read-char
-              this-in-peek-char
-              generic-write
-              this-result-write
-              this-out-write
-
-              this-err-write
-              get-this-err
-              get-this-out
-              get-this-in
-              get-this-result
-              setup-display/write-handlers
-              display-results
-              
               reset-highlighting
 	      highlight-error
 	      highlight-error/forward-sexp
@@ -532,22 +504,28 @@
               get-user-eventspace
               get-user-thread
               
-              insert-warning
+              kill-evaluation
               
-              cleanup
-              cleanup-interaction
+              break
+              set-offer-break-state
               
+              display-results
+
+              run-in-evaluation-thread
               do-many-evals
               do-many-text-evals
               
-              reset-break-state
-              break
-              
-              run-in-evaluation-thread
-              
-              shutdown
-              kill-evaluation
-              
+	      shutdown
+
+              cleanup-transparent-io
+              get-this-err
+	      this-err-write
+              get-this-out
+	      this-out-write
+              get-this-result
+	      this-result-write
+
+              get-this-in
               submit-eof
               show-eof-icon
               hide-eof-icon)
@@ -598,23 +576,19 @@
             (field (transparent-text #f)
                    (transparent-snip #f))
 
-            (define (get-transparent-text) transparent-text)
-            (define (get-transparent-snip) transparent-snip)
-            
-            (define cleanup-transparent-io ; =Kernel=, =Handler=
-              (lambda ()
-                (when transparent-text
-                  (set! saved-newline? #f) 
-                  (hide-eof-icon)
-                  (send transparent-text shutdown)
-                  (set-position (last-position))
-                  (set-caret-owner #f)
-                  (let ([a (get-admin)])
-                    (when a
-                      (send a grab-caret)))
-                  (send transparent-text lock #t)
-                  (set! transparent-text #f)
-                  (drop-fetcher))))
+            (define (cleanup-transparent-io) ; =Kernel=, =Handler=
+	      (when transparent-text
+		(set! saved-newline? #f) 
+		(hide-eof-icon)
+		(send transparent-text shutdown)
+		(set-position (last-position))
+		(set-caret-owner #f)
+		(let ([a (get-admin)])
+		  (when a
+		    (send a grab-caret)))
+		(send transparent-text lock #t)
+		(set! transparent-text #f)
+		(drop-fetcher)))
             
             (define init-transparent-io ; =Kernel=, =Handler=
               (lambda (grab-focus?)
@@ -1003,8 +977,8 @@
                (lambda (v)
                  (unless (void? v)
                    (let* ([ls (current-language-settings)]
-                          [lang (drscheme:language:language-settings-language ls)]
-                          [settings (drscheme:language:language-settings-settings ls)])
+                          [lang (drscheme:language-configuration:language-settings-language ls)]
+                          [settings (drscheme:language-configuration:language-settings-settings ls)])
                      (send lang render-value/format
                            v
                            settings
@@ -1018,6 +992,9 @@
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	    (override after-insert after-delete)
+	    (rename [super-after-insert after-insert]
+		    [super-after-delete after-delete])
 	    (inherit get-inserting-prompt)
 	    (field (error-range #f)
 		   (reset-callback void))
@@ -1050,14 +1027,14 @@
             
             (define (on-set-media) (void))
             
-            (define on-insert
+            (define after-insert
               (lambda (x y)
                 (reset-highlighting)
-                (super-on-insert x y)))
-            (define on-delete
+                (super-after-insert x y)))
+            (define after-delete
               (lambda (x y)
                 (reset-highlighting)
-                (super-on-delete x y)))
+                (super-after-delete x y)))
             
             
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1070,9 +1047,9 @@
             ;; effect: prints the value on the port
             ;; default setting for the behavior of the `print' primitive.
             (define (drscheme-port-print-handler value port)
-              (let ([language (drscheme:language:language-settings-language
+              (let ([language (drscheme:language-configuration:language-settings-language
 			       (current-language-settings))]
-                    [settings (drscheme:language:language-settings-settings
+                    [settings (drscheme:language-configuration:language-settings-settings
                                (current-language-settings))])
                 (send language render-value
 		      value
@@ -1213,9 +1190,9 @@
             (define (do-many-text-evals text start end)
               (do-many-evals
                (lambda (single-loop-eval)
-                 (let* ([text/pos (make-text/pos text start end)]
-                        [lang (drscheme:language:language-settings-language (current-language-settings))]
-                        [settings (drscheme:language:language-settings-settings (current-language-settings))]
+                 (let* ([text/pos (drscheme:language:make-text/pos text start end)]
+                        [lang (drscheme:language-configuration:language-settings-language (current-language-settings))]
+                        [settings (drscheme:language-configuration:language-settings-settings (current-language-settings))]
                         [get-sexp/syntax/eof (send lang front-end text/pos settings)])
                    (let loop () 
                      (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
@@ -1252,7 +1229,7 @@
                 
                 (run-in-evaluation-thread
                  (lambda () ; =User=, =Handler=, =No-Breaks=
-                   (reset-break-state)
+                   (set-offer-break-state #f)
                    
                    (protect-user-evaluation
                     ; Evaluate the expression(s)
@@ -1296,27 +1273,27 @@
                 (set! io-collected-thunks null)
                 (semaphore-post io-semaphore)))
             
-            (define reset-break-state (lambda () (set! ask-about-kill? #f)))
-            (define break
-              (lambda () ; =Kernel=, =Handler=
-                (cond
-                  [(not in-evaluation?)
-                   (bell)]
-                  [ask-about-kill? 
-                   (if (gui-utils:get-choice
-                        (string-constant kill-evaluation?)
-                        (string-constant just-break)
-                        (string-constant kill)
-                        (string-constant kill?)
-                        'diallow-close
-                        (let ([canvas (get-active-canvas)])
-                          (and canvas
-                               (send canvas get-top-level-window))))
-                       (break-thread user-thread)
-                       (custodian-shutdown-all user-custodian))]
-                  [else
-                   (break-thread user-thread)
-                   (set! ask-about-kill? #t)])))
+            (define (set-offer-break-state new-ask-about-kill?)
+	      (set! ask-about-kill? new-ask-about-kill?))
+            (define (break)  ; =Kernel=, =Handler=
+	      (cond
+		[(not in-evaluation?)
+		 (bell)]
+		[ask-about-kill? 
+		 (if (gui-utils:get-choice
+		      (string-constant kill-evaluation?)
+		      (string-constant just-break)
+		      (string-constant kill)
+		      (string-constant kill?)
+		      'diallow-close
+		      (let ([canvas (get-active-canvas)])
+			(and canvas
+			     (send canvas get-top-level-window))))
+		     (break-thread user-thread)
+		     (custodian-shutdown-all user-custodian))]
+		[else
+		 (break-thread user-thread)
+		 (set-offer-break-state #t)]))
             
             (define (kill-evaluation) ; =Kernel=, =Handler=
               (custodian-shutdown-all user-custodian))
@@ -1387,7 +1364,7 @@
             (define init-evaluation-thread ; =Kernel=
               (lambda ()
                 (set! user-language-settings
-		      (preferences:get drscheme:language:settings-preferences-symbol))
+		      (preferences:get drscheme:language-configuration:settings-preferences-symbol))
                 (set! user-custodian (make-custodian))
                 (set! user-eventspace (parameterize ([current-custodian user-custodian])
                                         (make-eventspace)))
@@ -1418,9 +1395,9 @@
 		     (initialize-parameters)))
 
 		  ;; initialize the language
-		  (send (drscheme:language:language-settings-language user-language-settings)
+		  (send (drscheme:language-configuration:language-settings-language user-language-settings)
 			on-execute
-			(drscheme:language:language-settings-settings user-language-settings)
+			(drscheme:language-configuration:language-settings-settings user-language-settings)
 			queue-user/wait)
                 
 		  (parameterize ([current-eventspace user-eventspace])
@@ -1573,7 +1550,7 @@
                             (cond
                               [(not in-evaluation?)
                                
-                               (reset-break-state) ; Is this a good idea?
+                               (set-offer-break-state #f)
                                
                                (protect-user-evaluation
                                 ; Run the dispatch:
@@ -1605,55 +1582,54 @@
                           ; =User=, =Non-Handler=, =No-Breaks=
                           (primitive-dispatch-handler eventspace)])))))))
             
-            (define  reset-console
-              (lambda ()
-                (when (thread? thread-killed)
-                  (kill-thread thread-killed))
-                (let ([fr (send (get-canvas) get-top-level-window)])
-                  (send context clear-annotations))
-                (shutdown-user-custodian)
-                (cleanup-transparent-io)
-                (clear-previous-expr-positions)
-                (set! should-collect-garbage? #t)
-                
-                (set! eof-received? #f)
-                
-	        ;; in case the last evaluation thread was killed, clean up some state.
-                (lock #f)
-                (set! in-evaluation? #f)
-                (update-running)
-                
-                ;; re-loads any teachpacks that have changed.
-                (drscheme:teachpack:load-teachpacks (preferences:get 'drscheme:teachpacks))
-                
-                ;; must init-evaluation-thread before determining
-                ;; the language's name, since this updates user-language-settings
-                (init-evaluation-thread)
-                
-                (begin-edit-sequence)
-                (set-resetting #t)
-                (delete (paragraph-start-position 1) (last-position))
-                (set-prompt-mode #f)
-                (set-resetting #f)
-                (set-position (last-position) (last-position))
-                
-                (insert-delta (string-append (string-constant language) ": ") welcome-delta)
-                (insert-delta (extract-language-name user-language-settings) dark-green-delta)
-                (unless (is-default-settings? user-language-settings)
-                  (insert-delta (string-append " " (string-constant custom)) dark-green-delta))
-                (insert-delta (format ".~n") welcome-delta)
-                
-                (for-each
-                 (lambda (fn)
-                   (insert-delta (string-append (string-constant teachpack) ": ") welcome-delta)
-                   (insert-delta fn dark-green-delta)
-                   (insert-delta (format ".~n") welcome-delta))
-                 (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
-                
-                (set! repl-initially-active? #t)
-                (end-edit-sequence)
-                
-                (super-reset-console)))
+            (define (reset-console)
+	      (when (thread? thread-killed)
+		(kill-thread thread-killed))
+	      (let ([fr (send (get-canvas) get-top-level-window)])
+		(send context clear-annotations))
+	      (shutdown-user-custodian)
+	      (cleanup-transparent-io)
+	      (clear-previous-expr-positions)
+	      (set! should-collect-garbage? #t)
+	      
+	      (set! eof-received? #f)
+	      
+	      ;; in case the last evaluation thread was killed, clean up some state.
+	      (lock #f)
+	      (set! in-evaluation? #f)
+	      (update-running)
+	      
+	      ;; re-loads any teachpacks that have changed.
+	      (drscheme:teachpack:load-teachpacks (preferences:get 'drscheme:teachpacks))
+	      
+	      ;; must init-evaluation-thread before determining
+	      ;; the language's name, since this updates user-language-settings
+	      (init-evaluation-thread)
+	      
+	      (begin-edit-sequence)
+	      (set-resetting #t)
+	      (delete (paragraph-start-position 1) (last-position))
+	      (set-prompt-mode #f)
+	      (set-resetting #f)
+	      (set-position (last-position) (last-position))
+	      
+	      (insert-delta (string-append (string-constant language) ": ") welcome-delta)
+	      (insert-delta (extract-language-name user-language-settings) dark-green-delta)
+	      (unless (is-default-settings? user-language-settings)
+		(insert-delta (string-append " " (string-constant custom)) dark-green-delta))
+	      (insert-delta (format ".~n") welcome-delta)
+	      
+	      (for-each
+	       (lambda (fn)
+		 (insert-delta (string-append (string-constant teachpack) ": ") welcome-delta)
+		 (insert-delta fn dark-green-delta)
+		 (insert-delta (format ".~n") welcome-delta))
+	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
+	      
+	      (set! repl-initially-active? #t)
+	      (end-edit-sequence)
+	      
+	      (super-reset-console))
             
             (define initialize-console
               (lambda ()
@@ -1748,7 +1724,7 @@
                       insert-prompt
                       set-prompt-position
                       get-prompt-position
-                      reset-console
+
                       
                       do-pre-eval
                       do-eval
@@ -2055,6 +2031,7 @@
                     (lock c-locked?)
                     (end-edit-sequence)
                     (scroll-to-position start-selection #f (last-position) 'start))))
+	      (public reset-console)
               (define reset-console
                 (lambda ()
                   (void)))
