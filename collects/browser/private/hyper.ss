@@ -1,835 +1,843 @@
-
-(unit/sig browser^
-  (import browser:html^
-	  mzlib:function^
-	  mzlib:file^
-	  mzlib:string^
-	  mzlib:url^
-	  (bullet : bullet-snip^)
-	  mred^
-	  setup:plt-installer^)
-
-  (define bullet-size bullet:bullet-size)
-
-  (define-struct (exn:file-saved-instead struct:exn) (pathname))
-  (define-struct (exn:cancelled struct:exn) ())
-
-  (define history-limit 20)
-
-  (define-struct hyperlink (anchor-start 
-			    anchor-end
-			    url-string))
-
-  (define-struct hypertag (name position))
-
-#|
-  (define scrolling-canvas%
-    (class canvas% (loi frame)
-      (private
-	[bitmaps
-	 (map (lambda (i)
-		(cond
-		 [(string? i)
-		  (make-object bitmap% i 'gif)]
-		 [(is-a? i bitmap%) i]
-		 [else (error 'scrolling-canvas% "expected a list of bitmaps or filenames, got: ~e"
-			      i)]))
-	      loi)]
-	[current-bitmap (if (null? bitmaps)
-			    (error 'scrolling-canvas%
-				   "expected at least one bitmap, got none")
-			    (car bitmaps))]
-
-	[width (apply max (map (lambda (x) (send x get-width)) bitmaps))]
-	[height (apply max (map (lambda (x) (send x get-height)) bitmaps))])
+(module hyper mzscheme
+  (require (lib "unitsig.ss")
+           "sig.ss"
+           (lib "file.ss")
+           (lib "list.ss")
+           (lib "string.ss")
+           (lib "url.ss" "net")
+           (lib "mred-sig.ss" "mred")
+           (lib "plt-installer-sig.ss" "setup"))
+  
+  (provide hyper@)
+  
+  (define hyper@
+    (unit/sig browser^
+      (import browser:html^
+              (bullet : bullet-snip^)
+              mred^
+              setup:plt-installer^)
       
-      (inherit get-dc)
-      (override
-       [on-paint
-	(lambda ()
-	  (let ([dc (get-dc)])
-	    (send dc clear)
-	    (send dc draw-bitmap current-bitmap
-		  (floor (- (/ width 2) (/ (send current-bitmap get-width) 2)))
-		  (floor (- (/ height 2) (/ (send current-bitmap get-height) 2))))))])
-
-      (private
-	[thread-desc #f])
-      (public
-	[start
-	 (lambda ()
-	   (unless thread-desc
-	     (set! thread-desc
-		   (thread
-		    (letrec ([f
-			      (lambda (first?)
-				(with-handlers ([void void])
-				  (let loop ([l (if first?
-						    (cdr bitmaps)
-						    bitmaps)])
-				    (cond
-				     [(null? l) (f #f)]
-				     [else
-				      (queue-callback
-				       (lambda ()
-					 (set! current-bitmap (car l))
-					 (on-paint)))
-				      (sleep 2/3)
-				      (loop (cdr l))]))))])
-		      (lambda ()
-			(f #t)))))))]
-	[stop
-	 (lambda ()
-	   (when thread-desc
-	     (break-thread thread-desc)
-	     (queue-callback
-	      (lambda ()
-		(set! current-bitmap (car bitmaps))
-		(on-paint)))
-	     (set! thread-desc #f)))])
-
-      (inherit min-width min-height stretchable-width stretchable-height)
-      (sequence
-	(super-init frame)
-	(min-width width)
-	(min-height height)
-	(stretchable-width #f)
-	(stretchable-height #f))))
-
-  (define bitmaps
-    (let* ([images
-	    (list "mini-plt.gif"
-		  "animate1.gif"
-		  "animate2.gif"
-		  "animate3.gif")])
-      (map 
-       (lambda (x)
-	 (make-object bitmap%
-	   (build-path (collection-path "icons") x)
-	   'gif))
-       images)))
-
-|#
-
-  (define hyper-style-list (make-object style-list%))
-
-  (define hyper-text-mixin
-    (lambda (super%)
-      (class super% (url top-level-window . args)
-	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
-		 change-style get-style-list set-style-list
-		 set-modified auto-wrap get-view-size
-		 find-snip get-snip-position set-clickback get-canvas
-		 get-visible-position-range insert last-position hide-caret
-		 get-end-position set-autowrap-bitmap)
-	(rename [super-after-set-position after-set-position])
-
-	(override
-	 [after-set-position
-	  (lambda ()
-	    (unless (zero? (get-end-position))
-	      (hide-caret #f))
-	    (super-after-set-position))])
-	(private
-	  [doc-notes null]
-	  [title #f]
-	  [htmling? #f]
-	  [hypertags-list (list (make-hypertag "top" 0))])
-
-	(public
-	  [add-document-note
-	   (lambda (note)
-	     (set! doc-notes (append doc-notes (list note))))]
-	  [get-document-notes
-	   (lambda () doc-notes)]
-
-	  [map-shift-style 
-	   (lambda (start end shift-style)
-	     (let loop ([pos start])
-	       (unless (>= pos end)
-		 (let* ([curr-snip (find-snip pos 'after-or-none)]
-			[curr-snip-end (when curr-snip
-					 (+ (get-snip-position curr-snip)
-					    (send curr-snip get-count)))])
-		   (when curr-snip
-		     (change-style 
-		      (send (get-style-list) find-or-create-join-style 
-			    (send curr-snip get-style) shift-style)
-		      pos (min curr-snip-end end))
-		     (loop curr-snip-end))))))]
-	  [make-link-style       
-	   (lambda (start end)
-	     (map-shift-style start end 
-			      (send (get-style-list) find-named-style "h-link-style")))]
-	  [get-url (lambda () (and (url? url) url))])
-	(private
-	  [make-clickback-funct
-	   (lambda (url-string)
-	     (lambda (edit start end)
-	       (on-url-click
-		(lambda (url-string)
-		  (with-handlers ([void (lambda (x)
-					  (unless (or (exn:misc:user-break? x)
-						      (exn:file-saved-instead? x)
-						      (exn:cancelled? x))
-					    (message-box
-					     "Error"
-					     (format "Cannot display ~s: ~a~n" 
-						     url-string
-						     (if (exn? x)
-							 (exn-message x)
-							 x)))))])
-		    (send (get-canvas) goto-url url-string (get-url))))
-		url-string)))])
-	(public
-	  [on-url-click (lambda (f x) 
-			  (let ([c (get-canvas)])
-			    (if c
-				(send c on-url-click f x)
-				(f x))))]
-	  [get-title (lambda () (or title (and (url? url) (url->string url))))]
-	  [set-title (lambda (t) (set! title t))])
-	(public
-	  [hyper-delta (make-object style-delta% 'change-underline #t)])
-	(sequence
-	  (let ([mult (send hyper-delta get-foreground-mult)]
-		[add (send hyper-delta get-foreground-add)])
-	    (send mult set 0 0 0)
-	    (send add set 0 0 255)))
-	
-	(private
-	  [add-h-link-style
-	   (lambda ()
-	     (let ([style-list (get-style-list)])
-	       (send style-list replace-named-style  "h-link-style"
-		     (send style-list find-or-create-style  
-			   (send style-list find-named-style "Standard")
-			   hyper-delta))))])
-
-	(public
-	  [add-tag 
-	   (lambda (name pos)
-	     (for-each (lambda (tag) 
-			 (when (string=? name (hypertag-name tag))
-			   (remove-tag  name)))
-		       hypertags-list)
-	     (let ([new-tag (make-hypertag name pos)])
-	       (set! hypertags-list
-		     (let insert-loop ([tags-left hypertags-list])
-		       (cond [(null? tags-left)(cons new-tag ())]
-			     [(> pos (hypertag-position (car tags-left)))
-			      (cons new-tag tags-left)]
-			     [else (cons (car tags-left)
-					 (insert-loop (cdr tags-left)))])))))]
-	  [find-tag
-	   (lambda (name)
-	     (if (and (integer? name) (positive? name))
-		 name
-		 (and (string? name)
-		      (ormap (lambda (x) (and (string=? name (hypertag-name x)) 
-					      (hypertag-position x)))
-			     hypertags-list))))]
-	  [remove-tag 
-	   (lambda (name)
-	     (set! hypertags-list
-		   (filter (lambda (x) (not (string=? name (hypertag-name x))))
-			   hypertags-list)))]
-	  [add-link 
-	   (lambda (start end url-string)
-	     (let* ([new-link (make-hyperlink start end url-string)])
-	       (set-clickback start end (make-clickback-funct url-string))))]
-
+      (define bullet-size bullet:bullet-size)
+      
+      (define-struct (exn:file-saved-instead struct:exn) (pathname))
+      (define-struct (exn:cancelled struct:exn) ())
+      
+      (define history-limit 20)
+      
+      (define-struct hyperlink (anchor-start 
+                                anchor-end
+                                url-string))
+      
+      (define-struct hypertag (name position))
+      
+      #|
+      (define scrolling-canvas%
+        (class canvas% (loi frame)
+          (private
+            [bitmaps
+             (map (lambda (i)
+                    (cond
+                      [(string? i)
+                       (make-object bitmap% i 'gif)]
+                      [(is-a? i bitmap%) i]
+                      [else (error 'scrolling-canvas% "expected a list of bitmaps or filenames, got: ~e"
+                                   i)]))
+                  loi)]
+            [current-bitmap (if (null? bitmaps)
+                                (error 'scrolling-canvas%
+                                       "expected at least one bitmap, got none")
+                                (car bitmaps))]
+            
+            [width (apply max (map (lambda (x) (send x get-width)) bitmaps))]
+            [height (apply max (map (lambda (x) (send x get-height)) bitmaps))])
+          
+          (inherit get-dc)
+          (override
+            [on-paint
+             (lambda ()
+               (let ([dc (get-dc)])
+                 (send dc clear)
+                 (send dc draw-bitmap current-bitmap
+                       (floor (- (/ width 2) (/ (send current-bitmap get-width) 2)))
+                       (floor (- (/ height 2) (/ (send current-bitmap get-height) 2))))))])
+          
+          (private
+            [thread-desc #f])
+          (public
+            [start
+             (lambda ()
+               (unless thread-desc
+                 (set! thread-desc
+                       (thread
+                        (letrec ([f
+                                  (lambda (first?)
+                                    (with-handlers ([void void])
+                                      (let loop ([l (if first?
+                                                        (cdr bitmaps)
+                                                        bitmaps)])
+                                        (cond
+                                          [(null? l) (f #f)]
+                                          [else
+                                           (queue-callback
+                                            (lambda ()
+                                              (set! current-bitmap (car l))
+                                              (on-paint)))
+                                           (sleep 2/3)
+                                           (loop (cdr l))]))))])
+                          (lambda ()
+                            (f #t)))))))]
+            [stop
+             (lambda ()
+               (when thread-desc
+                 (break-thread thread-desc)
+                 (queue-callback
+                  (lambda ()
+                    (set! current-bitmap (car bitmaps))
+                    (on-paint)))
+                 (set! thread-desc #f)))])
+          
+          (inherit min-width min-height stretchable-width stretchable-height)
+          (sequence
+            (super-init frame)
+            (min-width width)
+            (min-height height)
+            (stretchable-width #f)
+            (stretchable-height #f))))
+      
+      (define bitmaps
+        (let* ([images
+                (list "mini-plt.gif"
+                      "animate1.gif"
+                      "animate2.gif"
+                      "animate3.gif")])
+          (map 
+           (lambda (x)
+             (make-object bitmap%
+               (build-path (collection-path "icons") x)
+               'gif))
+           images)))
+      
+      |#
+      
+      (define hyper-style-list (make-object style-list%))
+      
+      (define hyper-text-mixin
+        (lambda (super%)
+          (class super% (url top-level-window . args)
+            (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
+                     change-style get-style-list set-style-list
+                     set-modified auto-wrap get-view-size
+                     find-snip get-snip-position set-clickback get-canvas
+                     get-visible-position-range insert last-position hide-caret
+                     get-end-position set-autowrap-bitmap)
+            (rename [super-after-set-position after-set-position])
+            
+            (override
+              [after-set-position
+               (lambda ()
+                 (unless (zero? (get-end-position))
+                   (hide-caret #f))
+                 (super-after-set-position))])
+            (private
+              [doc-notes null]
+              [title #f]
+              [htmling? #f]
+              [hypertags-list (list (make-hypertag "top" 0))])
+            
+            (public
+              [add-document-note
+               (lambda (note)
+                 (set! doc-notes (append doc-notes (list note))))]
+              [get-document-notes
+               (lambda () doc-notes)]
+              
+              [map-shift-style 
+               (lambda (start end shift-style)
+                 (let loop ([pos start])
+                   (unless (>= pos end)
+                     (let* ([curr-snip (find-snip pos 'after-or-none)]
+                            [curr-snip-end (when curr-snip
+                                             (+ (get-snip-position curr-snip)
+                                                (send curr-snip get-count)))])
+                       (when curr-snip
+                         (change-style 
+                          (send (get-style-list) find-or-create-join-style 
+                                (send curr-snip get-style) shift-style)
+                          pos (min curr-snip-end end))
+                         (loop curr-snip-end))))))]
+              [make-link-style       
+               (lambda (start end)
+                 (map-shift-style start end 
+                                  (send (get-style-list) find-named-style "h-link-style")))]
+              [get-url (lambda () (and (url? url) url))])
+            (private
+              [make-clickback-funct
+               (lambda (url-string)
+                 (lambda (edit start end)
+                   (on-url-click
+                    (lambda (url-string)
+                      (with-handlers ([void (lambda (x)
+                                              (unless (or (exn:misc:user-break? x)
+                                                          (exn:file-saved-instead? x)
+                                                          (exn:cancelled? x))
+                                                (message-box
+                                                 "Error"
+                                                 (format "Cannot display ~s: ~a~n" 
+                                                         url-string
+                                                         (if (exn? x)
+                                                             (exn-message x)
+                                                             x)))))])
+                        (send (get-canvas) goto-url url-string (get-url))))
+                    url-string)))])
+            (public
+              [on-url-click (lambda (f x) 
+                              (let ([c (get-canvas)])
+                                (if c
+                                    (send c on-url-click f x)
+                                    (f x))))]
+              [get-title (lambda () (or title (and (url? url) (url->string url))))]
+              [set-title (lambda (t) (set! title t))])
+            (public
+              [hyper-delta (make-object style-delta% 'change-underline #t)])
+            (sequence
+              (let ([mult (send hyper-delta get-foreground-mult)]
+                    [add (send hyper-delta get-foreground-add)])
+                (send mult set 0 0 0)
+                (send add set 0 0 255)))
+            
+            (private
+              [add-h-link-style
+               (lambda ()
+                 (let ([style-list (get-style-list)])
+                   (send style-list replace-named-style  "h-link-style"
+                         (send style-list find-or-create-style  
+                               (send style-list find-named-style "Standard")
+                               hyper-delta))))])
+            
+            (public
+              [add-tag 
+               (lambda (name pos)
+                 (for-each (lambda (tag) 
+                             (when (string=? name (hypertag-name tag))
+                               (remove-tag  name)))
+                           hypertags-list)
+                 (let ([new-tag (make-hypertag name pos)])
+                   (set! hypertags-list
+                         (let insert-loop ([tags-left hypertags-list])
+                           (cond [(null? tags-left)(cons new-tag ())]
+                                 [(> pos (hypertag-position (car tags-left)))
+                                  (cons new-tag tags-left)]
+                                 [else (cons (car tags-left)
+                                             (insert-loop (cdr tags-left)))])))))]
+              [find-tag
+               (lambda (name)
+                 (if (and (integer? name) (positive? name))
+                     name
+                     (and (string? name)
+                          (ormap (lambda (x) (and (string=? name (hypertag-name x)) 
+                                                  (hypertag-position x)))
+                                 hypertags-list))))]
+              [remove-tag 
+               (lambda (name)
+                 (set! hypertags-list
+                       (filter (lambda (x) (not (string=? name (hypertag-name x))))
+                               hypertags-list)))]
+              [add-link 
+               (lambda (start end url-string)
+                 (let* ([new-link (make-hyperlink start end url-string)])
+                   (set-clickback start end (make-clickback-funct url-string))))]
+              
           ;; remember the directory when the callback is added (during parsing)
           ;; and restore it during the evaluation of the callback.
-	  [add-scheme-callback
-	   (lambda (start end scheme-string)
-             (let ([dir (current-load-relative-directory)])
-               (set-clickback start end (lambda (edit start end)
-                                          (parameterize ([current-load-relative-directory dir])
-                                            (eval-scheme-string scheme-string))))))]
-	  [eval-scheme-string
-	   (lambda (s)
-	     
-	     (let ([v (dynamic-wind
-		       begin-busy-cursor
-		       (lambda () (eval-string s))
-		       end-busy-cursor)])
-	       (when (string? v)
-		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
-          
-          [reload
-           (lambda ()
-             (when url
-               (let-values ([(wrapping-on?) #t]
-                            [(p mime-headers)
-                             (if (port? url)
-                                 (values url null)
-                                 ; Try to get mime info, but use get-pure-port if that fails:
-                                 (with-handlers ([void (lambda (x) 
-                                                         (values (get-pure-port url) null))])
-                                   (let ([p (get-impure-port url)])
-                                     (let ([headers (purify-port p)])
-                                       (values p headers)))))])
-                 (lock #f)
-                 (dynamic-wind
-		  (lambda ()
-		    (begin-busy-cursor)
-                    ; (send progress start)
-		    (begin-edit-sequence #f))
-		  (lambda () 
-		    (set! htmling? #t)
-		    (erase)
-		    (clear-undos)
-		    (let* ([mime-type (ormap (lambda (mh)
-					       (and (string=? (mime-header-name mh) "content-type")
-						    (mime-header-value mh)))
-					     mime-headers)]
-			   [html? (and mime-type
-				       (regexp-match "text/html" mime-type))])
-		      (cond
-                        [(or (and mime-type (regexp-match "application/" mime-type))
-                             (and (url? url)
-                                  (regexp-match "[.]plt$" (url-path url))
-                                  ; document-not-found produces HTML:
-                                  (not html?)))
-                         ; Save the file
-                         (end-busy-cursor) ; turn off cursor for a moment...
-                         (let* ([orig-name (and (url? url)
-                                                (let ([m (regexp-match "([^/]*)$" (url-path url))])
-                                                  (and m (cadr m))))]
-                                [size (ormap (lambda (mh)
-                                               (and (string=? (mime-header-name mh)
-                                                              "content-length")
-                                                    (let ([m (regexp-match
-                                                              "[0-9]+"
-                                                              (mime-header-value mh))])
-                                                      (and m (string->number (car m))))))
-                                             mime-headers)]
-                                [install?
-                                 (and (and orig-name (regexp-match "[.]plt$" orig-name))
-                                      (let ([d (make-object dialog% "Install?")]
-                                            [d? #f]
-                                            [i? #f])
-                                        (make-object message%
-                                          "You have selected an installable package." d)
-                                        (make-object message% "Do you want to install it?" d)
-                                        (when size
-                                          (make-object message%
-                                            (format "(The file is ~a bytes)" size) d))
-                                        (let ([hp (make-object horizontal-panel% d)])
-                                          (send hp set-alignment 'center 'center)
-                                          (send (make-object button% "Download && Install" hp
-                                                  (lambda (b e)
-                                                    (set! i? #t)
-                                                    (send d show #f))
-                                                  '(border))
-                                                focus)
-                                          (make-object button% "Download" hp
-                                            (lambda (b e)
-                                              (set! d? #t)
-                                              (send d show #f)))
-                                          (make-object button% "Cancel" hp
-                                            (lambda (b e)
-                                              (send d show #f))))
-                                        (send d center)
-                                        (send d show #t)
-                                        (unless (or d? i?)
-                                          
-                                          ; turn the cursor back on before escaping
-                                          (begin-busy-cursor)
-                                          
-                                          (raise (make-exn:cancelled
-                                                  "Package cancelled"
-                                                  (current-continuation-marks))))
-                                        i?))]
-                                [f (if install?
-                                       (make-temporary-file "tmp~a.plt")
-                                       (put-file (format "Save downloaded file~a as"
-                                                         (if size
-                                                             (format " (~a bytes)" size)
-                                                             ""))
-                                                 #f ; should be calling window!
-                                                 #f
-                                                 orig-name))])
-                           (begin-busy-cursor) ; turn the cursor back on
-                           (when f
-                             (let* ([d (make-object dialog% "Downloading" top-level-window)]
-                                    [message (make-object message% "Downloading file..." d)]
-                                    [gauge (if size
-                                               (make-object gauge% #f 100 d)
-                                               #f)]
+              [add-scheme-callback
+               (lambda (start end scheme-string)
+                 (let ([dir (current-load-relative-directory)])
+                   (set-clickback start end (lambda (edit start end)
+                                              (parameterize ([current-load-relative-directory dir])
+                                                (eval-scheme-string scheme-string))))))]
+              [eval-scheme-string
+               (lambda (s)
+                 
+                 (let ([v (dynamic-wind
+                           begin-busy-cursor
+                           (lambda () (eval-string s))
+                           end-busy-cursor)])
+                   (when (string? v)
+                     (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
+              
+              [reload
+               (lambda ()
+                 (when url
+                   (let-values ([(wrapping-on?) #t]
+                                [(p mime-headers)
+                                 (if (port? url)
+                                     (values url null)
+                                     ; Try to get mime info, but use get-pure-port if that fails:
+                                     (with-handlers ([void (lambda (x) 
+                                                             (values (get-pure-port url) null))])
+                                       (let ([p (get-impure-port url)])
+                                         (let ([headers (purify-port p)])
+                                           (values p headers)))))])
+                     (lock #f)
+                     (dynamic-wind
+                      (lambda ()
+                        (begin-busy-cursor)
+                        ; (send progress start)
+                        (begin-edit-sequence #f))
+                      (lambda () 
+                        (set! htmling? #t)
+                        (erase)
+                        (clear-undos)
+                        (let* ([mime-type (ormap (lambda (mh)
+                                                   (and (string=? (mime-header-name mh) "content-type")
+                                                        (mime-header-value mh)))
+                                                 mime-headers)]
+                               [html? (and mime-type
+                                           (regexp-match "text/html" mime-type))])
+                          (cond
+                            [(or (and mime-type (regexp-match "application/" mime-type))
+                                 (and (url? url)
+                                      (regexp-match "[.]plt$" (url-path url))
+                                      ; document-not-found produces HTML:
+                                      (not html?)))
+                             ; Save the file
+                             (end-busy-cursor) ; turn off cursor for a moment...
+                             (let* ([orig-name (and (url? url)
+                                                    (let ([m (regexp-match "([^/]*)$" (url-path url))])
+                                                      (and m (cadr m))))]
+                                    [size (ormap (lambda (mh)
+                                                   (and (string=? (mime-header-name mh)
+                                                                  "content-length")
+                                                        (let ([m (regexp-match
+                                                                  "[0-9]+"
+                                                                  (mime-header-value mh))])
+                                                          (and m (string->number (car m))))))
+                                                 mime-headers)]
+                                    [install?
+                                     (and (and orig-name (regexp-match "[.]plt$" orig-name))
+                                          (let ([d (make-object dialog% "Install?")]
+                                                [d? #f]
+                                                [i? #f])
+                                            (make-object message%
+                                              "You have selected an installable package." d)
+                                            (make-object message% "Do you want to install it?" d)
+                                            (when size
+                                              (make-object message%
+                                                (format "(The file is ~a bytes)" size) d))
+                                            (let ([hp (make-object horizontal-panel% d)])
+                                              (send hp set-alignment 'center 'center)
+                                              (send (make-object button% "Download && Install" hp
+                                                      (lambda (b e)
+                                                        (set! i? #t)
+                                                        (send d show #f))
+                                                      '(border))
+                                                    focus)
+                                              (make-object button% "Download" hp
+                                                (lambda (b e)
+                                                  (set! d? #t)
+                                                  (send d show #f)))
+                                              (make-object button% "Cancel" hp
+                                                (lambda (b e)
+                                                  (send d show #f))))
+                                            (send d center)
+                                            (send d show #t)
+                                            (unless (or d? i?)
+                                              
+                                              ; turn the cursor back on before escaping
+                                              (begin-busy-cursor)
+                                              
+                                              (raise (make-exn:cancelled
+                                                      "Package cancelled"
+                                                      (current-continuation-marks))))
+                                            i?))]
+                                    [f (if install?
+                                           (make-temporary-file "tmp~a.plt")
+                                           (put-file (format "Save downloaded file~a as"
+                                                             (if size
+                                                                 (format " (~a bytes)" size)
+                                                                 ""))
+                                                     #f ; should be calling window!
+                                                     #f
+                                                     orig-name))])
+                               (begin-busy-cursor) ; turn the cursor back on
+                               (when f
+                                 (let* ([d (make-object dialog% "Downloading" top-level-window)]
+                                        [message (make-object message% "Downloading file..." d)]
+                                        [gauge (if size
+                                                   (make-object gauge% #f 100 d)
+                                                   #f)]
+                                        [exn #f]
+                                        ; Semaphores to avoid race conditions:
+                                        [wait-to-start (make-semaphore 0)]
+                                        [wait-to-break (make-semaphore 0)]
+                                        ; Thread to perform the download:
+                                        [t (thread
+                                            (lambda ()
+                                              (semaphore-wait wait-to-start)
+                                              (with-handlers ([void
+                                                               (lambda (x)
+                                                                 (when (not (exn:misc:user-break? x))
+                                                                   (set! exn x)))]
+                                                              [void ; throw away break exceptions
+                                                               void])
+                                                (semaphore-post wait-to-break)
+                                                (with-output-to-file f
+                                                  (lambda ()
+                                                    (let loop ([total 0])
+                                                      (when gauge
+                                                        (send gauge set-value 
+                                                              (inexact->exact
+                                                               (floor (* 100 (/ total size))))))
+                                                      (let ([s (read-string 1024 p)])
+                                                        (unless (eof-object? s)
+                                                          (display s)
+                                                          (loop (+ total (string-length s)))))))
+                                                  'binary 'truncate))
+                                              (send d show #f)))])
+                                   (send d center)
+                                   (make-object button% "&Stop" d (lambda (b e)
+                                                                    (semaphore-wait wait-to-break)
+                                                                    (set! f #f)
+                                                                    (send d show #f)
+                                                                    (break-thread t)))
+                                   ; Let thread run only after the dialog is shown
+                                   (queue-callback (lambda () (semaphore-post wait-to-start)))
+                                   (send d show #t)
+                                   (when exn (raise exn)))
+                                 (when (and f install?)
+                                   (run-installer f)
+                                   (delete-file f)))
+                               (raise
+                                (if f
+                                    (make-exn:file-saved-instead
+                                     (if install?
+                                         "The package was installed."
+                                         "The downloaded file was saved.")
+                                     (current-continuation-marks)
+                                     f)
+                                    (make-exn:cancelled "The download was cancelled."
+                                                        (current-continuation-marks)))))]
+                            [(or (port? url)
+                                 (and (url? url)
+                                      (regexp-match "[.]html?$" (url-path url)))
+                                 html?)
+                             ; HTML
+                             (let* ([d #f]
+                                    [e #f]
+                                    [e-text ""]
                                     [exn #f]
+                                    [done? #f]
                                     ; Semaphores to avoid race conditions:
-                                    [wait-to-start (make-semaphore 0)]
+                                    [wait-to-continue (make-semaphore 0)]
                                     [wait-to-break (make-semaphore 0)]
+                                    [wait-to-show (make-semaphore 1)]
+                                    [directory
+                                     (or (if (and (url? url)
+                                                  (string=? "file" (url-scheme url)))
+                                             (let ([path (url-path url)])
+                                               (let-values ([(base name dir?) (split-path path)])
+                                                 (if (string? base)
+                                                     base
+                                                     #f)))
+                                             #f)
+                                         (current-load-relative-directory))]
                                     ; Thread to perform the download:
-                                    [t (thread
-                                        (lambda ()
-                                          (semaphore-wait wait-to-start)
-                                          (with-handlers ([void
-                                                           (lambda (x)
-                                                             (when (not (exn:misc:user-break? x))
-                                                               (set! exn x)))]
-                                                          [void ; throw away break exceptions
-                                                           void])
-                                            (semaphore-post wait-to-break)
-                                            (with-output-to-file f
-                                              (lambda ()
-                                                (let loop ([total 0])
-                                                  (when gauge
-                                                    (send gauge set-value 
-                                                          (inexact->exact
-                                                           (floor (* 100 (/ total size))))))
-                                                  (let ([s (read-string 1024 p)])
-                                                    (unless (eof-object? s)
-                                                      (display s)
-                                                      (loop (+ total (string-length s)))))))
-                                              'binary 'truncate))
-                                          (send d show #f)))])
-                               (send d center)
-                               (make-object button% "&Stop" d (lambda (b e)
-                                                                (semaphore-wait wait-to-break)
-                                                                (set! f #f)
-                                                                (send d show #f)
-                                                                (break-thread t)))
-                               ; Let thread run only after the dialog is shown
-                               (queue-callback (lambda () (semaphore-post wait-to-start)))
-                               (send d show #t)
-                               (when exn (raise exn)))
-                             (when (and f install?)
-                               (run-installer f)
-                               (delete-file f)))
-                           (raise
-                            (if f
-                                (make-exn:file-saved-instead
-                                 (if install?
-                                     "The package was installed."
-                                     "The downloaded file was saved.")
-                                 (current-continuation-marks)
-                                 f)
-                                (make-exn:cancelled "The download was cancelled."
-                                                    (current-continuation-marks)))))]
-                        [(or (port? url)
-                             (and (url? url)
-                                  (regexp-match "[.]html?$" (url-path url)))
-                             html?)
-                         ; HTML
-                         (let* ([d #f]
-                                [e #f]
-                                [e-text ""]
-                                [exn #f]
-                                [done? #f]
-                                ; Semaphores to avoid race conditions:
-                                [wait-to-continue (make-semaphore 0)]
-                                [wait-to-break (make-semaphore 0)]
-                                [wait-to-show (make-semaphore 1)]
-                                [directory
-                                 (or (if (and (url? url)
-                                              (string=? "file" (url-scheme url)))
-                                         (let ([path (url-path url)])
-                                           (let-values ([(base name dir?) (split-path path)])
-                                             (if (string? base)
-                                                 base
-                                                 #f)))
-                                         #f)
-                                     (current-load-relative-directory))]
-                                ; Thread to perform the download:
-                                [t (parameterize ([break-enabled #f])
-                                     (thread
-                                      (lambda ()
-                                        (with-handlers ([void (lambda (x) (set! exn x))])
-                                          (parameterize ([break-enabled #t])
-                                            (semaphore-post wait-to-break)
-                                            (parameterize ([html-status-handler
-                                                            (lambda (s) 
-                                                              (set! e-text s)
-                                                              (semaphore-wait wait-to-show)
-                                                              (when e
-                                                                (send e erase)
-                                                                (send e insert s))
-                                                              (semaphore-post wait-to-show))]
-                                                           [current-load-relative-directory directory])
-                                              (html-convert p this))))
-                                        (set! done? #t)
-                                        (semaphore-wait wait-to-show)
-                                        (when d
-                                          (send d show #f))
-                                        (semaphore-post wait-to-show)
-                                        (semaphore-post wait-to-continue))))]
-                                [make-dialog
-                                 (lambda ()
-                                   (semaphore-wait wait-to-show)
-                                   (unless done?
-                                     (set! d (make-object dialog% "Getting Page" top-level-window 400))
-                                     (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
-                                       (set! e (make-object text%))
-                                       (send e insert e-text)
-                                       (send e auto-wrap #t)
-                                       (send c set-editor e)
-                                       (send c set-line-count 3)
-                                       (send c enable #f))
-                                     (send (make-object button% "&Stop" d
-                                             (lambda (b e)
-                                               (semaphore-wait wait-to-break)
-                                               (semaphore-post wait-to-break)
-                                               (break-thread t)))
-                                           focus)
-                                     (send d center)
-                                     (thread (lambda () (send d show #t)))
-                                     (let loop () (sleep) (unless (send d is-shown?) (loop)))
-                                     (semaphore-post wait-to-show)))])
-                           (thread (lambda ()
-                                     (sleep 1)
-                                     (unless done? (semaphore-post wait-to-continue))))
-                           (semaphore-wait wait-to-continue)
-                           (unless done?
-                             (make-dialog)
-                             (yield wait-to-continue))
-                           (when exn (raise exn)))]
-                        [else
-                         ; Text
-                         (begin-edit-sequence)
-                         (let loop ()
-                           (let ([r (read-line p 'any)])
-                             (unless (eof-object? r)
-                               (insert r)
-                               (insert #\newline)
-                               (loop))))
-                         (change-style (make-object style-delta% 'change-family 'modern)
-                                       0 (last-position))
-                         (set! wrapping-on? #f)
-                         (end-edit-sequence)])))
-		  (lambda ()
-		    (end-edit-sequence)
-		    (end-busy-cursor)
-                    ; (send progress stop)
-		    (set! htmling? #f)
-		    (close-input-port p)))
-                 (set-style-list hyper-style-list)
-                 (set-modified #f)
-                 (auto-wrap wrapping-on?)
-                 (set-autowrap-bitmap #f)
-                 (lock #t))))])
-        
-	(sequence
-	  (apply super-init args)
-	  (add-h-link-style)
-          (reload)))))
-
-  (define hyper-text% (hyper-text-mixin text%))
-
-  (define (hyper-canvas-mixin super%)
-    (class super% args
-      (inherit get-editor set-editor refresh get-parent get-top-level-window)
-
-      (public
-	[get-editor% (lambda () hyper-text%)]
-	[make-editor (lambda (url) (make-object (get-editor%) url (get-top-level-window)))]
-	[current-page
-	 (lambda ()
-	   (let ([e (get-editor)])
-	     (and e 
-		  (let ([sbox (box 0)]
-			[ebox (box 0)])
-		    (send e get-visible-position-range sbox ebox)
-		    (list e (unbox sbox) (unbox ebox))))))]
-	[on-url-click (lambda (k url) (send (get-parent) on-url-click k url))]
-	[goto-url
-	 (lambda (url relative)
-	   (let* ([url (if (or (url? url) (port? url))
-			   url
-			   (if relative
-			       (combine-url/relative 
-				relative
-				url)
-			       (string->url url)))]
-		  [e (make-editor url)]
-		  [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
-	     (when tag-pos
-	       (send e set-position tag-pos))
-	     (unless (and tag-pos (positive? tag-pos))
-	       (send e hide-caret #t))
-	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)
-	     (send (get-parent) update-url-display
+                                    [t (parameterize ([break-enabled #f])
+                                         (thread
+                                          (lambda ()
+                                            (with-handlers ([void (lambda (x) (set! exn x))])
+                                              (parameterize ([break-enabled #t])
+                                                (semaphore-post wait-to-break)
+                                                (parameterize ([html-status-handler
+                                                                (lambda (s) 
+                                                                  (set! e-text s)
+                                                                  (semaphore-wait wait-to-show)
+                                                                  (when e
+                                                                    (send e erase)
+                                                                    (send e insert s))
+                                                                  (semaphore-post wait-to-show))]
+                                                               [current-load-relative-directory directory])
+                                                  (html-convert p this))))
+                                            (set! done? #t)
+                                            (semaphore-wait wait-to-show)
+                                            (when d
+                                              (send d show #f))
+                                            (semaphore-post wait-to-show)
+                                            (semaphore-post wait-to-continue))))]
+                                    [make-dialog
+                                     (lambda ()
+                                       (semaphore-wait wait-to-show)
+                                       (unless done?
+                                         (set! d (make-object dialog% "Getting Page" top-level-window 400))
+                                         (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
+                                           (set! e (make-object text%))
+                                           (send e insert e-text)
+                                           (send e auto-wrap #t)
+                                           (send c set-editor e)
+                                           (send c set-line-count 3)
+                                           (send c enable #f))
+                                         (send (make-object button% "&Stop" d
+                                                 (lambda (b e)
+                                                   (semaphore-wait wait-to-break)
+                                                   (semaphore-post wait-to-break)
+                                                   (break-thread t)))
+                                               focus)
+                                         (send d center)
+                                         (thread (lambda () (send d show #t)))
+                                         (let loop () (sleep) (unless (send d is-shown?) (loop)))
+                                         (semaphore-post wait-to-show)))])
+                               (thread (lambda ()
+                                         (sleep 1)
+                                         (unless done? (semaphore-post wait-to-continue))))
+                               (semaphore-wait wait-to-continue)
+                               (unless done?
+                                 (make-dialog)
+                                 (yield wait-to-continue))
+                               (when exn (raise exn)))]
+                            [else
+                             ; Text
+                             (begin-edit-sequence)
+                             (let loop ()
+                               (let ([r (read-line p 'any)])
+                                 (unless (eof-object? r)
+                                   (insert r)
+                                   (insert #\newline)
+                                   (loop))))
+                             (change-style (make-object style-delta% 'change-family 'modern)
+                                           0 (last-position))
+                             (set! wrapping-on? #f)
+                             (end-edit-sequence)])))
+                      (lambda ()
+                        (end-edit-sequence)
+                        (end-busy-cursor)
+                        ; (send progress stop)
+                        (set! htmling? #f)
+                        (close-input-port p)))
+                     (set-style-list hyper-style-list)
+                     (set-modified #f)
+                     (auto-wrap wrapping-on?)
+                     (set-autowrap-bitmap #f)
+                     (lock #t))))])
+            
+            (sequence
+              (apply super-init args)
+              (add-h-link-style)
+              (reload)))))
+      
+      (define hyper-text% (hyper-text-mixin text%))
+      
+      (define (hyper-canvas-mixin super%)
+        (class super% args
+          (inherit get-editor set-editor refresh get-parent get-top-level-window)
+          
+          (public
+            [get-editor% (lambda () hyper-text%)]
+            [make-editor (lambda (url) (make-object (get-editor%) url (get-top-level-window)))]
+            [current-page
+             (lambda ()
+               (let ([e (get-editor)])
+                 (and e 
+                      (let ([sbox (box 0)]
+                            [ebox (box 0)])
+                        (send e get-visible-position-range sbox ebox)
+                        (list e (unbox sbox) (unbox ebox))))))]
+            [on-url-click (lambda (k url) (send (get-parent) on-url-click k url))]
+            [goto-url
+             (lambda (url relative)
+               (let* ([url (if (or (url? url) (port? url))
+                               url
+                               (if relative
+                                   (combine-url/relative 
+                                    relative
+                                    url)
+                                   (string->url url)))]
+                      [e (make-editor url)]
+                      [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+                 (when tag-pos
+                   (send e set-position tag-pos))
+                 (unless (and tag-pos (positive? tag-pos))
+                   (send e hide-caret #t))
+                 (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+                 (send (get-parent) update-url-display
 		       (format "~s"
 			       (if (url? url)
 				   (list (url->string url) (url-fragment url))
 				   url)))))]
-	[set-page
-	 (lambda (page notify?)
-           (let ([e (car page)]
-                 [spos (cadr page)]
-                 [epos (caddr page)]
-                 [curr (get-editor)]
-                 [current (current-page)])
-             ; Pre-size the editor to avoid visible reflow
-             (when curr
-               (let ([wbox (box 0)])
-                 (send curr get-view-size wbox (box 0))
-                 (when (send e auto-wrap)
-                   (send e set-max-width (unbox wbox)))))
-             (send e begin-edit-sequence)
-             (when notify?
-               (send (get-parent) leaving-page current (list e 0 0)))
-             (set-editor e (and current (zero? (cadr current)) (zero? spos)))
-             (send e scroll-to-position spos #f epos 'start)
-             (send e end-edit-sequence)
-             (when (or (positive? spos) (not current) (positive? (cadr current)))
-               (refresh))))])
-      (sequence
-	(apply super-init args))))
-
-  (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
-
-  (define info-canvas%
-    (class canvas% (parent)
-      (inherit min-client-height get-dc stretchable-height
-	       enable refresh show)
-      (private
-	[text ""])
-      (override
-	[on-paint
-	 (lambda ()
-	   (let ([dc (get-dc)])
-	     (send dc clear)
-	     (send dc draw-text text 4 2)))])
-      (public
-	[erase-info (lambda ()
-		      (unless (string=? text "")
-			(set! text "")
-			(let ([dc (get-dc)])
-			  (send dc clear))))]
-	[set-info (lambda (t)
-		    (set! text t)
-		    (if (string=? t "")
-			(show #f)
-			(let ([dc (get-dc)])
-			  (send dc clear)
-			  (show #t)
-			  (refresh))))])
-      (sequence 
-	(super-init parent)
-	(stretchable-height #f)
-	(enable #f)
-	(show #f)
-	(let ([font (make-object font% 
-				 (send (send parent get-label-font) get-point-size) 
-				 'default 'normal 'normal)]
-	      [dc (get-dc)])
-	  (send dc set-font font)
-	  (send dc set-text-foreground (make-object color% "FOREST GREEN"))
-	  (let-values ([(w h d a) (send dc get-text-extent "X" font)])
-	    (min-client-height (+ 4 (inexact->exact (ceiling h)))))))))
-
-  (define (hyper-panel-mixin super%)
-    (class super% (info-line? . args)
-      (inherit reflow-container)
-      (sequence (apply super-init args))
-
-      (private
-	[url-message ;; doesn't work for forwards and backwards in the history
-	 (and #f
-	      (directory-exists? (build-path (collection-path "mzlib")
-					     "CVS"))
-	      (make-object message% "" this))])
-      (sequence
-	(when url-message
-	  (send url-message stretchable-width #t)))
-      (public
-	[update-url-display
-	 (lambda (str)
-	   (when url-message
-	     (send url-message set-label str)))])
-
-
-      (private
-	[clear-info (lambda () 
-		      (when info 
-			(send info erase-info)))]
-	[update-info (lambda (page) 
-		       (when (and info page)
-			 (let ([notes (send (page->editor page) get-document-notes)])
-			   (send info set-info
-				 (filter-notes notes (send (page->editor page) get-url))))))]
-	[go (lambda (page)
-	      (clear-info)
-	      (send c set-page page #f)
-	      (update-info page)
-	      (update-buttons page)
-	      (on-navigate))])
-      (public
-        [current-page
-         (lambda ()
-           (send c current-page))]
-	[rewind 
-	 (lambda ()
-	   (unless (null? past)
-	     (let ([page (car past)])
-	       (set! future (cons (send c current-page) future))
-	       (set! past (cdr past))
-	       (go page))))]
-	[forward
-	 (lambda ()
-	   (unless (null? future)
-	     (let ([page (car future)])
-	       (set! past (cons (send c current-page) past))
-	       (set! future (cdr future))
-	       (go page))))]
-	[get-canvas% (lambda () hyper-canvas%)]
-	[make-canvas (lambda (f) (make-object (get-canvas%) f))]
-	[make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
-      (private
-	[past null]
-        [future null] 
-        
-        
+            [set-page
+             (lambda (page notify?)
+               (let ([e (car page)]
+                     [spos (cadr page)]
+                     [epos (caddr page)]
+                     [curr (get-editor)]
+                     [current (current-page)])
+                 ; Pre-size the editor to avoid visible reflow
+                 (when curr
+                   (let ([wbox (box 0)])
+                     (send curr get-view-size wbox (box 0))
+                     (when (send e auto-wrap)
+                       (send e set-max-width (unbox wbox)))))
+                 (send e begin-edit-sequence)
+                 (when notify?
+                   (send (get-parent) leaving-page current (list e 0 0)))
+                 (set-editor e (and current (zero? (cadr current)) (zero? spos)))
+                 (send e scroll-to-position spos #f epos 'start)
+                 (send e end-edit-sequence)
+                 (when (or (positive? spos) (not current) (positive? (cadr current)))
+                   (refresh))))])
+          (sequence
+            (apply super-init args))))
+      
+      (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
+      
+      (define info-canvas%
+        (class canvas% (parent)
+          (inherit min-client-height get-dc stretchable-height
+                   enable refresh show)
+          (private
+            [text ""])
+          (override
+            [on-paint
+             (lambda ()
+               (let ([dc (get-dc)])
+                 (send dc clear)
+                 (send dc draw-text text 4 2)))])
+          (public
+            [erase-info (lambda ()
+                          (unless (string=? text "")
+                            (set! text "")
+                            (let ([dc (get-dc)])
+                              (send dc clear))))]
+            [set-info (lambda (t)
+                        (set! text t)
+                        (if (string=? t "")
+                            (show #f)
+                            (let ([dc (get-dc)])
+                              (send dc clear)
+                              (show #t)
+                              (refresh))))])
+          (sequence 
+            (super-init parent)
+            (stretchable-height #f)
+            (enable #f)
+            (show #f)
+            (let ([font (make-object font% 
+                          (send (send parent get-label-font) get-point-size) 
+                          'default 'normal 'normal)]
+                  [dc (get-dc)])
+              (send dc set-font font)
+              (send dc set-text-foreground (make-object color% "FOREST GREEN"))
+              (let-values ([(w h d a) (send dc get-text-extent "X" font)])
+                (min-client-height (+ 4 (inexact->exact (ceiling h)))))))))
+      
+      (define (hyper-panel-mixin super%)
+        (class super% (info-line? . args)
+          (inherit reflow-container)
+          (sequence (apply super-init args))
+          
+          (private
+            [url-message ;; doesn't work for forwards and backwards in the history
+             (and #f
+                  (directory-exists? (build-path (collection-path "mzlib")
+                                                 "CVS"))
+                  (make-object message% "" this))])
+          (sequence
+            (when url-message
+              (send url-message stretchable-width #t)))
+          (public
+            [update-url-display
+             (lambda (str)
+               (when url-message
+                 (send url-message set-label str)))])
+          
+          
+          (private
+            [clear-info (lambda () 
+                          (when info 
+                            (send info erase-info)))]
+            [update-info (lambda (page) 
+                           (when (and info page)
+                             (let ([notes (send (page->editor page) get-document-notes)])
+                               (send info set-info
+                                     (filter-notes notes (send (page->editor page) get-url))))))]
+            [go (lambda (page)
+                  (clear-info)
+                  (send c set-page page #f)
+                  (update-info page)
+                  (update-buttons page)
+                  (on-navigate))])
+          (public
+            [current-page
+             (lambda ()
+               (send c current-page))]
+            [rewind 
+             (lambda ()
+               (unless (null? past)
+                 (let ([page (car past)])
+                   (set! future (cons (send c current-page) future))
+                   (set! past (cdr past))
+                   (go page))))]
+            [forward
+             (lambda ()
+               (unless (null? future)
+                 (let ([page (car future)])
+                   (set! past (cons (send c current-page) past))
+                   (set! future (cdr future))
+                   (go page))))]
+            [get-canvas% (lambda () hyper-canvas%)]
+            [make-canvas (lambda (f) (make-object (get-canvas%) f))]
+            [make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
+          (private
+            [past null]
+            [future null] 
+            
+            
         ;; (union #f                             -- no init page
         ;;         string                        -- delayed init page
         ;;         url                           -- delayed init page
         ;;         (list editor number numer))   -- forced init page
-        [init-page #f]
-	
-        
-        [hp (make-control-bar-panel this)]
-	[control-bar? (is-a? hp area-container<%>)]
-	[back (and control-bar?
-		   (make-object button% "< Rewind" hp
-				(lambda (b ev) 
-				  (rewind))))]
-	[forw (and control-bar?
-		   (make-object button% "Forward >" hp
-				(lambda (b ev) 
-				  (forward))))]
-	
-	[home-callback
-         (lambda () 
-           (cond
-             [(not init-page) (void)]
-             [(or (url? init-page) (string? init-page))
-              
-              ; handle stopping when loading the home page
-              (with-handlers ([exn:misc:user-break? 
-                               (lambda (x) (void))])
-                (send c goto-url init-page #f)
-                (set! init-page (send c current-page))
-                (update-buttons init-page))]
-             [else 
-              (send c set-page init-page #t)]))]
-        [home (and control-bar?
-		   (make-object button% "Home" hp
-				(lambda (b ev)
-                                  (home-callback))))]
-	[update-buttons
-         (lambda (page)
-           (unless init-page
-             (set! init-page page))
-           (when control-bar?
-             (send back enable (pair? past))
-             (send forw enable (pair? future))
-             
-             (send home enable (and init-page
-                                    (or (string? init-page)
-                                        (url? init-page)
-                                        (not (same-page? init-page page)))))
-             
-             (send choice clear)
-             (for-each
-              (lambda (p)
-                (send choice append 
-                      (let ([s (send (car p) get-title)])
-                        (or s "Untitled"))))
-              (append (reverse future)
-                      (if page (list page) null)
-                      past))
-             (let ([c (send choice get-number)])
-               (unless (zero? c)
-                 (send choice set-selection (length future))))))]
-	[choice (and control-bar?
-		     (make-object choice% #f null hp
-				  (lambda (ch e)
-				    (let* ([l (append (reverse past)
-						      (list (send c current-page))
-						      future)]
-					   [pos (- (send choice get-number) (send choice get-selection) 1)])
-				      (let loop ([l l][pre null][pos pos])
-					(cond
-					 [(zero? pos)
-					  (set! past pre)
-					  (set! future (cdr l))
-					  (go (car l))]
-					 [else (loop (cdr l)
-						     (cons (car l) pre)
-						     (sub1 pos))]))))))]
-	; [progress (make-object scrolling-canvas% bitmaps hp)]
-	[info (and info-line?
-		   (make-object info-canvas% this))]
-	[c (make-canvas this)])
-      (public
-
+            [init-page #f]
+            
+            
+            [hp (make-control-bar-panel this)]
+            [control-bar? (is-a? hp area-container<%>)]
+            [back (and control-bar?
+                       (make-object button% "< Rewind" hp
+                         (lambda (b ev) 
+                           (rewind))))]
+            [forw (and control-bar?
+                       (make-object button% "Forward >" hp
+                         (lambda (b ev) 
+                           (forward))))]
+            
+            [home-callback
+             (lambda () 
+               (cond
+                 [(not init-page) (void)]
+                 [(or (url? init-page) (string? init-page))
+                  
+                  ; handle stopping when loading the home page
+                  (with-handlers ([exn:misc:user-break? 
+                                   (lambda (x) (void))])
+                    (send c goto-url init-page #f)
+                    (set! init-page (send c current-page))
+                    (update-buttons init-page))]
+                 [else 
+                  (send c set-page init-page #t)]))]
+            [home (and control-bar?
+                       (make-object button% "Home" hp
+                         (lambda (b ev)
+                           (home-callback))))]
+            [update-buttons
+             (lambda (page)
+               (unless init-page
+                 (set! init-page page))
+               (when control-bar?
+                 (send back enable (pair? past))
+                 (send forw enable (pair? future))
+                 
+                 (send home enable (and init-page
+                                        (or (string? init-page)
+                                            (url? init-page)
+                                            (not (same-page? init-page page)))))
+                 
+                 (send choice clear)
+                 (for-each
+                  (lambda (p)
+                    (send choice append 
+                          (let ([s (send (car p) get-title)])
+                            (or s "Untitled"))))
+                  (append (reverse future)
+                          (if page (list page) null)
+                          past))
+                 (let ([c (send choice get-number)])
+                   (unless (zero? c)
+                     (send choice set-selection (length future))))))]
+            [choice (and control-bar?
+                         (make-object choice% #f null hp
+                           (lambda (ch e)
+                             (let* ([l (append (reverse past)
+                                               (list (send c current-page))
+                                               future)]
+                                    [pos (- (send choice get-number) (send choice get-selection) 1)])
+                               (let loop ([l l][pre null][pos pos])
+                                 (cond
+                                   [(zero? pos)
+                                    (set! past pre)
+                                    (set! future (cdr l))
+                                    (go (car l))]
+                                   [else (loop (cdr l)
+                                               (cons (car l) pre)
+                                               (sub1 pos))]))))))]
+            ; [progress (make-object scrolling-canvas% bitmaps hp)]
+            [info (and info-line?
+                       (make-object info-canvas% this))]
+            [c (make-canvas this)])
+          (public
+            
         ;; set-init-page : (union string url) -> void
-        [set-init-page
-         (lambda (p)
-           (set! init-page p))]
-        [goto-init-page
-         (lambda ()
-           (home-callback))]
-	
-        ; [get-progress (lambda () progress)]
-	[on-navigate void]
-	[filter-notes (lambda (l) (apply string-append l))]
-	[get-canvas (lambda () c)]
-	[on-url-click (lambda (k url) (k url))]
-
-        [reload
-         (lambda ()
-           (let ([c (get-canvas)])
-             (and c 
-                  (let ([e (send c get-editor)])
-                    (and e
-                         (send e reload))))))]
-
-	[leaving-page (lambda (page new-page)
-			(set! future null)
-			(when page
-			  (set! past (cons page past)))
-			(when (> (length past) history-limit)
-			  (set! past
-				(let loop ([l past])
-				  (if (null? (cdr l))
-				      null
-				      (cons (car l) (loop (cdr l)))))))
-			(clear-info)
-			(update-buttons new-page)
-			(update-info new-page))])
-      (sequence
-	(when control-bar?
-	  (send choice stretchable-width #t)
-	  (send hp stretchable-height #f))
-	(update-buttons #f))))
-
-  (define hyper-panel% (hyper-panel-mixin vertical-panel%))
-
-  (define (hyper-frame-mixin super%)
-    (class super% (start-url . args)
-      (private
-        [p #f])
-      (public
-	[get-hyper-panel% (lambda () hyper-panel%)]
-        [get-hyper-panel (lambda () p)])
-      (inherit show)
-      (sequence 
-	(apply super-init args)
-	(set! p (make-object (get-hyper-panel%) #f this))
-        (show #t)
-        (send (send p get-canvas) goto-url start-url #f))))
-
-  (define hyper-frame% (hyper-frame-mixin frame%))
-
-  (define (editor->page e) (list e 0 0))
-  (define (page->editor e) (car e))
-
-  (define (same-page? a b)
-    (eq? (car a) (car b)))
-
-  (define (open-url file)
-    (make-object hyper-frame% file "Browser" #f 500 450)))
+            [set-init-page
+             (lambda (p)
+               (set! init-page p))]
+            [goto-init-page
+             (lambda ()
+               (home-callback))]
+            
+            ; [get-progress (lambda () progress)]
+            [on-navigate void]
+            [filter-notes (lambda (l) (apply string-append l))]
+            [get-canvas (lambda () c)]
+            [on-url-click (lambda (k url) (k url))]
+            
+            [reload
+             (lambda ()
+               (let ([c (get-canvas)])
+                 (and c 
+                      (let ([e (send c get-editor)])
+                        (and e
+                             (send e reload))))))]
+            
+            [leaving-page (lambda (page new-page)
+                            (set! future null)
+                            (when page
+                              (set! past (cons page past)))
+                            (when (> (length past) history-limit)
+                              (set! past
+                                    (let loop ([l past])
+                                      (if (null? (cdr l))
+                                          null
+                                          (cons (car l) (loop (cdr l)))))))
+                            (clear-info)
+                            (update-buttons new-page)
+                            (update-info new-page))])
+          (sequence
+            (when control-bar?
+              (send choice stretchable-width #t)
+              (send hp stretchable-height #f))
+            (update-buttons #f))))
+      
+      (define hyper-panel% (hyper-panel-mixin vertical-panel%))
+      
+      (define (hyper-frame-mixin super%)
+        (class super% (start-url . args)
+          (private
+            [p #f])
+          (public
+            [get-hyper-panel% (lambda () hyper-panel%)]
+            [get-hyper-panel (lambda () p)])
+          (inherit show)
+          (sequence 
+            (apply super-init args)
+            (set! p (make-object (get-hyper-panel%) #f this))
+            (show #t)
+            (send (send p get-canvas) goto-url start-url #f))))
+      
+      (define hyper-frame% (hyper-frame-mixin frame%))
+      
+      (define (editor->page e) (list e 0 0))
+      (define (page->editor e) (car e))
+      
+      (define (same-page? a b)
+        (eq? (car a) (car b)))
+      
+      (define (open-url file)
+        (make-object hyper-frame% file "Browser" #f 500 450)))))

@@ -1,8 +1,14 @@
 (module sig mzscheme
   (require (lib "unitsig.ss"))
   
-  (provide relative-btree^ bullet-snip^)
+  (provide relative-btree^
+           bullet^
+           browser:html^)
 
+  (define-signature browser:html^
+    (html-convert
+     html-status-handler))
+  
   (define-signature bullet-snip^
     (bullet-snip%
      bullet-size
