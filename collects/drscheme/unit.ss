@@ -12,64 +12,64 @@
     
     (mred:debug:printf 'invoke "drscheme:unit@")
 
-    (define-values (execute-bitmap help-bitmap save-bitmap break-bitmap)
+    (define make-bitmap
       (let* ([font (send wx:the-font-list find-or-create-font
 			 12
-			 wx:const-default
+			 wx:const-system
 			 wx:const-normal
 			 wx:const-normal)]
 	     [outside-margin 2]
-	     [middle-margin 3]
-	     [make-bitmap
-	      (lambda (filename text)
-		(let* ([img-bitmap
-			(make-object wx:bitmap% filename wx:const-bitmap-type-bmp)]
-		       [img-width (send img-bitmap get-width)]
-		       [img-height (send img-bitmap get-height)]
-		       [img-memory-dc (make-object wx:memory-dc%)]
-		       [width (box 0.)]
-		       [height (box 0.)]
-		       [descent (box 0.)]
-		       [leading (box 0.)])
-		  (send img-memory-dc select-object img-bitmap)
-		  (send img-memory-dc get-text-extent text width height descent leading font)
-		  (let* ([new-width (+ outside-margin
-				       img-width
-				       middle-margin
-				       (unbox width)
-				       outside-margin)]
-			 [new-height (+ outside-margin
-					(max img-height
-					     (+ (unbox height)
-						(unbox descent)
-						(unbox leading)))
-					outside-margin)]
-			 [memory-dc (make-object wx:memory-dc%)]
-			 [new-bitmap (make-object wx:bitmap% new-width new-height -1)])
-		    (send memory-dc select-object new-bitmap)
-		    (send memory-dc set-font font)
-		    (send memory-dc clear) 
-		    (send memory-dc set-font font)
-		    (send memory-dc draw-text text (+ outside-margin img-width middle-margin)
-			  (- (/ new-height 2) (/ (unbox height) 2)))
-		    (send memory-dc blit
-			  outside-margin
-			  (- (/ new-height 2) (/ img-height 2))
-			  img-width img-height
-			  img-memory-dc 0 0 wx:const-copy)
-		    (send memory-dc select-object null)
-		    new-bitmap)))])
-	(apply values (map 
-		       (lambda (filename)
-			 (let* ([capd (string-copy filename)]
-				[path (build-path
-				       mred:plt-home-directory
-				       "icons"
-				       (string-append filename ".bmp"))])
-			   (string-set! capd 0 (char-upcase (string-ref capd 0)))
-			   (make-bitmap path capd)))
-		       (list "execute" "help" "save" "break")))))
+	     [middle-margin 3])
+	(lambda (filename text)
+	  (let* ([img-bitmap
+		  (make-object wx:bitmap% filename wx:const-bitmap-type-bmp)]
+		 [img-width (send img-bitmap get-width)]
+		 [img-height (send img-bitmap get-height)]
+		 [img-memory-dc (make-object wx:memory-dc%)]
+		 [width (box 0.)]
+		 [height (box 0.)]
+		 [descent (box 0.)]
+		 [leading (box 0.)])
+	    (send img-memory-dc select-object img-bitmap)
+	    (send img-memory-dc get-text-extent text width height descent leading font)
+	    (let* ([new-width (+ outside-margin
+				 img-width
+				 middle-margin
+				 (unbox width)
+				 outside-margin)]
+		   [new-height (+ outside-margin
+				  (max img-height
+				       (+ (unbox height)
+					  (unbox descent)
+					  (unbox leading)))
+				  outside-margin)]
+		   [memory-dc (make-object wx:memory-dc%)]
+		   [new-bitmap (make-object wx:bitmap% new-width new-height -1)])
+	      (send memory-dc select-object new-bitmap)
+	      (send memory-dc set-font font)
+	      (send memory-dc clear) 
+	      (send memory-dc set-font font)
+	      (send memory-dc draw-text text (+ outside-margin img-width middle-margin)
+		    (- (/ new-height 2) (/ (unbox height) 2)))
+	      (send memory-dc blit
+		    outside-margin
+		    (- (/ new-height 2) (/ img-height 2))
+		    img-width img-height
+		    img-memory-dc 0 0 wx:const-copy)
+	      (send memory-dc select-object null)
+	      new-bitmap)))))
 
+    (define-values (execute-bitmap help-bitmap save-bitmap break-bitmap)
+      (apply values (map 
+		     (lambda (filename)
+		       (let* ([capd (string-copy filename)]
+			      [path (build-path
+				     mred:plt-home-directory
+				     "icons"
+				     (string-append filename ".bmp"))])
+			 (string-set! capd 0 (char-upcase (string-ref capd 0)))
+			 (make-bitmap path capd)))
+		     (list "execute" "help" "save" "break"))))
 
     (define interactions-canvas%
       (class-asi mred:console-canvas% ; to match rep-new.ss, inherit from wrapping-canvas%
