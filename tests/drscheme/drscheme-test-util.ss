@@ -4,6 +4,14 @@
 
 ;;; Authors: Robby Findler, Paul Steckler
 
+;; -> wx:eventspace
+;; returns the eventspace used by the program in the current drscheme window
+(define (get-user-eventspace)
+  ((in-parameterization
+    (ivar (ivar (wait-for-drscheme-frame) interactions-edit)
+	  user-param)
+    wx:current-eventspace)))
+
 (define (test-util-error fmt . args)
   (raise (make-exn (apply fmt args) ((debug-info-handler)))))
 
@@ -25,10 +33,8 @@
 		  (if (and active
 			   (is-a? active drscheme:export:unit:frame%))
 		      active
-		      #f)))]
-	 [result (pred)])
-    (if result
-	result
+		      #f)))])
+    (or (pred)
 	(begin
 	  (printf "Select DrScheme frame~n")
 	  (poll-until pred)))))

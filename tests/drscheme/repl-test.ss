@@ -126,7 +126,7 @@
 	     (vector 40 46))
 	    (vector
 	     "(define-macro m 1)"
-	     "0.0-1.17: Expander is not a procedure"
+	     "0.0-0.17: Expander is not a procedure"
 	     #t
 	     "Expander is not a procedure"
 	     (vector 0 18))
@@ -192,12 +192,7 @@
 		      [answer-execute (vector-ref in-vector 3)]
 		      [execute-location (vector-ref in-vector 4)])
 		 
-		 (mred:test:new-window definitions-canvas)
-		 (mred:test:menu-select "Edit" "Select All")
-		 (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
-						   "Clear"
-						   "Delete"))
-		 
+		 (clear-definitions drscheme-frame)
 		 ; load contents of test-file into the REPL, recording
 		 ; the start and end positions of the text
 		 
@@ -276,7 +271,7 @@
 
 	  [run-test-in-language-level
 	   (lambda (level)
-	     (set-language-level! "MrEd" drscheme-frame)
+	     (set-language-level! level drscheme-frame)
 	     (mred:test:new-window definitions-canvas)
 	     (mred:test:menu-select "Edit" "Select All")
 	     (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
@@ -285,5 +280,5 @@
 	     (do-execute)
 	     (let/ec escape (for-each (run-test (get-int-pos) escape) test-data)))])
 
-  (run-test-in-language-level "MrEd")
-  (run-test-in-language-level "Quasi-R4RS"))
+  ;(run-test-in-language-level "MrEd")
+  (run-test-in-language-level "R4RS+"))
