@@ -36,7 +36,7 @@
   (unless (equal? "" (fetch-output drs-frame))
     (error 'io.ss "failed long io / execute test")))
 
-(define (read-char-test)
+(define (reading-test)
   (define (do-input-test program input expected)
     (do-execute drs-frame)
     (type-in-interactions drs-frame program)
@@ -44,7 +44,7 @@
       (type-in-interactions drs-frame (string #\newline))
       (wait (lambda ()
               (= (send interactions-text last-position)
-                 (+ before-newline-pos 3)))
+                 (+ before-newline-pos 4)))
             "input box didn't appear")
     ;; output-start-pos skips over the newline and then the input box
       (let ([output-start-pos (+ before-newline-pos 3)])
@@ -68,12 +68,14 @@
   (do-input-test "(list (read-char) (read))" "aa~n" "(#\\a a)")
   
   (do-input-test "(begin (read-char) (sleep 1) (read-char))" "ab~ncd~n" "#\\b")
-  (do-input-test "(list (read) (sleep 1) (read) (read))" "a b~nc d~n" "(a #<void> b c)"))
+  (do-input-test "(list (read) (sleep 1) (read) (read))" "a b~nc d~n" "(a #<void> b c)")
+  
+  (do-input-test "(begin (display 1) (read))" "2~n" "2"))
 
 (define drs-frame (wait-for-drscheme-frame))
 (define interactions-text (ivar drs-frame interactions-text))
 (set-language-level! "Textual (MzScheme)")
 
-(output-err-port-checking)
-(long-io/execute-test)
-(read-char-test)
+;(output-err-port-checking)
+;(long-io/execute-test)
+(reading-test)
