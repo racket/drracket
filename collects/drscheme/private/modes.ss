@@ -34,10 +34,14 @@
          (new scheme:text-mode%)
          (lambda (text prompt-position)
            (scheme-paren:balanced? text prompt-position (send text last-position)))
-         (lambda (x) #t))
+         (lambda (x) 
+	   (printf "scheme predicate called\n")
+	   #t))
         
         (add-mode 
          (string-constant text-mode)
          #f
          (lambda (text prompt-position) #t)
-         (lambda (x) (and x (regexp-match #rx"\\.txt$" x))))))))
+         (lambda (x)
+	   (printf "txt predicate called\n")
+	   (and x (regexp-match #rx"\\.txt$" x))))))))
