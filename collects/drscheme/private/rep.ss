@@ -249,8 +249,6 @@ TODO
 
       (define-struct sexp (left right prompt))
       
-      (define newline-string "\n")
-      
       (define console-max-save-previous-exprs 30)
       (let* ([list-of? (lambda (p?)
                          (lambda (l)
@@ -718,7 +716,7 @@ TODO
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-          (define current-input-text% (text:ports-mixin text:basic%))
+          (define current-input-text% (text:ports-mixin text:standard-style-list%))
           
           (define current-input-text #f)
           (define current-input-port-args #f)
@@ -761,7 +759,11 @@ TODO
                     (for-each (lambda (canvas) (send canvas add-wide-snip es))
                               canvases))
                   (lock #f)
+                  (unless (= (get-insertion-point)
+                             (paragraph-start-position (position-paragraph (get-insertion-point))))
+                    (insert-between "\n"))
                   (insert-between es)
+                  (insert-between "\n")
                   (set-insertion-point (last-position))
                   (set-unread-start-point (last-position))
                   (set-caret-owner es 'immediate)

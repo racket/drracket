@@ -422,7 +422,7 @@ profile todo:
       ;;                         void
       (define (show-backtrace-window error-text dis)
         (reset-backtrace-window)
-        (letrec ([text (make-object text:hide-caret/selection%)]
+        (letrec ([text (make-object (text:wide-snip-mixin text:hide-caret/selection%))]
                  [mf-bday-note (when (mf-bday?)
                                  (instantiate message% ()
                                    (label (string-constant happy-birthday-matthias))
