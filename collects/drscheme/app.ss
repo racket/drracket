@@ -117,7 +117,7 @@
 		 (insert "Based on:")
 		 (insert #\newline)
 		 (insert "  ")
-		 (insert mred:copyright-string)
+		 (insert (mred:copyright-string))
 		 (insert #\newline)
 		 (insert (mred:credits-proc "  "))
 		 (lock #t))
