@@ -21,8 +21,8 @@ Version 102:
   1461: Kill menu problems
   1460: Help Desk has empty preferences
   1459: search menu items work on empty search text
-  1455: project windows never leave `Windows' menu
   1456: teachpacks don't add
+  1455: project windows never leave `Windows' menu
   1428: setup -c deletes files for all platforms
   1424: long (list ...) displays don't display correctly
   1405: memory usage box should be read only
