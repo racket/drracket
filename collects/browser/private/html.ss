@@ -239,6 +239,9 @@
                                     (substring s (- (string-length s) 2) (string-length s))))))
                       (string->list s))))
       
+      (define re:true (regexp-quote "true" #f))
+      (define (true? s) (regexp-match re:true s))
+
       (define verbatim-tags '(listing xmp plaintext))
       (define preformatted-tags '(pre))
       (define exact-whitespace-tags (append verbatim-tags
@@ -816,13 +819,14 @@
 					    [pos (current-pos)]
                                             [type (let ([t (get-field e 'type)])
                                                     (and t (string->symbol t)))])
-					(let-values ([(cb get-val)
+					(let-values ([(name cb get-val)
 						      (cond
 						       [(eq? tag 'select)
 							(let ([select (make-object option-snip%)])
 							  (set-form-active-select! form select)
 							  (insert select)
-							  (values #f
+							  (values (get-field e 'name)
+								  #f
                                                                   (lambda () (send select get-value))))]
 						       [(and (eq? tag 'input)
                                                              (eq? type 'text))
@@ -838,12 +842,14 @@
                                                             (send text insert val))
                                                           (insert snip)
                                                           (values
+							   (get-field e 'name)
                                                            #f
                                                            (lambda () (send text get-text))))]
                                                        [(and (eq? tag 'input)
                                                              (eq? type 'submit))
                                                         (insert (get-field e 'value))
                                                         (values
+							 #f ; because we leave out this button when it's not pushed
                                                          (lambda ()
                                                            (let ([post-string
                                                                   (apply 
@@ -856,28 +862,25 @@
                                                                                                          "?")))
                                                                               ""))
                                                                         (form-parts form)))])
-                                                             (printf "post-string: ~s~n" post-string)
                                                              (values 
                                                               (form-action form)
-                                                              ;; Remove trailing &, if any:
-                                                              (substring post-string 0 
-                                                                         (max 0 (sub1 (string-length post-string)))))))
+							      (format "~a~a=~a" post-string (get-field e 'name) (protect-chars (get-field e 'value))))))
                                                          #f)]
                                                        [(and (eq? tag 'input)
                                                              (eq? type 'checkbox))
-                                                        (let ([cb (make-object checkbox-snip%)])
+                                                        (let ([cb (make-object checkbox-snip% (true? (or (get-field e 'value) "false")))])
                                                           (insert cb)
                                                           (values
+							   (get-field e 'name)
                                                            #f
                                                            (lambda () (if (send cb get-value)
                                                                           "true"
                                                                           "false"))))]
 						       [else
 							(insert unsupported)
-							(values #f #f)])])
+							(values #f #f #f)])])
 					  (set-form-parts! form
-							   (cons (cons (or (get-field e 'name)
-                                                                           (get-field e 'id))
+							   (cons (cons name
 								       (or get-val
 									   (lambda () (get-field e 'value))))
 								 (form-parts form)))
@@ -896,12 +899,15 @@
 				      (let ([pos (current-pos)]
 					    [r (rest)]
                                             [val (get-field e 'value)]
+					    [selected? (true? (or (get-field e 'selected) "false"))]
 					    [end-pos (current-pos)])
 					(let ([str (send a-text get-text pos end-pos)]
 					      [select (form-active-select form)])
 					  (delete pos end-pos)
 					  (when select
-					    (send select add-option str (or val str)))
+					    (send select add-option str (or val str))
+					    (when selected?
+					      (send select set-value val)))
 					  r))]				      
 				     [(tt code samp kbd pre)
 				      (when (memq tag '(pre))

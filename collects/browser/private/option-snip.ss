@@ -23,9 +23,13 @@
       (define w #f)
       (define h #f)
       (define current-option #f)
+      (define look-for-option #f) ; a box when we're looking (in case we're looking for #f)
 
       (define/public (add-option o v)
 	(set! options (append options (list (cons o v))))
+	(when (and look-for-option
+		   (equal? v (unbox look-for-option)))
+	  (set! current-option (cons o v)))
 	(set! w #f)
 	(set! h #f)
 	(let ([a (get-admin)])
@@ -36,6 +40,12 @@
         (with-handlers ([not-break-exn? (lambda (x) #f)])
           (cdr (or current-option
                    (car options)))))
+
+      (define/public (set-value v)
+	(let ([o (ormap (lambda (o) (and (equal? v (cdr o)) o)) options)])
+	  (if o
+	      (set! current-option o)
+	      (set! look-for-option (box v)))))
 
       (override*
 	[get-extent  ; called by an editor to get the snip's size
@@ -156,9 +166,8 @@
                     (if (or (send event button-down?)
                             (and tracking? (send event dragging?))
                             (and tracking? (send event button-up?)))
-                        (if (or #t ;; no grab on mouse events, so skip bbox test for now
-                                (and (<= 0 (- (send event get-x) x))
-                                     (<= 0 (- (send event get-y) y))))
+                        (if (and (<= 0 (- (send event get-x) x))
+				 (<= 0 (- (send event get-y) y)))
                             (when (not hit?)
                               (set! hit? #t)
                               (refresh))

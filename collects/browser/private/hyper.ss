@@ -488,11 +488,6 @@
                      (set-autowrap-bitmap #f)
                      (lock #t)))
 
-                 (define (mk-post post-string)
-                   (if post-string
-                       (list (format "Content-Length: ~a" (+ 2 (string-length post-string))) "" post-string)
-                       null))
-
                  (when url
                    (if (port? url)
                        (read-from-port url empty-header)
@@ -512,18 +507,23 @@
                                              (lambda (x) 
                                                (call/input-url 
                                                 url
-                                                (if post-string post-pure-port get-pure-port)
+                                                (if post-string 
+						    (lambda (u s) (post-pure-port u post-string s))
+						    get-pure-port)
                                                 (lambda (p)
                                                   (stop-busy)
                                                   (read-from-port p empty-header))
-                                                (mk-post post-string)))])
+                                                null))])
                               (call/input-url 
-                               url (if post-string post-impure-port get-impure-port)
+                               url 
+			       (if post-string 
+				   (lambda (u s) (post-impure-port u post-string s))
+				   get-impure-port)
                                (lambda (p)
                                  (let ([headers (purify-port p)])
                                    (stop-busy)
                                    (read-from-port p headers)))
-                               (mk-post post-string))))
+                               null)))
                           stop-busy)))))])
             (sequence
               (apply super-init args)
