@@ -73,10 +73,10 @@
       (define (drscheme-error-value->string-handler x n)
         (let ([port (open-output-string)])
           
-          ;; passing this port here means no snips allowed,
+          ;; using a string port here means no snips allowed,
           ;; even though this string may eventually end up
           ;; displayed in a place where snips are allowed.
-          (print x port)
+          (print port)
           
           (let* ([long-string (get-output-string port)])
             (close-output-port port)
@@ -857,7 +857,7 @@
                 ;; ensure that there is a newline before the snip is inserted
                     (unless (member 'hard-newline
                                     (send (find-snip (last-position) 'before) get-flags))
-                      (insert (string #\newline) (last-position) (last-position) #f))
+                      (insert newline-string (last-position) (last-position) #f))
                     
                     (when starting-at-prompt-mode?
                       (set-prompt-mode #f))
@@ -865,7 +865,7 @@
                     (let ([snip (make-object editor-snip% transparent-text)])
                       (set! transparent-snip snip)
                       (insert snip (last-position) (last-position) #f)
-                      (insert (string #\newline) (last-position) (last-position) #f)
+                      (insert newline-string (last-position) (last-position) #f)
                       (for-each (lambda (c) (send c add-wide-snip snip))
                                 (get-canvases)))
                     (when grab-focus?
@@ -1035,7 +1035,7 @@
                   (add-text text))
                 
                 (when (get-prompt-mode)
-                  (insert (string #\newline) (last-position) (last-position) #f))
+                  (insert newline-string (last-position) (last-position) #f))
                 
                 (let* ([start (if (is-a? text transparent-io-text<%>)
                                   (send text get-insertion-point)
@@ -1106,7 +1106,7 @@
                               (lambda (start end)
                                 (send text change-style output-delta start end))))])
                      (when old-saved-newline?
-                       (gw (string #\newline)))
+                       (gw newline-string))
                      (gw s1))))))
             
 	    ;; this-err-write/exn : (union string snip) (union exn #f) -> void
@@ -1259,10 +1259,16 @@
               (for-each 
                (lambda (v)
                  (unless (void? v)
-                   (print v this-result)
-                   (newline this-result)))
+                   (let* ([ls (current-language-settings)]
+                          [lang (drscheme:language:language-settings-language ls)]
+                          [settings (drscheme:language:language-settings-settings ls)])
+                     (send lang render-value/format
+                           v
+                           settings
+                           this-result
+                           (lambda (x) (this-result-write x))))))
                anss))
-            
+                        
             (define (reset-highlighting) (void))
             
             ;; format-source-loc : syntax -> string
@@ -1302,8 +1308,9 @@
                       port 
                       (cond
                         [(eq? port this-out) (lambda (x) (this-out-write x))]
-                        [(eq? port this-result) (lambda (x) (this-result-write x))]
                         [(eq? port this-err) (lambda (x) (this-err-write x))]
+                        ;; this case should never happen.
+                        [(eq? port this-result) (lambda (x) (this-result-write x))]
                         [else #f]))))
             
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1588,13 +1595,17 @@
 				(semaphore-post wait))))
 			   (semaphore-wait wait)))])
 
+                  (let ([errortrace-name ((current-module-name-resolver) '(lib "errortrace.ss" "errortrace") #f #f)]
+                        [orig-namespace (current-namespace)])
 		  ;; setup standard parameters
-		  (queue-user/wait
-		   (lambda () ; =User=, =No-Breaks=
+                    (queue-user/wait
+                     (lambda () ; =User=, =No-Breaks=
 		     ;; No user code has been evaluated yet, so we're in the clear...
-		     (break-enabled #f)
-		     (set! user-thread (current-thread))
-		     (initialize-parameters)))
+                       (break-enabled #f)
+                       (set! user-thread (current-thread))
+                       (initialize-parameters)
+                       (namespace-attach-module orig-namespace errortrace-name)
+                       (namespace-require '(lib "errortrace.ss" "errortrace")))))
 
 		  ;; initialize the language
 		  (send (drscheme:language:language-settings-language user-language-settings)
