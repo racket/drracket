@@ -35,7 +35,7 @@
     (add-mode
      get-modes
      add-initial-modes
-     (struct mode (name surrogate repl-submit matches-filename matches-language) 
+     (struct mode (name surrogate repl-submit matches-language) 
              -setters
              (- make-mode))))
   

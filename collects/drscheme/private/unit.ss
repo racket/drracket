@@ -418,7 +418,6 @@
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
-                     (send f change-mode-to-match) 
                      (send f update-save-message fn)))]))
             
             (rename [super-after-insert after-insert]
@@ -1321,8 +1320,7 @@
                               (drscheme:modes:get-modes))))))
           
           (define/public (change-mode-to-match)
-            (let* ([filename (send definitions-text get-filename)]
-                   [language-settings (send definitions-text get-next-settings)]
+            (let* ([language-settings (send definitions-text get-next-settings)]
                    [language-name (and language-settings
                                        (send (drscheme:language-configuration:language-settings-language
                                               language-settings)
@@ -1332,8 +1330,7 @@
                   [(null? modes) (error 'change-mode-to-match-filename
                                         "didn't find a matching mode")]
                   [else (let ([mode (car modes)])
-                          (if (or ((drscheme:modes:mode-matches-language mode) language-name)
-                                  ((drscheme:modes:mode-matches-filename mode) filename))
+                          (if ((drscheme:modes:mode-matches-language mode) language-name)
                               (unless (is-current-mode? mode)
                                 (set-current-mode mode))
                               (loop (cdr modes))))]))))
