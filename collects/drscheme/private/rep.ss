@@ -492,24 +492,23 @@
       
       (define arrow-cursor (make-object cursor% 'arrow))
       (define eof-icon-snip%
-        (class100 image-snip% (_rep)
-          (private-field
-           [rep _rep])
+        (class image-snip% 
+          (init-field rep)
+          (rename [super-get-extent get-extent])
+          (define/override (get-extent dc x y w h descent space lspace rspace)
+            (super-get-extent dc x y w h descent space lspace rspace)
+            (when (box? descent) (set-box! descent 7)))
           (rename [super-on-event on-event])
-          (override
-            [on-event
-             (lambda (dc x y editor-x editor-y evt)
-               (cond
-                 [(send evt get-left-down) 
-                  (send rep submit-eof)]
-                 [else (super-on-event dc x y editor-x editor-y evt)]))]
-            [adjust-cursor
-             (lambda (dc x y editorx editory evt)
-               arrow-cursor)])
+          (define/override (on-event dc x y editor-x editor-y evt)
+            (cond
+              [(send evt get-left-down) 
+               (send rep submit-eof)]
+              [else (super-on-event dc x y editor-x editor-y evt)]))
+          (define/override (adjust-cursor dc x y editorx editory evt)
+            arrow-cursor)
           (inherit get-flags set-flags)
-          (sequence
-            (super-init (build-path (collection-path "icons") "eof.gif"))
-            (set-flags (cons 'handles-events (get-flags))))))
+          (super-make-object (build-path (collection-path "icons") "eof.gif"))
+          (set-flags (cons 'handles-events (get-flags)))))
       
       (define error-ranges #f)
       (define (reset-callback) (void))
