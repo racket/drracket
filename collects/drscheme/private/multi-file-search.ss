@@ -6,11 +6,16 @@
            (lib "mred.ss" "mred")
            (lib "file.ss")
            (lib "thread.ss")
+           (lib "async-channel.ss")
            (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
-;  (define (drscheme:frame:basics-mixin x) x)
-;  (define drscheme:unit:frame<%> object%)
+  #|
+  
+  The calls to `sleep' here should all be eliminiated,
+  when a mzscheme bug is fixed(?)
+  
+  |#
   
   (provide multi-file-search@)
   
@@ -26,28 +31,21 @@
           (when search-info
             (open-search-window search-info))))
       
-      ;; search-type = (make-search-type string make-searcher (listof (cons string boolean)))
-      ;; the param strings are the labels for checkboxes
-      ;; the param booleans are the default values for the checkboxes
-      ;; these are the available searches
-      (define-struct search-type (label make-searcher params))
-      
-      ;; make-searcher = ((listof boolean) string -> (union string searcher))
-      ;; this returns the function that does the actual searching
-      ;; or a string if the input string (or booleans) are wrong, somehow.
-      ;; the string is an error message to present to the user.
-      
       ;; searcher = (string (string int int int -> void) -> void)
       ;; this performs a single search.
       ;; the first argument is the filename to be searched
       ;; the second argument is called for each match.
       ;;     the arguments are: line-string line-number col-number match-length
       
-      ;; search-info = (make-search-info string searcher (-> (union #f string)))
-      ;; this is the info from the user to do a particular search
-      ;; do-single-search runs the search in a particular file
-      ;; filenames is a thunk that returns the next filename, or #f
-      (define-struct search-info (base-filename searcher get-filenames))
+      
+      ;; search-type = (make-search-type string make-searcher (listof (cons string boolean)))
+      ;; the param strings are the labels for checkboxes
+      ;; the param booleans are the default values for the checkboxes
+      ;; these are the available searches
+      (define-struct search-type (label make-searcher params))
+      
+      ;; search-info = (make-search-info string boolean (union #f regexp) search-type)
+      (define-struct search-info (dir recur? filter searcher))
       
       ;; search-types : (listof search-type)
       (define search-types
@@ -60,10 +58,13 @@
                (lambda (info search-string) (regexp-match-searcher info search-string))
                (list))))
       
+      ;; search-entry = (make-search-entry string number number number)
+      (define-struct search-entry (filename line-string line-number col-number match-length))
+      
       ;; preferences initialization
       (preferences:set-default 'drscheme:multi-file-search:recur? #t boolean?)
       (preferences:set-default 'drscheme:multi-file-search:filter? #t boolean?)
-      (preferences:set-default 'drscheme:multi-file-search:filter-string "ss" string?)
+      (preferences:set-default 'drscheme:multi-file-search:filter-string "\\.(ss|scm)$" string?)
       (preferences:set-default 'drscheme:multi-file-search:directory "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-string "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-type
@@ -125,78 +126,12 @@
           (send results-text open-file))
         
         (define (stop-callback)
-          (break-thread thd)
+          (break-thread search-thd)
           (send stop-button enable #f))
         
-        (define lst null)
-        (define callback-queued? #f)
-        (define sema (make-semaphore 1))
-        
-        ;; -> void
-        ;; thread : eventspace main thread
-        (define (add-matches)
-          (semaphore-wait sema)
-          (let ([matches lst])
-            (set! lst null)
-            (set! callback-queued? #f)
-            (semaphore-post sema)
-            (send results-text begin-edit-sequence)
-            (send results-text lock #f)
-            (for-each
-             (lambda (match)
-               (let ([base-filename (car match)]
-                     [filename (cadr match)]
-                     [line-string (caddr match)]
-                     [line-number (cadddr match)]
-                     [col-number (car (cddddr match))]
-                     [match-length (cadr (cddddr match))])
-                 (send results-text add-match
-                       base-filename filename line-string line-number col-number match-length)))
-             matches)
-            (send results-text lock #t)
-            (send results-text end-edit-sequence)))
-        
-        (define thd
-          (thread
-           (lambda ()
-             (with-handlers ([exn:break?
-                              (lambda (x)
-                                (queue-callback
-                                 (lambda ()
-                                   (send results-text search-interrupted))
-                                 #f))])
-               (do-search
-                search-info 
-                (lambda (base-filename filename line-string line-number col-number match-length)
-                  ;; somehow, when lots of results are found
-                  ;; and the break button is clicked,
-                  ;; this still doesn't work properly
-                  ;; and drscheme can get stuck.
-                  (dynamic-disable-break
-                   (lambda ()
-                     (semaphore-wait sema)
-                     (set! lst
-                           (cons
-                            (list
-                             base-filename
-                             filename
-                             line-string
-                             line-number
-                             col-number
-                             match-length)
-                            lst))
-                     (unless callback-queued?
-                       (set! callback-queued? #t)
-                       (queue-callback
-                        (lambda ()
-                          (add-matches))
-                        #f))
-                     (semaphore-post sema)))))
-               (queue-callback
-                (lambda ()
-                  (send stop-button enable #f)
-                  (send results-text search-complete))
-                #f)))))
+        ;; channel : async-channel[(union 'done search-entry)]
+        (define channel (make-async-channel 100))
+        (define search-thd (thread (lambda () (do-search search-info channel))))
         
         (send frame set-text-to-search results-text) ;; just to initialize it to something.
         (send results-text lock #t)
@@ -204,41 +139,38 @@
         (send panel set-percentages (preferences:get 'drscheme:multi-file-search:percentages))
         (send button-panel set-alignment 'right 'center)
         (send button-panel stretchable-height #f)
-        (send frame show #t))
+        (send frame show #t)
+        
+        (let loop ()
+          (let ([match (yield channel)])
+            (cond
+              [(eq? match 'done)
+               (send results-text search-complete)
+               (send stop-button enable #f)]
+              [(eq? match 'break) 
+               (send results-text search-interrupted)]
+              [else
+               (send results-text add-match
+                     (search-info-dir search-info)
+                     (search-entry-filename match)
+                     (search-entry-line-string match)
+                     (search-entry-line-number match)
+                     (search-entry-col-number match)
+                     (search-entry-match-length match))
+               (loop)]))))
       
-      ;; do-search : search-info text -> void
-      ;; thread: searching thread
-      ;; called in a new thread that may be broken (to indicate a stop)
-      (define (do-search search-info add-match)
-        (let ([searcher (search-info-searcher search-info)]
-              [get-filenames (search-info-get-filenames search-info)]
-              [base-filename (search-info-base-filename search-info)])
-          (let loop ()
-            (let ([filename (get-filenames)])
-              (when filename
-                (searcher filename 
-                          (lambda (line-string line-number col-number match-length)
-                            (add-match
-                             base-filename
-                             filename
-                             line-string
-                             line-number
-                             col-number
-                             match-length)))
-                (loop))))))
+      (define results-super-text% 
+        (text:hide-caret/selection-mixin
+         (text:basic-mixin 
+          (editor:standard-style-list-mixin 
+           (editor:basic-mixin
+            text%)))))
       
-  (define results-super-text% 
-    (text:hide-caret/selection-mixin
-     (text:basic-mixin 
-      (editor:standard-style-list-mixin 
-       (editor:basic-mixin
-        text%)))))
-  
       ;; results-text% : derived from text%
       ;; init args: zoom-text
       ;;   zoom-text : (instance-of text%)
       ;; public-methods:
-      ;;   add-match : string int in tint int -> void
+      ;;   add-match : string string int int int int -> void
       ;;      adds a match to the text
       ;;   search-interrupted : -> void
       ;;      inserts a message saying "search interrupted".
@@ -317,6 +249,7 @@
           
           [define/public add-match
             (lambda (base-filename full-filename line-string line-number col-number match-length)
+              (lock #f)
               (let* ([new-line-position (last-position)]
                      [short-filename (find-relative-path 
                                       (normalize-path base-filename)
@@ -370,8 +303,9 @@
                   (insert #\newline (last-position) (last-position))
                   
                   (unless match-shown?
-                    (show-this-match)))))]
-
+                    (show-this-match))))
+              (lock #t))]
+          
           (define/public (search-interrupted)
             (lock #f)
             (insert #\newline (last-position) (last-position))
@@ -410,11 +344,11 @@
                  frame:standard-menus%))
           (init-field name)
           (rename [super-on-size on-size])
-
+          
           (field [text-to-search #f])
           (define/public (set-text-to-search text) (set! text-to-search text))
           (define/override (get-text-to-search) text-to-search)
-
+          
           (define/override (on-size w h)
             (preferences:set 'drscheme:multi-file-search:frame-size (cons w h))
             (super-on-size w h))
@@ -622,11 +556,42 @@
          ok?
          (make-search-info
           (send dir-field get-value)
-          searcher
-          (get-files))))
+          (send recur-check-box get-value)
+          (and (send filter-check-box get-value)
+               (send filter-text-field get-value))
+          searcher)))
       
-      ;; build-recursive-file-list : string -> (-> (union string #f))
-      ;; thread: first application: eventspace main thread, second applications: searching thread
+      
+      ;; do-search : search-info text -> void
+      ;; thread: searching thread
+      ;; called in a new thread that may be broken (to indicate a stop)
+      (define (do-search search-info channel)
+        (let* ([dir (search-info-dir search-info)]
+               [filter (search-info-filter search-info)]
+               [searcher (search-info-searcher search-info)]
+               [get-filenames (if (search-info-recur? search-info)
+                                  (build-recursive-file-list dir filter)
+                                  (build-flat-file-list dir filter))])
+          (with-handlers ([exn:break? (lambda (x) (async-channel-put channel 'break))])
+            (let loop ()
+              (let ([filename (get-filenames)])
+                (when filename
+                  (searcher filename
+                            (lambda (line-string line-number col-number match-length)
+                              (async-channel-put
+                               channel
+                               (make-search-entry
+                                filename
+                                line-string
+                                line-number
+                                col-number
+                                match-length))))
+                  (sleep 1/10) ;; shouldn't be necessary
+                  (loop))))
+            (async-channel-put channel 'done))))
+      
+      ;; build-recursive-file-list : string (union regexp #f) -> (-> (union string #f))
+      ;; thread: search thread
       (define (build-recursive-file-list dir filter)
         (letrec ([touched (make-hash-table)]
                  [next-thunk (lambda () (process-dir dir (lambda () #f)))]
@@ -668,25 +633,31 @@
                             (process-dir-contents (cdr contents) k)]))]))])
           (lambda () (next-thunk))))
       
-      ;; build-flat-file-list : string -> (-> (union string #f))
-      ;; thread: first application: eventspace main thread, second applications: searching thread
-      (define (build-flat-file-list dir)
+      ;; build-flat-file-list : (union #f regexp) string -> (-> (union string #f))
+      ;; thread: searching thread
+      (define (build-flat-file-list dir filter)
         (let ([contents (map (lambda (x) (build-path dir x)) (directory-list dir))])
           (lambda ()
-            (if (null? contents)
-                #f
-                (begin0
-                  (car contents)
-                  (set! contents (cdr contents)))))))
+            (let loop ()
+              (cond
+                [(null? contents)
+                 #f]
+                [(and filter (regexp-match filter (car contents)))
+                 (begin0
+                   (car contents)
+                   (set! contents (cdr contents)))]
+                [else
+                 (set! contents (cdr contents))
+                 (loop)])))))
       
       ;; exact-match-searcher : make-searcher
-      ;; thread: searching thread
-      (define (exact-match-searcher params key)
+      (define (exact-match-searcher params key)        ;; thread: main eventspace thread
         (let ([case-sensitive? (car params)])
-          (lambda (filename add-entry)
+          (lambda (filename add-entry)                 ;; thread: searching thread
             (let ([text (make-object text:basic%)])
               (send text load-file filename)
               (let loop ([pos 0])
+                (sleep 1/10)
                 (let ([found (send text find-string key 'forward pos 'eof #t case-sensitive?)])
                   (when found
                     (let* ([para (send text position-paragraph found)]
@@ -701,17 +672,18 @@
       
       ;; regexp-match-searcher : make-searcher
       ;; thread: searching thread
-      (define (regexp-match-searcher parmas key)
+      (define (regexp-match-searcher parmas key)       ;; thread: main eventspace thread
         (let ([re:key (with-handlers ([(lambda (x) #t)
                                        (lambda (exn)
                                          (format "~a" (exn-message exn)))])
                         (regexp key))])
           (if (string? re:key)
               re:key
-              (lambda (filename add-entry)
+              (lambda (filename add-entry)             ;; thread: searching thread
                 (call-with-input-file filename
                   (lambda (port)
                     (let loop ([line-number 0])
+                      (sleep 1/10)
                       (let ([line (read-line port)])
                         (cond
                           [(eof-object? line) (void)]
@@ -723,5 +695,4 @@
                                             (car pos)
                                             (- (cdr pos) (car pos))))))
                            (loop (+ line-number 1))]))))
-                  'text))))))
-))
+                  'text))))))))
