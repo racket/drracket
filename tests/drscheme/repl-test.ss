@@ -63,7 +63,7 @@
 		    "Malformed begin"
 		    (vector 4 19))
 	    (vector "    (eval 'x)"
-		    "1.5-1.6: reference to undefined identifier: x"
+		    "1.5-1.14: reference to undefined identifier: x"
 		    #t
 		    "reference to undefined identifier: x"
 		    (vector 4 13))
@@ -73,12 +73,12 @@
 		    (format "1~n2~nmissing close paren")
 		    (vector 4 5))
 	    (vector "1 2 . 3 4"
-		    "0.4-0.4: can't use `.' outside list"
+		    "1.5-1.6: can't use `.' outside list"
 		    #t
 		    (format "1~n2~ncan't use `.' outside list")
 		    (vector 4 5))
 	    (vector "1 2 x 3 4"
-		    "0.4-0.4: reference to undefined identifier: x"
+		    "1.5-1.6: reference to undefined identifier: x"
 		    #t
 		    (format "1~n2~nreference to undefined identifier: x")
 		    (vector 4 5))
