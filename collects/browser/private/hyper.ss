@@ -206,6 +206,15 @@
                             (eval-scheme-string scheme-string))
                           (message-box (string-constant help-desk)
                                        "<A MZSCHEME= ...> disabled"))))))]
+              [add-thunk-callback
+               (lambda (start end thunk)
+		 (set-clickback 
+		  start end 
+		  (lambda (edit start end)
+		    (let ([url-string (thunk)])
+		      (when url-string
+			((make-clickback-funct url-string) edit start end))))))]
+
               [eval-scheme-string
                (lambda (s)
                  (let ([v (dynamic-wind

@@ -12,7 +12,8 @@
 	   (rename (lib "html.ss" "html") read-html-comments read-html-comments)
 	   (rename (lib "html.ss" "html") use-html-spec use-html-spec)
 	   (all-except (lib "xml.ss" "xml") read-comments)
-           (lib "class.ss"))
+           (lib "class.ss")
+	   "option-snip.ss")
 
   (provide html@)
   
@@ -225,6 +226,8 @@
 	     (eth 240) (ntilde 241) (ograve 242) (oacute 243) (ocirc 244) (otilde 245)
 	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
+
+      (define-struct form (action target method parts active-select))
       
       (define verbatim-tags '(listing xmp plaintext))
       (define preformatted-tags '(pre))
@@ -605,7 +608,7 @@
 		       ;; Translate must not modify any existing text, and the
 		       ;;  result function must not move any items.
 		       [translate
-			(lambda (e para-base enum-depth)
+			(lambda (e para-base enum-depth form)
 			  (cond
 			   [(string? e) (insert e) void]
 			   [(symbol? e) (let ([a (assq e latin-1-symbols)])
@@ -620,13 +623,17 @@
 			    void]
                            [(or (comment? e) (pi? e)) void]
 			   [else (let* ([tag (car e)]
-					[rest/base/depth 
-					 (lambda (para-base enum-depth)
-					   (let ([l (map (lambda (x) (translate x para-base enum-depth))
+					[rest/base/depth/form
+					 (lambda (para-base enum-depth form)
+					   (let ([l (map (lambda (x) (translate x para-base enum-depth form))
 							 (cddr e))])
 					     (lambda ()
 					       (map (lambda (f) (f)) l))))]
-					[rest (lambda () (rest/base/depth para-base enum-depth))])
+					[rest/base/depth
+					 (lambda (para-base enum-depth)
+					   (rest/base/depth/form para-base enum-depth form))]
+					[rest/form (lambda (form) (rest/base/depth/form para-base enum-depth form))]
+					[rest (lambda () (rest/base/depth/form para-base enum-depth form))])
 				   (case tag
 				     [(title)
 				      (let ([pos (current-pos)])
@@ -792,15 +799,68 @@
 					 [else
 					  (insert alt)])
 					(rest))]
+				     [(form)
+				      (rest/form (make-form (get-field e 'action) (get-field e 'target) (get-field e 'method) null #f))]
 				     [(input select textarea)
 				      (let ([unsupported (make-unsupported tag e)]
 					    [pos (current-pos)])
-					(insert unsupported)
-					(let ([r (rest)]
-					      [end-pos (current-pos)])
-					  (lambda ()
-					    (change-style normal-style pos end-pos)
-					    (r))))]
+					(let-values ([(cb get-val)
+						      (cond
+						       [(eq? tag 'select)
+							(let ([select (make-object option-snip%)])
+							  (set-form-active-select! form select)
+							  (insert select)
+							  (values #f #f))]
+						       [(eq? tag 'input)
+							(if (eq? 'text (let ([t (get-field e 'type)])
+									 (and t (string->symbol t))))
+							    (let* ([text (make-object text%)]
+								   [snip (make-object editor-snip% text)]
+								   [size (get-field e 'size)])
+							      (let ([width (* 10 (or (and size (string->number size))
+										     25))])
+								(send text set-min-width width)
+								(send text set-max-width width))
+							      (insert snip)
+							      (values
+							       #f
+							       (lambda () (send text get-text))))
+							    (begin
+							      (insert (get-field e 'value))
+							      (values
+							       (lambda ()
+								 (bell)
+								 #f)
+							       #f)))]
+						       [else
+							(insert unsupported)
+							(values #f #f)])])
+					  (set-form-parts! form
+							   (cons (cons (get-field e 'name)
+								       (or get-val
+									   (lambda () (get-field e 'value))))
+								 (form-parts form)))
+					  (let ([r (rest)]
+						[end-pos (current-pos)])
+					    (set-form-active-select! form #f)
+					    (lambda ()
+					      (cond
+					       [cb
+						(send a-text make-link-style pos end-pos)
+						(send a-text add-thunk-callback pos end-pos cb)]
+					       [else
+						(change-style normal-style pos end-pos)])
+					      (r)))))]
+				     [(option)
+				      (let ([pos (current-pos)]
+					    [r (rest)]
+					    [end-pos (current-pos)])
+					(let ([str (send a-text get-text pos end-pos)]
+					      [select (form-active-select form)])
+					  (delete pos end-pos)
+					  (when select
+					    (send select add-option str))
+					  r))]				      
 				     [(tt code samp kbd pre)
 				      (when (memq tag '(pre))
 					(insert-newlines 2 para-base))
@@ -829,7 +889,7 @@
 		
 		(load-status #f "page" base-path)
 		
-		((translate content 0 0))
+		((translate content 0 0 (make-form #f #f #f null #f)))
 
 		(send a-text add-tag "top" 0)
 
