@@ -600,9 +600,6 @@
 	    (popup-menu menu
 			0
 			height))]
-	 [(send evt button-up?)
-	  (set! inverted? #f)
-	  (on-paint)]
 	 [else (super-on-event evt)]))
 
       (super-init parent)
