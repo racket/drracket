@@ -3,7 +3,7 @@
            (lib "unitsig.ss")
            (lib "class.ss")
            (lib "moddep.ss" "syntax")
-	   (prefix print-convert: (lib "pconvert.ss"))
+	   (lib "pconvert.ss")
            "drsig.ss")
   
   (provide eval@)
@@ -156,12 +156,6 @@
         (error-print-width 250)
         (current-load drscheme-load-handler)
         (current-ps-setup (make-object ps-setup%))
-        
-	(print-convert:current-print-convert-hook
-	 (lambda (expr basic-convert sub-convert)
-	   (if (is-a? expr snip%)
-	       expr
-	       (basic-convert expr))))
 
         (let ([user-custodian (current-custodian)])
           (exit-handler (lambda (arg) ; =User=

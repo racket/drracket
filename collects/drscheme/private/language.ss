@@ -342,13 +342,21 @@
           [(write) value]
           [(constructor)
            (parameterize ([constructor-style-printing #t]
-                          [show-sharing (simple-settings-show-sharing settings)])
+                          [show-sharing (simple-settings-show-sharing settings)]
+			  [current-print-convert-hook leave-snips-alone-hook])
              (print-convert value))]
           [(quasiquote)
            (parameterize ([constructor-style-printing #f]
-                          [show-sharing (simple-settings-show-sharing settings)])
+                          [show-sharing (simple-settings-show-sharing settings)]
+			  [current-print-convert-hook leave-snips-alone-hook])
              (print-convert value))]))
       
+      ;; leave-snips-alone-hook : any? (any? -> printable) any? -> printable
+      (define (leave-snips-alone-hook expr basic-convert sub-convert)
+	(if (is-a? expr snip%)
+	    expr
+	    (basic-convert expr)))
+
       ;; initialize-simple-module-based-language : setting ((-> void) -> void)
       (define (initialize-simple-module-based-language setting run-in-user-thread)
         (run-in-user-thread
