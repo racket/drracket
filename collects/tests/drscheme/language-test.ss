@@ -49,6 +49,13 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
+    
     (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
 
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
@@ -93,6 +100,13 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
 
@@ -144,6 +158,13 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
 
@@ -197,6 +218,13 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
+    
     (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
 
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
@@ -241,6 +269,13 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
@@ -294,6 +329,13 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
+    
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
     (test-expression "(error 'a \"~a\" 1)"
@@ -343,6 +385,13 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f define) 1)" "keyword: invalid use of keyword #define")
+    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f #%empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "")
     
     (test-expression "call/cc" "call-with-current-continuation")
 
