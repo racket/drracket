@@ -200,8 +200,8 @@
       (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
       (send button-panel set-alignment 'right 'center)
       (send button-panel stretchable-height #f)
-      (define cancel-button (make-object button% "Cancel" button-panel (lambda x (cancel))))
       (define ok-button (make-object button% "Submit" button-panel (lambda x (ok)) '(border)))
+      (define cancel-button (make-object button% "Cancel" button-panel (lambda x (cancel))))
       (make-object grow-box-spacer-pane% button-panel)
       
       (send (if (string=? "" (preferences:get 'drscheme:full-name))
