@@ -5,7 +5,7 @@
 	   (lib "mred.ss" "mred")
            (lib "browser.ss" "net")
            (lib "help-desk.ss" "help")
-           (prefix fw: (lib "framework.ss" "framework"))
+           (lib "framework.ss" "framework")
 	   "drsig.ss")
   
   (provide help-desk@)
@@ -22,8 +22,8 @@
 
       (define get-hd-cookie
         (let ([hd-cookie #f]
-              [internal? (use-internal-browser? (fw:preferences:get 'plt:help-browser))])
-          (fw:preferences:add-callback
+              [internal? (use-internal-browser? (preferences:get 'plt:help-browser))])
+          (preferences:add-callback
            'plt:help-browser
            (lambda (k v)
              (let ([new-internal? (use-internal-browser? v)])
@@ -34,8 +34,13 @@
                (set! internal? new-internal?))))
           (lambda ()
             (unless hd-cookie
-              (set! hd-cookie (start-help-server)))
+              (set! hd-cookie (start-help-server #f #f drs-browser-mixin)))
             hd-cookie)))
+      
+      (define (drs-browser-mixin %)
+        (drscheme:frame:basics-mixin
+         (frame:standard-menus-mixin
+          %)))
       
       (define (goto-help manual link)
         (with-handlers ([not-break-exn?

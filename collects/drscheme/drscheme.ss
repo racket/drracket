@@ -7,7 +7,7 @@
   
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
-
+  
   (define (show-profiling-results)
     (define f (make-object frame% "Profile Results" #f 400 600))
     (define t (make-object text%))
@@ -182,7 +182,7 @@
                          (set! stack (cdr stack))
                          (update-messages))))
 
-              (error-print-width 200)))))))
+              (error-print-width 600)))))))
 
   (define texas-independence-day?
     (let ([date (seconds->date (current-seconds))])
