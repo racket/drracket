@@ -79,14 +79,17 @@
       ;; load/invoke-all-tools : -> void
       (define (load/invoke-all-tools phase1-extras phase2-extras)
         (set! current-phase 'loading-tools)
-        (load/invoke-all-tools/single-collection
+        (load/invoke-all-tools/collections
          (drscheme:init:all-toplevel-collections)
          phase1-extras
          phase2-extras))
 
       ;; loads the the tools in each collection
-      (define (load/invoke-all-tools/single-collection collections phase1-extras phase2-extras)
-        (for-each load/invoke-tools collections)
+      ;; unless PLTNOTOOLS is set, in which case it
+      ;; just runs the phases
+      (define (load/invoke-all-tools/collections collections phase1-extras phase2-extras)
+        (unless (getenv "PLTNOTOOLS")
+          (for-each load/invoke-tools collections))
         (run-phases phase1-extras phase2-extras))
 
       

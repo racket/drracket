@@ -413,8 +413,7 @@
             [super-set-modified set-modified]
             [super-set-filename set-filename])
            (inherit is-modified? run-after-edit-sequence)
-           (define/override
-             (set-modified mod?)
+           (define/override (set-modified mod?)
              (super-set-modified mod?)
              (run-after-edit-sequence
               (lambda ()
@@ -695,9 +694,10 @@
               (frame:info-mixin
                (frame:delegate-mixin
                 (frame:text-mixin
-                 (frame:editor-mixin
-                  (frame:standard-menus-mixin
-                   frame:basic%))))))))))))
+                 (frame:open-here-mixin
+                  (frame:editor-mixin
+                   (frame:standard-menus-mixin
+                    frame:basic%)))))))))))))
       
       (define -frame<%>
         (interface ()
@@ -1374,6 +1374,7 @@
           [define get-canvas (lambda () definitions-canvas)]
           
           (define/override (get-delegated-text) definitions-text)
+          (define/override (get-open-here-editor) definitions-text)
           
           [define definitions-text (make-object (drscheme:get/extend:get-definitions-text))]
           [define interactions-text (make-object 
