@@ -176,7 +176,7 @@
             (cond [(null? matches)
                    (meta-lookup-binding binding-matcher (cdr mark-list) binding)]
                   [else
-                   (car matches)]))))
+                   (mark-binding-value (car matches))]))))
   
   (define lookup-binding
     (lambda args
