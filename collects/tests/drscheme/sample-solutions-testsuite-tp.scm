@@ -29,7 +29,9 @@
                                [orig stx])
                    (set! cache (cons fn cache))
                    (syntax
-                    (include-at/relative-to orig orig full-fn)))))]))))
+                    (begin
+                      (include-at/relative-to orig orig full-fn)
+                      (void))))))]))))
   
   (provide sqr)
 
