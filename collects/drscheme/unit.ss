@@ -193,12 +193,15 @@
 	    (send frame set-save-init-shown?
 		  (and (not (null? m)) (send m modified?)))))))
 
+    (define super-frame% (mred:make-searchable-frame%
+			  (mred:make-info-frame%
+			   drscheme:frame:frame%)))
     (define frame%
-      (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip [show? #t])
+      (class super-frame% (filename snip [show? #t])
 	(inherit get-canvas get-edit imports-panel
 		 set-title-prefix show-menu
 		 show menu-bar% make-menu
-		 active-edit active-canvas panel 
+		 active-edit active-canvas panel update-info
 		 file-menu file-menu:open-id file-menu:new-id file-menu:save-id 
 		 file-menu:save-as-id file-menu:revert-id file-menu:print-id)
 	(rename [super-make-menu-bar make-menu-bar]
@@ -223,12 +226,16 @@
 	(public
 	  [make-searchable
 	   (lambda (canvas)
+	     (update-info)
 	     (set! search-canvas canvas))]
 	  [get-edit-to-search
 	   (lambda ()
 	     (if search-canvas
 		 (send search-canvas get-media)
-		 (get-edit)))])
+		 (get-edit)))]
+	  [get-info-edit
+	   (lambda ()
+	     (get-edit-to-search))])
 
 	(public
 	  [disable-evaluation
