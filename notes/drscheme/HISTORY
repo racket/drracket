@@ -1,5 +1,67 @@
 Version 102:
 
+102d6
+
+ PRS: 1341
+
+ FUN INFO
+
+ - DrScheme's rep class now exports a method with this type:
+ 
+   ((((-> void) -> void) -> void) -> void)
+       4        3        2        1
+
+ believe it or not. It is used to evaluate user expressions in the
+ repl. Arrow 1 sets up the repl (watch cursor and stuff) and then
+ calls arrow 2, which should loop, once for each expression (say in
+ the definitions window), calling arrow 3. Arrow 2 then calls arrow 3
+ with arrow 4. Arrow 3 does a little before/after setup to get
+ breaking right and calls arrow 4 to actually evaluate each
+ expression. 
+
+ FUNCTIONALITY CHANGES
+
+ - project manager windows now have a repl.
+   The repl shows the values returned by loading each of the files
+   in the project.
+
+ tools:
+
+   - ensure-interactions-shown is now ensure-rep-shown
+   - do-many-buffer-evals is now do-many-text-evals
+
+ teachpacks:
+
+   - interactions window now shows the names of the teachpacks that
+     were installed at last execute.
+   - teachpack names are not in the area with the execute button, instead
+     they are now shown in the language menu.
+   - it is now an error to add the same teachpack twice.
+
+ - GRAPHICAL_DEBUG is no longer supported. It was always wierd, becuase
+   it changed the semantics of require-library in a way that was
+   mostly the same, and keeping drscheme in the consistent
+   intersection of the two semantics was getting painful (not to
+   mention confusing...)
+
+ MINOR CHANGES AND BUG FIXES
+
+ - repl errors that are in some loaded file have little clickable
+   icons that open the file and show the error's source location in
+   the file. Icon suggestions welcome. To test them out, just replace
+   file.gif in the icons collection.
+
+ - common file dialog keyboard navigation improved (typing letters now
+   may go backwards now -- before it only went fowards)
+
+ - common file dialogs are now resizable.
+
+ - common file dialogs now sort in case insensitive mode always
+  (typing letters doesn't make much sense otherwise)
+
+ - lucky search now sets the focus to the html viewing canvas instead
+   of leaving the focus on the search text-field.
+
 102d5
 
  PRS: 1334
@@ -31,7 +93,7 @@ Version 102:
  - Help Desk now has a "feeling lucky" option ala google (menu
    shortcut: l). It goes directly to the first item that would have
    been found in a regular search.
-c
+
  - Clicking on an error message link in drscheme now uses the "feeling
    lucky" style search in help desk.
 

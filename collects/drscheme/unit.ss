@@ -437,7 +437,7 @@ get-directory: (-> (union string #f))
   
   (define super-frame%
     (drscheme:frame:mixin
-     (drscheme:frame:basics-mixin fw:frame:text-info-file%)))
+     (drscheme:frame:basics-mixin fw:frame:searchable%)))
   
   (define frame%
     (class* super-frame% (drscheme:rep:context<%>) (filename)
@@ -929,9 +929,6 @@ get-directory: (-> (union string #f))
 
 	(unless filename
 	  (toggle-show/hide interactions-item))
-	
-	(send interactions-text insert-prompt)
-	(send interactions-text clear-undos)
 	
 	(update-shown)
 	

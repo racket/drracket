@@ -33,6 +33,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -68,6 +70,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -108,6 +112,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -149,6 +155,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -183,6 +191,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" "reference to undefined identifier: time")
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "(cons make-posn (cons posn-x (cons posn-y (cons posn? empty))))")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -222,6 +232,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
@@ -261,6 +273,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+
     (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")

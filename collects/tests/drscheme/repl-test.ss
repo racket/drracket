@@ -352,7 +352,7 @@
 	     [pre-answer-load (test-r4rs-load-answer in-vector)]
 	     [prepend-filename? (test-prepend-filename? in-vector)]
 	     [answer-load (if prepend-filename?
-			      (string-append tmp-load-filename ": " pre-answer-load)
+			      (string-append "." tmp-load-filename ": " pre-answer-load)
 			      pre-answer-load)]
 	     [answer-execute (test-r4rs-execute-answer in-vector)]
 	     [execute-location (test-r4rs-execute-location in-vector)]
@@ -474,5 +474,5 @@
       (do-execute drscheme-frame)
       (let/ec escape (for-each (run-test (get-int-pos) escape raw?) test-data)))))
 
-(run-test-in-language-level #t)
 (run-test-in-language-level #f)
+(run-test-in-language-level #t)
