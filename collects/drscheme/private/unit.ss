@@ -1113,7 +1113,7 @@
           [define add-edit-menu-snip-items
             (lambda (edit-menu)
               (super-add-edit-menu-snip-items edit-menu)
-              (let ([on-demand
+              (let ([has-editor-on-demand
                      (lambda (menu-item)
                        (let ([edit (get-edit-target-object)])
                          (send menu-item enable (and edit (is-a? edit editor<%>)))))]
@@ -1128,9 +1128,60 @@
                                      (make-object drscheme:snip:whole/part-number-snip%
                                        number)))))
                          #t))]
+                    [insert-large-semicolon-letters
+                     (lambda ()
+                       (let ([edit (get-edit-target-object)])
+                         (when edit
+                           (let ([str (get-text-from-user (string-constant large-semicolon-letters)
+                                                          (string-constant text-to-insert)
+                                                          this)])
+                             (when str
+                               (let ()
+                                 (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 1)))
+                                 (define-values (tw th td ta) (send bdc get-text-extent str))
+                                 (define tmp-color (make-object color%))
+                                 (define (get-char x y)
+                                   (send bdc get-pixel x y tmp-color)
+                                   (if (zero? (send tmp-color red))
+                                       #\;
+                                       #\space))
+                                 
+                                 (define (fetch-line y)
+                                   (let loop ([x tw]
+                                              [chars null])
+                                     (cond
+                                       [(zero? x) (apply string chars)]
+                                       [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
+                                 
+                                 
+                                 (send bdc set-bitmap (make-object bitmap% 
+                                                        (inexact->exact tw)
+                                                        (inexact->exact th) 
+                                                        1))
+                                 (send bdc clear)
+                                 (send bdc draw-text str 0 0)
+                                 
+                                 (send edit begin-edit-sequence)
+                                 (let ([start (send edit get-start-position)]
+                                       [end (send edit get-end-position)])
+                                   (send edit delete start end)
+                                   (send edit insert #\newline start start)
+                                   (let loop ([y th])
+                                     (unless (zero? y)
+                                       (send edit insert (fetch-line (- y 1)) start start)
+                                       (send edit insert #\newline start start)
+                                       (loop (- y 1)))))
+                                 (send edit end-edit-sequence)))))))]
                     [c% (get-menu-item%)])
                 (make-object c% (string-constant insert-fraction-menu-item-label)
-                  edit-menu callback #f #f on-demand)))]
+                  edit-menu callback 
+                  #f #f
+                  has-editor-on-demand)
+                (make-object c% (string-constant insert-large-letters...)
+                  edit-menu
+                  (lambda (x y) (insert-large-semicolon-letters))
+                  #f #f
+                  has-editor-on-demand)))]
           (define interactions-shown? #t)
           (define definitions-shown? #t)
           (override update-shown on-close)
