@@ -82,13 +82,14 @@
                [language (drscheme:language-configuration:language-settings-language ls)]
                [settings (drscheme:language-configuration:language-settings-settings ls)]
                [thnk (send language front-end input settings)])
-          (let loop ([last-time-values (list (void))])
-            (let ([exp (thnk)])
-              (if (eof-object? exp)
-                  (apply values last-time-values)
-                  (call-with-values
-                   (lambda () (eval exp))
-                   (lambda x (loop x))))))))
+          (parameterize ([read-accept-compiled #t])
+            (let loop ([last-time-values (list (void))])
+              (let ([exp (thnk)])
+                (if (eof-object? exp)
+                    (apply values last-time-values)
+                    (call-with-values
+                     (lambda () (eval exp))
+                     (lambda x (loop x)))))))))
       
       ;; build-input : string[file-exists?] -> input
       ;; returns an input to be used with a language's `front-end' method

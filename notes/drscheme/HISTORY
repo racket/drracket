@@ -1,3 +1,32 @@
+199d1
+
+WARNINGS
+
+ This release is a first cut intended for 
+ tools implementors to have something to work with.
+ There are still many things missing. The biggest
+ omissions:
+
+ - the syntax checker,
+ - the project manager,
+ - teachpacks, and
+ - launchers
+
+FUNCTIONALITY CHANGES
+
+ - tools are now specified in info.ss files in top-level
+   collections, rather than in a subcollection of the
+   drscheme collection (see the tools manual for details).
+ - added multi file searching
+ - new mechanism for specifying languages
+   added to tools interface.
+ - changed guiutils.ss to gui-utils.ss in framework collection.
+ - changed many other names to match the new -unit.ss, and -sig.ss
+   convention instead of the old r.ss and s.ss convention.
+
+The tools and framework manuals have also been released. There are some issues with tex2page that I haven't figured out, so some links may not work.
+
+
 103d105
 
 PRS FIXED

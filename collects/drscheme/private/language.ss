@@ -335,9 +335,12 @@
                                  (next-snip))]))]
                [char-ready? (lambda () #t)]
                [close (lambda () (void))]
-               [peek-char #f])
+               [peek-char #f]
+               [port
+                (make-input-port read-char 
+                                 char-ready?
+                                 close
+                                 peek-char)])
           (update-str-to-snip)
-          (make-input-port read-char 
-                           char-ready?
-                           close
-                           peek-char))))))
+          (port-count-lines! port)
+          port)))))
