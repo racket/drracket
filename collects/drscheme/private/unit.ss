@@ -1011,20 +1011,28 @@
               root))
 
           (inherit show-info hide-info)
-          (field [toolbar-shown? (preferences:get 'drscheme:toolbar-shown)])
+          (field [toolbar-shown? (preferences:get 'drscheme:toolbar-shown)]
+                 [toolbar-menu-item #f])
+          
           (define/override (on-toolbar-button-click) 
+            (toggle-toolbar-visiblity))
+          
+          (define/private (toggle-toolbar-visiblity)
             (set! toolbar-shown? (not toolbar-shown?))
             (preferences:set 'drscheme:toolbar-shown toolbar-shown?)
             (update-toolbar-visiblity))
+
           (define/private (update-toolbar-visiblity)
             (cond
               [toolbar-shown?
                (when (preferences:get 'framework:show-status-line)
                  (show-info))
-               (send top-outer-panel change-children (lambda (l) (list top-panel)))]
+               (send top-outer-panel change-children (lambda (l) (list top-panel)))
+               (send toolbar-menu-item set-label (string-constant hide-toolbar))]
               [else
                (hide-info)
-               (send top-outer-panel change-children (lambda (l) '()))]))
+               (send top-outer-panel change-children (lambda (l) '()))
+               (send toolbar-menu-item set-label (string-constant show-toolbar))]))
           
           (inherit get-currently-running?)
           (rename [super-can-close? can-close?])
@@ -1882,7 +1890,15 @@
                      (lambda (menu evt)
                        (if module-browser-shown?
                            (hide-module-browser)
-                           (show-module-browser)))))))
+                           (show-module-browser))))))
+            
+            (set! toolbar-menu-item
+                  (new menu-item%
+                       (label (string-constant show-toolbar))
+                       (parent show-menu)
+                       (callback
+                        (lambda (x y)
+                          (toggle-toolbar-visiblity))))))
 
           
 ;                                                                                                       

@@ -399,8 +399,7 @@
           (inherit get-editor)
           (rename [super-file-menu:print-callback file-menu:print-callback])
           (inherit get-info-panel)
-          (field
-           [show-menu #f])
+          (field [show-menu #f])
           (public get-show-menu update-shown)
           [define get-show-menu (lambda () show-menu)]
           [define update-shown (lambda () (void))]
@@ -432,7 +431,7 @@
           
           (inherit get-menu% get-menu-bar)
           (super-instantiate ())
-          (set! show-menu (make-object (get-menu%) (string-constant show-menu-label)
+          (set! show-menu (make-object (get-menu%) (string-constant view-menu-label)
                             (get-menu-bar)))
 
           (add-show-menu-items show-menu)
