@@ -116,6 +116,17 @@
 	      #f
 	      #f)
    
+   ;; printer setup test
+   (make-test "(car (void))"
+	      "1.1-1.8: car: expects argument of type <pair>; given #<void>"
+	      #t
+	      "car: expects argument of type <pair>; given #<void>"
+	      (vector 1 8)
+	      "car: expects argument of type <pair>; given #<void>"
+	      "car: expects argument of type <pair>; given #<void>"
+	      #f
+	      #f)
+   
    
    ;; error in the middle
    (make-test "1 2 ( 3 4"

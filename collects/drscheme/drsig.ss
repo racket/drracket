@@ -1,3 +1,4 @@
+(require-library "refer.ss")
 (require-library "match.ss")
 (require-library "sig.ss" "mred")
 (require-library "zsigs.ss" "zodiac")
@@ -119,7 +120,7 @@
    (unit get/extend : drscheme:get/extend^)
    (unit rep : drscheme:rep^)))
 
-(begin-construction-time
+(begin-elaboration-time
  (define drscheme:tool-directories (directory-list (collection-path "drscheme" "tools")))
  `(begin
     ,@(let loop ([dirs drscheme:tool-directories])

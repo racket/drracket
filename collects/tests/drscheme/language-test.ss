@@ -29,7 +29,8 @@
     (do-execute drs)
     (let* ([got (fetch-output drs)])
       (unless (string=? result got)
-	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n" (language) expression result got)))))
+	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n" (language) expression result got)))
+    '(dump-memory-stats)))
 
 (define (mzscheme)
   (parameterize ([language "MzScheme"])
