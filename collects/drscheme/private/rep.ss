@@ -1384,10 +1384,11 @@
                         
                         (when (and defs error-arrows)
                           (let ([filtered-arrows
-                                 (filter
-                                  (lambda (arr)
-                                    (embedded-in? (car arr) defs))
-                                  error-arrows)])
+                                 (remove-duplicate-error-arrows
+				  (filter
+				   (lambda (arr)
+				     (embedded-in? (car arr) defs))
+				   error-arrows))])
                             (send defs set-error-arrows filtered-arrows)))
                         
                         (set! internal-reset-callback
@@ -1416,6 +1417,11 @@
           (define (reset-highlighting)
             (reset-error-ranges))
           
+	  (define/private (remove-duplicate-error-arrows error-arrows)
+	    (let ([ht (make-hash-table 'equal)])
+	      (for-each (lambda (arr) (hash-table-put! ht arr #f)) error-arrows)
+	      (hash-table-map ht (lambda (x y) x))))
+
           (define/private (embedded-in? txt-inner txt-outer)
             (let loop ([txt-inner txt-inner])
               (cond
