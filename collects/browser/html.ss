@@ -2,7 +2,9 @@
 (unit/sig browser:html^
   (import mzlib:file^
 	  mzlib:string^
-	  mzlib:url^ 
+	  relative-btree^
+	  mzlib:url^
+	  bullet-snip^
 	  mred^)
     
   (define NUM-CACHED 10)
@@ -80,13 +82,24 @@
   (define html-convert
     (lambda (p b)
       (letrec 
-	  ([normal-style (send (send b get-style-list)
+	  ([indents (make-btree)]
+	   
+	   [normal-style (send (send b get-style-list)
 			       find-named-style
 			       "Standard")]
 	   [get-character (ivar b get-character)]
 	   [set-position (ivar b set-position)]
-	   [insert (ivar b insert)]
-	   [delete (ivar b delete)]
+	   [insert (let ([insert (ivar b insert)])
+		     (lambda (what pos)
+		       (let ([len (if (string? what)
+				      (string-length what)
+				      1)])
+			 (btree-shift! indents pos len))
+		       (insert what pos)))]
+	   [delete (let ([delete (ivar b delete)])
+		     (lambda (start end)
+		       (btree-shift! indents end (- start end))
+		       (delete start end)))]
 	   [get-text (ivar b get-text)]
 	   [set-title (ivar b set-title)]
 	   [set-clickback (ivar b set-clickback)]
@@ -98,6 +111,10 @@
 	   [add-tag (ivar b add-tag)]
 	   [get-url (ivar b get-url)]
 	   [set-modified (ivar b set-modified)]
+	   [find-first-snip (ivar b find-first-snip)]
+	   [get-snip-position (ivar b get-snip-position)]
+	   [position-paragraph (ivar b position-paragraph)]
+	   [set-paragraph-margins (ivar b set-paragraph-margins)]
 
 	   [inserted-chars #f]
 	   [get-char (lambda ()
@@ -258,7 +275,7 @@
 	       [(zero? pos) 0]
 	       [else (let ([c (get-character (sub1 pos))])
 		       (cond
-			[(eq? #\newline c) 
+			[(eq? #\newline c)
 			 (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
 			[(and maybe-tabbed? (char-whitespace? c))
 			 ; Some whitespace is messing up the newlines (perhaps added
@@ -461,14 +478,14 @@
 		(let* ([atomic-values (lambda (pos del-white?)
 					(values pos del-white? #f #f))]
 		       [break (lambda (bullet? newlines)
-				(insert (make-string enum-depth #\tab) pos)
-				(when bullet?
-				  (insert "* " (+ pos enum-depth))
-				  (change-style normal-style (+ pos enum-depth) (+ pos enum-depth 2)))
-				(atomic-values (+ pos enum-depth 
-						  (try-newline pos newlines #t)
-						  (if bullet? 2 0))
-					       #t))])
+				(let ([pos (+ pos (try-newline pos newlines #t))])
+				  (when bullet?
+				    (insert (make-object bullet-snip% (sub1 enum-depth)) pos)
+				    (change-style normal-style pos (+ 1 pos)))
+				  (let ([data (list enum-depth bullet?)])
+				    (btree-put! indents pos data))
+				  (atomic-values (+ pos (if bullet? 1 0))
+						 #t)))])
 		  (case tag
 		    [(!)
 		     (let ([code (parse-mzscheme args)])
@@ -548,7 +565,12 @@
 			 (delete pos end-pos)
 			 (result pos #t)]
 			[(dl ul table tr td)
-			 (result (+ end-pos (try-newline end-pos pre-newlines #t)) #t)]
+			 (let ([new-end (+ end-pos (try-newline end-pos pre-newlines #t))])
+			   ; At end, make sure indentation is reset:
+			   (let ([m (btree-get indents new-end)])
+			     (when m
+			       (set-car! m (sub1 (car m)))))
+			   (result new-end #t))]
 			[(b strong)
 			 (change-style delta:bold pos end-pos)
 			 (normal)]
@@ -617,4 +639,19 @@
 	      (call-with-values
 	       (lambda () (translate pos #t del-white? 0))
 	       loop))))
+
+	;; Install indentation
+	(btree-for-each
+	 indents
+	 (lambda (pos data)
+	   (let ([depth (max 0 (car data))]
+		 [bullet? (cadr data)])
+	     (set-paragraph-margins (position-paragraph pos)
+				    (max 0 (- (* 2 bullet-width depth)
+					      (if bullet?
+						  bullet-width
+						  0)))
+				    (* 2 bullet-width depth)
+				    0))))
+
 	(set-position 0)))))
