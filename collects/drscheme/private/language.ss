@@ -373,6 +373,7 @@
            (current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
+      ;; simple-module-based-language-get-init-code : setting ... -> sexp[module]
       (define (simple-module-based-language-get-init-code setting)
         `(module mod-name mzscheme
            (require (lib "pconvert.ss")
@@ -459,7 +460,7 @@
                                                      executable-filename
                                                      (get-module)
                                                      (get-transformer-module)
-                                                     (get-init-code setting)
+                                                     (get-init-code (get-module) (get-transformer-module) setting)
                                                      (use-mred-launcher?)
                                                      (use-namespace-require/copy?)))
           (super-instantiate ())))
@@ -521,7 +522,11 @@
         
         (call-with-output-file bootstrap-tmp-filename
           (lambda (port)
-            (write `((dynamic-require '(file ,init-code-tmp-filename) 'init-code)) port))
+            (write `(begin
+                      (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
+                      (namespace-transformer-require ',transformer-module-language-spec)
+                      ((dynamic-require '(file ,init-code-tmp-filename) 'init-code)))
+                   port))
           'truncate
           'text)
         
@@ -568,7 +573,7 @@
            (list 
             bootstrap-tmp-filename
             program-filename)
-           null
+           #f
 	   (if gui?
 	       (list "-mvqZ")
 	       (list "-mvq")))))
