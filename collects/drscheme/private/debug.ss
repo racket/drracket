@@ -103,9 +103,6 @@ profile todo:
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
                (lambda (exp)
-                 (printf "exp: ~s\n" (if (syntax? exp)
-                                         (syntax-object->datum exp)
-                                         exp))
                  (let ([annotated
                         (if (compiled-expression? 
                              (if (syntax? exp) (syntax-e exp) exp))
