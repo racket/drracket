@@ -204,6 +204,9 @@
 	      [super-after-delete after-delete])
       (public
 	[needs-execution? #f]
+	[library-changed
+	 (lambda ()
+	   (set! needs-execution? #t))]
 	[just-executed
 	 (lambda ()
 	   (set! needs-execution? #f)
@@ -224,10 +227,11 @@
 	(apply super-init args))))
   
   (define super-frame% (mred:make-searchable-frame%
-			(mred:make-info-frame%
-			 (mred:make-file-frame%
-			  (drscheme:frame:make-frame%
-			   mred:simple-menu-frame%)))))
+			(mred:make-edit-info-frame%
+			 (mred:make-info-frame%
+			  (mred:make-file-frame%
+			   (drscheme:frame:make-frame%
+			    mred:simple-menu-frame%))))))
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
       (inherit get-canvas
@@ -318,7 +322,16 @@
 	 (lambda ()
 	   (and (= (send definitions-edit last-position) 0)
 		(not (send definitions-edit modified?))
-		(null? (send definitions-edit get-filename))))])
+		(null? (send definitions-edit get-filename))))]
+	[change-to-file
+	 (lambda (name)
+	   (cond
+	     [(and name (file-exists? name))
+	      (send definitions-edit load-file name)]
+	     [name
+	      (send definitions-edit set-filename name)]
+	     [else (send definitions-edit clear)])
+	   (send definitions-canvas set-focus))])
 
       (public
 	[file-menu:between-open-and-save
@@ -604,6 +617,7 @@
 			       (string=? v last-one)))
 		(set! last-one v)
 		(set! library-msg (make-library-name-msg top-panel v))
+		(send definitions-edit library-changed)
 		(send top-panel change-children 
 		      (lambda (l) (build-top-panel-children)))))))])
       
@@ -632,8 +646,12 @@
 	(set-title-prefix "DrScheme")
 	
 	(send definitions-canvas set-focus)
-	(unless created-frame
-	  (set! created-frame this))
+	(cond
+	  [(eq? created-frame 'nothing-yet)
+	   (set! created-frame this)]
+	  [created-frame
+	   (set! created-frame #f)]
+	  [else (void)])
 	(mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
   
   (define snip%
@@ -784,7 +802,7 @@
     (lambda (filename . collections)
       (apply make-object unit% filename collections)))
 
-  (define created-frame #f)
+  (define created-frame 'nothing-yet)
   
   (mred:set-preference-default 'drscheme:open-all-files-in-scheme-mode
 			       #t
@@ -800,6 +818,7 @@
 		       (list "ss" "scm" "sch" "mredrc"))))))
    (lambda (name)
      (if (and created-frame
+	      (not (eq? created-frame 'nothing-yet)) 
 	      (send created-frame still-untouched?))
 	 (send created-frame change-to-file name)
 	 (let* ([unit (make-unit name)]
