@@ -8,22 +8,22 @@
 (letrec* ([test-data
 	   (list
 	    (vector "("
-		    "0.0-0.0: missing close paren"
+		    "1.1-1.2: missing close paren"
 		    #t
 		    "missing close paren"
 		    (vector 0 1))
 	    (vector "."
-		    "0.0-0.0: can't use `.' outside list"
+		    "1.1-1.2: can't use `.' outside list"
 		    #t
 		    "can't use `.' outside list"
 		    (vector 0 1))
 	    (vector "(begin)"
-		    "0.0-0.6: Malformed begin"
+		    "1.1-1.8: Malformed begin"
 		    #t
 		    "Malformed begin"
 		    (vector 0 7))
 	    (vector "x"
-		    "0.0-0.0: reference to undefined identifier: x"
+		    "1.1-1.2: reference to undefined identifier: x"
 		    #t
 		    "reference to undefined identifier: x"
 		    (vector 0 1))
@@ -58,17 +58,17 @@
 		    "(1 2)"
 		    #f)
 	    (vector "    (eval '(begin))"
-		    "0.4-0.18: Malformed begin"
+		    "1.5-1.20: Malformed begin"
 		    #t
 		    "Malformed begin"
 		    (vector 4 19))
 	    (vector "    (eval 'x)"
-		    "0.4-0.12: reference to undefined identifier: x"
+		    "1.5-1.6: reference to undefined identifier: x"
 		    #t
 		    "reference to undefined identifier: x"
 		    (vector 4 13))
 	    (vector "1 2 ( 3 4"
-		    "0.4-0.4: missing close paren"
+		    "1.5-1.6: missing close paren"
 		    #t
 		    (format "1~n2~nmissing close paren")
 		    (vector 4 5))
@@ -93,7 +93,7 @@
 		    (format "1~n2~nuncaught exception: #f")
 		    'unlocated-error)
 	    (vector (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
-		    (format "4.12-4.16: car: expects 1 argument, given 0~n15")
+		    (format "5.12-5.17: car: expects 1 argument, given 0~n15")
 		    #t
 		    (format "car: expects 1 argument, given 0~n15")
 		    (vector 138 143))
@@ -108,37 +108,37 @@
 		    "4"
 		    #f)
 	    (vector "(define-macro m (car))"
-		    "0.16-0.20: car: expects 1 argument, given 0"
+		    "1.17-1.22: car: expects 1 argument, given 0"
 		    #t
 		    "car: expects 1 argument, given 0"
 		    (vector 16 21))
 	    (vector
 	     (format "(define-macro m (lambda () (car)))~n(m)")
-	     "0.27-0.31: car: expects 1 argument, given 0"
+	     "1.28-1.33: car: expects 1 argument, given 0"
 	     #t
 	     "car: expects 1 argument, given 0"
 	     (vector 27 32))
 	    (vector
 	     (format "(define-macro m (lambda (x) `(+ ,x 1)))~n(m #t)")
-	     "1.1-1.6: +: expects type <number> as 1st argument, given: #t; other arguments were: 1"
+	     "2.1-2.7: +: expects type <number> as 1st argument, given: #t; other arguments were: 1"
 	     #t
 	     "+: expects type <number> as 1st argument, given: #t; other arguments were: 1"
 	     (vector 40 46))
 	    (vector
 	     "(define-macro m 1)"
-	     "0.0-0.17: Expander is not a procedure"
+	     "1.1-1.19: Expander is not a procedure"
 	     #t
 	     "Expander is not a procedure"
 	     (vector 0 18))
 	    (vector
 	     "(define-macro m (values (let ([x (lambda (x) x)]) x) (let ([y (lambda (x) x)]) y)))"
-	     "0.16-0.81: context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
+	     "1.17-1.83: context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
 	     #t
 	     "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
 	     (vector 16 82))
 	    (vector
 	     (format "(define-macro m (lambda (x) (values x x)))~n(m 1)")
-	     "0.28-0.39: context expected 1 value, received 2 values: 1 1"
+	     "1.29-1.41: context expected 1 value, received 2 values: 1 1"
 	     #t
 	     "context expected 1 value, received 2 values: 1 1"
 	     (vector 28 40)))]
