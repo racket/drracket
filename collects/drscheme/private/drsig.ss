@@ -132,6 +132,7 @@
      about-drscheme
      invite-tour
      add-language-items-to-help-menu
+     add-important-urls-to-help-menu
      switch-language-to))
   
   (define-signature drscheme:draw-arrow^
@@ -150,8 +151,13 @@
      open-users-url))
   
   (define-signature drscheme:language^
-    ((struct text/pos (text start end))
+    (create-module-based-launcher
+     create-module-based-stand-alone-executable
+     use-stand-alone-executable?
+
+     (struct text/pos (text start end))
      (struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
+    
      simple-settings->vector
      open-input-text
      language<%>
@@ -166,7 +172,8 @@
      install-teachpacks
      marshall-teachpack-cache
      unmarshall-teachpack-cache
-     
+     launcher-init-code
+     launcher-modules-to-embed
      new-teachpack-cache
      teachpack-cache?
      teachpack-cache-filenames
@@ -183,6 +190,7 @@
      (unit drscheme:language-configuration : drscheme:language-configuration^)
      (unit drscheme:language : drscheme:language^)
      (unit drscheme:snip : drscheme:snip^)
+     (unit drscheme:debug : drscheme:debug^)
      (open ((unit drscheme:help-desk : drscheme:help-desk^)))))
 
   (define-signature drscheme^

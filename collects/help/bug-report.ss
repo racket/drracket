@@ -24,28 +24,27 @@
                      (lambda (x) (lambda () 'unknown))])
       (namespace-variable-binding 'get-teachpack-filenames)))
   
+  ;; this one should be defined by help desk.
+  (define frame-mixin
+    (with-handlers ([not-break-exn?
+                     (lambda (exn)
+                       (lambda (x)
+                         x))])
+      (namespace-variable-binding 'help-desk:frame-mixin)))
+  
   (preferences:set-default 'drscheme:email "" string?)
   (preferences:set-default 'drscheme:full-name "" string?)
 
+  (define (remove-extra-blanks %)
+    (class %
+      (define/override (edit-menu:between-find-and-preferences menu) (void))
+      (super-instantiate ())))
+
   (define bug-frame%
-    (class (frame:standard-menus-mixin frame:basic%)
+    (class (frame-mixin (remove-extra-blanks (frame:standard-menus-mixin frame:basic%)))
       (init title)
-      (override file-menu:create-new?
-                file-menu:create-open?
-                file-menu:between-save-as-and-print
-                file-menu:between-print-and-close
-                
-                edit-menu:create-preferences?
-                edit-menu:between-find-and-preferences
-                edit-menu:between-select-all-and-find)
-      
-      (define (file-menu:create-new?) #f)
-      (define (file-menu:create-open?) #f)
-      (define (file-menu:between-save-as-and-print menu) (void))
-      (define (file-menu:between-print-and-close menu) (void))
-      (define (edit-menu:create-preferences?) #f)
-      (define (edit-menu:between-find-and-preferences menu) (void))
-      (define (edit-menu:between-select-all-and-find menu) (void))
+
+      (define/override (file-menu:between-print-and-close menu) (void))
       
       (override can-close?)
       (field (ok-to-close? #f))
@@ -403,13 +402,15 @@
                (message-box (string-constant illegal-bug-report)
                             (format (string-constant pls-fill-in-field) field-name))
                (done-checking #f)))
-           (list name summary description reproduce)
+           (list name summary)
            (list (string-constant bug-report-field-name)
-                 (string-constant bug-report-field-summary)
-                 (string-constant bug-report-field-description)
-                 (string-append (string-constant bug-report-field-reproduce1) 
-                                " "
-                                (string-constant bug-report-field-reproduce2))))
+                 (string-constant bug-report-field-summary)))
+          
+          (when (and (no-value? description)
+                     (no-value? reproduce))
+             (message-box (string-constant illegal-bug-report)
+                          (string-constant pls-fill-in-either-description-or-reproduce))
+             (done-checking #f))
           
           (unless (member #\@ (string->list (or (preferences:get 'drscheme:email) "")))
             (message-box (string-constant illegal-bug-report)
@@ -452,7 +453,7 @@
                                    "non-existant path")))
                        (current-library-collection-paths))))
     
-    (send human-language set-value (this-language))
+    (send human-language set-value (format "~a" (this-language)))
     
     (send (send collections get-editor) auto-wrap #t)
     (send (send docs-installed get-editor) auto-wrap #t)

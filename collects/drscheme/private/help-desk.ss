@@ -24,10 +24,20 @@
       
       (define new-help-frame #f)
       (define open-url-from-user #f)
-      (define help-desk-frame #f)
       (define (set-font-size x) (void))
-      (define doc-collections-changed void)
-       
+      (define original-doc-collections-changed void)
+      
+      (define (doc-collections-changed)
+        (original-doc-collections-changed))
+      
+      ;; help-desk-frame : (instanceof frame%)
+      ;; this holds onto a frame, even when the frame
+      ;; is closed. Only when a user initiates some
+      ;; help desk operation is this link broken
+      ;; and the gc can reclaim it.
+      (define help-desk-frame #f)
+      
+      
       ;; what does this do?
       ;(preferences:add-callback
       ; drscheme:language-configuration:settings-preferences-symbol
@@ -39,13 +49,12 @@
          (set-font-size v)
          #t))
       
-
       (define (user-defined-doc-position doc)
         (let ([lang (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
           (case (string->symbol doc)
-            [(advanced) 100]
-            [(intermediate) 101]
-            [(beginning) 102]
+            [(advanced) 101]
+            [(intermediate) 102]
+            [(beginning) 103]
             [else #f])))
       
       (define (load-help-desk)
@@ -73,41 +82,46 @@
                                 set-font-size))])
           (set! new-help-frame _new-help-frame)
           (set! open-url-from-user _open-url-from-user)
-          (set! doc-collections-changed _doc-collections-changed)
+          (set! original-doc-collections-changed _doc-collections-changed)
           (set! set-font-size _set-font-size)
           (set! load-help-desk void)))
       
       (define (open-url url)
-        (load-help-desk)
-        (new-help-frame url))
+        (with-help-desk-frame
+         (lambda ()
+           (send help-desk-frame goto-url url))))
       
       (define (open-users-url frame)
         (load-help-desk)
         (open-url-from-user 
          frame 
          (if (method-in-interface? 'goto-url (object-interface frame))
-             (lambda (url)
-               (send frame goto-url url))
+             (lambda (url) (send frame goto-url url))
              new-help-frame)))
       
       (define help-desk
         (case-lambda
          [()
-          (begin-busy-cursor)
-          (load-help-desk)
-          (set! help-desk-frame (new-help-frame startup-url))
-          (end-busy-cursor)]
+          (with-help-desk-frame 
+           void)]
          [(key) (help-desk key #t)]
          [(key lucky?) (help-desk key lucky? 'keyword+index)]
          [(key lucky? type) (help-desk key lucky? type 'exact)]
          [(key lucky? type mode)
-          (let ([turn-cursor-off? (not help-desk-frame)])
-            (if help-desk-frame
-                (send help-desk-frame show #t)
-                (begin (begin-busy-cursor)
-                       (help-desk)))
-            (if lucky?
-                (send help-desk-frame search-for-help/lucky key type mode)
-                (send help-desk-frame search-for-help key type mode))
-            (when turn-cursor-off?
-              (end-busy-cursor)))])))))
+          (with-help-desk-frame
+           (lambda ()
+             (if lucky?
+                 (send help-desk-frame search-for-help/lucky key type mode)
+                 (send help-desk-frame search-for-help key type mode))))]))
+      
+      (define (with-help-desk-frame thunk)
+        (cond
+          [(or (not help-desk-frame)
+               (not (send help-desk-frame is-shown?)))
+           (begin-busy-cursor)
+           (load-help-desk)
+           (set! help-desk-frame (new-help-frame startup-url))
+           (thunk)
+           (end-busy-cursor)]
+          [else
+           (send help-desk-frame show #t)])))))

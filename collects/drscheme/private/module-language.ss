@@ -5,6 +5,10 @@
            (lib "class.ss")
            (lib "list.ss")
            (lib "mred.ss" "mred")
+           (lib "embed.ss" "compiler")
+           (lib "launcher.ss" "launcher")
+           (lib "framework.ss" "framework")
+           (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
   (define module-language@
@@ -32,6 +36,9 @@
           (define/override (on-execute settings run-in-user-thread)
             (set! iteration-number 0)
             (super-on-execute settings run-in-user-thread))
+
+          (define/override (get-one-line-summary)
+            (string-constant module-language-one-line-summary))
           
           (define/override (get-style-delta) module-language-style-delta)
           
@@ -66,6 +73,30 @@
                               super-result))]
                         [else eof]))))
                 (super-front-end input settings)))
+          
+          ;; printer settings are just ignored here.
+          (define/override (create-executable setting parent program-filename executable-filename)
+            (let ([stand-alone? (drscheme:language:use-stand-alone-executable? parent)]
+                  [gui? (gui-utils:get-choice 
+                         (string-constant use-mred-binary?)
+                         (string-constant yes)
+                         (string-constant no)
+                         (string-constant drscheme)
+                         'disallow-close
+                         parent)])
+              (if stand-alone?
+                  (make-embedding-executable
+                   executable-filename
+                   gui?
+                   #f ;; verbose?
+                   (list (list #f `(file ,program-filename)))
+                   null
+                   null
+                   (list (if gui? "-Zmvqt" "-mvqt") program-filename))
+                  ((if gui? make-mred-launcher make-mzscheme-launcher)
+                   (list "-mvqt" program-filename)
+                   executable-filename))))
+          
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))
             (language-position (list "module")))))
@@ -88,7 +119,7 @@
              (let ([prefixed-name (if filename
                                       (build-prefixed-module-name filename (syntax name))
                                       (syntax name))])
-               (with-syntax ([s-prefixed-name prefixed-name]
+               (with-syntax ([s-prefixed-name (datum->syntax-object (syntax name) prefixed-name)]
                              [(to-provide-specs ...)
                               (cons
                                (syntax (all-from lang))

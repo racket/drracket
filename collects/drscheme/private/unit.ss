@@ -155,59 +155,43 @@
                   file-name))
             (string-constant untitled)))
       
-      (define (create-launcher frame)
-        (error 'create-lanuncher "not yet implemented")
-        '(let* ([program-filename (send (send frame get-definitions-text) get-filename)]
-                [executable-filename
-                 (if (eq? (system-type) 'windows)
-                     (string-append (basename program-filename) ".exe")
-                     (basename program-filename))]
-                [settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
-           
-           (cond
-             [(not program-filename)
-              (message-box (string-constant create-launcher-title)
-                           (string-constant must-save-before-launcher)
-                           frame)]
-             
-             [else
-              (let* ([filename 
-                      (parameterize ([finder:dialog-parent-parameter frame]
-                                     [finder:default-extension "exe"])
-                        (finder:put-file
-                         executable-filename
-                         #f #f
-                         (string-constant save-a-launcher)))]
-                     [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-                     [teachpacks 
-                      (drscheme:teachpack:teachpack-cache-filenames
-                       (preferences:get 'drscheme:teachpacks))])
-                (when filename
-                  (cond
-                    ;; this condition should guarantee that the language
-                    ;; matches the default mred or mzscheme initial language.
-                    ;; in that case, we don't need to load any of the
-                    ;; drs support so that program starts up much faster.
-                    [(and (null? teachpacks)
-                          (basis:full-language? settings)
-                          (ormap (lambda (x) (equal? x settings)) (basis:get-settings)))
-                     ((if in-mz?
-                          launcher:make-mzscheme-launcher
-                          launcher:make-mred-launcher)
-                      (list "-qmve"
-                            (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
-                                    program-filename))
-                      filename)]
-                    [else
-                     (let* ([v-settings (struct->vector settings)]
-                            [definitions (list "-e" (format "(define filename ~s)" program-filename)
-                                               "-e" (format "(define settings ~s)" v-settings)
-                                               "-e" (format "(define teachpacks '~s)" teachpacks))])
-                       ((if (and in-mz? (null? teachpacks))
-                            launcher:make-mzscheme-launcher
-                            launcher:make-mred-launcher)
-                        (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-                        filename))])))])))
+      (define (create-executable frame)
+        (let* ([definitions-text (send frame get-definitions-text)]
+               [program-filename (send definitions-text get-filename)])
+          (cond
+            [(not program-filename)
+             (message-box (string-constant create-executable-title)
+                          (string-constant must-save-before-executable)
+                          frame)]
+            [else
+             (when (or (not (send definitions-text is-modified?))
+                       (gui-utils:get-choice
+                        (string-constant definitions-not-saved)
+                        (string-constant yes)
+                        (string-constant no)
+                        (string-constant drscheme)
+                        #f
+                        frame))
+               (let* ([default-executable-filename
+                       (if (eq? (system-type) 'windows)
+                           (string-append (basename program-filename) ".exe")
+                           (basename program-filename))]
+                      [executable-filename 
+                       (parameterize ([finder:dialog-parent-parameter frame]
+                                      [finder:default-extension "exe"])
+                         (finder:put-file
+                          default-executable-filename
+                          #f #f
+                          (string-constant save-a-launcher)))])
+                 (when executable-filename
+                   (let ([settings (preferences:get 
+                                    drscheme:language-configuration:settings-preferences-symbol)])
+                     (send (drscheme:language-configuration:language-settings-language settings)
+                           create-executable
+                           (drscheme:language-configuration:language-settings-settings settings)
+                           frame
+                           program-filename
+                           executable-filename)))))])))
       
       (define make-bitmap 
         (case-lambda 
@@ -530,7 +514,8 @@
                                             (string-append
                                              (apply string
                                                     (vector->list
-                                                     (make-vector (- (defn-indent defn) min-indent) #\space)))
+                                                     (make-vector 
+                                                      (- (defn-indent defn) min-indent) #\space)))
                                              (defn-name defn))))
                           defs))
               (if sort-by-name?
@@ -1144,7 +1129,9 @@
                                    (send bdc get-pixel x y tmp-color)
                                    (if (zero? (send tmp-color red))
                                        #\;
-                                       #\space))
+                                       ;; non-breaking space, so the letters
+                                       ;; won't be messed up by scheme-mode tabbing
+                                       (integer->char 160)))
                                  
                                  (define (fetch-line y)
                                    (let loop ([x tw]
@@ -1405,8 +1392,11 @@
               (lambda (_1 _2) (send interactions-text kill-evaluation))
               #\k
               (string-constant kill-menu-item-help-string))
-            ;(make-object separator-menu-item% scheme-menu)
-            ;(make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
+            (make-object separator-menu-item% scheme-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant create-executable-menu-item-label)
+              scheme-menu
+              (lambda x (create-executable this)))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant reindent-menu-item-label)

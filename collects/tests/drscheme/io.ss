@@ -109,13 +109,24 @@
     (do-input-test "(list (read) (printf \"1~n\") (read) (printf \"3~n\"))"
                    "0 2\n"
                    "(0 #<void> 2 #<void>)"
-                   "{embedded \"0 1\n2\n3\"}"))
+                   "{embedded \"0 2\n1\n3\"}")
+    
+    (do-input-test "(write (read))"
+                   "()\n"
+                   ""
+                   "{embedded \"()\n()\"}")
+    
+    (do-input-test "(begin (write (read)) (write (read)))"
+                   "(1)\n(2)\n"
+                   ""
+                   "{embedded \"(1)\n(1)(2)\n(2)\"}"))
   
   (define drs-frame (wait-for-drscheme-frame))
   (define interactions-text (send drs-frame get-interactions-text))
   (set-language-level! '("PLT" "Textual (MzScheme)"))
   
   (define (run-test)
-    ;(long-io/execute-test)
-    ;(output-err-port-checking)
-    (reading-test)))
+    (long-io/execute-test)
+    (output-err-port-checking)
+    (reading-test)
+    ))

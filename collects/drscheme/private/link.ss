@@ -31,7 +31,7 @@
             [rep : drscheme:rep^
                  (rep@ init snip language-configuration language app 
                      frame unit text help-desk teachpack debug)]
-            [language : drscheme:language^ (language@ rep snip debug)]
+            [language : drscheme:language^ (language@ rep snip debug teachpack)]
             [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
@@ -50,7 +50,7 @@
                                module-language)]
             [tool : drscheme:tools^ (tools@ frame unit rep get/extend language
                                           (language-configuration : drscheme:language-configuration^)
-                                          help-desk init snip)]
+                                          help-desk init snip debug)]
             [main : drscheme:main^ (main@ app unit get/extend language-configuration language snip)])
       (export
        (unit teachpack drscheme:teachpack)

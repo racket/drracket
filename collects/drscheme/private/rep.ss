@@ -804,7 +804,7 @@
                     
                     (send transparent-text auto-wrap #t)
                     (send transparent-text balance-required #f)
-                    (send transparent-text set-styles-fixed #f)
+                    (send transparent-text set-styles-fixed #t)
                     
                     ;; ensure that there is a newline before the snip is inserted
                     (unless (member 'hard-newline
@@ -857,10 +857,11 @@
                                       (set! eof-received? #t))))
                               (semaphore-post char-fetched-sema))))
                          ; Wait for a char, allow breaks:
-                         (with-handlers ([void (lambda (x)
-                                                 ; Let someone else try to read...
-                                                 (semaphore-post fetch-char-sema)
-                                                 (raise x))])
+                         (with-handlers ([(lambda (x) #t)
+                                          (lambda (x)
+                                            ; Let someone else try to read...
+                                            (semaphore-post fetch-char-sema)
+                                            (raise x))])
                            (semaphore-wait/enable-break char-fetched-sema))
                          ; Got the char (no breaks)
                          (if peek?
@@ -1664,7 +1665,9 @@
                        (initialize-parameters snip-classes))))
                                   
                   ;; re-loads any teachpacks that have changed
-                  (drscheme:teachpack:load-teachpacks user-namespace (preferences:get 'drscheme:teachpacks))
+                  (drscheme:teachpack:load-teachpacks 
+                   user-namespace 
+                   (preferences:get 'drscheme:teachpacks))
 	      
 		  ;; initialize the language
 		  (send (drscheme:language-configuration:language-settings-language user-language-settings)
@@ -1742,11 +1745,11 @@
                        (send context running)
                        (send context not-running))))))
             
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;;;					     ;;;
-	;;;                Execution                 ;;;
-	;;;					     ;;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;;                                          ;;;
+            ;;;                Execution                 ;;;
+            ;;;                                          ;;;
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
             (field (repl-initially-active? #f))
             
@@ -2347,8 +2350,9 @@
           (field
 	   [rep-text _rep-text]
            [data null]
-           [stream-start 0]
-           [stream-end 0]
+           [old-stream-sections null]
+           [new-stream-start 0]
+           [new-stream-end 0]
            [shutdown? #f])
           
           (field
@@ -2358,7 +2362,7 @@
 
           [define/public get-insertion-point
             (lambda ()
-              stream-start)]
+              new-stream-start)]
           [define/public shutdown
             (lambda ()
               (set! shutdown? #t)
@@ -2374,15 +2378,17 @@
             (lambda ()
               (semaphore-wait stream-start/end-protect)
               (begin0
-                (cond
-                  [(< stream-start stream-end) #t]
-                  [else #f])
+                (not (null? old-stream-sections))
                 (semaphore-post stream-start/end-protect)))]
             
           [define/public eof-received
             (lambda () ; =Kernel=, =Handler=
               (set! eof-submitted? #t)
-              (set! stream-end (last-position))
+              (set! old-stream-sections 
+                    (append old-stream-sections 
+                            (list (cons new-stream-start (last-position)))))
+              (set! new-stream-start (last-position))
+              (set! new-stream-end (last-position))
               (semaphore-post wait-for-sexp))]
           
           [define/public fetch-char ; =Kernel=, =Handler=, =Non-Reentrant= (queue requests externally)
@@ -2392,11 +2398,15 @@
                 (let loop ()
                   (semaphore-wait stream-start/end-protect)
                   (cond
-                    [(< stream-start stream-end)
-                     (let ([s stream-start])
-                       (mark-consumed s (add1 s))
-                       (set! stream-start (add1 s))
-                       (set! ready-char (get-character s)))]
+                    [(not (null? old-stream-sections))
+                     (let* ([old-section (car old-stream-sections)]
+                            [old-section-start (car old-section)]
+                            [old-section-end (cdr old-section)])
+                       (set! ready-char (get-character old-section-start))
+                       (mark-consumed old-section-start (add1 old-section-start))
+                       (if (= (+ 1 old-section-start) old-section-end)
+                           (set! old-stream-sections (cdr old-stream-sections))
+                           (set-car! old-section (+ old-section-start 1))))]
                     [eof-submitted?
                      (set! ready-char eof)]
                     [else (void)])
@@ -2421,25 +2431,32 @@
                   (super-can-insert? start len))))
           [define/override can-change-style?
             (lambda (start len)
-              (or program-output?
-                  (super-can-change-style? start len)))]
+              (let ([super? (super-can-change-style? start len)])
+                (or program-output? super?)))]
           [define/override after-insert
             (lambda (start len)
               (super-after-insert start len)
-              (when program-output?
-                (when (start . <= . stream-start)
-                  (change-style output-delta start (+ start len))
-                  (set! stream-start (+ stream-start len))
-                  (set! stream-end (+ stream-end len))))
-              (unless program-output?
-                (let ([old-r (get-resetting)])
-                  (set-resetting #t)
-                  (change-style input-delta start (+ start len))
-                  (set-resetting old-r))))]
+              (cond
+                [program-output?
+                 (when (start . <= . new-stream-start)
+                   (change-style output-delta start (+ start len))
+                   (set! new-stream-start (+ new-stream-start len))
+                   (set! new-stream-end (+ new-stream-end len)))]
+                [else
+                 (when (<= new-stream-start start new-stream-end)
+                   (set! new-stream-end (+ new-stream-end len)))
+                 (let ([old-r (get-resetting)])
+                   (set-resetting #t)
+                   (change-style input-delta start (+ start len))
+                   (set-resetting old-r))]))]
           [define/override do-eval
             (lambda (start end)
               (do-pre-eval)
-              (set! stream-end (+ end 1))
+              (set! old-stream-sections
+                    (append old-stream-sections
+                            (list (cons new-stream-start new-stream-end))))
+              (set! new-stream-start (+ end 1))
+              (set! new-stream-end (+ end 1))
               (semaphore-post wait-for-sexp)
               (do-post-eval))]
           (inherit insert-prompt)

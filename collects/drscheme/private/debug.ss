@@ -68,7 +68,7 @@
                              (make-object image-snip% b)
                              "[file]")))
       
-      ;; add-debugging : (sexp -> value) -> sexp -> value
+      ;; make-debug-eval-handler : (sexp -> value) -> sexp -> value
       ;; adds debugging information to `sexp' and calls `oe'
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
@@ -87,7 +87,7 @@
                                     (editor:keymap-mixin 
                                      text:basic%))))
       
-      ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string exn -> void
+      ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string (union TST exn) -> void
       ;; adds in the bug icon, if there are contexts to display
       (define (make-debug-error-display-handler orig-error-display-handler)
         (define (debug-error-display-handler msg exn)

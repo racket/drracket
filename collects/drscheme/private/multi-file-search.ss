@@ -5,6 +5,7 @@
            (lib "unitsig.ss")
            (lib "mred.ss" "mred")
            (lib "file.ss")
+           (lib "thread.ss")
            (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
@@ -125,6 +126,7 @@
           (semaphore-wait sema)
           (let ([matches lst])
             (set! lst null)
+            (set! callback-queued? #f)
             (semaphore-post sema)
             (send results-text begin-edit-sequence)
             (for-each
@@ -143,27 +145,46 @@
         (define thd
           (thread
            (lambda ()
-             (do-search search-info 
-                        (lambda (base-filename filename line-string line-number col-number match-length)
-                          (semaphore-wait sema)
-                          (set! lst
-                                (cons
-                                 (list
-                                  base-filename
-                                  filename
-                                  line-string
-                                  line-number
-                                  col-number
-                                  match-length)
-                                 lst))
-                          (unless callback-queued?
-                            (queue-callback
-                             (lambda ()
-                               (add-matches))))
-                          (semaphore-post sema)))
-             (queue-callback
-              (lambda ()
-                (send stop-button enable #f))))))
+             (with-handlers ([exn:break?
+                              (lambda (x)
+                                (printf "in exn handler\n")
+                                (queue-callback
+                                 (lambda ()
+                                   (printf "search interrupted callback\n")
+                                   (send results-text search-interrupted))
+                                 #f)
+                                (printf "end of exn handler\n"))])
+               (do-search
+                search-info 
+                (lambda (base-filename filename line-string line-number col-number match-length)
+                  ;; somehow, when lots of results are found, this still doesn't work properly
+                  ;; and drscheme can get stuck.
+                  (dynamic-disable-break
+                   (lambda ()
+                     (semaphore-wait sema)
+                     (set! lst
+                           (cons
+                            (list
+                             base-filename
+                             filename
+                             line-string
+                             line-number
+                             col-number
+                             match-length)
+                            lst))
+                     (unless callback-queued?
+                       (set! callback-queued? #t)
+                       (queue-callback
+                        (lambda ()
+                          (add-matches))
+                        #f))
+                     (semaphore-post sema)))))
+               (queue-callback
+                (lambda ()
+                  (send stop-button enable #f)
+                  (send results-text search-complete))
+                #f))
+             (printf "thread done\n"))))
         
         (send frame reflow-container)
         (send panel set-percentages (preferences:get 'drscheme:multi-file-search:percentages))
@@ -197,7 +218,12 @@
       ;;   zoom-text : (instance-of text%)
       ;; public-methods:
       ;;   add-match : string int in tint int -> void
-      ;;   adds a match to the text
+      ;;      adds a match to the text
+      ;;   search-interrupted : -> void
+      ;;      inserts a message saying "search interrupted".
+      ;;      search-complete is not expected to be called if this method is called.
+      ;;   search-complete : -> void
+      ;;      inserts a message saying "no matches found" if none were reported
       (define results-text%
         (class text:basic% 
           (init-field zoom-text)
@@ -307,22 +333,21 @@
                   
                   (unless match-shown?
                     (show-this-match)))))]
+
+          (define/public (search-interrupted)
+            (insert #\newline (last-position) (last-position))
+            (insert (string-constant mfs-search-interrupted) (last-position) (last-position)))
+          
+          (define/public (search-complete)
+            (unless match-shown?
+              (insert #\newline (last-position) (last-position))
+              (insert (string-constant mfs-no-matches-found) (last-position) (last-position))))
           
           (inherit get-style-list set-style-list set-styles-sticky)
           (super-instantiate ())
           (send zoom-text lock #t)
           (set-styles-sticky #f)
           (set-style-list (scheme:get-style-list))
-          '(let ([delta (make-object style-delta% 'change-normal)]
-                [style (send (get-style-list) find-named-style "Standard")])
-            (send delta set-delta 'change-family 'modern)
-            (send zoom-text set-style-list (get-style-list))
-            (if style
-                (send style set-delta delta)
-                (send (get-style-list) new-named-style "Standard"
-                      (send (get-style-list) find-or-create-style
-                            (send (get-style-list) find-named-style "Basic")
-                            delta))))
           (insert (string-constant mfs-searching...))))
       
       ;; this frame is just like a regular frame except that it

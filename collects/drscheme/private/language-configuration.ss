@@ -88,6 +88,36 @@
       ;; type language-settings = (make-language-settings (instanceof language<%>) settings)
       (define-struct language-settings (language settings))
        
+      
+                                                        
+ ;;;                                                    
+   ;                                                    
+   ;                                                    
+   ;    ;;;;  ; ;;;    ;;; ;;;  ;;  ;;;;    ;;; ;  ;;;  
+   ;        ;  ;;  ;  ;   ;  ;   ;      ;  ;   ;  ;   ; 
+   ;     ;;;;  ;   ;  ;   ;  ;   ;   ;;;;  ;   ;  ;;;;; 
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;     
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ; 
+ ;;;;;;  ;;; ;;;;  ;;  ;;;;   ;;; ;  ;;; ;  ;;;;   ;;;  
+                          ;                    ;        
+                          ;                    ;        
+                       ;;;                  ;;;         
+
+                                          
+    ;;    ;           ;;;                 
+     ;                  ;                 
+     ;                  ;                 
+  ;;;;  ;;;    ;;;;     ;     ;;;    ;;; ;
+ ;   ;    ;        ;    ;    ;   ;  ;   ; 
+ ;   ;    ;     ;;;;    ;    ;   ;  ;   ; 
+ ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+ ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+  ;;; ; ;;;;;   ;;; ; ;;;;;;  ;;;    ;;;; 
+                                        ; 
+                                        ; 
+                                     ;;;  
+
+      
       ;; language-dialog : (boolean language-setting -> language-setting)
       ;;                   (boolean language-setting (union #f (instanceof top-level-window%))
       ;;                    -> language-setting)
@@ -127,6 +157,7 @@
               (rename [super-on-subwindow-char on-subwindow-char])
               (define/override (on-subwindow-char receiver evt)
                 (case (send evt get-key-code)
+                  [(escape) (cancel-callback)]
                   [(#\return numpad-enter) (ok-callback)]
                   [else (super-on-subwindow-char receiver evt)]))
               (super-instantiate ())))
@@ -143,6 +174,10 @@
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
           (define details-outer-panel (make-object vertical-pane% outermost-panel))
 	  (define details-panel (make-object panel:single% details-outer-panel))
+          (define one-line-summary-message (instantiate message% ()
+                                             (parent dialog)
+                                             (label "")
+                                             (stretchable-width #t)))
           (define button-panel (make-object horizontal-panel% dialog))
 	  (define welcome-after-panel (instantiate vertical-panel% () 
                                         (parent dialog)
@@ -171,6 +206,7 @@
                 (public selected)
                 (define (selected)
                   (send details-panel active-child language-details-panel)
+                  (send one-line-summary-message set-label (send language get-one-line-summary))
                   (send revert-to-defaults-button enable #t)
 		  (send ok-button enable #t)
 		  (set! get/set-selected-language-settings get/set-settings)
@@ -184,6 +220,7 @@
 	    (send ok-button enable #f)
             (send revert-to-defaults-button enable #f)
 	    (send details-panel active-child no-details-panel)
+            (send one-line-summary-message set-label "")
 	    (set! get/set-selected-language-settings #f)
 	    (set! selected-language #f))
 
@@ -317,6 +354,10 @@
 		      (send child open)
 		      (loop child (car position) (cdr position))]))))
 
+          ;; docs-callback : -> void
+          (define (docs-callback)
+            (void))
+          
           ;; details-shown? : boolean
           ;; indicates if the details are currently visible in the dialog
           (define details-shown? (not (send language-to-show default-settings? settings-to-show)))
@@ -411,6 +452,7 @@
 	  (close-all-languages)
 	  (open-current-language)
           (get/set-selected-language-settings settings-to-show)
+          (send languages-hier-list focus)
           (unless parent
             (send dialog center 'both))
           (send dialog show #t)
@@ -556,6 +598,22 @@
           (if (directory-exists? lib-dir)
               lib-dir
               #f)))
+
+      
+                                                                      
+                            ;;                          ;;            
+  ;                          ;                           ;            
+  ;                          ;                           ;            
+ ;;;;;   ;;;   ;;;;    ;;;   ; ;;  ; ;;;   ;;;;    ;;;   ;  ;;   ;;;  
+  ;     ;   ;      ;  ;   ;  ;;  ;  ;   ;      ;  ;   ;  ; ;    ;   ; 
+  ;     ;;;;;   ;;;;  ;      ;   ;  ;   ;   ;;;;  ;      ;;      ;;;  
+  ;     ;      ;   ;  ;      ;   ;  ;   ;  ;   ;  ;      ; ;        ; 
+  ;   ; ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;  ;   ;   ; 
+   ;;;   ;;;    ;;; ;  ;;;  ;;; ;;; ;;;;    ;;; ;  ;;;  ;;   ;;  ;;;  
+                                    ;                                 
+                                    ;                                 
+                                   ;;;                                
+
       
       ;; add-new-teachpack : (instanceof frame%) -> void
       ;; querys the user for the name of a teachpack and adds it to the
@@ -587,12 +645,34 @@
         (drscheme:teachpack:set-teachpack-cache-filenames!
          (preferences:get 'drscheme:teachpacks)
          null))
-      
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;                                                                  ;;
-      ;;                    info.ss-specified languages                   ;;
-      ;;                                                                  ;;
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+   ;             ;;;                             
+                ;                                
+                ;                                
+ ;;;   ; ;;;   ;;;;;   ;;;           ;;;    ;;;  
+   ;    ;;  ;   ;     ;   ;         ;   ;  ;   ; 
+   ;    ;   ;   ;     ;   ;          ;;;    ;;;  
+   ;    ;   ;   ;     ;   ;             ;      ; 
+   ;    ;   ;   ;     ;   ;         ;   ;  ;   ; 
+ ;;;;; ;;;  ;; ;;;;    ;;;    ;      ;;;    ;;;  
+                                                 
+                                                 
+                                                 
+
+                                                               
+ ;;;                                                           
+   ;                                                           
+   ;                                                           
+   ;    ;;;;  ; ;;;    ;;; ;;;  ;;  ;;;;    ;;; ;  ;;;    ;;;  
+   ;        ;  ;;  ;  ;   ;  ;   ;      ;  ;   ;  ;   ;  ;   ; 
+   ;     ;;;;  ;   ;  ;   ;  ;   ;   ;;;;  ;   ;  ;;;;;   ;;;  
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;          ; 
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ; 
+ ;;;;;;  ;;; ;;;;  ;;  ;;;;   ;;; ;  ;;; ;  ;;;;   ;;;    ;;;  
+                          ;                    ;               
+                          ;                    ;               
+                       ;;;                  ;;;                
+
       
       (define (add-info-specified-languages)
         (for-each add-info-specified-language
@@ -607,7 +687,11 @@
                                         (lambda ()
                                           (map (lambda (lang-position)
                                                  (map (lambda (x) 0) lang-position))
-                                               lang-positions)))])
+                                               lang-positions)))]
+                   [summaries (info-proc 'drscheme-language-one-line-summaries 
+                                         (lambda ()
+                                           (map (lambda (lang-position) "")
+                                                lang-positions)))])
               (cond
                 [(and (list? lang-positions)
                       (andmap (lambda (lang-position numbers)
@@ -625,10 +709,13 @@
                                 (and (list? x)
                                      (andmap string? x)))
                               lang-modules)
+                      (list? summaries)
+                      (andmap string? summaries)
                       (= (length lang-positions)
-                         (length lang-modules)))
+                         (length lang-modules)
+                         (length summaries)))
                  (for-each
-                  (lambda (lang-module lang-position lang-numbers)
+                  (lambda (lang-module lang-position lang-numbers one-line-summary)
                     (let ([%
                            (drscheme:language:module-based-language->language-mixin
                             (drscheme:language:simple-module-based-language->module-based-language-mixin
@@ -636,10 +723,12 @@
                       (add-language (instantiate % ()
                                       (module `(lib ,@lang-module))
                                       (language-position lang-position)
-                                      (language-numbers lang-numbers)))))
+                                      (language-numbers lang-numbers)
+                                      (one-line-summary one-line-summary)))))
                   lang-modules
                   lang-positions
-                  numberss)]
+                  numberss
+                  summaries)]
                 [else
                  (message-box (string-constant drscheme)
                               (format (string-constant bad-module-language-specs)

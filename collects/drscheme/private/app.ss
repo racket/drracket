@@ -5,6 +5,7 @@
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "mred.ss" "mred")
+           (lib "sendurl.ss" "net")
            "drsig.ss"
            "../acks.ss"
            (lib "framework.ss" "framework")
@@ -321,8 +322,6 @@
                           d-http))
                   (send e change-style d-usual))])
           
-          
-          
           (send* d-http 
             (copy d-usual)
             (set-delta-foreground "BLUE")
@@ -440,6 +439,25 @@
           (send f show #t)
           f))
       
+      (define (add-important-urls-to-help-menu help-menu)
+	(let* ([important-urls
+                (instantiate menu% ()
+                  (parent help-menu)
+                  (label (string-constant web-materials)))]
+               [add
+                (lambda (name url)
+                  (instantiate menu-item% ()
+                    (label name)
+                    (parent important-urls)
+                    (callback
+                     (lambda (x y)
+                       (send-url url)))))])
+          (add (string-constant drscheme-homepage) "http://www.drscheme.org/")
+          (add (string-constant plt-homepage) "http://www.plt-scheme.org/")
+          (add (string-constant teachscheme!-homepage) "http://www.teach-scheme.org/")
+          (add (string-constant how-to-design-programs) "http://www.htdp.org/")
+          (add (string-constant how-to-use-scheme) "http://www.htus.org/")))
+
       (define (add-language-items-to-help-menu help-menu)
         (let ([added-any? #f])
           (for-each (lambda (native-lang-string language)

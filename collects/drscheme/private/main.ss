@@ -26,7 +26,6 @@
               [drscheme:language : drscheme:language^]
               [drscheme:snip : drscheme:snip^])
       
-      
       ;; no more extension after this point
       (drscheme:get/extend:get-interactions-canvas%)
       (drscheme:get/extend:get-definitions-canvas%)
