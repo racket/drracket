@@ -2,6 +2,9 @@
         Version 299
 ------------------------------
 
+ - DrScheme's background color for the definitions and
+   interactions window is now configurable.
+
  - The regular expression language for the lexer has changed.
    See doc.txt in the parser-tools collection.
    (This isn't a DrScheme change per se.)
