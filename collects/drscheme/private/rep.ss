@@ -848,6 +848,8 @@ TODO
             (when should-collect-garbage?
               (set! should-collect-garbage? #f)
               (collect-garbage))
+            (set! in-evaluation? #t)
+            (update-running #t)
             (set! need-interaction-cleanup? #t)
             
             (run-in-evaluation-thread
