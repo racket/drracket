@@ -805,7 +805,13 @@
             (lambda ()
               (and (= (send definitions-text last-position) 0)
                    (not (send definitions-text is-modified?))
-                   (not (send definitions-text get-filename))))]
+                   (not (send definitions-text get-filename))
+                   
+                   (= (send interactions-text last-paragraph) 2)
+                   (equal? (send interactions-text get-text
+                                 (send interactions-text paragraph-start-position 2)
+                                 (send interactions-text paragraph-end-position 2))
+                           (send interactions-text get-prompt))))]
           [define change-to-file
             (lambda (name)
               (cond
