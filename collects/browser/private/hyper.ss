@@ -276,7 +276,7 @@
                                  (send progress-dlg show #f))
                                (when break-button
                                  (send break-button enable #f))
-                               (send top-level-window close-status-line 'browser:hyper.ss)
+                               (close-browser-status-line top-level-window)
                                (break-thread timeout-thread)
                                (semaphore-post wait-to-show))
                              (with-handlers ([void (lambda (x)
@@ -310,8 +310,8 @@
                       (lambda ()
                         (semaphore-wait wait-to-show)
                         (unless done?
-                          (send top-level-window open-status-line 'browser:hyper.ss)
-                          (send top-level-window update-status-line 'browser:hyper.ss e-text)
+                          (init-browser-status-line top-level-window)
+                          (update-browser-status-line top-level-window e-text)
                           (when break-button
                             (send break-button enable #t)
                             (send (send top-level-window get-hyper-panel)
@@ -321,9 +321,7 @@
                                     (semaphore-post wait-to-break)
                                     (break-thread t))))
                           (set! show-progress
-                                (lambda (s)
-                                  (send top-level-window update-status-line 'browser:hyper.ss s)
-                                  (send top-level-window set-status-text s))))
+                                (lambda (s) (update-browser-status-line top-level-window s))))
                         (semaphore-post wait-to-show))])
                 (thread-wait timeout-thread)
                 (unless done?
@@ -331,6 +329,13 @@
                 (yield wait-to-continue)
                 (when exn (raise exn))
                 result))
+            
+            (define/public (init-browser-status-line top-level-window)
+              (send top-level-window open-status-line 'browser:hyper.ss))
+            (define/public (update-browser-status-line top-level-window s)
+              (send top-level-window update-status-line 'browser:hyper.ss s))
+            (define/public (close-browser-status-line top-level-window)
+              (send top-level-window close-status-line 'browser:hyper.ss))
             
             [define/public reload
               (opt-lambda ([progress void])
