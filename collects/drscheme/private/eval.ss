@@ -13,7 +13,7 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program input language-settings init kill-termination iter)
+      (define (old-expand-program input language-settings init kill-termination iter)
         (let* ([eventspace (make-eventspace)]
                [language (drscheme:language-configuration:language-settings-language
                           language-settings)]
@@ -67,6 +67,72 @@
                         (iter in (lambda () (void)))]
                        [else
                         (iter in (lambda () (loop)))])))))))))
+
+      (define (expand-program input language-settings init kill-termination iter)
+        (let-values ([(eventspace custodian) (build-user-eventspace/custodian
+                                              language-settings
+                                              init
+                                              kill-termination)])
+          (let ([language (drscheme:language-configuration:language-settings-language
+                           language-settings)]
+                [settings (drscheme:language-configuration:language-settings-settings
+                           language-settings)])          
+            (parameterize ([current-eventspace eventspace])
+              (queue-callback
+               (lambda ()
+                 (let ([read-thnk (send language front-end input settings)])
+                   (let loop ()
+                     (let ([in (let ([rd (read-thnk)])
+                                 (if (eof-object? rd)
+                                     rd
+                                     (expand rd)))])
+                       (cond
+                         [(eof-object? in)
+                          (iter in (lambda () (void)))]
+                         [else
+                          (iter in (lambda () (loop)))]))))))))))
+      
+      (define (build-user-eventspace/custodian language-settings init kill-termination)
+        (let* ([eventspace (make-eventspace)]
+               [language (drscheme:language-configuration:language-settings-language
+                          language-settings)]
+               [settings (drscheme:language-configuration:language-settings-settings
+                          language-settings)]
+               [user-custodian (make-custodian)]
+               [eventspace-main-thread #f]
+               [run-in-eventspace
+                (lambda (thnk)
+                  (parameterize ([current-eventspace eventspace])
+                    (let ([sema (make-semaphore 0)]
+                          [ans #f])
+                      (queue-callback
+                       (lambda ()
+                         (let/ec k
+                           (parameterize ([error-escape-handler
+                                           (let ([drscheme-expand-program-error-escape-handler
+                                                  (lambda () (k (void)))])
+                                             drscheme-expand-program-error-escape-handler)])
+                             (set! ans (thnk))))
+                         (semaphore-post sema)))
+                      (semaphore-wait sema)
+                      ans)))]
+               [drs-snip-classes (get-snip-classes)])
+          (run-in-eventspace
+           (lambda ()
+             (current-custodian user-custodian)
+             (set-basic-parameters drs-snip-classes)
+             (drscheme:rep:current-language-settings language-settings)))
+          (send language on-execute settings run-in-eventspace)
+          (run-in-eventspace
+           (lambda ()
+             (set! eventspace-main-thread (current-thread))
+             (init)
+             (break-enabled #t)))
+          (thread
+           (lambda ()
+             (thread-wait eventspace-main-thread)
+             (kill-termination)))
+          (values eventspace user-custodian)))
       
       
       ;; get-snip-classes : -> (listof snipclass)
