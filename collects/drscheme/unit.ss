@@ -486,13 +486,13 @@
 				     (set! inverted? #f)
 				     (on-paint)))]
 		[defns (get-definitions)])
-            (make-object mred:menu-item% sorting-name
+            (make-object fw:menu:can-restore-menu-item% sorting-name
               menu
               (lambda x
                 (change-sorting-order)))
             (make-object mred:separator-menu-item% menu)
 	    (if (null? defns)
-		(send (make-object mred:menu-item%
+		(send (make-object fw:menu:can-restore-menu-item%
 			"<< no definitions found >>"
 			menu
 			void)
@@ -510,8 +510,8 @@
 					      next-start))]
 			   [item
 			    (make-object (if checked?
-					     mred:checkable-menu-item%
-					     mred:menu-item%)
+					     fw:menu:can-restore-checkable-menu-item%
+					     fw:menu:can-restore-menu-item%)
 			      (defn-name defn)
 			      menu
 			      (lambda x
@@ -710,16 +710,16 @@
 	[file-menu:between-save-as-and-print
 	 (lambda (file-menu)
 	   (let ([sub-menu (make-object mred:menu% "Save Other" file-menu)])
-	     (make-object mred:menu-item%
+	     (make-object fw:menu:can-restore-menu-item%
 	       "Save Definitions As Text..."
 	       sub-menu
 	       (lambda (_1 _2)
 		 (save-as-text-from-text definitions-text)))
-	     (make-object mred:menu-item%
+	     (make-object fw:menu:can-restore-menu-item%
 	       "Save Interactions"
 	       sub-menu
 	       (lambda (_1 _2) (send interactions-text save-file)))
-	     (make-object mred:menu-item%
+	     (make-object fw:menu:can-restore-menu-item%
 	       "Save Interactions As..."
 	       sub-menu
 	       (lambda (_1 _2) 
@@ -728,13 +728,13 @@
 		   (when file
 		     (send interactions-text save-file 
 			   file 'standard)))))
-	     (make-object mred:menu-item%
+	     (make-object fw:menu:can-restore-menu-item%
 	       "Save Interactions As Text..."
 	       sub-menu
 	       (lambda (_1 _2)
 		 (save-as-text-from-text interactions-text)))
 					;	   (make-object mred:separator-menu-item% file-menu)
-					;	   (make-object mred:menu-item%
+					;	   (make-object fw:menu:can-restore-menu-item%
 					;	     "Show Interactions History"
 					;	     file-menu
 					;	     (lambda (_1 _2)
@@ -744,7 +744,7 @@
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)
 	   (set! file-menu:print-transcript-item
-		 (make-object mred:menu-item%
+		 (make-object fw:menu:can-restore-menu-item%
 		   "Print Interactions..."
 		   file-menu
 		   (lambda (_1 _2)
@@ -873,49 +873,41 @@
 	  (drscheme:language:fill-language-menu this language-menu)
 	  
 	  (set! execute-menu-item
-		(make-object mred:menu-item%
+		(make-object fw:menu:can-restore-menu-item%
 		  "Execute"
 		  scheme-menu
 		  (lambda (_1 _2) (execute-callback))
-		  (and
-		   (fw:preferences:get 'framework:menu-bindings)
-		   #\t)
+		  #\t
 		  "Restart the program in the definitions window"))
-	  (make-object mred:menu-item%
+	  (make-object fw:menu:can-restore-menu-item%
 	    "Break"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-text break))
-	    (and
-	     (fw:preferences:get 'framework:menu-bindings)
-	     #\b)
+            #\b
 	    "Break the current evaluation")
-	  (make-object mred:menu-item%
+	  (make-object fw:menu:can-restore-menu-item%
 	    "Kill"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-text kill-evaluation))
-	    (and
-	     (fw:preferences:get 'framework:menu-bindings)
-	     #\k)
+            #\k
 	    "Kill the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
-          (make-object mred:menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
+          (make-object fw:menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
 	  (make-object mred:separator-menu-item% scheme-menu)
-	  (make-object mred:menu-item%
+	  (make-object fw:menu:can-restore-menu-item%
 	    "&Reindent"
 	    scheme-menu
 	    (send-method 'tabify-selection))
-	  (make-object mred:menu-item%
+	  (make-object fw:menu:can-restore-menu-item%
 	    "Reindent &All"
 	    scheme-menu
 	    (send-method 'tabify-all)
-	    (and
-	     (fw:preferences:get 'framework:menu-bindings)
-	     #\i))
-	  (make-object mred:menu-item%
+            #\i)
+	  (make-object fw:menu:can-restore-menu-item%
 	    "&Comment Out"
 	    scheme-menu
 	    (send-method 'comment-out-selection))
-	  (make-object mred:menu-item%
+	  (make-object fw:menu:can-restore-menu-item%
 	    "&Uncomment"
 	    scheme-menu
 	    (send-method 'uncomment-selection)))
@@ -923,27 +915,23 @@
 	(fw:frame:reorder-menus this)
 	     
 	(set! definitions-item
-	      (make-object mred:menu-item%
+	      (make-object fw:menu:can-restore-menu-item%
 		"Hide &Definitions"
 		show-menu
 		(lambda (_1 _2) 
 		  (toggle-show/hide definitions-item)
 		  (update-shown/ensure-one interactions-item))
-		(and
-		 (fw:preferences:get 'framework:menu-bindings)
-		 #\d)
+                #\d
 		"Show the definitions window"))
 	(set! interactions-item
-	      (make-object mred:menu-item%
-                           "Show &Interactions"
-                           show-menu
-                           (lambda (_1 _2) 
-                             (toggle-show/hide interactions-item)
-                             (update-shown/ensure-one definitions-item))
-                           (and
-                            (fw:preferences:get 'framework:menu-bindings)
-                            #\e)
-                           "Show the interactions window")))
+	      (make-object fw:menu:can-restore-menu-item%
+                "Show &Interactions"
+                show-menu
+                (lambda (_1 _2) 
+                  (toggle-show/hide interactions-item)
+                  (update-shown/ensure-one definitions-item))
+                #\e
+                "Show the interactions window")))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
@@ -986,7 +974,7 @@
 	   (for-each (lambda (item) (send item delete)) teachpack-items)
 	   (set! teachpack-items
 		 (map (lambda (name)
-			(make-object mred:menu-item%
+			(make-object fw:menu:can-restore-menu-item%
 			  (format "Clear ~a Teachpack" (mzlib:file:file-name-from-path name))
 			  language-menu
 			  (lambda (item evt)
@@ -1102,15 +1090,13 @@
 ;; nixed becuase of poor support from reader
 
           (make-object mred:separator-menu-item% scheme-menu)
-          (make-object mred:menu-item%
+          (make-object fw:menu:can-restore-menu-item%
             "Insert &Lambda"
             scheme-menu
             (lambda x (let ([editor (get-edit-target-object)])
                         (when editor
                           (send editor insert (make-object lambda-snip%)))))
-	    (and
-	     (fw:preferences:get 'framework:menu-bindings)
-	     #\l))
+            #\l)
 
 
   (define lambda-snipclass
