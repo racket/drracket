@@ -484,7 +484,12 @@
 						  [(negative? n)
 						   (make-object style-delta% 'change-smaller (- n))]
 						  [else
-						   (make-object style-delta% 'change-size n)]))))]
+						   (cond
+						    [(n . < . 2)
+						     (make-object style-delta% 'change-smaller (- 2 n))]
+						    [(n . > . 2)
+						     (make-object style-delta% 'change-bigger (- n 2))]
+						    [else #f])]))))]
 				    [face (and face-string
 					       (let ([f (let loop ([f face-string])
 							  (let ([m (regexp-match face-regexp f)]
