@@ -15,11 +15,10 @@
 		   [full-dir (collection-path "drscheme" "tools" dir)])
 	      (if (and (directory-exists? full-dir)
 		       (not (string=? "CVS" dir)))
-		  (let* ([unit-path (build-path full-dir "unit.ss")]
-			 [link-sym (string->symbol dir)])
-		    `((,link-sym : () ((require-unit/sig ,unit-path)
-				       mred mzlib framework print-convert export zodiac))
-		      .
-		      ,(loop (cdr dirs))))
+		  `((,(string->symbol dir)
+		     : () ((require-library "unit.ss" "drscheme" "tools" ,dir)
+			   mred mzlib framework print-convert export zodiac))
+		    .
+		    ,(loop (cdr dirs)))
 		  (loop (cdr dirs))))])))
     (export)))
