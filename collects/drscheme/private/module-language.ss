@@ -52,7 +52,7 @@
           (define/override (front-end input settings)
             (if (and (drscheme:language:text/pos? input)
                      (is-a? (drscheme:language:text/pos-text input)
-                            drscheme:unit:definitions-text%))
+                            (drscheme:unit:get-definitions-text%)))
                 (let ([super-thunk (super-front-end input settings)]
                       [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
                       [module-name #f])

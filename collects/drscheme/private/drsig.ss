@@ -110,24 +110,19 @@
      get-definitions-text
      get-interactions-canvas
      get-definitions-canvas
-     get-unit-frame
-     
-     base-interactions-text%
-     base-definitions-text%
-     base-interactions-canvas%
-     base-definitions-canvas%
-     base-unit-frame%))
+     get-unit-frame))
     
   (define-signature drscheme:unit^
     (frame% 
      frame<%>
      make-bitmap
      definitions-canvas%
-     definitions-text%
+     get-definitions-text%
      definitions-text<%>
      interactions-canvas%
      open-drscheme-window
-     program-editor-mixin))
+     get-program-editor-mixin
+     add-to-program-editor-mixin))
   
   (define-signature drscheme:frame^
     (name-message%

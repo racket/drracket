@@ -322,5 +322,5 @@
         (unless (memq current-phase phases)
           (error func "can only be called in phase: ~a"
                  (apply string-append 
-                        (map (lambda (x) (format "~a " x))
+                        (map (lambda (x) (format "~e " x))
                              (filter (lambda (x) x) phases)))))))))

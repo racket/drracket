@@ -17,7 +17,7 @@
               [drscheme:debug : drscheme:debug^])
       
       (define make-extender
-        (lambda (base%)
+        (lambda (get-base% name)
           (let ([extensions (lambda (x) x)]
                 [built-yet? #f]
                 [built #f]
@@ -37,7 +37,7 @@
                 [(extension before?)
                  (when built-yet?
                    (error 'extender "cannot build a new extension of ~a after initialization"
-                          base%))
+                          name))
                  (set! extensions 
                        (if before?
                            (compose (verify extension) extensions)
@@ -45,34 +45,36 @@
              (lambda ()
                (unless built-yet?
                  (set! built-yet? #t)
-                 (set! built (extensions base%)))
+                 (set! built (extensions (get-base%))))
                built)))))
       
-      (define base-interactions-canvas% drscheme:unit:interactions-canvas%)
+      (define (get-base-interactions-canvas%)
+        drscheme:unit:interactions-canvas%)
       
       (define-values (extend-interactions-canvas get-interactions-canvas)
-        (make-extender base-interactions-canvas%))
+        (make-extender get-base-interactions-canvas% 'interactions-canvas%))
 
-      (define base-definitions-canvas% drscheme:unit:definitions-canvas%)
+      (define (get-base-definitions-canvas%)
+        drscheme:unit:definitions-canvas%)
       
       (define-values (extend-definitions-canvas get-definitions-canvas)
-        (make-extender base-definitions-canvas%))  
+        (make-extender get-base-definitions-canvas% 'definitions-canvas%))  
       
-      (define base-unit-frame% 
+      (define (get-base-unit-frame%)
         (drscheme:debug:profile-unit-frame-mixin drscheme:unit:frame%))
 
       (define-values (extend-unit-frame get-unit-frame)
-        (make-extender base-unit-frame%))
+        (make-extender get-base-unit-frame% 'drscheme:unit:frame))
       
-      (define base-interactions-text% 
+      (define (get-base-interactions-text%)
         (drscheme:debug:profile-interactions-text-mixin drscheme:rep:text%))
 
       (define-values (extend-interactions-text get-interactions-text)
-        (make-extender base-interactions-text%))
+        (make-extender get-base-interactions-text% 'interactions-text%))
 
-      (define base-definitions-text%
+      (define (get-base-definitions-text%)
         (drscheme:debug:profile-definitions-text-mixin
-         drscheme:unit:definitions-text%))
+         (drscheme:unit:get-definitions-text%)))
 
       (define-values (extend-definitions-text get-definitions-text)
-        (make-extender base-definitions-text%)))))
+        (make-extender get-base-definitions-text% 'definitions-text%)))))

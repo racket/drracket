@@ -2,12 +2,12 @@
 (module unit mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
            (lib "string-constant.ss" "string-constants")
 	   "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix launcher: (lib "launcher.ss" "launcher"))
+           (lib "etc.ss")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
            (prefix mzlib:date: (lib "date.ss")))
@@ -25,7 +25,8 @@
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:number-snip : drscheme:number-snip^]
               [drscheme:teachpack : drscheme:teachpack^]
-              [drscheme:module-overview : drscheme:module-overview^])
+              [drscheme:module-overview : drscheme:module-overview^]
+              [drscheme:tools : drscheme:tools^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
@@ -35,7 +36,7 @@
          (lambda (menu text event)
            (old menu text event)
            (when (and (is-a? text text%)
-                      (or (is-a? text definitions-text%)
+                      (or (is-a? text (get-definitions-text%))
                           (is-a? text drscheme:rep:text%))
                       (is-a? event mouse-event%))
              (let* ([end (send text get-end-position)]
@@ -277,148 +278,163 @@
         (make-bitmap (string-constant break-button-label) 
                      (build-path (collection-path "icons") "break.bmp")))
       
-      (define program-editor-mixin 
-        (mixin (editor:basic<%> (class->interface text%)) () 
-          (init-rest args) 
-          (override after-insert after-delete) 
-          (inherit get-top-level-window) 
-          (rename [super-after-insert after-insert] 
-                  [super-after-delete after-delete]) 
-          
-          (define (reset-highlighting) 
-            (let ([f (get-top-level-window)]) 
-              (when (and f 
-                         (is-a? f -frame%)) 
-                (let ([interactions-text (send f get-interactions-text)]) 
-                  (when (object? interactions-text) 
-                    (send interactions-text reset-highlighting)))))) 
-          
-          (define (after-insert x y) 
-            (reset-highlighting) 
-            (super-after-insert x y)) 
-          
-          (define (after-delete x y) 
-            (reset-highlighting) 
-            (super-after-delete x y)) 
-          
-          (apply super-make-object args))) 
+      (define-values (get-program-editor-mixin add-to-program-editor-mixin)
+        (let* ([program-editor-mixin
+                (mixin (editor:basic<%> (class->interface text%)) () 
+                  (init-rest args) 
+                  (override after-insert after-delete) 
+                  (inherit get-top-level-window) 
+                  (rename [super-after-insert after-insert] 
+                          [super-after-delete after-delete]) 
+                  
+                  (define (reset-highlighting) 
+                    (let ([f (get-top-level-window)]) 
+                      (when (and f 
+                                 (is-a? f -frame%)) 
+                        (let ([interactions-text (send f get-interactions-text)]) 
+                          (when (object? interactions-text) 
+                            (send interactions-text reset-highlighting)))))) 
+                  
+                  (define (after-insert x y) 
+                    (reset-highlighting) 
+                    (super-after-insert x y)) 
+                  
+                  (define (after-delete x y) 
+                    (reset-highlighting) 
+                    (super-after-delete x y)) 
+                  
+                  (apply super-make-object args))]
+               [get-program-editor-mixin
+                (lambda ()
+                  (drscheme:tools:only-in-phase 'drscheme:unit:get-program-editor-mixin 'phase2 'init-complete)
+                  program-editor-mixin)]
+               [add-to-program-editor-mixin
+                (lambda (mixin)
+                  (drscheme:tools:only-in-phase 'drscheme:unit:add-to-program-editor-mixin 'phase1)
+                  (set! program-editor-mixin (compose mixin program-editor-mixin)))])
+          (values get-program-editor-mixin
+                  add-to-program-editor-mixin)))
       
       
       ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
         (lambda (%)
-          (class100 % args
+          (class %
             (inherit get-top-level-window)
             (rename [super-on-focus on-focus])
-            (override
-              [on-focus
-               (lambda (on?)
-                 (when on?
-                   (send (get-top-level-window) make-searchable this))
-                 (super-on-focus on?))])
-            (sequence (apply super-init args)))))
+            (define/override (on-focus on?)
+              (when on?
+                (send (get-top-level-window) make-searchable this))
+              (super-on-focus on?))
+            (super-instantiate ()))))
       
       (define interactions-canvas% (make-searchable-canvas%
                                     (canvas:info-mixin
                                      canvas:wide-snip%)))
       
       (define definitions-canvas%
-        (class100 (make-searchable-canvas% (canvas:delegate-mixin canvas:info%)) args
-          (sequence
-            (apply super-init args))))
-      
-      (define definitions-super%
-        (program-editor-mixin
-         (scheme:text-mixin
-          (drscheme:rep:drs-bindings-keymap-mixin
-           (text:delegate-mixin
-            text:info%)))))
+        (class (make-searchable-canvas% (canvas:delegate-mixin canvas:info%))
+          (super-instantiate ())))
       
       (define definitions-text<%> (interface ()))
       
-      (define definitions-text%
-         (class* definitions-super% (definitions-text<%>)
-           (inherit get-top-level-window)
-           (rename
-            [super-set-modified set-modified]
-            [super-set-filename set-filename])
-           (inherit is-modified? run-after-edit-sequence)
-           (define/override (set-modified mod?)
-             (super-set-modified mod?)
-             (run-after-edit-sequence
-              (lambda ()
-                (let ([f (get-top-level-window)])
-                  (when f
-                    (send f update-save-button (is-modified?)))))))
-           (define/override set-filename
-             (case-lambda
-               [(fn) (set-filename fn #f)]
-               [(fn tmp?)
-                (super-set-filename fn tmp?)
-                (let ([f (get-top-level-window)])
-                  (when f
-                    (send f update-save-message fn)))]))
-           
-           (rename [super-after-insert after-insert]
-                   [super-after-delete after-delete])
-           (field
-            [needs-execution-state #f]
-            [already-warned-state #f]
-            [execute-settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
-            [next-settings execute-settings])
-           
-           (define/public (get-next-settings) next-settings)
-           (define/public (set-next-settings _next-settings) (set! next-settings _next-settings))
-           
-           (define/public (needs-execution?)
-             (or needs-execution-state
-                 (not (equal? execute-settings next-settings))))
-           
-           (define/public (teachpack-changed)
-             (set! needs-execution-state #t))
-           (define/public (just-executed)
-             (set! execute-settings next-settings)
-             (set! needs-execution-state #f)
-             (set! already-warned-state #f))
-           (define/public (already-warned?)
-             already-warned-state)
-           (define/public (already-warned)
-             (set! already-warned-state #t))
-           (define/override (after-insert x y)
-             (set! needs-execution-state #t)
-             (super-after-insert x y))
-           (define/override (after-delete x y)
-             (set! needs-execution-state #t)
-             (super-after-delete x y))
-           
-           (inherit get-filename)
-           (field
-            [tmp-date-string #f])
-           
-           (define (get-date-string)
-             (string-append
-              (mzlib:date:date->string (seconds->date (current-seconds)))
-              " "
-              (let ([fn (get-filename)])
-                (if (string? fn)
-                    fn
-                    (string-constant untitled)))))
-           
-           (rename [super-on-paint on-paint])
-           (define/override (on-paint before dc left top right bottom dx dy draw-caret)
-             (when (and before
-                        (or (is-a? dc post-script-dc%)
-                            (is-a? dc printer-dc%)))
-               (set! tmp-date-string (get-date-string))
-               (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
-                 (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
-             (super-on-paint before dc left top right bottom dx dy draw-caret)
-             (when (and (not before)
-                        (or (is-a? dc post-script-dc%)
-                            (is-a? dc printer-dc%)))
-               (send dc draw-text (get-date-string) 0 0)
-               (void)))
-           (super-instantiate ())))
+      (define get-definitions-text%
+        (let ([definitions-text% #f])
+          (lambda ()
+            (drscheme:tools:only-in-phase 'phase2 'init-complete)
+            (unless definitions-text%
+              (set! definitions-text% (make-definitions-text%)))
+            definitions-text%)))
+      
+      (define (make-definitions-text%)
+        (let ([definitions-super%
+               ((get-program-editor-mixin)
+                (scheme:text-mixin
+                 (drscheme:rep:drs-bindings-keymap-mixin
+                  (text:delegate-mixin
+                   text:info%))))])
+          (class* definitions-super% (definitions-text<%>)
+            (inherit get-top-level-window)
+            (rename
+             [super-set-modified set-modified]
+             [super-set-filename set-filename])
+            (inherit is-modified? run-after-edit-sequence)
+            (define/override (set-modified mod?)
+              (super-set-modified mod?)
+              (run-after-edit-sequence
+               (lambda ()
+                 (let ([f (get-top-level-window)])
+                   (when f
+                     (send f update-save-button (is-modified?)))))))
+            (define/override set-filename
+              (case-lambda
+                [(fn) (set-filename fn #f)]
+                [(fn tmp?)
+                 (super-set-filename fn tmp?)
+                 (let ([f (get-top-level-window)])
+                   (when f
+                     (send f update-save-message fn)))]))
+            
+            (rename [super-after-insert after-insert]
+                    [super-after-delete after-delete])
+            (field
+             [needs-execution-state #f]
+             [already-warned-state #f]
+             [execute-settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
+             [next-settings execute-settings])
+            
+            (define/public (get-next-settings) next-settings)
+            (define/public (set-next-settings _next-settings) (set! next-settings _next-settings))
+            
+            (define/public (needs-execution?)
+              (or needs-execution-state
+                  (not (equal? execute-settings next-settings))))
+            
+            (define/public (teachpack-changed)
+              (set! needs-execution-state #t))
+            (define/public (just-executed)
+              (set! execute-settings next-settings)
+              (set! needs-execution-state #f)
+              (set! already-warned-state #f))
+            (define/public (already-warned?)
+              already-warned-state)
+            (define/public (already-warned)
+              (set! already-warned-state #t))
+            (define/override (after-insert x y)
+              (set! needs-execution-state #t)
+              (super-after-insert x y))
+            (define/override (after-delete x y)
+              (set! needs-execution-state #t)
+              (super-after-delete x y))
+            
+            (inherit get-filename)
+            (field
+             [tmp-date-string #f])
+            
+            (define (get-date-string)
+              (string-append
+               (mzlib:date:date->string (seconds->date (current-seconds)))
+               " "
+               (let ([fn (get-filename)])
+                 (if (string? fn)
+                     fn
+                     (string-constant untitled)))))
+            
+            (rename [super-on-paint on-paint])
+            (define/override (on-paint before dc left top right bottom dx dy draw-caret)
+              (when (and before
+                         (or (is-a? dc post-script-dc%)
+                             (is-a? dc printer-dc%)))
+                (set! tmp-date-string (get-date-string))
+                (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
+                  (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
+              (super-on-paint before dc left top right bottom dx dy draw-caret)
+              (when (and (not before)
+                         (or (is-a? dc post-script-dc%)
+                             (is-a? dc printer-dc%)))
+                (send dc draw-text (get-date-string) 0 0)
+                (void)))
+            (super-instantiate ()))))
 
       
                                                        
