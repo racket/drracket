@@ -2,7 +2,9 @@
 (unit/sig bullet-snip^
   (import mred^)
 
-  (define bullet-size 7)
+  (define bullet-size (let ([s (send (send (send (make-object text%) get-style-list) basic-style)
+				     get-size)])
+			(max 7 (quotient s 2))))
   (define bullet-width (* 2 bullet-size))
 
   (define transparent-brush (make-object brush% "WHITE" 'transparent))

@@ -622,7 +622,8 @@
       (sequence (apply super-init args))
       (private
 	[clear-info (lambda () 
-		      (when info (send info erase-info)))]
+		      (when info 
+			(send info erase-info)))]
 	[update-info (lambda (page) 
 		       (when (and info page)
 			 (let ([notes (send (page->editor page) get-document-notes)])
@@ -648,58 +649,65 @@
 	       (set! past (cons (send c current-page) past))
 	       (set! future (cdr future))
 	       (go page))))]
-	[make-canvas (lambda () (make-object hyper-canvas% this))])
+	[make-canvas (lambda (f) (make-object hyper-canvas% f))]
+	[make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
       (private
 	[past null] [future null] [init-page #f]
-	[hp (make-object horizontal-panel% this)]
-	[back (make-object button% "< Rewind" hp
-			   (lambda (b ev) 
-			     (rewind)))]
-	[forw (make-object button% "Forward >" hp
-			   (lambda (b ev) 
-			     (forward)))]
-	[home (make-object button% "Home" hp
-			   (lambda (b ev)
-			     (when init-page
-			       (send c set-page init-page #t))))]
+	[hp (make-control-bar-panel this)]
+	[control-bar? (is-a? hp area-container<%>)]
+	[back (and control-bar?
+		   (make-object button% "< Rewind" hp
+				(lambda (b ev) 
+				  (rewind))))]
+	[forw (and control-bar?
+		   (make-object button% "Forward >" hp
+				(lambda (b ev) 
+				  (forward))))]
+	[home (and control-bar?
+		   (make-object button% "Home" hp
+				(lambda (b ev)
+				  (when init-page
+				    (send c set-page init-page #t)))))]
 	[update-buttons (lambda (page)
 			  (unless init-page
 			    (set! init-page page))
-			  (send back enable (pair? past))
-			  (send forw enable (pair? future))
-			  (send home enable (and init-page
-						 (not (same-page? init-page page))))
-			  (send choice clear)
-			  (for-each
-			   (lambda (p)
-			     (send choice append 
-				   (let ([s (send (car p) get-title)])
-				     (or s "Untitled"))))
-			   (append (reverse future)
-				   (if page (list page) null)
-				   past))
-			  (let ([c (send choice get-number)])
-			    (unless (zero? c)
-			      (send choice set-selection (length future)))))]
-	[choice (make-object choice% #f null hp
-			     (lambda (ch e)
-			       (let* ([l (append (reverse past)
-						 (list (send c current-page))
-						 future)]
-				      [pos (- (send choice get-number) (send choice get-selection) 1)])
-				 (let loop ([l l][pre null][pos pos])
-				   (cond
-				    [(zero? pos)
-				     (set! past pre)
-				     (set! future (cdr l))
-				     (go (car l))]
-				    [else (loop (cdr l)
-						(cons (car l) pre)
-						(sub1 pos))])))))]
+			  (when control-bar?
+			    (send back enable (pair? past))
+			    (send forw enable (pair? future))
+			    (send home enable (and init-page
+						   (not (same-page? init-page page))))
+			    (send choice clear)
+			    (for-each
+			     (lambda (p)
+			       (send choice append 
+				     (let ([s (send (car p) get-title)])
+				       (or s "Untitled"))))
+			     (append (reverse future)
+				     (if page (list page) null)
+				     past))
+			    (let ([c (send choice get-number)])
+			      (unless (zero? c)
+				(send choice set-selection (length future))))))]
+	[choice (and control-bar?
+		     (make-object choice% #f null hp
+				  (lambda (ch e)
+				    (let* ([l (append (reverse past)
+						      (list (send c current-page))
+						      future)]
+					   [pos (- (send choice get-number) (send choice get-selection) 1)])
+				      (let loop ([l l][pre null][pos pos])
+					(cond
+					 [(zero? pos)
+					  (set! past pre)
+					  (set! future (cdr l))
+					  (go (car l))]
+					 [else (loop (cdr l)
+						     (cons (car l) pre)
+						     (sub1 pos))]))))))]
 	; [progress (make-object scrolling-canvas% bitmaps hp)]
 	[info (and info-line?
 		   (make-object info-canvas% this))]
-	[c (make-canvas)])
+	[c (make-canvas this)])
       (public
 	; [get-progress (lambda () progress)]
 	[on-navigate void]
@@ -720,8 +728,9 @@
 			(update-buttons new-page)
 			(update-info new-page))])
       (sequence
-	(send choice stretchable-width #t)
-	(send hp stretchable-height #f)
+	(when control-bar?
+	  (send choice stretchable-width #t)
+	  (send hp stretchable-height #f))
 	(update-buttons #f))))
 
   (define hyper-panel% (hyper-panel-mixin vertical-panel%))
