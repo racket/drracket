@@ -1,6 +1,7 @@
 (module module-overview mzscheme
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
+	   (lib "file.ss")
            (lib "list.ss")
            (lib "moddep.ss" "syntax")
            (lib "framework.ss" "framework")
@@ -641,7 +642,7 @@
             (send progress-frame show #t))
           (semaphore-post sema)))
        (send pasteboard begin-edit-sequence)
-       (let loop ([filename filename])
+       (let loop ([filename (normalize-path filename)])
          (let ([visited-key (string->symbol filename)])
            (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
              (send progress-message set-label (format adding-file filename))
@@ -675,7 +676,7 @@
            [(null? direct-requires) null]
            [else (let ([dr (car direct-requires)])
                    (if (module-path-index? dr)
-                       (cons (resolve-module-path-index dr base)
+                       (cons (normal-case-path (normalize-path (resolve-module-path-index dr base)))
                              (loop (cdr direct-requires)))
                        (loop (cdr direct-requires))))])))
      
