@@ -277,27 +277,25 @@ profile todo:
       ;; guarantees that the continuation marks associated with cm-key are
       ;; members of the debug-source type, after unwrapped with st-mark-source
       (define (with-mark src-stx mark-maker expr)
-        (let ([source (cond
+        (let (#;
+              [source (cond
                         [(string? (syntax-source src-stx))
                          (string->symbol (syntax-source src-stx))]
                         [(is-a? (syntax-source src-stx) editor<%>)
                          (syntax-source src-stx)]
                         [else #f])]
+              #;
               [position (syntax-position src-stx)]
-              [span (syntax-span src-stx)])
-          (if (and source
-                   (number? position)
-                   (number? span))
-              (let* ([mark-src `(,source ,(- position 1) . ,span)])
-                (with-syntax ([expr expr]
-                              [mark (mark-maker mark-src)]
-                              [cm-key cm-key])
-                  (syntax
-                   (with-continuation-mark
-                    'cm-key
-                    mark
-                    expr))))
-              expr)))
+              #;
+              [span (syntax-span src-stx)]
+              )
+          (with-syntax ([expr expr]
+                        [mark (mark-maker expr)]
+                        [cm-key cm-key])
+            (syntax
+             (with-continuation-mark 'cm-key
+               mark
+               expr)))))
 
     
       ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))

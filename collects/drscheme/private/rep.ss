@@ -106,6 +106,11 @@ TODO
       (define (drscheme-error-display-handler msg exn)
         (printf "msg: ~s\n" msg)
         (when (exn? exn)
+          (parameterize ([current-eventspace drscheme:init:system-eventspace])
+            (queue-callback
+             (lambda ()
+               (raise exn))))
+          #;
           ((dynamic-require '(lib "errortrace-lib.ss" "errortrace") 'print-error-trace)
            drscheme:init:original-output-port
            exn))
