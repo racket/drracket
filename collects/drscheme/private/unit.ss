@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-           (lib "sig.ss" "userspce")
+           (lib "basis.ss" "userspce")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -16,8 +16,7 @@
   
   (define unit@
     (unit/sig drscheme:unit^
-      (import [basis : plt:basis^]
-              [help-desk : drscheme:help-interface^]
+      (import [help-desk : drscheme:help-interface^]
               [drscheme:app : drscheme:app^]
               [drscheme:frame : drscheme:frame^]
               [drscheme:text : drscheme:text^]

@@ -9,14 +9,14 @@
            (lib "framework.ss" "framework")
            (lib "list.ss")
            (lib "file.ss")
-           (lib "pconvert.ss"))
+           (lib "pconvert.ss")
+           (lib "basis.ss" "userspce"))
   
   (provide language@)
   
   (define language@
     (unit/sig drscheme:language^
-      (import [basis : plt:basis^]
-              [drscheme:unit : drscheme:unit^])
+      (import [drscheme:unit : drscheme:unit^])
       
       (define settings-preferences-symbol 
         (string->symbol (format "drscheme:~a-settings" (version))))

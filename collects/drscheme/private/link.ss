@@ -20,8 +20,9 @@
             [main-before : drscheme:main-before^
                          (main-before@
                           app
-                          (export* unit) (export* get/extend)
-                          (export* language) (export* basis))]
+                          (export* unit) 
+                          (export* get/extend)
+                          (export* language))]
             
             [cogen : plt:aries^
                    ((require-library-unit/sig "link.ss" "stepper-graphical") export*)]
@@ -31,8 +32,9 @@
             [tool : () (tool@ export*)]
             [main : drscheme:main^ (main@
                                     app
-                                    (export* unit) (export* get/extend)
-                                    (export* language) (export* basis))])
+                                    (export* unit) 
+                                    (export* get/extend)
+                                    (export* language))])
       (export (unit cogen plt:aries)
               (unit init drscheme:init)
               (unit text drscheme:text)

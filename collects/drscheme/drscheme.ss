@@ -6,7 +6,7 @@
   (parameterize ([current-eventspace (make-eventspace)])
     (let-values ([(sw sh) (get-display-size)])
       
-      (let* ([stack-frame (make-object frame% "Load Stack" #f 400)]
+      (let* ([stack-frame (make-object frame% "Load Stack" #f 500)]
              [messages null]
              [stack null]
              [ol (current-load)]

@@ -7,15 +7,15 @@
            (lib "info-thingy.ss" "setup.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (lib "startup-url.ss" "help"))
+           (lib "startup-url.ss" "help")
+           (lib "basis.ss" "userspce"))
   
   (provide help-interface@)
   
   (define help-interface@
     (unit/sig  drscheme:help-interface^
       (import [drscheme:frame : drscheme:frame^]
-              [drscheme:language : drscheme:language^]
-              [basis : plt:basis^])
+              [drscheme:language : drscheme:language^])
       
       (define new-help-frame #f)
       (define open-url-from-user #f)

@@ -134,7 +134,6 @@
   
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)
-     (unit basis : plt:basis^)
      (unit frame : drscheme:frame^)
      (unit unit : drscheme:unit^)
      (unit program : drscheme:program^)

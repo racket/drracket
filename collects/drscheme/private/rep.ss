@@ -11,6 +11,8 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
+           (prefix basis: (lib "basis.ss" "userspce"))
+           (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:pretty-print: (lib "pretty.ss"))
@@ -22,13 +24,25 @@
     (unit/sig drscheme:rep^
       (import (drscheme:init : drscheme:init^)
               (drscheme:snip : drscheme:snip^)
-              (drscheme:langauge : drscheme:language^)
+              (drscheme:language : drscheme:language^)
               (drscheme:app : drscheme:app^)
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
               (drscheme:load-handler : drscheme:load-handler^)
               (drscheme:help : drscheme:help-interface^))
+      
+      (define raw-symbol-chars "a-z/!>:%\\+\\*\\?-")
+      (define symbol-chars (format "[~a]" raw-symbol-chars))
+      (define not-symbol-chars (format "[^~a]" raw-symbol-chars))
+      (define fallthru-regexp-str (format "^()(~a*): " symbol-chars))
+      (define fallthru-regexp (regexp fallthru-regexp-str))
+      (define class-regexp-str (format "^(.*~a)(~a+(<%>|%)).*$" not-symbol-chars symbol-chars))
+      (define class-regexp (regexp class-regexp-str))
+      (define ivar-regexp-str (format
+                               "^(ivar: instance variable not found: )(~a*)"
+                               symbol-chars))
+      (define ivar-regexp (regexp ivar-regexp-str))
       
       (define (use-number-snip? x)
         (and (number? x)
@@ -39,7 +53,8 @@
       (define (drscheme-pretty-print-size-hook x _ port)
         (cond
           [(is-a? x snip%) 1]
-          [(use-number-snip? x)
+          [(and (use-number-snip? x)
+                (basis:setting-print-whole/part-fractions (basis:current-setting)))
            (+ (string-length (number->string (floor x)))
               (max (string-length
                     (number->string 
@@ -68,10 +83,10 @@
                     (let ([frame (send canvas get-top-level-window)])
                       (when (is-a? frame drscheme:unit:frame%)
                         (cond
-                          [(send (ivar frame definitions-canvas) has-focus?)
-                           (send (ivar frame interactions-canvas) focus)]
+                          [(send (send frame get-definitions-canvas) has-focus?)
+                           (send (send frame get-interactions-canvas) focus)]
                           [else
-                           (send (ivar frame definitions-canvas) focus)]))))))))
+                           (send (send frame get-definitions-canvas) focus)]))))))))
       
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
@@ -81,7 +96,7 @@
   ;;   for any x that is an instance of the resulting class,
   ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
       (define (drs-bindings-keymap-mixin editor%)
-        (class100* editor% args
+        (class100 editor% args
           (rename [super-get-keymaps get-keymaps])
           (override
             [get-keymaps
@@ -110,8 +125,8 @@
                 (lambda (text event) 
                   (send text copy-next-previous-expr)))
           
-          (fw:keymap:send-map-function-meta keymap "p" "put-previous-sexp")
-          (fw:keymap:send-map-function-meta keymap "n" "put-next-sexp")))
+          (keymap:send-map-function-meta keymap "p" "put-previous-sexp")
+          (keymap:send-map-function-meta keymap "n" "put-next-sexp")))
       
       (define scheme-interaction-mode-keymap (make-object keymap%))
       (setup-scheme-interaction-mode-keymap scheme-interaction-mode-keymap)
@@ -133,7 +148,7 @@
       (send output-delta set-delta-foreground (make-object color% 150 0 150))
       
       (define welcome-delta (make-object style-delta% 'change-family 'decorative))
-      (define click-delta (fw:gui-utils:get-clickback-delta))
+      (define click-delta (gui-utils:get-clickback-delta))
       (define red-delta (make-object style-delta%))
       (define dark-green-delta (make-object style-delta%))
       (send* red-delta
@@ -147,17 +162,16 @@
         (set-delta-foreground "BLACK")
         (set-delta-background "YELLOW"))
       
-      (fw:preferences:set-default 'drscheme:teachpack-file
+      (preferences:set-default 'drscheme:teachpack-file
                                   null
                                   (lambda (x) 
                                     (and (list? x)
-                                         (andmap string? x)
-                                         (andmap basis:teachpack-ok? x))))
+                                         (andmap string? x))))
       
-      (fw:preferences:add-callback
+      (preferences:add-callback
        'drscheme:teachpack-file
        (lambda (p v)
-         (basis:teachpack-changed v)))
+         '(basis:teachpack-changed v)))
       
       (define current-rep-text (make-parameter #f))
       
@@ -178,7 +192,7 @@
                            ls))
                     lls))]
             [unmarshall (lambda (x) x)])
-        (fw:preferences:set-un/marshall
+        (preferences:set-un/marshall
          'console-previous-exprs
          marshall unmarshall))
       (let* ([list-of? (lambda (p?)
@@ -188,12 +202,12 @@
              [snip/string? (lambda (s) (or (is-a? s snip%) (string? s)))]
              [list-of-snip/strings? (list-of? snip/string?)]
              [list-of-lists-of-snip/strings? (list-of? list-of-snip/strings?)])
-        (fw:preferences:set-default
+        (preferences:set-default
          'console-previous-exprs
          null
          list-of-lists-of-snip/strings?))
       (define (show-interactions-history)
-        (let* ([f (make-object (drscheme:frame:basics-mixin fw:frame:standard-menus%)
+        (let* ([f (make-object (drscheme:frame:basics-mixin frame:standard-menus%)
                     "Interactions History"
                     #f
                     300
@@ -280,17 +294,6 @@
         (printf "WARNING: could not make busy cursor~n")
         (set! busy-cursor #f))
       
-      (define process-file
-        (lambda (filename fn annotate?)
-          (if (basis:zodiac-vocabulary? (basis:current-setting))
-              (basis:process-file/zodiac filename fn annotate?)
-              (basis:process-file/no-zodiac filename fn))))
-      (define process-sexp
-        (lambda (sexp z fn annotate?)
-          (if (basis:zodiac-vocabulary? (basis:current-setting))
-              (basis:process-sexp/zodiac sexp z fn annotate?)
-              (basis:process-sexp/no-zodiac sexp fn))))
-      
       (define current-backtrace-window #f)
       (define (kill-backtrace-window)
         (when current-backtrace-window
@@ -299,13 +302,13 @@
       (define (show-backtrace-window dis error-text)
         (kill-backtrace-window)
         (set! current-backtrace-window 
-              (make-object (class100 (drscheme:frame:basics-mixin (fw:frame:standard-menus-mixin fw:frame:basic%)) args
+              (make-object (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) args
                              (rename [super-on-size on-size])
                              (override
                                [on-size
                                 (lambda (x y)
-                                  (fw:preferences:set 'drscheme:backtrace-window-width x)
-                                  (fw:preferences:set 'drscheme:backtrace-window-height y)
+                                  (preferences:set 'drscheme:backtrace-window-width x)
+                                  (preferences:set 'drscheme:backtrace-window-height y)
                                   (super-on-size x y))])
                              (override
                                [file-menu:between-print-and-close
@@ -317,10 +320,10 @@
                                   (void))])
                              (sequence (apply super-init args)))
                 "Backtrace - DrScheme" #f
-                (fw:preferences:get 'drscheme:backtrace-window-width)
-                (fw:preferences:get 'drscheme:backtrace-window-height)))
-        (letrec ([text (make-object fw:text:basic%)]
-                 [ec (make-object fw:canvas:wide-snip% 
+                (preferences:get 'drscheme:backtrace-window-width)
+                (preferences:get 'drscheme:backtrace-window-height)))
+        (letrec ([text (make-object text:basic%)]
+                 [ec (make-object canvas:wide-snip% 
                        (send current-backtrace-window get-area-container)
                        text)]
                  [di-vec (list->vector dis)]
@@ -389,7 +392,8 @@
           (send text lock #t)
           (send current-backtrace-window show #t)))
       (define (show-di ec text di)
-        (let* ([start (zodiac:zodiac-start di)]
+        (error 'show-di "not yet implemented")
+        '(let* ([start (zodiac:zodiac-start di)]
                [finish (zodiac:zodiac-finish di)]
                [file (zodiac:location-file start)]
                [untitled "<<unknown>>"]
@@ -436,11 +440,11 @@
           (when (or (and (string? file)
                          (file-exists? file))
                     (is-a? file text%))
-            (let ([context-text (make-object fw:text:basic%)])
+            (let ([context-text (make-object text:basic%)])
               (let-values ([(from-text close-text)
                             (cond
                               [(string? file)
-                               (let ([text (make-object fw:text:basic%)])
+                               (let ([text (make-object text:basic%)])
                                  (send text load-file file)
                                  (values text
                                          (lambda ()
@@ -466,7 +470,7 @@
                                   (let ([c (send file get-canvas)])
                                     (if c
                                         (let* ([win (send c get-top-level-window)]
-                                               [def-filename (send (ivar win definitions-text) get-filename)])
+                                               [def-filename (send (send win get-definitions-text) get-filename)])
                                           (if def-filename
                                               (format "~a's interactions" def-filename)
                                               "interactions"))
@@ -502,11 +506,11 @@
                       (when (or (and (string? file)
                                      (file-exists? file))
                                 (is-a? file text%))
-                        (let ([context-text (make-object fw:text:basic%)])
+                        (let ([context-text (make-object text:basic%)])
                           (let-values ([(from-text close-text)
                                         (cond
                                           [(string? file)
-                                           (let ([text (make-object fw:text:basic%)])
+                                           (let ([text (make-object text:basic%)])
                                              (send text load-file file)
                                              (values text
                                                      (lambda ()
@@ -549,33 +553,17 @@
                 (close-text))))
           (send text insert #\newline)))
       
-      (define (open-and-highlight-in-file di)
-        (let ([filename (zodiac:location-file (zodiac:zodiac-start di))])
-          (cond
-            [(string? filename)
-             (let ([fr (fw:handler:edit-file filename)])
-               (when (is-a? fr drscheme:unit:frame%)
-                 (let ([definitions (ivar fr definitions-text)]
-                       [interactions (ivar fr interactions-text)])
-                   (send interactions highlight-error definitions
-                         (zodiac:location-offset (zodiac:zodiac-start di))
-                         (+ 1 (zodiac:location-offset (zodiac:zodiac-finish di)))))
-                 (send fr show #t)))]
-            [(is-a? filename editor<%>)
-             (let ([canvas (send filename get-active-canvas)])
-               (and canvas
-                    (let ([fr (send canvas get-top-level-window)])
-                      (when (is-a? fr drscheme:unit:frame%)
-                        (let ([interactions (ivar fr interactions-text)])
-                          (send interactions highlight-error filename
-                                (zodiac:location-offset (zodiac:zodiac-start di))
-                                (+ 1 (zodiac:location-offset (zodiac:zodiac-finish di)))))
-                        (send fr show #t)))))]
-            [else (bell)])))
+      ;; open-and-higlight-in-file : syntax -> void
+      ;; opens the window displaying this piece of syntax (if there is one)
+      ;; and highlights the right position in the file
+      (define (open-and-highlight-in-file stx)
+        (void))
       
       (define arrow-cursor (make-object cursor% 'arrow))
       (define eof-icon-snip%
-        (class100 image-snip% (rep)
+        (class100 image-snip% (_rep)
+          (private-field
+           [rep _rep])
           (rename [super-on-event on-event])
           (override
             [on-event
@@ -604,7 +592,8 @@
                      set-clickback
                      do-post-eval
                      insert-prompt
-                     erase prompt-mode?
+                     erase 
+                     get-prompt-mode?
                      ready-non-prompt
                      set-prompt-mode
                      delete lock is-locked?
@@ -635,8 +624,8 @@
                       reset-console)
             
             (public
-              transparent-text
-              transparent-snip
+              get-transparent-text
+              get-transparent-snip
               cleanup-transparent-io
               init-transparent-io
               init-transparent-input
@@ -646,37 +635,30 @@
               this-in-read-char
               this-in-peek-char
               generic-write
-              generic-close
               this-result-write
               this-out-write
               this-err-write/exn
               this-err-write
-              this-err
-              this-out
-              this-in
-              this-result
+              get-this-err
+              get-this-out
+              get-this-in
+              get-this-result
               set-display/write-handlers
               display-results
               
-              report-located-error
-              report-unlocated-error
               get-error-range
               reset-highlighting
               format-source-loc
-              highlight-error
-              report-error
               
               get-user-setting
-              user-setting
-              user-custodian
-              user-eventspace
-              user-namespace
-              user-thread
+              get-user-custodian
+              get-user-eventspace
+              get-user-namespace
+              get-user-thread
               
               insert-warning
               
               cleanup
-              need-interaction-cleanup?
               cleanup-interaction
               
               do-many-evals
@@ -736,8 +718,12 @@
 	;;;					     ;;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
-            (define transparent-text #f)
-            (define transparent-snip #f)
+            (field (transparent-text #f)
+                   (transparent-snip #f))
+
+            (define (get-transparent-text) transparent-text)
+            (define (get-transparent-snip) transparent-snip)
+            
             (define cleanup-transparent-io ; =Kernel=, =Handler=
               (lambda ()
                 (when transparent-text
@@ -767,17 +753,16 @@
                 (end-edit-sequence)
                 transparent-text))
             
-            (define init-transparent-input ; =Kernel=, =Handler=
-              (lambda ()
-                (let ([text (init-transparent-io #t)])
-                  (yield) ; to flush output and set `saved-newline?'
-                  (when saved-newline?
-                    (this-out-write "")
-                    (yield)) ; flush output again
-                  text)))
+            (define (init-transparent-input) ; =Kernel=, =Handler=
+              (let ([text (init-transparent-io #t)])
+                (yield) ; to flush output and set `saved-newline?'
+                (when saved-newline?
+                  (this-out-write "")
+                  (yield)) ; flush output again
+                text))
             
-            (define eof-received? #f)
-            (define eof-snip #f)
+            (field (eof-received? #f)
+                   (eof-snip #f))
             (define (show-eof-icon) 
               (unless eof-snip
                 (set! eof-snip (make-object eof-icon-snip% this))
@@ -812,7 +797,7 @@
                 (let ([c-locked? (is-locked?)])
                   (begin-edit-sequence)
                   (lock #f)
-                  (let ([starting-at-prompt-mode? prompt-mode?])
+                  (let ([starting-at-prompt-mode? (get-prompt-mode?)])
                     (set! transparent-text (make-object transparent-io-text% this))
                     
                     (send transparent-text auto-wrap #t)
@@ -884,8 +869,8 @@
                            ; Got our char; let another reader go
                            (semaphore-post fetch-char-sema)))])
                     (sequence (super-init)))))
-            (define fetcher #f)
-            (define fetcher-semaphore (make-semaphore 1))
+            (field (fetcher #f)
+                   (fetcher-semaphore (make-semaphore 1)))
             (define drop-fetcher ; =Kernel=, =Handler=
               (lambda ()
                 (semaphore-wait fetcher-semaphore)
@@ -927,12 +912,12 @@
               (lambda ()
                 (this-in-fetch-char #t)))
             
-            (define flushing-event-running (make-semaphore 1))
-            (define limiting-sema (make-semaphore output-limit-size)) ; waited once foreach in io-collected-thunks
+            (field (flushing-event-running (make-semaphore 1))
+                   (limiting-sema (make-semaphore output-limit-size))) ; waited once foreach in io-collected-thunks
             
-            (define io-semaphore (make-semaphore 1))
-            (define io-collected-thunks null) ; protected by semaphore
-            (define io-collected-texts null) ; always set in the kernel's handler thread
+            (field (io-semaphore (make-semaphore 1))
+                   (io-collected-thunks null) ; protected by semaphore
+                   (io-collected-texts null)) ; always set in the kernel's handler thread
             (define run-io-collected-thunks ; =Kernel=, =Handler=
               (lambda ()
             ;; also need to start edit-sequence in any affected
@@ -999,7 +984,7 @@
                            (send text begin-edit-sequence)))])
                   (add-text text))
                 
-                (when prompt-mode?
+                (when (get-prompt-mode?)
                   (insert (string #\newline) (last-position) (last-position) #f))
                 
                 (let* ([start (if (is-a? text transparent-io-text<%>)
@@ -1014,7 +999,7 @@
                          (cond
                            [(is-a? s snip%) (send s copy)]
                            [(and (use-number-snip? s)
-                                 (basis:setting-whole/fractional-exact-numbers user-setting))
+                                 (basis:setting-print-whole/part-fractions user-setting))
                             (make-object drscheme:snip:whole/part-number-snip% s)]
                            [else s])])
                     (send text insert to-be-inserted start start #t)
@@ -1034,8 +1019,7 @@
                   (send text lock c-locked?)
                   (send text end-edit-sequence))))
             
-            (define generic-close void)
-            (define saved-newline? #f)
+            (field (saved-newline? #f))
             (define this-result-write 
               (lambda (s) ; =User=
                 (queue-output
@@ -1074,133 +1058,107 @@
                        (gw (string #\newline)))
                      (gw s1))))))
             
-            (define this-err-write/exn ; =User=
-              (let* ([raw-symbol-chars "a-z/!>:%\\+\\*\\?-"]
-                     [symbol-chars (format "[~a]" raw-symbol-chars)]
-                     [not-symbol-chars (format "[^~a]" raw-symbol-chars)]
-                     [fallthru-regexp-str (format "^()(~a*): " symbol-chars)]
-                     [fallthru-regexp (regexp fallthru-regexp-str)]
-                     [class-regexp-str (format "^(.*~a)(~a+(<%>|%)).*$" not-symbol-chars symbol-chars)]
-                     [class-regexp (regexp class-regexp-str)]
-                     [ivar-regexp-str (format
-                                       "^(ivar: instance variable not found: )(~a*)"
-                                       symbol-chars)]
-                     [ivar-regexp (regexp ivar-regexp-str)])
-                (lambda (s exn) ; =User=
-                  (queue-output
-                   (lambda () ; =Kernel=, =Handler=
-                     (cleanup-transparent-io)
-                     (generic-write
-                      this
-                      s
-                      (lambda (start end)
-                        (change-style error-delta start end)
-                        (cond
-                          [(exn:variable? exn)
-                           (let* ([var (symbol->string (exn:variable-id exn))]
-                                  [regexp (format "^(.*)(~a)" (quote-regexp-specials var))]
-                                  [match (with-handlers ([(lambda (x) #t)
-                                                          (lambda (x)
-                                                            ((error-display-handler)
-                                                             (format "error constructing regexp: ~s~n"
-                                                                     regexp))
-                                                            #f)])
-                                           (regexp-match regexp s))])
-                             (when match
-                               (let* ([var-start (+ start (string-length (cadr match)))]
-                                      [var-end (+ var-start (string-length (caddr match)))])
-                                 (change-style click-delta var-start var-end)
-                                 (set-clickback var-start var-end
-                                                (lambda x
-                                                  (drscheme:help:help-desk var))))))]
-                          [(or (zodiac:interface:exn:zodiac-syntax? exn)
-                               (zodiac:interface:exn:zodiac-read? exn))
-		      ;; in this case the error message _must_ have a
-		      ;; colon in it,
-		      ;; because of the drscheme:interface library
-                           (let ([link-tag
-                                  (symbol->string
-                                   (cond
-                                     [(zodiac:interface:exn:zodiac-syntax? exn)
-                                      (zodiac:interface:exn:zodiac-syntax-link-tag exn)]
-                                     [(zodiac:interface:exn:zodiac-read? exn)
-                                      (zodiac:interface:exn:zodiac-read-link-tag exn)]))]
-                                 [colon-index
-                                  (let loop ([n 0])
-                                    (cond
-                                      [(<= (string-length s) n)
-                                       0]
-                                      [(char=? #\: (string-ref s n))
-                                       n]
-                                      [else (loop (+ n 1))]))])
-                             (change-style click-delta start (+ start colon-index))
-                             (set-clickback
-                              start (+ start colon-index)
-                              (lambda x
-                                (drscheme:help:help-desk link-tag))))]
-                          [else
-                           (let ([bind-to-help
-                                  (lambda (regexp s)
-                                    (let ([match (regexp-match regexp s)])
-                                      (if match
-                                          (let* ([prefix (cadr match)]
-                                                 [var (caddr match)]
-                                                 [var-start (+ start (string-length prefix))]
-                                                 [var-end (+ var-start (string-length var))])
-                                            (change-style click-delta var-start var-end)
-                                            (set-clickback
-                                             var-start var-end
-                                             (lambda x
-                                               (drscheme:help:help-desk var)))
-                                            prefix)
-                                          #f)))])
-                             (let loop ([s s])
-                               (when s
-                                 (loop (bind-to-help class-regexp s))))
-                             (bind-to-help ivar-regexp s)
-                             (bind-to-help fallthru-regexp s))]))))))))
+            (define (this-err-write/exn s exn) ; =User=
+              (queue-output
+               (lambda () ; =Kernel=, =Handler=
+                 (cleanup-transparent-io)
+                 (generic-write
+                  this
+                  s
+                  (lambda (start end)
+                    (change-style error-delta start end)
+                    (cond
+                      [(exn:variable? exn)
+                       (let* ([var (symbol->string (exn:variable-id exn))]
+                              [regexp (format "^(.*)(~a)" (quote-regexp-specials var))]
+                              [match (with-handlers ([(lambda (x) #t)
+                                                      (lambda (x)
+                                                        ((error-display-handler)
+                                                         (format "error constructing regexp: ~s~n"
+                                                                 regexp))
+                                                        #f)])
+                                       (regexp-match regexp s))])
+                         (when match
+                           (let* ([var-start (+ start (string-length (cadr match)))]
+                                  [var-end (+ var-start (string-length (caddr match)))])
+                             (change-style click-delta var-start var-end)
+                             (set-clickback var-start var-end
+                                            (lambda x
+                                              (drscheme:help:help-desk var))))))]
+                      [else
+                       (let ([bind-to-help
+                              (lambda (regexp s)
+                                (let ([match (regexp-match regexp s)])
+                                  (if match
+                                      (let* ([prefix (cadr match)]
+                                             [var (caddr match)]
+                                             [var-start (+ start (string-length prefix))]
+                                             [var-end (+ var-start (string-length var))])
+                                        (change-style click-delta var-start var-end)
+                                        (set-clickback
+                                         var-start var-end
+                                         (lambda x
+                                           (drscheme:help:help-desk var)))
+                                        prefix)
+                                      #f)))])
+                         (let loop ([s s])
+                           (when s
+                             (loop (bind-to-help class-regexp s))))
+                         (bind-to-help ivar-regexp s)
+                         (bind-to-help fallthru-regexp s))]))))))
             (define this-err-write ; =User=
               (lambda (s)
                 (this-err-write/exn s #f)))
             
-            (define this-err (make-output-port this-err-write generic-close))
-            (define this-out (make-output-port this-out-write generic-close))
-            (define this-in (make-input-port this-in-read-char this-in-char-ready? generic-close
-                                             this-in-peek-char))
-            (define this-result (make-output-port this-result-write generic-close))
-            (define set-display/write-handlers
-              (lambda ()
-                (for-each
-                 (lambda (port port-out-write)
-                   (let ([original-write-handler (port-write-handler port)]
-                         [original-display-handler (port-display-handler port)]
-                         [handler-maker
-                          (lambda (port-handler pretty original)
-                            (port-handler
-                             port
-                             (rec console-pp-handler
-                               (lambda (v p)
-                                 (if (or (string? v) 
-                                         (char? v)
-                                         (number? v)
-                                         (symbol? v))
-                                     (original v p)
-                                     (parameterize ([mzlib:pretty-print:pretty-print-size-hook
-                                                     drscheme-pretty-print-size-hook]
-                                                    [mzlib:pretty-print:pretty-print-print-hook
-                                                     (lambda (x _ port)
-                                                       (port-out-write x))]
-                                                    [mzlib:pretty-print:pretty-print-columns
-                                                     'infinity])
-                                       (pretty v p)))))))])
-                     (handler-maker port-display-handler 
-                                    mzlib:pretty-print:pretty-display 
-                                    original-display-handler)
-                     (handler-maker port-write-handler
-                                    mzlib:pretty-print:pretty-print
-                                    original-write-handler)))
-                 (list this-out this-err this-result)
-                 (list this-out-write this-err-write this-result-write))))
+            (field (this-err (make-output-port (lambda (x) (this-err-write x))
+                                               void))
+                   (this-out (make-output-port (lambda (x) (this-out-write x))
+                                               void))
+                   (this-in (make-input-port (lambda (x) (this-in-read-char x))
+                                             (lambda (x) (this-in-char-ready? x))
+                                             void
+                                             (lambda (x) (this-in-peek-char x))))
+                   (this-result (make-output-port (lambda (x) (this-result-write x)) 
+                                                  void)))
+            
+            (define (get-this-err) this-err)
+            (define (get-this-out) this-out)
+            (define (get-this-in) this-in)
+            (define (get-this-result) this-result)
+            
+            (define (set-display/write-handlers)
+              (let ([setup-handlers
+                     (lambda (port port-out-write)
+                       (let ([original-write-handler (port-write-handler port)]
+                             [original-display-handler (port-display-handler port)]
+                             [handler-maker
+                              (lambda (port-handler pretty original)
+                                (port-handler
+                                 port
+                                 (rec console-pp-handler
+                                   (lambda (v p)
+                                     (if (or (string? v) 
+                                             (char? v)
+                                             (number? v)
+                                             (symbol? v))
+                                         (original v p)
+                                         (parameterize ([mzlib:pretty-print:pretty-print-size-hook
+                                                         drscheme-pretty-print-size-hook]
+                                                        [mzlib:pretty-print:pretty-print-print-hook
+                                                         (lambda (x _ port)
+                                                           (port-out-write x))]
+                                                        [mzlib:pretty-print:pretty-print-columns
+                                                         'infinity])
+                                           (pretty v p)))))))])
+                         (handler-maker port-display-handler 
+                                        mzlib:pretty-print:pretty-display 
+                                        original-display-handler)
+                         (handler-maker port-write-handler
+                                        mzlib:pretty-print:pretty-print
+                                        original-write-handler)))])
+                (setup-handlers this-out (lambda (x) (this-out-write x)))
+                (setup-handlers this-err (lambda (x) (this-err-write x)))
+                (setup-handlers this-result (lambda (x) (this-result-write x)))))
             
             (define display-results ; =User=, =Handler=, =Breaks=
               (lambda (anss)
@@ -1228,134 +1186,24 @@
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
-            (define recent-error-text #f)
-            (define error-range #f)
+            (field (recent-error-text #f)
+                   (error-range #f))
             
-            (define report-located-error ; =Kernel=, =Handler=
-              (lambda (message dis exn)
-                (if (and (not (null? dis))
-                         (andmap zodiac:zodiac? dis)
-                         (basis:zodiac-vocabulary? user-setting))
-                    (let* ([start (zodiac:zodiac-start (car dis))]
-                           [finish (zodiac:zodiac-finish (car dis))]
-                           [error-filename (zodiac:location-file start)]
-                           [old-locked? (is-locked?)]
-                           [show-bug? 
-                            (and (not (= 1 (length dis)))
-                                 (or (basis:full-language? user-setting)
-                                     (fw:preferences:get 'drscheme:enable-backtrace-in-teaching-levels)))]
-                           [show-file? (string? error-filename)])
-                      (begin-edit-sequence)
-                      (lock #f)
-                      
-                      (when show-bug?
-                        (let ([last-pos (last-position)]
-                              [date (seconds->date (current-seconds))])
-                          (insert (send (if (and (= (date-month date) 10)
-                                                 (= (date-day date) 29)
-                                                 (>= (date-hour date) 6))
-                                            mf-icon
-                                            bug-icon)
-                                        copy)
-                                  last-pos last-pos)
-                          (change-style click-delta last-pos (last-position))
-                          (set-clickback last-pos (last-position)
-                                         (lambda (text start end)
-                                           (if (send context needs-execution?)
-                                               (message-box
-                                                "DrScheme"
-                                                "The program or the language have changed; please re-execute the program")
-                                               (show-backtrace-window dis message)))
-                                         (fw:gui-utils:get-clicked-clickback-delta))
-                          (insert " " (last-position) (last-position))))
-                      
-                      (when show-file?
-                        (let ([last-pos (last-position)])
-                          (insert (send file-icon copy) last-pos last-pos)
-                          (change-style click-delta last-pos (last-position))
-                          (set-clickback last-pos (last-position)
-                                         (lambda (text start end) (open-and-highlight-in-file (car dis)))
-                                         (fw:gui-utils:get-clicked-clickback-delta)))
-                        (insert " " (last-position) (last-position)))
-                      
-                      (lock old-locked?)
-                      (end-edit-sequence)
-                      (report-error start finish 'dynamic message exn))
-                    (report-unlocated-error message exn))))
-            (define report-unlocated-error ; =Kernel=
-              (lambda (message exn)
-                (send context ensure-rep-shown)
-                (let ([old-locked? (is-locked?)])
-                  (begin-edit-sequence)
-                  (lock #f)
-                  (this-err-write/exn (string-append message (string #\newline))
-                                      exn)
-                  (lock old-locked?)
-                  (end-edit-sequence))))
+            (define (get-error-range)
+              (if color?
+                  error-range
+                  (if recent-error-text
+                      (cons (send recent-error-text get-start-position)
+                            (send recent-error-text get-end-position)))))
             
-            (define get-error-range
-              (lambda ()
-                (if color?
-                    error-range
-                    (if recent-error-text
-                        (cons (send recent-error-text get-start-position)
-                              (send recent-error-text get-end-position))))))
+            (define (reset-highlighting) (void))
             
-            (define reset-highlighting void)
-            
+            ;; format-source-loc : syntax -> string
             (define format-source-loc ;; =Kernel=, =Handler=
-              (lambda (start end)
-                (let ([translate-loc
-                       (lambda (loc)
-                         (let ([loc-name (zodiac:location-file loc)])
-                           (zodiac:make-location (zodiac:location-line loc)
-                                                 (zodiac:location-column loc)
-                                                 (zodiac:location-offset loc)
-                                                 (if (is-a? loc-name editor<%>)
-                                                     (or (send loc-name get-filename)
-                                                         loc-name)
-                                                     loc-name))))])
-                  (basis:format-source-loc 
-                   (translate-loc start)
-                   (translate-loc end)
-                   (fw:preferences:get 'framework:line-offsets)
-                   (fw:preferences:get 'framework:display-line-numbers)))))
+              (lambda (stx)
+                (format "~s" stx)))
             
-            (define highlight-error
-              (lambda (file start finish)
-                (when (is-a? file fw:text:basic%)
-                  (send file begin-edit-sequence)
-                  (set! recent-error-text file)
-                  (wait-for-io-to-complete)
-                  (reset-highlighting)
-                  (set! error-range (cons start finish))
-                  (if color?
-                      (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
-                        (set! reset-highlighting
-                              (lambda ()
-                                (unless inserting-prompt
-                                  (set! error-range #f)
-                                  (reset)
-                                  (set! reset-highlighting void)))))
-                      (send file set-position start finish))
-                  (send file scroll-to-position start #f finish)
-                  (send file end-edit-sequence)
-                  (send file set-caret-owner #f 'global))))
-            
-            (define report-error ; =Kernel=, =Handler=
-              (lambda (start-location end-location type input-string exn)
-                (let* ([start (zodiac:location-offset start-location)]
-                       [finish (add1 (zodiac:location-offset end-location))]
-                       [file (zodiac:location-file start-location)]
-                       [message
-                        (if (is-a? file text%)
-                            input-string
-                            (string-append (format-source-loc start-location end-location)
-                                           input-string))])
-                  (report-unlocated-error message exn)
-                  (set! recent-error-text #f)
-                  (highlight-error file start finish))))
-            (define on-set-media void)
+            (define (on-set-media) (void))
             
             (define on-insert
               (lambda (x y)
@@ -1377,46 +1225,49 @@
               (not (and user-thread
                         (thread-running? user-thread))))
             
-            (define (get-user-setting) (fw:preferences:get drscheme:language:settings-preferences-symbol))
-            (define user-setting (get-user-setting))
-            (define user-custodian (make-custodian))
-            (define user-eventspace #f)
-            (define user-namespace #f)
-            (define user-thread #f)
+            (define (get-user-setting) (preferences:get drscheme:language:settings-preferences-symbol))
+            (field (user-setting (get-user-setting))
+                   (user-custodian (make-custodian))
+                   (user-eventspace #f)
+                   (user-namespace #f)
+                   (user-thread #f))
             
-            (define in-evaluation? #f) ; a heursitic for making the Break button send a break
-            (define should-collect-garbage? #f)
-            (define ask-about-kill? #f)
+            (define (get-user-custodian) user-custodian)
+            (define (get-user-eventspace) user-eventspace)
+            (define (get-user-namespace) user-namespace)
+            (define (get-user-thread) user-thread)
             
-            (define insert-warning
-              (lambda ()
-                (begin-edit-sequence)
-                (insert #\newline (last-position) (last-position))
-                (let ([start (last-position)])
-                  (insert
-                   "WARNING: Interactions window is out of sync with the definitions window. Click Execute."
-                   start start)
-                  (let ([end (last-position)])
-                    (change-style warning-style-delta start end)))
-                (end-edit-sequence)))
+            (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
+                   (should-collect-garbage? #f)
+                   (ask-about-kill? #f))
             
-            (define already-warned? #f)
+            (define (insert-warning)
+              (begin-edit-sequence)
+              (insert #\newline (last-position) (last-position))
+              (let ([start (last-position)])
+                (insert
+                 "WARNING: Interactions window is out of sync with the definitions window. Click Execute."
+                 start start)
+                (let ([end (last-position)])
+                  (change-style warning-style-delta start end)))
+              (end-edit-sequence))
             
-            (define do-eval
-              (let ([count 0])
-                (lambda (start end)
-                  (set! count (add1 count))
-                  (when (<= 5 count)
-                    (collect-garbage)
-                    (set! count 0))
-                  (let* ([needs-execution? (send context needs-execution?)])
-                    (when (if (fw:preferences:get 'drscheme:execute-warning-once)
-                              (and (not already-warned?)
-                                   needs-execution?)
-                              needs-execution?)
-                      (set! already-warned? #t)
-                      (insert-warning)))
-                  (do-many-text-evals this start end))))
+            (field (already-warned? #f))
+            
+            (field (eval-count 0))
+            (define (do-eval start end)
+              (set! eval-count (add1 eval-count))
+              (when (5 . <= . count)
+                (collect-garbage)
+                (set! eval-count 0))
+              (let* ([needs-execution? (send context needs-execution?)])
+                (when (if (preferences:get 'drscheme:execute-warning-once)
+                          (and (not already-warned?)
+                               needs-execution?)
+                          needs-execution?)
+                  (set! already-warned? #t)
+                  (insert-warning)))
+              (do-many-text-evals this start end))
             
             (define (cleanup)
               (set! in-evaluation? #f)
@@ -1428,48 +1279,46 @@
                    (let ([canvas (get-active-canvas)])
                      (and canvas
                           (send canvas get-top-level-window)))))))
-            (define need-interaction-cleanup? #f)
+            (field (need-interaction-cleanup? #f))
             
-            (define saved-cursor #f)
+            (field (saved-cursor #f))
             
-            (define cleanup-interaction ; =Kernel=, =Handler=
-              (lambda ()
-                (set! need-interaction-cleanup? #f)
-                (send (get-canvas) set-cursor saved-cursor)
-                (begin-edit-sequence)
-                (wait-for-io-to-complete)
-                (cleanup-transparent-io)
-                (set-caret-owner #f 'display)
-                (when (and user-thread (thread-running? user-thread))
-                  (let ([c-locked? (is-locked?)])
-                    (lock #f)
-                    (insert-prompt)
-                    (lock c-locked?)))
-                (cleanup)
-                (end-edit-sequence)
-                (send context enable-evaluation)))
+            (define (cleanup-interaction) ; =Kernel=, =Handler=
+              (set! need-interaction-cleanup? #f)
+              (send (get-canvas) set-cursor saved-cursor)
+              (begin-edit-sequence)
+              (wait-for-io-to-complete)
+              (cleanup-transparent-io)
+              (set-caret-owner #f 'display)
+              (when (and user-thread (thread-running? user-thread))
+                (let ([c-locked? (is-locked?)])
+                  (lock #f)
+                  (insert-prompt)
+                  (lock c-locked?)))
+              (cleanup)
+              (end-edit-sequence)
+              (send context enable-evaluation))
             
-            (define do-many-text-evals
-              (lambda (text start end)
-                (do-many-evals
-                 (lambda (single-loop-eval)
-                   (drscheme:load-handler:process-text
-                    ; BUG: is it possible that a macro turns on breaking?
-                    text
-                    (lambda (expr recur) ; =User=, =Handler=, =No-Breaks=
-                      (cond
-                        [(basis:process-finish? expr)
-                         (void)]
-                        [else
-                         (single-loop-eval
-                          (lambda ()
-                            (call-with-values
-                             (lambda ()
-                               (basis:primitive-eval expr))
-                             (lambda x (display-results x)))))
-                         (recur)]))
-                    start
-                    end)))))
+            (define (do-many-text-evals text start end)
+              (do-many-evals
+               (lambda (single-loop-eval)
+                 (drscheme:load-handler:process-text
+                  ; BUG: is it possible that a macro turns on breaking?
+                  text
+                  (lambda (expr recur) ; =User=, =Handler=, =No-Breaks=
+                    (cond
+                      [(basis:process-finish? expr)
+                       (void)]
+                      [else
+                       (single-loop-eval
+                        (lambda ()
+                          (call-with-values
+                           (lambda ()
+                             (basis:primitive-eval expr))
+                           (lambda x (display-results x)))))
+                       (recur)]))
+                  start
+                  end))))
             
             
 	;; do-many-evals : ((((-> void) -> void) -> void) -> void)
@@ -1542,7 +1391,7 @@
                   [(not in-evaluation?)
                    (bell)]
                   [ask-about-kill? 
-                   (if (fw:gui-utils:get-choice
+                   (if (gui-utils:get-choice
                         "Do you want to kill the evaluation?"
                         "Just Break"
                         "Kill"
@@ -1560,18 +1409,17 @@
             (define (kill-evaluation) ; =Kernel=, =Handler=
               (custodian-shutdown-all user-custodian))
             
-            (define error-escape-k void)
-            (define user-break-enabled #t)
+            (field (error-escape-k void)
+                   (user-break-enabled #t))
             
-            (define eval-thread-thunks null)
-            (define eval-thread-state-sema 'not-yet-state-sema)
-            (define eval-thread-queue-sema 'not-yet-thread-sema)
-            
-            (define cleanup-sucessful 'not-yet-cleanup-sucessful)
-            (define cleanup-semaphore 'not-yet-cleanup-semaphore)
-            (define thread-grace 'not-yet-thread-grace)
-            
-            (define thread-killed 'not-yet-thread-killed)
+            (field (eval-thread-thunks null)
+                   (eval-thread-state-sema 'not-yet-state-sema)
+                   (eval-thread-queue-sema 'not-yet-thread-sema)
+                   
+                   (cleanup-sucessful 'not-yet-cleanup-sucessful)
+                   (cleanup-semaphore 'not-yet-cleanup-semaphore)
+                   (thread-grace 'not-yet-thread-grace)
+                   (thread-killed 'not-yet-thread-killed))
             (define (initialize-killed-thread) ; =Kernel=
               (when (thread? thread-killed)
                 (kill-thread thread-killed))
@@ -1694,7 +1542,7 @@
                   ; Let user expressions go...
                   (semaphore-post goahead))))
             
-            (define shutting-down? #f)
+            (field (shutting-down? #f))
             
             (define (on-close)
               (shutdown)
@@ -1734,7 +1582,7 @@
                               deltas)
                     (values before after)))))
             
-            (define repl-initially-active? #f)
+            (field (repl-initially-active? #f))
             
             (define initialize-parameters ; =User=
               (lambda (setting)
@@ -1774,25 +1622,15 @@
                 
                 (current-load drscheme:load-handler:drscheme-load-handler)
                 
-                (basis:error-display/debug-handler
-                 (lambda (msg zodiacs exn)
-                   (queue-system-callback/sync
-                    user-thread
-                    (lambda () 
-                      (report-located-error msg zodiacs exn)))))
-                
                 (error-display-handler
                  (rec drscheme-error-display-handler
                    (lambda (msg)
-                     (let ([rep (current-rep-text)])
-                       (if rep
-                           (send rep report-unlocated-error msg #f)
-                           (message-box
-                            "Uncaught Error"
-                            msg
-                            (let ([canvas (send rep get-active-canvas)])
-                              (and canvas
-                                   (send canvas get-top-level-window)))))))))
+                     (message-box
+                      "Uncaught Error"
+                      msg
+                      (let ([canvas (send rep get-active-canvas)])
+                        (and canvas
+                             (send canvas get-top-level-window)))))))
                 
                 (let ([dir (or (send context get-directory)
                                drscheme:init:first-dir)])
@@ -1900,7 +1738,7 @@
                    (insert-delta "Teachpack: " welcome-delta)
                    (insert-delta fn dark-green-delta)
                    (insert-delta (format ".~n") welcome-delta))
-                 (fw:preferences:get 'drscheme:teachpack-file))
+                 (preferences:get 'drscheme:teachpack-file))
                 
                 (set! repl-initially-active? #t)
                 (end-edit-sequence)
@@ -1916,7 +1754,7 @@
                 (insert-delta "Welcome to " welcome-delta)
                 (let-values ([(before after)
                               (insert-delta "DrScheme" click-delta drs-font-delta)])
-                  (insert-delta (format ", version ~a.~n" (fw:version:version))
+                  (insert-delta (format ", version ~a.~n" (version:version))
                                 welcome-delta)
                   (set-clickback before after 
                                  (lambda args (drscheme:app:about-drscheme))
@@ -1998,8 +1836,8 @@
                       copy-previous-expr
                       previous-expr-pos
                       previous-expr-positions
-                      prompt-mode?
                       set-prompt-mode
+                      get-prompt-mode?
                       ready-non-prompt
                       inserting-prompt
                       
@@ -2097,8 +1935,9 @@
                                      (car l)
                                      (last-str (cdr l)))))
               
-              (define prompt-mode? #f)
-              (define set-prompt-mode (lambda (x) (set! prompt-mode? x)))
+              (field (prompt-mode? #f))
+              (define (get-prompt-mode) prompt-mode?)
+              (define (set-prompt-mode x) (set! prompt-mode? x))
               (define get-prompt (lambda () "> "))
               (define prompt-position 0)
               (define set-prompt-position (lambda (v) (set! prompt-position v)))
@@ -2121,7 +1960,7 @@
                   (set! previous-expr-positions null)))
               (define copy-previous-expr
                 (lambda ()
-                  (let ([snip/strings (list-ref (fw:preferences:get
+                  (let ([snip/strings (list-ref (preferences:get
                                                  'console-previous-exprs) 
                                                 previous-expr-pos)])
                     (begin-edit-sequence)
@@ -2138,7 +1977,7 @@
                     (end-edit-sequence))))
               (define copy-next-previous-expr
                 (lambda ()
-                  (let ([previous-exprs (fw:preferences:get 'console-previous-exprs)])
+                  (let ([previous-exprs (preferences:get 'console-previous-exprs)])
                     (unless (null? previous-exprs)
                       (set! previous-expr-pos
                             (if (< (add1 previous-expr-pos) (length previous-exprs))
@@ -2147,7 +1986,7 @@
                       (copy-previous-expr)))))
               (define copy-prev-previous-expr
                 (lambda ()
-                  (let ([previous-exprs (fw:preferences:get 'console-previous-exprs)])
+                  (let ([previous-exprs (preferences:get 'console-previous-exprs)])
                     (unless (null? previous-exprs)
                       (set! previous-expr-pos
                             (if (<= previous-expr-pos 0)
@@ -2170,7 +2009,7 @@
                              [else snips]))])
                     (set! previous-expr-positions (cons (cons start end) previous-expr-positions))
                     (set! previous-expr-pos -1)
-                    (let* ([previous-exprs (fw:preferences:get 'console-previous-exprs)]
+                    (let* ([previous-exprs (preferences:get 'console-previous-exprs)]
                            [new-previous-exprs 
                             (let* ([trimmed-previous-exprs
                                     (if (>= (length previous-exprs) console-max-save-previous-exprs)
@@ -2180,7 +2019,7 @@
                                 (if (null? l)
                                     (list snips)
                                     (cons (car l) (loop (cdr l))))))])
-                      (fw:preferences:set 'console-previous-exprs new-previous-exprs))
+                      (preferences:set 'console-previous-exprs new-previous-exprs))
                     (do-eval start end))))
               
               (define reset-pretty-print-width
@@ -2263,7 +2102,7 @@
                             (only-spaces-after start)
                             (not (eval-busy?)))
                        (if (balance-required)
-                           (let ([balanced? (fw:scheme-paren:balanced?
+                           (let ([balanced? (scheme-paren:balanced?
                                              this
                                              prompt-position
                                              last)])
@@ -2276,7 +2115,7 @@
                              (delete start last)
                              (do-save-and-eval prompt-position start)))]
                       [(< start prompt-position)
-                       (let ([match (fw:scheme-paren:backward-match
+                       (let ([match (scheme-paren:backward-match
                                      this start 0)])
                          (if match
                              (begin
@@ -2338,8 +2177,8 @@
       
       (define transparent-io-super% 
         (make-console-text%
-         (fw:scheme:text-mixin
-          fw:text:searching%)))
+         (scheme:text-mixin
+          text:searching%)))
       
       (define transparent-io-text%
         (class100* transparent-io-super% (transparent-io-text<%>) (rep-text)
@@ -2450,4 +2289,4 @@
       (define text% 
         (drs-bindings-keymap-mixin
          (make-text% 
-          (make-console-text% fw:scheme:text%)))))))
+          (make-console-text% scheme:text%)))))))
