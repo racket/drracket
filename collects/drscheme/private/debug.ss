@@ -556,44 +556,47 @@ profile todo:
       ;; imported into errortrace
       (define profiling-enabled (make-parameter #f))
 
+      ;; parameter
+      ;; holds a hash-table for the profiling information
+      (define current-profile-info (make-parameter #f))
+
       ;; initialize-profile-point : sym syntax syntax -> void
       ;; called during compilation to register this point as
       ;; a profile point. 
       ;; =user=
       ;; imported into errortrace
       (define (initialize-profile-point key name expr)
-        (let ([rep (drscheme:rep:current-rep)])
-          (when (is-a? rep profile-interactions-text<%>)
-            (hash-table-put! (send rep get-profile-info)
-                             key 
-                             (make-prof-info #f 0 0 (and name (syntax-e name)) expr)))))
+	(unless (current-profile-info)
+	  (let ([ht (make-hash-table)])
+	    (current-profile-info ht)
+	    (send (drscheme:rep:current-rep) set-profile-info ht)))
+        (let ([profile-info (current-profile-info)])
+          (hash-table-put! profile-info
+			   key 
+			   (make-prof-info #f 0 0 (and name (syntax-e name)) expr))))
   
       ;; register-profile-start : sym -> (union #f number)
       ;; =user=
       ;; imported into errortrace
       (define (register-profile-start key)
-        (let ([rep (drscheme:rep:current-rep)])
-          (when (is-a? rep profile-interactions-text<%>)
-            (let ([info (hash-table-get (send rep get-profile-info) key)])
-              (set-prof-info-num! info (+ (prof-info-num info) 1))
-              (if (prof-info-nest info)
-                  #f
-                  (begin
-                    (set-prof-info-nest! info #t)
-                    (current-process-milliseconds)))))))
+	(let ([info (hash-table-get (current-profile-info) key)])
+	  (set-prof-info-num! info (+ (prof-info-num info) 1))
+	  (if (prof-info-nest info)
+	      #f
+	      (begin
+		(set-prof-info-nest! info #t)
+		(current-process-milliseconds)))))
       
       ;; register-profile-done : sym (union #f number) -> void
       ;; =user=
       ;; imported into errortrace
       (define (register-profile-done key start)
         (when start
-          (let ([rep (drscheme:rep:current-rep)])
-            (when (is-a? rep profile-interactions-text<%>)
-              (let ([info (hash-table-get (send rep get-profile-info) key)])
-                (set-prof-info-nest! info #f)
-                (set-prof-info-time! info
-                                     (+ (- (current-process-milliseconds) start)
-                                        (prof-info-time info))))))))
+	  (let ([info (hash-table-get (current-profile-info) key)])
+	    (set-prof-info-nest! info #f)
+	    (set-prof-info-time! info
+				 (+ (- (current-process-milliseconds) start)
+				    (prof-info-time info))))))
      
 
       ;; get-color-value : number number -> (is-a?/c color%)
