@@ -1395,7 +1395,7 @@ tab panels new behavior:
                               [new-canvas (new canvas% 
                                             (parent resizable-panel)
                                             (editor text)
-                                            (style '(auto-hscroll)))])
+                                            (style '()))])
                           
                           (set-canvases!
                            (let loop ([canvases canvases])
