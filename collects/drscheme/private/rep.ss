@@ -650,7 +650,7 @@
           get-error-ranges))
 
       (define text-mixin
-        (mixin ((class->interface text%) editor:basic<%> scheme:text<%> console-text<%> color:text<%>) (-text<%>)
+        (mixin ((class->interface text%) editor:file<%> scheme:text<%> console-text<%> color:text<%>) (-text<%>)
           (init-field context)
           (inherit insert change-style
                    get-active-canvas
@@ -1897,6 +1897,8 @@
                 (semaphore-post goahead))))
           
           (field (shutting-down? #f))
+
+          (inherit get-can-close-parent)
           (rename [super-can-close? can-close?])
           (define/override (can-close?)
             (and (cond
@@ -1906,7 +1908,7 @@
                              (string-constant program-is-still-running)
                              (string-constant close-anyway)
                              (string-constant cancel)
-                             #f
+                             (or (get-top-level-window) (get-can-close-parent))
                              #f
                              '(default=1 caution)
                              2)
@@ -1920,7 +1922,7 @@
                              (string-constant program-has-open-windows)
                              (string-constant close-anyway)
                              (string-constant cancel)
-                             #f
+                             (or (get-top-level-window) (get-can-close-parent))
                              #f
                              '(default=1 caution)
                              2)
