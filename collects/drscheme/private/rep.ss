@@ -19,6 +19,7 @@
            (lib "etc.ss")
            (prefix print-convert: (lib "pconvert.ss"))
            "drsig.ss"
+           "syntax-browser.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -1241,7 +1242,7 @@
                            port
                            (rec drscheme-port-handler
                              (lambda (v p)
-                               ;; avoid infinite recursion by calling original-handler
+                               ;; avoid looping by calling original-handler
                                ;; for strings, since `pretty' calls write/display with
                                ;; strings
                                (if (string? v)
@@ -1436,6 +1437,11 @@
                       (send x get-extent dc 0 0 wbox #f #f #f #f #f)
                       (let-values ([(xw xh xa xd) (send dc get-text-extent "x")])
                         (max 1 (inexact->exact (ceiling (/ (unbox wbox) xw))))))]
+                   [(syntax? x) 
+                    ;; two spaces is about how big the turn down triangle
+                    ;; and the extra space accounts for. Of course, when
+                    ;; it is opened, this will be all wrong.
+                    (+ 2 (string-length (format "~s" x)))]
                    [((use-number-snip) x)
                     (let ([number-snip-type ((which-number-snip) x)])
                       (cond
@@ -1462,6 +1468,7 @@
               (if port-out-write
                   (let ([snip/str
                          (cond
+                           [(syntax? x) (render-syntax/snip x)]
                            [((use-number-snip) x)
                             (let ([number-snip-type ((which-number-snip) x)])
                               (cond
