@@ -2,6 +2,7 @@
 (unit/sig drscheme:unit^
   (import [mred : mred^]
 	  [mzlib : mzlib:core^]
+	  [mzlib:date : mzlib:date^]
 	  [fw : framework^]
 	  [drscheme:app : drscheme:app^]
 	  [drscheme:frame : drscheme:frame^]
@@ -252,6 +253,36 @@
 	 (lambda x
 	   (set! needs-execution-state #t)
 	   (apply super-after-delete x))])
+
+      (inherit get-filename)
+      (private
+	[tmp-date-string #f]
+	[get-date-string
+	 (lambda ()
+	   (string-append
+	    (mzlib:date:date->string (seconds->date (current-seconds)))
+	    " "
+	    (let ([fn (get-filename)])
+	      (if (string? fn)
+		  fn
+		  "Untitled"))))])
+	 
+      (rename [super-on-paint on-paint])
+      (override
+       [on-paint
+	(lambda (before dc left top right bottom dx dy draw-caret)
+	  (when (and before
+		     (or (is-a? dc mred:post-script-dc%)
+			 (is-a? dc mred:printer-dc%)))
+	    (set! tmp-date-string (get-date-string))
+	    (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
+	      (send (mred:current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
+	  (super-on-paint before dc left top right bottom dx dy draw-caret)
+	  (when (and (not before)
+		     (or (is-a? dc mred:post-script-dc%)
+			 (is-a? dc mred:printer-dc%)))
+	    (send dc draw-text (get-date-string) 0 0)
+	    (void)))])
       (sequence
 	(super-init))))
   

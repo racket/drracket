@@ -1,7 +1,6 @@
 (unit/sig drscheme:text^
   (import [mzlib:date : mzlib:date^]
 	  [fw : framework^]
-	  [aries : plt:aries^]
 	  [zodiac : zodiac:system^])
   
   (define text<%>
@@ -41,7 +40,7 @@
 	[get-zodiac-sexp
 	 (lambda ()
 	   (let* ([loc (zodiac:make-location 0 0 0 this)]
-		  [port (fw:gui-utils:read-snips/chars-from-buffer this)]
+		  [port (fw:gui-utils:read-snips/chars-from-text this)]
 		  [reader (zodiac:read port loc)]
 		  [bodies (let read-loop ()
 			    (let ([expr (reader)])
