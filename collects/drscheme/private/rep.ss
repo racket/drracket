@@ -105,15 +105,11 @@ TODO
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
         (printf "msg: ~s\n" msg)
-        (when (exn? exn)
-          (parameterize ([current-eventspace drscheme:init:system-eventspace])
-            (queue-callback
-             (lambda ()
-               (raise exn))))
-          #;
-          ((dynamic-require '(lib "errortrace-lib.ss" "errortrace") 'print-error-trace)
-           drscheme:init:original-output-port
-           exn))
+        #;
+        (parameterize ([current-eventspace drscheme:init:system-eventspace])
+          (queue-callback
+           (lambda ()
+             (raise exn))))
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
           (cond
@@ -616,7 +612,8 @@ TODO
                    begin-edit-sequence
                    change-style
                    clear-undos
-                   clear-ports
+                   clear-input-port
+                   clear-output-ports
                    delete
                    end-edit-sequence
                    erase
@@ -947,11 +944,7 @@ TODO
              (get-in-port) 
              #f
              (lambda ()
-               (let ([ip (get-in-port)])
-                 (when (byte-ready? ip)
-                   (let ([b (peek-byte ip)])
-                     (when (eof-object? b)
-                       (read-byte ip))))))))
+               (clear-input-port))))
           
           (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
             (send context disable-evaluation)
@@ -992,6 +985,9 @@ TODO
                       (lambda () 
                         (let loop ()
                           (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                            (printf "s/s/e ~s\n" (if (syntax? sexp/syntax/eof)
+                                                     (syntax-object->datum sexp/syntax/eof)
+                                                     sexp/syntax/eof))
                             (unless (eof-object? sexp/syntax/eof)
                               (call-with-values
                                (lambda ()
@@ -1354,7 +1350,8 @@ TODO
             (send context clear-annotations)
             (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
-            (clear-ports)
+            (clear-input-port)
+            (clear-output-ports)
             (set-allow-edits #t)
             (set! should-collect-garbage? #t)
             

@@ -190,12 +190,14 @@ profile todo:
                                                            (and cms
                                                                 (map st-mark-source cms)))])
                  
+                 #;
                  (when (and cms
                             (not (null? cms)))
                    (insert/clickback text
                                      (if (mf-bday?) mf-note bug-note)
                                      (lambda ()
                                        (show-backtrace-window msg cms k))))
+                 #;
                  (when src-to-display
                    (let ([src (car src-to-display)])
                      (when (symbol? src)
