@@ -4,9 +4,12 @@
            (lib "class.ss")
            "drscheme-test-util.ss"
            (lib "gui.ss" "tests" "utils")
-           (lib "framework.ss" "framework"))
+           (lib "framework.ss" "framework")
+           (lib "pretty.ss"))
   
   (provide run-test)
+  
+  (define no-more-steps-message "evaluation of program is complete.")
   
   ;; type contents = (listof (union snip string contents))
   ;; type error = (make-error string)
@@ -25,16 +28,186 @@
   (define to-skip-to "average-price.scm")
   
   (define (run-test)
-    (set-language-level! (list "How to Design Programs" "Beginning Student"))
+    (run-fully-specified-tests)
+    
+    #|
+    (set-language-level! (list "How to Design Programs" "Beginning Student with List Abbreviations"))
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    (run-string-test "(define (f x) (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2 x))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (f (+ 1 2))")
-    '(run-sample-solution-tests)
     
-    '(set-language-level! (list "How to Design Programs" "Beginning Student with List Abbreviations"))
-    '(run-sample-solution-tests))
+    (run-sample-solution-tests)
+    |#
+    )
+ 
+  (define (run-fully-specified-tests)
+    (set-language-level! (list "How to Design Programs" "Beginning Student"))
+    (beginner-tests/no-list)
+    (test-transcript '(cons 1 (cons 2 (list 3 4 5)))
+                     '(cons 1 (cons 2 (cons 3 (cons 4 (cons 5 empty))))))
+    
+    (set-language-level! (list "How to Design Programs" "Beginning Student with List Abbreviations"))
+    (beginner-tests/no-list)
+    (test-transcript '(cons 1 (cons 2 (list 3 4 5)))
+                     '(cons 1 (list 2 3 4 5))
+                     '(list 1 2 3 4 5)))
   
+  (define (beginner-tests/no-list)
+    (test-transcript '(+ 1 2) 3)
+    (test-transcript
+     '(cond [(= 1 1) (cond [(= 1 2) 3] [else 4])])
+     '(cond [true (cond [(= 1 2) 3] [else 4])])
+     '(cond [(= 1 2) 3] [else 4])
+     '(cond [false 3] [else 4])
+     '(cond [else 4])
+     '4)
+    (test-transcript
+     '(if (= 1 1) (if (= 1 2) 4 (if (= 1 1) 5 6)) 7)
+     '(if true (if (= 1 2) 4 (if (= 1 1) 5 6)) 7)
+     '(if (= 1 2) 4 (if (= 1 1) 5 6))
+     '(if false 4 (if (= 1 1) 5 6))
+     '(if (= 1 1) 5 6)
+     '(if true 5 6)
+     '5)
+    (test-transcript
+     '(and (or true false)
+           (or false false true)
+           (and true true)
+           false)
+     '(and true
+           (or false false true)
+           (and true true)
+           false)
+     '(and (or false false true)
+           (and true true)
+           false)
+     '(and (or false true)
+           (and true true)
+           false)
+     '(and true
+           (and true true)
+           false)
+     '(and (and true true)
+           false)
+     '(and true false)
+     'false)
+
+    (fully-specified-test
+     "(+ #i1.2 1)"
+     (make-step '() '("(+ #i1.2 1)") '("#i2.2"))
+     (make-step '("#i2.2") '() '()))
+    
+    (test-transcript/defns
+     (list '(define (f x) (+ x 1)))
+     '(f 1)
+     '(+ 1 1)
+     '2)
+
+    (test-transcript
+     '(+ 1 (posn-x (make-posn (+ 1 2) (+ 3 4))))
+     '(+ 1 (posn-x (make-posn 3 (+ 3 4))))
+     '(+ 1 (posn-x (make-posn 3 7)))
+     '(+ 1 3)
+     '4)
+    
+    (test-transcript/defns
+     (list '(define-struct s (a b)))
+     '(if (s? (make-s 'a 'b))
+          (s-a (make-s 'c 'd))
+          'ack)
+     '(if true
+          (s-a (make-s 'c 'd))
+          'ack)
+     '(s-a (make-s 'c 'd))
+     ''c))
+     
+  (define (fully-specified-test init . steps)
+    (let ([actual (step-and-extract-program init)])
+      (unless (equal? actual steps)
+        (printf "FAILED: ~s\nexpected: ~s\n     got: ~s\n" init steps actual))))
+
+  (define (test-transcript/defns defns init . sexp-steps)
+    (let* ([str-defns (apply string-append (map to-string defns))]
+           [actual-steps (step-and-extract-program (format "~a~a" str-defns (to-string init)))]
+           [failed
+            (lambda (msg . args)
+              (printf "FAILED: ~a\ndefns: ~s\nexpected: ~s\nactual: ~s\n\n" 
+                      (apply format msg args)
+                      defns
+                      (cons init sexp-steps)
+                      actual-steps))])
+      (let loop ([steps actual-steps]
+                 [last init]
+                 [sexps sexp-steps]
+                 [n 0])
+        (cond
+          [(and (null? sexps) 
+                (not (null? steps))
+                (null? (cdr steps)))
+           (let ([step (car steps)])
+             (unless (ws-equal? (stringify (step-definitions step))
+                                (string-append
+                                 str-defns
+                                 "\n"
+                                 (to-string last)))
+               (failed "mismatch at last step ~s and ~s"
+                       (step-definitions step)
+                       last))
+             (unless (and (equal? '() (step-before step))
+                          (equal? '() (step-after step)))
+               (failed "expected empty before and after steps in the last step")))]
+          [(or (null? steps) (null? sexps))
+           (failed "different length")]
+          [else
+           (let ([step (car steps)]
+                 [sexp (car sexps)])
+             (cond
+               [(not (ws-equal? (stringify (step-definitions step)) str-defns))
+                (failed "mismatch at ~a defnitions ~s and ~s" n 
+                        n
+                        (stringify (step-definitions step))
+                        str-defns)]
+               [(not (ws-equal? (stringify (step-before step))
+                                (to-string last)))
+                (failed "mismatch at ~a before ~s and ~s"
+                        n
+                        (stringify (step-before step))
+                        last)]
+               [(not (ws-equal? (stringify (step-after step))
+                                (to-string sexp)))
+                (failed "mismatch at ~a after ~s and ~s"
+                        n
+                        (stringify (step-after step))
+                        sexp)]
+               [else
+                (loop (cdr steps)
+                      sexp
+                      (cdr sexps)
+                      (+ n 1))]))]))))
+
+  (define (to-string s)
+    (let ([sp (open-output-string)])
+      (parameterize ([pretty-print-columns 'infinity]
+                     [current-output-port sp])
+        (pretty-print s))
+      (get-output-string sp)))
+  
+  (define (stringify x)
+    (unless (andmap string? x)
+      (error 'stringify "cannot: ~s" x))
+    (apply string-append x))
+  
+  (define (test-transcript init . sexp-steps)
+    (apply test-transcript/defns '() init sexp-steps))
+  
+  (define (ws-equal? s1 s2)
+    (equal? (regexp-replace* "[ \t\n]+"
+                             (string-append " " s1 " ")
+                             " ")
+            (regexp-replace* "[ \t\n]+"
+                             (string-append " " s2 " ")
+                             " ")))
+                       
   (define (run-sample-solution-tests)
     (let ([found-it? #f])
       (for-each
@@ -273,7 +446,7 @@
     (let* ([extraction (extract-from-editor stepper-editor)]
            [step (separate-steps extraction)])
       (unless step
-        (unless (equal? '("evaluation of program is complete.") extraction)
+        (unless (equal? (list no-more-steps-message) extraction)
           (error 'get-step "couldn't parse stepper window: ~s\n" extraction)))
       step))
       
