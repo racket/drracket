@@ -223,7 +223,6 @@ profile todo:
                                 (continuation-mark-set->list 
                                  (exn-continuation-marks exn)
                                  cm-key))])
-                 
                  (when (and cms
                             (pair? cms))
                    (let ([note% (if (mf-bday?) mf-note% bug-note%)])
@@ -352,15 +351,17 @@ profile todo:
                         [(is-a? (syntax-source src-stx) editor<%>)
                          (syntax-source src-stx)]
                         [else #f])]
-              [position (syntax-position src-stx)]
-              [span (syntax-span src-stx)])
-          (with-syntax ([expr expr]
-                        [mark (list* source position span)]
-                        [cm-key cm-key])
-            (syntax
-             (with-continuation-mark 'cm-key
-               'mark
-               expr)))))
+              [position (or (syntax-position src-stx) 0)]
+              [span (or (syntax-span src-stx) 0)])
+          (if source
+              (with-syntax ([expr expr]
+                            [mark (list* source position span)]
+                            [cm-key cm-key])
+                (syntax
+                 (with-continuation-mark 'cm-key
+                   'mark
+                   expr)))
+              expr)))
 
     
       ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
