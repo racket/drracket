@@ -97,10 +97,12 @@
              [doc-notes null]
              [title #f]
              [htmling? #f]
-             [is-forward-var #f]
+             [redirection #f]
              [hypertags-list (list (make-hypertag "top" 0))])
             
-            (define/public (is-forward?) is-forward-var)
+            ;; get-redirection : -> (union false? url?)
+            ;; #f indicates no redirection, string is where it redirects to
+            (define/public (get-redirection) redirection)
             
             [define/public add-document-note
               (lambda (note)
@@ -132,17 +134,18 @@
                 (lambda (edit start end)
                   (on-url-click
                    (lambda (url-string post-data)
-                     (with-handlers ([void (lambda (x)
-                                             (unless (or (exn:break? x)
-                                                         (exn:file-saved-instead? x)
-                                                         (exn:cancelled? x))
-                                               (message-box
-                                                (string-constant error)
-                                                (format (string-constant cannot-display-url) 
-                                                        url-string
-                                                        (if (exn? x)
-                                                            (exn-message x)
-                                                            x)))))])
+                     (with-handlers ([void
+                                      (lambda (x)
+                                        (unless (or (exn:break? x)
+                                                    (exn:file-saved-instead? x)
+                                                    (exn:cancelled? x))
+                                          (message-box
+                                           (string-constant error)
+                                           (format (string-constant cannot-display-url) 
+                                                   url-string
+                                                   (if (exn? x)
+                                                       (exn-message x)
+                                                       x)))))])
                        (send (get-canvas) goto-url url-string (get-url) void post-data)))
                    url-string
                    post-data)))]
@@ -153,8 +156,7 @@
                                                 (f x post-data))))]
             [define/public get-title (lambda () (or title (and (url? url) (url->string url))))]
             [define/public set-title (lambda (t) (set! title t))]
-            (field
-             [hyper-delta (make-object style-delta% 'change-underline #t)])
+            (field [hyper-delta (make-object style-delta% 'change-underline #t)])
             (let ([mult (send hyper-delta get-foreground-mult)]
                   [add (send hyper-delta get-foreground-add)])
               (send mult set 0 0 0)
@@ -544,10 +546,10 @@
                       (when m
                         (let ([loc (extract-field "location" headers)])
                           (when loc
-                            (set! is-forward-var #t)
-			    (queue-callback
-			     (lambda ()
-			       ((make-clickback-funct loc #f) this 0 1))))))))))]
+                            (set! redirection 
+                                  (if (url? url)
+                                      (combine-url/relative url loc)
+                                      (string->url loc))))))))))]
             (super-instantiate ())
             (add-h-link-style)
             ;; load url, but the user might break:
@@ -636,46 +638,65 @@
         (class super%
           (inherit get-editor set-editor refresh get-parent get-top-level-window)
           
-          [define/public get-editor% (lambda () hyper-text%)]
-            [define/public make-editor
-              (lambda (url progress post-data) 
-                           (make-object (get-editor%) url (get-top-level-window) progress post-data))]
-            [define/public current-page
-             (lambda ()
-               (let ([e (get-editor)])
-                 (and e 
-                      (let ([sbox (box 0)]
-                            [ebox (box 0)])
-                        (send e get-visible-position-range sbox ebox)
-                        (list e (unbox sbox) (unbox ebox))))))]
-            [define/public on-url-click (lambda (k url post-data) (send (get-parent) on-url-click k url post-data))]
-            [define/public goto-url
-             (opt-lambda (url relative [progress void] [post-data #f])
-               (let* ([url (if (or (url? url) (port? url))
-                               url
-                               (if relative
-                                   (combine-url/relative 
-                                    relative
-                                    url)
-                                   (string->url url)))]
-                      [e (let ([e-now (get-editor)])
-			   (if (and e-now
-				    (not post-data)
-				    (same-page-url? url (send e-now get-url)))
-			       (begin
-                                 (progress #t)
-                                 e-now)
-			       (make-editor url progress post-data)))]
-                      [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
-                 (unless (and tag-pos (positive? tag-pos))
-                   (send e hide-caret #t))
-                 (set-page (list e (or tag-pos 0) (send e last-position)) #t)
-                 (when tag-pos (send e set-position tag-pos))
-                 (send (get-parent) update-url-display
-		       (format "~s"
-			       (if (url? url)
-				   (list (url->string url) (url-fragment url))
-				   url)))))]
+          (define/public (get-editor%) hyper-text%)
+          (define/public (make-editor url progress post-data) 
+            (make-object (get-editor%) url (get-top-level-window) progress post-data))
+          (define/public (current-page)
+            (let ([e (get-editor)])
+              (and e 
+                   (let ([sbox (box 0)]
+                         [ebox (box 0)])
+                     (send e get-visible-position-range sbox ebox)
+                     (list e (unbox sbox) (unbox ebox))))))
+          (define/public (on-url-click k url post-data)
+            (send (get-parent) on-url-click k url post-data))
+          (define/public goto-url
+            (opt-lambda (in-url relative [progress void] [post-data #f])
+              (let* ([url (if (or (url? in-url) (port? in-url))
+                              in-url
+                              (if relative
+                                  (combine-url/relative 
+                                   relative
+                                   in-url)
+                                  (string->url in-url)))]
+                     [e (let ([e-now (get-editor)])
+                          (if (and e-now
+                                   (not post-data)
+                                   (same-page-url? url (send e-now get-url)))
+                              (begin
+                                (progress #t)
+                                e-now)
+                              (make-editor/follow-redirections url progress post-data)))]
+                     [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+                                
+                (unless (and tag-pos (positive? tag-pos))
+                  (send e hide-caret #t))
+                (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+                (send (get-parent) update-url-display
+                      (format "~s"
+                              (if (url? url)
+                                  (list (url->string url) (url-fragment url))
+                                  url)))
+                (when tag-pos (send e set-position tag-pos)))))
+          
+          ;; make-editor/follow-redirections : url (boolean??? -> void) ??? -> editor
+          ;; builds an html editor using make-editor and follows any redictions,
+          ;; but stops after 10 redirections (just in case there are too many
+          ;; of these things, give the user a chance to stop)
+          (define (make-editor/follow-redirections init-url progress post-data)
+            (let loop ([n 10]
+                       [url init-url])
+              (let ([html-editor (make-editor url progress post-data)])
+                (cond
+                  [(zero? n) 
+                   html-editor]
+                  [(send html-editor get-redirection)
+                   =>
+                   (lambda (new-url)
+                     (loop (- n 1) new-url))]
+                  [else 
+                   html-editor]))))
+          
 	    [define/public after-set-page (lambda () (void))]
             [define/public set-page
              (lambda (page notify?)
@@ -862,8 +883,7 @@
           [define/private update-buttons
             (lambda (page)
               (when (or (not init-page)
-                        (and (pair? init-page)
-                             (send (car init-page) is-forward?)))
+                        (pair? init-page))
                 (set! init-page page))
               (when control-bar?
                 (send back enable (pair? past))
