@@ -14,17 +14,17 @@
   ; : str [bool] -> void
   (define send-url
     (if (eq? (system-type) 'unix)
-        (lambda args
-          (unless (get-preference 'external-browser update-browser-preference)
-            ; the unless is needed incase the preference is set to #f
-            (update-browser-preference))
-          (apply raw:send-url args))
+        (lambda (url . args)
+          (unless (get-preference 'external-browser (lambda () #f))
+            ; either the preference doesn't exist or is #f
+            (update-browser-preference url))
+          (apply raw:send-url url args))
         raw:send-url))
   
   ; : -> (U symbol #f)
   ; to prompt the user for a browser preference and update the preference
-  (define (update-browser-preference)
-    (let ([browser (choose-browser)])
+  (define (update-browser-preference url)
+    (let ([browser (choose-browser url)])
       (set-browser! browser)))
   
   ; : (U symbol #f) -> void
@@ -32,14 +32,15 @@
   (define (set-browser! browser)
     (put-preferences '(external-browser) (list browser)))
   
-  ; : -> (U symbol #f)
+  ; : str -> (U symbol #f)
   ; to prompt the user for a browser preference
-  (define (choose-browser)
+  (define (choose-browser url)
     (let* ([title (string-constant choose-browser)]
            [d (make-object dialog% title)]
            [v (make-object vertical-pane% d)]
            [choice (box #f)])
       (make-object message% title v)
+      (make-object message% (format "URL: ~a" url) v)
       (for-each (lambda (b)
                   (instantiate button% () (label (symbol->string b)) (parent v)
                     (callback (lambda (? ??)
@@ -72,7 +73,7 @@
 			 (parent v)
 			 (callback
 			  (lambda (radio event)
-			    ; This is dumb.  It leaks. Each radio button should have its own callback.
+			    ; This leaks. Each radio button should have its own callback.
 			    (let ([n (send radio get-selection)])
 			      (set-browser! (if (= n (length raw:unix-browser-list))
 						#f
