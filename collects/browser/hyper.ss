@@ -14,9 +14,95 @@
 
   (define-struct hypertag (name position))
 
+  (define scrolling-canvas%
+    (class canvas% (loi frame)
+      (private
+	[bitmaps
+	 (map (lambda (i)
+		(cond
+		 [(string? i)
+		  (make-object bitmap% i 'gif)]
+		 [(is-a? i bitmap%) i]
+		 [else (error 'scrolling-canvas% "expected a list of bitmaps or filenames, got: ~e"
+			      i)]))
+	      loi)]
+	[current-bitmap (if (null? bitmaps)
+			    (error 'scrolling-canvas%
+				   "expected at least one bitmap, got none")
+			    (car bitmaps))]
+
+	[width (apply max (map (lambda (x) (send x get-width)) bitmaps))]
+	[height (apply max (map (lambda (x) (send x get-height)) bitmaps))])
+      
+      (inherit get-dc)
+      (override
+       [on-paint
+	(lambda ()
+	  (let ([dc (get-dc)])
+	    (send dc clear)
+	    (send dc draw-bitmap current-bitmap
+		  (floor (- (/ width 2) (/ (send current-bitmap get-width) 2)))
+		  (floor (- (/ height 2) (/ (send current-bitmap get-height) 2))))))])
+
+      (private
+	[thread-desc #f])
+      (public
+	[start
+	 (lambda ()
+	   (unless thread-desc
+	     (set! thread-desc
+		   (thread
+		    (letrec ([f
+			      (lambda (first?)
+				(with-handlers ([void void])
+				  (let loop ([l (if first?
+						    (cdr bitmaps)
+						    bitmaps)])
+				    (cond
+				     [(null? l) (f #f)]
+				     [else
+				      (queue-callback
+				       (lambda ()
+					 (set! current-bitmap (car l))
+					 (on-paint)))
+				      (sleep 2/3)
+				      (loop (cdr l))]))))])
+		      (lambda ()
+			(f #t)))))))]
+	[stop
+	 (lambda ()
+	   (when thread-desc
+	     (break-thread thread-desc)
+	     (queue-callback
+	      (lambda ()
+		(set! current-bitmap (car bitmaps))
+		(on-paint)))
+	     (set! thread-desc #f)))])
+
+      (inherit min-width min-height stretchable-width stretchable-height)
+      (sequence
+	(super-init frame)
+	(min-width width)
+	(min-height height)
+	(stretchable-width #f)
+	(stretchable-height #f))))
+
+  (define bitmaps
+    (let* ([images
+	    (list "mini-plt.gif"
+		  "animate1.gif"
+		  "animate2.gif"
+		  "animate3.gif")])
+      (map 
+       (lambda (x)
+	 (make-object bitmap%
+	   (build-path (collection-path "icons") x)
+	   'gif))
+       images)))
+
   (define hyper-text-mixin
     (lambda (super%)
-      (class super% (url top-level-window . args)
+      (class super% (progress url top-level-window . args)
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 		 change-style get-style-list set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
@@ -144,6 +230,7 @@
 				    (values p headers)))))])
 	      (dynamic-wind (lambda ()
 			      (begin-busy-cursor)
+			      (send progress start)
 			      (begin-edit-sequence #f))
 			    (lambda () 
 			      (set! htmling? #t)
@@ -174,8 +261,9 @@
 					     [t (thread
 						 (lambda ()
 						   (semaphore-wait wait-to-start)
-						   (with-handlers ([void (lambda (x) (when (not (exn:misc:user-break? x))
-										       (set! exn x)))])
+						   (with-handlers ([void
+								    (lambda (x) (when (not (exn:misc:user-break? x))
+										  (set! exn x)))])
 						     (semaphore-post wait-to-break)
 						     (with-output-to-file f
 						       (lambda ()
@@ -255,6 +343,7 @@
 			    (lambda ()
 			      (end-edit-sequence)
 			      (end-busy-cursor)
+			      (send progress stop)
 			      (set! htmling? #f)
 			      (close-input-port p)))
 	      (set-modified #f)
@@ -264,10 +353,10 @@
   (define hyper-text% (hyper-text-mixin text%))
 
   (define (hyper-canvas-mixin super%)
-    (class super% args
+    (class super% (progress . args)
       (inherit get-editor set-editor refresh get-parent get-top-level-window)
       (public
-	[make-editor (lambda (url) (make-object hyper-text% url (get-top-level-window)))]
+	[make-editor (lambda (url) (make-object hyper-text% progress url (get-top-level-window)))]
 	[current-page
 	 (lambda ()
 	   (let ([e (get-editor)])
@@ -341,7 +430,7 @@
 	       (update-buttons page)
 	       (send c set-page page #f)
 	       (on-navigate))))]
-	[make-canvas (lambda () (make-object hyper-canvas% this))])
+	[make-canvas (lambda () (make-object hyper-canvas% progress this))])
       (private
 	[past null] [future null] [init-page #f]
 	[hp (make-object horizontal-panel% this)]
@@ -391,8 +480,10 @@
 				    [else (loop (cdr l)
 						(cons (car l) pre)
 						(sub1 pos))])))))]
+	[progress (make-object scrolling-canvas% bitmaps hp)]
 	[c (make-canvas)])
       (public
+	[get-progress (lambda () progress)]
 	[get-canvas (lambda () c)]
 	[on-navigate void]
 	[leaving-page (lambda (page new-page)
