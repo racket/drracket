@@ -114,9 +114,7 @@
     (mred:debug:printf 'super-init "before console")
     (define console (make-object mred:console-frame%))
     (mred:debug:printf 'super-init "after console")
-    (define eval-string (if mred:debug:on?
-			    (lambda args (void))
-			    (ivar (ivar console console-edit) do-eval)))
+    (define eval-string (lambda args (void)))
 
     (mred:add-preference-callback 'drscheme:project-visible?
 				  (lambda (p v) 
