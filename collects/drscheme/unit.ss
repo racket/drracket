@@ -27,7 +27,7 @@
 		      [(font) (send area-container-window get-control-font)]
 		      [(img-bitmap-dc img-width img-height)
 		       (let ([mdc (make-object mred:bitmap-dc%)]
-			     [q (make-object mred:bitmap% filename 'bmp)])
+			     [q (make-object mred:bitmap% filename)])
 			 (if (send q ok?)
 			     (begin (send mdc set-bitmap q)
 				    (values mdc
