@@ -992,11 +992,11 @@
         (check-top-of-repl))
       (loop))
     
-    ;(go beginner)
-    ;(go beginner/abbrev)
-    ;(go intermediate)
-    ;(go intermediate/lambda)
-    ;(go advanced)
+    (go beginner)
+    (go beginner/abbrev)
+    (go intermediate)
+    (go intermediate/lambda)
+    (go advanced)
     ;(full) ;; not there anymore
     (go mred)
     (go mzscheme)
