@@ -1,7 +1,6 @@
 
 (module drsig mzscheme
-  (require (lib "unitsig.ss")
-	   (lib "framework-sig.ss" "framework"))
+  (require (lib "unitsig.ss"))
   
   (provide drscheme:eval^
            drscheme:debug^
@@ -27,10 +26,16 @@
            drscheme:multi-file-search^
            drscheme:module-overview^
            drscheme:font^
+           drscheme:modes^
            drscheme:tool-exports^
            drscheme:tool^
 	   drscheme^)
 
+  (define-signature drscheme:modes^
+    (add-mode
+     get-modes
+     (struct mode (name surrogate repl-submit matches-filename) -setters -maker)))
+  
   (define-signature drscheme:font^
     (setup-preferences
      get-default-font-name))
@@ -131,8 +136,7 @@
      open-drscheme-window
      find-symbol
      get-program-editor-mixin
-     add-to-program-editor-mixin
-     add-mode))
+     add-to-program-editor-mixin))
   
   (define-signature drscheme:frame^
     (<%>
@@ -262,9 +266,8 @@
      (unit drscheme:language : drscheme:language^)
      (unit drscheme:help-desk : drscheme:help-desk^)
      (unit drscheme:eval : drscheme:eval^)
-     ;(open ((unit drscheme:help-desk : drscheme:help-desk^)))
      (unit drscheme:teachpack : drscheme:teachpack^)
-     ))
+     (unit drscheme:modes : drscheme:modes^)))
 
   (define-signature drscheme^
     ((unit drscheme:teachpack : drscheme:teachpack^)

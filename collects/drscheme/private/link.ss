@@ -29,8 +29,9 @@
       (link [init : drscheme:init^ (init@)]
             [tools : drscheme:tools^ 
                    (tools@ frame unit rep get/extend language
-                         (language-configuration : drscheme:language-configuration^)
-                         help-desk init number-snip debug eval teachpack)]
+                           (language-configuration : drscheme:language-configuration^)
+                           help-desk init number-snip debug eval teachpack modes)]
+            [modes : drscheme:modes^ (modes@)]
             [text : drscheme:text^ (text@)]
             [number-snip : drscheme:number-snip^ (number-snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@)]
@@ -45,7 +46,7 @@
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration language
                        get/extend number-snip teachpack module-overview tools eval init
-                       module-language)]
+                       module-language modes)]
             [debug : drscheme:debug^
                    (debug@ rep frame unit language language-configuration)]
             [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame unit)]

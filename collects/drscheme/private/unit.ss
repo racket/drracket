@@ -41,27 +41,11 @@
               [drscheme:tools : drscheme:tools^]
               [drscheme:eval : drscheme:eval^]
               [drscheme:init : drscheme:init^]
-              [drscheme:module-language : drscheme:module-language^])
+              [drscheme:module-language : drscheme:module-language^]
+              [drscheme:modes : drscheme:modes^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
-
-      (define-struct mode (name surrogate repl-submit?))
-      (define modes (list 
-                     (make-mode 
-                      (string-constant scheme-mode)
-                      (new scheme:text-mode%)
-                      (lambda (x) #f))
-                     (make-mode 
-                      (string-constant text-mode)
-                      #f
-                      (lambda (x) #t))))
-      (define (add-mode name surrogate repl-submit?)
-        (set! modes 
-              (append modes 
-                      (list (make-mode name 
-                                       surrogate
-                                       repl-submit?)))))
       
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
@@ -1277,6 +1261,36 @@
                    edit-menu:between-find-and-preferences])
           (define/override (edit-menu:between-find-and-preferences edit-menu)
             (super-edit-menu:between-find-and-preferences edit-menu)
+            (add-modes-submenu edit-menu))
+                    
+          
+;                                            
+;                                            
+;                                            
+;                           ;                
+;                           ;                
+;                           ;                
+;   ; ;;  ;;     ;;;     ;; ;    ;;;    ;;;  
+;   ;;  ;;  ;   ;   ;   ;  ;;   ;   ;  ;     
+;   ;   ;   ;  ;     ; ;    ;  ;    ;  ;;    
+;   ;   ;   ;  ;     ; ;    ;  ;;;;;;   ;;   
+;   ;   ;   ;  ;     ; ;    ;  ;          ;  
+;   ;   ;   ;   ;   ;   ;  ;;   ;         ;  
+;   ;   ;   ;    ;;;     ;; ;    ;;;;  ;;;   
+;                                            
+;                                            
+;                                            
+
+
+          (define/public (set-current-mode mode)
+            (let ([surrogate (mode-surrogate)])
+              (send definitions-text set-surrogate surrogate)
+              (send interactions-text set-surrogate surrogate)))
+
+          (define/public (is-current-mode? mode)
+            (eq? surrogate (send definitions-text get-surrogate)))
+          
+          (define/private (add-modes-submenu edit-menu)
             (new menu%
                  (parent edit-menu)
                  (label (string-constant mode-submenu-label))
@@ -1285,18 +1299,17 @@
                     (for-each (lambda (item) (send item delete))
                               (send menu get-items))
                     (for-each (lambda (mode) 
-                                (let* ([surrogate (mode-surrogate mode)]
-                                       [item
+                                (let* ([item
                                         (new checkable-menu-item% 
                                              (label (mode-name mode))
                                              (parent menu)
                                              (callback 
-                                              (lambda (_1 _2)
-                                                (send definitions-text set-surrogate surrogate))))])
-                                  (when (eq? surrogate (send definitions-text get-surrogate))
+                                              (lambda (_1 _2) (set-mode mode))))])
+                                  (when (is-current-mode? mode)
                                     (send item check #t))))
-                              modes)))))
-                    
+                              (drscheme:modes:get-modes))))))
+
+          
 ;                                                                                         
 ;                                                                                         
 ;                                                                                         

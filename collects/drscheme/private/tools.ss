@@ -26,7 +26,8 @@
               [drscheme:number-snip : drscheme:number-snip^]
 	      [drscheme:debug : drscheme:debug^]
               [drscheme:eval : drscheme:eval^]
-              [drscheme:teachpack : drscheme:teachpack^])
+              [drscheme:teachpack : drscheme:teachpack^]
+              [drscheme:modes : drscheme:modes^])
       
       ;; successful-tool = (make-successful-tool module-spec 
       ;;                                         (union #f (instanceof bitmap%))
