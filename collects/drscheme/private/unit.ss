@@ -1558,23 +1558,26 @@
           [define get-definitions-text (lambda () definitions-text)]
           [define get-interactions-text (lambda () interactions-text)]
           
-          [define update-teachpack-menu
-            (lambda ()
-              (for-each (lambda (item) (send item delete)) teachpack-items)
-              (set! teachpack-items
-                    (map (lambda (name)
-                           (make-object menu:can-restore-menu-item%
-                             (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
-                             language-menu
-                             (lambda (item evt)
-                               (drscheme:teachpack:set-teachpack-cache-filenames!
-                                (preferences:get 'drscheme:teachpacks)
-                                (mzlib:list:remove
-                                 name
-                                 (drscheme:teachpack:teachpack-cache-filenames
-                                  (preferences:get 'drscheme:teachpacks)))))))
-                         (drscheme:teachpack:teachpack-cache-filenames
-                          (preferences:get 'drscheme:teachpacks)))))]
+          (define (update-teachpack-menu)
+            (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
+            (for-each (lambda (item) (send item delete)) teachpack-items)
+            (set! teachpack-items
+                  (map (lambda (name)
+                         (make-object menu:can-restore-menu-item%
+                           (format (string-constant clear-teachpack) 
+                                   (mzlib:file:file-name-from-path name))
+                           language-menu
+                           (lambda (item evt)
+                             (let ([new-teachpacks 
+                                    (drscheme:teachpack:new-teachpack-cache
+                                     (mzlib:list:remove
+                                      name
+                                      (drscheme:teachpack:teachpack-cache-filenames
+                                       user-teachpack-cache)))])
+                               (send (get-interactions-text) set-user-teachpack-cache new-teachpacks)
+                               (preferences:set 'drscheme:teachpacks new-teachpacks)))))
+                       (drscheme:teachpack:teachpack-cache-filenames
+                        user-teachpack-cache))))
           
           (define/public (get-definitions/interactions-panel-parent)
             (get-area-container))
@@ -1640,8 +1643,7 @@
                   (lambda (method)
                     (lambda (_1 _2)
                       (let ([text (get-focus-object)])
-                        (when (or (eq? text definitions-text)
-                                  (eq? text interactions-text))
+                        (when (is-a? text scheme:text<%>)
                           (method text)))))])
             
             (make-object menu:can-restore-menu-item%
@@ -1734,8 +1736,23 @@
             (make-object menu:can-restore-menu-item%
               (string-constant uncomment-menu-item-label)
               scheme-menu
-              (send-method (lambda (x) (send x uncomment-selection)))))
-          
+              (lambda (x y)
+                (let ([text (get-focus-object)])
+                  (when (is-a? text text%)
+                    (let ([admin (send text get-admin)])
+                      (cond
+                        [(is-a? admin editor-snip-editor-admin<%>)
+                         (let ([es (send admin get-snip)])
+                           (cond
+                             [(is-a? es comment-box:snip%)
+                              (let ([es-admin (send es get-admin)])
+                                (when es-admin
+                                  (let ([ed (send es-admin get-editor)])
+                                    (when (is-a? ed scheme:text<%>)
+                                      (send ed uncomment-box/selection)))))]
+                             [else (send text uncomment-selection)]))]
+                        [else (send text uncomment-selection)])))))))
+
           (inherit get-menu-item%)
           (field [special-menu (make-object (get-menu%) (string-constant special-menu) (get-menu-bar))])
           (define/public (get-special-menu) special-menu)

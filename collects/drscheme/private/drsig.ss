@@ -219,8 +219,7 @@
      module-based-language->language-mixin))
 
   (define-signature drscheme:teachpack^
-    (load-teachpacks
-     install-teachpacks
+    (install-teachpacks
      marshall-teachpack-cache
      unmarshall-teachpack-cache
      launcher-init-code

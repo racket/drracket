@@ -203,4 +203,9 @@
    "DrScheme"
    99)
 
+  (when (getenv "PLTDRCM")
+    (printf "installing compilation manager\n")
+    (current-load/use-compiled
+     ((dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))))
+  
   (dynamic-require '(lib "start.ss" "drscheme" "private") #f))

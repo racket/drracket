@@ -742,17 +742,22 @@
                   (string-constant select-a-teachpack)
                   ".*\\.(ss|scm)$"))])
           (when lib-file
-            (let* ([tp-cache (preferences:get 'drscheme:teachpacks)]
+            (let* ([interactions-text (send frame get-interactions-text)]
+                   [tp-cache (send interactions-text get-user-teachpack-cache)]
                    [tp-filenames (drscheme:teachpack:teachpack-cache-filenames tp-cache)]
                    [new-item (normalize-path lib-file)])
-              (if (member (normal-case-path new-item) (map normal-case-path tp-filenames))
-                  (message-box (string-constant drscheme-teachpack-message-title)
-                               (format (string-constant already-added-teachpack)
-                                       new-item)
-                               frame)
-                  (drscheme:teachpack:set-teachpack-cache-filenames!
-                   tp-cache
-                   (cons new-item tp-filenames))))
+              (cond
+                [(member (normal-case-path new-item) (map normal-case-path tp-filenames))
+                 (message-box (string-constant drscheme-teachpack-message-title)
+                              (format (string-constant already-added-teachpack)
+                                      new-item)
+                              frame)]
+                [else
+                 (let ([new-teachpacks 
+                        (drscheme:teachpack:new-teachpack-cache
+                         (cons new-item tp-filenames))])
+                   (send interactions-text set-user-teachpack-cache new-teachpacks)
+                   (preferences:set 'drscheme:teachpacks new-teachpacks))]))
             (set! teachpack-directory (path-only lib-file)))))
       
       ;; clear-all-teachpacks : -> void

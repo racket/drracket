@@ -259,7 +259,7 @@
                              (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
                              (set! tool-bitmap-x tool-bitmap-gap))
                            (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap)))
-                       (when (tool-bitmap-y . > . (send splash-bitmap get-width))
+                       (when ((+ tool-bitmap-y tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
                          (set! tool-bitmap-y tool-bitmap-gap)))))))
             bitmap)))
       

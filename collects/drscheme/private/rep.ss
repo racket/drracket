@@ -618,6 +618,8 @@
           get-user-eventspace
           get-user-thread
           get-user-namespace
+          get-user-teachpack-cache
+          set-user-teachpack-cache
           
           kill-evaluation
           
@@ -695,10 +697,6 @@
             highlight-error
             highlight-error/forward-sexp
             
-            get-user-custodian
-            get-user-eventspace
-            get-user-thread
-            get-user-namespace
             
             kill-evaluation
             
@@ -1515,15 +1513,18 @@
                       (thread-running? (get-user-thread)))))
           
           (field (user-language-settings 'uninitialized-user-language-settings)
+                 (user-teachpack-cache (preferences:get 'drscheme:teachpacks))
                  (user-custodian #f)
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
                  (user-thread-box (make-weak-box #f)))
           
-          (define (get-user-custodian) user-custodian)
-          (define (get-user-eventspace) (weak-box-value user-eventspace-box))
-          (define (get-user-thread) (weak-box-value user-thread-box))
-          (define (get-user-namespace) (weak-box-value user-namespace-box))
+          (define/public (get-user-custodian) user-custodian)
+          (define/public (get-user-teachpack-cache) user-teachpack-cache)
+          (define/public (set-user-teachpack-cache tpc) (set! user-teachpack-cache tpc))
+          (define/public (get-user-eventspace) (weak-box-value user-eventspace-box))
+          (define/public (get-user-thread) (weak-box-value user-thread-box))
+          (define/public (get-user-namespace) (weak-box-value user-namespace-box))
           
           (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                  (should-collect-garbage? #f)
@@ -1794,12 +1795,7 @@
                 
                 ;; disable breaks until an evaluation actually occurs
                 (send context set-breakables #f #f)
-                
-                ;; re-loads any teachpacks that have changed
-                (drscheme:teachpack:load-teachpacks 
-                 (get-user-namespace)
-                 (preferences:get 'drscheme:teachpacks))
-                
+                                
                 ;; initialize the language
                 (send (drscheme:language-configuration:language-settings-language user-language-settings)
                       on-execute
@@ -1813,8 +1809,8 @@
                    (with-handlers ([not-break-exn?
                                     (lambda (exn)
                                       (raise exn))])
-                     (let ([pref (preferences:get 'drscheme:teachpacks)])
-                       (drscheme:teachpack:install-teachpacks pref)))))
+                     (drscheme:teachpack:install-teachpacks 
+                      user-teachpack-cache))))
                 
                 
                 (parameterize ([current-eventspace (get-user-eventspace)])
@@ -2037,7 +2033,8 @@
                              welcome-delta)
                (insert/delta this fn dark-green-delta)
                (insert/delta this (format ".~n") welcome-delta))
-             (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
+             (drscheme:teachpack:teachpack-cache-filenames 
+              user-teachpack-cache))
             
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
