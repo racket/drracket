@@ -182,7 +182,7 @@
                          (finder:put-file
                           default-executable-filename
                           #f #f
-                          (string-constant save-a-launcher)))])
+                          (string-constant save-an-executable)))])
                  (when executable-filename
                    (let ([settings (preferences:get 
                                     drscheme:language-configuration:settings-preferences-symbol)])
