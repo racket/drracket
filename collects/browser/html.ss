@@ -54,7 +54,7 @@
 	(load-status #t "image" url)
 	(call-with-output-file* tmp-filename
 	  (lambda (op)
-	    (with-handlers ([void void]) ; break is ok!
+	    (with-handlers ([not-break void])
 	      (call/input-url 
 	       url
 	       get-pure-port
