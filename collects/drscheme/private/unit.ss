@@ -1609,6 +1609,7 @@
                              (send edit end-edit-sequence)))))))]
                 [c% (get-menu-item%)])
             (frame:add-snip-menu-items special-menu (get-menu-item%))
+
             (make-object c% (string-constant insert-fraction-menu-item-label)
               special-menu callback 
               #f #f
@@ -1751,8 +1752,6 @@
             [created-frame
              (set! created-frame #f)]
             [else (void)])))
-      
-      
       
       (define created-frame 'nothing-yet)
       

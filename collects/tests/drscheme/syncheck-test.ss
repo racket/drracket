@@ -220,12 +220,16 @@
                   ("1"             constant)
                   ("))"            base)))
      
-     (make-test "(module m mzscheme +)"
-                '(("("            base)
-                  ("module"       keyword)
-                  (" m mzscheme " base)
-                  ("+"            bound-variable)
-                  (")"            base)))
+     (make-test "(module m mzscheme (+ 1 2))"
+                '(("("             base)
+                  ("module"        keyword)
+                  (" m mzscheme (" base)
+                  ("+"             bound-variable)
+		  (" "             base)
+		  ("1"             constant)
+		  (" "             base)
+		  ("2"             constant)
+                  (")"             base)))
      
      (make-test "(module m mzscheme (require (lib \"list.ss\")))"
                 '(("("                 base)

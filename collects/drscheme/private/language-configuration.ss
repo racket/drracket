@@ -476,9 +476,9 @@
 	  (send languages-hier-list stretchable-width #t)
 	  (send parent reflow-container)
           (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
+	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (close-all-languages)
 	  (open-current-language)
-	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (get/set-selected-language-settings settings-to-show)
           (send languages-hier-list focus)
           (values
@@ -624,7 +624,7 @@
                 #f
                 #f
                 #t)
-          (+ 16 ;; some platform specific space I don't know how to get.
+          (+ 10 ;; upper bound on some platform specific space I don't know how to get.
              (floor (inexact->exact (unbox y-box))))))
 
       (define teachpack-directory 
@@ -854,7 +854,11 @@
                       
                       (inherit get-module get-transformer-module get-init-code)
                       (define/override (create-executable setting parent program-filename)
-                        (let ([executable-fn (drscheme:language:put-executable-file parent program-filename)])
+                        (let ([executable-fn (drscheme:language:put-executable
+					      parent
+					      program-filename
+					      mred-launcher?
+					      #t)])
                           (when executable-fn
                             (drscheme:language:create-module-based-launcher
                              program-filename

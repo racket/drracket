@@ -190,7 +190,10 @@
      drscheme-load-handler))
  
   (define-signature drscheme:help-desk^
-    (help-desk
+    (goto-help
+     goto-tour
+     goto-release-notes
+     help-desk
      open-url))
   
   (define-signature drscheme:language^
@@ -202,7 +205,7 @@
      create-module-based-stand-alone-executable
 
      create-executable-gui
-     put-executable-file
+     put-executable
      
      get-post-hash-bang-start
 

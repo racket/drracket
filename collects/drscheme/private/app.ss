@@ -151,8 +151,9 @@
             [(first-state?) (send back-button enable #f)]
             [else (send back-button enable #t)])
           (cond
-            [(last-state?) (send next-button set-label "Finish")]
-            [else (send next-button set-label "Next")])
+            [(last-state?) (send next-button set-label
+				 (string-constant wizard-finish))]
+            [else (send next-button set-label (string-constant wizard-next))])
           (case state
             [(programming-language) (send sp active-child programming-language-state-panel)]
             [(natural-language) (send sp active-child natural-language-state-panel)]))
@@ -199,7 +200,7 @@
                                    (alignment '(center center))))
         
         (define stupid-internal-define-syntax2
-          (begin
+          (unless (eq? (system-type) 'macosx)
             (send nl-welcome-panel set-label-font
                   (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))
             (send nl-welcome-panel set-control-font
@@ -208,6 +209,11 @@
         (define nl-welcome-msg (instantiate message%  ()
                                  (label (string-constant welcome-to-drscheme))
                                  (parent nl-welcome-panel)))
+        (define nl-lang-msg (instantiate message%  ()
+                                 (label (format (string-constant version/language)
+                                                (version)
+                                                (this-language)))
+                                 (parent natural-language-state-panel)))
         
         (define nl-buttons
           (let loop ([native-language-strings (string-constants is-this-your-native-language)]
@@ -217,8 +223,13 @@
               [else (let ([native-lang-string (car native-language-strings)]
                           [language (car languages)])
                       (if (equal? (this-language) language)
-                          (loop (cdr native-language-strings)
-                                (cdr languages))
+                          (cons (instantiate button% ()
+                                  (label native-lang-string)
+                                  (parent natural-language-state-panel)
+                                  (stretchable-width #t)
+                                  (callback (lambda (x1 x2) (next-state))))
+                                (loop (cdr native-language-strings)
+                                      (cdr languages)))
                           (cons (instantiate button% ()
                                   (label native-lang-string)
                                   (parent natural-language-state-panel)
@@ -269,11 +280,14 @@
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         
         (define back-button (instantiate button% ()
-                              (label "Back")
+                              (label (string-constant wizard-back))
                               (parent bp)
                               (callback (lambda (x y) (prev-state)))))
         (define next-button (instantiate button% ()
-                              (label "Next")
+                              (label (if (< (string-length (string-constant wizard-next))
+					    (string-length (string-constant wizard-finish)))
+					 (string-constant wizard-finish)
+					 (string-constant wizard-next)))
                               (parent bp)
                               (callback (lambda (x y) (next-state)))))
         
@@ -357,28 +371,10 @@
                           "pltbw.gif"
                           "plt.gif"))))
       
-      (define (make-tour-button button-panel)
-        (make-object button% (string-constant take-a-tour) button-panel
-          (lambda (x y)
-            (help-desk:open-url
-             (string-append
-              "file:"
-              (build-path (collection-path "doc")
-                          "tour"
-                          "index.html"))))
-          '(border)))
-      
-      
       (define (make-release-notes-button button-panel)
         (make-object button% (string-constant release-notes) button-panel
-          (lambda x 
-            (help-desk:open-url 
-             (string-append
-              "file:"
-              (build-path (collection-path "doc")
-                          "help"
-                          "release"
-                          "notes.html"))))))
+          (lambda (a b)
+            (help-desk:goto-release-notes))))
       
       (define tour-frame%
         (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
@@ -424,7 +420,11 @@
                [outer-button-panel (make-object vertical-panel% top-hp)]
                [top-button-panel (make-object vertical-panel% outer-button-panel)]
                [bottom-button-panel (make-object vertical-panel% outer-button-panel)]
-               [tour-button (make-tour-button top-button-panel)]
+               [tour-button (make-object button% (string-constant take-a-tour) 
+                              top-button-panel
+                              (lambda (x y)
+                                (help-desk:goto-tour))
+                              '(border))]
                [release-notes-button (make-release-notes-button top-button-panel)]
                [close-button (make-object button% (string-constant close) bottom-button-panel
                                (lambda x
@@ -648,7 +648,9 @@
             (scroll-to-position 0)
             (lock #t))
           
-          (let* ([tour-button (make-tour-button button-panel)]
+          (let* ([tour-button (make-object button% (string-constant take-a-tour) button-panel
+                                (lambda (x y)
+                                  (help-desk:goto-tour)))]
                  [release-notes-button (make-release-notes-button button-panel)])
             (same-widths (list tour-button release-notes-button))
             (send tour-button focus))

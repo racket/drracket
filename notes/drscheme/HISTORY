@@ -1,8 +1,44 @@
-Version 200alpha1:
+------------------------------
+        Version 201
+------------------------------
 
-THINGS MISSING (as compared to 103):
+GENERAL
+-------
 
- - project manager
+- many misc bug fixes
+
+- improved the create executable interface
+
+- got rid of the "text box" and added in "comment"
+  boxes. commenting out code now uses those comment boxes.
+
+FRAMEWORK AND TOOLS
+-------------------
+
+- contracts have moved from
+
+   (lib "specs.ss" "framework")
+
+to
+
+  (lib "contracts.ss")
+
+- The create-executable method of
+  drscheme:language:language<%> has changed. It no longer
+  receives the filename for the executable; instead the
+  method must prompt the user. See either
+  `drscheme:language:put-executable-file' or
+  `drscheme:language:create-executable-gui' for two methods
+  of getting a filename from the user. 
+
+
+------------------------------
+        Version 200
+------------------------------
+
+THINGS MISSING (as compared to 103)
+
+- project manager (use `module' instead)
 
 GENERAL
 

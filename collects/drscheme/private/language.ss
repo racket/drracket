@@ -25,7 +25,8 @@
       (import [drscheme:rep : drscheme:rep^]
               [drscheme:debug : drscheme:debug^]
               [drscheme:teachpack : drscheme:teachpack^]
-              [drscheme:tools : drscheme:tools^])
+              [drscheme:tools : drscheme:tools^]
+              [drscheme:help-desk : drscheme:help-desk^])
       
       (define original-output-port (current-output-port))
       (define (printf . args) (apply fprintf original-output-port args)) 
@@ -519,7 +520,7 @@
         (define filename-text-field (instantiate text-field% ()
                                       (label (string-constant filename))
                                       (parent filename-panel)
-                                      (init-value (default-executable-filename program-filename))
+                                      (init-value (default-executable-filename program-filename #t))
                                       (min-width 400)
                                       (callback void)))
         (define filename-browse-button (instantiate button% ()
@@ -545,6 +546,13 @@
         (define button-panel (instantiate horizontal-panel% ()
                                (parent dlg)
                                (alignment '(right center))))
+
+        (define help-button (make-object button% 
+                              (string-constant help)
+                              button-panel
+                              (lambda (x y)
+                                (drscheme:help-desk:goto-help "drscheme" "Executables"))))
+        
         (define-values (ok-button cancel-button)
           (gui-utils:ok/cancel-buttons
            button-panel
@@ -559,21 +567,22 @@
            (lambda (x y) (send dlg show #f))
            (string-constant create)
            (string-constant cancel)))
-
+        
         (define (browse-callback)
-          (let ([filename 
-                 (parameterize ([finder:dialog-parent-parameter dlg]
-                                [finder:default-filters
-                                 '(("Executable" "*.exe") ("Any" "*.*"))])
-                   (finder:put-file
-                    (with-handlers ([not-break-exn? (lambda (exn) "")])
-                      (let-values ([(base name dir?) (split-path (send filename-text-field get-value))])
-                        name))
-                    #f 
-                    #f
-                    (string-constant save-an-executable)))])
-            (when filename
-              (send filename-text-field set-value filename))))
+          (let-values ([(base name dir) 
+                        (with-handlers ([not-break-exn?
+                                         (lambda (exn)
+                                           (values #f (send filename-text-field get-value) #f))])
+                          (split-path (send filename-text-field get-value)))])
+            (let ([filename 
+                   (put-executable/defaults
+                    dlg
+                    base
+                    name
+                    (= 0 (send base-rb get-selection))
+                    (not (= 0 (send type-rb get-selection))))])
+              (when filename
+                (send filename-text-field set-value filename)))))
         
         (define (filename-ok?)
           (not (string=? "" (send filename-text-field get-value))))
@@ -596,21 +605,46 @@
                  'no-show)
              (send filename-text-field get-value))))
 
-      ;; put-executable-file : parent string -> (union false? string)
+      ;; put-executable : parent string boolean boolean -> (union false? string)
       ;; invokes the put-file dialog with arguments specific to building executables
-      (define (put-executable-file parent program-filename)
+      (define (put-executable parent program-filename launcher? mred?)
         (let-values ([(base name dir) (split-path program-filename)])
-          (put-file
-           (string-constant save-an-executable)
-           parent
-           base
-           (default-executable-filename name)
-           #f
-           null
-           '(("Executable" "*.exe") ("Any" "*.*")))))
+          (let ([default-name (default-executable-filename name mred?)])
+            (put-executable/defaults
+             parent
+             base
+             default-name
+             launcher?
+             mred?))))
+      
+      ;; put-executable/default : parent string string boolean boolean -> (union false? string)
+      (define (put-executable/defaults parent default-dir default-name launcher? mred?)
+        (let-values ([(extension style filters)
+                      (if launcher?
+                          (if mred?
+                              (mred-launcher-put-file-extension+style+filters)
+                              (mzscheme-launcher-put-file-extension+style+filters))
+                          (embedding-executable-put-file-extension+style+filters mred?))])
+          (let ([dir? (if launcher?
+                          (if mred?
+                              (mred-launcher-is-directory?)
+                              (mzscheme-launcher-is-directory?))
+                          (embedding-executable-is-directory? mred?))])
+            (if dir?
+                (get-directory (string-constant save-an-executable)
+                               parent
+                               default-dir
+                               style)
+                (put-file (string-constant save-an-executable)
+                          parent
+                          default-dir
+                          default-name
+                          extension
+                          style
+                          filters)))))
       
       ;; default-executable-filename : string[filename] -> string[filename]
-      (define (default-executable-filename program-filename)
+      (define (default-executable-filename program-filename mred?)
         (let* ([ext (filename-extension program-filename)]
                [ext-less (if ext
                              (substring program-filename
@@ -622,6 +656,9 @@
                              program-filename)])
           (case (system-type)
             [(windows) (string-append ext-less ".exe")]
+            [(macosx) (if mred?
+                          (string-append ext-less ".app")
+                          ext-less)]
             [else ext-less])))
       
       ;; create-module-based-stand-alone-executable : ... -> void (see docs)
@@ -645,7 +682,7 @@
           
           (call-with-output-file bootstrap-tmp-filename
             (lambda (port)
-              (write `(begin
+              (write `(let () ;; cannot use begin, since it gets flattened to top-level (and re-compiled!)
                         (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
                         (namespace-transformer-require ',transformer-module-language-spec)
                         ((dynamic-require '(file ,init-code-tmp-filename) 'init-code)))
@@ -687,7 +724,7 @@
                  [to-be-embedded-module-specs
                   (map (lambda (x) (list #f x))
                        pre-to-be-embedded-module-specs4)])
-            
+
             (make-embedding-executable 
              executable-filename
              gui?

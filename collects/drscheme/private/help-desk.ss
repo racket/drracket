@@ -13,11 +13,8 @@
 	   (lib "mred-sig.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "framework-sig.ss" "framework")
-           
            (lib "browser.ss" "net")
-           
            (lib "help-desk.ss" "help")
-           
 	   "drsig.ss")
   
   (provide help-desk@)
@@ -27,22 +24,46 @@
       (import [drscheme:frame : drscheme:frame^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^])
 
-      (define hd-cookie #f)
-
+      (define get-hd-cookie
+        (let ([hd-cookie #f])
+          (lambda ()
+            (unless hd-cookie
+              (set! hd-cookie (start-help-server)))
+            hd-cookie)))
+      
+      (define (goto-help manual link)
+        (with-handlers ([not-break-exn?
+                         (lambda (exn)
+                           (message-box 
+                            "DrScheme"
+                            (format (string-constant error-finding-docs)
+                                    (if (exn? exn)
+                                        (exn-message exn)
+                                        (format "~s" exn)))))])
+          (let* ([end-of-url (finddoc-page-anchor manual link)]
+                 [url
+                  (format "http://127.0.0.1:~a~a"
+                          (hd-cookie->port (get-hd-cookie))
+                          end-of-url)])
+            (send-url url))))
+      
+      (define (goto-tour)
+        (send-url (format "http://127.0.0.1:~a/doc/tour"
+                          (hd-cookie->port (get-hd-cookie)))))
+      
+      (define (goto-release-notes)
+        (send-url (format "http://127.0.0.1:~a/servlets/release-info.ss"
+                          (hd-cookie->port (get-hd-cookie)))))
+      
       (define help-desk
         (case-lambda
-          [()
-           (unless hd-cookie
-             (set! hd-cookie (start-help-server)))
-           (help-desk-browser hd-cookie)]
+          [() (help-desk-browser (get-hd-cookie))]
           [(key) (help-desk key #t)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'exact)]
           [(key lucky? type mode)
-           (unless hd-cookie
-             (set! hd-cookie (start-help-server)))
            (search-for-docs
-            hd-cookie
+            (get-hd-cookie)
             key
             (case type
               [(keyword) "keyword"]
