@@ -49,6 +49,7 @@
   (frame% 
    snip-class% snip% make-bitmap
    definitions-canvas%
+   definitions-edit%
    interactions-canvas%))
 
 (define-signature drscheme:frame^
@@ -72,6 +73,10 @@
 
 (define-signature drscheme:rep^
   (edit%
+   top-parameterization
+   system-parameterization
+   eval-thread-parameterization
+   system-custodian
    (struct process/zodiac-finish (error?))))
 
 (define-signature drscheme:app^
