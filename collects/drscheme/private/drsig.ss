@@ -1,7 +1,6 @@
 (module drsig mzscheme
   (require (lib "unitsig.ss")
-	   (lib "framework-sig.ss" "framework")
-	   (lib "sig.ss" "stepper"))
+	   (lib "framework-sig.ss" "framework"))
   
   (provide drscheme:get-collection^
            drscheme:main^
@@ -10,20 +9,17 @@
            drscheme:language^
            drscheme:load/link-tool^
            drscheme:get/extend^
-           drscheme:graph^
            drscheme:unit^
            drscheme:frame^
-           drscheme:signature^
            drscheme:program^
            drscheme:text^
-           ;drscheme:project^  ;; ???
-           ;drscheme:check^
            drscheme:rep^
            drscheme:app^
            drscheme:draw-arrow^
 	   drscheme:load-handler^
            drscheme:help-interface^
            drscheme:language-tower^
+           drscheme:teachpack^
            drscheme:export^
            drscheme^)
   
@@ -70,11 +66,7 @@
      get-interactions-canvas%
      get-definitions-canvas%
      get-unit-frame%))
-  
-  (define-signature drscheme:graph^
-    (graph-pasteboard%
-     node-snip%))
-  
+    
   (define-signature drscheme:unit^
     (frame% 
      make-bitmap
@@ -93,22 +85,12 @@
      basics-mixin
      basics<%>))
   
-  (define-signature drscheme:signature^
-    (frame%))
-  
   (define-signature drscheme:program^
     (frame%))
   
   (define-signature drscheme:text^
     (text<%>
      text%))
-  
-  (define-signature drscheme:project^
-    (scheme-project-frame%))
-  
-  (define-signature drscheme:check^
-    (advance-check%
-     beginner-check%))
   
   (define-signature drscheme:setup^ 
     (do-setup))
@@ -166,8 +148,6 @@
   
   (define-signature drscheme^
     ((open framework^)
-     
-     (unit plt:aries : plt:aries^)
      
      (unit drscheme:init : drscheme:init^)
      (unit drscheme:text : drscheme:text^)

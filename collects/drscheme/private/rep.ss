@@ -17,7 +17,7 @@
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "pretty.ss")
-           (prefix print-convert: (lib "pconvert.ss")))  
+           (prefix print-convert: (lib "pconvert.ss")))
   
   (provide rep@)
   
