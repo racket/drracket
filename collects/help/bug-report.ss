@@ -5,7 +5,8 @@
            (lib "smtp.ss" "net")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (lib "class.ss"))
+           (lib "class.ss")
+           (lib "etc.ss"))
   
   (provide help-desk:report-bug)
   
@@ -60,7 +61,8 @@
   
   (define (help-desk:report-bug)
     (define bug-frame (instantiate bug-frame% () (title (string-constant bug-report-form))))
-    (define top-panel (make-object vertical-panel% (send bug-frame get-area-container)))
+    (define outermost-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
+    (define top-panel (make-object vertical-panel% outermost-panel))
     
     (define lps null)
     
@@ -68,13 +70,11 @@
     ; constructs and arranges the gui objects for the bug report form
     ; effect: updates lps with the new label panel, for future alignment
     (define build/label
-      (case-lambda
-       [(text make-item top?)
-        (build/label text make-item top? #f)]
-       [(text make-item top? stretch?)
-        (build/label text make-item top? stretch? top-panel)]
-       [(text make-item top? stretch? top-panel)
-        (let*-values ([(hp) (make-object horizontal-panel% top-panel)]
+      (opt-lambda (text make-item top? [stretch? #f] [top-panel top-panel] [vertical? #f])
+        (let*-values ([(hp) (make-object (if vertical?
+                                             vertical-panel%
+                                             horizontal-panel%)
+                              top-panel)]
                       [(lp) (make-object vertical-panel% hp)]
                       [(ip) (make-object vertical-panel% hp)]
                       [(label/s) (if (string? text)
@@ -89,9 +89,10 @@
             (send lp stretchable-height #f)
             (send ip stretchable-height #f))
           (send lp stretchable-width #f)
-          (send lp set-alignment 'right (if top? 'top 'center))
+          (send lp stretchable-height #f)
+          (send lp set-alignment (if vertical? 'left 'right) (if top? 'top 'center))
           (send ip set-alignment 'left 'top)
-          item)]))
+          item)))
     
     (define (align-labels)
       (let ([width (apply max (map (lambda (x) (send (car (send x get-children)) min-width))
@@ -174,9 +175,10 @@
     
     (define modern-style-list (make-object style-list%))
     
-    (define (make-big-text label)
+    (define (make-big-text label . args)
       (let ([canvas 
-             (build/label 
+             (apply
+              build/label 
               label 
               (lambda (panel)
                 (let* ([text (make-object (editor:keymap-mixin text:basic%))]
@@ -184,18 +186,19 @@
                   (send text set-style-list modern-style-list)
                   canvas))
               #t
-              #t)])
+              args)])
         (send canvas min-width 500)
         (send canvas min-height 130)
         (send canvas get-editor)
         (send canvas allow-tab-exit #t)
         canvas))
     
-    (define description (make-big-text (string-constant bug-report-field-description)))
+    (define description (make-big-text (string-constant bug-report-field-description) #t))
     (define reproduce (make-big-text (list (string-constant bug-report-field-reproduce1)
-                                           (string-constant bug-report-field-reproduce2))))
+                                           (string-constant bug-report-field-reproduce2))
+                                     #t))
     
-    (define synthesized-outer-panel (make-object vertical-panel% top-panel))
+    (define synthesized-outer-panel (make-object vertical-panel% outermost-panel))
     (define synthesized-panel (make-object vertical-panel% synthesized-outer-panel))
     (define synthesized-info-shown? #t)
     (define (toggle-synthesized-info)
@@ -218,7 +221,8 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel))
+       synthesized-panel
+       #t))
     (define environment
       (build/label
        (string-constant bug-report-field-environment)
@@ -228,51 +232,8 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel))
-    
-    (define docs-installed
-      (build/label 
-       (string-constant bug-report-field-docs-installed)
-       (lambda (panel)            
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
-    
-    (define language-level
-      (build/label
-       (string-constant bug-report-field-language)
-       (lambda (panel)
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
-    
-    (define teachpacks
-      (build/label
-       (string-constant bug-report-field-teachpacks)
-       (lambda (panel)
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
-    
-    (define collections
-      (build/label 
-       (string-constant bug-report-field-collections)
-       (lambda (panel)            
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
+       synthesized-panel
+       #t))
     
     (define human-language
       (build/label 
@@ -283,7 +244,51 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel))
+       synthesized-panel
+       #t))
+    
+    (define language-level
+      (build/label
+       (string-constant bug-report-field-language)
+       (lambda (panel)
+         (keymap:call/text-keymap-initializer
+          (lambda ()
+            (make-object text-field% #f panel void ""))))
+       #f
+       #f
+       synthesized-panel
+       #t))
+    
+    (define teachpacks
+      (build/label
+       (string-constant bug-report-field-teachpacks)
+       (lambda (panel)
+         (keymap:call/text-keymap-initializer
+          (lambda ()
+            (make-object text-field% #f panel void ""))))
+       #f
+       #f
+       synthesized-panel
+       #t))
+
+    (define docs-installed
+      (build/label 
+       (string-constant bug-report-field-docs-installed)
+       (lambda (panel)            
+         (keymap:call/text-keymap-initializer
+          (lambda ()
+            (make-object text-field% #f panel void ""))))
+       #f
+       #t
+       synthesized-panel
+       #t))
+    
+    (define collections
+      (make-big-text 
+       (string-constant bug-report-field-collections)
+       #t
+       synthesized-panel
+       #t))
     
     (define (longer-of s1 s2)
       (if ((string-length s1) . >= . (string-length s2))
@@ -492,9 +497,6 @@
                     (directory-list (collection-path "doc")))))
     (send teachpacks set-value (format "~s" (get-teachpack-filenames)))
     (send language-level set-value (format "~s" (get-language-level)))
-    
-    (send synthesized-panel stretchable-height #f)
-    (send synthesized-outer-panel stretchable-height #f)
     
     (toggle-synthesized-info)
     

@@ -225,10 +225,19 @@
                        (send item set-number number)
                        (send text insert position)
                        (when delta
-                         (send text change-style 
-                               (send language get-style-delta)
-                               0
-                               (send text last-position))))                     
+                         (cond
+                           [(list? delta)
+                            (for-each (lambda (x)
+                                        (send text change-style 
+                                              (car x)
+                                              (cadr x)
+                                              (caddr x)))
+                                      delta)]
+                           [(is-a? delta style-delta%)
+                            (send text change-style 
+                                  (send language get-style-delta)
+                                  0
+                                  (send text last-position))])))
                      (cond
                        [(equal? (send language-to-show get-language-position)
                                 (send language get-language-position))
