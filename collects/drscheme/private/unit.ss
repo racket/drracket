@@ -95,6 +95,22 @@
             str
             (substring str 0 len)))
       
+
+                                                                                                         
+   ;;;                                ;                            ;;    ;           ;;;                 
+  ;                           ;                                     ;                  ;                 
+  ;                           ;                                     ;                  ;                 
+ ;;;;;  ; ;;;  ;;;;    ;;;   ;;;;;  ;;;     ;;;  ; ;;;           ;;;;  ;;;    ;;;;     ;     ;;;    ;;; ;
+  ;      ;         ;  ;   ;   ;       ;    ;   ;  ;;  ;         ;   ;    ;        ;    ;    ;   ;  ;   ; 
+  ;      ;      ;;;;  ;       ;       ;    ;   ;  ;   ;         ;   ;    ;     ;;;;    ;    ;   ;  ;   ; 
+  ;      ;     ;   ;  ;       ;       ;    ;   ;  ;   ;         ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+  ;      ;     ;   ;  ;   ;   ;   ;   ;    ;   ;  ;   ;         ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+ ;;;;   ;;;;    ;;; ;  ;;;     ;;;  ;;;;;   ;;;  ;;;  ;;         ;;; ; ;;;;;   ;;; ; ;;;;;;  ;;;    ;;;; 
+                                                                                                       ; 
+                                                                                                       ; 
+                                                                                                    ;;;  
+
+
       (define (get-fraction-from-user parent)
         (let* ([dlg (make-object dialog% (string-constant enter-fraction))]
                [hp (make-object horizontal-panel% dlg)]
@@ -134,7 +150,7 @@
                           (message-box
                            (string-constant drscheme)
                            (string-constant invalid-number)
-                           parent)]))
+                           dlg)]))
                      '(border))]
                [cancel (make-object button% (string-constant cancel) bp (lambda x (send dlg show #f)))])
           (let ([mw (max (send den-m get-width) (send num-m get-width))])
