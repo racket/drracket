@@ -633,9 +633,11 @@
                      (loop (cdr levels)
                            (+ x (get-snip-hspace) this-w)))])))))
         
-        ;; add-connections : string[filename] -> void
+        ;; add-connections : string[filename] -> (union #f string)
         ;; recursively adds a connections from this file and
         ;; all files it requires
+        ;; returns a string error message if there was an error expanding
+        ;; the program
         (define (add-connections filename)
           (define visited-hash-table (make-hash-table))
           (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
@@ -649,6 +651,10 @@
                                      (parent progress-frame)))
           (define sema (make-semaphore 1))
           (define done? #f)
+
+          ;; error : (union #f string?)
+          (define error #f)
+
           (define max-lines 0)
           (thread
            (lambda ()
@@ -658,38 +664,48 @@
                (send progress-frame show #t))
              (semaphore-post sema)))
           (send pasteboard begin-edit-sequence)
-          (let loop ([filename (normalize-path filename)])
-            (let ([visited-key (string->symbol filename)])
-              (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
-                (send progress-message set-label (format adding-file filename))
-                (hash-table-put! visited-hash-table visited-key #t)
-                (let-values ([(base name dir?) (split-path filename)])
-                  (let ([module-code (get-module-code filename)]
-                        [lines (send (find/create-snip filename) get-lines)])
-                    (set! max-lines (max lines max-lines))
-                    (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                      (let ([requires (extract-filenames imports filename)]
-                            [syntax-requires (extract-filenames fs-imports filename)])
-                        (for-each (lambda (require)
-                                    (add-connection filename require #f)
-                                    (loop require))
-                                  requires)
-                        (for-each (lambda (syntax-require)
-                                    (add-connection filename syntax-require #t)
-                                    (loop syntax-require))
-                                  syntax-requires))))))))
-          (send progress-message set-label laying-out-graph-label) 
-          (let loop ([snip (send pasteboard find-first-snip)])
-            (when snip
-              (when (is-a? snip word-snip/lines%)
-                (send snip normalize-lines max-lines))
-              (loop (send snip next))))
-          (render-snips)
+          
+          (with-handlers ([not-break-exn?
+                           (lambda (x) 
+                             (set! error
+                                   (if (exn? x)
+                                       (exn-message x)
+                                       (format "~s" x))))])
+            (let loop ([filename (normalize-path filename)])
+              (let ([visited-key (string->symbol filename)])
+                (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
+                  (send progress-message set-label (format adding-file filename))
+                  (hash-table-put! visited-hash-table visited-key #t)
+                  (let-values ([(base name dir?) (split-path filename)])
+                    (let ([module-code (get-module-code filename)]
+                          [lines (send (find/create-snip filename) get-lines)])
+                      (set! max-lines (max lines max-lines))
+                      (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
+                        (let ([requires (extract-filenames imports filename)]
+                              [syntax-requires (extract-filenames fs-imports filename)])
+                          (for-each (lambda (require)
+                                      (add-connection filename require #f)
+                                      (loop require))
+                                    requires)
+                          (for-each (lambda (syntax-require)
+                                      (add-connection filename syntax-require #t)
+                                      (loop syntax-require))
+                                    syntax-requires))))))))
+
+            (send progress-message set-label laying-out-graph-label) 
+
+            (let loop ([snip (send pasteboard find-first-snip)])
+              (when snip
+                (when (is-a? snip word-snip/lines%)
+                  (send snip normalize-lines max-lines))
+                (loop (send snip next))))
+            (render-snips))
           (semaphore-wait sema)
           (set! done? #t)
           (send progress-frame show #f)
           (semaphore-post sema)
-          (send pasteboard end-edit-sequence))
+          (send pasteboard end-edit-sequence)
+          error)
         
         ;; extract-filenames : (listof (union symbol module-path-index)) string[directory] ->
         ;;                     (listof string[filename))
@@ -790,6 +806,14 @@
         
         (define ec (make-object canvas:basic% (send frame get-area-container) pasteboard))
         
-        (add-connections filename)
-        
-        (send frame show #t)))))
+        (let ([error (add-connections filename)])
+          (cond
+            [error
+             (send frame can-close?)
+             (send frame on-close)
+             (message-box 
+              (string-constant module-browser)
+              (format (string-constant module-browser-error-expanding)
+                      error))]
+            [else
+             (send frame show #t)]))))))
