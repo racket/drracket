@@ -12,6 +12,7 @@
 	   (lib "include.ss")
            (lib "list.ss")
            (lib "file.ss")
+           (lib "external.ss" "browser")
            (lib "plt-installer.ss" "setup"))
   
   (provide main@)
@@ -147,8 +148,8 @@
        drscheme:teachpack:unmarshall-teachpack-cache)
       
       (drscheme:font:setup-preferences)
-      
       (scheme:add-preferences-panel)
+      (scheme:add-coloring-preferences-panel)
       (preferences:add-editor-checkbox-panel)
       (preferences:add-warnings-checkbox-panel)
       (preferences:add-scheme-checkbox-panel)
@@ -168,6 +169,7 @@
            (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once))
            (make-check-box 'drscheme:test-coverage-ask-about-clearing? (string-constant test-coverage-ask?)))))
       (drscheme:debug:add-prefs-panel)
+      (install-help-browser-preference-panel)
       
       (handler:current-create-new-window
        (let ([drscheme-current-create-new-window
