@@ -1763,6 +1763,7 @@ tab panels new behavior:
                                0)])
                 (send definitions-text split-snip start)
                 (let ([prt (open-input-text-editor definitions-text start)])
+                  (port-count-lines! prt)
                   (send interactions-text evaluate-from-port
                         prt
                         #t

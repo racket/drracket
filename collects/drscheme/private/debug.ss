@@ -275,7 +275,6 @@ profile todo:
             ;; don't get erased if this output were to happen after the insertion
             (flush-output (current-error-port))
             
-            (oprintf "before\n")
             (highlight-errors srcs-to-display
                               (and cms
                                    (filter 
@@ -285,8 +284,7 @@ profile todo:
                                            (pair? (cdr x))
                                            (number? (cadr x))
                                            (number? (cddr x))))
-                                    cms)))
-            (oprintf "after\n"))))
+                                    cms))))))
       
       (define (show-syntax-error-context port exn)
         (let ([error-text-style-delta (make-object style-delta%)])
@@ -323,20 +321,15 @@ profile todo:
       (define (find-src-to-display exn cms)
 	(cond
 	  [(exn:srclocs? exn)
-           (print-struct #t)
-           (oprintf "case1 ~s\n" ((exn:srclocs-accessor exn) exn))
            ((exn:srclocs-accessor exn) exn)]
           [(pair? cms)
-           (oprintf "case2\n")
            (let ([fst (car cms)])
              (list (make-srcloc (car fst)
                                 #f
                                 #f
                                 (cadr fst)
                                 (cddr fst))))]
-          [else
-           (oprintf "case3\n")
-           '()]))
+          [else '()]))
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
