@@ -505,6 +505,6 @@
 	(unless (eq? drs2 drs)
 	  (error 'kill-tests "expected original drscheme frame to come back to the front"))))))
 
+(kill-tests)
 (run-test-in-language-level #t)
 (run-test-in-language-level #f)
-(kill-tests)

@@ -732,6 +732,11 @@
       (override
        [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
+	[ensure-defs-shown
+	 (lambda ()
+	   (when (hidden? definitions-item)
+	     (toggle-show/hide definitions-item)
+	     (update-shown)))]
 	[ensure-rep-shown
 	 (lambda ()
 	   (when (hidden? interactions-item)
@@ -888,12 +893,13 @@
 			      (send child focus)
 			      (loop (cdr children))))])))
 	     
-	     (send interactions-text scroll-to-position 
+	     ;; these should not be necessary anymore?
+	     '(send interactions-text scroll-to-position 
 		   (send interactions-text get-end-position)
 		   #f
 		   (send interactions-text get-start-position)
 		   'start)
-	     (send definitions-text scroll-to-position 
+	     '(send definitions-text scroll-to-position 
 		   (send definitions-text get-end-position)
 		   #f
 		   (send definitions-text get-start-position)	
