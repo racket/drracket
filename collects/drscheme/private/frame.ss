@@ -418,7 +418,8 @@
           running
           not-running
           get-show-menu
-          update-shown))
+          update-shown
+          add-show-menu-items))
       
       (define -mixin
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
@@ -430,6 +431,7 @@
           (public get-show-menu update-shown)
           [define get-show-menu (lambda () show-menu)]
           [define update-shown (lambda () (void))]
+          (define/public (add-show-menu-items show-menu) (void))
           
           [define get-bitmap/string
             (lambda (icon string)
@@ -457,6 +459,8 @@
           (super-instantiate ())
           (set! show-menu (make-object (get-menu%) (string-constant show-menu-label)
                             (get-menu-bar)))
+
+          (add-show-menu-items show-menu)
           
           (field
            [running-message

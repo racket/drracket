@@ -31,19 +31,19 @@
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
+            [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [rep : drscheme:rep^
                  (rep@ init snip language-configuration language app 
                      frame unit text help-desk teachpack debug)]
             [language : drscheme:language^ (language@ rep snip debug teachpack tools)]
-            [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [module-overview : drscheme:module-overview^ (module-overview@ frame)]
-            [debug : drscheme:debug^
-                   (debug@ rep frame unit language language-configuration)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration 
-                       get/extend snip teachpack module-overview debug)]
+                       get/extend snip teachpack module-overview)]
+            [debug : drscheme:debug^
+                   (debug@ rep frame unit language language-configuration)]
             [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame)]
-            [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
+            [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep debug)]
             [language-configuration : drscheme:language-configuration/internal^ 
                                     (language-configuration@ unit rep teachpack
                                                              init language app

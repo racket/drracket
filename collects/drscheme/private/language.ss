@@ -156,9 +156,10 @@
                          repeating-decimal-e))
                  (boolean? (vector-ref printable 3))
                  (boolean? (vector-ref printable 4))
+                 (memq (vector-ref printable 5) '(none debug debug/profile))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'write 'mixed-fraction-e #f #t #t))
+            (make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -182,13 +183,13 @@
                                       fraction-style
                                       show-sharing
                                       insert-newlines
-                                      debugging))
+                                      annotations))
       ;;  case-sensitive  : boolean
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
       ;;  fraction-style  : (union 'mixed-fraction 'mixed-fraction-e 'repeating-decimal 'repeating-decimal-e)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
-      ;;  debugging       : boolean
+      ;;  annotations     : (union 'none 'debug 'debug/profile)
       (define simple-settings->vector (make-->vector simple-settings))
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
@@ -217,8 +218,12 @@
 				 (string-constant case-sensitive-label)
 				 input-panel
 				 void)]
-               [debugging (instantiate check-box% ()
-                            (label (string-constant debugging))
+               [debugging (instantiate radio-box% ()
+                            (label #f)
+                            (choices 
+                             (list (string-constant no-debugging-or-profiling)
+                                   (string-constant debugging)
+                                   (string-constant debugging-and-profiling)))
                             (parent dynamic-panel)
                             (callback void))]
 	       [output-style (make-object radio-box%
@@ -259,7 +264,10 @@
                  'mixed-fraction-e)
 	     (send show-sharing get-value)
 	     (send insert-newlines get-value)
-             (send debugging get-value))]
+             (case (send debugging get-selection)
+               [(0) 'none]
+               [(1) 'debug]
+               [(2) 'debug/profile]))]
            [(settings)
             (send case-sensitive set-value (simple-settings-case-sensitive settings))
             (send output-style set-selection
@@ -271,7 +279,11 @@
                                                 'repeating-decimal-e))
             (send show-sharing set-value (simple-settings-show-sharing settings))
             (send insert-newlines set-value (simple-settings-insert-newlines settings))
-            (send debugging set-value (simple-settings-debugging settings))])))
+            (send debugging set-selection
+                  (case (simple-settings-annotations settings)
+                    [(none) 0]
+                    [(debug) 1]
+                    [(debug/profile) 2]))])))
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip)
@@ -333,13 +345,15 @@
       (define (initialize-simple-module-based-language setting run-in-user-thread)
         (run-in-user-thread
          (lambda ()
-           (when (simple-settings-debugging setting)
-             (current-eval 
-              (drscheme:debug:make-debug-eval-handler
-               (current-eval)))
-             (error-display-handler 
-              (drscheme:debug:make-debug-error-display-handler
-               (error-display-handler))))
+           (let ([annotations (simple-settings-annotations setting)])
+             (when (memq annotations '(debug debug/profile))
+               (current-eval 
+                (drscheme:debug:make-debug-eval-handler
+                 (current-eval)))
+               (error-display-handler 
+                (drscheme:debug:make-debug-error-display-handler
+                 (error-display-handler))))
+             (drscheme:debug:profiling-enabled (eq? annotations 'debug/profile)))
            (current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
@@ -379,7 +393,7 @@
                                  [show-sharing ,(simple-settings-show-sharing setting)])
                     (print-convert value))]))
            
-           ,(if (simple-settings-debugging setting)
+           ,(if (memq (simple-settings-annotations setting) '(debug debug/profile))
                 `(require (lib "errortrace.ss" "errortrace"))
                 `(void))
 

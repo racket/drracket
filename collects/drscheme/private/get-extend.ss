@@ -13,7 +13,8 @@
 
       (import [drscheme:unit : drscheme:unit^]
 	      [drscheme:frame : drscheme:frame^]
-	      [drscheme:rep : drscheme:rep^])
+	      [drscheme:rep : drscheme:rep^]
+              [drscheme:debug : drscheme:debug^])
       
       (define make-extender
         (lambda (base%)
@@ -47,17 +48,31 @@
                  (set! built (extensions base%)))
                built)))))
       
+      (define base-interactions-canvas% drscheme:unit:interactions-canvas%)
+      
       (define-values (extend-interactions-canvas get-interactions-canvas)
-        (make-extender drscheme:unit:interactions-canvas%))
+        (make-extender base-interactions-canvas%))
+
+      (define base-definitions-canvas% drscheme:unit:definitions-canvas%)
       
       (define-values (extend-definitions-canvas get-definitions-canvas)
-        (make-extender drscheme:unit:definitions-canvas%))  
+        (make-extender base-definitions-canvas%))  
       
+      (define base-unit-frame% 
+        (drscheme:debug:profile-unit-frame-mixin drscheme:unit:frame%))
+
       (define-values (extend-unit-frame get-unit-frame)
-        (make-extender drscheme:unit:frame%))
+        (make-extender base-unit-frame%))
       
+      (define base-interactions-text% 
+        (drscheme:debug:profile-interactions-text-mixin drscheme:rep:text%))
+
       (define-values (extend-interactions-text get-interactions-text)
-        (make-extender drscheme:rep:text%))
-      
+        (make-extender base-interactions-text%))
+
+      (define base-definitions-text%
+        (drscheme:debug:profile-definitions-text-mixin
+         drscheme:unit:definitions-text%))
+
       (define-values (extend-definitions-text get-definitions-text)
-        (make-extender drscheme:unit:definitions-text%)))))
+        (make-extender base-definitions-text%)))))

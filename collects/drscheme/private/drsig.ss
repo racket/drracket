@@ -35,6 +35,9 @@
      make-debug-eval-handler
      hide-backtrace-window
      profile-unit-frame-mixin
+     profile-definitions-text-mixin
+     profile-interactions-text-mixin
+     profiling-enabled
      add-prefs-panel))
   
   (define-signature drscheme:module-language^
@@ -97,10 +100,17 @@
      get-definitions-text
      get-interactions-canvas
      get-definitions-canvas
-     get-unit-frame))
+     get-unit-frame
+     
+     base-interactions-text%
+     base-definitions-text%
+     base-interactions-canvas%
+     base-definitions-canvas%
+     base-unit-frame%))
     
   (define-signature drscheme:unit^
     (frame% 
+     frame<%>
      make-bitmap
      definitions-canvas%
      definitions-text%
@@ -134,6 +144,8 @@
      drs-bindings-keymap-mixin
      current-rep
      text%
+     text<%>
+     console-text<%>
      context<%>))
   
   (define-signature drscheme:app^
@@ -176,7 +188,7 @@
                               fraction-style
                               show-sharing
                               insert-newlines
-                              debugging)
+                              annotations)
              -setters)
      simple-settings->vector
 

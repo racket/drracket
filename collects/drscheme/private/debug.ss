@@ -2,12 +2,7 @@
 
 profile todo:
 
-   - clickable filenames
-   - remove highlighting when program edited.
-   - show/hide for profile window
-     - dialog box saying "no profile info"
-   - separate out debugging and profiling in language dialog
-   - document drscheme:debug stuff
+   - document drscheme:debug stuff for other languages
    
 |#
 
@@ -425,23 +420,27 @@ profile todo:
       
       ;; get-filename : debug-source -> string
       (define (get-filename file)
-        (let ([untitled (string-constant unknown-debug-frame)])
-          (cond
-            [(symbol? file) (symbol->string file)]
-            [(is-a? file editor<%>)
-             (let* ([canvas (send file get-canvas)]
-                    [frame (and canvas (send canvas get-top-level-window))])
-               (if (is-a? frame drscheme:unit:frame%)
-                   (let ([filename (send (send frame get-definitions-text) get-filename)])
-                     (cond
-                       [(and filename (eq? file (send frame get-interactions-text)))
-                        (format (string-constant files-interactions) filename)]
-                       [(eq? file (send frame get-interactions-text))
-                        (string-constant stack-frame-in-current-interactions)]
-                       [filename filename]
-                       [else (string-constant stack-frame-in-current-definitions)]))
-                   (or (send file get-filename) 
-                       untitled)))])))
+        (cond
+          [(symbol? file) (symbol->string file)]
+          [(is-a? file editor<%>)
+           (get-filename-from-editor file)]))
+      
+      ;; get-filename-from-editor : (is-a?/c editor<%>) -> string
+      (define (get-filename-from-editor editor)
+        (let* ([untitled (string-constant unknown-debug-frame)]
+               [canvas (send editor get-canvas)]
+               [frame (and canvas (send canvas get-top-level-window))])
+          (if (is-a? frame drscheme:unit:frame%)
+              (let ([filename (send (send frame get-definitions-text) get-filename)])
+                (cond
+                  [(and filename (eq? editor (send frame get-interactions-text)))
+                   (format (string-constant files-interactions) filename)]
+                  [(eq? editor (send frame get-interactions-text))
+                   (string-constant current-interactions)]
+                  [filename filename]
+                  [else (string-constant current-definitions)]))
+              (or (send editor get-filename) 
+                  untitled))))
 
       ;; open-and-highlight-in-file : (cons debug-source (cons number number))
       ;;                              -> 
@@ -494,8 +493,6 @@ profile todo:
 
       
       (define profile-key (gensym))
-      (define profiling-enabled (make-parameter #t))
-      (define currently-collecting-profile-info (make-parameter #t))
 
       ;; prof-info =
       ;; (make-prof-info
@@ -505,49 +502,52 @@ profile todo:
       ;;   (union #f symbol) 
       ;;   expression)
       (define-struct prof-info (nest num time name expr))
-      
-      ;; type prof-map =
-      ;;   symbol -o> prof-info
-      ;; profile-info : (parameter (union #f prof-map))
-      ;; this parameter maps from user threads to hash tables
-      ;; and is initialized in `initialize-profile-point'. the init code
-      ;; ensures that even if the user creates multiple threads, only
-      ;; one hash table is created. thus, the register-profile-start
-      ;; and register-profile-done thunks could be running on multiple threads
 
-      (define-values (profile-info get-profile-info/thd)
-        (let ([ht (make-hash-table 'weak)])
-          (values
-           (case-lambda
-             [() (hash-table-get ht (current-thread) (lambda () #f))]
-             [(v) (hash-table-put! ht (current-thread) v)])
-           (lambda (thd)
-             (hash-table-get ht thd (lambda () #f))))))
-      
+      ;; copy-prof-info : prof-info -> prof-info
+      (define (copy-prof-info prof-info)
+        (make-prof-info (prof-info-nest prof-info)
+                        (prof-info-num prof-info)
+                        (prof-info-time prof-info)
+                        (prof-info-name prof-info)
+                        (prof-info-expr prof-info)))
+
+      ;; any-info? : prof-info -> boolean
+      (define (any-info? prof-info)
+        (or (not (zero? (prof-info-num prof-info)))
+            (not (zero? (prof-info-time prof-info)))))
+                  
+      ;; parameter
+      ;; imported into errortrace
+      (define profiling-enabled (make-parameter #f))
+
+      ;; initialize-profile-point : sym syntax syntax -> void
+      ;; called during compilation to register this point as
+      ;; a profile point. 
+      ;; =user=
+      ;; imported into errortrace
       (define (initialize-profile-point key name expr)
-        (unless (profile-info)
-          (profile-info (make-hash-table)))
-        (hash-table-put! (profile-info) 
+        (hash-table-put! (send (drscheme:rep:current-rep) get-profile-info)
                          key 
                          (make-prof-info #f 0 0 (and name (syntax-e name)) expr)))
   
       ;; register-profile-start : sym -> (union #f number)
       ;; =user=
+      ;; imported into errortrace
       (define (register-profile-start key)
-        (and (currently-collecting-profile-info)
-             (let ([info (hash-table-get (profile-info) key)])
-               (set-prof-info-num! info (+ (prof-info-num info) 1))
-               (if (prof-info-nest info)
-                   #f
-                   (begin
-                     (set-prof-info-nest! info #t)
-                     (current-process-milliseconds))))))
+        (let ([info (hash-table-get (send (drscheme:rep:current-rep) get-profile-info) key)])
+          (set-prof-info-num! info (+ (prof-info-num info) 1))
+          (if (prof-info-nest info)
+              #f
+              (begin
+                (set-prof-info-nest! info #t)
+                (current-process-milliseconds)))))
       
       ;; register-profile-done : sym (union #f number) -> void
       ;; =user=
+      ;; imported into errortrace
       (define (register-profile-done key start)
         (when start
-          (let ([info (hash-table-get (profile-info) key)])
+          (let ([info (hash-table-get (send (drscheme:rep:current-rep) get-profile-info) key)])
             (set-prof-info-nest! info #f)
             (set-prof-info-time! info
                                  (+ (- (current-process-milliseconds) start)
@@ -577,24 +577,190 @@ profile todo:
             (get-rgb-value (lambda (x) (send x green)))
             (get-rgb-value (lambda (x) (send x blue))))))
       
-      ;; extract-maximum : prof-map -> number
+      ;; extract-maximum : (listof prof-info) -> number
       ;; gets the maximum value of the currently preferred profiling info.
-      (define (extract-maximum ht)
+      (define (extract-maximum infos)
         (let ([max-value 0]
               [sel (if (eq? (preferences:get 'drscheme:profile-how-to-count) 'time)
-                       prof-info-num
-                       prof-info-time)])
-          (hash-table-for-each
-           ht
-           (lambda (key val)
-             (set! max-value (max max-value (sel val)))))
+                       prof-info-time
+                       prof-info-num)])
+          (for-each
+           (lambda (val)
+             (set! max-value (max max-value (sel val))))
+           infos)
           max-value))
       
+      ;; extract-total-time : (listof prof-info) -> number
+      (define (extract-total-time infos)
+        (let ([sum 0])
+          (for-each
+           (lambda (val)
+             (set! sum (+ sum (prof-info-time val))))
+           infos)
+          sum))
+      
+      ;; profile-definitions-mixin : mixin
+      (define profile-definitions-text-mixin
+        (mixin ((class->interface text%) drscheme:unit:definitions-text<%>) ()
+          (inherit get-canvas)
+          
+          (define (clear-profiling?)
+            (eq? (message-box (string-constant drscheme)
+                              (string-constant profiling-clear?)
+                              (send (get-canvas) get-top-level-window)
+                              '(yes-no))
+                 'yes))
+
+          (rename [super-can-insert? can-insert?])
+          (define/override (can-insert? x y)
+            (and (super-can-insert? x y)
+                 (let ([canvas (get-canvas)])
+                   (or (not canvas)
+                       (let ([frame (send canvas get-top-level-window)])
+                         (or (not (send frame get-profile-info-visible?))
+                             (clear-profiling?)))))))
+          
+          (rename [super-can-delete? can-delete?])
+          (define/override (can-delete? x y)
+            (and (super-can-delete? x y)
+                 (let ([canvas (get-canvas)])
+                   (or (not canvas)
+                       (let ([frame (send canvas get-top-level-window)])
+                         (or (not (send frame get-profile-info-visible?))
+                             (clear-profiling?)))))))
+          
+          (rename [super-on-insert on-insert])
+          (define/override (on-insert x y)
+            (super-on-insert x y)
+            (let ([canvas (get-canvas)])
+              (when canvas
+                (let ([frame (send canvas get-top-level-window)])
+                  (when (send frame get-profile-info-visible?)
+                    (send frame clear-profile-display)
+                    (send frame clear-profile-info))))))
+          
+          (rename [super-on-delete on-delete])
+          (define/override (on-delete x y)
+            (super-on-delete x y)
+            (let ([canvas (get-canvas)])
+              (when canvas
+                (let ([frame (send canvas get-top-level-window)])
+                  (when (send frame get-profile-info-visible?)
+                    (send frame clear-profile-display)
+                    (send frame clear-profile-info))))))
+
+          (super-instantiate ())))
+
+      ;; profile-interactions-text-mixin : mixin
+      (define profile-interactions-text-mixin
+        (mixin (drscheme:rep:text<%>) ()
+          ;; profile-info : symbol -o> prof-info
+          (field [profile-info (make-hash-table)])
+          (define/public (set-profile-info ht) (set! profile-info ht))
+          (define/public (get-profile-info) profile-info)
+          (super-instantiate ())))
+
       ;; profile-unit-frame-mixin : mixin
       ;; adds profiling to the unit frame
-      (define (profile-unit-frame-mixin %)
-        (class %
+      (define profile-unit-frame-mixin
+        (mixin (drscheme:unit:frame<%> drscheme:frame:<%>) ()
 
+          (inherit get-interactions-text)
+          
+          ;; clear-profile-info : -> void
+          ;; clears the profiling data, but doesn't change the GUI
+          (define/public (clear-profile-info)
+            (let ([ht (send (get-interactions-text) get-profile-info)])
+              (hash-table-for-each
+               ht
+               (lambda (k info)
+                 (set-prof-info-num! info 0)
+                 (set-prof-info-time! info 0)))))
+
+          ;; clear-profile-display : -> void
+          ;; clears the profiling information from the GUI.
+          (define/public (clear-profile-display)
+            (when profile-info-visible?
+              (set! profile-info-visible? #f)
+              (send profile-info-outer-panel change-children
+                    (lambda (l)
+                      (remq profile-info-panel l)))
+              (send profile-info-text clear-profile-display)
+              (update-shown)))
+
+          ;; can-show-profile? : -> boolean
+          ;; indicates if there is any profiling information to be shown.
+          (define/public (can-show-profile?)
+            (let ([ht (send (get-interactions-text) get-profile-info)])
+              (let/ec esc-k
+                (hash-table-for-each
+                 ht
+                 (lambda (key v)
+                   (when (any-info? v)
+                     (esc-k #t))))
+                #f)))
+
+          ;; execute-callback : -> void
+          (rename [super-execute-callback execute-callback])
+          (define/override (execute-callback)
+            (send (get-interactions-text) set-profile-info (make-hash-table))
+            (super-execute-callback))
+
+          ;; clear-annotations
+          (rename [super-clear-annotations clear-annotations])
+          (define/override (clear-annotations)
+            (super-clear-annotations)
+            (clear-profile-display))
+          
+          ;; update-shown : -> void
+          ;; updates the state of the profile item's show menu
+          (rename [super-update-shown update-shown])
+          (define/override (update-shown)
+            (super-update-shown)
+            (send show-profile-menu-item set-label
+                  (if profile-info-visible?
+                      (string-constant profiling-hide-profile)
+                      (string-constant profiling-show-profile))))
+          
+          ;; add-show-menu-items : menu -> void
+          ;; adds the show profile menu item
+          (rename [super-add-show-menu-items add-show-menu-items])
+          (define/override (add-show-menu-items show-menu)
+            (super-add-show-menu-items show-menu)
+            (set! show-profile-menu-item 
+                  (instantiate menu:can-restore-menu-item% ()
+                    (label (string-constant profiling-hide-profile))
+                    (parent show-menu)
+                    (callback
+                     (lambda (x y)
+                       (toggle-profile-visible))))))
+          
+          ;; toggle-profile-visible : -> void
+          (define (toggle-profile-visible)
+            (cond
+              [profile-info-visible?
+               (clear-annotations)]
+              [(not profile-info-visible?)
+               (cond
+                 [(can-show-profile?)
+                  (clear-annotations)
+                  (send profile-info-text refresh-profile)
+                  (set! profile-info-visible? #t)
+                  (send profile-info-outer-panel change-children
+                        (lambda (l)
+                          (append l (list profile-info-panel))))
+                  (update-shown)]
+                 [else
+                  (message-box (string-constant drscheme)
+                               (string-constant profiling-no-information-available))])]))
+
+          (field (profile-info-visible? #f))
+          (field (show-profile-menu-item #f))
+
+          ;; get-profile-info-visible? : -> boolean
+          ;; returns #t when the profiling information is visible in the frame.
+          (define/public (get-profile-info-visible?) profile-info-visible?)
+          
           (rename [super-make-root-area-container make-root-area-container])
           (field [profile-info-outer-panel #f])
           (define/override (make-root-area-container % parent)
@@ -627,6 +793,10 @@ profile todo:
                                       (send profile-info-text refresh-profile)))
                                    (choices (list (string-constant profiling-time)
                                                   (string-constant profiling-number)))))
+          (send profile-choice set-selection
+                (case (preferences:get 'drscheme:profile-how-to-count)
+                  [(time) 0]
+                  [(count) 1]))
           (define update-profile-button
             (instantiate button% ()
               (label (string-constant profiling-update))
@@ -640,7 +810,8 @@ profile todo:
               (parent profile-left-side)
               (callback
                (lambda (x y)
-                 (send profile-info-text clear-prof-map)))))
+                 (clear-profile-display)
+                 (clear-profile-info)))))
           (send profile-choice set-selection (case (preferences:get 'drscheme:profile-how-to-count)
                                                [(time) 0]
                                                [(count) 1]))
@@ -654,193 +825,254 @@ profile todo:
             (send update-profile-button min-width wid)
             (send clear-profile-button min-width wid)
             (send profile-choice min-width wid))
-          (send profile-left-side set-alignment 'left 'center)))
+          (send profile-left-side set-alignment 'left 'center)
+          
+          ;; hide profiling info initially, but reflow the container
+          ;; so that the invisible children get the right size.
+          (send this reflow-container)
+          (send profile-info-outer-panel change-children
+                (lambda (l)
+                  (remq profile-info-panel l)))))
       
       ;; profile-text% : extends text:basic%
       ;; this class keeps track of a single thread's
-      ;; profiling information.
+      ;; profiling information. these methods are not
+      ;; to be called directly, but only by the frame class, since
+      ;; they do not completely implement the abstraction for the
+      ;; GUI. They only manage the profiling information reported
+      ;; in the bottom window
       (define profile-text% 
         (class text:basic%
-
           (init-field definitions-frame)
 
-          (define/private (get-user-thread)
-            (let ([t (send definitions-frame get-interactions-text)])
-              (send t get-user-thread)))
-
-          ;; clear-prof-map : (lambda () (get-user-thread)) . -> . void?
-          ;; resets the profiling information for this thread
-          ;; =kernel=
-          ;; since this thread runs on a drscheme thread,
-          ;; we just bang on the hash table so the user's program
-          ;; cannot grab the semaphore and block us forever.
-          (define/public (clear-prof-map)
-            (hash-table-for-each
-             (get-profile-info/thd (get-user-thread))
-             (lambda (k info)
-               (set-prof-info-num! info 0)
-               (set-prof-info-time! info 0)))
-            (erase)
-            (clear-profile-results))
-
           ;; refresh-profile : -> void
-          ;; called when this editor becomes visible
           ;; shows the profiling information with text highlighting 
-          ;; and in this editor
+          ;; in this editor
           (define/public (refresh-profile)
-            (when (get-user-thread)
-              (refresh-profile/work)))
-          
-          ;; hide-profile : -> void
-          ;; called when this editor is hidden.
-          ;; clears the profile color information and the text in this editor
-          (define/public (hide-profile)
-            (clear-profile-results))
+            (refresh-profile/work))
 
-          ;; can-show-profile? : -> boolean
-          ;; indicates if there is any profiling information to be shown.
-          ;; used by the show menu to grey out the `show-profile' menu item
-          (define/public (can-show-profile?)
-            (and (get-user-thread)
-                 (get-profile-info/thd (get-user-thread))))
-          
-          (inherit begin-edit-sequence end-edit-sequence erase insert)
-          (field [clear-old-results void])
-          
-          ;; clear-profile-results : -> void
-          ;; does the work to erase the profiling info.
-          (define/public (clear-profile-results)
+          ;; clear-profile-display : -> void
+          ;; clears out the GUI showing the profile results
+          (define/public (clear-profile-display)
             (begin-edit-sequence)
-            (clear-old-results)
-            (set! clear-old-results void)
-            (erase)
-            (end-edit-sequence))
+            (let ([locked? (is-locked?)])
+              (lock #f)
+              (clear-old-results)
+              (erase)
+              (lock locked?)
+              (end-edit-sequence)))
           
-          ;; refresh-profile-results : ((lambda () (get-user-thread)) . -> . void?)
+          (define/private (get-profile-info)
+            (let ([t (send definitions-frame get-interactions-text)])
+              (send t get-profile-info)))
+
+          (inherit lock is-locked?
+                   get-canvas hide-caret get-snip-location
+                   begin-edit-sequence end-edit-sequence 
+                   erase insert)
+
+          ;; clear-old-results : -> void
+          ;; removes the profile highlighting
+          (field [clear-old-results void])
+
+          ;; refresh-profile-results : -> void
           ;; does the work to erase any existing profile info
           ;; and make new profiling info.
-          (define (refresh-profile/work)
+          (define/private (refresh-profile/work)
             (begin-edit-sequence)
-            (clear-profile-results)
-            (let* ([ht (get-profile-info/thd (get-user-thread))])
-              (when ht
-                (let* (
-                       ;; each editor that gets some highlighting is put
-                       ;; into this table and an edit sequence is begun for it.
-                       ;; after all ranges are updated, the edit sequences are all closed.
-                       [in-edit-sequence (make-hash-table)]
-                       [thnk void]
-                       [max-value (extract-maximum ht)]
-                       [infos (hash-table-map ht (lambda (key val) val))]
-                       [show-highlight
-                        (lambda (info)
-                          (let* ([count (prof-info-num info)]
-                                 [time (prof-info-time info)]
-                                 [expr (prof-info-expr info)]
-                                 [src (syntax-source expr)]
-                                 [pos (syntax-position expr)]
-                                 [span (syntax-span expr)])
-                            (when (and src 
-                                       (is-a? src text:basic<%>)
-                                       (number? pos)
-                                       (number? span))
-                              (unless (hash-table-get in-edit-sequence src (lambda () #f))
-                                (hash-table-put! in-edit-sequence src #t)
-                                (send src begin-edit-sequence))
-                              (let* ([color (get-color-value time max-value)]
-                                     [clr (send src highlight-range (- pos 1) (+ pos span -1) color)])
-                                (let ([old-thnk thnk])
-                                  (set! thnk
-                                        (lambda ()
-                                          (clr)
-                                          (old-thnk))))))))]
-                       [smaller-range?
-                        (lambda (x y)
-                          (let ([x-span (syntax-span (prof-info-expr x))]
-                                [y-span (syntax-span (prof-info-expr y))])
-                            (if (and x-span y-span)
-                                (< x-span y-span)
-                                #f)))]
-                       
-                       [show-line
-                        (lambda (info newline?)
-                          (let ([expr (prof-info-expr info)]
-                                [count (prof-info-num info)]
-                                [time (prof-info-time info)]
-                                [name (prof-info-name info)])
-                            (when newline? (send src-editor insert "\n"))
-                            (send src-editor insert "clickable name here")
-
-                            (when newline? (send time-editor insert "\n"))
-                            (send time-editor insert (format "~a" time))
-                            (send time-editor set-paragraph-alignment (send time-editor last-paragraph) 'right)
-                            
-                            (when newline? (send count-editor insert "\n"))
-                            (send count-editor insert (format "~a" count))
-                            (send count-editor set-paragraph-alignment (send time-editor last-paragraph) 'right)
-                            
-                            (when newline? (send name-editor insert "\n"))
-                            (when name
-                              (send name-editor insert (format "~a" name)))))]
-                       
-                       [bigger-value?
-                        (lambda (x y)
-                          (let ([sel (if (eq? 'count (preferences:get 'drscheme:profile-how-to-count))
-                                         prof-info-num
-                                         prof-info-time)])
-                            (> (sel x) (sel y))))]
-                       
-                       [update-max-width
-                        (lambda (ed)
-                          (let ([admin (send ed get-admin)]
-                                [bw (box 0)])
-                            (send admin get-view #f #f bw #f)
-                            (let ([w (+ (unbox bw) 4)])
-                              (send ed set-max-width w)
-                              (send ed set-min-width w))))])
-                  (for-each show-highlight (quicksort infos smaller-range?))
-                  (initialize-editors)
-                  (let loop ([infos (quicksort infos bigger-value?)]
-                             [newline? #f])
-                    (cond
-                      [(null? infos) (void)]
-                      [else 
-                       (show-line (car infos) newline?)
-                       (loop (cdr infos) #t)]))
-                  (update-max-width src-editor)
-                  (update-max-width time-editor)
-                  (update-max-width count-editor)
-                  (update-max-width name-editor)
-                  
-                  (hash-table-for-each
-                   in-edit-sequence
-                   (lambda (key val)
-                     (send key end-edit-sequence)))
-                  (set! clear-old-results thnk))))
-            (end-edit-sequence))
+            (lock #f)
+            (erase)
+            (clear-old-results)
+            (let* (;; must copy them here in case the program is still running
+                   ;; and thus updating them.
+                   [infos 
+                    (filter
+                     any-info?
+                     (map copy-prof-info (hash-table-map (get-profile-info) (lambda (key val) val))))]
+                   ;; each editor that gets some highlighting is put
+                   ;; into this table and an edit sequence is begun for it.
+                   ;; after all ranges are updated, the edit sequences are all closed.
+                   [in-edit-sequence (make-hash-table)]
+                   [thnk void]
+                   [max-value (extract-maximum infos)]
+                   [total-time (extract-total-time infos)]
+                   [show-highlight
+                    (lambda (info)
+                      (let* ([expr (prof-info-expr info)]
+                             [src (syntax-source expr)]
+                             [pos (syntax-position expr)]
+                             [span (syntax-span expr)])
+                        (when (and src 
+                                   (is-a? src text:basic<%>)
+                                   (number? pos)
+                                   (number? span))
+                          (unless (hash-table-get in-edit-sequence src (lambda () #f))
+                            (hash-table-put! in-edit-sequence src #t)
+                            (send src begin-edit-sequence))
+                          (let* ([color (get-color-value 
+                                         (if (eq? (preferences:get 'drscheme:profile-how-to-count) 'time)
+                                             (prof-info-time info)
+                                             (prof-info-num info))
+                                         max-value)]
+                                 [clr (send src highlight-range (- pos 1) (+ pos span -1) color)])
+                            (let ([old-thnk thnk])
+                              (set! thnk
+                                    (lambda ()
+                                      (clr)
+                                      (old-thnk))))))))]
+                   [smaller-range?
+                    (lambda (x y)
+                      (let ([x-span (syntax-span (prof-info-expr x))]
+                            [y-span (syntax-span (prof-info-expr y))])
+                        (if (and x-span y-span)
+                            (< x-span y-span)
+                            #f)))]
+                   
+                   [show-line
+                    (lambda (info newline? highlight-line?)
+                      (let* ([expr (prof-info-expr info)]
+                             [expr-src (syntax-source expr)]
+                             [count (prof-info-num info)]
+                             [time (prof-info-time info)]
+                             [name (prof-info-name info)])
+                        (when newline? (send src-loc-editor insert "\n"))
+                        (when highlight-line? (small-blank-line src-loc-editor))
+                        (let ([before (send src-loc-editor last-position)])
+                          (insert-profile-src-loc src-loc-editor expr name)
+                          (let ([after (send src-loc-editor last-position)])
+                            (cond
+                              [(string? expr-src)
+                               (send src-loc-editor change-style (gui-utils:get-clickback-delta) before after)
+                               (let ([after (send src-loc-editor last-position)])
+                                 (send src-loc-editor set-clickback 
+                                       before after 
+                                       (lambda (text start end)
+                                         (open-file-and-goto-position expr-src (syntax-position expr)))))]
+                              [(is-a? expr-src editor:basic<%>)
+                               (send src-loc-editor change-style (gui-utils:get-clickback-delta) before after)
+                               (send src-loc-editor set-clickback
+                                     before after
+                                     (lambda (text start end)
+                                       (let ([window (send expr-src get-top-level-window)]
+                                             [pos (syntax-position expr)])
+                                         (when window (send window show #t))
+                                         (when pos (send expr-src set-position (- pos 1)))
+                                         (send expr-src set-caret-owner #f 'global))))]
+                              [else (void)])))
+                        
+                        (when newline? (send percentage-editor insert "\n"))
+                        (when highlight-line? (small-blank-line percentage-editor))
+                        (send percentage-editor insert (format-percentage 
+                                                        (if (= total-time 0)
+                                                            1
+                                                            (/ time total-time))))
+                        (send percentage-editor set-paragraph-alignment
+                              (send percentage-editor last-paragraph)
+                              'right)
+                        
+                        (when newline? (send time-editor insert "\n"))
+                        (when highlight-line? (small-blank-line time-editor))
+                        (send time-editor insert (format "~a" time))
+                        (send time-editor set-paragraph-alignment (send time-editor last-paragraph) 'right)
+                        
+                        (when newline? (send count-editor insert "\n")) 
+                        (when highlight-line? (small-blank-line count-editor))
+                        (send count-editor insert (format "~a" count))
+                        (send count-editor set-paragraph-alignment (send count-editor last-paragraph) 'right)))]
+                   
+                   [bigger-value?
+                    (lambda (x y)
+                      (let ([sel (if (eq? 'count (preferences:get 'drscheme:profile-how-to-count))
+                                     prof-info-num
+                                     prof-info-time)])
+                        (> (sel x) (sel y))))]
+                   
+                   [cleanup-editor
+                    (lambda (ed)
+                      (let* ([ed-admin (send ed get-admin)]
+                             [snip (send ed-admin get-snip)]
+                             [bl (box 0)]
+                             [br (box 0)])
+                        (get-snip-location snip bl #f #f)
+                        (get-snip-location snip br #f #t)
+                        (let ([w (+ (- (unbox br) (unbox bl)) 4)])
+                          (send ed set-max-width w)
+                          (send ed set-min-width w)))
+                      (send ed hide-caret #t)
+                      (send ed lock #t))]
+                   
+                   [top-infos (top 100 (quicksort infos bigger-value?))])
+              (for-each show-highlight top-infos)
+              (initialize-editors)
+              (let loop ([infos top-infos]
+                         [newline? #f]
+                         [highlight-counter 0])
+                (cond
+                  [(null? infos) (void)]
+                  [else 
+                   (show-line (car infos) newline? (and newline? (zero? highlight-counter)))
+                   (loop (cdr infos) #t (modulo (+ highlight-counter 1) 2))]))
+              (cleanup-editor count-editor)
+              (cleanup-editor time-editor)
+              (cleanup-editor percentage-editor)
+              (cleanup-editor src-loc-editor)
+              
+              (hash-table-for-each
+               in-edit-sequence
+               (lambda (key val)
+                 (send key end-edit-sequence)))
+              (set! clear-old-results 
+                    (lambda ()
+                      (hash-table-for-each
+                       in-edit-sequence
+                       (lambda (key val) (send key begin-edit-sequence)))
+                      (thnk)
+                      (hash-table-for-each
+                       in-edit-sequence
+                       (lambda (key val) (send key end-edit-sequence)))
+                      (set! clear-old-results void))))
+            (lock #t)
+            (end-edit-sequence)
+            (let ([canvas (get-canvas)])
+              (when canvas
+                (send canvas scroll-to 0 0 1 1 #t 'start))))
           
-          (field (src-editor #f)
-                 (name-editor #f)
+          ;; top : number (listof X) -> (listof X)
+          ;; extracts the first `n' elements from a list.
+          (define (top n lst)
+            (let loop ([n n]
+                       [lst lst])
+              (cond
+                [(null? lst) null]
+                [(= 0 n) null]
+                [else (cons (car lst) (loop (- n 1) (cdr lst)))])))
+
+          (field (src-loc-editor #f)
+                 (percentage-editor #f)
                  (time-editor #f)
                  (count-editor #f))
           (define (clear-editors)
-            (set! src-editor #f)
-            (set! name-editor #f)
+            (set! src-loc-editor #f)
+            (set! percentage-editor #f)
             (set! time-editor #f)
             (set! count-editor #f))
           (define (initialize-editors)
-            (set! src-editor (instantiate text% ()))
-            (set! name-editor (instantiate text% ()))
+            (set! src-loc-editor (instantiate text% ()))
+            (set! percentage-editor (instantiate text% ()))
             (set! time-editor (instantiate text% ()))
             (set! count-editor (instantiate text% ()))
-            (insert (instantiate editor-snip% (src-editor)))
-            (insert (instantiate editor-snip% (name-editor)))
+            (send src-loc-editor set-styles-sticky #f)            
+            (send percentage-editor set-styles-sticky #f)
+            (send time-editor set-styles-sticky #f)
+            (send count-editor set-styles-sticky #f)
+            (insert (instantiate editor-snip% (percentage-editor)))
             (insert (instantiate editor-snip% (time-editor)))
             (insert (instantiate editor-snip% (count-editor)))
-            (insert-title (string-constant profiling-col-filename) src-editor)
-            (insert-title (string-constant profiling-col-name) name-editor)
-            (insert-title (string-constant profiling-col-time) time-editor)
-            (insert-title (string-constant profiling-col-count) count-editor))
+            (insert (instantiate editor-snip% (src-loc-editor)))
+            (insert-title (string-constant profiling-col-function) src-loc-editor)
+            (insert-title (string-constant profiling-col-time-in-msec) time-editor)
+            (insert-title (string-constant profiling-col-percent-time) percentage-editor)
+            (insert-title (string-constant profiling-col-calls) count-editor))
           
           (define (insert-title str txt)
             (send txt insert str)
@@ -848,10 +1080,75 @@ profile todo:
             (send txt change-style bold-delta 0 (- (send txt last-position) 1))
             (send txt set-paragraph-alignment 0 'center))
           
-          (super-instantiate ())))
+          (super-instantiate ())
+          (hide-caret #t)))
+      
+      ;; format-percentage : number[0 <= n <= 1] -> string
+      ;; formats the number as a percentage string with trailing zeros,
+      ;; to 3 decimal places.
+      (define (format-percentage n)
+        (let* ([number-of-places 3]
+               [whole-part (floor (* n 100))]
+               [decimal-part (- (* n 100) whole-part)]
+               [truncated/moved-decimal-part (floor (* (expt 10 number-of-places) decimal-part))]
+               [pad
+                (lambda (str)
+                  (if ((string-length str) . < . number-of-places)
+                      (string-append (make-string (- number-of-places (string-length str)) #\0) 
+                                     str)
+                      str))])
+          (string-append (format "~a" whole-part)
+                         "."
+                         (pad (format "~a" truncated/moved-decimal-part)))))
 
+      (define (small-blank-line txt)
+        (let ([before (send txt last-position)])
+          (send txt insert "\n")
+          (let ([after (send txt last-position)])
+            (send txt change-style small-font-style before after))))
+      
+      (define small-font-style (make-object style-delta% 'change-size 6))
+      
       ;; bold-delta : style-delta
       (define bold-delta (make-object style-delta% 'change-bold))
+      
+      ;; insert-profile-src-loc : syntax name -> string
+      (define (insert-profile-src-loc editor stx name)
+        (cond
+          [name
+           (let ([before (send editor last-position)])
+             (send editor insert (format "~a" name))
+             (let ([after (send editor last-position)])
+               '(send editor change-style modern-style-delta before after)))]
+          [else
+           (let* ([src (syntax-source stx)]
+                  [filename 
+                   (cond
+                     [(string? src) src]
+                     [(is-a? src editor<%>) (get-filename-from-editor src)]
+                     [else (string-constant profiling-unknown-src)])]
+                  [col (syntax-column stx)]
+                  [line (syntax-line stx)]
+                  [pos (syntax-position stx)]
+                  [span (syntax-span stx)]
+                  [src
+                   (cond
+                     [(and col line)
+                      (format "~a: ~a.~a" filename line col)]
+                     [pos
+                      (format "~a: ~a" filename pos)]
+                     [else 
+                      filename])])
+             (send editor insert src))]))
+      
+      ;; open-file-and-goto-position : string (union #f number) -> void
+      (define (open-file-and-goto-position filename pos)
+        (let ([frame (handler:edit-file filename)])
+          (when (and frame
+                     pos
+                     (is-a? frame drscheme:unit:frame%))
+            (let ([defs (send frame get-definitions-text)])
+              (send defs set-position (- pos 1))))))
       
       ;; get-src-filename : tst -> (union #f string)
       (define (get-src-filename src)
@@ -862,7 +1159,7 @@ profile todo:
           [else #f]))
       
       ;; get-src-loc : syntax -> string
-      (define (get-src-lock expr)
+      (define (get-src-loc expr)
         (cond
           [(and (number? (syntax-line expr))
                 (number? (syntax-column expr))
