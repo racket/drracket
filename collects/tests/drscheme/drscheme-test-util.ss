@@ -51,7 +51,7 @@
 (define (clear-definitions frame)
   (fw:test:new-window (ivar frame definitions-canvas))
   (fw:test:menu-select "Edit" "Select All")
-  (fw:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
+  (fw:test:menu-select "Edit" (if (eq? (system-type) 'macintosh)
 				    "Clear"
 				    "Delete")))
 
