@@ -157,6 +157,7 @@
       ;; if other-position is a number, highlights from position to 
       ;; other position.
       (define (open-file-and-highlight filename position other-position)
+        (message-box "oh" (format "open-and-highlight.1 ~s" (list filename position other-position)))
         (let ([file (handler:edit-file filename)])
           (when (and (is-a? file drscheme:unit:frame%)
                      position)
