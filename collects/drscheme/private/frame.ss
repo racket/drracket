@@ -283,7 +283,7 @@
         (define (browse)
           (let ([filename (get-file #f dialog)])
             (when filename
-              (send file-text-field set-value filename))))
+              (send file-text-field set-value (path->string filename)))))
         
         ;; from-web? : -> boolean
         ;; returns #t if the user has selected a web address
@@ -307,7 +307,7 @@
            (install-plt-from-url (send url-text-field get-value) parent)]
           [else 
            (parameterize ([error-display-handler drscheme:init:original-error-display-handler])
-             (run-installer (send file-text-field get-value)))]))
+             (run-installer (string->path (send file-text-field get-value))))]))
 
       ;; install-plt-from-url : string (union #f dialog%) -> void
       ;; downloads and installs a .plt file from the given url
