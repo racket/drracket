@@ -1678,7 +1678,8 @@
                        (preferences:set 'framework:show-delegate? #t)
                        (show-delegated-text))))))
             
-            (instantiate menu:can-restore-menu-item% ()
+            ;; comment out module browser for now, until I can work more on it.
+            '(instantiate menu:can-restore-menu-item% ()
               (label (if module-browser-shown?
                          (string-constant hide-module-browser)
                          (string-constant show-module-browser)))

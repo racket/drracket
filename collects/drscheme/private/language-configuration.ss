@@ -1,8 +1,3 @@
-#|
-
-todo: key strokes get stuck at boundaries; they should skip over them
-
-|#
 
 (module language-configuration mzscheme
   (require (lib "unitsig.ss")
@@ -252,9 +247,10 @@ todo: key strokes get stuck at boundaries; they should skip over them
                     (let loop ([item fst-selected])
 		      (when item
 			(let* ([parent (send item get-parent)]
-			       [siblings (list->vector (if parent
-							   (send parent get-items)
-							   (get-items)))])
+			       [siblings (list->vector 
+                                          (if parent
+                                              (send parent get-items)
+                                              (get-items)))])
 			  (let sibling-loop ([index (inc (find-index item siblings))])
 			    (cond
 			      [(and (<= 0 index)
@@ -284,7 +280,9 @@ todo: key strokes get stuck at boundaries; they should skip over them
                             (or (loop (vector-ref children i))
                                 (child-loop (inc i)))]
                            [else #f])))]
-                    [else item])))
+                    [(send item get-allow-selection?)
+                     item]
+                    [else #f])))
               
               ;; find-index : tst (vectorof tst) -> int
               ;; returns the index of `item' in `vec'
@@ -383,26 +381,41 @@ todo: key strokes get stuck at boundaries; they should skip over them
                 (error 'drscheme:language
                        "languages position and numbers must be lists of strings and numbers, respectively, must have the same length,  and must each contain at least two elements, got: ~e ~e"
                        positions numbers))
+              
+              #|
+              
+              inline the first level of the tree into just items in the hierlist
+              keep track of the strting (see call to sort method below) by
+              adding a second field to the second level of the tree that indicates
+              what the sorting number is for its level above (in the second-number mixin)
+              
+              |#
+              
               (let add-sub-language ([ht languages-table]
                                      [hier-list languages-hier-list]
                                      [positions positions]
                                      [numbers numbers]
                                      [first? #t]
-                                     [factor 1])
+                                     [second-number #f]) ;; only non-#f during the second iteration in which case it is the first iterations number
                 (cond
                   [(null? (cdr positions))
                    (let-values ([(language-details-panel get/set-settings)
                                  (make-details-panel language)])
                      (let* ([position (car positions)]
                             [number (car numbers)]
+                            [mixin (compose
+                                    number-mixin
+                                    (language-mixin language language-details-panel get/set-settings))]
                             [item
                              (send hier-list new-item
-                                   (compose
-                                    number-mixin
-                                    (language-mixin language language-details-panel get/set-settings)))]
+                                   (if second-number
+                                       (compose second-number-mixin mixin)
+                                       mixin))]
                             [text (send item get-editor)]
                             [delta (send language get-style-delta)])
                        (send item set-number number)
+                       (when second-number
+                         (send item set-second-number second-number))
                        (send text insert position)
                        (when delta
                          (cond
@@ -439,14 +452,20 @@ todo: key strokes get stuck at boundaries; they should skip over them
                                          (send item set-allow-selection #f)
                                          (let* ([editor (send item get-editor)]
                                                 [pos (send editor last-position)])
-                                           (unless (= (send (send hier-list get-editor) last-position) 0)
-                                             (send editor insert "\n"))
+                                           (send editor insert "\n")
                                            (send editor insert position)
-                                           (send editor change-style section-style-delta pos (send editor last-position)))
+                                           (send editor change-style small-size-delta pos (+ pos 1))
+                                           (send editor change-style section-style-delta 
+                                                 (+ pos 1) (send editor last-position)))
                                          x)
-                                       (let* ([new-list (send hier-list new-list number-mixin)]
+                                       (let* ([new-list (send hier-list new-list 
+                                                              (if second-number
+                                                                  (compose second-number-mixin number-mixin)
+                                                                  number-mixin))]
                                               [x (cons (make-hash-table) new-list)])
-                                         (send new-list set-number (* factor number))
+                                         (send new-list set-number number)
+                                         (when second-number
+                                           (send new-list set-second-number second-number))
                                          (send new-list set-allow-selection #f)
                                          (send new-list open)
                                          (send (send new-list get-editor) insert position)
@@ -457,15 +476,34 @@ todo: key strokes get stuck at boundaries; they should skip over them
                                             (cdr positions)
                                             (cdr numbers)
                                             #f
-                                            (if first? number 1)))]))))
+                                            (if first? number #f)))]))))
 
+          (define number<%>
+            (interface ()
+              get-number
+              set-number))
+          
+          (define second-number<%>
+            (interface ()
+              get-second-number
+              set-second-number))
+          
           ;; number-mixin : (extends object%) -> (extends object%)
           ;; adds the get/set-number methods to this class
           (define (number-mixin %)
-            (class %
+            (class* % (number<%>)
               (field (number 0))
               (define/public (get-number) number)
               (define/public (set-number _number) (set! number _number))
+              (super-instantiate ())))
+
+          ;; second-number-mixin : (extends object%) -> (extends object%)
+          ;; adds the get/set-number methods to this class
+          (define (second-number-mixin %)
+            (class* % (second-number<%>)
+              (field (second-number 0))
+              (define/public (get-second-number) second-number)
+              (define/public (set-second-number _second-number) (set! second-number _second-number))
               (super-instantiate ())))
               
           ;; make-details-panel : ((instanceof language<%>) -> (values panel (case-> (-> settings) (settings -> void))))
@@ -575,7 +613,43 @@ todo: key strokes get stuck at boundaries; they should skip over them
           (update-show/hide-details)
 
           (for-each add-language-to-dialog languages)
-          ;(send languages-hier-list sort (lambda (x y) (< (send x get-number) (send y get-number))))
+          (send languages-hier-list sort 
+                (lambda (x y)
+                  (cond
+                    [(and (x . is-a? . second-number<%>)
+                          (y . is-a? . second-number<%>))
+                     (cond
+                       [(= (send x get-second-number)
+                           (send y get-second-number))
+                        (< (send x get-number) (send y get-number))]
+                       [else
+                        (< (send x get-second-number)
+                           (send y get-second-number))])]
+                    [(and (x . is-a? . number<%>)
+                          (y . is-a? . second-number<%>))
+                     (cond
+                       [(= (send x get-number)
+                           (send y get-second-number))
+                        #t]
+                       [else
+                        (< (send x get-number)
+                           (send y get-second-number))])]
+                    [(and (x . is-a? . second-number<%>)
+                          (y . is-a? . number<%>))
+                     (cond
+                       [(= (send x get-second-number)
+                           (send y get-number))
+                        #f]
+                       [else (< (send x get-second-number)
+                                (send y get-number))])]
+                    [(and (x . is-a? . number<%>)
+                          (y . is-a? . number<%>))
+                     (< (send x get-number) (send y get-number))]
+                    [else #f])))
+
+          ;; remove the newline at the front of the first inlined category
+          (send (send (car (send languages-hier-list get-items)) get-editor) delete 0 1)
+          
 	  (send languages-hier-list stretchable-width #t)
 	  (send parent reflow-container)
           (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
@@ -593,6 +667,7 @@ todo: key strokes get stuck at boundaries; they should skip over them
 
       (define section-style-delta (make-object style-delta% 'change-bold))
       (send section-style-delta set-delta-foreground "medium blue")
+      (define small-size-delta (make-object style-delta% 'change-size 9))
       
       (define (add-welcome dialog welcome-before-panel welcome-after-panel)
         (let* ([outer-pb%
@@ -1065,16 +1140,16 @@ todo: key strokes get stuck at boundaries; they should skip over them
            (make-simple '(lib "plt-mzscheme.ss" "lang")
                         (list (string-constant professional-languages)
                               (string-constant plt)
-                              "Expander")
+                              (string-constant expander))
                         (list -10 -10 4)
                         #t
-                        "Expands, rather than evaluates expressions"
+                        (string-constant expander-one-line-summary)
                         add-expand-to-front-end))
           (add-language
            (make-simple '(lib "r5rs.ss" "lang")
                         (list (string-constant professional-languages)
                               (string-constant r5rs-lang-name))
-                        (list -1000 -1000)
+                        (list -10 -1000)
                         #f
                         (string-constant r5rs-one-line-summary)
                         (lambda (x) x))))))))
