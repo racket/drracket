@@ -2,7 +2,6 @@
 (module frame mzscheme
   (require (lib "unitsig.ss")
            (lib "class.ss")
-           (lib "class100.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -208,14 +207,14 @@
       (define basics<%> (interface (frame:standard-menus<%>)))
       
       (define keybindings-dialog%
-        (class100 dialog% args
+        (class dialog%
           (rename [super-on-size on-size])
-          (override
-            [on-size
-             (lambda (w h)
-               (preferences:set 'drscheme:keybindings-window-size (cons w h))
-               (super-on-size w h))])
-          (sequence (apply super-init args))))
+          (override on-size)
+          [define on-size
+            (lambda (w h)
+              (preferences:set 'drscheme:keybindings-window-size (cons w h))
+              (super-on-size w h))]
+          (super-instantiate ())))
       
       (define (show-keybindings-to-user bindings frame)
         (letrec ([f (make-object keybindings-dialog% "Keybindings" frame 

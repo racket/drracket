@@ -678,10 +678,6 @@
       
       (define (set-box/f! b v) (when (box? b) (set-box! b v)))
       
-      (define super-frame%
-        (drscheme:frame:mixin
-         (drscheme:frame:basics-mixin frame:searchable%)))
-      
       (define vertical-resizable/pref%
         (class100 panel:vertical-resizable% (_unit-frame . args)
 	  (private-field
@@ -698,6 +694,11 @@
                    (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
           (sequence 
             (apply super-init args))))
+      
+      (define super-frame%
+        (drscheme:frame:mixin
+         (drscheme:frame:basics-mixin 
+          frame:searchable%)))
       
       (define frame%
         (class super-frame% (drscheme:rep:context<%>)
