@@ -816,10 +816,15 @@
         (define (init)
           (set! user-custodian (current-custodian))
           (set! user-thread (current-thread))
+          (moddep-current-open-input-file
+           (lambda (filename)
+             (let ([t (new text%)])
+               (send t load-file filename)
+               (open-input-text-editor t))))
           (current-load-relative-directory init-dir)
           (current-directory init-dir)
           (error-display-handler 
-           (lambda (str exn) 
+           (lambda (str exn)
              (set! error-str str)
              (custodian-shutdown-all user-custodian)))
           (semaphore-post init-complete))
