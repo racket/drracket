@@ -80,7 +80,14 @@
 	       [top (make-object wx:style-delta% wx:const-change-alignment wx:const-align-top)]
 	       [d-usual (make-object wx:style-delta% wx:const-change-family wx:const-decorative)]
 	       [d-dr (make-object wx:style-delta%)]
-	       [d-http (make-object wx:style-delta% wx:const-change-family wx:const-modern)])
+	       [d-http (make-object wx:style-delta%)])
+	  (send* d-http 
+	    (copy d-usual)
+	    (set-delta-foreground "BLUE")
+	    (set-delta wx:const-change-underline 1))
+	  (send* d-usual 
+	    (set-delta-foreground "BLACK")
+	    (set-delta wx:const-change-underline 0))
 	  (send* p (user-min-width 600) (user-min-height 200))
 	  (send* d-dr (copy d-usual) (set-delta wx:const-change-bold 0))
 	  (send d-usual set-weight-on wx:const-normal)
@@ -94,8 +101,15 @@
 		 (insert names)
 		 (insert #\newline)
 		 (insert "See: ")
-		 (change-style d-http)
-		 (insert "http://www.cs.rice.edu/CS/PLT/")
+		 (change-style d-http))
+	  (let* ([before (send e get-start-position)]
+		 [url "http://www.cs.rice.edu/CS/PLT/"]
+		 [_ (send e insert url)]
+		 [after (send e get-start-position)])
+	    (send e set-clickback before after 
+		  (lambda args (make-object mred:hyper-view-frame% url))
+		  d-http))
+	  (send* e
 		 (insert #\newline)
 		 (change-style d-usual)
 		 (insert "For licensing information see LICENSE, included with the plt release.")
