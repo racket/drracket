@@ -232,7 +232,7 @@
 
       (define space-eating-tags '(title p div center br h1 h2 h3 h4
 					li dt dd
-					ul ol dl
+					ul ol dl menu
 					samp kbd pre blockquote
 					table tr td))
 
@@ -696,7 +696,7 @@
 						(unless (= para end-para)
 						  (loop (add1 para) #f))))
 					    (r))))]
-				     [(ul ol dl)
+				     [(ul menu ol dl)
 				      (insert-newlines (if (zero? enum-depth) 2 1) para-base)
 				      (begin0
 				       (rest/base/depth para-base (add1 enum-depth))
