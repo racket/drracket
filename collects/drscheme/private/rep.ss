@@ -885,7 +885,7 @@ TODO
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
                  (user-thread-box (make-weak-box #f))
-                 (user-parameterization #f))
+                 (user-break-parameterization #f))
 
           (define/public (get-user-language-settings) user-language-settings)
           (define/public (get-user-custodian) user-custodian)
@@ -894,7 +894,7 @@ TODO
           (define/public (get-user-eventspace) (weak-box-value user-eventspace-box))
           (define/public (get-user-thread) (weak-box-value user-thread-box))
           (define/public (get-user-namespace) (weak-box-value user-namespace-box))
-          (define/public (get-user-parameterization) user-parameterization)
+          (define/public (get-user-break-parameterization) user-break-parameterization)
           
           (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                  (should-collect-garbage? #f)
@@ -990,8 +990,8 @@ TODO
                             (unless (eof-object? sexp/syntax/eof)
                               (call-with-values
                                (lambda ()
-                                 (call-with-parameterization
-                                  (get-user-parameterization)
+                                 (call-with-break-parameterization
+                                  (get-user-break-parameterization)
                                   (lambda ()
                                     (eval-syntax sexp/syntax/eof))))
                                (lambda x (display-results x)))
@@ -1108,8 +1108,9 @@ TODO
               (set! user-eventspace-box (make-weak-box
 					 (parameterize ([current-custodian user-custodian])
 					   (make-eventspace))))
-              (set! user-parameterization (parameterize ([break-enabled #t]) 
-                                            (current-parameterization)))
+              (set! user-break-parameterization (parameterize-break 
+                                                 #t 
+                                                 (current-break-parameterization)))
               (set! user-break-enabled #t)
               (set! eval-thread-thunks null)
               (set! eval-thread-state-sema (make-semaphore 1))
@@ -1286,7 +1287,7 @@ TODO
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
               ;(current-input-port (get-in-port))
-              (current-input-port (make-input-port #f (lambda (bytes) eof) (lambda (x y) eof) void))
+              (current-input-port (make-input-port #f (lambda (bytes) eof) #f void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler

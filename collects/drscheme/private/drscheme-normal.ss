@@ -102,4 +102,17 @@
    "DrScheme"
    99)
   
+  (when (getenv "PLTDRBREAK")
+    (printf "PLTDRBREAK: creating break frame\n")
+    (let ([to-break (eventspace-handler-thread (current-eventspace))])
+      (parameterize ([current-eventspace (make-eventspace)])
+        (let* ([f (new frame% (label "Break DrScheme"))]
+               [b (new button% 
+                       (label "Break")
+                       (callback
+                        (lambda (x y)
+                          (break-thread to-break)))
+                       (parent f))])
+          (send f show #t)))))
+  
   (dynamic-require '(lib "start.ss" "drscheme" "private") #f))

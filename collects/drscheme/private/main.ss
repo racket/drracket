@@ -276,9 +276,7 @@
       ;;   go away (leaving no frames temporarily) but we are
       ;;   not going to be exiting yet.
       (autosave:restore-autosave-files/gui)
-      
-      (preferences:start-writing-timer)
-      
+     
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
       (define (make-basic)
