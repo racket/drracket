@@ -1322,7 +1322,7 @@
                 [(null? modes) (error 'change-mode-to-match-filename
                                       "didn't find a matching mode")]
                 [else (let ([mode (car modes)])
-                        (if ((drscheme:modes:mode-matches-filename mode) filename)
+			(if ((drscheme:modes:mode-matches-filename mode) filename)
                             (unless (is-current-mode? mode)
                               (set-current-mode mode))
                             (loop (cdr modes))))])))
@@ -1780,7 +1780,15 @@
           
           (override get-editor get-canvas)
           [define get-editor (lambda () definitions-text)]
-          [define get-canvas (lambda () definitions-canvas)]
+          [define get-canvas (lambda () 
+                               (initialize-definitions-canvas)
+                               definitions-canvas)]
+          (define/private (initialize-definitions-canvas)
+            (unless definitions-canvas
+              (set! definitions-canvas
+                    (new (drscheme:get/extend:get-definitions-canvas)
+                         (parent resizable-panel)
+                         (editor definitions-text)))))
           
           (define/override (get-delegated-text) definitions-text)
           (define/override (get-open-here-editor) definitions-text)
@@ -2322,11 +2330,12 @@
                                     (unit-frame this)
                                     (parent (get-definitions/interactions-panel-parent)))]
           
-          [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas)
-                                       resizable-panel)]
+          [define definitions-canvas #f]
+          (initialize-definitions-canvas)
           [define definitions-canvases (list definitions-canvas)]
-          [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas)
-                                        resizable-panel)]
+          [define interactions-canvas (new (drscheme:get/extend:get-interactions-canvas)
+                                           (parent resizable-panel)
+                                           (editor interactions-text))]
           [define interactions-canvases (list interactions-canvas)]
           
           (define/public (get-definitions-canvases) 
@@ -2345,8 +2354,6 @@
           [define get-interactions-canvas (lambda () interactions-canvas)]
           
           (send interactions-text auto-wrap #t)
-          (send interactions-canvas set-editor interactions-text)
-          (send definitions-canvas set-editor definitions-text)
           
           (set! save-button
                 (make-object button% 
