@@ -85,10 +85,16 @@
 
       ;; loads the the tools in each collection
       ;; unless PLTNOTOOLS is set, in which case it
-      ;; just runs the phases
+      ;; just runs the phases. If PLTONLYTOOL is set,
+      ;; it only loads tools in those collections
       (define (load/invoke-all-tools/collections collections phase1-extras phase2-extras)
         (unless (getenv "PLTNOTOOLS")
-          (for-each load/invoke-tools collections))
+	  (let ([onlys (getenv "PLTONLYTOOL")])
+	    (if onlys
+		(let ([filtered (filter (lambda (x) (string=? onlys x))
+					collections)])
+		  (for-each load/invoke-tools filtered))
+		(for-each load/invoke-tools collections))))
         (run-phases phase1-extras phase2-extras))
 
       
