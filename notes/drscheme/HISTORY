@@ -1,5 +1,40 @@
 Version 102:
 
+102d8
+
+ PRS: 1358, 1344, 1341, 1329, 1322, 1242 (docs not yet built), 1235 
+
+ FUNCTIONALITY CHANGES
+
+ - added a "keymap" menu to the edit menu (shortcut: k)
+   that opens a window where you can see all of the key
+   bindings' names and short cuts, and you can choose one
+   to invoke.
+
+ - framework:
+   - added canonicalize-keybinding-string
+   - added aug-keymap%, aug-keymap<%>
+   - editor:basic now sets it's keymap to an
+     aug-keymap<%> during initialization.
+
+ MINOR CHANGES AND BUG FIXES
+
+  - added a "Kill" menu item that kills all computation and reclaims
+    all resources from the program that drscheme is executing.
+    This is useful for multi-threaded apps that get out of hand.
+
+  - improved the look of the "(define" (now "(define ...)") and
+    filename buttons on the left in drscheme's toolbar
+
+  - if ``#!'' appears at the beginning of the first line in the definitions
+    window, the first line is treated as a comment during execution
+    (this is only a change for the non-debug language levels -- the
+    teaching and debug language levels all already did this)
+
+  - meta-control-d, meta-control-u, meta-shift-control-d, meta-shift-control-u
+    keybindings all restored.
+
+
 102d7
 
   - drscheme now has a little button on the bar that lets you hop
