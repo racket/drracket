@@ -373,7 +373,7 @@
            (current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
-      ;; simple-module-based-language-get-init-code : setting ... -> sexp[module]
+      ;; simple-module-based-language-get-init-code : setting -> sexp[module]
       (define (simple-module-based-language-get-init-code setting)
         `(module mod-name mzscheme
            (require (lib "pconvert.ss")
@@ -460,7 +460,7 @@
                                                      executable-filename
                                                      (get-module)
                                                      (get-transformer-module)
-                                                     (get-init-code (get-module) (get-transformer-module) setting)
+                                                     (get-init-code setting)
                                                      (use-mred-launcher?)
                                                      (use-namespace-require/copy?)))
           (super-instantiate ())))
@@ -626,6 +626,22 @@
                                             init-code
                                             gui?
                                             use-copy?)
+        (printf "~s\n"
+                `((if gui? make-mred-launcher make-mzscheme-launcher)
+                  (list
+                   "-qmvt"
+                   ,(build-path (collection-path "drscheme" "private") 
+                               "launcher-bootstrap.ss")
+                   "--"
+                   ,(condense-scheme-code-string (format "~s" init-code))
+                   ,program-filename
+                   ,(format "~s" module-language-spec)
+                   ,(format "~s" transformer-module-language-spec)
+                   ,(format "~s" use-copy?)
+                   ,(format "~s" (if gui?  
+                                    (list 'mzscheme '(lib "mred.ss" "mred"))
+                                    (list 'mzscheme))))
+                  ,executable-filename))
         ((if gui? make-mred-launcher make-mzscheme-launcher)
          (list
           "-qmvt"
