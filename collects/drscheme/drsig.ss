@@ -5,7 +5,7 @@
   ((open mred:application^)))
 
 (define-signature drscheme:aries^
-  (console-edit% frame%))
+  (transform frame%))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
@@ -14,7 +14,7 @@
   (scheme-project-frame%))
 
 (define-signature drscheme:edit^
-  (mzscheme-console-edit%))
+  (console-edit%))
 
 (define-signature drscheme:project^
   (scheme-project-frame%
