@@ -980,7 +980,6 @@ TODO
           (inherit send-eof-to-in-port flush-output-ports)
           (define/override (on-submit)
             (flush-output-ports)
-            (printf "sending two eofs\n")
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
             ;; an eof really does come thru the calls to `read'. handle-repl-evaluation
@@ -993,7 +992,6 @@ TODO
           (define/private (handle-repl-evaluation) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
-               (printf "do-many-language-evals.0\n")
                (let* ([settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
@@ -1005,54 +1003,34 @@ TODO
                    (dynamic-wind
                     void
                     (lambda ()
-                      (printf "do-many-language-evals.1\n")
                       (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                         (cond
                           [(eof-object? sexp/syntax/eof)
-                           (printf "do-many-language-evals.8 got eof\n")
                            (set! got-eof? #t)
                            ;; flush out extraneous eof object, if one is there
                            (let ([in-port (get-in-port)])
-                             (printf "do-many-language-evals.8a\n")
                              (when (char-ready? in-port)
-                               (printf "do-many-language-evals.8b\n")
                                (let ([pc (peek-byte-or-special in-port)])
-                                 (printf "do-many-language-evals.8c ~s\n" pc)
                                  (when (eof-object? pc)
-                                   (printf "do-many-language-evals.8d\n")
-                                   (read-byte in-port)
-                                   (printf "do-many-language-evals.8e\n")))))
-                           (printf "do-many-language-evals.9 flushed\n")
+                                   (read-byte in-port)))))
                            (void)]
                           [else
-                           (printf "do-many-language-evals.2 ~s\n" 
-                                   (if (syntax? sexp/syntax/eof)
-                                       `(d->s-o
-                                         ,(syntax-object->datum
-                                           sexp/syntax/eof))
-                                       sexp/syntax/eof))
                            (single-loop-eval
                             (lambda ()
-                              (printf "do-many-language-evals.3\n")
                               (call-with-values
                                (lambda ()
-                                 (printf "do-many-language-evals.4\n")
                                  (eval-syntax sexp/syntax/eof))
-                               (lambda x 
-                                 (printf "do-many-language-evals.5\n")
+                               (lambda x
                                  (display-results x)))))])))
                     (lambda ()
                       (cond
                         [got-eof?
-                         (printf "do-many-language-evals.6\n")
                          (unless already-exited?
                            (set! already-exited? #t)
-                           (printf "do-many-language-evals.8 printing prompt\n")
                            ;; want to do this for errors, but not for continuation jumps
                            (fprintf (get-out-port) (get-prompt))
                            (flush-output (get-value-port)))]
                         [else
-                         (printf "do-many-language-evals.7\n")
                          (loop)]))))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
@@ -1684,7 +1662,6 @@ TODO
                 (end-edit-sequence))))
           
           (super-new)
-          (inherit stop-colorer) (stop-colorer)
           (auto-wrap #t)
           (set-styles-sticky #f)))
       
