@@ -18,7 +18,6 @@
       (define primitive-load (current-load))
       
       (print-struct #t)
-      (break-enabled #f)
       
       (define system-custodian (current-custodian))
       (define system-eventspace (current-eventspace))
