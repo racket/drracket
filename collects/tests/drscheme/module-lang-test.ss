@@ -39,7 +39,7 @@
                      (regexp "first>"))
           (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
                      "foldl"
-                     "reference to undefined identifier: foldl")
+                     ". reference to undefined identifier: foldl")
           
           (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
                      "foldl"
