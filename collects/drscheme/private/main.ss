@@ -100,6 +100,9 @@
       (preferences:set-default 'drscheme:profile:scale
                                'linear
                                (lambda (x) (memq x '(sqrt linear square))))
+
+      (preferences:set-default 'drscheme:test-coverage-ask-about-clearing? #t boolean?)
+      
       (let ([marshall-color 
              (lambda (c)
                (list (send c red) (send c green) (send c blue)))]
@@ -160,8 +163,10 @@
                                (preferences:set 
                                 pref-sym 
                                 (send checkbox get-value))))])
+                    (preferences:add-callback pref-sym (lambda (p v) (send q set-value v)))
                     (send q set-value (preferences:get pref-sym))))])
-           (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once)))))
+           (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once))
+           (make-check-box 'drscheme:test-coverage-ask-about-clearing? (string-constant test-coverage-ask?)))))
       (drscheme:debug:add-prefs-panel)
       
       (handler:current-create-new-window

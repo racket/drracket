@@ -645,15 +645,24 @@ profile todo:
           (inherit get-canvas)
           
           (define/private (clear-test-coverage?)
-            (equal? (message-box/custom
-                     (string-constant drscheme)
-                     (string-constant test-coverage-clear?)
-                     (string-constant yes)
-                     (string-constant no)
-                     #f
-                     (send (get-canvas) get-top-level-window)
-                     '(default=1))
-                    1))
+            (if (preferences:get 'drscheme:test-coverage-ask-about-clearing?)
+                (let ([msg-box-result
+                       (message-box/custom
+                        (string-constant drscheme)
+                        (string-constant test-coverage-clear?)
+                        (string-constant yes)
+                        (string-constant no)
+                        (string-constant test-coverage-clear-and-do-not-ask-again)
+                        (send (get-canvas) get-top-level-window)
+                        '(default=1)
+                        2)])
+                  (case msg-box-result
+                    [(1) #t]
+                    [(2) #f]
+                    [(3)
+                     (preferences:set 'drscheme:test-coverage-ask-about-clearing? #f)
+                     #t]))
+                #t))
           
           (define/private (clear-test-coverage)
             (let ([canvas (get-canvas)])
@@ -665,25 +674,23 @@ profile todo:
                       (when (is-a? it test-coverage-interactions-text<%>)
                         (send it set-test-coverage-info #f))))))))
           
+          (define/private (can-clear-coverage?)
+            (let ([canvas (get-canvas)])
+              (or (not canvas)
+                  (let ([frame (send canvas get-top-level-window)])
+                    (or (not (send frame get-test-coverage-info-visible?))
+                        (not (send frame ask-about-clearing-test-coverage?))
+                        (clear-test-coverage?))))))
+            
           (rename [super-can-insert? can-insert?])
           (define/override (can-insert? x y)
             (and (super-can-insert? x y)
-                 (let ([canvas (get-canvas)])
-                   (or (not canvas)
-                       (let ([frame (send canvas get-top-level-window)])
-                         (or (not (send frame get-test-coverage-info-visible?))
-                             (not (send frame ask-about-clearing-test-coverage?))
-                             (clear-test-coverage?)))))))
+                 (can-clear-coverage?)))
           
           (rename [super-can-delete? can-delete?])
           (define/override (can-delete? x y)
             (and (super-can-delete? x y)
-                 (let ([canvas (get-canvas)])
-                   (or (not canvas)
-                       (let ([frame (send canvas get-top-level-window)])
-                         (or (not (send frame get-test-coverage-info-visible?))
-                             (not (send frame ask-about-clearing-test-coverage?))
-                             (clear-test-coverage?)))))))
+                 (can-clear-coverage?)))
           
           (rename [super-after-insert after-insert])
           (define/override (after-insert x y)
