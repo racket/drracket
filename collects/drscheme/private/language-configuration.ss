@@ -869,14 +869,9 @@
                            (with-handlers ([not-break-exn?
                                             (lambda (x)
                                               (message-box (string-constant drscheme)
-                                                           (let ([p (open-output-string)])
-                                                             (parameterize ([current-output-port p])
-                                                               ((error-display-handler)
-                                                                (if (exn? x)
-                                                                    (exn-message x)
-                                                                    (format "uncaught exception: ~s" x))
-                                                                x))
-                                                             (get-output-string p)))
+                                                           (if (exn? x)
+                                                               (exn-message x)
+                                                               (format "uncaught exception: ~s" x)))
                                               read-syntax)])
                              (contract
                               (opt-> (any?)

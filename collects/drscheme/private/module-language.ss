@@ -149,12 +149,12 @@
                       [gui? (eq? 'mred (cadr executable-specs))]
                       [executable-filename (caddr executable-specs)])
                   (with-handlers ([not-break-exn?
-                                   (lambda (exn)
+                                   (lambda (x)
                                      (message-box
                                       (string-constant drscheme)
-                                      (if (exn? exn)
-                                          (exn-message exn)
-                                          (format "~s" exn))))])
+                                      (if (exn? x)
+                                          (exn-message x)
+                                          (format "uncaught exception: ~s" x))))])
                     (if stand-alone?
                         (make-embedding-executable
                          executable-filename

@@ -640,12 +640,10 @@
                     (mred-launcher-is-directory?)])])
             (cond
               [(string=? "" filename-str) #f]
-              [launcher-is-dir?
-               (or (not (directory-exists? filename-str))
-                   (ask-user-can-clobber? filename-str))]
-              [else
-               (or (not (file-exists? filename-str))
-                   (ask-user-can-clobber? filename-str))])))
+              [(or (directory-exists? filename-str)
+                   (file-exists? filename-str))
+               (ask-user-can-clobber? filename-str)]
+              [else #t])))
            
         ;; ask-user-can-clobber-directory? : (is-a?/c top-level-window<%>) string -> boolean
         (define (ask-user-can-clobber? filename)
@@ -780,12 +778,12 @@
                                                           use-copy?)
         
         (with-handlers ([not-break-exn?
-                         (lambda (exn)
+                         (lambda (x)
                            (message-box 
                             (string-constant drscheme)
-                            (if (exn? exn)
-                                (exn-message exn)
-                                (format "~s" exn))))])
+                            (if (exn? x)
+                                (exn-message x)
+                                (format "uncaught exception: ~s" x))))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
           
@@ -903,12 +901,12 @@
                                             use-copy?)
 
         (with-handlers ([not-break-exn?
-                         (lambda (exn)
+                         (lambda (x)
                            (message-box 
                             (string-constant drscheme)
-                            (if (exn? exn)
-                                (exn-message exn)
-                                (format "~s" exn))))])
+                            (if (exn? x)
+                                (exn-message x)
+                                (format "uncaught exception: ~s" x))))])
           
           ((if gui? make-mred-launcher make-mzscheme-launcher)
            (list
