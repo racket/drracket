@@ -354,6 +354,10 @@ profile todo:
             (super-on-move x y))
           (define (file-menu:between-print-and-close file-menu) (void))
           (define (edit-menu:between-find-and-preferences edit-menu) (void))
+          (rename [super-on-close on-close])
+          (define/override (on-close) 
+            (set! current-backtrace-window #f)
+            (super-on-close))
           (super-instantiate ())))
             
       ;; show-backtrace-window : string
