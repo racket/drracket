@@ -1,5 +1,4 @@
 
-(define drscheme:application@
   (unit/sig drscheme:app^
     (import [drscheme:unit : drscheme:unit^]
 	    [drscheme:frame : drscheme:frame^]
@@ -138,4 +137,4 @@
 			   #f #f (mred:current-frames))]
 	 [else (car frames)])))
     (mred:debug:printf 'super-init "after console")
-    (define eval-string (lambda args (void)))))
+    (define eval-string (lambda args (void))))

@@ -1,4 +1,3 @@
-(define drscheme:edit@
   (unit/sig drscheme:edit^
     (import [mred : mred^]
 	    [aries : plt:aries^]
@@ -23,4 +22,4 @@
 		   [structured (zodiac:structurize-syntax
 				built
 				(zodiac:make-zodiac 'drscheme loc loc))])
-	      structured))])))))
+	      structured))]))))
