@@ -1,3 +1,8 @@
+(define-signature drscheme:tool^
+  ((struct tool (name file))
+   tools
+   load/invoke-tool))
+
 (define-signature drscheme:export^
   (console))
 
