@@ -71,7 +71,7 @@
 				   [edit-menu:find #f]))
 			       '() "About DrScheme")]
 	       [p (ivar f panel)]
-	       [c (make-object mred:simple-frame-canvas% p)]
+	       [c (make-object mred:wrapping-canvas% p)]
 	       [top (make-object wx:style-delta% wx:const-change-alignment wx:const-align-top)]
 	       [d-usual (make-object wx:style-delta% wx:const-change-family wx:const-decorative)]
 	       [d-dr (make-object wx:style-delta%)]
