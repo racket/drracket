@@ -17,7 +17,8 @@
 		  (require-library "sig.ss" "mred")
 		  (require-library "debug.ss" "system")
 		  (require-library "drsig.ss" "drscheme")
-		  (require-library "hierlists.ss" "hierlist"))]
+		  ; (require-library "hierlists.ss" "hierlist")
+		  )]
 	      [(compile-omit-files)
 	       (append
 		(drscheme-info 'compile-elaboration-zos failure)
