@@ -119,7 +119,7 @@
 				 [can-close? (lambda () (send done is-enabled?))])
 			       (sequence
 				 (super-init "Install Progress"
-					     #f 400 300 #f #f '(resize-border)))))]
+					     #f 600 300 #f #f '(resize-border)))))]
 	     [c (make-object editor-canvas% f)]
 	     [e (make-object text%)]
 	     [s (make-semaphore)]
@@ -555,25 +555,25 @@
 	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
 	[set-page
 	 (lambda (page notify?)
-	   (let ([e (car page)]
-		 [spos (cadr page)]
-		 [epos (caddr page)]
-		 [curr (get-editor)]
-		 [current (current-page)])
-	     ; Pre-size the editor to avoid visible reflow
-	     (when curr
-	       (let ([wbox (box 0)])
-		 (send curr get-view-size wbox (box 0))
-		 (when (send e auto-wrap)
-		   (send e set-max-width (unbox wbox)))))
-	     (send e begin-edit-sequence)
-	     (when notify?
-	       (send (get-parent) leaving-page current (list e 0 0)))
-	     (set-editor e (and current (zero? (cadr current)) (zero? spos)))
-	     (send e scroll-to-position spos #f epos 'start)
-	     (send e end-edit-sequence)
-	     (when (or (positive? spos) (not current) (positive? (cadr current)))
-	       (refresh))))])
+           (let ([e (car page)]
+                 [spos (cadr page)]
+                 [epos (caddr page)]
+                 [curr (get-editor)]
+                 [current (current-page)])
+             ; Pre-size the editor to avoid visible reflow
+             (when curr
+               (let ([wbox (box 0)])
+                 (send curr get-view-size wbox (box 0))
+                 (when (send e auto-wrap)
+                   (send e set-max-width (unbox wbox)))))
+             (send e begin-edit-sequence)
+             (when notify?
+               (send (get-parent) leaving-page current (list e 0 0)))
+             (set-editor e (and current (zero? (cadr current)) (zero? spos)))
+             (send e scroll-to-position spos #f epos 'start)
+             (send e end-edit-sequence)
+             (when (or (positive? spos) (not current) (positive? (cadr current)))
+               (refresh))))])
       (sequence
 	(apply super-init args))))
 
@@ -633,9 +633,9 @@
 			   (send info set-info (filter-notes notes)))))]
 	[go (lambda (page)
 	      (clear-info)
-	      (update-buttons page)
 	      (send c set-page page #f)
 	      (update-info page)
+	      (update-buttons page)
 	      (on-navigate))])
       (public
 	[rewind 
@@ -655,8 +655,18 @@
 	[make-canvas (lambda (f) (make-object hyper-canvas% f))]
 	[make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
       (private
-	[past null] [future null] [init-page #f]
-	[hp (make-control-bar-panel this)]
+	[past null]
+        [future null] 
+        
+        
+        ;; (union #f                             -- no init page
+        ;;         string                        -- delayed init page
+        ;;         url                           -- delayed init page
+        ;;         (list editor number numer))   -- forced init page
+        [init-page #f]
+	
+        
+        [hp (make-control-bar-panel this)]
 	[control-bar? (is-a? hp area-container<%>)]
 	[back (and control-bar?
 		   (make-object button% "< Rewind" hp
@@ -666,19 +676,34 @@
 		   (make-object button% "Forward >" hp
 				(lambda (b ev) 
 				  (forward))))]
-	[home (and control-bar?
+	
+	[home-callback
+         (lambda () 
+           (when init-page
+             (cond
+               [(not init-page) (void)]
+               [(or (url? init-page) (string? init-page))
+                (send c goto-url init-page #f)
+                (set! init-page (send c current-page))
+                (update-buttons init-page)]
+               [else 
+                (send c set-page init-page #t)])))]
+        [home (and control-bar?
 		   (make-object button% "Home" hp
 				(lambda (b ev)
-				  (when init-page
-				    (send c set-page init-page #t)))))]
+                                  (home-callback))))]
 	[update-buttons (lambda (page)
 			  (unless init-page
 			    (set! init-page page))
 			  (when control-bar?
 			    (send back enable (pair? past))
 			    (send forw enable (pair? future))
+
 			    (send home enable (and init-page
-						   (not (same-page? init-page page))))
+                                                   (or (string? init-page)
+                                                       (url? init-page)
+                                                       (not (same-page? init-page page)))))
+
 			    (send choice clear)
 			    (for-each
 			     (lambda (p)
@@ -712,7 +737,16 @@
 		   (make-object info-canvas% this))]
 	[c (make-canvas this)])
       (public
-	; [get-progress (lambda () progress)]
+
+        ;; set-init-page : (union string url) -> void
+        [set-init-page
+         (lambda (p)
+           (set! init-page p))]
+        [goto-init-page
+         (lambda ()
+           (home-callback))]
+	
+        ; [get-progress (lambda () progress)]
 	[on-navigate void]
 	[filter-notes (lambda (l) (apply string-append l))]
 	[get-canvas (lambda () c)]

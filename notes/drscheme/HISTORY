@@ -1,3 +1,119 @@
+101d6
+
+ - PRS: 1121 1068 1067 1066
+
+ - release notes feature in drscheme now integrated with
+   help desk release notes.
+					   
+; ------------------------------------------------------------
+
+101d5
+
+ - added a new release notes and introduction framework
+
+; ------------------------------------------------------------
+
+101d4
+
+ - PRS: 1156
+
+ - If you set your language to be mred or mzscheme in 100 and then use
+   this version, instead of an internal error being raised (becuase
+   there is no mred language level anymore) the language we be
+   reset back to Beginner.
+
+; ------------------------------------------------------------
+
+101d3
+
+ - various text displays in the preferences now work better with tab.
+
+; ------------------------------------------------------------
+
+101d2
+
+ - PRS: 1133, 1121, 1120
+ 
+ - Changed the language dialog as specified in the meeting minutes. 
+   Comments, please.
+ 
+ - Using Save As when a filename has already been selected causes the 
+   standard file dialog to initially contain that name.
+
+ - The old Configure Language menu item is now called "Choose Language".		
+
+; ------------------------------------------------------------
+
+
+101d1
+
+ - An undocumented version of the new turtles is now available.
+   It supports everything the old turtles did, but now the turtle
+   window is a value. Set your library to PLT/lib/turtle.ss and try
+   the following program in the stepper! (there is a font problem in
+   the stepper, related to the turtles; we know) More info about the
+   new turtles is below the program.
+
+(define (draw-sides n theta side-len tv)
+  (cond
+    [(zero? n) tv]
+    [else
+     (draw-sides
+      (sub1 n)
+      theta
+      side-len
+      (turn/radians
+       theta
+       (draw side-len tv)))]))
+
+(define (regular-poly sides radius tv)
+  (merge
+   (clean
+    (draw-sides
+     sides
+     (/ pi 1/2 sides)
+     (* 2 radius (sin (/ pi sides)))
+     (turn/radians
+      (+ (/ pi 2) (/ pi sides))
+      (move
+       radius
+       tv))))
+   tv))
+
+(regular-poly 5 30 (turtles 70 70))
+
+
+   added value-turtler.ss, value-turtles.ss, value-turtle.ss,
+   and value-turtle-lib.ss to the graphics collection and
+   turtle.ss to PLT/lib
+
+   All of the basic turtle commands (turn, move,
+   draw, turn/radians) accept an extra argument, the turtles, and
+   produce a new turtle picture. 
+
+   (turtles X Y) produces a new turtle value of size X by Y.
+
+   Split and prompt are gone; they are replaced by merge and clean.
+   Clean accepts a turtles and erases all of the turtles in it,
+   leaving behind the drawing.
+
+   Merge accepts two turtle values. It result is a
+   turtle value whose drawing comes from the first argument and whose
+   turtles come from the concatenation of both argument's turtles.
+   For example,
+
+   (merge (draw 50 (turtles 170 40))
+          (draw 50 (turn 180 (turtles 170 40))))
+
+   Is a turtle value with two turtles pointing in opposite directions,
+   100 pixels apart, but with only a single 50 pixel line between
+   them.
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
 Version 100:
 
 General

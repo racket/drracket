@@ -40,8 +40,8 @@
    tools))
 
 (define-signature drscheme:intro^
-  (show-release-notes
-   show-intro))
+  (check-new-version
+   show-introduction))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
