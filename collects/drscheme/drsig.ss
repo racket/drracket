@@ -13,7 +13,7 @@
 (require-library "classd.ss")
 (require-library "launchers.ss" "launcher")
 (require-library "frameworks.ss" "framework")
-(require-library "teachpacks.ss" "drscheme")
+(require-library "init-namespaces.ss" "userspce")
 
 (require-library "sig.ss" "help")
 
