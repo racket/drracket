@@ -78,10 +78,6 @@
      drscheme:language:language<%> and get-init-code in
      drscheme:language:module-based-language<%>
 
-   . preferences:read is not called automatically anymore
-     but should be called by each application, as it starts
-     up.
-
  - errortrace internal interface has changed (see docs for
    details)
 
