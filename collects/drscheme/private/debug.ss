@@ -282,9 +282,9 @@
                                                num-left)])
                                     (if (= num-left 1)
                                         (string-constant last-stack-frame)
-                                        (format (if (<= num-left num-to-show)
-                                                    (string-constant next-stack-frames)
-                                                    (string-constant last-stack-frames))
+                                        (format (if (num-left . <= . num-to-show)
+                                                    (string-constant last-stack-frames)
+                                                    (string-constant next-stack-frames))
                                                 num-to-show))))
                             (let ([hyper-end (send text last-position)])
                               (send text change-style (gui-utils:get-clickback-delta)
@@ -296,6 +296,9 @@
                                       (send text lock #f)
                                       (send text delete end-of-current (send text last-position))
                                       (show-next-dis)
+                                      (send text set-position 
+                                            (send text last-position)
+                                            (send text last-position))
                                       (send text lock #t)
                                       (send text end-edit-sequence)))
                               
