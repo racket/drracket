@@ -42,6 +42,13 @@
 					  "-e" (format "(define settings ~s)" v-settings)
 					  "-e" (format "(define teachpacks '~s)" teachpacks))])
 		   (if (and in-mz? (null? teachpacks))
+		       (printf
+			"~s~n"
+			(append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce")))
+		       (printf
+			"~s~n"
+			(append '("-mv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))))
+		   (if (and in-mz? (null? teachpacks))
 		       (launcher:make-mzscheme-launcher
 			(append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
 			filename)
