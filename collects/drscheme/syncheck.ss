@@ -1623,7 +1623,10 @@ If the namespace does not, they are colored the unbound color.
                 (let ([req-stxes (hash-table-get requires req-path (λ () #f))])
                   (when req-stxes
                     (hash-table-remove! unused req-path)
-                    (for-each (λ (req-stx) (connect-syntaxes req-stx var))
+                    (for-each (λ (req-stx) 
+                                (add-jump-to-definition var "/home/robby/tmp.ss")
+                                (add-mouse-over-status var "mouse-over status")
+                                (connect-syntaxes req-stx var))
                               req-stxes))))))))
           
       ;; get-module-req-path : binding -> (union #f require-sexp)
