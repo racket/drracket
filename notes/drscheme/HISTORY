@@ -3,10 +3,9 @@ Version 52:
 General
 -------
 
-- Snoopy indicates when work is happening in the user's program. While
-  DrScheme is doing work for the user, Snoopy chases the Red
-  Baron. While DrScheme is not doing any work in the user's program,
-  Snoopy sleeps.
+- The words "running" or "not running" at the bottom of the
+  DrScheme frame indicate whether or not work is happening in the 
+  user's program. 
 
 - a "Windows" menu has been added which keeps track of the currently
   open drscheme windows.
