@@ -119,7 +119,7 @@ A test case:
                           (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
                                                                         'up
                                                                         'up)))
-                          (normal-case-path (normalize-path (url-path url)))))]
+                          (normal-case-path (normalize-path (apply build-path (url-path url))))))]
                       [(and (url? url)
                             (equal? "http" (url-scheme url)))
                        (and (string=? (url-host url) "127.0.0.1")
@@ -393,15 +393,16 @@ A test case:
                             (progress #f)
                             (end-busy-cursor) ; turn off cursor for a moment...
                             (let* ([orig-name (and (url? url)
-                                                   (let ([m (regexp-match "([^/]*)$" (url-path url))])
-                                                     (and m (cadr m))))]
+                                                   (let ([p (url-path url)])
+                                                     (and (not (null? p))
+                                                          (car (last-pair p)))))]
                                    [size (let ([s (extract-field "content-length" mime-headers)])
                                            (and s (let ([m (regexp-match
                                                             "[0-9]+"
                                                             s)])
                                                     (and m (string->number (car m))))))]
                                    [install?
-                                    (and (and orig-name (regexp-match "[.]plt$" orig-name))
+                                    (and (and orig-name (regexp-match #rx"[.]plt$" orig-name))
                                          (let ([d (make-object dialog% (string-constant install?))]
                                                [d? #f]
                                                [i? #f])
@@ -727,7 +728,6 @@ A test case:
           (let ([canvas (send text get-canvas)])
             (when canvas
               (let ([tlw (send canvas get-top-level-window)])
-                (printf "tlw: ~s\n" tlw)
                 (when (is-a? tlw hyper-frame<%>)
                   (f (send tlw get-hyper-panel))))))))
             
