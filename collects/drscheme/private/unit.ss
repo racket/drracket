@@ -1186,11 +1186,11 @@
                                  (let ([start (send edit get-start-position)]
                                        [end (send edit get-end-position)])
                                    (send edit delete start end)
-                                   (send edit insert #\newline start start)
+                                   (send edit insert "\n" start start)
                                    (let loop ([y th])
                                      (unless (zero? y)
                                        (send edit insert (fetch-line (- y 1)) start start)
-                                       (send edit insert #\newline start start)
+                                       (send edit insert "\n" start start)
                                        (loop (- y 1)))))
                                  (send edit end-edit-sequence)))))))]
                     [c% (get-menu-item%)])
