@@ -34,8 +34,7 @@
 	 unit-snipI compound-unit-snipI))
 
 (define-signature drscheme:language^
-  (level-symbols
-   fill-language-menu))
+  (fill-language-menu))
 
 (define-signature drscheme:tool^
   ((struct tool (name file callback))
