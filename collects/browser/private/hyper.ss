@@ -237,6 +237,12 @@ A test case:
             (opt-lambda ([progress void])
               (when url
                 (init-browser-status-line top-level-window)
+                (update-browser-status-line 
+                 top-level-window 
+                 (format "Visiting ~a"
+                         (cond
+                           [(url? url) (url->string url)]
+                           [else "page"])))
                 (let ([headers (get-headers/read-from-port progress)])
                   ;; Page is a redirection?
                   (let ([m (regexp-match "^HTTP/[^ ]+ 301 " headers)])
