@@ -116,7 +116,8 @@
                    [lang-message
                     (new lang-message% 
                          (button-release (lambda () (change-language-callback)))
-                         (parent choices-panel))]
+                         (parent choices-panel)
+                         (font (send choices-panel get-control-font)))]
                    [language-item (new menu-item%
                                        (label (string-constant choose-language-menu-item-label))
                                        (parent language-menu)
@@ -136,7 +137,7 @@
       
       (define lang-message%
         (class canvas%
-          (init-field button-release)
+          (init-field button-release font)
           (define/override (on-event evt)
             (when (send evt button-up?)
               (button-release)))
@@ -151,6 +152,7 @@
                            [(cw ch) (get-client-size)])
                 (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+                (send dc set-font font)
                 (send dc draw-rectangle 0 0 cw ch)
                 (cond
                   [(tw . <= . cw)
