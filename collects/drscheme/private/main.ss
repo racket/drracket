@@ -31,6 +31,10 @@
               [drscheme:frame : drscheme:frame^]
               [drscheme:font : drscheme:font^])
 
+      (application-about-handler
+       (lambda ()
+         (drscheme:app:about-drscheme)))
+      
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
       ;(version:add-spec 'd 7)

@@ -365,7 +365,8 @@
                   (callback (lambda x (show-keybindings)))
                   (help-string (string-constant keybindings-info))
                   (demand-callback keybindings-on-demand)))
-              (make-object separator-menu-item% menu))]
+              (unless (eq? (system-type) 'macosx)
+                (make-object separator-menu-item% menu)))]
           
           (super-instantiate ())))
 
