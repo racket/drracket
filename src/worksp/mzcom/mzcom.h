@@ -2,7 +2,7 @@
 
 
 /* File created by MIDL compiler version 5.01.0164 */
-/* at Thu May 25 13:43:33 2000
+/* at Wed May 31 11:50:51 2000
  */
 /* Compiler settings for D:\plt\src\mzcom\mzcom.idl:
     Os (OptLev=s), W1, Zp8, env=Win32, ms_ext, c_ext

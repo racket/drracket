@@ -27,24 +27,16 @@
      (with-continuation-mark 
       aries:w-c-m-key
       (aries:make-zodiac-mark object)
-      (let ([kwd? (init-substring? "kwd:" (symbol->string link-tag))])
 	(case zodiac-phase
 	  [(expander)
-	   (if kwd?
-	       (make-exn:zodiac-syntax string
-				       (current-continuation-marks)
-				       #f
-				       link-tag)
-	       (make-exn:syntax string
-				(current-continuation-marks)
-				#f))]
+	   (make-exn:zodiac-syntax string
+				   (current-continuation-marks)
+				   #f
+				   link-tag)]
 	  [(reader)
-	   (if kwd?
-	       (make-exn:zodiac-read
-		string (current-continuation-marks) #f link-tag)
-	       (make-exn:read
-		string (current-continuation-marks) #f))]
-	  [else (make-exn:user string (current-continuation-marks))])))))
+	   (make-exn:zodiac-read
+	    string (current-continuation-marks) #f link-tag)]
+	  [else (make-exn:user string (current-continuation-marks))]))))
   
   ;; report-error : symbol -> (+ zodiac:zodiac zodiac:eof zodiac:period) string (listof TST) ->* ALPHA
   ;; escapes

@@ -2073,7 +2073,7 @@ if test "${enable_wbuild}" = "yes" ; then
   WBUILD="$WBUILD -p . \$(srcdir)/x/wbuild/wbuild.cfg"
 else
   MAKE_WBUILD=
-  WBUILD="bash \$(PLTSRCDIR)/wxxt/src/XWidgets/dummy.wbuild"
+  WBUILD="sh \$(PLTSRCDIR)/wxxt/src/XWidgets/dummy.wbuild"
 fi
 
 ############## platform tests ################

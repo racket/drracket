@@ -43,7 +43,6 @@ class ATL_NO_VTABLE CMzObj :
     HANDLE evalDoneSems[2];
     BSTR *globInput;
     BSTR globOutput;
-    BSTR lastOutput;
     DWORD threadId;
     HANDLE threadHandle;
     BOOL errorState;

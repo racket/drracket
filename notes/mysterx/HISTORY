@@ -35,6 +35,7 @@ fixed GC-related problems with COM
  event handlers
 fixed error text formatting bug when 
  COM methods returned an error code
+improved Makefiles
 DHTML test code added, 
  plt/tests/mysterx/dhtmltests.ss
 

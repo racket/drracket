@@ -40,8 +40,8 @@ below.
  Compiling for MacOS
 ========================================================================
 
-Unpack the Compactor archive plt:src:cw.cpt to plt:src:cw and then
-see `ABOUT MzScheme' and `ABOUT MrEd' in that folder.
+Unpack the Stuffit archive plt:src:cw.sit.hqz to plt:src:cw, and then
+see `README' in that folder.
 
 ========================================================================
  Compiling for Unix (including Linux), Cygwin, or BeOS
@@ -131,3 +131,105 @@ see `ABOUT MzScheme' and `ABOUT MrEd' in that folder.
     the .zo files, too, but add -n to the end of the command to skip
     the .zo-compiling step. Afterwards, `plt/Setup PLT.exe' and
     `plt/mzc.exe' work.
+
+========================================================================
+ Compiling the OSKit-based kernel
+========================================================================
+
+To build the OSKit-based MzScheme kernel, run the configure script
+with the --enable-oskit or --enable-smalloskit flag. The result of
+compiling will be `mzscheme.multiboot' in the `mzscheme' build
+directory. It is a kernel in multiboot format.
+
+Before building the MzScheme kernel, you must first install OSKit,
+which is available from the Flux Research Group at Utah:
+     http://www.cs.utah.edu/projects/flux/oskit/
+
+By default, configure assumes that OSKit is installed in
+/usr/local. To specify a different location for OSKit, define the
+OSKHOME environment variable.
+
+For simplicity, the MzScheme kernel uses SGC rather than Boehm's
+conservative garbage collector.
+
+The --enable-smalloskit configuration produces a kernel without
+networking or filesystem support. The kernel created by
+--enable--oskit accepts filesystem and networking configuration
+information on its multiboot command line via the --fs and --net
+flags:
+
+  --fs <drive> <partition> : mounts the given partition as the root
+   directory. For example, to mount the seventh parition on main disk,
+   supply: --fs hda f. Many filesystem formats are supported,
+   including EXT2, MSDOS, and VFAT (all of the ones supported by
+   Linux; see OSKit for details). The standard kernel can only mount
+   one filesystem per run; hack main.c to get more.
+
+  --net <address> <netmask> <gateway> : initializes ethernet support
+   for MzScheme's TCP primitives. Example: --net 128.42.6.101
+   255.255.255.0 128.42.6.254. Many types of ethernet cards are
+   supported (the ones supported by FreeBSD; see OSKit for details).
+
+Each of --fs and --net should be used once at most. The --fs and --net
+flags must appear before any other command-line arguments, which are
+handled by MzScheme in the usual way.
+
+To access a filesystem or the network from non-multiboot kernels
+(e.g., a LILO-compatible kernel), you must hardwire filesystem and
+networking parameters in oskglue.inc when compiling the kernel; see
+oskglue.inc for details (grep for `hardwire').
+
+========================================================================
+ Additional Compilation Notes
+========================================================================
+
+Garbage Collector
+-----------------
+
+The conservative garbage collector distributed with MzScheme (in the
+gc directory) has been modified slightly from Boehm's standard
+distribution. Mostly, the change modify the way that object
+finalization is handled.
+
+Precise GC
+----------
+
+MzScheme and MrEd can be compiled to an experimental form that uses
+precise garbage collection (as opposed to "conservation garbage
+collection") on some Unix platforms, including Linux, FreeBSD, and
+Solaris. The precisely-collected forms are called MzScheme2k and
+MrEd2k, repsectively.
+
+To build MzScheme2k and MrEd2k, run `gnumake 2k'. Building MzScheme2k
+and MrEd2k first builds the normal MzScheme and MrEd executables, and
+uses them to build the 2k versions.
+
+Configuration Options
+---------------------
+
+By default, MzScheme is compiled:
+
+ * without image dumps (since the application will probably be linked
+   dynamically);
+
+ * without using any OS-specific threads; and
+
+ * without support for single-precision floating point numbers.
+
+These options can be modified by setting flags in mzscheme/sconfig.h.
+MrEd works only *without* OS-specific threads.
+
+Modifying MzScheme
+------------------
+
+If you modify MzScheme and change any primitive syntax or the
+collection of built-in identifers, be sure to turn off
+USE_COMPILED_MACROS in schminc.h. Otherwise, MzScheme won't start.
+See schminc.h for details.
+
+Guile Compatibility Library
+---------------------------
+
+In the mzscheme/ directory, `make libguile' produces a libguile.a
+library that implements the high-level guile interface. See
+mzscheme/libguile/README.

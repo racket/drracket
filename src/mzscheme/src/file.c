@@ -3448,6 +3448,9 @@ static Scheme_Object *collpaths_gen_p(int argc, Scheme_Object **argv, int rel)
     if (rel && !scheme_is_relative_path(SCHEME_STR_VAL(s),
 					SCHEME_STRTAG_VAL(s)))
       return NULL;
+    if (!rel && !scheme_is_complete_path(SCHEME_STR_VAL(s),
+					 SCHEME_STRTAG_VAL(s)))
+      return NULL;
     v = SCHEME_CDR(v);
   }
 
@@ -3491,7 +3494,7 @@ static Scheme_Object *current_library_collection_paths(int argc, Scheme_Object *
   return scheme_param_config("current-library-collection-paths", 
 			     scheme_make_integer(MZCONFIG_COLLECTION_PATHS),
 			     argc, argv,
-			     -1, collpaths_p, "list of strings", 1);
+			     -1, collpaths_p, "list of complete path strings", 1);
 }
 
 static Scheme_Object *collpaths_rel_p(int argc, Scheme_Object **argv)

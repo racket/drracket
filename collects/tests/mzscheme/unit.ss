@@ -411,6 +411,26 @@
 	   (define define-values 10)
 	   define-values))))
 	
+; Check set! of shadowed variable:
+(test #t unit? (unit 
+		 (import x)
+		 (export)
+		 (let ([x 10])
+		   (set! x 5))))
+(test #t unit? (unit 
+		 (import x)
+		 (export)
+		 (class object% ()
+		   (public
+		     [x 10])
+		   (sequence
+		     (set! x 5)))))
+(syntax-test '(let ([x 10])
+		(unit 
+		  (import x)
+		  (export)
+		  (set! x 5))))
+
 ; Especially for zodiac:
 (test '(b c 10 b a (c a b) (c b a) (c . c) (a) #t
 	  (nested-b a b c) (a 2 b) (10 b c) (cl-unit-a 12 c))

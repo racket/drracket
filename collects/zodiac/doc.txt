@@ -620,13 +620,24 @@ Tags and Language Levels
 
 This documents the language level at which each tag can appear.
 
+Misc Tags
+----------
+
+These tags can appear at any language level:
+|#(
+
+  read:syntax-error
+  scan:syntax-error
+
+#|
+
 kwd: Tags
 ---------
 
 If these are inserted at some language level, they are automatically
 present at all subsequent language levels.
 
-common:          |#(
+    common:         |#
 
   kwd:define-macro
   kwd:let-macro

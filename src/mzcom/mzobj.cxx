@@ -239,7 +239,6 @@ void CMzObj::startMzThread(void) {
 
 
 CMzObj::CMzObj(void) {
-  lastOutput = NULL;
   inputMutex = NULL;
   readSem = NULL;
   threadId = NULL;
@@ -312,10 +311,6 @@ void CMzObj::killMzThread(void) {
 
 CMzObj::~CMzObj(void) {
 
-  if (lastOutput) {
-    SysFreeString(lastOutput); 
-  }
-
   killMzThread();
 
   if (readSem) {
@@ -366,17 +361,11 @@ BOOL CMzObj::testThread(void) {
 // CMzObj
 
 STDMETHODIMP CMzObj::Eval(BSTR input, BSTR *output) {
-
   if (!testThread()) {
     return E_ABORT;
   }
 
   WaitForSingleObject(inputMutex,INFINITE);
-  if (lastOutput) {
-    SysFreeString(lastOutput);
-    lastOutput = NULL;
-  }
-
   globInput = &input;
   // allow evaluator to read
   ReleaseSemaphore(readSem,1,NULL);
@@ -388,7 +377,7 @@ STDMETHODIMP CMzObj::Eval(BSTR input, BSTR *output) {
     return E_FAIL;
   }
 
-  lastOutput = *output = globOutput;
+  *output = globOutput;
   ReleaseSemaphore(inputMutex,1,NULL);
 
   if (errorState) {

@@ -35,7 +35,7 @@
 	      ((if (and in-mz? (null? teachpacks))
 		   launcher:make-mzscheme-launcher
 		   launcher:make-mred-launcher)
-	       (append '("-mv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+	       (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
 	       filename))))])))
   
   (define make-bitmap 

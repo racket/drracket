@@ -1,4 +1,4 @@
-; $Id: scm-hanc.ss,v 1.64 1999/05/23 17:31:24 mflatt Exp $
+; $Id: scm-hanc.ss,v 1.65 2000/05/28 03:47:31 shriram Exp $
 
 (define-struct signature-element (source))
 (define-struct (name-element struct:signature-element) (name))
@@ -37,7 +37,8 @@
 		      (signs sign:names))
 	    (unless (null? in)
 	      (if (memq (car signs) (cdr signs))
-		(static-error 'term:unit-double-export (car in)
+		(static-error
+		  "unit" 'term:unit-double-export (car in)
 		  "name \"~s\" is exported twice" (car signs))
 		(loop (cdr in) (cdr signs))))))
 	(let ((in (car in:all)) (sign (car sign:all)))

@@ -1,16 +1,11 @@
-// MzCOM.cpp : Implementation of WinMain
-
-
-// Note: Proxy/Stub Information
-//      To build a separate proxy/stub DLL, 
-//      run nmake -f MzCOMps.mk in the project directory.
+// mzcom.cxx : Implementation of WinMain
 
 #include "stdafx.h"
 #include "resource.h"
 #include <initguid.h>
 #include "mzcom.h"
 
-#include "MzCOM_i.c"
+#include "mzcom_i.c"
 #include "mzobj.h"
 
 // time for EXE to be idle before shutting down
@@ -34,12 +29,12 @@ LONG CExeModule::Unlock()
     if (l == 0)
     {
         bActivity = true;
-        SetEvent(hEventShutdown); // tell monitor that we transitioned to zero
+        SetEvent(hEventShutdown);
     }
     return l;
 }
 
-//Monitors the shutdown event
+// Monitors the shutdown event
 void CExeModule::MonitorShutdown()
 {
     while (1)

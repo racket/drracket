@@ -533,7 +533,17 @@
 			(recur)])))])
            (apply values (process-file/zodiac filename process-sexps #t)))]
         [else
-         (primitive-load filename)])))
+	 (call-with-input-file filename
+	   (lambda (port)
+	     (let loop ([last-vals (list (void))])
+	       (let ([r (read port)])
+		 (if (eof-object? r)
+		     (apply values last-vals)
+		     (call-with-values
+		      (lambda () (eval r))
+		      (lambda x
+			(apply (intermediate-values-during-load) x)
+			(loop x))))))))])))
   
   ;; drscheme-eval : sexp ->* TST
   (define (drscheme-eval-handler sexp)
