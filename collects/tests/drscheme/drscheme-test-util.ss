@@ -15,17 +15,19 @@
 (define (test-util-error fmt . args)
   (raise (make-exn (apply fmt args) ((debug-info-handler)))))
 
-(define (poll-until pred)
-  (letrec 
-      ([loop
-	(lambda ()
-	  (let ([result (pred)])
-	    (if result
-		result
-		(begin
-		  (sleep 1/2)
-		  (loop)))))])
-    (loop)))
+(define poll-until
+  (case-lambda
+   [(pred) (poll-until pred 10)]
+   [(pred secs)
+    (let ([step 1/2])
+      (let loop ([counter secs])
+	(if (<= counter 0)
+	    (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred)
+	    (let ([result (pred)])
+	      (or result
+		  (begin
+		    (sleep step)
+		    (loop (- counter step))))))))]))
 
 (define (wait-for-drscheme-frame)
   (let* ([pred (lambda ()
@@ -40,7 +42,7 @@
 	  (poll-until pred)))))
 
 (define (wait-for-new-frame old-frame)
-  (poll-until 
+  (poll-until
    (lambda ()
      (let ([active (get-top-level-focus-window)])
        (if (and active
@@ -107,7 +109,9 @@
 		   (list-ref (send panel get-children) (car path)))))])
     (loop path frame)))
 
-;;; find-labelled-window : (union (string-> window<%>) (string (union #f class) -> window<%>) (string (union class #f) window<%> -> window<%>))
+;;; find-labelled-window : (union (string-> window<%>)
+;;;                               (string (union #f class) -> window<%>)
+;;;                               (string (union class #f) window<%> -> window<%>))
 ;;;;  may call error, if no control with the label is found
 (define find-labelled-window
   (case-lambda

@@ -104,7 +104,7 @@
 		    #f
 		    #f)
 	    (make-test "    (eval '(lambda ()))"
-		    "1.5-1.25: Malformed lambda"
+		    "1.5-1.24: Malformed lambda"
 		    #t
 		    "Malformed lambda"
 		    (vector 4 23)
