@@ -144,4 +144,6 @@
 
 (define (repl-in-edit-sequence?)
   (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
-	 
+
+(define (fetch-output)
+  (get-top-level-focus-window)
