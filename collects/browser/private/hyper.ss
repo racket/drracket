@@ -8,6 +8,7 @@
            (lib "list.ss")
            (lib "string.ss")
            (lib "url.ss" "net")
+           (lib "head.ss" "net")
            (lib "mred-sig.ss" "mred")
            (lib "plt-installer-sig.ss" "setup"))
   
@@ -188,10 +189,10 @@
                    (let-values ([(wrapping-on?) #t]
                                 [(p mime-headers)
                                  (if (port? url)
-                                     (values url null)
+                                     (values url empty-header)
                                      ; Try to get mime info, but use get-pure-port if that fails:
                                      (with-handlers ([void (lambda (x) 
-                                                             (values (get-pure-port url) null))])
+                                                             (values (get-pure-port url) empty-header))])
                                        (let ([p (get-impure-port url)])
                                          (let ([headers (purify-port p)])
                                            (values p headers)))))])
@@ -205,10 +206,7 @@
                         (set! htmling? #t)
                         (erase)
                         (clear-undos)
-                        (let* ([mime-type (ormap (lambda (mh)
-                                                   (and (string=? (mime-header-name mh) "content-type")
-                                                        (mime-header-value mh)))
-                                                 mime-headers)]
+                        (let* ([mime-type (extract-field "content-type" mime-headers)]
                                [html? (and mime-type
                                            (regexp-match "text/html" mime-type))])
                           (cond
@@ -222,14 +220,11 @@
                              (let* ([orig-name (and (url? url)
                                                     (let ([m (regexp-match "([^/]*)$" (url-path url))])
                                                       (and m (cadr m))))]
-                                    [size (ormap (lambda (mh)
-                                                   (and (string=? (mime-header-name mh)
-                                                                  "content-length")
-                                                        (let ([m (regexp-match
-                                                                  "[0-9]+"
-                                                                  (mime-header-value mh))])
-                                                          (and m (string->number (car m))))))
-                                                 mime-headers)]
+                                    [size (let ([s (extract-field "content-length" mime-headers)])
+					    (and s (let ([m (regexp-match
+							     "[0-9]+"
+							     s)])
+						     (and m (string->number (car m))))))]
                                     [install?
                                      (and (and orig-name (regexp-match "[.]plt$" orig-name))
                                           (let ([d (make-object dialog% "Install?")]
