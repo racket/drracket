@@ -794,12 +794,11 @@ TODO
           
           (define/private (insert-warning)
             (begin-edit-sequence)
-            (insert #\newline (last-position) (last-position))
-            (let ([start (last-position)])
-              (insert
-               (string-constant interactions-out-of-sync)
-               start start)
-              (let ([end (last-position)])
+            (insert-between "\n")
+            (let ([start (get-unread-start-point)])
+              (insert-between
+               (string-constant interactions-out-of-sync))
+              (let ([end (get-unread-start-point)])
                 (change-style warning-style-delta start end)))
             (end-edit-sequence))
           
@@ -847,6 +846,15 @@ TODO
             (inner (void) on-submit)
             ;; the -2 drops the last newline from history (why -2 and not -1?!)
             (save-interaction-in-history prompt-position (- (last-position) 2))
+            (freeze-colorer)
+            
+            (let* ([needs-execution? (send context needs-execution?)])
+              (when (if (preferences:get 'drscheme:execute-warning-once)
+                        (and (not already-warned?)
+                             needs-execution?)
+                        needs-execution?)
+                (set! already-warned? #t)
+                (insert-warning)))
             
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
@@ -855,7 +863,6 @@ TODO
             (send-eof-to-in-port)
             (send-eof-to-in-port)
             (set! prompt-position #f)
-            (freeze-colorer)
             (evaluate-from-port
              (get-in-port) 
              #f
