@@ -1,5 +1,26 @@
 Version 102:
 
+102d3
+
+ PRS: 1235
+
+ FUNCTIONALITY CHANGES
+
+ - drscheme now allows multiple teachpacks.
+
+ - added typeset-size to typeset utilities. Used to control the size
+   of the rendered text.
+
+ - clever-file-format now symetrically changes the file's format to
+   'standard. It used to rever the file format to 'text when there
+   were no more images in it. Now, it also changes back to non-'text
+   when images (and other non-string-snips) are added back.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - check syntax now shows its syntax errors in a separate window.
+   (PR 1235)
+
 102d2
 
  PRS: 1297, 1306, 1171

@@ -319,17 +319,26 @@
        (public set-message)
        (override on-event on-paint get-graphical-min-size))
 
-      (define label "Untitled")
+      (define label #f)
       (define short-label "Untitled")
       (define (set-message name)
-	(set! label (mzlib:file:normalize-path name))
-	(set! short-label (mzlib:file:file-name-from-path label))
+	(cond
+	 [name
+	  (set! label (mzlib:file:normalize-path name))
+	  (set! short-label (mzlib:file:file-name-from-path label))]
+	 [else
+	  (set! short-label "Untitled")
+	  (set! label #f)])
 	(update-min-sizes))
       
       (define full-name-window #f)
 
       (define (show-full-name-window)
-	(mred:message-box "Full Name" label))
+	(if label
+	    (mred:message-box "Full Name" label)
+	    (mred:message-box
+	     "Full Name"
+	     "The file does not have a full name because it has not yet been saved")))
 
       (define (on-event evt)
 	(cond
@@ -859,10 +868,10 @@
       (inherit get-label)
       (sequence
 	
+	(update-save-message filename)
+
 	(update-save-button #f)
 
-	(update-save-message (get-label))
-	
 	 '(let ([fn (send definitions-text get-filename)])
 	   (cond
 	    [(and fn (mzlib:file:file-name-from-path fn)) => (lambda (x) x)]
