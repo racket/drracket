@@ -56,23 +56,30 @@
                    (cdr x)))
            ex-labels)))
   
+  (define (filename->section filename)
+    (let* ([label (car (memf (lambda (x) (string=? (car x) filename)) labels))]
+           [section (car (cadr label))])
+      section))
+         
   (define sample-solutions
-    (filter (lambda (x) (and 
-                         (> (string-length x) 3)
-                         (string=? "scm" (substring x (- (string-length x) 3) (string-length x)))
-                         (memf (lambda (y) (string=? (car y) x)) labels)))
-            (directory-list sample-solutions-dir)))
+    (quicksort
+     (filter (lambda (x) (and 
+                          (> (string-length x) 3)
+                          (string=? "scm" (substring x (- (string-length x) 3) (string-length x)))
+                          (memf (lambda (y) (string=? (car y) x)) labels)))
+             (directory-list sample-solutions-dir))
+     (lambda (fx fy)
+       (< (filename->section fx)
+          (filename->section fy)))))
 
   (define separator-sexp "should be")
   
   (define (test-single-file filename)
-    (printf "testing: ~s\n" filename)
     (let* ([toc-entry (let ([lookup (assoc (string->symbol filename) toc)])
                         (if lookup
                             (cdr lookup)
                             default-toc-entry))]
-           [label (car (memf (lambda (x) (string=? (car x) filename)) labels))]
-           [section (car (cadr label))]
+           [section (filename->section filename)]
            [language (section->language section)]
            [errors-ok? (car toc-entry)]
            [teachpacks (cadr toc-entry)])
@@ -140,7 +147,8 @@
         (let ([open-user-windows?
                (parameterize ([current-eventspace (send interactions-text get-user-eventspace)])
                  (not (null? (get-top-level-windows))))])
-          (when open-user-windows?
+          (when #t #;open-user-windows?
+            (printf "killing\n")
             (let ([cust (send interactions-text get-user-custodian)])
               (run-one/sync
                (lambda ()
@@ -152,7 +160,8 @@
                                       "Evaluation Terminated"))))])
               (poll-until wait-for-kill-window)
               (fw:test:button-push "OK")
-              (wait-for-drscheme-frame #f))))
+              (wait-for-drscheme-frame #f)
+              (printf "killed\n"))))
         
         (check-for-red-text filename drs-frame)
         
