@@ -82,15 +82,22 @@
       (define (lookup-class-delta class)
 	(let ([class-path (cons class (current-style-class))])
 	  (cond
-	   [(equal? class-path '("scheme")) scheme-code-delta]
-	   [(equal? class-path '("keyword" "scheme")) scheme-code-delta/keyword]
-	   [(equal? class-path '("variable" "scheme")) scheme-code-delta/variable]
-	   [(equal? class-path '("global" "scheme")) scheme-code-delta/global]
-	   [(or (equal? class-path '("selfeval" "scheme"))
-		(equal? class-path '("schemeresponse"))) scheme-code-delta/selfeval]
-	   [(equal? class-path '("comment" "scheme")) scheme-code-delta/comment]
-	   [(equal? class-path '("navigation")) navigation-delta]
+	   [(sub-path? class-path '("scheme")) scheme-code-delta]
+	   [(sub-path? class-path '("keyword" "scheme")) scheme-code-delta/keyword]
+	   [(sub-path? class-path '("variable" "scheme")) scheme-code-delta/variable]
+	   [(sub-path? class-path '("global" "scheme")) scheme-code-delta/global]
+	   [(or (sub-path? class-path '("selfeval" "scheme"))
+		(sub-path? class-path '("schemeresponse"))) scheme-code-delta/selfeval]
+	   [(sub-path? class-path '("comment" "scheme")) scheme-code-delta/comment]
+	   [(sub-path? class-path '("navigation")) navigation-delta]
 	   [else #f])))
+
+      (define (sub-path? a b)
+	(cond
+	 [(null? b) #t]
+	 [(null? a) #f]
+	 [else (and (equal? (car a) (car b))
+		    (sub-path? (cdr a) (cdr b)))]))
 
       (define (with-style-class class thunk)
 	(if class
@@ -910,8 +917,9 @@
                                                             [(or (and (string? align) (string-ci=? align "right"))
                                                                  (and (string? class) (string-ci=? class "navigation")))
                                                              (para-aligner 'right delta rest)]
-                                                            [else
-                                                             (rest)])])
+                                                            [delta
+                                                             (styler delta rest)]
+							    [else (rest)])])
                                               (insert-newlines 1 rfl para-base)
                                               (values r rfl)))))]
                                       [(br)
