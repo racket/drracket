@@ -24,8 +24,17 @@
    lookup-binding
    lookup-binding-list
    debug-key
-   extract-mark-list)
-
+   extract-mark-list
+   (struct normal-breakpoint-info (mark-list kind returned-value-list))
+   (struct error-breakpoint-info (message))
+   (struct breakpoint-halt ())
+   (struct expression-finished (returned-value-list)))
+  
+  (define-struct normal-breakpoint-info (mark-list kind returned-value-list))
+  (define-struct error-breakpoint-info (message))
+  (define-struct breakpoint-halt ())
+  (define-struct expression-finished (returned-value-list))
+  
   (define identifier-list? (listof identifier?))
 
   (define-struct skipto-mark-struct ())
