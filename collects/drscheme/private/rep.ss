@@ -24,6 +24,7 @@ TODO
            (lib "pretty.ss")
            (lib "etc.ss")
            (lib "list.ss")
+           (lib "port.ss")
            "drsig.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
@@ -713,6 +714,41 @@ TODO
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
+          ;;;              User Std Input                ;;;
+          ;;;                                            ;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+          (define-values (user-input-port backend-user-input-port) (make-pipe))
+          (define current-input-text%
+            (class (text:ports-mixin text:basic%)
+              (define/override (on-peek)
+                (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                  (queue-callback 
+                   (lambda ()
+                     (show-input-text)))))
+              (super-new)))
+          
+          (define current-input-text (new current-input-text%))
+          (define current-text-inserted? #f)
+          (define current-input-text-thread #f)
+          
+          (define/private (show-input-text)
+            (unless current-text-inserted?
+              (set! current-text-inserted? #t)
+              (let* ([es (new editor-snip% (editor current-input-text))])
+                (insert es))))
+          (define/private (reset-input-text)
+            (when current-input-text-thread
+              (kill-thread current-input-text-thread))
+            (set! current-input-text (new current-input-text%))
+            (set! current-input-text-thread
+                  (thread
+                   (lambda ()
+                     (copy-port (send current-input-text get-in-port)
+                                backend-user-input-port)))))
+              
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;                                            ;;;
           ;;;                Evaluation                  ;;;
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1179,8 +1215,8 @@ TODO
               (current-output-port (get-out-port))
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
-              ;(current-input-port (get-in-port))
-              (current-input-port (make-input-port #f (lambda (bytes) eof) #f void))
+              (current-input-port user-input-port)
+              ;(current-input-port (make-input-port #f (lambda (bytes) eof) #f void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler
@@ -1437,7 +1473,8 @@ TODO
           
           (super-new)
           (auto-wrap #t)
-          (set-styles-sticky #f)))
+          (set-styles-sticky #f)
+          (reset-input-text)))
       
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
