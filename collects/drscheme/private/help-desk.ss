@@ -58,7 +58,12 @@
             (instantiate menu:can-restore-menu-item% ()
               (label (string-constant plt:hd:new-help-desk))
               (parent file-menu)
-              (callback (lambda (x y) ((hd-cookie-new-browser (get-hd-cookie))))))
+              (callback (lambda (x y) 
+                          (let ([hd-cookie (get-hd-cookie)])
+                            (visit-url-in-new-browser 
+                             hd-cookie
+                             (make-home-page-url
+                              (hd-cookie-port hd-cookie)))))))
             (super-file-menu:between-new-and-open file-menu))
           (super-instantiate ())))
       

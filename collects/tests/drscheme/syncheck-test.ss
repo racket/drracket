@@ -329,6 +329,8 @@
                   (" "        base)
                   ("2"        constant)
                   (")"        base)))
+
+      (make-test "`(a ,2 b c d)" '())
      
      (make-test "#!"
                 '(("#!" base)))
