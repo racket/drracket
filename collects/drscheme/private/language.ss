@@ -79,13 +79,14 @@
 	  ;; a mixin that delegates item clicks to the item clicked on, if it
 	  ;; is a language.
 	  (define selectable-hierlist%
+            (init parent)
 	    (class hierarchical-list%
 	      (override on-select)
 	      (rename [super-on-select on-select])
 	      (define (on-select i)
 		(when (is-a? hieritem-language<%>)
 		  (send i show-details)))
-	      (super-instantiate ())))
+	      (super-instantiate (parent))))
 
           (define dialog (make-object dialog% configure-language-title parent))
           (define outermost-panel (make-object horizontal-panel% dialog))
