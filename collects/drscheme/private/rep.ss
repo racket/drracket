@@ -1239,8 +1239,8 @@
               (for-each 
                (lambda (v)
                  (unless (void? v)
-                   (print v this-result))
-                 anss)))
+                   (print v this-result)))
+                 anss))
             
             (define (reset-highlighting) (void))
             
@@ -1273,7 +1273,8 @@
             (define (drscheme-port-print-handler value port)
               (let ([language (drscheme:language:language-settings-language
 			       (current-language-settings))])
-                (send language render-value value 
+                (send language render-value
+		      value 
                       port 
                       (cond
                         [(eq? port this-out) (lambda (x) (this-out-write x))]
@@ -1779,8 +1780,8 @@
                 (set-position (last-position) (last-position))
                 
                 (insert-delta (string-append (string-constant language) ": ") welcome-delta)
-                (insert-delta "<<language name goes here>>" dark-green-delta)
-                (unless 'default?
+                (insert-delta (extract-language-name user-language-settings) dark-green-delta)
+                (unless (is-default-settings? user-language-settings)
                   (insert-delta (string-append " " (string-constant custom)) dark-green-delta))
                 (insert-delta (format ".~n") welcome-delta)
                 
@@ -1804,7 +1805,7 @@
                 
                 (insert-delta (string-append (string-constant welcome-to) " ") welcome-delta)
                 (let-values ([(before after)
-                              (insert-delta "DrScheme" click-delta drs-font-delta)])
+                              (insert-delta (string-constant drscheme) click-delta drs-font-delta)])
                   (insert-delta (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
                                 welcome-delta)
                   (set-clickback before after 
