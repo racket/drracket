@@ -100,16 +100,18 @@
                [thnk (send language front-end input settings)])
           (parameterize ([read-accept-compiled #t])
 	    (if expected-module
-                (let* ([first (with-module-reading-parameterization thnk)]
-                       [module-ized-exp (check-module-form first expected-module filename)]
-                       [second (thnk)])
-                  (unless (eof-object? second)
-                    (raise-syntax-error
-                     'drscheme-load-handler
-                     (format "expected only a `module' declaration for `~s', but found an extra expression"
-                             expected-module)
-                     second))
-                  (eval module-ized-exp))
+		(with-module-reading-parameterization 
+		 (lambda ()
+		   (let* ([first (thnk)]
+			  [module-ized-exp (check-module-form first expected-module filename)]
+			  [second (thnk)])
+		     (unless (eof-object? second)
+		       (raise-syntax-error
+			'drscheme-load-handler
+			(format "expected only a `module' declaration for `~s', but found an extra expression"
+				expected-module)
+			second))
+		     (eval module-ized-exp))))
 		(let loop ([last-time-values (list (void))])
 		  (let ([exp (thnk)])
 		    (if (eof-object? exp)

@@ -284,14 +284,10 @@
                             (lambda (x)
                               (display (exn-message x))
                               (newline))])
-             
-             ;; this parameterize is here to hack around thing 'til the
-             ;; next mz release.
-             (parameterize ([read-dot-as-symbol #f])
-               (if use-copy?
-                   (namespace-require/copy module-spec)
-                   (namespace-require module-spec))
-               (namespace-transformer-require transformer-module-spec))))))
+	     (if use-copy?
+		 (namespace-require/copy module-spec)
+		 (namespace-require module-spec))
+	     (namespace-transformer-require transformer-module-spec)))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)
