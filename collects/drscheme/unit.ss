@@ -682,7 +682,7 @@
                  'symbol 'normal 'normal #f))])
       (public
         [get-string
-         (lambda () " lambda ")])
+         (lambda () "lambda")])
       (override
         [get-text
          (case-lambda

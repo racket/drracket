@@ -284,8 +284,8 @@
 				 (send editor get-text)
 				 "]"
 				 strings))]))]
-	       [(is-a? snip image-snip%
-		       (loop (send snip previous)
-			     (cons "<image>"
-				   strings)))]
+	       [(is-a? snip image-snip%)
+		(loop (send snip previous)
+		      (cons "<image>"
+			    strings))]
 	       [else (error 'find-output "unknown snip: ~e~n" snip)])])))])))
