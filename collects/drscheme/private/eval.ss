@@ -142,7 +142,7 @@
       (define to-be-copied-module-specs
         (list 'mzscheme
               '(lib "mred.ss" "mred")))
-      ;; just double check that they are all here.
+      ;; ensure that they are all here.
       (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-module-specs)
       ;; get the names of those modules.
       (define to-be-copied-module-names
