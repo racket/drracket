@@ -59,86 +59,6 @@
   
   (define test-data
     (list
-
-     (let ([tmp-filename (make-temporary-file "dr-repl-test~a.ss")])
-       (make-test
-        (format "(load ~s) (f (lambda () (+ 1 (car 1))))" tmp-filename)
-        "car: expects argument of type <pair>; given 1"
-        "car: expects argument of type <pair>; given 1"
-        #t
-        (cons (make-loc -1 -1 (+ (string-length tmp-filename) 29))
-              (make-loc -1 -1 (+ (string-length tmp-filename) 36)))
-        #f
-        #f
-        #f
-        (lambda ()
-          (call-with-output-file tmp-filename
-            (lambda (port)
-              (write '(define (f t) (+ 1 (t)))
-                     port))
-            'truncate))
-        (lambda ()
-          (delete-file tmp-filename))))
-     
-     ;; XML tests
-     (make-test
-      '(("Special" "Insert XML Box")
-        "<a>")
-      "(a ())"
-      "(a ())"
-      #f
-      'interactions
-      #f
-      #f
-      #f
-      void
-      void)
-     
-     (make-test
-      '(("Special" "Insert XML Box")
-        "<a>"
-        ("Special" "Insert Scheme Box")
-        "1")
-      "(a () 1)"
-      "(a () 1)"
-      #f
-      'interactions
-      #f
-      #f
-      #f
-      void
-      void)
-     
-     (make-test
-      '(("Special" "Insert XML Box")
-        "<a>"
-        ("Special" "Insert Scheme Splice Box")
-        "'(1)")
-      "(a () 1)"
-      "(a () 1)"
-      #f
-      'interactions
-      #f
-      #f
-      #f
-      void
-      void)
-     
-     (make-test
-      '(("Special" "Insert XML Box")
-        "<a>"
-        ("Special" "Insert Scheme Splice Box")
-        "1")
-      "scheme-splice-box: expected a list, found: 1"
-      "scheme-splice-box: expected a list, found: 1"
-      #t
-      'definitions
-      #f
-      #f
-      #f
-      void
-      void)
-     
      ;; basic tests
      (make-test "("
                 "~aread: expected a ')'"
@@ -254,7 +174,22 @@
 		#f
                 void
                 void)
-     
+
+     (make-test (string-append
+                 "(module m mzscheme (provide e) (define e #'1))\n"
+                 "(module n mzscheme (require-for-syntax m) (provide s) (define-syntax (s stx) e))\n"
+                 "(require n)\n"
+                 "s")
+                "compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1"
+                "compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1"
+                #f
+                (cons (make-loc 1 43 43) (make-loc 1 44 44))
+                #f
+                #f
+                #f
+                void
+                void)
+
      ;; leading comment test
      (make-test "#!\n1"
                 "1"
@@ -279,6 +214,65 @@
                 #f
                 void
                 void)
+
+     ;; XML tests
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>")
+      "(a ())"
+      "(a ())"
+      #f
+      'interactions
+      #f
+      #f
+      #f
+      void
+      void)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Box")
+        "1")
+      "(a () 1)"
+      "(a () 1)"
+      #f
+      'interactions
+      #f
+      #f
+      #f
+      void
+      void)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Splice Box")
+        "'(1)")
+      "(a () 1)"
+      "(a () 1)"
+      #f
+      'interactions
+      #f
+      #f
+      #f
+      void
+      void)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Splice Box")
+        "1")
+      "scheme-splice-box: expected a list, found: 1"
+      "scheme-splice-box: expected a list, found: 1"
+      #t
+      'definitions
+      #f
+      #f
+      #f
+      void
+      void)
      
      ;; eval tests
      (make-test "    (eval '(values 1 2))"
@@ -417,6 +411,27 @@
                 #f
                 void
                 void)
+
+     ;; error across separate files
+     (let ([tmp-filename (make-temporary-file "dr-repl-test~a.ss")])
+       (make-test
+        (format "(load ~s) (f (lambda () (+ 1 (car 1))))" tmp-filename)
+        "car: expects argument of type <pair>; given 1"
+        "car: expects argument of type <pair>; given 1"
+        #t
+        (cons (make-loc -1 -1 (+ (string-length tmp-filename) 29))
+              (make-loc -1 -1 (+ (string-length tmp-filename) 36)))
+        #f
+        #f
+        #f
+        (lambda ()
+          (call-with-output-file tmp-filename
+            (lambda (port)
+              (write '(define (f t) (+ 1 (t)))
+                     port))
+            'truncate))
+        (lambda ()
+          (delete-file tmp-filename))))
      
      ;; new namespace test
      (make-test "(current-namespace (make-namespace))\nif"

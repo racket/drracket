@@ -10,99 +10,122 @@
   (provide run-test)
   
   (define-struct test (definitions   ;; string
-                       interactions    ;; (union #f string)
-                       result))       ;; string
+                       interactions  ;; (union #f string)
+                       result))      ;; string
   
   (define tests
-    (list (make-test "" 
-                     #f
-                     (regexp "module-language: the definitions window must contain a module"))
-	  (make-test "1" 
-                     #f
-                     (regexp "module-language: only module expressions are allowed"))
-          (make-test "(module m mzscheme) 1" 
-                     #f 
-                     (regexp "module-language: there can only be one expression in the definitions window"))
-          (make-test "(module m mzscheme (provide x) (define x 1))" "x" "1")
-          (make-test "(module m mzscheme (define x 1))" "x" "1")
-          (make-test "(module m mzscheme (define x 1) (define y 1) (provide y))" "x" "1")
-          (make-test "(module m mzscheme (define x 1) (define y 2) (provide y))" "y" "2")
-          (make-test "(module m mzscheme (require (lib \"list.ss\")))" 
-                     "foldl" 
-                     (regexp "foldl"))
-          
-          (make-test "(module m mzscheme (require (rename (lib \"list.ss\") local-foldl foldl)))" 
-                     "local-foldl"
-                     (regexp "foldl>"))
-          
-          (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
-                     "first"
-                     (regexp "first>"))
-          (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
-                     "foldl"
-                     ". reference to undefined identifier: foldl")
-          
-          (make-test "(module m mzscheme (require (prefix mz: mzscheme)))" "mz:+" #rx"primitive:+")
-          
-          (make-test "(module n mzscheme (provide (all-from-except mzscheme +)))"
-                     "+"
-                     #rx"primitive:+")
-          
-          (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
-                     "foldl"
-                     (regexp "foldl>"))
-          (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
-                     "x:foldl"
-                     (regexp "foldl>"))
-          
-          (make-test (format "(module m (file \"~a\") x)"
-                             (build-path 
-                              (this-expression-source-directory)
-                              "module-lang-test-tmp.ss"))
-                     "x"
-                     "1")
-          
-          ;; + shouldn't be bound in the REPL because it isn't bound
-          ;; in the module.
-          (make-test (format "(module m (file \"~a\") x)"
-                             (build-path 
-                              (this-expression-source-directory)
-                              "module-lang-test-tmp.ss"))
-                     "+"
-                     ". reference to undefined identifier: +")
-          
-          (make-test (format "~s" '(module m mzscheme (provide lambda)))
-                     "(lambda (x) x)"
-                     #rx"<procedure")
-          
-          (make-test (format "~s" '(module m mzscheme (define-syntax (m x) (syntax 1)) (provide m)))
-                     "(m)"
-                     "1")
-          (make-test (format "~s" '(module m mzscheme (define-syntax s (syntax 1)) (provide s)))
-                     "s"
-                     "s: illegal use of syntax in: s")
-          
-          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x))
-                     "a"
-                     ". reference to undefined identifier: a")
-          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x))
-                     "a"
-                     ". reference to undefined identifier: a")
-	  (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x (define a 77)))
-                     "a"
-                     "77")
-          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x (define a 78)))
-                     "a"
-                     "78")
-          ))
+    (list
+     
+     (make-test "" 
+                #f
+                (regexp "module-language: the definitions window must contain a module"))
+     (make-test "1" 
+                #f
+                (regexp "module-language: only module expressions are allowed"))
+     (make-test "(module m mzscheme) 1" 
+                #f 
+                (regexp "module-language: there can only be one expression in the definitions window"))
+     (make-test "(module m mzscheme (provide x) (define x 1))" "x" "1")
+     (make-test "(module m mzscheme (define x 1))" "x" "1")
+     (make-test "(module m mzscheme (define x 1) (define y 1) (provide y))" "x" "1")
+     (make-test "(module m mzscheme (define x 1) (define y 2) (provide y))" "y" "2")
+     (make-test "(module m mzscheme (require (lib \"list.ss\")))" 
+                "foldl" 
+                (regexp "foldl"))
+     
+     (make-test "(module m mzscheme (require (rename (lib \"list.ss\") local-foldl foldl)))" 
+                "local-foldl"
+                (regexp "foldl>"))
+     
+     (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
+                "first"
+                (regexp "first>"))
+     (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
+                "foldl"
+                ". reference to undefined identifier: foldl")
+     
+     (make-test "(module m mzscheme (require (prefix mz: mzscheme)))" "mz:+" #rx"primitive:+")
+     
+     (make-test "(module n mzscheme (provide (all-from-except mzscheme +)))"
+                "+"
+                #rx"primitive:+")
+     
+     (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
+                "foldl"
+                (regexp "foldl>"))
+     (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
+                "x:foldl"
+                (regexp "foldl>"))
+     
+     (make-test (format "~s"
+                        `(module m (file
+                                    ,(build-path 
+                                      (this-expression-source-directory)
+                                      "module-lang-test-tmp.ss"))
+                           x))
+                "x"
+                "1")
+     
+     ;; + shouldn't be bound in the REPL because it isn't bound
+     ;; in the module.
+     (make-test (format "~s"
+                        `(module m (file ,(build-path 
+                                           (this-expression-source-directory)
+                                           "module-lang-test-tmp.ss"))
+                           x))
+                "+"
+                ". reference to undefined identifier: +")
+     
+     (make-test (format "~s" '(module m mzscheme (provide lambda)))
+                "(lambda (x) x)"
+                #rx"<procedure")
+     
+     (make-test (format "~s" '(module m mzscheme (define-syntax (m x) (syntax 1)) (provide m)))
+                "(m)"
+                "1")
+     (make-test (format "~s" '(module m mzscheme (define-syntax s (syntax 1)) (provide s)))
+                "s"
+                "s: illegal use of syntax in: s")
+     
+     (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x))
+                "a"
+                ". reference to undefined identifier: a")
+     (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x))
+                "a"
+                ". reference to undefined identifier: a")
+     (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x (define a 77)))
+                "a"
+                "77")
+     (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x (define a 78)))
+                "a"
+                "78")
+     
+     (make-test
+      (format "~s" `(module m mzscheme
+                      (require-for-syntax 
+                       (file ,(build-path (this-expression-source-directory) 
+                                          "module-lang-test-tmp2.ss")))
+                      (provide s)
+                      (define-syntax (s stx) e)))
+      (format "~s ~s" '(require m) 's)
+      ". module-lang-test-tmp2.ss:1:69: compile: bad syntax; literal data is not allowed, because no #%datum syntax transformer is bound in: 1")))
   
-  ;; set up language for last test.
+  ;; set up for tests that need external files
   (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp.ss")
     (lambda (port)
       (write `(module module-lang-test-tmp mzscheme
                 (provide (all-from-except mzscheme +)
                          x)
                 (define x 1))
+             port))
+    'truncate
+    'text)
+  
+  (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp2.ss")
+    (lambda (port)
+      (write `(module module-lang-test-tmp2 mzscheme
+                (provide e)
+                (define e #'1))
              port))
     'truncate
     'text)
