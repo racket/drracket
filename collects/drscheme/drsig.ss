@@ -5,6 +5,8 @@
 (reference-library "gusrspcs.ss" "userspce")
 (reference-library "pconvers.ss")
 
+(define-signature drscheme:prefs^ ())
+
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
 
