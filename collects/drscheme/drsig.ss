@@ -22,6 +22,10 @@
 		    unmatched-cond/case-is-error?
 		    allow-improper-lists?
 		    sharing-printing?
+		    abbreviate-cons-as-list?
+		    signal-undefined
+		    signal-not-boolean
+		    eq?-only-compares-symbols?
 		    printing))
    fill-language-menu))
 
