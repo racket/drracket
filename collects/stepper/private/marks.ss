@@ -13,14 +13,13 @@
   (define mark-list? (listof procedure?))
 
   (provide/contract 
-   ;[make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
-   [make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
+   ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
    [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
    [lookup-binding (-> mark-list? identifier? any)]
    [lookup-binding-with-symbol (-> mark-list? symbol? any)])
   
   (provide
-   make-full-mark ; contract above.  contract turned off for faster execution.
+   make-debug-info ; ditto.
    skipto-mark?
    skipto-mark
    strip-skiptos
@@ -101,7 +100,7 @@
   ; see module top for type
   (define (make-full-mark location label bindings)
     (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
-                                              (quote-syntax ,location) 
+                                              ,(make-stx-protector location) 
                                               ,(make-label-protector label)
                                               ,@(apply append (map make-mark-binding-stx bindings))))))
   
@@ -110,7 +109,7 @@
   (define (mark-source mark)
     (if (cheap-mark? mark)
         (cheap-mark-source mark)
-        (full-mark-struct-source (mark))))
+        (stx-protector-stx (full-mark-struct-source (mark)))))
   
   ;; extract-locations : mark-set -> (listof syntax-object)
   (define (extract-locations mark-set)
@@ -121,7 +120,7 @@
   
   ; : identifier -> (list identifier TST)
   (define (make-mark-binding-stx id)
-    (list id (make-stx-protector id))) ; 3D!
+    (list (make-stx-protector id) id)) ; 3D!
   
   (define (mark-bindings mark)
     (letrec ([pair-off
@@ -129,17 +128,17 @@
                 (cond [(null? lst) null]
                       [(null? (cdr lst)) (error 'mark-bindings 
                                                            "uneven number of vars and bindings")]
-                      [else (cons (list (car lst) (cadr lst)) (pair-off (cddr lst)))]))])
+                      [else (cons (list (stx-protector-stx (car lst)) (cadr lst)) (pair-off (cddr lst)))]))])
       (pair-off (full-mark-struct-bindings (mark)))))
   
   (define (mark-label mark)
     (label-protector-label (full-mark-struct-label (mark))))
   
   (define (mark-binding-value mark-binding)
-    (car mark-binding))
+    (cadr mark-binding))
   
   (define (mark-binding-binding mark-binding)
-    (stx-protector-stx (cadr mark-binding)))
+    (stx-protector-stx (car mark-binding)))
 
   (define (expose-mark mark)
     (let ([source (mark-source mark)]

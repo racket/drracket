@@ -18,6 +18,7 @@ profile todo:
 	   (lib "toplevel.ss" "syntax")
            (lib "string-constant.ss" "string-constants")
            (lib "bday.ss" "framework" "private")
+	   "bindings-browser.ss"
            (lib "marks.ss" "stepper" "private"))
   
   (define orig (current-output-port))
@@ -153,7 +154,7 @@ profile todo:
                                  (exn-continuation-marks exn)
                                  cm-key))]
 		      [src-to-display (find-src-to-display exn 
-                                                           (map mark-label cms))])
+                                                           (map mark-source cms))])
                  
                  (queue-output
                   text
@@ -212,10 +213,9 @@ profile todo:
                     (eq? (send rep get-this-err) (current-error-port)))
 	       (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
-				(map mark-label
-                                     (continuation-mark-set->list 
-                                      (exn-continuation-marks exn)
-                                      cm-key)))]
+				(continuation-mark-set->list 
+                                 (exn-continuation-marks exn)
+                                 cm-key))]
 		      [src-to-display (find-src-to-display exn cms)])
 
                  (send rep queue-output
@@ -470,25 +470,28 @@ profile todo:
       ;;              void 
       ;; shows one frame of the continuation
       (define (show-frame editor-canvas text di)
-        (let* ([di-source-info (mark-label)]
-               [start (cadr di)]
-               [span (cddr di)]
-               [debug-source (car di)]
+        (let* ([di-source-info (mark-source di)]
+               [start (cadr di-source-info)]
+               [span (cddr di-source-info)]
+               [debug-source (car di-source-info)]
                [fn (get-filename debug-source)]
                [start-pos (send text last-position)])
           
           ;; make hyper link to the file
           (send text insert (format "~a: ~a-~a" fn start (+ start span)))
           (let ([end-pos (send text last-position)])
-            (send text insert #\newline)
+            (send text insert " ")
             (send text change-style (gui-utils:get-clickback-delta) start-pos end-pos)
             (send text set-clickback
                   start-pos end-pos
                   (lambda x
-                    (open-and-highlight-in-file di))))
+                    (open-and-highlight-in-file di-source-info))))
           
           ;; make bindings hier-list
-          
+          (let ([bindings (mark-bindings di)])
+            (when (not (null? bindings))
+              (send text insert (render-bindings/snip bindings))))
+          (send text insert #\newline)
           
           (insert-context editor-canvas text debug-source start span)
           (send text insert #\newline)))
