@@ -752,7 +752,11 @@
                                                                       
 
       (define language-extensions null)
-      (define (get-language-extensions) language-extensions)
+      (define (get-language-extensions) 
+        (drscheme:tools:only-in-phase
+         'drscheme:language:get-default-mixin
+         'phase2)
+        language-extensions)
 
       (define (default-mixin x) x)
       (define (get-default-mixin)

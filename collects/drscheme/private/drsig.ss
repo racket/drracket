@@ -158,9 +158,15 @@
      open-users-url))
   
   (define-signature drscheme:language^
-    (create-module-based-launcher
-     create-module-based-stand-alone-executable
+    (get-default-mixin
+     extend-language-interface
+     get-language-extensions
+     
      use-stand-alone-executable?
+     create-module-based-launcher
+     create-module-based-stand-alone-executable
+
+     open-input-text
 
      (struct text/pos (text start end))
      (struct simple-settings (case-sensitive 
@@ -170,12 +176,7 @@
                               insert-newlines
                               debugging))
      simple-settings->vector
-     open-input-text
 
-     get-language-extensions
-     get-default-mixin
-     extend-language-interface
-     
      language<%>
      module-based-language<%>
      simple-module-based-language<%>
@@ -206,15 +207,17 @@
      phase2))
   
   (define-signature drscheme:tool^
-    ((unit drscheme:frame : drscheme:frame^)
+    ((unit drscheme:debug : drscheme:debug^)
+     (unit drscheme:snip : drscheme:snip^)     
      (unit drscheme:unit : drscheme:unit^)
      (unit drscheme:rep : drscheme:rep^)
+     (unit drscheme:frame : drscheme:frame^)
      (unit drscheme:get/extend : drscheme:get/extend^)
      (unit drscheme:language-configuration : drscheme:language-configuration^)
      (unit drscheme:language : drscheme:language^)
-     (unit drscheme:snip : drscheme:snip^)
-     (unit drscheme:debug : drscheme:debug^)
-     (open ((unit drscheme:help-desk : drscheme:help-desk^)))))
+     (unit drscheme:help-desk : drscheme:help-desk^)
+     ;(open ((unit drscheme:help-desk : drscheme:help-desk^)))
+     ))
 
   (define-signature drscheme^
     ((unit drscheme:teachpack : drscheme:teachpack^)
