@@ -258,7 +258,7 @@
             [else
              (fw:test:set-choice! language-choice "Full Scheme")
              (fw:test:set-radio-box!
-              (find-labelled-window #f radio-box% (send language-choice get-parent))
+              (find-labelled-window "Full Scheme Variant" radio-box%)
               level)]))
         
         (when close-dialog?

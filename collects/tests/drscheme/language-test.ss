@@ -34,24 +34,45 @@
 	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n"
 		(language) expression result got)))))
 
+(define (test-teaching-language-primitives)
+  (set-language #f)
+  (test-setting "Teaching language primitives" #f
+		"make-posn"
+		"reference to undefined identifier: make-posn")
+  (set-language #f)
+  (test-setting "Teaching language primitives" #f
+		"first"
+		"reference to undefined identifier: first")
+  (set-language #f)
+  (test-setting "Teaching language primitives" #f
+		"turtles"
+		"reference to undefined identifier: turtles")
+  (set-language #f)
+  (test-setting
+   "Teaching language primitives" #t
+   "make-posn first turtles"
+   (format "#<struct-procedure:make-posn>~n#<procedure:first>~n#<procedure:turtles>")))
+
 (define (mred)
   (parameterize ([language "Graphical without Debugging (MrEd)"])
     (generic-settings #f)
     (generic-output #t #t #f)
+
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t
 		  "(cond [#f 1])" "cond or case: no matching clause")
     
     (test-hash-bang)
+    (test-teaching-language-primitives)
 
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
     
-    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f #%define) 1)" "lambda: illegal use of keyword at: #%define in: (#%lambda (#%define) 1)")
     (test-expression "(define (f define) 1)" "")
-    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f #%car) 1)" "lambda: illegal use of keyword at: #%car in: (#%lambda (#%car) 1)")
     (test-expression "(define (f car) 1)" "")
     (test-expression "(define (f #%empty) 1)" "")
     (test-expression "(define (f empty) 1)" "")
@@ -61,7 +82,7 @@
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)"
 		     "reference to undefined identifier: make-posn")
@@ -82,8 +103,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -103,9 +124,9 @@
       (set-language #t)
       (do-execute drs))
     
-    (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
+    (test-expression "(define (f #%define) 1)" "lambda: illegal use of keyword at: #%define in: (#%lambda (#%define) 1)")
     (test-expression "(define (f define) 1)" "")
-    (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
+    (test-expression "(define (f #%car) 1)" "lambda: illegal use of keyword at: #%car in: (#%lambda (#%car) 1)")
     (test-expression "(define (f car) 1)" "")
     (test-expression "(define (f #%empty) 1)" "")
     (test-expression "(define (f empty) 1)" "")
@@ -115,7 +136,7 @@
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
     
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -135,8 +156,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -157,6 +178,7 @@
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
     (test-hash-bang)
+    (test-teaching-language-primitives)
 
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
@@ -175,7 +197,7 @@
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "{image} reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -197,8 +219,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -236,7 +258,7 @@
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)"
 		     "{image} reference to undefined identifier: make-posn")
@@ -259,8 +281,8 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -315,8 +337,8 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(cons 1 empty)")
@@ -353,7 +375,7 @@
     (test-expression "(error \"a\" \"a\")"
 		     "error: expected a symbol and a string, got \"a\" and \"a\"")
     
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -374,8 +396,8 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
@@ -412,7 +434,7 @@
     (test-expression "(error \"a\" \"a\")"
 		     "error: expected a symbol and a string, got \"a\" and \"a\"")
     
-    (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
+    (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
     (test-expression "set-posn-x!" "set-posn-x!")
@@ -433,8 +455,8 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "<number 3/2>")
-    (test-expression "1/3" "<number 1/3>")
+    (test-expression "3/2" "{number 3/2}")
+    (test-expression "1/3" "{number 1/3}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
@@ -504,12 +526,12 @@
     
     (test "write" 'off #f #t "((4/3) (4/3))")
     (test "write" 'on #f #t "(#0=(4/3) #0#)")
-    (test "write" 'off #t #t "((<number 4/3>) (<number 4/3>))")
-    (test "write" 'on #t #t "(#0=(<number 4/3>) #0#)")
+    (test "write" 'off #t #t "(({number 4/3}) ({number 4/3}))")
+    (test "write" 'on #t #t "(#0=({number 4/3}) #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off #t #t "`((<number 4/3>) (<number 4/3>))")
+      (test "Quasiquote" 'off #t #t "`(({number 4/3}) ({number 4/3}))")
       (test "Quasiquote" 'off #f #t "`((4/3) (4/3))")
-      (test "Quasiquote" 'on #t #t "(shared ((-1- `(<number 4/3>))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on #t #t "(shared ((-1- `({number 4/3}))) `(,-1- ,-1-))")
       (test "Quasiquote" 'on #f #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))"))
 
     (test "Constructor" 'off #f #t
@@ -518,16 +540,16 @@
 	      "(cons (cons 4/3 empty) (cons (cons 4/3 empty) empty))"))
     (test "Constructor" 'off #t #t
 	  (if list?
-	      "(list (list <number 4/3>) (list <number 4/3>))"
-	      "(cons (cons <number 4/3> empty) (cons (cons <number 4/3> empty) empty))"))
+	      "(list (list {number 4/3}) (list {number 4/3}))"
+	      "(cons (cons {number 4/3} empty) (cons (cons {number 4/3} empty) empty))"))
     (test "Constructor" 'on #f #t
 	  (if list? 
 	      "(shared ((-1- (list 4/3))) (list -1- -1-))"
 	      "(shared ((-1- (cons 4/3 empty))) (cons -1- (cons -1- empty)))"))
     (test "Constructor" 'on #t #t
 	  (if list?
-	      "(shared ((-1- (list <number 4/3>))) (list -1- -1-))"
-	      "(shared ((-1- (cons <number 4/3> empty))) (cons -1- (cons -1- empty)))"))
+	      "(shared ((-1- (list {number 4/3}))) (list -1- -1-))"
+	      "(shared ((-1- (cons {number 4/3} empty))) (cons -1- (cons -1- empty)))"))
 
     ;; setup comment box
     (clear-definitions drs)
@@ -537,8 +559,8 @@
     (fw:test:keystroke #\c)
 
     ;; test comment box in print-convert and print-convert-less settings
-    (test "Constructor" 'on #t #t (if zodiac? "[abc]" "'non-string-snip"))
-    (test "write" 'on #f #t (if zodiac? "[abc]" "non-string-snip"))
+    (test "Constructor" 'on #t #t (if zodiac? "{embedded \"abc\"}" "'non-string-snip"))
+    (test "write" 'on #f #t (if zodiac? "{embedded \"abc\"}" "non-string-snip"))
 
     ;; setup write / pretty-print difference
     (clear-definitions drs)
