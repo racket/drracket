@@ -23,8 +23,7 @@
 		(drscheme-info 'compile-elaboration-zos failure)
 		(list "rep-new.ss" "phooks.ss" "toy.ss" ; should these files be deleted?
 		      "tool.ss"))]
-	      [(compile-subcollections) (list (list "tools" "syncheck")
-					      (list "tools" "analysis"))]
+	      [(compile-subcollections) (list (list "drscheme" "tools" "syncheck"))]
 	      [(compile-elaboration-zos-prefix)
 	       '(begin
 		  (read-case-sensitive #t)
