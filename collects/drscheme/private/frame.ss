@@ -118,14 +118,21 @@
           (override on-event on-paint)
           
           (define paths #f)
+          
+          ;; label : string
           (define label (string-constant untitled))
+          
           (define (set-message file-name? path-name)
-            (set! paths (if (and file-name? (file-exists? path-name))
+            (set! paths (if (and file-name? 
+                                 path-name 
+                                 (file-exists? path-name))
 			    (mzlib:file:explode-path (mzlib:file:normalize-path path-name))
                             #f))
-            (let ([new-label (if (and paths (not (null? paths)))
-                                 (car (mzlib:list:last-pair paths))
-                                 path-name)])
+            (let ([new-label (cond
+                               [(and paths (not (null? paths)))
+                                (car (mzlib:list:last-pair paths))]
+                               [path-name path-name]
+                               [else (string-constant untitled)])])
               (unless (equal? label new-label)
                 (set! label new-label)
                 (update-min-sizes)
@@ -325,9 +332,9 @@
           [define (file-menu:open-callback item evt) (handler:open-file)]
           (define (file-menu:new-string) (string-constant new-menu-item))
           (define (file-menu:open-string) (string-constant open-menu-item))
-          [define file-menu:new-callback
-            (lambda (item evt)
-              (drscheme:unit:open-drscheme-window))]
+
+          (define (file-menu:new-callback item event)
+            (drscheme:unit:open-drscheme-window)) 
           
           (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define file-menu:between-open-and-revert
