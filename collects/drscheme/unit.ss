@@ -585,6 +585,7 @@
       (public
 	[stop-execute-button (void)]
 	[execute-button (void)]
+	[help-button (void)]
 	[button-panel (make-object mred:horizontal-panel% top-panel)])
       
       (sequence
@@ -599,9 +600,10 @@
 			     (ensure-interactions-shown)
 			     (send (send interactions-edit get-canvas) set-focus))
 			   break-bitmap))
-	(make-object mred:button% button-panel
-		     (lambda args (do-help))
-		     help-bitmap)
+	(set! help-button 
+	      (make-object mred:button% button-panel
+			   (lambda args (do-help))
+			   help-bitmap))
 	
 	(send imports-panel stretchable-in-y #f)
 	(send button-panel stretchable-in-y #f)
