@@ -119,5 +119,6 @@
 	  [else
 	   (let ([f (build-path (collection-path "drscheme") "tools" (car dirs) "sig.ss")])
 	     (if (and f (file-exists? f))
-		 `((reference ,f) ,@(loop (cdr dirs)))
+		 `((require-library "sig.ss" "drscheme" "tools" ,(car dirs))
+                   ,@(loop (cdr dirs)))
 		 (loop (cdr dirs))))]))))
