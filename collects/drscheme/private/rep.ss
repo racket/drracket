@@ -1554,13 +1554,14 @@
             (not (and (get-user-thread)
                       (thread-running? (get-user-thread)))))
           
-          (field (user-language-settings 'uninitialized-user-language-settings)
+          (field (user-language-settings #f)
                  (user-teachpack-cache (preferences:get 'drscheme:teachpacks))
                  (user-custodian #f)
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
                  (user-thread-box (make-weak-box #f)))
 
+          (define/public (get-user-language-settings) user-language-settings)
           (define/public (get-user-custodian) user-custodian)
           (define/public (get-user-teachpack-cache) user-teachpack-cache)
           (define/public (set-user-teachpack-cache tpc) (set! user-teachpack-cache tpc))
@@ -1801,13 +1802,13 @@
           (inherit get-top-level-window)
           (define init-evaluation-thread ; =Kernel=
             (lambda ()
-              (set! user-language-settings
-                    (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
-                          [f (get-top-level-window)])
-                      (if f
-                          (let ([defs (send f get-definitions-text)])
-                            (send defs get-next-settings))
-                          default)))
+              (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
+                    [frame (get-top-level-window)])
+                (if frame
+                    (let ([defs (send frame get-definitions-text)])
+                      (set! user-language-settings (send defs get-next-settings)))
+                    (set! user-language-settings default)))
+              
               (set! user-custodian (make-custodian))
 	      ; (custodian-limit-memory user-custodian 10000000 user-custodian)
               (set! user-eventspace-box (make-weak-box

@@ -418,7 +418,7 @@
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
-                     (send f change-mode-to-match-filename fn)
+                     (send f change-mode-to-match) 
                      (send f update-save-message fn)))]))
             
             (rename [super-after-insert after-insert]
@@ -430,7 +430,11 @@
              [next-settings execute-settings])
             
             (define/public (get-next-settings) next-settings)
-            (define/public (set-next-settings _next-settings) (set! next-settings _next-settings))
+            (define/public (set-next-settings _next-settings)
+              (set! next-settings _next-settings)
+              (let ([frame (get-top-level-window)])
+                (when frame
+                  (send frame change-mode-to-match))))
             
             (define/public (needs-execution?)
               (or needs-execution-state
@@ -861,7 +865,7 @@
           get-interactions-canvas
           get-definitions-canvas
           execute-callback
-          change-mode-to-match-filename))
+          change-mode-to-match))
 
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%>)
@@ -1316,19 +1320,27 @@
                                     (send item check #t))))
                               (drscheme:modes:get-modes))))))
           
-          (define/public (change-mode-to-match-filename filename)
-            (let loop ([modes (drscheme:modes:get-modes)])
-              (cond
-                [(null? modes) (error 'change-mode-to-match-filename
-                                      "didn't find a matching mode")]
-                [else (let ([mode (car modes)])
-			(if ((drscheme:modes:mode-matches-filename mode) filename)
-                            (unless (is-current-mode? mode)
-                              (set-current-mode mode))
-                            (loop (cdr modes))))])))
+          (define/public (change-mode-to-match)
+            (let* ([filename (send definitions-text get-filename)]
+                   [language-settings (send definitions-text get-next-settings)]
+                   [language-name (and language-settings
+                                       (send (drscheme:language-configuration:language-settings-language
+                                              language-settings)
+                                             get-language-position))])
+              (let loop ([modes (drscheme:modes:get-modes)])
+                (cond
+                  [(null? modes) (error 'change-mode-to-match-filename
+                                        "didn't find a matching mode")]
+                  [else (let ([mode (car modes)])
+                          (if (or ((drscheme:modes:mode-matches-language mode) language-name)
+                                  ((drscheme:modes:mode-matches-filename mode) filename))
+                              (unless (is-current-mode? mode)
+                                (set-current-mode mode))
+                              (loop (cdr modes))))]))))
           
           (define/private (set-initial-mode)
-            (set-current-mode (car (last-pair (drscheme:modes:get-modes)))))
+            (set-current-mode (car (last-pair (drscheme:modes:get-modes))))
+            (change-mode-to-match))
 
           
 ;                                                                                         
