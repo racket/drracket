@@ -14,7 +14,8 @@
   (define (section->language section)
     (cond
       [(section . <= . 12) '("How to Design Programs" "Beginning Student")]
-      [(section . <= . 29) '("How to Design Programs" "Intermediate Student")]
+      [(section . <= . 23) '("How to Design Programs" "Intermediate Student")]
+      [(section . <= . 29) '("How to Design Programs" "Intermediate Student with Lambda")]
       [else '("How to Design Programs" "Advanced Student")]))
 
   (define sample-solutions-teachpack-filename
@@ -70,7 +71,8 @@
                             (cdr lookup)
                             default-toc-entry))]
            [label (car (memf (lambda (x) (string=? (car x) filename)) labels))]
-           [language (section->language (car (cadr label)))]
+           [section (car (cadr label))]
+           [language (section->language section)]
            [errors-ok? (car toc-entry)]
            [teachpacks (cadr toc-entry)])
       
@@ -151,8 +153,9 @@
                 (has-error? drs-frame))
            =>
            (lambda (err-msg)
-             (printf "ERROR: ~a: found error, but should be no errors:~n  ~a\n  teachpacks: ~a\n"
+             (printf "ERROR: ~a: found error, but should be no errors (section ~a):~n  ~a\n  teachpacks: ~a\n"
                      filename
+                     section
                      err-msg
                      teachpacks))]
           [else
