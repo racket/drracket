@@ -104,7 +104,11 @@
       (cond
         [(and (not errors-ok?)
               (has-error? drs-frame))
-         (printf "ERROR: ~a: found error, but should be no errors~n" filename)]
+	 =>
+	 (lambda (err-msg)
+	   (printf "ERROR: ~a: found error, but should be no errors:~n  ~a~n"
+		   filename
+		   err-msg))]
         [else
          (let* ([output (fetch-output drs-frame)]
                 [port (open-input-string output)])

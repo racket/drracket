@@ -291,7 +291,16 @@
 		(let ([color (send (send snip get-style) get-foreground)])
 		  (if (and (= 255 (send color red))
 			   (= 0 (send color blue) (send color green)))
-		      #t
+		      
+		      (let loop ([end (send snip next)])
+			(let ([color (send (send end get-style) get-foreground)])
+			  (if (and (= 255 (send color red))
+				   (= 0 (send color blue) (send color green)))
+			      (loop (send end next))
+			      (send interactions-text get-text
+				    pos
+				    (send interactions-text get-snip-position end)))))
+
 		      (loop (+ pos (send snip get-count)))))]))])))))
 
   (define fetch-output
