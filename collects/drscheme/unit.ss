@@ -188,7 +188,6 @@
 	(case-lambda
 	 [(fn) (set-filename fn #f)]
 	 [(fn tmp?)
-	  (printf "setting filename to ~a~n" fn)
 	  (let ([f (get-top-level-window)])
 	    (when f
 	      (send f update-save-message fn)))
