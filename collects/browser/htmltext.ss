@@ -26,7 +26,9 @@
       add-link
       add-tag
       make-link-style
-      add-scheme-callback))
+      add-scheme-callback
+      add-thunk-callback
+      post-url))
 
   (define url-delta (make-object style-delta% 'change-underline #t))
   (send url-delta set-delta-foreground "blue")

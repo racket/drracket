@@ -22,6 +22,7 @@
       (init-field [options null])
       (define w #f)
       (define h #f)
+      (define d #f)
       (define current-option #f)
       (define look-for-option #f) ; a box when we're looking (in case we're looking for #f)
 
@@ -52,24 +53,26 @@
 	 (lambda (dc x y wbox hbox descentbox spacebox lspacebox rspacebox)
 	   (unless w
 	     (let ([font (send (get-style) get-font)])
-	       (let ([w+hs
+	       (let ([w+h+ds
 		      (map (lambda (o)
 			     (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
-			       (cons tw th)))
+			       (list tw th td)))
 			   options)])
-		 (if (null? w+hs)
+		 (if (null? w+h+ds)
 		     (begin
 		       (set! w 10)
-		       (set! h 10))
+		       (set! h 10)
+		       (set! d 2))
 		     (begin
-		       (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+hs))))
-		       (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cdr w+hs)))))))))
+		       (set! w (+ (* 2 inset) arrow-sep 2 (* 2 arrow-height) (apply max (map car w+h+ds))))
+		       (set! h (+ (* 2 inset) 1 (apply max arrow-height (map cadr w+h+ds))))
+		       (set! d (+ inset 1 (apply max (map caddr w+h+ds)))))))))
 	   (when hbox
 	     (set-box! hbox h))
 	   (when wbox
 	     (set-box! wbox w))
 	   (when descentbox
-	     (set-box! descentbox 0))
+	     (set-box! descentbox d))
 	   (when spacebox
 	     (set-box! spacebox 0))
 	   (when rspacebox

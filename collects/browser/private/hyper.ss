@@ -213,10 +213,11 @@
 		 (set-clickback 
 		  start end 
 		  (lambda (edit start end)
-		    (let-values ([(url post-data) (thunk)])
-                      (when url
-			((make-clickback-funct url post-data) edit start end))))))]
+		    (thunk))))]
 
+	      [post-url (lambda (url post-data)
+			  ((make-clickback-funct url post-data) this 0 1))]
+	      
               [eval-scheme-string
                (lambda (s)
                  (let ([v (dynamic-wind
@@ -603,6 +604,7 @@
                                    (string->url url)))]
                       [e (let ([e-now (get-editor)])
 			   (if (and e-now
+				    (not post-data)
 				    (same-page-url? url (send e-now get-url)))
 			       (begin
                                  (progress #t)

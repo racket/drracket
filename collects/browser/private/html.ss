@@ -5,6 +5,7 @@
            (lib "mred-sig.ss" "mred")
            (lib "file.ss")
            (lib "list.ss")
+           (lib "etc.ss")
            (lib "string.ss")
            (lib "thread.ss")
            (lib "url.ss" "net")
@@ -226,6 +227,8 @@
 	     (eth 240) (ntilde 241) (ograve 242) (oacute 243) (ocirc 244) (otilde 245)
 	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
+
+      (define re:empty (regexp (format "^[ ~c]*$" (latin-1-integer->char 160))))
 
       (define-struct form (action target method parts active-select))
       (define (protect-chars s)
@@ -573,23 +576,39 @@
 				      (change-style delta start-pos end-pos)
 				      (r))))]
 
-		       [styler (lambda (delta rest)
+		       [styler (opt-lambda (delta rest [drop-empty? #f])
 				 (let* ([start-pos (current-pos)]
 					[r (rest)]
 					[end-pos (current-pos)])
-				   (lambda ()
-				     (change-style delta start-pos end-pos)
-				     (r))))]
+				   (if (and drop-empty?
+					    (regexp-match re:empty (send a-text get-text start-pos end-pos)))
+				       (begin
+					 (printf "empty~n")
+					 (delete start-pos end-pos)
+					 void)
+				       (lambda ()
+					 (change-style delta start-pos end-pos)
+					 (r)))))]
 		       
-		       [maybe-bg-color (lambda (e rest)
+		       [maybe-bg-color (lambda (e rest drop-empty?)
 					 (let* ([c (get-field e 'bgcolor)]
 						[color (and c (color-string->color c))])
-					   (if color
-					       (styler (let ([d (make-object style-delta%)])
-							 (send d set-delta-background color)
-							 d)
-						       rest)
-					       (rest))))]
+					   (cond
+					    [color
+					     (styler (let ([d (make-object style-delta%)])
+						       (send d set-delta-background color)
+						       d)
+						     rest
+						     drop-empty?)]
+					    [drop-empty?
+					     (let* ([start-pos (current-pos)]
+						    [r (rest)]
+						    [end-pos (current-pos)])
+					       (if (regexp-match re:empty (send a-text get-text start-pos end-pos))
+						   void
+						   r))]
+					    [else
+					     (rest)])))]
 		       
 		       [para-aligner (lambda (alignment delta rest)
 				       (let* ([start-pos (current-pos)]
@@ -788,18 +807,15 @@
 				     [(table)
 				      (insert-newlines 2 para-base)
 				      (begin0
-				       (maybe-bg-color e rest)
+				       (maybe-bg-color e rest #t)
 				       (insert-newlines 2 para-base))]
 				     [(tr)
 				      (insert-newlines 1 para-base)
 				      (begin0
-				       (maybe-bg-color e rest)
+				       (maybe-bg-color e rest #t)
 				       (insert-newlines 1 para-base))]
 				     [(td)
-				      (insert " ")
-				      (begin0
-				       (maybe-bg-color e rest)
-				       (insert " "))]
+				      (maybe-bg-color e rest #t)]
 				     [(img)
 				      (let* ([url (parse-image-source e)]
 					     [alt (get-field e 'alt)]
@@ -818,7 +834,31 @@
 				      (let ([unsupported (make-unsupported tag e)]
 					    [pos (current-pos)]
                                             [type (let ([t (get-field e 'type)])
-                                                    (and t (string->symbol t)))])
+                                                    (and t (string->symbol t)))]
+					    [send-form (lambda (add-self?)
+							 (let ([post-string
+								(apply 
+								 string-append
+								 (map (lambda (v)
+									(if (car v)
+									    (format "~a=~a&"
+										    (car v)
+										    (protect-chars (or ((cdr v))
+												       "?")))
+									    ""))
+								      (form-parts form)))])
+							   (send a-text post-url
+								 (form-action form)
+								 (if add-self?
+								     ;; Add this button
+								     (format "~a~a=~a" 
+									     post-string 
+									     (get-field e 'name) 
+									     (protect-chars (get-field e 'value)))
+								     ;; remove trailing &
+								     (substring post-string 
+										0 
+										(max 0 (sub1 (string-length post-string))))))))])
 					(let-values ([(name cb get-val)
 						      (cond
 						       [(eq? tag 'select)
@@ -827,13 +867,20 @@
 							  (insert select)
 							  (values (get-field e 'name)
 								  #f
-                                                                  (lambda () (send select get-value))))]
+                                                                  (lambda () 
+								    (send select get-value))))]
 						       [(and (eq? tag 'input)
                                                              (eq? type 'text))
                                                         (let* ([text (make-object text%)]
                                                                [snip (make-object editor-snip% text)]
                                                                [size (get-field e 'size)]
                                                                [val (get-field e 'value)])
+							  (let ([km (send text get-keymap)])
+							    ((current-text-keymap-initializer) km)
+							    (send km add-function "send-form"
+								  (lambda (t e)
+								    (send-form #f)))
+							    (send km map-function "enter" "send-form"))
                                                           (let ([width (* 10 (or (and size (string->number size))
                                                                                  25))])
                                                             (send text set-min-width width)
@@ -851,20 +898,7 @@
                                                         (values
 							 #f ; because we leave out this button when it's not pushed
                                                          (lambda ()
-                                                           (let ([post-string
-                                                                  (apply 
-                                                                   string-append
-                                                                   (map (lambda (v)
-                                                                          (if (car v)
-                                                                              (format "~a=~a&"
-                                                                                      (car v)
-                                                                                      (protect-chars (or ((cdr v))
-                                                                                                         "?")))
-                                                                              ""))
-                                                                        (form-parts form)))])
-                                                             (values 
-                                                              (form-action form)
-							      (format "~a~a=~a" post-string (get-field e 'name) (protect-chars (get-field e 'value))))))
+                                                           (send-form #t))
                                                          #f)]
                                                        [(and (eq? tag 'input)
                                                              (eq? type 'checkbox))
