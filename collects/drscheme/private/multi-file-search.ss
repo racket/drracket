@@ -58,7 +58,6 @@
       (preferences:set-default 'drscheme:multi-file-search:recur? #t boolean?)
       (preferences:set-default 'drscheme:multi-file-search:filter? #t boolean?)
       (preferences:set-default 'drscheme:multi-file-search:filter-string "\\.(ss|scm)$" string?)
-      (preferences:set-default 'drscheme:multi-file-search:directory "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-string "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-type
                                1
@@ -90,6 +89,14 @@
                                (lambda (x) (and (pair? x)
                                                 (number? (car x))
                                                 (number? (cdr x)))))
+      (preferences:set-default 'drscheme:multi-file-search:directory (car (filesystem-root-list)) path?)
+      (preferences:set-un/marshall 
+       'drscheme:multi-file-search:directory
+       (lambda (v) (path->string v))
+       (lambda (p) (if (path-string? p)
+                       (string->path p)
+                       (car (filesystem-root-list)))))
+      
       
       ;; open-search-window : search-info -> void
       ;; thread: eventspace main thread
@@ -255,9 +262,11 @@
             (lambda (base-filename full-filename line-string line-number col-number match-length)
               (lock #f)
               (let* ([new-line-position (last-position)]
-                     [short-filename (find-relative-path 
-                                      (normalize-path base-filename)
-                                      (normalize-path full-filename))]
+                     [short-filename 
+                      (path->string
+                       (find-relative-path 
+                        (normalize-path base-filename)
+                        (normalize-path full-filename)))]
                      [this-match-number (last-paragraph)]
                      [len (string-length short-filename)]
                      [insertion-start #f]
@@ -499,7 +508,9 @@
                                 (loop (cdr methods-check-boxes)))]))]))))
         
         (define (dir-field-callback)
-          (preferences:set 'drscheme:multi-file-search:directory (send dir-field get-value)))
+          (let ([df (send dir-field get-value)])
+            (when (path-string? df)
+              (preferences:set 'drscheme:multi-file-search:directory (string->path df)))))
         
         (define (filter-check-box-callback) 
           (preferences:set 'drscheme:multi-file-search:filter? (send filter-check-box get-value))
@@ -521,10 +532,10 @@
             (when (and d
                        (directory-exists? d))
               (preferences:set 'drscheme:multi-file-search:directory d)
-              (send dir-field set-value d))))
+              (send dir-field set-value (path->string d)))))
         
         (define (get-files)
-          (let ([dir (send dir-field get-value)])
+          (let ([dir (string->path (send dir-field get-value))])
             (and (directory-exists? dir)
                  (if (send recur-check-box get-value)
                      (build-recursive-file-list dir filter)
@@ -544,7 +555,7 @@
         (send filter-check-box set-value (preferences:get 'drscheme:multi-file-search:filter?))
         (send search-text-field set-value (preferences:get 'drscheme:multi-file-search:search-string))
         (send filter-text-field set-value (preferences:get 'drscheme:multi-file-search:filter-string))
-        (send dir-field set-value (preferences:get 'drscheme:multi-file-search:directory))
+        (send dir-field set-value (path->string (preferences:get 'drscheme:multi-file-search:directory)))
         
         (send outer-method-panel stretchable-height #f)
         (send outer-method-panel set-alignment 'left 'center)
@@ -562,7 +573,7 @@
           (send dir-field get-value)
           (send recur-check-box get-value)
           (and (send filter-check-box get-value)
-               (send filter-text-field get-value))
+               (regexp (send filter-text-field get-value)))
           searcher)))
       
       
@@ -596,12 +607,12 @@
       ;; build-recursive-file-list : string (union regexp #f) -> (-> (union string #f))
       ;; thread: search thread
       (define (build-recursive-file-list dir filter)
-        (letrec ([touched (make-hash-table)]
+        (letrec ([touched (make-hash-table 'equal)]
                  [next-thunk (lambda () (process-dir dir (lambda () #f)))]
                  [process-dir
                   ; string[dirname] (listof string[filename]) -> (listof string[filename])
                   (lambda (dir k)
-                    (let* ([key (string->symbol dir)]
+                    (let* ([key (normalize-path dir)]
                            [traversed? (hash-table-get touched key (lambda () #f))])
                       (if traversed? 
                           (k)
@@ -622,7 +633,9 @@
                          (cond
                            [(and (file-exists? file/dir)
                                  (or (not filter)
-                                     (regexp-match filter file/dir)))
+                                     (if (regexp? filter)
+                                         (regexp-match filter (path->string file/dir))
+                                         (regexp-match filter (path->bytes file/dir)))))
                             (set! next-thunk
                                   (lambda ()
                                     (process-dir-contents (cdr contents) k)))

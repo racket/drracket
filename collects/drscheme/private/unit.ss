@@ -1017,7 +1017,7 @@ tab panels new behavior:
           (define (build-logging-panel)
             (define hp (make-object horizontal-panel% logging-panel '(border)))
             (make-object message% (string-constant logging-to) hp)
-            (send (make-object message% logging hp) stretchable-width #t)
+            (send (make-object message% (path->string logging) hp) stretchable-width #t)
             (make-object button% (string-constant stop-logging) hp (lambda (x y) (stop-logging))))
           
           ;; remove-logging-pref-callback : -> void
@@ -1822,6 +1822,7 @@ tab panels new behavior:
                                0)])
                 (send definitions-text split-snip start)
                 (send interactions-text evaluate-from-port
+                      this
                       (open-input-text-editor definitions-text start)
                       #t))
               (send interactions-text clear-undos)))

@@ -104,22 +104,18 @@ TODO
       ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
+        (printf "msg: ~s\n" msg)
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
-          (printf "msg: ~s\n" msg)
-          #;
-          ((dynamic-require '(lib "errortrace-lib.ss" "errortrace") 'print-error-trace)
-           drscheme:init:original-output-port
-           exn)
-          (display msg (current-error-port))
-          (newline (current-error-port))
-          (when (and (is-a? rep -text<%>)
-                     (eq? (current-error-port) (send rep get-err-port)))
-            (parameterize ([current-eventspace drscheme:init:system-eventspace])
-              (queue-callback
-               (lambda ()
-                 (let ([context (send rep get-context)])
-                   (send context ensure-rep-shown rep))))))))
+          (cond
+            [(and (is-a? rep -text<%>)
+                  (eq? (current-error-port) (send rep get-err-port)))
+             (display msg (current-error-port))
+             (newline (current-error-port))]
+            [else
+             (display msg (current-error-port))
+             (newline (current-error-port))])))
+
 
       ;; insert-error-in-text : (is-a?/c text%)
       ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
@@ -939,9 +935,9 @@ TODO
             ;; clears out the extra eof, if one is still there after evaluation
             (send-eof-to-in-port)
             (send-eof-to-in-port)
-            (evaluate-from-port (get-in-port) #f))
+            (evaluate-from-port this (get-in-port) #f))
           
-          (define/public (evaluate-from-port port complete-program?) ; =Kernel=, =Handler=
+          (define/public (evaluate-from-port src port complete-program?) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([settings (current-language-settings)]
@@ -949,8 +945,8 @@ TODO
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
                        (if complete-program?
-                           (send lang front-end/complete-program port this settings user-teachpack-cache)
-                           (send lang front-end/interaction port this settings user-teachpack-cache))]
+                           (send lang front-end/complete-program port src settings user-teachpack-cache)
+                           (send lang front-end/interaction port src settings user-teachpack-cache))]
                       [already-exited? #f]
                       [got-eof? #f])
                  (let loop ()

@@ -32,20 +32,29 @@
                 [settings (drscheme:language-configuration:language-settings-settings
                            language-settings)])
             (lambda (input iter complete-program?)
-              (parameterize ([current-eventspace eventspace])
-                (queue-callback
-                 (lambda ()
-                   (let ([read-thnk 
-                          (if complete-program?
-                              (send language front-end/complete-program input settings teachpack-cache)
-                              (send language front-end/interaction input settings teachpack-cache))])
-                     (let loop ()
-                       (let ([in (read-thnk)])
-                         (cond
-                           [(eof-object? in)
-                            (iter in (lambda () (void)))]
-                           [else
-                            (iter in (lambda () (loop)))])))))))))))
+              (let-values ([(port src)
+                            (cond
+                              [(input-port? input) (values input #f)]
+                              [else (values
+                                     (open-input-text-editor
+                                      (drscheme:language:text/pos-text input)
+                                      (drscheme:language:text/pos-start input)
+                                      (drscheme:language:text/pos-end input))
+                                     (drscheme:language:text/pos-text input))])])
+                (parameterize ([current-eventspace eventspace])
+                  (queue-callback
+                   (lambda ()
+                     (let ([read-thnk 
+                            (if complete-program?
+                                (send language front-end/complete-program port src settings teachpack-cache)
+                                (send language front-end/interaction port src settings teachpack-cache))])
+                       (let loop ()
+                         (let ([in (read-thnk)])
+                           (cond
+                             [(eof-object? in)
+                              (iter in (lambda () (void)))]
+                             [else
+                              (iter in (lambda () (loop)))]))))))))))))
       
       (define (expand-program/multiple language-settings
                                        eval-compile-time-part? 

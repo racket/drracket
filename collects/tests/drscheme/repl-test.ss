@@ -83,7 +83,7 @@
      
      (make-test "1 2"
                 "1\n2"
-                "1\n2"
+                "2"
                 #f
                 'interactions
 		#f
@@ -94,7 +94,7 @@
      
      (make-test "\"a\" \"b\""
                 "\"a\"\n\"b\""
-                "\"a\"\n\"b\""
+                "\"b\""
                 #f
                 'interactions
 		#f
