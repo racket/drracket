@@ -177,7 +177,7 @@
 	(apply super-init args)
 	(let ([m (get-editor)])
 	  (send (get-top-level-window) set-save-init-shown?
-		(and m (send m modified?)))))))
+		(and m (send m is-modified?)))))))
   
   (define definitions-edit%
     (class fw:scheme:text% ()
@@ -193,11 +193,13 @@
 	      (send f update-save-button mod?)))
 	  (super-set-modified mod?))]
        [set-filename
-	(lambda (fn)
+	(case-lambda
+	 [(fn) (set-filename fn #f)]
+	 [(fn tmp?)
 	  (let ([f (get-top-level-window)])
 	    (when f
 	      (send f update-save-message fn)))
-	  (super-set-filename fn))])
+	  (super-set-filename fn tmp?)])])
 
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete])
@@ -307,11 +309,12 @@
 	 (lambda (name)
 	   (when save-button
 	     (let ([msg (make-object 
-			 mred:message% top-panel
+			 mred:message%
 			 (if name
 			     (or (mzlib:file:file-name-from-path name)
 				 "Untitlesd") 
-			     "Untitled"))])
+			     "Untitled")
+			 top-panel)])
 	       (set! name-message msg)
 	       (send top-panel change-children
 		     (lambda (l) (build-top-panel-children))))))])
@@ -330,7 +333,7 @@
 	[still-untouched?
 	 (lambda ()
 	   (and (= (send definitions-edit last-position) 0)
-		(not (send definitions-edit modified?))
+		(not (send definitions-edit is-modified?))
 		(not (send definitions-edit get-filename))))]
 	[change-to-file
 	 (lambda (name)
