@@ -51,7 +51,8 @@
           
           get-language-position
           get-style-delta
-          get-language-numbers))
+          get-language-numbers
+          get-one-line-summary))
       
       (define module-based-language<%>
 	(interface ()
@@ -73,15 +74,15 @@
           render-value
           
           get-language-position
-          get-language-numbers))
+          get-language-numbers
+          get-one-line-summary))
       
       (define simple-module-based-language<%>
 	(interface ()
           get-module
           get-language-position
           get-language-numbers
-          get-one-line-summary
-          get-documentation-reference))
+          get-one-line-summary))
       
       
                                           
@@ -110,7 +111,6 @@
 	  (define/public (get-language-position) language-position)
           (define/public (get-language-numbers) language-numbers)
           (define/public (get-one-line-summary) one-line-summary)
-          (define/public (get-documentation-reference) documentation-reference)
 	  (super-instantiate ())))
       
 
