@@ -1,4 +1,4 @@
-(set-language-level! "MzScheme")
+(set-language-level! "Textual (MzScheme)")
 
 (define frame (wait-for-drscheme-frame))
 
