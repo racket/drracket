@@ -66,8 +66,11 @@
     (unless (text%-obj . is-a? . html-text<%>)
       (raise-type-error 'render-html-to-text "html-text<%> object" 0 (list port text%-obj)))
     (parameterize ([html-eval-ok eval-ok?]
-		    [html-img-ok img-ok?])
-       (html-convert port text%-obj)))
+		   [html-img-ok img-ok?])
+      (dynamic-wind
+	  (lambda () (send text%-obj begin-edit-sequence #f))
+	  (lambda () (html-convert port text%-obj))
+	  (lambda () (send text%-obj end-edit-sequence)))))
   
   (provide html-text<%>
 	   html-text-mixin
