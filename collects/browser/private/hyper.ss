@@ -69,7 +69,7 @@
                                (and (equal? "file" (url-scheme url))
                                     (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
                                       (path-below?
-                                       (normalize-path (collection-path "doc"))
+                                       (normalize-path (build-path (collection-path "mzlib") 'up 'up))
                                        (normalize-path (url-path url)))))]
                               [else #f])])
 
