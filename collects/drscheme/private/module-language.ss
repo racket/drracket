@@ -4,6 +4,7 @@
   (require (lib "unitsig.ss")
            (lib "class.ss")
            (lib "list.ss")
+           (lib "file.ss")
            (lib "mred.ss" "mred")
            (lib "embed.ss" "compiler")
            (lib "launcher.ss" "launcher")
@@ -83,35 +84,35 @@
                 (super-front-end input settings)))
           
           ;; printer settings are just ignored here.
-          (define/override (create-executable setting parent program-filename executable-filename)
-            (let ([stand-alone? (drscheme:language:use-stand-alone-executable? parent)]
-                  [gui? (gui-utils:get-choice 
-                         (string-constant use-mred-binary?)
-                         (string-constant yes)
-                         (string-constant no)
-                         (string-constant drscheme)
-                         'disallow-close
-                         parent)])
-              
-              (with-handlers ([not-break-exn?
-                               (lambda (exn)
-                                 (message-box
-                                  (string-constant drscheme)
-                                  (if (exn? exn)
-                                      (exn-message exn)
-                                      (format "~s" exn))))])
-                (if stand-alone?
-                    (make-embedding-executable
-                     executable-filename
-                     gui?
-                     #f ;; verbose?
-                     (list (list #f `(file ,program-filename)))
-                     null
-                     null
-                     (list (if gui? "-Zmvqt" "-mvqt") program-filename))
-                    ((if gui? make-mred-launcher make-mzscheme-launcher)
-                     (list "-mvqt" program-filename)
-                     executable-filename)))))
+          (define/override (create-executable setting parent program-filename)
+            (let* ([executable-specs (drscheme:language:create-executable-gui
+                                      parent 
+                                      program-filename
+                                      #t
+                                      #t)])
+              (when executable-specs
+                (let ([stand-alone? (eq? 'stand-alone (car executable-specs))]
+                      [gui? (eq? 'mred (cadr executable-specs))]
+                      [executable-filename (caddr executable-specs)])
+                  (with-handlers ([not-break-exn?
+                                   (lambda (exn)
+                                     (message-box
+                                      (string-constant drscheme)
+                                      (if (exn? exn)
+                                          (exn-message exn)
+                                          (format "~s" exn))))])
+                    (if stand-alone?
+                        (make-embedding-executable
+                         executable-filename
+                         gui?
+                         #f ;; verbose?
+                         (list (list #f `(file ,program-filename)))
+                         null
+                         null
+                         (list (if gui? "-Zmvqt" "-mvqt") program-filename))
+                        ((if gui? make-mred-launcher make-mzscheme-launcher)
+                         (list "-mvqt" program-filename)
+                         executable-filename)))))))
           
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))

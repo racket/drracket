@@ -71,7 +71,7 @@
 	  
           on-execute
           get-init-code
-          use-mred-launcher?
+          use-mred-launcher
           
           render-value/format
           render-value
@@ -143,7 +143,7 @@
 	(mixin (simple-module-based-language<%>) (module-based-language<%>)
 	  (define/public (get-transformer-module) 'mzscheme)
           (define/public (use-namespace-require/copy?) #f)
-          (define/public (use-mred-launcher?) #t)
+          (define/public (use-mred-launcher) #t)
           
           (inherit get-module)
           (define/public (marshall-settings settings)
@@ -443,7 +443,7 @@
       (define module-based-language->language-mixin
 	(mixin (module-based-language<%>) (language<%>)
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
-                   get-init-code use-mred-launcher? get-reader)
+                   get-init-code use-mred-launcher get-reader)
 	  (rename [super-on-execute on-execute])
 
           (inherit get-language-position)
@@ -462,62 +462,167 @@
                                               run-in-user-thread))
           (define/public (front-end input settings)
             (module-based-language-front-end input (get-reader)))
-          (define/public (create-executable setting parent program-filename executable-filename)
+          (define/public (create-executable setting parent program-filename)
             (create-module-based-language-executable parent 
                                                      program-filename
-                                                     executable-filename
                                                      (get-module)
                                                      (get-transformer-module)
                                                      (get-init-code setting)
-                                                     (use-mred-launcher?)
+                                                     (use-mred-launcher)
                                                      (use-namespace-require/copy?)))
           (super-instantiate ())))
 
-      ;; create-module-based-language-executable :  ... -> void (see docs)
+      ;; create-module-based-language-executable :  
+      ;; (is-a?/c area-container<%>) string module-spec module-spec sexp (union boolean? 'ask) boolean?
+      ;;  -> void
       (define (create-module-based-language-executable parent
                                                        program-filename
-                                                       executable-filename
                                                        module-language-spec
                                                        transformer-module-language-spec
                                                        init-code
-                                                       gui?
+                                                       mred-launcher
                                                        use-copy?)
-        (let ([create-executable
-               (if (use-stand-alone-executable? parent)
-                   create-module-based-stand-alone-executable 
-                   create-module-based-launcher)])
-          (create-executable
-           program-filename
-           executable-filename 
-           module-language-spec
-           transformer-module-language-spec
-           init-code
-           gui?
-           use-copy?)))
+        (let ([executable-specs (create-executable-gui parent
+                                                       program-filename
+                                                       #t 
+                                                       (not (boolean? mred-launcher)))])
+          (when executable-specs
+            (let* ([type (car executable-specs)]
+                   [base (cadr executable-specs)]
+                   [executable-filename (caddr executable-specs)]
+                   [create-executable
+                    (if (eq? type 'launcher)
+                        create-module-based-launcher 
+                        create-module-based-stand-alone-executable)])
+              (create-executable
+               program-filename
+               executable-filename 
+               module-language-spec
+               transformer-module-language-spec
+               init-code
+               (if (boolean? mred-launcher)
+                   mred-launcher
+                   (eq? base 'mred))
+               use-copy?)))))
       
-      ;; use-stand-alone-executable? : (union (instanceof frame%) (instanceof dialog%)) -> boolean
-      (define (use-stand-alone-executable? parent)
-	(let* ([raw-message
-		(format (string-constant inline-saved-program-in-executable?)
-			(case (system-type)
-			  [(unix) (system-library-subpath)]
-			  [else (system-type)]))]
-	       [message
-		(case (system-type)
-		  [(windows)
-		   (string-append
-		    raw-message
-		    "\n\n"
-		    (format
-		     (string-constant inline-saved-program-in-executable/windows/path)
-		     (normalize-path (build-path (collection-path "mzlib") 'up 'up))))]
-		  [else raw-message])])
-	  (gui-utils:get-choice
-	   message
-	   (string-constant yes)
-	   (string-constant no)
-	   (string-constant drscheme)
-	   parent)))
+      
+      ;; create-executeable-gui : (union #f (is-a?/c top-level-area-container<%>))
+      ;;                          (union #f string?)
+      ;;                          boolean
+      ;;                          boolean
+      ;;                       -> (union #f (list (union 'no-show 'launcher 'stand-alone)
+      ;;                                          (union 'no-show 'mzscheme 'mred)
+      ;;                                          string[filename]))
+      (define (create-executable-gui parent program-filename show-type show-base)
+        (define dlg (make-object dialog% (string-constant create-executable-title) parent))
+        (define filename-panel (make-object horizontal-panel% dlg))
+        (define filename-text-field (instantiate text-field% ()
+                                      (label (string-constant filename))
+                                      (parent filename-panel)
+                                      (init-value (default-executable-filename program-filename))
+                                      (min-width 400)
+                                      (callback void)))
+        (define filename-browse-button (instantiate button% ()
+                                         (label (string-constant browse...))
+                                         (parent filename-panel)
+                                         (callback
+                                          (lambda (x y) (browse-callback)))))
+        (define type-panel (make-object horizontal-panel% dlg))
+        (define type-rb (and show-type
+                             (instantiate radio-box% ()
+                               (label (string-constant executable-type))
+                               (choices (list (string-constant launcher)
+                                              (string-constant stand-alone)))
+                               (parent type-panel)
+                               (callback void))))
+        (define base-panel (make-object horizontal-panel% dlg))
+        (define base-rb (and show-base
+                             (instantiate radio-box% ()                         
+                               (label (string-constant executable-base))
+                               (choices (list "MzScheme" "MrEd"))
+                               (parent base-panel)
+                               (callback void))))
+        (define button-panel (instantiate horizontal-panel% ()
+                               (parent dlg)
+                               (alignment '(right center))))
+        (define-values (ok-button cancel-button)
+          (gui-utils:ok/cancel-buttons
+           button-panel
+           (lambda (x y)
+             (cond
+               [(filename-ok?)
+                (set! cancelled? #f)
+                (send dlg show #f)]
+               [else (message-box (string-constant drscheme)
+                                  (string-constant please-choose-an-executable-filename)
+                                  dlg)]))
+           (lambda (x y) (send dlg show #f))
+           (string-constant create)
+           (string-constant cancel)))
+
+        (define (browse-callback)
+          (let ([filename 
+                 (parameterize ([finder:dialog-parent-parameter dlg]
+                                [finder:default-filters
+                                 '(("Executable" "*.exe") ("Any" "*.*"))])
+                   (finder:put-file
+                    (with-handlers ([not-break-exn? (lambda (exn) "")])
+                      (let-values ([(base name dir?) (split-path (send filename-text-field get-value))])
+                        name))
+                    #f 
+                    #f
+                    (string-constant save-an-executable)))])
+            (when filename
+              (send filename-text-field set-value filename))))
+        
+        (define (filename-ok?)
+          (not (string=? "" (send filename-text-field get-value))))
+        
+        (define cancelled? #t)
+        
+        (send dlg show #t)
+        (if cancelled?
+            #f
+            (list
+             (if type-rb
+                 (case (send type-rb get-selection)
+                   [(0) 'launcher]
+                   [(1) 'stand-alone])
+                 'now-show)
+             (if base-rb
+                 (case (send base-rb get-selection)
+                   [(0) 'mzscheme]
+                   [(1) 'mred])
+                 'no-show)
+             (send filename-text-field get-value))))
+
+      ;; put-executable-file : parent string -> (union false? string)
+      ;; invokes the put-file dialog with arguments specific to building executables
+      (define (put-executable-file parent program-filename)
+        (let-values ([(base name dir) (split-path program-filename)])
+          (put-file
+           (string-constant save-an-executable)
+           parent
+           base
+           (default-executable-filename name)
+           #f
+           null
+           '(("Executable" "*.exe") ("Any" "*.*")))))
+      
+      ;; default-executable-filename : string[filename] -> string[filename]
+      (define (default-executable-filename program-filename)
+        (let* ([ext (filename-extension program-filename)]
+               [ext-less (if ext
+                             (substring program-filename
+                                        0
+                                        (- (string-length program-filename)
+                                           (string-length ext)
+                                           1 ;; sub1 for the period in the extension
+                                           ))
+                             program-filename)])
+          (case (system-type)
+            [(windows) (string-append ext-less ".exe")]
+            [else ext-less])))
       
       ;; create-module-based-stand-alone-executable : ... -> void (see docs)
       (define (create-module-based-stand-alone-executable program-filename 
@@ -733,60 +838,6 @@
                           (close-input-port port)
                           eof)
                         result)))))))
-      
-      (define-struct loc (source position line column span))
-
-      ;; read-syntax-original : ... -> syntax
-      ;; arguments are the same as to read-syntax.
-      ;; adds the 'original annotations to the syntax that comes 
-      ;; from applying read-syntax to the arguments
-      (define (read-syntax-original . x)
-        (let ([res (apply read-syntax x)])
-          (let loop ([stx res])
-            (cond
-              [(syntax? stx)
-               (let ([obj (syntax-e stx)])
-                 (cond
-                   [(pair? obj)
-                    (with-syntax ([fst (loop (car obj))]
-                                  [rst (loop (cdr obj))])
-                      (printf "adding to: ~s\n" (syntax-object->datum stx))
-                      (syntax-property
-                       (syntax (fst . rst))
-                       'original
-                       (stx->loc stx)))]
-                   [else
-                    (syntax-property stx 'original (stx->loc stx))]))]
-              [(pair? stx)
-               (cons (loop (car stx))
-                     (loop (cdr stx)))]
-              [else stx]))))
-      
-      ;; stx->loc : syntax -> loc
-      ;; adds the loc that corresponds to this syntax as the
-      ;; 'original property to the input syntax.
-      (define (stx->loc stx)
-        (make-loc (syntax-source stx)
-                  (syntax-position stx)
-                  (syntax-line stx)
-                  (syntax-column stx)
-                  (syntax-span stx)))
-      
-      
-                                                                                                         
-                                      ;                                                                  
-                                                                 ;             ;                    ;    
-                                                                 ;             ;                    ;    
-  ;;;  ; ;;;    ;;;  ; ;;;          ;;;   ; ;;;  ; ;;;  ;;  ;;  ;;;;;         ;;;;;   ;;;  ;;; ;;; ;;;;; 
- ;   ;  ;   ;  ;   ;  ;;  ;           ;    ;;  ;  ;   ;  ;   ;   ;             ;     ;   ;   ; ;    ;    
- ;   ;  ;   ;  ;;;;;  ;   ;  ;;;;;    ;    ;   ;  ;   ;  ;   ;   ;     ;;;;;   ;     ;;;;;    ;     ;    
- ;   ;  ;   ;  ;      ;   ;           ;    ;   ;  ;   ;  ;   ;   ;             ;     ;       ; ;    ;    
- ;   ;  ;   ;  ;   ;  ;   ;           ;    ;   ;  ;   ;  ;   ;   ;   ;         ;   ; ;   ;  ;   ;   ;   ;
-  ;;;   ;;;;    ;;;  ;;;  ;;        ;;;;; ;;;  ;; ;;;;    ;;; ;   ;;;           ;;;   ;;;  ;;   ;;   ;;; 
-        ;                                         ;                                                      
-        ;                                         ;                                                      
-       ;;;                                       ;;;                                                     
-
       
       ;; get-post-hash-bang-start : text -> number
       ;; returns the beginning of the line after #! if there

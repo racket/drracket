@@ -142,6 +142,7 @@
 
   (define-signature drscheme:eval^
     (expand-program
+     expand-program/multiple
      build-user-eventspace/custodian
      set-basic-parameters
      get-snip-classes))
@@ -196,10 +197,12 @@
      extend-language-interface
      get-language-extensions
      
-     use-stand-alone-executable?
      create-module-based-launcher
      create-module-based-stand-alone-executable
 
+     create-executable-gui
+     put-executable-file
+     
      get-post-hash-bang-start
 
      ;(struct loc (source position line column span) -setters)

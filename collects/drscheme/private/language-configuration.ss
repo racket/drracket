@@ -813,18 +813,19 @@
                     (class %
                       (define/override (get-one-line-summary) one-line-summary)
                       (define/override (use-namespace-require/copy?) #t)
-                      (define/override (use-mred-launcher?) mred-launcher?)
                       
                       (inherit get-module get-transformer-module get-init-code)
-                      (define/override (create-executable setting parent program-filename executable-fn)
-                        (drscheme:language:create-module-based-launcher
-                         program-filename
-                         executable-fn
-                         (get-module)
-                         (get-transformer-module)
-                         (get-init-code setting)
-                         mred-launcher?
-                         (use-namespace-require/copy?)))
+                      (define/override (create-executable setting parent program-filename)
+                        (let ([executable-fn (drscheme:language:put-executable-file parent program-filename)])
+                          (when executable-fn
+                            (drscheme:language:create-module-based-launcher
+                             program-filename
+                             executable-fn
+                             (get-module)
+                             (get-transformer-module)
+                             (get-init-code setting)
+                             mred-launcher?
+                             (use-namespace-require/copy?)))))
                       (super-instantiate ()))))]
                [make-simple
                 (lambda (module position numbers mred-launcher? one-line-summary)

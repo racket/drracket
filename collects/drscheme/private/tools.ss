@@ -6,40 +6,12 @@
            (lib "class.ss")
            (lib "list.ss")
            "drsig.ss"
+           (lib "contracts.ss")
+           "tool-contracts.ss"
            (lib "framework.ss" "framework")
-	   (lib "contracts.ss")
            (lib "string-constant.ss" "string-constants"))
   
-  (provide tools@)
-
-  (define-syntax wrap-tool-inputs
-    (lambda (stx)
-      (let ([table 
-             (call-with-input-file (build-path (collection-path "drscheme"
-                                                                "private")
-                                               "tool-info.ss")
-               (lambda (port)
-                 (let loop ()
-                   (let ([ent (read port)])
-                     (if (eof-object? ent)
-                         null
-                         (cons ent (loop)))))))])
-        (syntax-case stx ()
-          [(_ body tool-name)
-           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object 
-                                                       stx 
-                                                       (cadr x)
-                                                       (list "tool-info.ss" #f #f #f #f)))
-                                          table)]
-                         [(name ...) (map (lambda (x) (datum->syntax-object 
-                                                       stx
-                                                       (car x)
-                                                       (list "tool-info.ss" #f #f #f #f)))
-                                          table)])
-             (syntax
-              (let ([name (contract type name 'drscheme tool-name (quote-syntax name))] ...)
-                body)))]))))
-  
+  (provide tools@)  
 
   (define tools@
     (unit/sig drscheme:tools^

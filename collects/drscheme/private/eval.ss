@@ -15,12 +15,10 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program input
-                              language-settings
-                              eval-compile-time-part? 
-                              init
-                              kill-termination
-                              iter)
+      (define (expand-program/multiple language-settings
+                                       eval-compile-time-part? 
+                                       init
+                                       kill-termination)
         (let-values ([(eventspace custodian) (build-user-eventspace/custodian
                                               language-settings
                                               init
@@ -28,23 +26,39 @@
           (let ([language (drscheme:language-configuration:language-settings-language
                            language-settings)]
                 [settings (drscheme:language-configuration:language-settings-settings
-                           language-settings)])          
-            (parameterize ([current-eventspace eventspace])
-              (queue-callback
-               (lambda ()
-                 (let ([read-thnk (send language front-end input settings)])
-                   (let loop ()
-                     (let ([in (let ([rd (read-thnk)])
-                                 (cond
-                                   [(eof-object? rd) rd]
-                                   [eval-compile-time-part? 
-                                    (expand-top-level-with-compile-time-evals rd)]
-                                   [else (expand rd)]))])
-                       (cond
-                         [(eof-object? in)
-                          (iter in (lambda () (void)))]
-                         [else
-                          (iter in (lambda () (loop)))]))))))))))
+                           language-settings)])
+            (lambda (input iter)
+              (parameterize ([current-eventspace eventspace])
+                (queue-callback
+                 (lambda ()
+                   (let ([read-thnk (send language front-end input settings)])
+                     (let loop ()
+                       (let ([in (let ([rd (read-thnk)])
+                                   (cond
+                                     [(eof-object? rd) rd]
+                                     [eval-compile-time-part? 
+                                      (expand-top-level-with-compile-time-evals rd)]
+                                     [else (expand rd)]))])
+                         (cond
+                           [(eof-object? in)
+                            (iter in (lambda () (void)))]
+                           [else
+                            (iter in (lambda () (loop)))])))))))))))
+      
+      (define (expand-program input
+                              language-settings
+                              eval-compile-time-part? 
+                              init
+                              kill-termination
+                              iter)
+        ((expand-program/multiple 
+          language-settings
+          eval-compile-time-part? 
+          init
+          kill-termination)
+         input
+         iter))
+         
       
       (define (build-user-eventspace/custodian language-settings init kill-termination)
         (let* ([user-custodian (make-custodian)]

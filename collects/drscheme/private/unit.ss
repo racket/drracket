@@ -177,7 +177,7 @@
                                             (string-length ext)
                                             1))
                   file-name))
-            (string-constant untitled)))
+            #f))
       
       ;; create-executable : (instanceof drscheme:unit:frame<%>) -> void
       (define (create-executable frame)
@@ -197,26 +197,12 @@
                         (string-constant drscheme)
                         #f
                         frame))
-               (let* ([default-executable-filename
-                       (if (eq? (system-type) 'windows)
-                           (string-append (basename program-filename) ".exe")
-                           (basename program-filename))]
-                      [executable-filename 
-                       (parameterize ([finder:dialog-parent-parameter frame]
-                                      [finder:default-filters
-                                       '(("Executable" "*.exe") ("Any" "*.*"))])
-                         (finder:put-file
-                          default-executable-filename
-                          #f #f
-                          (string-constant save-an-executable)))])
-                 (when executable-filename
-                   (let ([settings (send (send frame get-definitions-text) get-next-settings)])
-                     (send (drscheme:language-configuration:language-settings-language settings)
-                           create-executable
-                           (drscheme:language-configuration:language-settings-settings settings)
-                           frame
-                           program-filename
-                           executable-filename)))))])))
+               (let ([settings (send (send frame get-definitions-text) get-next-settings)])
+                 (send (drscheme:language-configuration:language-settings-language settings)
+                       create-executable
+                       (drscheme:language-configuration:language-settings-settings settings)
+                       frame
+                       program-filename)))])))
       
       (define make-bitmap 
         (case-lambda 
