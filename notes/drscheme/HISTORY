@@ -2,6 +2,12 @@
         Version 300
 ------------------------------
 
+ - Help Desk's status messages are now in the frame and
+   it's break button is also in the frame (no more modal
+   dialog)
+
+;;; unannounced above -- add to iplt/misc/announcements
+
  - Check Syntax can now jump from the use of a
    module-provided variable to its definition. Either
    control-click (aka right click) on the variable or use
@@ -35,8 +41,6 @@
  - show menu => view menu, added show/hide for the toolbar
 
  - added get-field and field-bound to (lib "class.ss")
-
-;;; unannounced above -- add to iplt/misc/announcements
 
  - contracts internal interface changed; much faster now (3x
    speedup for checking the contract (any? . -> . any?) for
