@@ -18,11 +18,11 @@
 	      (if (and (directory-exists? full-dir)
 		       (not (string=? "RCS" dir)))
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
-			 [link-sym (string->symbol dir)]
-			 [link-clause
-			  `(,link-sym : () ((reference-unit/sig ,unit-path)
-					    mred mzlib print-convert export zodiac
-					    plt:parameters))])
-		    `(,link-clause ,@(loop (cdr dirs))))
+			 [link-sym (string->symbol dir)])
+		    `((,link-sym : () ((reference-unit/sig ,unit-path)
+				       mred mzlib print-convert export zodiac
+				       plt:parameters))
+		      .
+		      ,(loop (cdr dirs))))
 		  (loop (cdr dirs))))])))
     (export)))
