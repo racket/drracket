@@ -7,6 +7,9 @@
            (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "etc.ss")
+           (lib "url.ss" "net")
+           (lib "uri-codec.ss" "net")
+           (lib "htmltext.ss" "browser")
            "private/buginfo.ss"
            "private/manuals.ss")
   
@@ -15,6 +18,8 @@
   (define bug-report-recipient "bugs")
   (define bug-email-server "bugs.plt-scheme.org")
   (define bug-email-server-port 1025)
+  (define bug-www-server "bugs.plt-scheme.org")
+  (define bug-www-server-port 80)
   (define bug-report-email-address 
     (string-append bug-report-recipient "@plt-scheme.org"))
   
@@ -50,8 +55,42 @@
   
   (define (help-desk:report-bug)
     (define bug-frame (instantiate bug-frame% () (title (string-constant bug-report-form))))
-    (define outermost-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
+    (define single (new panel:single% (parent (send bug-frame get-area-container))))
+    (define outermost-panel (make-object vertical-panel% single))
+    
+    (define response-panel (new vertical-panel% (parent single)))
+    (define response-text (new (html-text-mixin text%)))
+    (define response-ec (new editor-canvas% (parent response-panel) (editor response-text)))
+    (define response-button-panel (new horizontal-panel%
+                                       (stretchable-height #f)
+                                       (parent response-panel)
+                                       (alignment '(right center))))
+    (define cancel-kill-thread #f)
+    (define response-reset (new button%
+                                (parent response-button-panel)
+                                (enabled #f)
+                                (label (string-constant plt:hd:reset))
+                                (callback
+                                 (lambda (x y)
+                                   (switch-to-compose-view)))))
+    (define response-abort (new button%
+                                 (parent response-button-panel)
+                                 (enabled #f)
+                                 (callback
+                                  (lambda (x y)
+                                    (kill-thread cancel-kill-thread)
+                                    (switch-to-compose-view)))
+                                 (label (string-constant abort))))
+    (define response-close (new button%
+                                (parent response-button-panel)
+                                (enabled #f)
+                                (callback (lambda (x y) (cleanup-frame)))
+                                (label (string-constant close))))
+    
     (define top-panel (make-object vertical-panel% outermost-panel))
+    
+    (define (switch-to-respose-view) (send single active-child response-panel))
+    (define (switch-to-compose-view) (send single active-child outermost-panel))
     
     (define lps null)
     
@@ -256,7 +295,7 @@
                  synthesized-panel))))
            (get-bug-report-infos)))
 
-    (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
+    (define button-panel (make-object horizontal-panel% outermost-panel))
     (define synthesized-button (make-object button%
                                  (string-constant bug-report-show-synthesized-info)
                                  button-panel (lambda x (show-synthesized-info))))
@@ -264,6 +303,37 @@
     (define cancel-button (make-object button% (string-constant cancel) button-panel (lambda x (cancel))))
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
     
+    (define (get-query)
+      (list (cons 'replyto (preferences:get 'drscheme:email))
+            (cons 'originator (preferences:get 'drscheme:full-name))
+            (cons 'subject (send summary get-value))
+            (cons 'severity (send severity get-string-selection))
+            (cons 'class (translate-class (send bug-class get-string-selection)))
+            (cons 'release (send version get-value))
+            (cons 'description (apply string-append (map (lambda (x) (string-append x "\n")) 
+                                                         (get-strings description))))
+            (cons 'how-to-repeat (apply string-append (map (lambda (x) (string-append x "\n")) 
+                                                           (get-strings reproduce))))
+            (cons 'platform (get-environment))))
+    
+    (define (get-environment)
+      (string-append (send environment get-value)
+                     "\n"
+                     "Docs Installed:\n" 
+                     (format "~a" (send (send docs-installed get-editor) get-text))
+                     "\n"
+                     "Collections:\n"
+                     (format "~a" (send (send collections get-editor) get-text))
+                     "\n"
+                     (format "Human Language: ~a\n" (send human-language get-value))
+                     (apply 
+                      string-append
+                      (map (lambda (extra)
+                             (format "~a: ~a\n"
+                                     (car extra)
+                                     (send (cdr extra) get-value)))
+                           extras))))
+        
     ;; smtp-send-bug-report : -> void
     (define (smtp-send-bug-report)
       (smtp-send-message
@@ -317,52 +387,49 @@
          ,@(get-strings reproduce))
        bug-email-server-port))
     
-    ; send-bug-report : (-> boolean)
-    ; returns true if uncancelled
+    ; send-bug-report : (-> void)
+    ;; initiates sending the bug report and switches the GUI's mode
     (define (send-bug-report)
-      (letrec ([f (make-object dialog% (string-constant sending-bug-report) bug-frame)]
-               [sema (make-semaphore 0)]
-               [msg (make-object message% (string-constant sending-bug-report) f)]
-               [button (make-object button% (string-constant cancel) f
-                         (lambda (x y)
-                           (break-thread smtp-thread)
-                           (send f show #f)))]
-               [smtp-thread
-                (thread
-                 (lambda ()
-                   (semaphore-wait sema)
-                   (send button enable #t)
-                   (with-handlers ([(lambda (x) (exn:break? x))
-                                    (lambda (x) 
-                                      (void))]
-                                   [(lambda (x) (not (exn:break? x)))
-                                    (lambda (x)
-                                      (queue-callback
-                                       (lambda ()
-                                         (message-box 
-                                          (string-constant error-sending-bug-report)
-                                          (format (string-constant error-sending-bug-report-expln)
-                                                  (if (exn? x)
-                                                      (exn-message x)
-                                                      (format "~s" x))))))
-                                      (send f show #f))])
-                     (parameterize ([smtp-sending-end-of-message
-                                     (lambda ()
-                                       (send button enable #f))])
-                       (smtp-send-bug-report)
-                       (set! sucess? #t)
-                       (send f show #f)))))]
-               [sucess? #f])
-        (send f center)
-        (send button enable #f)
-        (queue-callback (lambda () (semaphore-post sema)))
-        (send f show #t)
-        (when sucess?
-          (message-box 
-           (string-constant bug-report-sent)
-           (string-constant bug-report-sent-detail)
-           bug-frame))
-        sucess?))
+      (letrec ([query (get-query)]
+               [url (make-url "http"
+                              #f
+                              bug-www-server
+                              bug-www-server-port
+                              (list "cgi-bin" "bug-report")
+                              query
+                              #f)]
+               [http-thread
+                (parameterize ([current-custodian (make-custodian)])
+                  (thread
+                   (lambda ()
+                     (with-handlers ([(lambda (x) (exn:break? x))
+                                      (lambda (x) (void))]
+                                     [(lambda (x) (not (exn:break? x)))
+                                      (lambda (x)
+                                        (queue-callback
+                                         (lambda ()
+                                           (switch-to-compose-view)
+                                           (message-box 
+                                            (string-constant error-sending-bug-report)
+                                            (format (string-constant error-sending-bug-report-expln)
+                                                    (if (exn? x)
+                                                        (exn-message x)
+                                                        (format "~s" x)))))))])
+                       (parameterize ([current-alist-separator-mode 'amp])
+                         (call/input-url 
+                          url
+                          get-pure-port
+                          (lambda (port) (render-html-to-text port response-text #t #f))))
+                       (queue-callback
+                        (lambda ()
+                          (send response-abort enable #f)
+                          (send response-reset enable #t)
+                          (send response-close enable #t)
+                          (set! cancel-kill-thread #f)
+                          (send bug-frame set-ok-to-close #t)))))))])
+        (set! cancel-kill-thread http-thread)
+        (send response-abort enable #t)
+        (switch-to-respose-view)))
     
     (define (get-strings canvas)
       (let ([t (send canvas get-editor)])
@@ -406,10 +473,7 @@
     
     (define (ok)
       (when (sanity-checking)
-        (let ([submitted? (send-bug-report)])
-          (when submitted?
-            (send bug-frame set-ok-to-close #t)
-            (cleanup-frame)))))
+        (send-bug-report)))
     
     (define (cancel)
       (cleanup-frame))
