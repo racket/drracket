@@ -76,7 +76,7 @@
 		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
 		       (make-bitmap path
 				    (if (string=? "Break" capd)
-					"Kavork"
+					"Kevork"
 					capd))))
 		   (list "execute" "help" "save" "break"))))
   
