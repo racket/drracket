@@ -25,7 +25,7 @@
     (case-lambda
      [(pred) (poll-until pred 10)]
      [(pred secs)
-      (let ([step 1/2])
+      (let ([step 1/4])
 	(let loop ([counter secs])
 	  (if (<= counter 0)
 	      (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred)
@@ -63,7 +63,17 @@
   (define do-execute 
     (lambda (frame)
       (verify-drscheme-frame-frontmost 'do-execute frame)
-      (push-button-and-wait (ivar frame execute-button))))
+      (let ([button (ivar frame execute-button)])
+	(fw:test:button-push button)
+	(poll-until
+	 (lambda ()
+	   (fw:test:reraise-error)
+	   (= 0 (fw:test:number-pending-actions))))
+	(poll-until
+	 (lambda ()
+	   (fw:test:reraise-error)
+	   (send button is-enabled?))
+	 30))))
   
   (define (verify-drscheme-frame-frontmost function-name frame)
     (unless (and (eq? frame (get-top-level-focus-window))
@@ -157,13 +167,9 @@
   
   ; set language level in the frontmost DrScheme frame
   (define (set-language-level! level)
-    (printf "getting frame ~n")
     (let ([frame (get-top-level-focus-window)])
-      (printf "selecting menu~n")
       (fw:test:menu-select "Language" "Configure Language...")
-      (printf "waiting for frame~n")
       (wait-for-new-frame frame)
-      (printf "got frame~n")
       (fw:test:set-choice! (find-labelled-window "Language" choice%) level)
       (fw:test:button-push "OK")))
   
@@ -177,42 +183,42 @@
       (verify-drscheme-frame-frontmost 'fetch-output frame)
       (let* ([interactions-edit (ivar frame interactions-edit)]
 	     [last-para (send interactions-edit last-paragraph)])
-	(unless (> last-para 2)
+	(unless (>= last-para 2)
 	  (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
-		 last-para))
+		 (+ last-para 1)))
 	(fetch-output frame
 		      (send interactions-edit paragraph-start-position 2)
 		      (send interactions-edit paragraph-end-position
 			    (- (send interactions-edit last-paragraph) 1))))]
      [(frame start end)
-      (printf "fetching from ~a to ~a~n" start end)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
       (let ([interactions-edit (ivar frame interactions-edit)])
 	(send interactions-edit split-snip start)
 	(send interactions-edit split-snip end)
-	(let loop ([snip (send interactions-edit find-snip start 'after)]
+	(let loop ([snip (send interactions-edit find-snip end 'before)]
 		   [strings null])
-
-	  (printf "snip: ~a ~a~n" 
-		  (send interactions-edit get-snip-position snip)
-		  snip)
-		  
 	  (cond
-	    [(<= end (send interactions-edit get-snip-position snip))
-	     (apply string-append (reverse strings))]
+	    [(< (send interactions-edit get-snip-position snip) start)
+	     (apply string-append strings)]
 	    [else 
 	     (cond
 	       [(is-a? snip string-snip%)
-		(loop (send snip next)
-		      (cons (send snip get-text) strings))]
+		(loop (send snip previous)
+		      (cons (send snip get-text 0 (send snip get-count)) strings))]
 	       [(is-a? snip editor-snip%)
-		(loop (send snip next)
-		      (list* "["
-			     (send snip get-text 0 )
-			     "]"
-			     strings))]
+		(let ([editor (send snip get-editor)])
+		  (cond
+		   [(is-a? editor pasteboard%)
+		    (loop (send snip previous)
+			  (cons "<pasteboard>" strings))]
+		   [(is-a? editor text%)
+		    (loop (send snip previous)
+			  (list* "["
+				 (send editor get-text)
+				 "]"
+				 strings))]))]
 	       [(is-a? snip image-snip%
-		       (loop (send snip next)
+		       (loop (send snip previous)
 			     (cons "<image>"
 				   strings)))]
 	       [else (error 'find-output "unknown snip: ~e~n" snip)])])))])))
