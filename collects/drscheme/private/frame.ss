@@ -4,6 +4,7 @@
            (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
            (lib "class.ss")
+           (lib "string.ss")
            (lib "list.ss")
            "drsig.ss"
            (lib "check-gui.ss" "version")
@@ -83,28 +84,36 @@
                   (let ([edit-object (get-edit-target-object)])
                     (let ([keymap (send edit-object get-keymap)])
                       (let*-values ([(menu-names) (get-menu-bindings)])
-                        (let* ([table (send keymap get-map-function-table/ht
-                                            (copy-hash-table menu-names))]
+                        (let* ([table (send keymap get-map-function-table)]
+                               [bindings (hash-table-map table list)]
+                               [w/menus 
+                                (append (hash-table-map menu-names list)
+                                        (filter (lambda (binding) (not (bound-by-menu? binding menu-names)))
+                                                bindings))]
                                [structured-list
                                 (mzlib:list:quicksort
-                                 (hash-table-map table list)
+                                 w/menus
                                  (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
                           (show-keybindings-to-user structured-list this)))))
                   (bell)))]
           
-          [define/override help-menu:before-about
-            (lambda (help-menu)
-              (make-help-desk-menu-item help-menu)
-              '(make-object menu-item%
-                (format (string-constant welcome-to-something)
-                        (string-constant drscheme))
-                help-menu
-                (lambda (item evt)
-                  (drscheme:app:invite-tour))))]
+          (define/private (bound-by-menu? binding menu-table)
+            (ormap (lambda (constituent)
+                     (hash-table-get menu-table (string->symbol constituent) (lambda () #f)))
+                   (regexp-split #rx";" (symbol->string (car binding)))))
           
-          [define/override help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-          [define/override help-menu:about-string (lambda () (string-constant about-drscheme))]
-          [define/override help-menu:create-about? (lambda () #t)]
+          (define/override (help-menu:before-about help-menu)
+            (make-help-desk-menu-item help-menu)
+            '(make-object menu-item%
+               (format (string-constant welcome-to-something)
+                       (string-constant drscheme))
+               help-menu
+               (lambda (item evt)
+                 (drscheme:app:invite-tour))))
+          
+          (define/override (help-menu:about-callback item evt) (drscheme:app:about-drscheme))
+          (define/override (help-menu:about-string) (string-constant about-drscheme))
+          (define/override (help-menu:create-about?) #t)
           
           (define/public (get-additional-important-urls) '())
           (define/override (help-menu:after-about menu)
@@ -124,18 +133,17 @@
             
             (drscheme:app:add-language-items-to-help-menu menu))
           
-          [define/override (file-menu:open-callback item evt) (handler:open-file)]
+          (define/override (file-menu:open-callback item evt) (handler:open-file))
           (define/override (file-menu:new-string) (string-constant new-menu-item))
           (define/override (file-menu:open-string) (string-constant open-menu-item))
 
-          [define/override file-menu:between-open-and-revert
-            (lambda (file-menu) 
-              (make-object menu-item% 
-                (string-constant install-plt-file-menu-item...)
-                file-menu
-                (lambda (item evt)
-                  (install-plt-file this)))
-              (super file-menu:between-open-and-revert file-menu))]
+          (define/override (file-menu:between-open-and-revert file-menu) 
+            (make-object menu-item% 
+              (string-constant install-plt-file-menu-item...)
+              file-menu
+              (lambda (item evt)
+                (install-plt-file this)))
+            (super file-menu:between-open-and-revert file-menu))
           
           (define/override (file-menu:between-print-and-close menu)
             (super file-menu:between-print-and-close menu)
@@ -147,51 +155,50 @@
                  (drscheme:multi-file-search:multi-file-search))))
             (new separator-menu-item% (parent menu)))
           
-          [define/override edit-menu:between-find-and-preferences
-            (lambda (menu)
-              (make-object separator-menu-item% menu)
-              (let ([keybindings-on-demand
-                     (lambda (menu-item)
-                       (let ([last-edit-object (get-edit-target-window)])
-                         (send menu-item enable (can-show-keybindings?))))])
-                (instantiate menu% ()
-                  (label (string-constant keybindings-menu-item))
-                  (parent menu)
-                  (demand-callback
-                   (lambda (keybindings-menu)
-                     (for-each (lambda (old) (send old delete)) 
-                               (send keybindings-menu get-items))
-                     (new menu-item%
-                          (parent keybindings-menu)
-                          (label (string-constant keybindings-show-active))
-                          (callback (lambda (x y) (show-keybindings)))
-                          (help-string (string-constant keybindings-info))
-                          (demand-callback keybindings-on-demand))
-                     (new menu-item%
-                          (parent keybindings-menu)
-                          (label (string-constant keybindings-add-user-defined-keybindings))
-                          (callback
-                           (lambda (x y) 
-                             (let ([filename (finder:get-file #f
-                                                              (string-constant keybindings-choose-user-defined-file)
-                                                              #f "" this)])
-                               (when filename
-                                 (add-keybindings-file filename))))))
-                     (let ([ud (preferences:get 'drscheme:user-defined-keybindings)])
-                       (unless (null? ud)
-                         (new separator-menu-item% (parent keybindings-menu))
-                         (for-each (lambda (path)
-                                     (new menu-item%
-                                          (label (format (string-constant keybindings-menu-remove)
-                                                         (path->string path)))
-                                          (parent keybindings-menu)
-                                          (callback
-                                           (lambda (x y) (remove-keybindings-file path)))))
-                                   ud)))))))
-              (unless (current-eventspace-has-standard-menus?)
-                (make-object separator-menu-item% menu)))]
+          (define/override (edit-menu:between-find-and-preferences menu)
+            (make-object separator-menu-item% menu)
+            (let ([keybindings-on-demand
+                   (lambda (menu-item)
+                     (let ([last-edit-object (get-edit-target-window)])
+                       (send menu-item enable (can-show-keybindings?))))])
+              (instantiate menu% ()
+                (label (string-constant keybindings-menu-item))
+                (parent menu)
+                (demand-callback
+                 (lambda (keybindings-menu)
+                   (for-each (lambda (old) (send old delete)) 
+                             (send keybindings-menu get-items))
+                   (new menu-item%
+                        (parent keybindings-menu)
+                        (label (string-constant keybindings-show-active))
+                        (callback (lambda (x y) (show-keybindings)))
+                        (help-string (string-constant keybindings-info))
+                        (demand-callback keybindings-on-demand))
+                   (new menu-item%
+                        (parent keybindings-menu)
+                        (label (string-constant keybindings-add-user-defined-keybindings))
+                        (callback
+                         (lambda (x y) 
+                           (let ([filename (finder:get-file #f
+                                                            (string-constant keybindings-choose-user-defined-file)
+                                                            #f "" this)])
+                             (when filename
+                               (add-keybindings-file filename))))))
+                   (let ([ud (preferences:get 'drscheme:user-defined-keybindings)])
+                     (unless (null? ud)
+                       (new separator-menu-item% (parent keybindings-menu))
+                       (for-each (lambda (path)
+                                   (new menu-item%
+                                        (label (format (string-constant keybindings-menu-remove)
+                                                       (path->string path)))
+                                        (parent keybindings-menu)
+                                        (callback
+                                         (lambda (x y) (remove-keybindings-file path)))))
+                                 ud)))))))
+            (unless (current-eventspace-has-standard-menus?)
+              (make-object separator-menu-item% menu)))
           
-          (super-instantiate ())))
+          (super-new)))
 
       (define (add-keybindings-file path)
         (with-handlers ([exn? (lambda (x)
