@@ -17,6 +17,8 @@
   
   (provide hyper@)
   
+  (define cs-break "Break")
+  
   (define error-evalling-scheme-format
     (string-append
      "<html><head><title>Error Evaluating Scheme</title></head>"
@@ -241,7 +243,7 @@
             ;;  Should be called the a handler thread.
             ;;  `work' will be called with a status proc
             ;;   in a different thread with breaks enabled.
-            (define/private (in-thread-with-cancel-dialog work init-status)
+            (define/private (in-thread-with-cancel work init-status)
               (let* ([progress-dlg #f]
                      [show-progress void]
                      [e-text init-status] ; in case show-progress isn't ready yet
@@ -259,6 +261,9 @@
                                   (error-display-handler void) 
                                   (break-enabled #t)
                                   (sleep 1))))]
+                     [break-button 
+                      (and (is-a? top-level-window hyper-frame<%>)
+                           (send (send top-level-window get-hyper-panel) get-break-button))]
                      ; Thread to perform the work (e.g., download):
                      [t (parameterize ([break-enabled #f])
                           (thread
@@ -269,6 +274,9 @@
                                (show-progress "")
                                (when progress-dlg
                                  (send progress-dlg show #f))
+                               (when break-button
+                                 (send break-button enable #f))
+                               (send top-level-window close-status-line 'browser:hyper.ss)
                                (break-thread timeout-thread)
                                (semaphore-post wait-to-show))
                              (with-handlers ([void (lambda (x)
@@ -302,35 +310,20 @@
                       (lambda ()
                         (semaphore-wait wait-to-show)
                         (unless done?
-                          (cond
-                            [(send top-level-window has-status-line?)
-                             (set! show-progress
-                                   (lambda (s)
-                                     (send top-level-window set-status-text s)))]
-                            [else
-                             (set! progress-dlg (make-object dialog% (string-constant getting-page)
-                                                  top-level-window 400))
-                             (let* ([c (make-object editor-canvas% progress-dlg #f
-                                         '(no-hscroll no-vscroll))]
-                                    [progress-text (make-object text%)])
-                               (set! show-progress
-                                     (lambda (s)
-                                       (send progress-text erase)
-                                       (send progress-text insert s)))
-                               (send progress-text insert e-text)
-                               (send progress-text auto-wrap #t)
-                               (send c set-editor progress-text)
-                               (send c set-line-count 3)
-                               (send c enable #f))
-                             (send (make-object button% (string-constant &stop) progress-dlg
-                                     (lambda (b e)
-                                       (semaphore-wait wait-to-break)
-                                       (semaphore-post wait-to-break)
-                                       (break-thread t)))
-                                   focus)
-                             (send progress-dlg center)
-                             (thread (lambda () (send progress-dlg show #t)))
-                             (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
+                          (send top-level-window open-status-line 'browser:hyper.ss)
+                          (send top-level-window update-status-line 'browser:hyper.ss e-text)
+                          (when break-button
+                            (send break-button enable #t)
+                            (send (send top-level-window get-hyper-panel)
+                                  set-break-callback
+                                  (lambda ()
+                                    (semaphore-wait wait-to-break)
+                                    (semaphore-post wait-to-break)
+                                    (break-thread t))))
+                          (set! show-progress
+                                (lambda (s)
+                                  (send top-level-window update-status-line 'browser:hyper.ss s)
+                                  (send top-level-window set-status-text s))))
                         (semaphore-post wait-to-show))])
                 (thread-wait timeout-thread)
                 (unless done?
@@ -505,17 +498,17 @@
                                                     #f)))
                                             #f)
                                         (current-load-relative-directory))])
-                              (in-thread-with-cancel-dialog
+                              (in-thread-with-cancel
                                (lambda (show-status finish-without-dialog)
                                  (parameterize ([html-status-handler show-status]
                                                 [current-load-relative-directory directory]
                                                 [html-eval-ok url-allows-evaling?])
                                    (html-convert p this)))
-                               "Loading page..."))]
+                               "Converting html..."))]
                            [else
                             ; Text
                             (progress #t)
-                            (in-thread-with-cancel-dialog
+                            (in-thread-with-cancel
                              (lambda (show-status finish-without-dialog)
                                (begin-edit-sequence)
                                (let loop ()
@@ -556,7 +549,7 @@
                                 ;; Turn on the busy cursor:
                                 begin-busy-cursor
                                 (lambda ()
-                                  (in-thread-with-cancel-dialog
+                                  (in-thread-with-cancel
                                    (lambda (show-status finish-without-dialog)
                                      ;; Try to get mime info, but use get-pure-port if it fails.
                                      ;; Use a custodian to capture all TCP connections so we
@@ -593,7 +586,7 @@
                                                  (read-from-port p headers)))
                                               headers))
                                           null))))
-                                   "Connecting to server..."))
+                                   "Fetching page ..."))
                                 (lambda ()
                                   (stop-busy)
                                   (custodian-shutdown-all cust)))))])
@@ -1039,7 +1032,21 @@
                                    (go (car l))]
                                   [else (loop (cdr l)
                                               (cons (car l) pre)
-                                              (sub1 pos))]))))))])
+                                              (sub1 pos))]))))))]
+           [break-callback void]
+           [break-button
+            (and control-bar?
+                 (new button%
+                      (label cs-break)
+                      (parent hp)
+                      (callback
+                       (lambda (x y)
+                         (break-callback)))))])
+          (define/public (get-break-button) break-button)
+          (define/public (set-break-callback bc) (set! break-callback bc))
+          (when break-button
+            (send break-button enable #f))
+          
           (field
            [info (and info-line?
                       (make-object info-canvas% this))]
@@ -1094,7 +1101,7 @@
           get-hyper-panel%))
       
       (define hyper-no-show-frame-mixin
-        (mixin (frame:basic<%>) (hyper-frame<%>)
+        (mixin (frame:status-line<%>) (hyper-frame<%>)
           (field [p #f])
           (define/public get-hyper-panel% (lambda () hyper-panel%))
           (define/public get-hyper-panel (lambda () p))
@@ -1112,8 +1119,8 @@
            (send (send (get-hyper-panel) get-canvas) goto-url start-url #f))
          hyper-no-show-frame-mixin))
       
-      (define hyper-frame% (hyper-frame-mixin frame:basic%))
-      (define hyper-no-show-frame% (hyper-no-show-frame-mixin frame:basic%))
+      (define hyper-frame% (hyper-frame-mixin (frame:status-line-mixin frame:basic%)))
+      (define hyper-no-show-frame% (hyper-no-show-frame-mixin (frame:status-line-mixin frame:basic%)))
       
       (define (editor->page e) (list e 0 0))
       (define (page->editor e) (car e))
