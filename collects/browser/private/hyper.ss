@@ -8,7 +8,8 @@
            (lib "list.ss")
            (lib "string.ss")
            (lib "etc.ss")
-           (lib "url.ss" "net")
+           ;(lib "url.ss" "net")
+           (lib "url-sig.ss" "net")
            (lib "head.ss" "net")
            (lib "mred-sig.ss" "mred")
            (lib "framework.ss" "framework")
@@ -22,7 +23,8 @@
       (import html^
               (bullet : bullet^)
               mred^
-              setup:plt-installer^)
+              setup:plt-installer^
+              net:url^)
       
       (define bullet-size bullet:bullet-size)
       

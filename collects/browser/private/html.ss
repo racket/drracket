@@ -4,11 +4,12 @@
            "sig.ss"
            (lib "mred-sig.ss" "mred")
            (lib "file.ss")
-           (lib "list.ss")
+           ;(lib "list.ss")
            (lib "etc.ss")
            (lib "string.ss")
            (lib "thread.ss")
-           (lib "url.ss" "net")
+           (lib "url-sig.ss" "net")
+           ;(lib "url.ss" "net")
 	   (rename (lib "html.ss" "html") read-html-as-xml read-html-as-xml)
 	   (rename (lib "html.ss" "html") read-html-comments read-html-comments)
 	   (rename (lib "html.ss" "html") use-html-spec use-html-spec)
@@ -21,7 +22,8 @@
   (define html@
     (unit/sig html^
       (import bullet^
-              mred^)
+              mred^
+              net:url^)
       
       ;; CACHE
       (define NUM-CACHED 10)
