@@ -27,6 +27,9 @@ carry over the computation of the original
       (define -make-repeating-decimal-snip make-repeating-decimal-snip)))
   
   
+  (preferences:set-default 'drscheme:fraction-snip-style 'mixed
+                           (lambda (x) (memq x '(mixed improper))))
+  
   ;; make-repeating-decimal-snip : number boolean -> snip
   (define (make-repeating-decimal-snip number e-prefix?)
     (instantiate number-snip% ()
@@ -38,7 +41,7 @@ carry over the computation of the original
     (let ([n (instantiate number-snip% ()
                [number number]
                [decimal-prefix (if e-prefix? "#e" "")])])
-      (send n set-fraction-view #t)
+      (send n set-fraction-view (preferences:get 'drscheme:fraction-snip-style))
       n))
   
   (define (set-box/f! b v) (when (box? b) (set-box! b v)))
@@ -49,14 +52,22 @@ carry over the computation of the original
       (define/override (read f)
         (let* ([number (string->number (send f get-string))]
                [decimal-prefix (send f get-string)]
-               [fraction-view? (string=? "#t" (send f get-string))]
+               [fraction-str (send f get-string)]
+               [fraction-view
+                (cond
+                  [(string=? "#t" (send f get-string)) 'decimal]
+                  [(string=? "#f" (send f get-string)) 
+                   (preferences:get 'drscheme:fraction-snip-style)]
+                  [(string=? "mixed" (send f get-string)) 'mixed]
+                  [(string=? "decimal" (send f get-string)) 'decimal]
+                  [(string=? "improper" (send f get-string)) 'improper])]
                [expansions (string->number (send f get-string))]
                [snip
                 (instantiate number-snip% ()
                   [number number]
                   [decimal-prefix decimal-prefix])])
           (send snip iterate (max 0 (- expansions 1))) ;; one iteration is automatic
-          (send snip set-fraction-view fraction-view?)
+          (send snip set-fraction-view fraction-view)
           snip))
       (super-instantiate ())))
   
@@ -88,9 +99,9 @@ carry over the computation of the original
       ;; the decimal view
       (init-field [decimal-prefix ""])
       
-      ;; fraction-view? : boolean
+      ;; fraction-view : (union 'decimal 'mixed 'improper)
       ;; this field holds the current view state
-      (field [fraction-view? #f])
+      (field [fraction-view 'decimal])
       
       ;; these fields are for the drawing code for decimal printing
       (field 
@@ -128,8 +139,16 @@ carry over the computation of the original
       ;; these fields are for the fractional printing view
       (field
        ;; nums : string
-       ;; the numerator, as a string
+       ;; the numerator of the mixed fraction, as a string
        [nums (number->string (numerator (- (abs number) (floor (abs number)))))]
+       
+       ;; improper-nums : string
+       ;; the numerator of the improper fraction, as a string
+       [improper-nums (number->string (numerator (abs number)))]
+       
+       ;; mixed-prefix : string
+       ;; a prefix on the front of the mixed number (indicates if negative)
+       [improper-prefix (if (number . < . 0) "-" "")]
        
        ;; dens : string
        ;; the denominator, as a string
@@ -162,22 +181,17 @@ carry over the computation of the original
       ;; a number indiates a repeat starting at `number' in `ht'.
       (field [repeat 'unk])
       
-      ;; reverse-fraction-view : -> void
-      ;; toggles the view
-      (define/public (reverse-fraction-view)
-        (set-fraction-view (not fraction-view?)))
-      
-      ;; set-fraction-view : boolean -> void
+      ;; set-fraction-view : (union 'mixed 'improper 'decimal) -> void
       ;; sets the view based on the input
       (define/public (set-fraction-view b)
-        (set! fraction-view? b)
+        (set! fraction-view b)
         (let ([admin (get-admin)])
           (when admin
             (send admin resized this #t))))
       
-      ;; get-fraction-view : -> boolean
+      ;; get-fraction-view : -> (union 'mixed 'improper 'decimal)
       ;; returns the current fraction view settings
-      (define/public (get-fraction-view) fraction-view?)
+      (define/public (get-fraction-view) fraction-view)
       
       ;; iterate : number -> void
       ;; computes the next sequence of digits (`n' times)
@@ -304,17 +318,24 @@ carry over the computation of the original
         (case-lambda
           [(offset num) (get-text offset num #f)]
           [(offset num flattened?) 
-           (if fraction-view?
-               (string-append wholes/frac " " nums "/" dens)
-               (string-append 
-                unbarred-portion
-                (or barred-portion "")
-                (or clickable-portion "")))]))
+           (case fraction-view
+             [(decimal)
+              (string-append wholes/frac " " nums "/" dens)]
+             [(mixed)
+              (string-append 
+               unbarred-portion
+               (or barred-portion "")
+               (or clickable-portion ""))]
+             [(improper) (string-append 
+                          improper-prefix
+                          improper-nums
+                          "/"
+                          dens)])]))
       
       (define/override (write f)
         (send f put (number->string number))
         (send f put decimal-prefix)
-        (send f put (format "~a" fraction-view?))
+        (send f put (format "~a" fraction-view))
         (send f put (number->string expansions)))
       
       (define/override (copy)
@@ -322,17 +343,36 @@ carry over the computation of the original
                       [number number]
                       [decimal-prefix decimal-prefix])])
           (send snip iterate (max 0 (- expansions 1))) ;; one iteration is automatic
-          (send snip set-fraction-view fraction-view?)
+          (send snip set-fraction-view fraction-view)
           snip))
       
       (inherit get-style)
       
       (define/override (get-extent dc x y wb hb descent space lspace rspace)
-        (if fraction-view?
-            (get-fraction-extent dc x y wb hb descent space lspace rspace)
-            (get-decimal-extent dc x y wb hb descent space lspace rspace)))
+        (case fraction-view
+          [(decimal)
+           (get-decimal-extent dc x y wb hb descent space lspace rspace)]
+          [(mixed)
+           (get-mixed-fraction-extent dc x y wb hb descent space lspace rspace)]
+          [(improper)
+           (get-improper-fraction-extent dc x y wb hb descent space lspace rspace)]))
       
-      (define (get-fraction-extent dc x y w h descent space lspace rspace)
+      (define (get-improper-fraction-extent dc x y w h descent space lspace rspace)
+        (let* ([style (get-style)]
+               [th (send style get-text-height dc)]
+               [old-font (send dc get-font)])
+          (send dc set-font (send style get-font))
+          (let-values ([(nw nh na nd) (send dc get-text-extent improper-nums)]
+                       [(dw dh da dd) (send dc get-text-extent dens)]
+                       [(ww wh wa wd) (send dc get-text-extent improper-prefix)])
+            (set-box/f! h (+ nh dh 1))
+            (set-box/f! w (+ ww (max nw dw)))
+            (set-box/f! descent (+ wd (/ dh 2)))
+            (set-box/f! space  (+ wa (/ nh 2)))
+            (set-box/f! lspace 0)
+            (set-box/f! rspace 0))))
+      
+      (define (get-mixed-fraction-extent dc x y w h descent space lspace rspace)
         (let* ([style (get-style)]
                [th (send style get-text-height dc)]
                [old-font (send dc get-font)])
@@ -370,11 +410,24 @@ carry over the computation of the original
             (values 0 0 0 0)))
       
       (define/override (draw dc x y left top right bottom dx dy draw-caret?)
-        (if fraction-view?
-            (draw-fraction dc x y)
-            (draw-decimals dc x y)))
+        (case fraction-view
+          [(mixed) (draw-mixed-fraction dc x y)]
+          [(improper) (draw-improper-fraction dc x y)]
+          [(decimal) (draw-decimals dc x y)]))
       
-      (define (draw-fraction dc x y)
+      (define (draw-improper-fraction dc x y)
+        (let-values ([(nw nh na nd) (send dc get-text-extent improper-nums)]
+                     [(dw dh da dd) (send dc get-text-extent dens)]
+                     [(ww wh wa wd) (send dc get-text-extent improper-prefix)])
+          (let ([frac-w (max nw dw)])
+            (send dc draw-text improper-nums (+ x ww (- frac-w nw)) y)
+            (send dc draw-text dens (+ x ww (- (/ dw 2)) (/ frac-w 2)) (+ y nh 1))
+            (send dc draw-text improper-prefix x (+ y (/ nh 2)))
+            (send dc draw-line
+                  (+ x ww) (+ y dh)
+                  (+ x ww (max nw dw) -1) (+ y dh)))))
+      
+      (define (draw-mixed-fraction dc x y)
         (let-values ([(nw nh na nd) (send dc get-text-extent nums)]
                      [(dw dh da dd) (send dc get-text-extent dens)]
                      [(ww wh wa wd) (send dc get-text-extent wholes/frac)])
@@ -421,15 +474,33 @@ carry over the computation of the original
             [else (void)])))
       
       (define (make-right-clickable-menu)
-        (let ([menu (make-object popup-menu%)])
-          (make-object menu-item% 
-            (if fraction-view?
-                (string-constant show-decimal-expansion)
-                (string-constant show-fraction-view))
-            menu
-            (lambda (x y)
-              (reverse-fraction-view)))
-          (when (and (not fraction-view?)
+        (let* ([menu (make-object popup-menu%)]
+               [decimal-item
+                (make-object checkable-menu-item% 
+                  (string-constant show-decimal-expansion)
+                  menu
+                  (lambda (x y) (set-fraction-view 'decimal)))]
+               [mixed-fraction-item
+                (make-object checkable-menu-item% 
+                  (string-constant show-mixed-fraction-view)
+                  menu
+                  (lambda (x y) 
+                    (set-fraction-view 'mixed)
+                    (preferences:set 'drscheme:fraction-snip-style 'mixed)))]
+               [improper-fraction-item
+                (make-object checkable-menu-item% 
+                  (string-constant show-improper-fraction-view)
+                  menu
+                  (lambda (x y) 
+                    (set-fraction-view 'improper)
+                    (preferences:set 'drscheme:fraction-snip-style 'improper)))])
+
+          (case fraction-view
+            [(decimal) (send decimal-item check #t)]
+            [(mixed) (send mixed-fraction-item check #t)]
+            [(improper) (send improper-fraction-item check #t)])
+
+          (when (and (eq? fraction-view 'decimal)
                      clickable-portion)
             (make-object menu-item% 
               (string-constant show-more-decimal-places)
