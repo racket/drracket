@@ -270,28 +270,29 @@ tab panels new behavior:
                           (build-path
                            (collection-path "icons")
                            (string-append button-name ".bmp")))]
-          [(text filename-or-bitmap)
+          [(text filename-or-bitmap) (make-bitmap text filename-or-bitmap 'unknown)]
+          [(text filename-or-bitmap bitmap-spec)
            (lambda (area-container-window)
              (let*-values ([(outside-margin) 2]
                            [(middle-margin) 3]
                            [(font) (send area-container-window get-control-font)]
-                           [(img-bitmap-dc img-width img-height)
+                           [(img-bitmap-dc img-bitmap img-width img-height)
                             (let ([mdc (make-object bitmap-dc%)]
                                   [q (if (filename-or-bitmap . is-a? . bitmap%)
-					 filename-or-bitmap
-					 (make-object bitmap% filename-or-bitmap))])
+                                         filename-or-bitmap
+                                         (make-object bitmap% filename-or-bitmap bitmap-spec))])
                               (if (send q ok?)
                                   (begin (send mdc set-bitmap q)
                                          (values mdc
+                                                 q
                                                  (send q get-width)
                                                  (send q get-height)))
                                   (let ([b (make-object bitmap% 1 1)])
                                     (send mdc set-bitmap b)
                                     (send mdc clear)
-                                    (values mdc 0 0))))]
+                                    (values mdc q 0 0))))]
                            [(width height descent leading)
-                            (begin (send img-bitmap-dc set-scale 1 1)
-                                   (send img-bitmap-dc get-text-extent text font))]
+                            (send img-bitmap-dc get-text-extent text font)]
                            [(new-width) (inexact->exact
                                          (floor
                                           (+ outside-margin
@@ -304,37 +305,67 @@ tab panels new behavior:
                                                     (max img-height height)
                                                     outside-margin)))]
                            [(bitmap-dc) (make-object bitmap-dc%)]
-                           [(new-bitmap) (make-object bitmap% new-width new-height)])
+                           [(new-bitmap) (make-object bitmap% new-width new-height)]
+                           [(new-bitmap-mask) (make-object bitmap% new-width new-height)])
                (cond
                  [(or (= img-width 0)
                       (= img-height 0))
                   text]
                  [else
-                  (send* bitmap-dc
-                    (set-bitmap new-bitmap)
-                    (set-scale 1 1)
-                    (set-font font)
-                    (clear)
-                    (draw-text text (+ outside-margin img-width middle-margin)
-                               (- (/ new-height 2) (/ height 2))))
-                  (let ([bm (send img-bitmap-dc get-bitmap)])
-                    (send img-bitmap-dc set-bitmap #f)
-                    (send bitmap-dc draw-bitmap
-                          bm
-                          outside-margin
-                          (- (/ new-height 2) (/ img-height 2)))
-                    (send bitmap-dc set-bitmap #f)
-                    new-bitmap)])))]))
+                  (send new-bitmap set-loaded-mask new-bitmap-mask)
+                  (send img-bitmap-dc set-bitmap #f)
+                  (send bitmap-dc set-bitmap new-bitmap-mask)
+                  
+                  (send bitmap-dc set-font font)
+                  (send bitmap-dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
+                  (send bitmap-dc set-brush (send the-brush-list find-or-create-brush "black" 'solid))
+                  
+                  
+                  (send bitmap-dc clear)
+                  (send bitmap-dc draw-text text 
+                        (+ outside-margin img-width middle-margin)
+                        (- (/ new-height 2) (/ height 2)))
+                  
+                  (cond
+                    [(send img-bitmap get-loaded-mask)
+                     (send bitmap-dc draw-bitmap
+                           (send img-bitmap get-loaded-mask)
+                           outside-margin
+                           (- (/ new-height 2) (/ img-height 2)))]
+                    [else
+                     (send bitmap-dc draw-rectangle 
+                           outside-margin
+                           (- (/ new-height 2) (/ img-height 2))
+                           img-width
+                           img-height)])
+                  
+                  (send bitmap-dc set-bitmap new-bitmap)
+                  (send bitmap-dc clear)
+                  (send bitmap-dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
+                  (send bitmap-dc set-brush (send the-brush-list find-or-create-brush "black" 'solid))
+                  (send bitmap-dc draw-rectangle 
+                        (+ outside-margin img-width middle-margin)
+                        (- (/ new-height 2) (/ height 2))
+                        width height)
+                  (send bitmap-dc draw-bitmap
+                        img-bitmap
+                        outside-margin
+                        (- (/ new-height 2) (/ img-height 2)))
+                  (send bitmap-dc set-bitmap #f)
+                  new-bitmap])))]))
       
       (define make-execute-bitmap 
         (make-bitmap (string-constant execute-button-label) 
-                     (build-path (collection-path "icons") "run.png")))
+                     (build-path (collection-path "icons") "run.png")
+                     'png/mask))
       (define make-save-bitmap 
         (make-bitmap (string-constant save-button-label) 
-                     (build-path (collection-path "icons") "save.bmp")))
+                     (build-path (collection-path "icons") "save.png")
+                     'png/mask))
       (define make-break-bitmap 
         (make-bitmap (string-constant break-button-label) 
-                     (build-path (collection-path "icons") "break.bmp")))
+                     (build-path (collection-path "icons") "break.png")
+                     'png/mask))
       
       (define-values (get-program-editor-mixin add-to-program-editor-mixin)
         (let* ([program-editor-mixin
