@@ -152,6 +152,8 @@
             
 	    (display msg (current-error-port))
             (newline (current-error-port))
+
+            (send rep wait-for-io-to-complete/user)
 	    
 	    (when (and (object? src) (is-a? src text:basic%))
 	      (if other-position
@@ -1048,9 +1050,13 @@
 		    [super-after-delete after-delete])
 	    (inherit get-inserting-prompt)
 	    (field (error-range #f)
-		   (reset-callback void))
+		   (reset-callback void)
+                   (error-range/reset-callback-semaphore 
+                    (make-semaphore 1)))
             (public get-error-range)
             (define (get-error-range) error-range)
+
+            ;; =User= and =Kernel=
 	    (define (highlight-error/forward-sexp text start)
 	      (let ([end (if (is-a? text scheme:text<%>)
                              (or (send text get-forward-sexp start)
@@ -1058,12 +1064,12 @@
                              (+ start 1))])
                 (highlight-error text start end)))
 
-            ;; =User=
+            ;; =User= and =Kernel= (maybe simultaneously)
 	    (define (highlight-error file start finish)
-              (when (is-a? file text:basic%)
+              (when (is-a? file text:basic<%>)
 		(send file begin-edit-sequence)
-		(wait-for-io-to-complete/user)
 		(reset-highlighting)
+                (semaphore-wait error-range/reset-callback-semaphore)
 		(set! error-range (cons start finish))
 		(if color?
 		    (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
@@ -1072,13 +1078,16 @@
 		      (set! reset-callback
 			    (lambda ()
                               (unless (get-inserting-prompt)
+                                (semaphore-wait error-range/reset-callback-semaphore)
                                 (set! error-range #f)
-				(reset)
-				(set! reset-callback void)))))
+				(set! reset-callback void)
+                                (reset)
+                                (semaphore-post error-range/reset-callback-semaphore)))))
 		    (send file set-position start finish))
 		(send file scroll-to-position start #f finish)
 		(send file end-edit-sequence)
-		(send file set-caret-owner #f 'global)))
+		(send file set-caret-owner #f 'global)
+                (semaphore-post error-range/reset-callback-semaphore)))
 
             (define (reset-highlighting) (reset-callback))
             
