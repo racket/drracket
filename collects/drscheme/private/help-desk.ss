@@ -48,13 +48,8 @@
                (set! internal? new-internal?))))
           (lambda ()
             (unless hd-cookie
-              (set! hd-cookie (start-help-server #f #f drs-browser-mixin)))
+              (set! hd-cookie (start-help-server drscheme:frame:basics-mixin)))
             hd-cookie)))
-      
-      (define (drs-browser-mixin %)
-        (drscheme:frame:basics-mixin
-         (frame:standard-menus-mixin
-          %)))
       
       (define (goto-help manual link)
         (with-handlers ([not-break-exn?

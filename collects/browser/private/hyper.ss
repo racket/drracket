@@ -1050,19 +1050,27 @@
           get-hyper-panel
           get-hyper-panel%))
       
-      (define hyper-frame-mixin
+      (define hyper-no-show-frame-mixin
         (mixin (frame:basic<%>) (hyper-frame<%>)
-          (init-field start-url)
           (field [p #f])
           (define/public get-hyper-panel% (lambda () hyper-panel%))
           (define/public get-hyper-panel (lambda () p))
           (inherit show get-area-container)
           (super-instantiate ())
-          (set! p (make-object (get-hyper-panel%) #f (get-area-container)))
-          (show #t)
-          (send (send p get-canvas) goto-url start-url #f)))
+          (set! p (make-object (get-hyper-panel%) #f (get-area-container)))))
+      
+      (define hyper-frame-mixin
+        (compose
+         (mixin (hyper-frame<%> top-level-window<%>) ()
+           (init start-url)
+           (inherit show get-hyper-panel)
+           (super-instantiate ())
+           (show #t)
+           (send (send (get-hyper-panel) get-canvas) goto-url start-url #f))
+         hyper-no-show-frame-mixin))
       
       (define hyper-frame% (hyper-frame-mixin frame:basic%))
+      (define hyper-no-show-frame% (hyper-no-show-frame-mixin frame:basic%))
       
       (define (editor->page e) (list e 0 0))
       (define (page->editor e) (car e))

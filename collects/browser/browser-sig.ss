@@ -22,6 +22,9 @@
      hyper-frame<%>
      hyper-frame-mixin
      hyper-frame%
+
+     hyper-no-show-frame-mixin
+     hyper-no-show-frame%
      
      editor->page
      page->editor
