@@ -1,5 +1,6 @@
 (module link mzscheme
-  (require "tools.ss"
+  (require "teachpack.ss"
+	   "tools.ss"
            (lib "unitsig.ss")
 	   "language-tower.ss"
            "language.ss"
@@ -24,6 +25,7 @@
       (link [init : drscheme:init^ (init@)]
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
+	    [teachpack : drscheme:teachpack^ (teachpack@)]
             [rep : drscheme:rep^ (rep@ init snip language app frame unit text help-interface)]
             [tower : drscheme:language-tower^ (language-tower@ rep)]
             [frame : drscheme:frame^ (frame@ unit app help-interface)]

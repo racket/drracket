@@ -1882,16 +1882,24 @@
             ;; installs the loaded teachpacks
             ;; expects teachpack-units to be initialized
             (define (install-teachpacks)
-              (for-each (lambda (tp-unit)
-                          (with-handlers ([not-break-exn?
-                                           (lambda (x)
-                                             (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                                               (queue-callback
-                                                (lambda ()
-                                                  (message-box 
-                                                   
-                              )
-                        teachpack-units))
+	      (define (invoke-teachpack  tp-unit)
+		(with-handlers ([not-break-exn?
+				 (lambda (x)
+				   (parameterize ([current-eventspace
+						   drscheme:init:system-eventspace])
+				     (queue-callback
+				      (lambda ()
+					(message-box
+					 (string-constant teachpack-error-label)
+					 (string-append
+					  (format (string-constant teachpack-error-invoke)
+						  tp-filename)
+					  (string #\newline)
+					  (if (exn? x)
+					      (exn-message x)
+					      (format "uncaught exception: ~s" x))))))))])
+		  (invoke-unit/sig tp-unit #f ...)))
+              (for-each invoke-teachpack teachpack-units))
               
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;;					     ;;;
