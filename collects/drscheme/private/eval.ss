@@ -2,7 +2,6 @@
   (require (lib "mred.ss" "mred")
            (lib "unitsig.ss")
            (lib "class.ss")
-           (lib "toplevel.ss" "syntax")
            (lib "moddep.ss" "syntax")
            "drsig.ss")
   
@@ -62,9 +61,7 @@
                    (let ([in (let ([rd (read-thnk)])
                                (if (eof-object? rd)
                                    rd
-                                   (let ([expanded (expand rd)])
-                                     (eval-compile-time-part-of-top-level expanded)
-                                     expanded)))])
+                                   (expand rd)))])
                      (cond
                        [(eof-object? in)
                         (iter in (lambda () (void)))]
