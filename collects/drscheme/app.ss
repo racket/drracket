@@ -133,6 +133,7 @@
 		 (insert image-snip) (insert media-snip)
 		 (change-style top 0 2)
 		 (set-position 1)
+		 (hide-caret #t)
 		 (scroll-to-position 0)
 		 (lock #t))
 	  (send f reflow-container)

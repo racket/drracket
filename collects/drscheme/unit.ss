@@ -400,11 +400,11 @@
 	     file-menu
 	     (lambda (_1 _2)
 	       (save-as-text-from-edit interactions-edit)))
-	   (make-object mred:separator-menu-item% file-menu)
-	   (make-object mred:menu-item%
-	     "Show Interactions History"
-	     file-menu
-	     (lambda (_1 _2) (drscheme:rep:show-interactions-history)))
+	   ; (make-object mred:separator-menu-item% file-menu)
+	   ; (make-object mred:menu-item%
+	   ;  "Show Interactions History"
+	   ;  file-menu
+	   ;  (lambda (_1 _2) (drscheme:rep:show-interactions-history)))
 	   (make-object mred:separator-menu-item% file-menu))]
 	[file-menu:print-string (lambda () "Definitions")]
 	[file-menu:between-print-and-close
@@ -533,13 +533,17 @@
 		  "Execute"
 		  scheme-menu
 		  (lambda (_1 _2) (execute-callback))
-		  #\t
+		  (and
+		   (fw:preferences:get 'framework:menu-bindings)
+		   #\t)
 		  "Restart the program in the definitions window"))
 	  (make-object mred:menu-item%
 	    "Break"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-edit break))
-	    #\b
+	    (and
+	     (fw:preferences:get 'framework:menu-bindings)
+	     #\b)
 	    "Break the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
 	  (make-object mred:menu-item%
@@ -550,7 +554,9 @@
 	    "Indent &All"
 	    scheme-menu
 	    (send-method 'tabify-all)
-	    #\i)
+	    (and
+	     (fw:preferences:get 'framework:menu-bindings)
+	     #\i))
 	  (make-object mred:menu-item%
 	    "&Comment Out"
 	    scheme-menu
@@ -569,7 +575,9 @@
 		(lambda (_1 _2) 
 		  (toggle-show/hide definitions-item)
 		  (update-shown/ensure-one interactions-item))
-		#\d
+		(and
+		 (fw:preferences:get 'framework:menu-bindings)
+		 #\d)
 		"Show the definitions window"))
 	(set! interactions-item
 	      (make-object mred:menu-item%
@@ -578,7 +586,9 @@
 		(lambda (_1 _2) 
 		  (toggle-show/hide interactions-item)
 		  (update-shown/ensure-one definitions-item))
-		#\e
+		(and
+		 (fw:preferences:get 'framework:menu-bindings)
+		 #\e)
 		"Show the interactions window")))
       
       (private
@@ -711,6 +721,7 @@
      [() (open-drscheme-window #f)]
      [(name)
       (if (and created-frame
+	       name
 	       (not (eq? created-frame 'nothing-yet)) 
 	       (send created-frame still-untouched?))
 	  (begin (send created-frame change-to-file name)
