@@ -844,6 +844,7 @@ tab panels new behavior:
                    get-area-container
                    update-info
                    get-file-menu
+                   file-menu:get-close-item
                    file-menu:get-open-item
                    file-menu:get-new-item
                    file-menu:get-save-item
@@ -1226,17 +1227,18 @@ tab panels new behavior:
             (lambda (file-menu)
               (super file-menu:between-open-and-revert file-menu)
               (make-object separator-menu-item% file-menu))]
+          (define close-tab-menu-item #f)
           (define/override (file-menu:between-close-and-quit file-menu)
-            (new menu:can-restore-menu-item%
-                 (label (string-constant close-tab))
-                 (shortcut #\-)
-                 (parent file-menu)
-                 (demand-callback
-                  (lambda (item)
-                    (send item enable (1 . < . (send tabs-panel get-number)))))
-                 (callback
-                  (λ (x y)
-                    (close-current-tab))))
+            (set! close-tab-menu-item
+                  (new (get-menu-item%)
+                       (label (string-constant close-tab))
+                       (demand-callback
+                        (λ (item)
+                          (send item enable (1 . < . (send tabs-panel get-number)))))
+                       (parent file-menu)
+                       (callback
+                        (λ (x y)
+                          (close-current-tab)))))
             (super file-menu:between-close-and-quit file-menu))
           
           [define/override file-menu:save-string (λ () (string-constant save-definitions))]
@@ -1844,7 +1846,7 @@ tab panels new behavior:
           
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
-          (define/private (create-new-tab) 
+          (define/private (create-new-tab)
             (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                    [defs (new (drscheme:get/extend:get-definitions-text))]
                    [tab-count (length tabs)]
@@ -1854,7 +1856,9 @@ tab panels new behavior:
               (change-to-nth-tab (- (send tabs-panel get-number) 1))
               (init-definitions-text)
               (send ints initialize-console)
-              (send tabs-panel set-selection (- (send tabs-panel get-number) 1))))
+              (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
+              
+              (update-menu-bindings)))
           
           ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
@@ -1906,6 +1910,7 @@ tab panels new behavior:
                                                   (cdr l-tabs)))])
                               (send tabs-panel delete (tab-i tab))
                               (set! tabs new-tabs)
+                              (update-menu-bindings) 
                               (change-to-tab (if (null? acc)
                                                  (car new-tabs)
                                                  (car acc)))))
@@ -1989,6 +1994,32 @@ tab panels new behavior:
                          (and fn
                               (path-equal? fn filename))))
                      tabs)))
+          
+          (define/override (get-menu-item%)
+            (class (super get-menu-item%)
+              (inherit get-label get-plain-label)
+              (define/override (restore-keybinding)
+                (cond
+                  [(equal? (get-plain-label) (string-constant close))
+                   (update-close-menu-item-shortcut this)]
+                  [(equal? (get-plain-label) (string-constant close-tab))
+                   (update-close-tab-menu-item-shortcut this)]
+                  [else (super restore-keybinding)]))
+              (super-new)))
+                
+          (define/private (update-menu-bindings)
+            (when (preferences:get 'framework:menu-bindings)
+              (when close-tab-menu-item
+                (update-close-tab-menu-item-shortcut close-tab-menu-item))
+              (update-close-menu-item-shortcut (file-menu:get-close-item))))
+          
+          (define/private (update-close-tab-menu-item-shortcut item)
+            (let ([just-one? (and (pair? tabs) (null? (cdr tabs)))])
+              (send item set-shortcut (if just-one? #f #\w))))
+          (define/private (update-close-menu-item-shortcut item)
+            (let ([just-one? (and (pair? tabs) (null? (cdr tabs)))])
+              (send item set-shortcut (if just-one? #\w #f))))
+
           
           ;;
           ;; end tabs
@@ -2408,7 +2439,6 @@ tab panels new behavior:
                              [else (send text uncomment-selection)]))]
                         [else (send text uncomment-selection)])))))))
 
-          (inherit get-menu-item%)
           (field [special-menu (make-object (get-menu%) (string-constant special-menu) (get-menu-bar))])
           (define/public (get-special-menu) special-menu)
 
@@ -2488,7 +2518,7 @@ tab panels new behavior:
                                    (loop (- y 1)))))
                              (send edit end-edit-sequence)))))))]
                 [c% (get-menu-item%)])
-            (frame:add-snip-menu-items special-menu (get-menu-item%))
+            (frame:add-snip-menu-items special-menu c%)
 
             (make-object c% (string-constant insert-fraction-menu-item-label)
               special-menu callback 

@@ -186,6 +186,8 @@ TODO
       (send drs-bindings-keymap map-function "c:s:tab" "prev-tab")
       (send drs-bindings-keymap map-function "d:s:right" "next-tab")
       (send drs-bindings-keymap map-function "d:s:left" "prev-tab")
+      (send drs-bindings-keymap map-function "c:pagedown" "next-tab")
+      (send drs-bindings-keymap map-function "c:pageup" "prev-tab")
       
       (define (get-drs-bindings-keymap) drs-bindings-keymap)
 
