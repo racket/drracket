@@ -130,6 +130,16 @@
 		       (regexp-match re:plain args))])
 	    (and m (caddr m)))))))
 
+  ;; To implement non-breaking spaces:
+  (define non-breaking-snip-class
+    (make-object snip-class%))
+  (define non-breaking-space-snip%
+    (class snip% ()
+      (inherit set-snipclass)
+      (sequence
+	(super-init)
+	(set-snipclass non-breaking-snip-class))))
+
   (define html-convert
     (lambda (p b)
       (letrec 
@@ -440,7 +450,7 @@
 			      (if (or (char=? #\null ch) (char=? #\; ch))
 				  (result
 				   (case (string->symbol (list->string (reverse! l)))
-				     [(nbsp) #\space]
+				     [(nbsp) (make-object non-breaking-space-snip%)]
 				     [(gt) #\>]
 				     [(lt) #\<]
 				     [(quot) #\"]
@@ -734,6 +744,16 @@
 	       (lambda () (translate pos #t del-white? 0))
 	       loop))))
 
+	;; Replace non-breaking space snips with regular spaces:
+	(let loop ([snip (find-first-snip)])
+	  (when snip
+	    (let ([next (send snip next)])
+	      (when (is-a? snip non-breaking-space-snip%)
+		(let ([p (get-snip-position snip)])
+		  (insert " " (add1 p)) ; important: gets style from predecessor
+		  (delete p (add1 p))))
+	      (loop next))))
+	
 	;; Install indentation
 	(btree-for-each
 	 indents
