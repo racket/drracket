@@ -258,10 +258,9 @@ A test case:
                                    (when busy?
                                      (set! busy? #f)
                                      (end-busy-cursor)))])
-                 (with-handlers ([(lambda (x) (and (exn:fail? x) busy?))
+                 (with-handlers ([(lambda (x) (and #f (exn:fail? x) busy?))
                                   (lambda (x) 
-                                    (printf "exn.4 ~s\n" (and (exn? x)
-                                                              (exn-message x)))
+                                    (printf "exn.4 ~s\n" (and (exn? x) (exn-message x)))
                                     (call/input-url 
                                      url
                                      (if post-data 
@@ -659,7 +658,8 @@ A test case:
                                        (values e-now pre-url)]
                                       [else
                                        (send hyper-panel set-stop-callback 
-                                             (lambda (x) (custodian-shutdown-all killable-cust)))
+                                             (lambda ()
+                                               (custodian-shutdown-all killable-cust)))
                                        (send hyper-panel enable-browsing #f)
                                        (begin0
                                          (make-editor/setup-kill killable-cust 
@@ -848,16 +848,20 @@ A test case:
           (define browsing-on? #t)
           (define/public (enable-browsing on?)
             (set! browsing-on? on?)
-            #;(cond
-                [on?
-                 (send stop-button enable #f)
-                 '...?]
-                [else 
-                 (send stop-button enable #t)
-                 (send home enable #f)
-                 (send forw enable #f)
-                 (send back enable #f)
-                 (send choice enable #f)]))
+            (cond
+              [on?
+               (send stop-button enable #f)
+               (update-buttons)]
+              [else 
+               (send stop-button enable #t)
+               (when home
+                 (send home enable #f))
+               (when forw
+                 (send forw enable #f))
+               (when back
+                 (send back enable #f))
+               (when choice
+                 (send choice enable #f))]))
           
           (define/private (clear-info)
             (when info 
@@ -936,11 +940,14 @@ A test case:
                       (make-object button% (string-constant home) hp
                         (lambda (b ev)
                           (home-callback))))])
+          
+          (define the-page #f)
           (define/private (update-buttons/set-page page)
             (unless init-page
               (set! init-page page))
-            (update-buttons page)) ;; want to remove this "page" argument so update-buttons can be called from elsewhere
-          (define/private (update-buttons page)
+            (set! the-page page)
+            (update-buttons)) ;; want to remove this "page" argument so update-buttons can be called from elsewhere
+          (define/private (update-buttons)
             (when control-bar?
               (send back enable (pair? past))
               (send forw enable (pair? future))
@@ -954,7 +961,7 @@ A test case:
                              (gui-utils:trim-string s 200)
                              (string-constant untitled)))))
                (append (reverse future)
-                       (if page (list page) null)
+                       (if the-page (list the-page) null)
                        past))
               (let ([c (send choice get-number)])
                 (unless (zero? c)
@@ -982,9 +989,7 @@ A test case:
                  (new button%
                       (label (string-constant stop))
                       (parent hp)
-                      (callback
-                       (lambda (x y)
-                         (stop-callback)))))])
+                      (callback (lambda (x y) (stop-callback)))))])
           (define/public (get-stop-button) stop-button)
           (define/public (set-stop-callback bc) (set! stop-callback bc))
           (when stop-button (send stop-button enable #f))

@@ -395,7 +395,7 @@
                   [manual-name-style-delta
                    (make-object style-delta%)])
               (let-values ([(ordered doc.txt?)
-                            (send language order-manuals (map car docs))])
+                            (send language order-manuals (map path->bytes (map car docs)))])
                 (let loop ([ordered ordered]
                            [n 1])
                   (cond

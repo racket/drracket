@@ -32,7 +32,7 @@
             (send language get-language-position)
             (send language marshall-settings settings)))))
       
-      ;; get-docs : (listof (cons string[short-dir-name] string[doc full name]))
+      ;; get-docs : (listof (cons path[short-dir-name] string[doc full name]))
       (define (get-docs) 
         (let ([dirs (find-doc-names)])
           (map (lambda (pr)

@@ -1,4 +1,14 @@
+#|
 
+add this test:
+
+(require (lib "pretty.ss"))
+(pretty-print-print-hook (lambda x (car)))
+(list 1 2 3)
+
+There shouldn't be any error (but add in a bug that triggers one to be sure!)
+
+|#
 (module repl-test mzscheme
   (require "drscheme-test-util.ss"
            (lib "class.ss")

@@ -340,17 +340,24 @@
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
         (parameterize ([pretty-print-columns 'infinity]
-                       [drscheme:rep:use-number-snip
-                        (lambda (x)
-                          (if (and (number? x)
-                                   (exact? x)
-                                   (real? x)
-                                   (not (integer? x)))
-                              (if (memq (simple-settings-fraction-style settings)
-                                        '(repeating-decimal repeating-decimal-e))
-                                  (simple-settings-fraction-style settings)
-                                  #t)
-                              #f))])
+                       [pretty-print-print-hook
+                        (lambda (value display? port)
+                          ..)]
+                       [pretty-print-size-hook
+                        (lambda (value display? port)
+                          (let ([use-snip?
+                                 (and (number? x)
+                                      (exact? x)
+                                      (real? x)
+                                      (not (integer? x))
+                                      (if (memq (simple-settings-fraction-style settings)
+                                                '(repeating-decimal repeating-decimal-e))
+                                          (simple-settings-fraction-style settings)
+                                          #t))])
+                            (if use-snip?
+                                (let ([snip ...])
+                                  (send snip get-width))
+                                #f)))])
           (pretty-print (simple-module-based-language-convert-value value settings) port)))
       
       ;; drscheme-inspector : inspector

@@ -61,25 +61,6 @@ TODO
 	  ;; for use in pretty printing the snip.
 	  get-character-width))
 
-      ;; use-number-snip : (parameter (TST -> boolean))
-      ;; returns true if this value can be turned into a number snip for displaying
-      (define use-number-snip
-        (make-parameter
-         (lambda (x)
-           (and (number? x)
-                (exact? x)
-                (rational? x)
-                (not (integer? x))))))
-
-      ;; which-number-snip : (parameter
-      ;;                      (number -> (union 'mixed-fraction
-      ;;                                        'repeating-decimal-e
-      ;;                                        'repeating-decimal)))
-      (define which-number-snip
-        (make-parameter
-         (lambda (x)
-           'mixed-fraction)))
-      
       ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
       (define current-language-settings (make-parameter #f))
