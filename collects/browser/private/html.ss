@@ -5,6 +5,7 @@
            (lib "mred-sig.ss" "mred")
            (lib "file.ss")
            (lib "etc.ss")
+           (lib "list.ss")
            (lib "string.ss")
            (lib "thread.ss")
            (lib "url-sig.ss" "net")
@@ -407,14 +408,15 @@
 			  (a-text-insert what (current-pos)))]
 		       
 		       [insert-newlines
-			(lambda (num para-base)
-			  (unless (zero? num)
-			    (let loop ([pos (current-pos)][num num])
-			      (unless (or (zero? num) (<= pos para-base))
-				(let ([c (get-character (sub1 pos))])
-				  (if (eq? c #\newline)
-				      (loop (sub1 pos) (sub1 num))
-				      (insert (make-string num #\newline))))))))]
+			(lambda (num forced-lines para-base)
+			  (let ([num (max num forced-lines)])
+			    (unless (zero? num)
+			      (let loop ([pos (current-pos)][num num])
+				(unless (or (zero? num) (<= pos para-base))
+				  (let ([c (get-character (sub1 pos))])
+				    (if (eq? c #\newline)
+					(loop (sub1 pos) (sub1 num))
+					(insert (make-string num #\newline)))))))))]
 		       
 		       [backover-newlines
 			(lambda (pos base)
@@ -598,28 +600,32 @@
 							 [else "BUTTON"])
 						       "BUTTON")])))))]
 
-		       [heading (lambda (delta rest para-base)
-				  (insert-newlines 2 para-base)
-				  (let ([start-pos (current-pos)]
-					[r (rest)]
-					[end-pos (current-pos)])
-				    (insert-newlines 2 para-base)
-				    (lambda ()
-				      (change-style delta start-pos end-pos)
-				      (r))))]
+		       [heading (lambda (delta forced-lines rest para-base)
+				  (insert-newlines 2 forced-lines para-base)
+				  (let-values ([(start-pos) (current-pos)]
+					       [(r rfl) (rest)]
+					       [(end-pos) (current-pos)])
+				    (insert-newlines 2 rfl para-base)
+				    (values
+				     (lambda ()
+				       (change-style delta start-pos end-pos)
+				       (r))
+				     rfl)))]
 
 		       [styler (opt-lambda (delta rest [drop-empty? #f])
-				 (let* ([start-pos (current-pos)]
-					[r (rest)]
-					[end-pos (current-pos)])
+				 (let*-values ([(start-pos) (current-pos)]
+					       [(r rfl) (rest)]
+					       [(end-pos) (current-pos)])
 				   (if (and drop-empty?
 					    (regexp-match re:empty (send a-text get-text start-pos end-pos)))
 				       (begin
 					 (delete start-pos end-pos)
-					 void)
-				       (lambda ()
-					 (change-style delta start-pos end-pos)
-					 (r)))))]
+					 (values void rfl))
+				       (values
+					(lambda ()
+					  (change-style delta start-pos end-pos)
+					  (r))
+					rfl))))]
 		       
 		       [maybe-bg-color (lambda (e rest drop-empty?)
 					 (let* ([c (get-field e 'bgcolor)]
@@ -632,30 +638,33 @@
 						     rest
 						     drop-empty?)]
 					    [drop-empty?
-					     (let* ([start-pos (current-pos)]
-						    [r (rest)]
-						    [end-pos (current-pos)])
-					       (if (regexp-match re:empty (send a-text get-text start-pos end-pos))
-						   void
-						   r))]
+					     (let*-values ([(start-pos) (current-pos)]
+							   [(r rfl) (rest)]
+							   [(end-pos) (current-pos)])
+					       (values (if (regexp-match re:empty (send a-text get-text start-pos end-pos))
+							   void
+							   r)
+						       rfl))]
 					    [else
 					     (rest)])))]
 		       
 		       [para-aligner (lambda (alignment delta rest)
-				       (let* ([start-pos (current-pos)]
-					      [r (rest)]
-					      [end-pos (current-pos)])
-					 (lambda ()
-					   (let ([last-para (send a-text position-paragraph 
-								  (backover-newlines end-pos start-pos))])
-					     (let loop ([para (send a-text position-paragraph start-pos)])
-					       (send a-text set-paragraph-alignment para alignment)
-					       (when delta
-						 (change-style delta start-pos end-pos))
-					       (unless (= para last-para)
-						 (loop (add1 para)))))
-					   (r))))]
-                       
+				       (let*-values ([(start-pos) (current-pos)]
+						     [(r rfl) (rest)]
+						     [(end-pos) (current-pos)])
+					 (values
+					  (lambda ()
+					    (let ([last-para (send a-text position-paragraph 
+								   (backover-newlines end-pos start-pos))])
+					      (let loop ([para (send a-text position-paragraph start-pos)])
+						(send a-text set-paragraph-alignment para alignment)
+						(when delta
+						  (change-style delta start-pos end-pos))
+						(unless (= para last-para)
+						  (loop (add1 para)))))
+					    (r))
+					  rfl)))]
+				     
                        ;; translate-number : number -> void
                        ;; input number must be between 0 and 255 or
                        ;; in the table `latin-1-symbols' above
@@ -706,31 +715,38 @@
 		       ;; Translate must not modify any existing text, and the
 		       ;;  result function must not move any items.
 		       [translate
-			(lambda (e para-base enum-depth form)
+			(lambda (e para-base enum-depth forced-lines form)
 			  (cond
-			   [(string? e) (insert e) void]
+			   [(string? e) (insert e) (values void 0)]
 			   [(symbol? e) 
                             (let ([a (assq e latin-1-symbols)])
                               (if a
-                                  (translate-number (cadr a))
+                                  (values (translate-number (cadr a)) 0)
                                   (begin
                                     (insert (format "&~a;" e))
-                                    void)))]
+                                    (values void 0))))]
 			   [(number? e) 
-			    (translate-number e)]
-                           [(or (comment? e) (pi? e)) void]
+			    (values (translate-number e) 0)]
+                           [(or (comment? e) (pi? e)) (values void forced-lines)]
 			   [else (let* ([tag (car e)]
-					[rest/base/depth/form
-					 (lambda (para-base enum-depth form)
-					   (let ([l (map (lambda (x) (translate x para-base enum-depth form))
-							 (cddr e))])
-					     (lambda ()
-					       (map (lambda (f) (f)) l))))]
+					[rest/base/depth/form/fl
+					 (lambda (para-base enum-depth form forced-lines)
+					   (let* ([p (foldl (lambda (x p) 
+							      (let-values ([(f fl) (translate x para-base enum-depth (car p) form)])
+								(cons fl (cons f (cdr p)))))
+							    (cons forced-lines null)
+							    (cddr e))]
+						  [l (reverse! (cdr p))])
+					     (values (lambda ()
+						       (map (lambda (f) (f)) l))
+						     (car p))))]
 					[rest/base/depth
 					 (lambda (para-base enum-depth)
-					   (rest/base/depth/form para-base enum-depth form))]
-					[rest/form (lambda (form) (rest/base/depth/form para-base enum-depth form))]
-					[rest (lambda () (rest/base/depth/form para-base enum-depth form))])
+					   (rest/base/depth/form/fl para-base enum-depth form forced-lines))]
+					[rest/form (lambda (form) (rest/base/depth/form/fl para-base enum-depth form forced-lines))]
+					[rest/form (lambda (form) (rest/base/depth/form/fl para-base enum-depth form forced-lines))]
+					[rest (lambda () (rest/base/depth/form/fl para-base enum-depth form forced-lines))]
+					[rest/fl (lambda (fl) (rest/base/depth/form/fl para-base enum-depth form fl))])
 				   (case tag
 				     [(title)
 				      (let ([pos (current-pos)])
@@ -738,40 +754,44 @@
 					(rest)
 					(send a-text set-title (send a-text get-text pos (current-pos)))
 					(delete pos (current-pos)))
-				      void]
+				      (values void forced-lines)]
 				     [(a)
 				      (let-values ([(url-string label scheme) (parse-href e)])
 					(let* ([style (get-field e 'style)]
-					       [pos (current-pos)]
-					       [r (rest)]
-					       [end-pos (current-pos)])
-					  (cond
-					   [url-string
-					    (send a-text add-link pos end-pos (regexp-replace* re:amp url-string "\\&"))
-					    ;; might have a label, too:
-					    (when label
-					      (send a-text add-tag label pos))
-					    (lambda ()
-					      (when (or (not style)
-							(not (regexp-match re:transparent style)))
-						(send a-text make-link-style pos end-pos))
-					      (r))]
-					   [label
-					    (send a-text add-tag label pos)
-					    r]
-					   [scheme
-					    (send a-text add-scheme-callback pos end-pos scheme)
-					    (lambda ()
-					      (when (or (not style)
-							(not (regexp-match re:transparent style)))
-						(send a-text make-link-style pos end-pos))
-					      (r))]
-					   [else r])))]
-				     [(style) void]
-				     [(h1) (heading delta:h1 rest para-base)]
-				     [(h2) (heading delta:h2 rest para-base)]
-				     [(h3) (heading delta:h3 rest para-base)]
-				     [(h4) (heading delta:h4 rest para-base)]
+					       [pos (current-pos)])
+					  (let-values ([(r rfl) (rest)])
+					    (let ([end-pos (current-pos)])
+					      (cond
+					       [url-string
+						(send a-text add-link pos end-pos (regexp-replace* re:amp url-string "\\&"))
+						;; might have a label, too:
+						(when label
+						  (send a-text add-tag label pos))
+						(values
+						 (lambda ()
+						   (when (or (not style)
+							     (not (regexp-match re:transparent style)))
+						     (send a-text make-link-style pos end-pos))
+						   (r))
+						 rfl)]
+					       [label
+						(send a-text add-tag label pos)
+						(values r rfl)]
+					       [scheme
+						(send a-text add-scheme-callback pos end-pos scheme)
+						(values
+						 (lambda ()
+						   (when (or (not style)
+							     (not (regexp-match re:transparent style)))
+						     (send a-text make-link-style pos end-pos))
+						   (r))
+						 rfl)]
+					       [else (values r rfl)])))))]
+				     [(style) (values void forced-lines)]
+				     [(h1) (heading delta:h1 forced-lines rest para-base)]
+				     [(h2) (heading delta:h2 forced-lines rest para-base)]
+				     [(h3) (heading delta:h3 forced-lines rest para-base)]
+				     [(h4) (heading delta:h4 forced-lines rest para-base)]
 				     [(b strong) (styler delta:bold rest)]
 				     [(i em var dfn cite) (styler delta:italic rest)]
 				     [(u) (styler delta:underline rest)]
@@ -784,101 +804,110 @@
 					    (styler delta rest)
 					    (rest)))]
 				     [(li dd dt)
-				      (insert-newlines 1 para-base)
+				      (insert-newlines 1 forced-lines para-base)
 				      (let ([pos (current-pos)]
 					    [bullet? (eq? tag 'li)])
 					(when bullet?
 					  (insert (make-object bullet-snip% (sub1 enum-depth))))
-					(let* ([r (rest/base/depth (add1 pos) enum-depth)]
-					       [end-pos (current-pos)])
+					(let*-values ([(r rfl) (rest/base/depth (add1 pos) enum-depth)]
+						      [(end-pos) (current-pos)])
+					  (values
+					   (lambda ()
+					     (change-style normal-style pos (+ 1 pos))
+					     (let ([end-para (send a-text position-paragraph 
+								   (backover-newlines end-pos pos))]
+						   [left-margin (* 2 (get-bullet-width) enum-depth)])
+					       (let loop ([para (send a-text position-paragraph pos)]
+							  [first? #t])
+						 (send a-text set-paragraph-margins
+						       para
+						       (if first?
+							   (max 0 (- left-margin
+								     (if bullet?
+									 (get-bullet-width)
+									 0)))
+							   left-margin)
+						       left-margin
+						       0)
+						 (unless (= para end-para)
+						   (loop (add1 para) #f))))
+					     (r))
+					   rfl)))]
+				     [(ul menu ol dl)
+				      (insert-newlines (if (zero? enum-depth) 2 1) forced-lines para-base)
+				      (let-values ([(r rfl)
+						    (rest/base/depth para-base (add1 enum-depth))])
+					(insert-newlines (if (zero? enum-depth) 2 1) rfl para-base)
+					(values r rfl))]
+				     [(p)
+				      (insert-newlines 2 forced-lines para-base)
+				      (let-values ([(r rfl) (rest)])
+					(insert-newlines 2 rfl para-base)
+					(values r rfl))]
+				     [(blockquote)
+				      (insert-newlines 2 forced-lines para-base)
+				      (let*-values ([(pos) (current-pos)]
+						    [(r rfl) (rest/base/depth para-base (add1 enum-depth))]
+						    [(end-pos) (current-pos)])
+					(begin0
+					 (values
 					  (lambda ()
-					    (change-style normal-style pos (+ 1 pos))
 					    (let ([end-para (send a-text position-paragraph 
 								  (backover-newlines end-pos pos))]
-						  [left-margin (* 2 (get-bullet-width) enum-depth)])
-					      (let loop ([para (send a-text position-paragraph pos)]
-							 [first? #t])
+						  [left-margin (* 2 (get-bullet-width) (add1 enum-depth))])
+					      (let loop ([para (send a-text position-paragraph pos)])
 						(send a-text set-paragraph-margins
 						      para
-						      (if first?
-							  (max 0 (- left-margin
-								    (if bullet?
-									(get-bullet-width)
-									0)))
-							  left-margin)
 						      left-margin
-						      0)
+						      left-margin
+						      left-margin)
 						(unless (= para end-para)
-						  (loop (add1 para) #f))))
-					    (r))))]
-				     [(ul menu ol dl)
-				      (insert-newlines (if (zero? enum-depth) 2 1) para-base)
-				      (begin0
-				       (rest/base/depth para-base (add1 enum-depth))
-				       (insert-newlines (if (zero? enum-depth) 2 1) para-base))]
-				     [(p)
-				      (insert-newlines 2 para-base)
-				      (begin0
-				       (rest)
-				       (insert-newlines 2 para-base))]
-				     [(blockquote)
-				      (insert-newlines 2 para-base)
-				      (begin0
-				       (let* ([pos (current-pos)]
-					      [r (rest/base/depth para-base (add1 enum-depth))]
-					      [end-pos (current-pos)])
-					 (lambda ()
-					   (let ([end-para (send a-text position-paragraph 
-								 (backover-newlines end-pos pos))]
-						 [left-margin (* 2 (get-bullet-width) (add1 enum-depth))])
-					     (let loop ([para (send a-text position-paragraph pos)])
-					       (send a-text set-paragraph-margins
-						     para
-						     left-margin
-						     left-margin
-						     left-margin)
-					       (unless (= para end-para)
-						 (loop (add1 para)))))
-					    (r)))
-				       (insert-newlines 2 para-base))]
+						  (loop (add1 para)))))
+					    (r))
+					  rfl)
+					 (insert-newlines 2 rfl para-base)))]
 				     [(center)
-				      (insert-newlines 2 para-base)
-				      (begin0
-				       (para-aligner 'center #f rest)
-				       (insert-newlines 2 para-base))]
+				      (insert-newlines 2 forced-lines para-base)
+				      (let-values ([(r rfl)
+						    (para-aligner 'center #f rest)])
+					(insert-newlines 2 rfl para-base)
+					(values r rfl))]
 				     [(div)
-				      (insert-newlines 1 para-base)
+				      (insert-newlines 1 forced-lines para-base)
 				      (let* ([align (get-field e 'align)]
 					     [class (get-field e 'class)]
 					     [delta (and class (lookup-class-delta class))])
 					(with-style-class
 					 class
 					 (lambda ()
-					   (begin0
-					    (cond
-					     [(and (string? align) (string-ci=? align "center"))
-					      (para-aligner 'center delta rest)]
-					     [(and (string? align) (string-ci=? align "left"))
-					      (para-aligner 'left delta rest)]
-					     [(or (and (string? align) (string-ci=? align "right"))
-						  (and (string? class) (string-ci=? class "navigation")))
-					      (para-aligner 'right delta rest)]
-					     [else
-					      (rest)])
-					    (insert-newlines 1 para-base)))))]
+					   (let-values ([(r rfl)
+							 (cond
+							  [(and (string? align) (string-ci=? align "center"))
+							   (para-aligner 'center delta rest)]
+							  [(and (string? align) (string-ci=? align "left"))
+							   (para-aligner 'left delta rest)]
+							  [(or (and (string? align) (string-ci=? align "right"))
+							       (and (string? class) (string-ci=? class "navigation")))
+							   (para-aligner 'right delta rest)]
+							  [else
+							   (rest)])])
+					     (insert-newlines 1 rfl para-base)
+					     (values r rfl)))))]
 				     [(br)
-				      (insert-newlines 1 para-base)
-				      (rest)]
+				      (insert-newlines 1 (+ 1 forced-lines) para-base)
+				      (rest/fl (+ forced-lines 1))]
 				     [(table)
-				      (insert-newlines 2 para-base)
-				      (begin0
-				       (maybe-bg-color e rest #t)
-				       (insert-newlines 2 para-base))]
+				      (insert-newlines 1 forced-lines para-base)
+				      (let-values ([(r rfl)
+						    (maybe-bg-color e rest #t)])
+					(insert-newlines 1 rfl para-base)
+					(values r (max 1 rfl)))]
 				     [(tr)
-				      (insert-newlines 1 para-base)
-				      (begin0
-				       (maybe-bg-color e rest #t)
-				       (insert-newlines 1 para-base))]
+				      (insert-newlines 1 forced-lines para-base)
+				      (let-values ([(r rfl)
+						    (maybe-bg-color e rest #t)])
+					(insert-newlines 1 rfl para-base)
+					(values r rfl))]
 				     [(td)
 				      (maybe-bg-color e rest #t)]
 				     [(img)
@@ -991,23 +1020,25 @@
 								       (or get-val
 									   (lambda () (get-field e 'value))))
 								 (form-parts form)))
-                                          (let ([r (rest)]
-						[end-pos (current-pos)])
+                                          (let-values ([(r rfl) (rest)]
+						       [(end-pos) (current-pos)])
 					    (set-form-active-select! form #f)
-					    (lambda ()
-					      (cond
-					       [cb
-						(send a-text make-link-style pos end-pos)
-						(send a-text add-thunk-callback pos end-pos cb)]
-					       [else
-						(change-style normal-style pos end-pos)])
-					      (r)))))]
+					    (values
+					     (lambda ()
+					       (cond
+						[cb
+						 (send a-text make-link-style pos end-pos)
+						 (send a-text add-thunk-callback pos end-pos cb)]
+						[else
+						 (change-style normal-style pos end-pos)])
+					       (r))
+					     rfl))))]
 				     [(option)
-				      (let ([pos (current-pos)]
-					    [r (rest)]
-                                            [val (get-field e 'value)]
-					    [selected? (true? (or (get-field e 'selected) "false"))]
-					    [end-pos (current-pos)])
+				      (let-values ([(pos) (current-pos)]
+						   [(r rfl) (rest)]
+						   [(val) (get-field e 'value)]
+						   [(selected?) (true? (or (get-field e 'selected) "false"))]
+						   [(end-pos) (current-pos)])
 					(let ([str (send a-text get-text pos end-pos)]
 					      [select (form-active-select form)])
 					  (delete pos end-pos)
@@ -1015,25 +1046,26 @@
 					    (send select add-option str (or val str))
 					    (when selected?
 					      (send select set-value val)))
-					  r))]				      
+					  (values r rfl)))]
 				     [(tt code samp kbd pre)
 				      (when (memq tag '(pre))
-					(insert-newlines 2 para-base))
-				      (begin0
-				       (let* ([class (get-field e 'class)]
-					      [delta (and class (lookup-class-delta class))])
-					 (with-style-class
-					  class
-					  (lambda ()
-					    (styler (if delta
-							(let ([d (make-object style-delta% 'change-nothing)])
-							  (send d copy delta)
-							  (send d collapse delta:fixed)
-							  d)
-							delta:fixed)
-						    rest))))
-				       (when (memq tag '(pre))
-					 (insert-newlines 2 para-base)))]
+					(insert-newlines 2 forced-lines para-base))
+				      (let-values ([(r rfl)
+						    (let* ([class (get-field e 'class)]
+							   [delta (and class (lookup-class-delta class))])
+						      (with-style-class
+						       class
+						       (lambda ()
+							 (styler (if delta
+								     (let ([d (make-object style-delta% 'change-nothing)])
+								       (send d copy delta)
+								       (send d collapse delta:fixed)
+								       d)
+								     delta:fixed)
+								 rest))))])
+					(when (memq tag '(pre))
+					  (insert-newlines 2 rfl para-base))
+					(values r rfl))]
 				     [(span)
 				      (let* ([class (get-field e 'class)]
 					     [delta (and class (lookup-class-delta class))])
@@ -1044,8 +1076,9 @@
 		
 		(load-status #f "page" base-path)
 		
-		((translate content 0 0 (make-form #f #f #f null #f)))
-
+		(let-values ([(f fl) (translate content 0 0 0 (make-form #f #f #f null #f))])
+		  (f))
+		
 		(send a-text add-tag "top" 0)
 
 		(send a-text set-position 0)))))))))
