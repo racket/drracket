@@ -6,7 +6,7 @@
 	       (lambda(plt-dir)
 		 (require-library "launcher.ss" "launcher")
 		 (make-mred-launcher
-		  (list "-mvaqgL" "drscheme.ss" "drscheme")
+		  (list "-mvqL" "drscheme.ss" "drscheme")
 		  (mred-program-launcher-path "DrScheme")))]
 	      [(compile-prefix) 
 	       '(begin
