@@ -8,6 +8,8 @@
            (lib "tool.ss" "drscheme")
            (prefix fw: (lib "framework.ss" "framework")))
   (provide send-url
+           (rename raw:external-browser external-browser)
+           (rename raw:browser-preference? browser-preference?)
            update-browser-preference
            tool@)
   
