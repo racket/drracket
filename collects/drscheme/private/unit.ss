@@ -3,15 +3,18 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
            (lib "string-constant.ss" "string-constants")
-	   "drsig.ss"
-	   (lib "mred.ss" "mred")
-           (prefix mred: (lib "mred.ss" "mred"))
-           (lib "framework.ss" "framework")
-           (prefix launcher: (lib "launcher.ss" "launcher"))
+	   (lib "framework.ss" "framework")
            (lib "etc.ss")
+           (lib "list.ss")
            (lib "name-message.ss" "mrlib")
+           
+           "drsig.ss"
+	   
+           (lib "mred.ss" "mred")
+           (prefix mred: (lib "mred.ss" "mred"))
+
+           (prefix launcher: (lib "launcher.ss" "launcher"))
            (prefix mzlib:file: (lib "file.ss"))
-           (prefix mzlib:list: (lib "list.ss"))
            (prefix mzlib:date: (lib "date.ss")))
   
   (provide unit@)
@@ -24,11 +27,13 @@
               [drscheme:text : drscheme:text^]
               [drscheme:rep : drscheme:rep^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^]
+              [drscheme:language : drscheme:language^]
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:number-snip : drscheme:number-snip^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-overview : drscheme:module-overview^]
-              [drscheme:tools : drscheme:tools^])
+              [drscheme:tools : drscheme:tools^]
+              [drscheme:eval : drscheme:eval^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
@@ -568,7 +573,7 @@
                                 (on-paint)))]
                       [unsorted-defns (get-definitions (not sort-by-name?) text)]
                       [defns (if sort-by-name?
-                                 (mzlib:list:quicksort 
+                                 (quicksort 
                                   unsorted-defns
                                   (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
                                  unsorted-defns)])
@@ -917,10 +922,20 @@
 
           (rename [super-make-root-area-container make-root-area-container])
           (define/override (make-root-area-container cls parent)
-            (let* ([outer-panel (super-make-root-area-container vertical-panel% parent)]
-                   [root (make-object cls outer-panel)])
-              (set! logging-parent-panel (make-object horizontal-panel% outer-panel))
-              (send logging-parent-panel stretchable-height #f)
+            (let* ([outer-panel (super-make-root-area-container module-browser-dragable-panel% parent)]
+                   [saved-p (preferences:get 'drscheme:module-browser-size-percentage)]
+                   [_module-browser-panel (instantiate vertical-panel% ()
+                                            (parent outer-panel)
+                                            (stretchable-width #f))]
+                   [louter-panel (make-object vertical-panel% outer-panel)]
+                   [root (make-object cls louter-panel)])
+              (set! module-browser-panel _module-browser-panel)
+              (set! module-browser-parent-panel outer-panel)
+              (send outer-panel change-children (lambda (l) (remq module-browser-panel l)))
+              (preferences:set 'drscheme:module-browser-size-percentage saved-p)
+              (set! logging-parent-panel (instantiate horizontal-panel% ()
+                                           (parent louter-panel)
+                                           (stretchable-height #f)))
               (set! logging-panel (make-object horizontal-panel% logging-parent-panel))
               (unless (preferences:get 'framework:show-status-line)
                 (send logging-parent-panel change-children (lambda (l) null)))
@@ -1357,7 +1372,7 @@
                                                            (car percentages))))])))])
                             (unless soon-to-be-bigger-canvas
                               (error 'collapse "internal error.3"))
-                            (set-canvases! (mzlib:list:remq target (get-canvases)))
+                            (set-canvases! (remq target (get-canvases)))
                             (update-shown)
                             
                             (let ([target-admin 
@@ -1405,7 +1420,7 @@
               (super-update-shown)
               
               (let ([new-children
-                     (mzlib:list:foldl
+                     (foldl
                       (lambda (shown? children sofar)
                         (if shown?
                             (append children sofar)
@@ -1426,6 +1441,8 @@
                           (string-constant hide-interactions-menu-item-label)
                           (string-constant show-interactions-menu-item-label)))
                 
+                (send resizable-panel begin-container-sequence)
+                
                 ;; this might change the unit-window-size-percentage, so save/restore it
                 (send resizable-panel change-children (lambda (l) new-children))
                 
@@ -1438,6 +1455,8 @@
                   (with-handlers ([not-break-exn? (lambda (x) (void))])
                     (send resizable-panel set-percentages
                           (list p (- 1 p))))))
+              
+              (send resizable-panel end-container-sequence)
               
               (when (ormap (lambda (child)
                              (and (is-a? child editor-canvas%)
@@ -1600,7 +1619,7 @@
                            (lambda (item evt)
                              (let ([new-teachpacks 
                                     (drscheme:teachpack:new-teachpack-cache
-                                     (mzlib:list:remove
+                                     (remove
                                       name
                                       (drscheme:teachpack:teachpack-cache-filenames
                                        user-teachpack-cache)))])
@@ -1652,8 +1671,70 @@
                      (begin
                        (send menu set-label (string-constant hide-overview))
                        (preferences:set 'framework:show-delegate? #t)
-                       (show-delegated-text)))))))
+                       (show-delegated-text))))))
+            
+            (instantiate menu:can-restore-menu-item% ()
+              (label (if module-browser-shown?
+                         (string-constant hide-module-browser)
+                         (string-constant show-module-browser)))
+              (parent (get-show-menu))
+              (callback
+               (lambda (menu evt)
+                 (set! module-browser-shown? (not module-browser-shown?))
+                 (if module-browser-shown?
+                     (begin (send menu set-label (string-constant hide-module-browser))
+                            (show-module-browser))
+                     (begin (send menu set-label (string-constant show-module-browser))
+                            (hide-module-browser)))))))
           
+          (field [module-browser-shown? #f]
+                 [module-browser-parent-panel #f]
+                 [module-browser-panel #f]
+                 [module-browser-ec #f]
+                 [module-browser-pb #f])
+
+          (define/private (show-module-browser)
+            (when module-browser-panel
+              (unless module-browser-ec 
+                (set! module-browser-ec (make-object editor-canvas% module-browser-panel))
+                (set! module-browser-pb 
+                      (drscheme:module-overview:make-module-overview-pasteboard
+                       #t
+                       #f 
+                       void;mouse-currently-over
+                       )))
+              (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
+                (send module-browser-parent-panel begin-container-sequence)
+                (send module-browser-parent-panel change-children
+                      (lambda (l)
+                        (cons module-browser-panel
+                              (remq module-browser-panel l))))
+                (send module-browser-parent-panel set-percentages
+                      (list p (- 1 p)))
+                (send module-browser-parent-panel end-container-sequence)
+                (calculate-module-browser))))
+          
+          (define/private (hide-module-browser)
+            (when module-browser-panel
+              (send module-browser-parent-panel change-children
+                    (lambda (l) 
+                      (remq module-browser-panel l)))))
+          
+          (define/private (calculate-module-browser)
+            (drscheme:eval:expand-program 
+             (drscheme:language:make-text/pos (get-definitions-text) 0 0)
+             (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))
+             #t
+             void
+             void
+             (lambda (exp cont)
+               (cond
+                 [(eof-object? exp) (void)]
+                 [(syntax? exp) 
+                  (send module-browser-pb add-connections exp)
+                  (cont)]
+                 [(pair? exp) (void)]))))
+             
           (super-instantiate ()
             (filename filename)
             (width (preferences:get 'drscheme:unit-window-width))
@@ -2009,6 +2090,18 @@
              (set! created-frame #f)]
             [else (void)])))
 
+      (define module-browser-dragable-panel%
+        (class panel:horizontal-dragable%
+          (inherit get-percentages)
+          (define/override (after-percentage-change)
+            (let ([percentages (get-percentages)])
+              (when (and (pair? percentages)
+                         (pair? (cdr percentages))
+                         (null? (cddr percentages)))
+                (preferences:set 'drscheme:module-browser-size-percentage
+                                 (car percentages)))))
+          (super-instantiate ())))
+      
       (define drs-name-message%
         (class name-message%
           (define/override (on-choose-directory dir)

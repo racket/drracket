@@ -42,8 +42,8 @@
             [language : drscheme:language^ (language@ rep debug teachpack tools help-desk)]
             [module-overview : drscheme:module-overview^ (module-overview@ frame)]
             [unit : drscheme:unit^ 
-                  (unit@ help-desk app frame text rep language-configuration 
-                       get/extend number-snip teachpack module-overview tools)]
+                  (unit@ help-desk app frame text rep language-configuration language
+                       get/extend number-snip teachpack module-overview tools eval)]
             [debug : drscheme:debug^
                    (debug@ rep frame unit language language-configuration)]
             [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame unit)]

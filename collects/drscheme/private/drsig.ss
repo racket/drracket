@@ -234,7 +234,8 @@
     (multi-file-search))
   
   (define-signature drscheme:module-overview^
-    (module-overview))
+    (module-overview
+     make-module-overview-pasteboard))
 
   (define-signature drscheme:tool-exports^
     (phase1 
