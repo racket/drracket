@@ -748,7 +748,7 @@
 	     (send p get-string (box 0)))]
 	  [read
 	   (lambda (p)
-	     (let ([l (mzlib:string@:read-string (send p get-string null))])
+	     (let ([l (mzlib:string@:read-from-string (send p get-string null))])
 	       (make-object snip% (car l) (cadr l))))])
 	(sequence
 	  (apply super-init args)
