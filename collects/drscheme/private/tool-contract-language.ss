@@ -18,7 +18,7 @@
         [(name type type-names strs ...)
          (and (identifier? (syntax name))
               (not (string? (syntax-object->datum (syntax type))))
-              (andmap (lambda (x) (string? (syntax-object->datum x))) (syntax->list (syntax (strs ...)))))
+              (andmap (λ (x) (string? (syntax-object->datum x))) (syntax->list (syntax (strs ...)))))
          (make-ctc-binding (syntax name) (syntax type))]
         [else (raise-syntax-error 'tool-contract-language.ss "unknown case" stx case-stx)]))
               
@@ -37,10 +37,10 @@
              (#%module-begin
               (provide wrap-tool-inputs)
               (define-syntax wrap-tool-inputs
-                (lambda (in-stx)
+                (λ (in-stx)
                   (syntax-case in-stx ()
                     [(_ body tool-name)
-                     (let ([f (lambda (in-obj) 
+                     (let ([f (λ (in-obj) 
                                 (datum->syntax-object 
                                  in-stx
                                  (syntax-object->datum in-obj)
@@ -60,19 +60,19 @@
       [(_ (name type type-names strs ...) ...)
        (begin
          (for-each
-          (lambda (str-stx)
+          (λ (str-stx)
             (when (string? (syntax-object->datum str-stx))
               (raise-syntax-error 'tool-contract-language.ss "expected type name specification"
                                   stx
                                   str-stx)))
           (syntax->list (syntax (type-names ...))))
          (for-each
-          (lambda (name)
+          (λ (name)
             (unless (identifier? name)
               (raise-syntax-error 'tool-contract-language.ss "expected identifier" stx name)))
           (syntax->list (syntax (name ...))))
          (for-each
-          (lambda (str)
+          (λ (str)
             (unless (string? (syntax-object->datum str))
               (raise-syntax-error 'tool-contract-language.ss "expected docs string" stx str)))
           (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))]))
@@ -81,27 +81,27 @@
     (syntax-case stx ()
       [(_ (name type type-names strs ...) ...)
        (and (andmap identifier? (syntax->list (syntax (name ...))))
-            (andmap (lambda (x) (not (string? (syntax-object->datum x))))
+            (andmap (λ (x) (not (string? (syntax-object->datum x))))
                     (syntax->list (syntax (type-names ...))))
-            (andmap (lambda (x) (string? (syntax-object->datum x)))
+            (andmap (λ (x) (string? (syntax-object->datum x)))
                     (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))
        (with-syntax ([wrap-tool-inputs (datum->syntax-object stx 'wrap-tool-inputs #'here)])
          (syntax/loc stx
           (#%module-begin
            (provide wrap-tool-inputs)
            (define-syntax wrap-tool-inputs
-             (lambda (in-stx)
+             (λ (in-stx)
                (syntax-case in-stx ()
                  [(_ body tool-name)
                   (with-syntax ([(in-type (... ...))
-                                 (map (lambda (in-type-obj) 
+                                 (map (λ (in-type-obj) 
                                         (datum->syntax-object 
                                          in-stx
                                          (syntax-object->datum in-type-obj)
                                          in-type-obj))
                                       (syntax->list (syntax (type ...))))]
                                 [(in-name (... ...))
-                                 (map (lambda (in-name-obj) 
+                                 (map (λ (in-name-obj) 
                                         (datum->syntax-object 
                                          in-stx 
                                          (syntax-object->datum in-name-obj)
@@ -117,19 +117,19 @@
       [(_ (name type type-names strs ...) ...)
        (begin
          (for-each
-          (lambda (str-stx)
+          (λ (str-stx)
             (when (string? (syntax-object->datum str-stx))
               (raise-syntax-error 'tool-contract-language.ss "expected type name specification"
                                   stx
                                   str-stx)))
           (syntax->list (syntax (type-names ...))))
          (for-each
-          (lambda (name)
+          (λ (name)
             (unless (identifier? name)
               (raise-syntax-error 'tool-contract-language.ss "expected identifier" stx name)))
           (syntax->list (syntax (name ...))))
          (for-each
-          (lambda (str)
+          (λ (str)
             (unless (string? (syntax-object->datum str))
               (raise-syntax-error 'tool-contract-language.ss "expected docs string" stx str)))
           (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))])))

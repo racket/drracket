@@ -90,7 +90,7 @@ TODO
                      (eq? (current-error-port) (send rep get-err-port)))
             (parameterize ([current-eventspace drscheme:init:system-eventspace])
               (queue-callback
-               (lambda ()
+               (λ ()
                  (send rep highlight-errors/exn exn)))))))
       
       ;; drscheme-error-value->string-handler : TST number -> string
@@ -118,7 +118,7 @@ TODO
       (define drs-bindings-keymap (make-object keymap:aug-keymap%))
       (send drs-bindings-keymap add-function
             "execute"
-            (lambda (obj evt)
+            (λ (obj evt)
               (when (is-a? obj editor<%>)
                 (let ([canvas (send obj get-canvas)])
                   (when canvas
@@ -127,7 +127,7 @@ TODO
                         (send frame execute-callback))))))))
       (send drs-bindings-keymap add-function
             "search-help-desk"
-            (lambda (obj evt)
+            (λ (obj evt)
               (cond
                 [(is-a? obj text%)
                  (let* ([start (send obj get-start-position)]
@@ -148,7 +148,7 @@ TODO
                  (drscheme:help-desk:help-desk)])))
       (send drs-bindings-keymap add-function
             "toggle-focus-between-definitions-and-interactions"
-            (lambda (obj evt)
+            (λ (obj evt)
               (when (is-a? obj editor<%>)
                 (let ([canvas (send obj get-canvas)])
                   (when canvas
@@ -183,12 +183,12 @@ TODO
       (define (printf . args) (apply fprintf drscheme:init:original-output-port args))
       
       (define setup-scheme-interaction-mode-keymap
-        (lambda (keymap)
+        (λ (keymap)
           (send keymap add-function "put-previous-sexp"
-                (lambda (text event) 
+                (λ (text event) 
                   (send text copy-prev-previous-expr)))
           (send keymap add-function "put-next-sexp"
-                (lambda (text event) 
+                (λ (text event) 
                   (send text copy-next-previous-expr)))
           
           (keymap:send-map-function-meta keymap "p" "put-previous-sexp")
@@ -250,11 +250,11 @@ TODO
       (define-struct sexp (left right prompt))
       
       (define console-max-save-previous-exprs 30)
-      (let* ([list-of? (lambda (p?)
-                         (lambda (l)
+      (let* ([list-of? (λ (p?)
+                         (λ (l)
                            (and (list? l)
                                 (andmap p? l))))]
-             [snip/string? (lambda (s) (or (is-a? s snip%) (string? s)))]
+             [snip/string? (λ (s) (or (is-a? s snip%) (string? s)))]
              [list-of-snip/strings? (list-of? snip/string?)]
              [list-of-lists-of-snip/strings? (list-of? list-of-snip/strings?)])
         (preferences:set-default
@@ -262,9 +262,9 @@ TODO
          null
          list-of-lists-of-snip/strings?))
       (let ([marshall 
-             (lambda (lls)
-               (map (lambda (ls)
-                      (map (lambda (s)
+             (λ (lls)
+               (map (λ (ls)
+                      (map (λ (s)
                              (cond
                                [(is-a? s string-snip%)
                                 (send s get-text 0 (send s get-count))]
@@ -272,7 +272,7 @@ TODO
                                [else "'non-string-snip"]))
                            ls))
                     lls))]
-            [unmarshall (lambda (x) x)])
+            [unmarshall (λ (x) x)])
         (preferences:set-un/marshall
          'drscheme:console-previous-exprs
          marshall unmarshall))
@@ -381,7 +381,7 @@ TODO
         (let ([before (send text last-position)])
           (send text insert s before before #f)
           (let ([after (send text last-position)])
-            (for-each (lambda (delta)
+            (for-each (λ (delta)
                         (when (is-a? delta style-delta%)
                           (send text change-style delta before after)))
                       deltas)
@@ -509,18 +509,18 @@ TODO
             (opt-lambda (ut thunk [always? #f])
               (parameterize ([current-eventspace drscheme:init:system-eventspace])
                 (queue-callback 
-                 (lambda ()
+                 (λ ()
                    (when (or always? (eq? ut (get-user-thread)))
                      (thunk)))
                  #f))))
           
           ;; =User=
           (define/private queue-system-callback/sync
-            (lambda (ut thunk)
+            (λ (ut thunk)
               (let ([s (make-semaphore 0)])
                 (queue-system-callback 
                  ut 
-                 (lambda ()
+                 (λ ()
                    (when (eq? ut (get-user-thread))
                      (thunk))
                    (semaphore-post s))
@@ -531,7 +531,7 @@ TODO
           ;; prints each element of anss that is not void as values in the REPL.
           (define/public (display-results anss) ; =User=, =Handler=, =Breaks=
             (for-each 
-             (lambda (v)
+             (λ (v)
                (unless (void? v)
                  (let* ([ls (current-language-settings)]
                         [lang (drscheme:language-configuration:language-settings-language ls)]
@@ -588,7 +588,7 @@ TODO
           ;;                       (union #f (listof (list (is-a?/c text:basic<%>) number number)))
           ;;                    -> (void)
           (define/public (highlight-errors raw-locs error-arrows)
-            (let ([locs (filter (lambda (loc) (and (is-a? (srcloc-source loc) text:basic<%>)
+            (let ([locs (filter (λ (loc) (and (is-a? (srcloc-source loc) text:basic<%>)
                                                    (number? (srcloc-position loc))
                                                    (number? (srcloc-span loc))))
                                 raw-locs)])
@@ -602,11 +602,11 @@ TODO
                             (is-a? f drscheme:unit:frame<%>)
                             (send f get-definitions-text)))])
                 
-                (for-each (lambda (loc) (send (srcloc-source loc) begin-edit-sequence)) locs)
+                (for-each (λ (loc) (send (srcloc-source loc) begin-edit-sequence)) locs)
                 
                 (when color?
                   (let ([resets
-                         (map (lambda (loc)
+                         (map (λ (loc)
                                 (let* ([file (srcloc-source loc)]
                                        [start (- (srcloc-position loc) 1)]
                                        [span (srcloc-span loc)]
@@ -618,18 +618,18 @@ TODO
                       (let ([filtered-arrows
                              (remove-duplicate-error-arrows
                               (filter
-                               (lambda (arr)
+                               (λ (arr)
                                  (embedded-in? (car arr) defs))
                                error-arrows))])
                         (send defs set-error-arrows filtered-arrows)))
                     
                     (set! internal-reset-callback
-                          (lambda ()
+                          (λ ()
                             (set! error-ranges #f)
                             (when defs
                               (send defs set-error-arrows #f))
                             (set! internal-reset-callback void)
-                            (for-each (lambda (x) (x)) resets)))))
+                            (for-each (λ (x) (x)) resets)))))
                 
                 (let* ([first-loc (and (pair? locs) (car locs))]
                        [first-file (and first-loc (srcloc-source first-loc))]
@@ -642,7 +642,7 @@ TODO
                         (send first-file set-position first-start first-start))
                       (send first-file scroll-to-position first-start #f first-finish)))
                   
-                  (for-each (lambda (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
+                  (for-each (λ (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
                   
                   (when first-loc
                     (send first-file set-caret-owner #f 'global))))))
@@ -661,7 +661,7 @@ TODO
                   (hash-table-put! ht (car arrs) n)
                   (loop (cdr arrs) (+ n 1))))
               (let* ([unsorted (hash-table-map ht list)]
-                     [sorted (quicksort unsorted (lambda (x y) (<= (cadr x) (cadr y))))]
+                     [sorted (quicksort unsorted (λ (x y) (<= (cadr x) (cadr y))))]
                      [arrs (map car sorted)])
                 arrs)))
                     
@@ -707,7 +707,7 @@ TODO
               (inner (void) after-delete x y)))
           
           (define/override get-keymaps
-            (lambda ()
+            (λ ()
               (cons scheme-interaction-mode-keymap (super get-keymaps))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -730,25 +730,25 @@ TODO
                    [commit-proc 5]
                    [location-proc 6]
                    [call
-                    (lambda (i . args)
+                    (λ (i . args)
                       (apply (list-ref current-input-port-args i) args))])
               (make-input-port this
-                               (lambda (bstr)
+                               (λ (bstr)
                                  (parameterize ([current-eventspace drscheme:init:system-eventspace])
                                    (queue-callback
-                                    (lambda ()
+                                    (λ ()
                                       (show-input-text))))
                                  (call read-proc bstr))
-                               (lambda (bstr num p-evt)
+                               (λ (bstr num p-evt)
                                  (parameterize ([current-eventspace drscheme:init:system-eventspace])
                                    (queue-callback
-                                    (lambda ()
+                                    (λ ()
                                       (show-input-text))))
                                  (call peek-proc bstr num p-evt))
-                               (lambda () (call close-proc))
-                               (lambda () (call progress-evt-proc))
-                               (lambda (kr evt done-evt) (call commit-proc kr evt done-evt))
-                               (lambda () (call location-proc)))))
+                               (λ () (call close-proc))
+                               (λ () (call progress-evt-proc))
+                               (λ (kr evt done-evt) (call commit-proc kr evt done-evt))
+                               (λ () (call location-proc)))))
           
           (define/private (show-input-text)
             (unless current-text-inserted?
@@ -756,7 +756,7 @@ TODO
               (let ([locked? (is-locked?)])
                 (let ([es (new editor-snip% (editor current-input-text))])
                   (let ([canvases (get-canvases)])
-                    (for-each (lambda (canvas) (send canvas add-wide-snip es))
+                    (for-each (λ (canvas) (send canvas add-wide-snip es))
                               canvases))
                   (lock #f)
                   (unless (= (get-insertion-point)
@@ -873,7 +873,7 @@ TODO
             (evaluate-from-port
              (get-in-port) 
              #f
-             (lambda ()
+             (λ ()
                (clear-input-port))))
           
           ;; prompt-position : (union #f integer)
@@ -903,7 +903,7 @@ TODO
             (set! inserting-prompt? #f))
           
           (field [submit-predicate
-                  (lambda (text prompt-position)
+                  (λ (text prompt-position)
                     #t)])
           (define/public (set-submit-predicate p)
             (set! submit-predicate p))
@@ -921,7 +921,7 @@ TODO
             (set! need-interaction-cleanup? #t)
             
             (run-in-evaluation-thread
-             (lambda () ; =User=, =Handler=, =No-Breaks=
+             (λ () ; =User=, =Handler=, =No-Breaks=
                (let* ([settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
@@ -940,25 +940,25 @@ TODO
                    (let ([saved-error-escape-k (current-error-escape-k)]
                          [cleanup? #f])
                      (dynamic-wind
-                      (lambda ()
+                      (λ ()
                         (set! cleanup? #f)
-                        (current-error-escape-k (lambda () 
+                        (current-error-escape-k (λ () 
                                                   (set! cleanup? #t)
                                                   (k (void)))))
-                      (lambda () 
+                      (λ () 
                         (let loop ()
                           (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                             (unless (eof-object? sexp/syntax/eof)
                               (call-with-values
-                               (lambda ()
+                               (λ ()
                                  (call-with-break-parameterization
                                   (get-user-break-parameterization)
-                                  (lambda ()
+                                  (λ ()
                                     (eval-syntax sexp/syntax/eof))))
-                               (lambda x (display-results x)))
+                               (λ x (display-results x)))
                               (loop))))
                         (set! cleanup? #t))
-                      (lambda () 
+                      (λ () 
                         (current-error-escape-k saved-error-escape-k)
                         (when cleanup?
                           (set! in-evaluation? #f)
@@ -967,7 +967,7 @@ TODO
                           (flush-output (get-value-port))
                           (queue-system-callback/sync
                            (get-user-thread)
-                           (lambda () ; =Kernel=, =Handler= 
+                           (λ () ; =Kernel=, =Handler= 
                              (after-many-evals)
                              (cleanup-interaction)
                              (insert-prompt))))))))))))
@@ -980,7 +980,7 @@ TODO
             ; Don't use it to kill a thread where other, external cleanup
             ;  actions must occur (e.g., the exit handler for the user's
             ;  thread). In that case, shut down user-custodian directly.
-            (lambda ()
+            (λ ()
               (when user-custodian
                 (custodian-shutdown-all user-custodian))
 	      (set! user-custodian #f)
@@ -1006,18 +1006,18 @@ TODO
               (kill-thread thread-killed))
             (set! thread-killed
                   (thread
-                   (lambda () ; =Kernel=
+                   (λ () ; =Kernel=
                      (let ([ut (get-user-thread)])
                        (thread-wait ut)
                        (queue-system-callback
                         ut
-                        (lambda () ; =Kernel=, =Handler=
+                        (λ () ; =Kernel=, =Handler=
                           (if need-interaction-cleanup?
                               (cleanup-interaction)
                               (cleanup)))))))))
           
           (define/private protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
-            (lambda (thunk cleanup)
+            (λ (thunk cleanup)
               
               ;; We only run cleanup if thunk finishes normally or tries to
               ;; error-escape. Otherwise, it must be a continuation jump
@@ -1033,16 +1033,16 @@ TODO
                 (let ([saved-error-escape-k (current-error-escape-k)]
                       [cleanup? #f])
                   (dynamic-wind
-                   (lambda ()
+                   (λ ()
                      (set! cleanup? #f)
-                     (current-error-escape-k (lambda () 
+                     (current-error-escape-k (λ () 
 					       (set! cleanup? #t)
 					       (k (void)))))
-		  (lambda () 
+		  (λ () 
                      (thunk) 
                      ; Breaks must be off!
                      (set! cleanup? #t))
-                   (lambda () 
+                   (λ () 
                      (current-error-escape-k saved-error-escape-k)
                      (when cleanup?
                        (set! in-evaluation? #f)
@@ -1056,7 +1056,7 @@ TODO
             (semaphore-post eval-thread-queue-sema))
           
           (define/private init-evaluation-thread ; =Kernel=
-            (lambda ()
+            (λ ()
               (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
                     [frame (get-top-level-window)])
                 (if frame
@@ -1080,11 +1080,11 @@ TODO
               (let* ([init-thread-complete (make-semaphore 0)]
                      [goahead (make-semaphore)]
                      [queue-user/wait
-                      (lambda (thnk)
+                      (λ (thnk)
                         (let ([wait (make-semaphore 0)])
                           (parameterize ([current-eventspace (get-user-eventspace)])
                             (queue-callback
-                             (lambda ()
+                             (λ ()
                                (thnk)
                                (semaphore-post wait))))
                           (semaphore-wait wait)))])
@@ -1094,7 +1094,7 @@ TODO
                        ; the snip-classes in the DrScheme eventspace's snip-class-list
                        (drscheme:eval:get-snip-classes)])
                   (queue-user/wait
-                   (lambda () ; =User=, =No-Breaks=
+                   (λ () ; =User=, =No-Breaks=
                      ; No user code has been evaluated yet, so we're in the clear...
                      (break-enabled #f)
                      (set! user-thread-box (make-weak-box (current-thread)))
@@ -1112,15 +1112,15 @@ TODO
                 ;; installs the teachpacks
                 ;; must happen after language is initialized.
                 (queue-user/wait
-                 (lambda () ; =User=, =No-Breaks=
+                 (λ () ; =User=, =No-Breaks=
                    (drscheme:teachpack:install-teachpacks 
                     user-teachpack-cache)))
                 
                 (parameterize ([current-eventspace (get-user-eventspace)])
                   (queue-callback
-                   (lambda ()
+                   (λ ()
                      (let ([drscheme-error-escape-handler
-                            (lambda ()
+                            (λ ()
 			      ((current-error-escape-k)))])
                        (error-escape-handler drscheme-error-escape-handler))
                      
@@ -1207,10 +1207,10 @@ TODO
             (shutdown-user-custodian))
           
           (define/private update-running ; =User=, =Handler=, =No-Breaks=
-            (lambda (bool)
+            (λ (bool)
               (queue-system-callback
                (get-user-thread)
-               (lambda ()
+               (λ ()
                  (send context update-running bool)))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1221,7 +1221,7 @@ TODO
           
           ;; initialize-paramters : (listof snip-class%) -> void
           (define/private initialize-parameters ; =User=
-            (lambda (snip-classes)
+            (λ (snip-classes)
               
               (current-language-settings user-language-settings)
               (error-value->string-handler drscheme-error-value->string-handler)
@@ -1244,12 +1244,12 @@ TODO
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
               (current-input-port user-input-port)
-              ;(current-input-port (make-input-port #f (lambda (bytes) eof) #f void))
+              ;(current-input-port (make-input-port #f (λ (bytes) eof) #f void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler
                  (rec drscheme-event-dispatch-handler ; <= a name for #<...> printout
-                   (lambda (eventspace) ; =User=, =Handler=
+                   (λ (eventspace) ; =User=, =Handler=
                      ; Breaking is enabled if the user turned on breaks and
                      ;  is in a `yield'. If we get a break, that's ok, because
                      ;  the kernel never queues an event in the user's eventspace.
@@ -1273,22 +1273,22 @@ TODO
                              
                              (protect-user-evaluation
                               ; Run the dispatch:
-                              (lambda () ; =User=, =Handler=, =No-Breaks=
+                              (λ () ; =User=, =Handler=, =No-Breaks=
                                 ; This procedure is responsible for adjusting breaks to
                                 ;  match the user's expectations:
                                 (dynamic-wind
-                                 (lambda () 
+                                 (λ () 
                                    (break-enabled break-ok?)
                                    (unless ub?
                                      (set! user-break-enabled 'user)))
-                                   (lambda ()
+                                   (λ ()
                                      (primitive-dispatch-handler eventspace))
-                                   (lambda ()
+                                   (λ ()
                                      (unless ub?
                                        (set! user-break-enabled (break-enabled)))
                                      (break-enabled #f))))
                               ; Cleanup after dispatch
-                              (lambda ()
+                              (λ ()
                                 ;; in principle, the line below might cause
                                 ;; a "race conditions" in the GUI. That is, there might
                                 ;; be many little events that the user won't quite
@@ -1345,14 +1345,14 @@ TODO
                            (extract-language-style-delta user-language-settings)))
                          ((url) (extract-language-url user-language-settings)))
               (when url
-                (set-clickback before after (lambda args (send-url url))
+                (set-clickback before after (λ args (send-url url))
                                click-delta)))
             (unless (is-default-settings? user-language-settings)
               (insert/delta this (string-append " " (string-constant custom)) dark-green-delta))
             (insert/delta this (format ".~n") welcome-delta)
             
             (for-each
-             (lambda (fn)
+             (λ (fn)
                (insert/delta this
                              (string-append (string-constant teachpack) ": ")
                              welcome-delta)
@@ -1381,7 +1381,7 @@ TODO
               (insert/delta this (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
                             welcome-delta)
               (set-clickback before after 
-                             (lambda args (drscheme:app:about-drscheme))
+                             (λ args (drscheme:app:about-drscheme))
                              click-delta))
             (set! setting-up-repl? #f)
             (thaw-colorer)
@@ -1417,7 +1417,7 @@ TODO
             (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
               (begin-edit-sequence)
               (delete prompt-position (last-position) #f)
-              (for-each (lambda (snip/string)
+              (for-each (λ (snip/string)
                           (insert (if (is-a? snip/string snip%)
                                       (send snip/string copy)
                                       snip/string)
@@ -1427,7 +1427,7 @@ TODO
               (end-edit-sequence)))
           
           (define/public copy-next-previous-expr
-            (lambda ()
+            (λ ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
@@ -1436,7 +1436,7 @@ TODO
                             0))
                   (copy-previous-expr)))))
           (define/public copy-prev-previous-expr
-            (lambda ()
+            (λ ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
@@ -1517,7 +1517,7 @@ TODO
       (define (insert-error-in-text text interactions-text msg exn user-dir)
         (insert-error-in-text/highlight-errors
          text
-         (lambda (l) (send interactions-text highlight-errors l))
+         (λ (l) (send interactions-text highlight-errors l))
          msg
          exn
          user-dir))
@@ -1533,7 +1533,7 @@ TODO
         (let ([locked? (send text is-locked?)]
               [insert-file-name/icon
                ;; insert-file-name/icon : string number number number number -> void
-               (lambda (source-name start span row col)
+               (λ (source-name start span row col)
                  (let* ([range-spec
                          (cond
                            [(and row col)
@@ -1554,7 +1554,7 @@ TODO
                                      [(colon-start colon-ent) (insert/delta text ": ")])
                           (when (number? start)
                             (send text set-clickback icon-start range-end
-                                  (lambda (_1 _2 _3)
+                                  (λ (_1 _2 _3)
                                     (open-file-and-highlight normalized-name
                                                              (- start 1) 
                                                              (if span
@@ -1569,7 +1569,7 @@ TODO
           (cond
             [(exn:fail:syntax? exn)
              (for-each
-              (lambda (expr)
+              (λ (expr)
                 (let ([src (and (syntax? expr) (syntax-source expr))]
                       [pos (and (syntax? expr) (syntax-position expr))]
                       [span (and (syntax? expr) (syntax-span expr))]

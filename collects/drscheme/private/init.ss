@@ -34,10 +34,10 @@
       ;; current error-display-handler) and in a message box
       ;; identifying the error as a drscheme internal error.
       (error-display-handler
-       (lambda (msg exn)
+       (λ (msg exn)
          
          ;; this  may raise an exception if the port is gone.
-         (with-handlers ([exn:fail? (lambda (x) (void))])
+         (with-handlers ([exn:fail? (λ (x) (void))])
            (original-error-display-handler msg exn))
          
          (let ([title (error-display-handler-message-box-title)])
@@ -52,7 +52,7 @@
                  (parameterize ([current-eventspace system-eventspace]
                                 [current-custodian system-custodian])
                    (queue-callback
-                    (lambda ()
+                    (λ ()
                       (message-box title text #f '(stop ok))))))))))
       
       ;; all-toplevel-collections : -> (listof string)
@@ -68,15 +68,15 @@
         ;; to collections-hash-table
         (define (add-collections-in-path path)
           (for-each 
-           (lambda (d) 
+           (λ (d) 
              (when (and (directory-exists? (build-path path d))
                         (not (string-ci=? (path->string d) "CVS")))
                (hash-table-put! collections-hash-table d d)))
            (with-handlers ([exn:fail:filesystem?
-                            (lambda (x) null)])
+                            (λ (x) null)])
              (directory-list path))))
         
         (for-each add-collections-in-path (current-library-collection-paths))
         (quicksort
-         (hash-table-map collections-hash-table (lambda (x y) y))
-         (lambda (x y) (string<=? (path->string x) (path->string y))))))))
+         (hash-table-map collections-hash-table (λ (x y) y))
+         (λ (x y) (string<=? (path->string x) (path->string y))))))))

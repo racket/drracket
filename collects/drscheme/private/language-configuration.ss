@@ -62,7 +62,7 @@
           
           (drscheme:tools:only-in-phase 'drscheme:language:add-language 'phase2)
           (for-each
-           (lambda (i<%>)
+           (λ (i<%>)
              (unless (is-a? language i<%>)
                (error 'drscheme:language:add-language "expected language ~e to implement ~e, forgot to use drscheme:language:get-default-mixin ?" language i<%>)))
            (drscheme:language:get-language-extensions))
@@ -86,7 +86,7 @@
       (define (get-default-language-settings)
 	(when (null? languages)
 	  (error 'get-default-language-settings "no languages registered!"))
-	(let ([lang (or (ormap (lambda (x)
+	(let ([lang (or (ormap (λ (x)
 				 (and (equal? (send x get-language-position)
 					      default-language-position)
 				      x))
@@ -184,8 +184,8 @@
 	  (define-values (ok-button cancel-button)
             (gui-utils:ok/cancel-buttons
              button-panel
-             (lambda (x y) (ok-callback))
-             (lambda (x y) (cancel-callback))))
+             (λ (x y) (ok-callback))
+             (λ (x y) (cancel-callback))))
           (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
           
           (when show-welcome?
@@ -229,8 +229,8 @@
               (define/override (on-char evt)
                 (let ([code (send evt get-key-code)])
                   (cond
-                    [(eq? code 'up) (select-next sub1 (lambda (v) (- (vector-length v) 1)))]
-                    [(eq? code 'down) (select-next add1 (lambda (v) 0))]
+                    [(eq? code 'up) (select-next sub1 (λ (v) (- (vector-length v) 1)))]
+                    [(eq? code 'down) (select-next add1 (λ (v) 0))]
                     [else (super on-char evt)])))
               
               (inherit get-items)
@@ -256,7 +256,7 @@
 				 (cond
 				   [(find-first-leaf sibling inc start)
 				    =>
-				    (lambda (child)
+				    (λ (child)
 				      (send fst-selected select #f)
 				      (send child select #t)
 				      (open-parents child)
@@ -356,7 +356,7 @@
           ;;                  ((implements hierlist<%>) -> (implements hierlist<%>))
 	  ;; a mixin that responds to language selections and updates the details-panel
 	  (define (language-mixin language language-details-panel get/set-settings)
-            (lambda (%)
+            (λ (%)
               (class* % (hieritem-language<%>)
                 (init-rest args)
                 (public selected)
@@ -494,7 +494,7 @@
                        (when delta
                          (cond
                            [(list? delta)
-                            (for-each (lambda (x)
+                            (for-each (λ (x)
                                         (send text change-style 
                                               (car x)
                                               (cadr x)
@@ -517,7 +517,7 @@
                                 (hash-table-get
                                  ht
                                  (string->symbol position)
-                                 (lambda ()
+                                 (λ ()
                                    (if first?
                                        (let* ([item (send hier-list new-item number-mixin)]
                                               [x (list (make-hash-table) hier-list item)])
@@ -633,7 +633,7 @@
 		 (let ([child
 			;; know that this `car' is okay by construction of the dialog
 			(car 
-			 (filter (lambda (x)
+			 (filter (λ (x)
 				   (equal? (send (send x get-editor) get-text)
 					   first-pos))
 				 (send hi get-items)))])
@@ -670,10 +670,10 @@
                   (if details-shown? hide-details-label show-details-label))
             (send parent begin-container-sequence)
             (send revert-to-defaults-outer-panel change-children
-                  (lambda (l)
+                  (λ (l)
                     (if details-shown? (list revert-to-defaults-button) null)))
             (send details-outer-panel change-children
-                  (lambda (l)
+                  (λ (l)
                     (if details-shown? (list details/manual-parent-panel) null)))
             (send parent end-container-sequence))
 
@@ -690,14 +690,14 @@
                                        show-details-label
                                        hide-details-label)
                                    show-details-parent
-                                   (lambda (x y)
+                                   (λ (x y)
                                      (details-callback))))
           
           (define revert-to-defaults-outer-panel (make-object horizontal-panel% show-details-parent))
           (define revert-to-defaults-button (make-object button% 
                                               (string-constant revert-to-language-defaults)
                                               revert-to-defaults-outer-panel
-                                              (lambda (_1 _2)
+                                              (λ (_1 _2)
                                                 (revert-to-defaults-callback))))
 
           (send revert-to-defaults-outer-panel stretchable-width #f)
@@ -708,7 +708,7 @@
 
           (for-each add-language-to-dialog languages)
           (send languages-hier-list sort 
-                (lambda (x y)
+                (λ (x y)
                   (cond
                     [(and (x . is-a? . second-number<%>)
                           (y . is-a? . second-number<%>))
@@ -749,16 +749,16 @@
              (unless details-shown?
                (details-callback))
              (send show-details-parent change-children
-                   (lambda (l)
+                   (λ (l)
                      (remq revert-to-defaults-outer-panel
                            (remq details-button l))))
              (send details/manual-parent-panel change-children 
-                   (lambda (l)
+                   (λ (l)
                      (list manual-ordering-panel)))]
             [else 
              (send details-outer-panel stretchable-width #f)
              (send details/manual-parent-panel change-children 
-                   (lambda (l)
+                   (λ (l)
                      (list details-panel)))])
           
           (send manual-ordering-text hide-caret #t)
@@ -776,8 +776,8 @@
             (get/set-selected-language-settings settings-to-show))
           (send languages-hier-list focus)
           (values
-           (lambda () selected-language)
-           (lambda () 
+           (λ () selected-language)
+           (λ () 
              (and get/set-selected-language-settings
                   (get/set-selected-language-settings))))))
 
@@ -899,13 +899,13 @@
           (send before-text lock #t)
           (send before-text hide-caret #t)
 
-          (for-each (lambda (native-lang-string language)
+          (for-each (λ (native-lang-string language)
                       (unless (equal? (this-language) language)
                         (instantiate button% ()
                           (label native-lang-string)
                           (parent welcome-after-panel)
                           (stretchable-width #t)
-                          (callback (lambda (x1 x2) (drscheme:app:switch-language-to dialog language))))))
+                          (callback (λ (x1 x2) (drscheme:app:switch-language-to dialog language))))))
                     (string-constants is-this-your-native-language)
                     (all-languages))))
 
@@ -1060,29 +1060,29 @@
       (define (add-info-specified-language collection-name)
         (let ([info-proc (get-info (list collection-name))])
           (when info-proc
-            (let* ([lang-positions (info-proc 'drscheme-language-positions (lambda () null))]
-                   [lang-modules (info-proc 'drscheme-language-modules (lambda () null))]
+            (let* ([lang-positions (info-proc 'drscheme-language-positions (λ () null))]
+                   [lang-modules (info-proc 'drscheme-language-modules (λ () null))]
                    [numberss (info-proc 'drscheme-language-numbers 
-                                        (lambda ()
-                                          (map (lambda (lang-position)
-                                                 (map (lambda (x) 0) lang-position))
+                                        (λ ()
+                                          (map (λ (lang-position)
+                                                 (map (λ (x) 0) lang-position))
                                                lang-positions)))]
                    [summaries (info-proc 'drscheme-language-one-line-summaries 
-                                         (lambda ()
-                                           (map (lambda (lang-position) "")
+                                         (λ ()
+                                           (map (λ (lang-position) "")
                                                 lang-positions)))]
                    [urls      (info-proc 'drscheme-language-urls 
-                                         (lambda ()
-                                           (map (lambda (lang-position) "")
+                                         (λ ()
+                                           (map (λ (lang-position) "")
                                                 lang-positions)))]
                    [reader-specs
                     (info-proc 'drscheme-language-readers
-                               (lambda ()
-                                 (map (lambda (lang-position) #f)
+                               (λ ()
+                                 (map (λ (lang-position) #f)
                                       lang-positions)))])
               (cond
                 [(and (list? lang-positions)
-                      (andmap (lambda (lang-position numbers)
+                      (andmap (λ (lang-position numbers)
                                 (and (list? lang-position)
                                      (pair? lang-position)
                                      (andmap string? lang-position)
@@ -1093,7 +1093,7 @@
                               lang-positions
                               numberss)
                       (list? lang-modules)
-                      (andmap (lambda (x)
+                      (andmap (λ (x)
                                 (and (list? x)
                                      (andmap string? x)))
                               lang-modules)
@@ -1104,7 +1104,7 @@
                       (andmap string? urls)
                       
                       (list? reader-specs)
-                      (andmap (lambda (x)
+                      (andmap (λ (x)
 				;; approximation (no good test, really)
 				;; since it depends on the value of a mz
 				;; parameter to interpret the module spec
@@ -1117,7 +1117,7 @@
                          (length urls)
                          (length reader-specs)))
                  (for-each
-                  (lambda (lang-module lang-position lang-numbers one-line-summary url reader-spec)
+                  (λ (lang-module lang-position lang-numbers one-line-summary url reader-spec)
                     (let ([%
                            ((drscheme:language:get-default-mixin)
                             (drscheme:language:module-based-language->language-mixin
@@ -1126,7 +1126,7 @@
                           [reader
                            (if reader-spec
                                (with-handlers ([exn:fail?
-                                                (lambda (x)
+                                                (λ (x)
                                                   (message-box (string-constant drscheme)
                                                                (if (exn? x)
                                                                    (exn-message x)
@@ -1214,7 +1214,7 @@
           (define/override (front-end/interaction input settings teachpack-cache)
             (wrap-front-end (super front-end/interaction input settings teachpack-cache)))
           (define/private (wrap-front-end thnk)
-            (lambda ()
+            (λ ()
               (let ([res (thnk)])
                 (cond
                   [(syntax? res) (with-syntax ([res res]
@@ -1231,7 +1231,7 @@
           (define/override (on-execute setting run-in-user-thread)
             (super on-execute setting run-in-user-thread)
             (run-in-user-thread
-             (lambda ()
+             (λ ()
                (read-square-bracket-as-paren #f)
                (read-curly-brace-as-paren #f)
                (print-vector-length #f))))
@@ -1246,8 +1246,8 @@
       ;; add-built-in-languages : -> void
       (define (add-built-in-languages)
         (let* ([extras-mixin
-                (lambda (mred-launcher? one-line-summary)
-                  (lambda (%)
+                (λ (mred-launcher? one-line-summary)
+                  (λ (%)
                     (class %
                       (define/override (get-one-line-summary) one-line-summary)
                       (define/override (use-namespace-require/copy?) #t)
@@ -1274,7 +1274,7 @@
                              (use-namespace-require/copy?)))))
                       (super-instantiate ()))))]
                [make-simple
-                (lambda (module position numbers mred-launcher? one-line-summary extra-mixin)
+                (λ (module position numbers mred-launcher? one-line-summary extra-mixin)
                   (let ([%
                          (extra-mixin
                           ((extras-mixin mred-launcher? one-line-summary)
@@ -1294,7 +1294,7 @@
                         (list -1000 -10 1)
                         #f
                         (string-constant mzscheme-one-line-summary)
-                        (lambda (x) x)))
+                        (λ (x) x)))
           (add-language
            (make-simple '(lib "plt-mred.ss" "lang")
                         (list (string-constant professional-languages)
@@ -1303,7 +1303,7 @@
                         (list -1000 -10 2)
                         #t
                         (string-constant mred-one-line-summary)
-                        (lambda (x) x)))
+                        (λ (x) x)))
           (add-language
            (make-simple '(lib "plt-pretty-big.ss" "lang")
                         (list (string-constant professional-languages)
@@ -1312,7 +1312,7 @@
                         (list -1000 -10 3)
                         #t
                         (string-constant pretty-big-scheme-one-line-summary)
-                        (lambda (x) x)))
+                        (λ (x) x)))
           (add-language
            (make-simple '(lib "plt-mzscheme.ss" "lang")
                         (list (string-constant professional-languages)

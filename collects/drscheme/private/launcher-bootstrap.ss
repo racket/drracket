@@ -15,7 +15,7 @@
   
   (define to-be-copied-module-names
         (let ([get-name
-               (lambda (spec)
+               (λ (spec)
                  (if (symbol? spec)
                      spec
                      ((current-module-name-resolver) spec #f #f)))])
@@ -27,7 +27,7 @@
   (set-car! (cdr init-code) (string->symbol (path->string init-code-mod-name)))
 
   (call-with-output-file init-code-tmp-filename
-    (lambda (port)
+    (λ (port)
       (write init-code port))
     'truncate 'text)
   
@@ -35,7 +35,7 @@
   
   (define original-namespace (current-namespace))
   (current-namespace (make-namespace 'empty))
-  (for-each (lambda (x) (namespace-attach-module original-namespace x))
+  (for-each (λ (x) (namespace-attach-module original-namespace x))
             to-be-copied-module-names)
   (namespace-set-variable-value! 'argv program-argv)
   (current-command-line-arguments program-argv)

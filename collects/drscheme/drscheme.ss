@@ -27,7 +27,7 @@
       (when cm-trace?
         (printf "PLTDRDEBUG: enabling CM tracing\n")
         (manager-trace-handler
-         (lambda (x) (display "1: ") (display x) (newline))))))
+         (λ (x) (display "1: ") (display x) (newline))))))
   
   (when install-cm?
     (printf "PLTDRCM: installing compilation manager\n")
@@ -41,6 +41,6 @@
       (when cm-trace?
         (printf "PLTDRCM: enabling CM tracing\n")
         (manager-trace-handler
-         (lambda (x) (display "1: ") (display x) (newline))))))
+         (λ (x) (display "1: ") (display x) (newline))))))
 
   (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f))

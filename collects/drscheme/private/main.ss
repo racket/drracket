@@ -35,21 +35,21 @@
 
       (application-file-handler
        (let ([default (application-file-handler)])
-         (lambda (name)
+         (λ (name)
            (if (null? (get-top-level-windows))
                (handler:edit-file name)
                (default name)))))
       
       (application-quit-handler
        (let ([default (application-quit-handler)])
-         (lambda ()
+         (λ ()
            (if (null? (get-top-level-windows))
                (when (exit:user-oks-exit)
                  (exit:exit))
                (default)))))
       
       (application-about-handler
-       (lambda ()
+       (λ ()
          (drscheme:app:about-drscheme)))
 
       (drscheme:modes:add-initial-modes)
@@ -64,17 +64,17 @@
       (preferences:set-default 'drscheme:show-interactions-on-execute #t boolean?)
       (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
-      (preferences:set-default 'drscheme:user-defined-keybindings '() (lambda (x) (and (list? x) (andmap path? x))))
+      (preferences:set-default 'drscheme:user-defined-keybindings '() (λ (x) (and (list? x) (andmap path? x))))
       (preferences:set-un/marshall 
        'drscheme:user-defined-keybindings
-       (lambda (in) (map path->bytes in))
-       (lambda (ex) (if (and (list? ex)
+       (λ (in) (map path->bytes in))
+       (λ (ex) (if (and (list? ex)
                              (andmap bytes? ex))
                         (map bytes->path ex)
                         '())))
       
       (let ([number-between-zero-and-one?
-             (lambda (x) (and (number? x) (<= 0 x 1)))])
+             (λ (x) (and (number? x) (<= 0 x 1)))])
         (preferences:set-default 'drscheme:unit-window-size-percentage 
                                  1/2 
                                  number-between-zero-and-one?)
@@ -82,7 +82,7 @@
                                  1/5
                                  number-between-zero-and-one?))
       (preferences:set-default 'drscheme:module-browser:name-length 1 
-                               (lambda (x) (memq x '(0 1 2))))
+                               (λ (x) (memq x '(0 1 2))))
       
       (let ([frame-width 600]
             [frame-height 650]
@@ -98,37 +98,37 @@
       (preferences:set-default 'drscheme:backtrace-window-height 300 number?)
       
       (preferences:set-default 'drscheme:profile-how-to-count 'time
-                               (lambda (x)
+                               (λ (x)
                                  (memq x '(time count))))
       (preferences:set-default 'drscheme:profile:low-color
                                (make-object color% 150 255 150)
-                               (lambda (x) (is-a? x color%)))
+                               (λ (x) (is-a? x color%)))
       (preferences:set-default 'drscheme:profile:high-color
                                (make-object color% 255 150 150)
-                               (lambda (x) (is-a? x color%)))
+                               (λ (x) (is-a? x color%)))
       (preferences:set-default 'drscheme:profile:scale
                                'linear
-                               (lambda (x) (memq x '(sqrt linear square))))
+                               (λ (x) (memq x '(sqrt linear square))))
 
       (preferences:set-default 'drscheme:test-coverage-ask-about-clearing? #t boolean?)
 
       ;; size is in editor positions
       (preferences:set-default 'drscheme:repl-buffer-size 
                                '(#t . 1000)
-                               (lambda (x)
+                               (λ (x)
                                  (and (pair? x)
                                       (boolean? (car x))
                                       (integer? (cdr x))
                                       (<= 1 (cdr x) 10000))))
       
       (let ([marshall-color 
-             (lambda (c)
+             (λ (c)
                (list (send c red) (send c green) (send c blue)))]
             [unmarshall-color
-             (lambda (l)
+             (λ (l)
                (if (and (list? l) 
                         (= 3 (length l))
-                        (andmap (lambda (x) (and number? (<= 0 x 255)))
+                        (andmap (λ (x) (and number? (<= 0 x 255)))
                                 l))
                    (make-object color% (car l) (cadr l) (caddr l))
                    (make-object color% 0 0 0)))])
@@ -144,14 +144,14 @@
       (preferences:set-default 
        'drscheme:keybindings-window-size
        (cons 200 400)
-       (lambda (x) (and (pair? x)
+       (λ (x) (and (pair? x)
                         (number? (car x))
                         (number? (cdr x)))))
       
       (preferences:set-default
        'drscheme:execute-warning-once
        #f
-       (lambda (x)
+       (λ (x)
          (or (eq? x #t)
              (not x))))
       
@@ -173,18 +173,18 @@
       (preferences:add-scheme-checkbox-panel)
       
       (let ([make-check-box
-             (lambda (pref-sym string parent)
+             (λ (pref-sym string parent)
                (let ([q (make-object check-box%
                           string
                           parent
-                          (lambda (checkbox evt)
+                          (λ (checkbox evt)
                             (preferences:set 
                              pref-sym 
                              (send checkbox get-value))))])
-                 (preferences:add-callback pref-sym (lambda (p v) (send q set-value v)))
+                 (preferences:add-callback pref-sym (λ (p v) (send q set-value v)))
                  (send q set-value (preferences:get pref-sym))))])
         (preferences:add-to-editor-checkbox-panel
-         (lambda (editor-panel)
+         (λ (editor-panel)
            (make-check-box 'drscheme:open-in-tabs 
                            (string-constant open-files-in-tabs)
                            editor-panel)
@@ -201,35 +201,35 @@
                     [cb (new check-box%
                              (label (string-constant limit-interactions-size))
                              (parent hp)
-                             (callback (lambda (cb v) (cb-callback))))]
+                             (callback (λ (cb v) (cb-callback))))]
                     [sl (new slider% 
                              (label #f)
                              (parent hp)
                              (min-value 1)
                              (max-value 10000)
                              (callback
-                              (lambda (sl _) (sl-callback))))]
+                              (λ (sl _) (sl-callback))))]
                     [cb-callback
-                     (lambda ()
+                     (λ ()
                        (preferences:set 'drscheme:repl-buffer-size
                                         (cons (send cb get-value)
                                               (cdr (preferences:get 'drscheme:repl-buffer-size)))))]
                     [sl-callback
-                     (lambda ()
+                     (λ ()
                        (preferences:set 'drscheme:repl-buffer-size
                                         (cons (car (preferences:get 'drscheme:repl-buffer-size))
                                               (send sl get-value))))]
                     [update-controls
-                     (lambda (v)
+                     (λ (v)
                        (let ([on? (car v)])
                          (send sl enable on?)
                          (send cb set-value on?)
                          (send sl set-value (cdr v))))])
-             (preferences:add-callback 'drscheme:repl-buffer-size (lambda (p v) (update-controls v)))
+             (preferences:add-callback 'drscheme:repl-buffer-size (λ (p v) (update-controls v)))
              (update-controls (preferences:get 'drscheme:repl-buffer-size)))))
         
         (preferences:add-to-warnings-checkbox-panel
-         (lambda (warnings-panel)
+         (λ (warnings-panel)
            (make-check-box 'drscheme:execute-warning-once 
                            (string-constant only-warn-once)
                            warnings-panel)
@@ -241,27 +241,27 @@
 
       (handler:current-create-new-window
        (let ([drscheme-current-create-new-window
-	      (lambda (filename)
+	      (λ (filename)
 		(drscheme:unit:open-drscheme-window filename))])
 	 drscheme-current-create-new-window))
 
       ;; add a handler to open .plt files.
       (handler:insert-format-handler 
        "PLT Files"
-       (lambda (filename)
+       (λ (filename)
          (and (equal? "plt" (filename-extension filename))
               (gui-utils:get-choice 
                (format (string-constant install-plt-file) filename)
                (string-constant install-plt-file/yes)
                (string-constant install-plt-file/no))))
-       (lambda (filename)
+       (λ (filename)
          (run-installer filename)
 	 #f))
       
       (drscheme:tools:load/invoke-all-tools
-       (lambda ()
+       (λ ()
          (void))
-       (lambda ()
+       (λ ()
          (drscheme:language-configuration:add-built-in-languages)
          (drscheme:module-language:add-module-language)
          (drscheme:language-configuration:add-info-specified-languages)))
@@ -288,18 +288,18 @@
       ;; specified below.
       (preferences:set-un/marshall
        drscheme:language-configuration:settings-preferences-symbol
-       (lambda (x)
+       (λ (x)
 	 (let ([lang (drscheme:language-configuration:language-settings-language x)]
 	       [settings (drscheme:language-configuration:language-settings-settings x)])
 	   (list (send lang get-language-position)
 		 (send lang marshall-settings settings))))
-       (lambda (x)
+       (λ (x)
 	 (and (list? x)
 	      (= 2 (length x))
 	      (let* ([lang-position (first x)]
 		     [marshalled-settings (second x)]
 		     [lang (ormap
-			    (lambda (x)
+			    (λ (x)
 			      (and (equal? lang-position
 					   (send x get-language-position))
 				   x))
@@ -322,8 +322,8 @@
       ;;
       ;; Show expanded language dialog when version changes
       ;; 
-      (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
-      (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (symbol? x) (not x))))
+      (preferences:set-default 'drscheme:last-version #f (λ (x) (or (string? x) (not x))))
+      (preferences:set-default 'drscheme:last-language #f (λ (x) (or (symbol? x) (not x))))
 
       ;; no more preferences defaults can be set after this
       (preferences:read)
@@ -384,9 +384,9 @@
                                 (loop (cdr files)))))]))]
              [no-dups (remove-duplicates normalized/filtered)]
 	     [frames
-	      (map (lambda (f) (handler:edit-file
+	      (map (λ (f) (handler:edit-file
 				f
-				(lambda () (drscheme:unit:open-drscheme-window f))))
+				(λ () (drscheme:unit:open-drscheme-window f))))
 		   no-dups)])
-	(when (null? (filter (lambda (x) x) frames))
+	(when (null? (filter (λ (x) x) frames))
 	  (make-basic))))))

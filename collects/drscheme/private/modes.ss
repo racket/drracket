@@ -31,12 +31,12 @@
         (add-mode 
          (string-constant scheme-mode)
          (new scheme:text-mode%)
-         (lambda (text prompt-position) (scheme:text-balanced? text prompt-position))
-         (lambda (l) #t))
+         (λ (text prompt-position) (scheme:text-balanced? text prompt-position))
+         (λ (l) #t))
         
         (add-mode 
          (string-constant text-mode)
          #f
-         (lambda (text prompt-position) #t)
-         (lambda (l) 
-           (and l (ormap (lambda (x) (regexp-match #rx"Algol" x)) l))))))))
+         (λ (text prompt-position) #t)
+         (λ (l) 
+           (and l (ormap (λ (x) (regexp-match #rx"Algol" x)) l))))))))

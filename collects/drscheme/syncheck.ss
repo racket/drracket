@@ -67,7 +67,7 @@ If the namespace does not, they are colored the unbound color.
             
       ;; used for quicker debugging of the preference panel
       '(define test-preference-panel
-         (lambda (name f)
+         (λ (name f)
            (let ([frame (make-object frame% name)])
              (f frame)
              (send frame show #t))))
@@ -140,7 +140,7 @@ If the namespace does not, they are colored the unbound color.
       
       
       (define make-graphics-text%
-        (lambda (super%)
+        (λ (super%)
           (let* ([cursor-arrow (make-object cursor% 'arrow)])
             (class* super% (syncheck-text<%>)
               (inherit set-cursor get-admin invalidate-bitmap-cache set-position
@@ -180,7 +180,7 @@ If the namespace does not, they are colored the unbound color.
                    #f]
                   [else
                    (let* ([key (list start-text start-left start-right)]
-                          [priors (hash-table-get bindings-table key (lambda () '()))]
+                          [priors (hash-table-get bindings-table key (λ () '()))]
                           [new (list end-text end-left end-right)])
                      (cond
                        [(member new priors)
@@ -215,7 +215,7 @@ If the namespace does not, they are colored the unbound color.
                 
                 (hash-table-for-each
                  bindings-table
-                 (lambda (k v)
+                 (λ (k v)
                    (hash-table-put! bindings-table k (quicksort v compare-bindings)))))
                     
               (define tacked-hash-table (make-hash-table))
@@ -305,7 +305,7 @@ If the namespace does not, they are colored the unbound color.
                       (let/ec k
                         (hash-table-for-each
                          tacked-hash-table
-                         (lambda (key val)
+                         (λ (key val)
                            (set! any-tacked? #t)
                            (k (void))))))
                     (set! tacked-hash-table #f)
@@ -358,7 +358,7 @@ If the namespace does not, they are colored the unbound color.
                 (let ([arrow-vector (hash-table-get 
                                      arrow-vectors
                                      text 
-                                     (lambda ()
+                                     (λ ()
                                        (let ([new-vec 
                                               (make-vector
                                                (add1 (send text last-position))
@@ -373,7 +373,7 @@ If the namespace does not, they are colored the unbound color.
                       (let ([r (vector-ref arrow-vector p)])
                         (cond
                           [use-key?
-                           (unless (ormap (lambda (x) 
+                           (unless (ormap (λ (x) 
                                             (and (pair? x) 
                                                  (car x)
                                                  (eq? (car x) key)))
@@ -394,7 +394,7 @@ If the namespace does not, they are colored the unbound color.
                       (let/ec k
                         (hash-table-for-each
                          tacked-hash-table
-                         (lambda (key val)
+                         (λ (key val)
                            (set! any-tacked? #t)
                            (k (void))))))
                     (when any-tacked?
@@ -405,11 +405,11 @@ If the namespace does not, they are colored the unbound color.
               (define/private (flush-arrow-coordinates-cache)
                 (hash-table-for-each
                  arrow-vectors
-                 (lambda (text arrow-vector)
+                 (λ (text arrow-vector)
                    (let loop ([n (vector-length arrow-vector)])
                      (unless (zero? n)
                        (let ([eles (vector-ref arrow-vector (- n 1))])
-                         (for-each (lambda (ele)
+                         (for-each (λ (ele)
                                      (cond
                                        [(arrow? ele)
                                         (set-arrow-start-x! ele #f)
@@ -423,7 +423,7 @@ If the namespace does not, they are colored the unbound color.
                 (super on-paint before dc left top right bottom dx dy draw-caret)
                 (when (and arrow-vectors (not before))
                   (let ([draw-arrow2
-                         (lambda (arrow)
+                         (λ (arrow)
                            (unless (arrow-start-x arrow)
                              (update-arrow-poss arrow))
                            (let ([start-x (arrow-start-x arrow)]
@@ -436,7 +436,7 @@ If the namespace does not, they are colored the unbound color.
                         [old-brush (send dc get-brush)]
                         [old-pen   (send dc get-pen)])
                     (hash-table-for-each tacked-hash-table
-                                         (lambda (arrow v) 
+                                         (λ (arrow v) 
                                            (when v 
                                              (cond
                                                [(var-arrow? arrow)
@@ -448,10 +448,10 @@ If the namespace does not, they are colored the unbound color.
                                              (draw-arrow2 arrow))))
                     (when (and cursor-location
                                cursor-text)
-                      (let* ([arrow-vector (hash-table-get arrow-vectors cursor-text (lambda () #f))])
+                      (let* ([arrow-vector (hash-table-get arrow-vectors cursor-text (λ () #f))])
                         (when arrow-vector
                           (let ([eles (vector-ref arrow-vector cursor-location)])
-                            (for-each (lambda (ele) 
+                            (for-each (λ (ele) 
                                         (cond
                                           [(var-arrow? ele)
                                            (send dc set-pen var-pen)
@@ -476,17 +476,17 @@ If the namespace does not, they are colored the unbound color.
                   ;; traversal-ht ensures that we don't loop in the arrow traversal.
                   (let ([traversal-ht (make-hash-table)])
                     (let loop ([tail-arrow tail-arrow])
-                      (unless (hash-table-get traversal-ht tail-arrow (lambda () #f))
+                      (unless (hash-table-get traversal-ht tail-arrow (λ () #f))
                         (hash-table-put! traversal-ht tail-arrow #t)
-                        (unless (hash-table-get call-f-ht tail-arrow (lambda () #f))
+                        (unless (hash-table-get call-f-ht tail-arrow (λ () #f))
                           (hash-table-put! call-f-ht tail-arrow #t)
                           (f tail-arrow))
                         (let* ([next-pos (tail-arrow-pos tail-arrow)]
                                [next-text (tail-arrow-text tail-arrow)]
-                               [arrow-vector (hash-table-get arrow-vectors next-text (lambda () #f))])
+                               [arrow-vector (hash-table-get arrow-vectors next-text (λ () #f))])
                           (when arrow-vector
                             (let ([eles (vector-ref arrow-vector next-pos)])
-                              (for-each (lambda (ele) 
+                              (for-each (λ (ele) 
                                           (cond
                                             [(tail-arrow? ele)
                                              (let ([other-pos (tail-arrow-other-pos ele)]
@@ -552,11 +552,11 @@ If the namespace does not, they are colored the unbound color.
                             (set! cursor-location pos)
                             (set! cursor-text text)
                             
-                            (let* ([arrow-vector (hash-table-get arrow-vectors cursor-text (lambda () #f))]
+                            (let* ([arrow-vector (hash-table-get arrow-vectors cursor-text (λ () #f))]
                                    [eles (and arrow-vector (vector-ref arrow-vector cursor-location))])
                               (when eles
                                 (let ([has-txt? #f])
-                                  (for-each (lambda (ele)
+                                  (for-each (λ (ele)
                                               (cond
                                                 [(string? ele)
                                                  (set! has-txt? #t)
@@ -572,7 +572,7 @@ If the namespace does not, they are colored the unbound color.
                                         (send f update-status-line 'drscheme:check-syntax:mouse-over #f))))))
                               
                               (when eles
-                                (for-each (lambda (ele)
+                                (for-each (λ (ele)
                                             (cond
                                               [(arrow? ele)
                                                (update-arrow-poss ele)]))
@@ -590,7 +590,7 @@ If the namespace does not, they are colored the unbound color.
                     [(send event button-down? 'right)
                      (let-values ([(pos text) (get-pos/text event)])
                        (if (and pos text)
-                           (let ([arrow-vector (hash-table-get arrow-vectors text (lambda () #f))])
+                           (let ([arrow-vector (hash-table-get arrow-vectors text (λ () #f))])
                              (when arrow-vector
                                (let ([vec-ents (vector-ref arrow-vector pos)])
                                  (cond
@@ -606,24 +606,24 @@ If the namespace does not, they are colored the unbound color.
                                         (make-object menu-item%
                                           (string-constant cs-tack/untack-arrow)
                                           menu
-                                          (lambda (item evt) (tack/untack-callback arrows))))
+                                          (λ (item evt) (tack/untack-callback arrows))))
                                       (unless (null? def-links)
                                         (let ([def-link (car def-links)])
                                           (make-object menu-item%
                                             jump-to-definition
                                             menu
-                                            (lambda (item evt)
+                                            (λ (item evt)
                                               (jump-to-definition-callback def-link)))))
                                       (unless (null? var-arrows)
                                         (make-object menu-item%
                                           jump-to-next-bound-occurrence
                                           menu
-                                          (lambda (item evt) (jump-to-next-callback pos text arrows)))
+                                          (λ (item evt) (jump-to-next-callback pos text arrows)))
                                         (make-object menu-item%
                                           jump-to-binding
                                           menu
-                                          (lambda (item evt) (jump-to-binding-callback arrows))))
-                                      (for-each (lambda (f) (f menu)) add-menus)
+                                          (λ (item evt) (jump-to-binding-callback arrows))))
+                                      (for-each (λ (f) (f menu)) add-menus)
                                       (send (get-canvas) popup-menu menu
                                             (+ 1 (inexact->exact (floor (send event get-x))))
                                             (+ 1 (inexact->exact (floor (send event get-y))))))]))))
@@ -635,30 +635,30 @@ If the namespace does not, they are colored the unbound color.
               ;; callback for the tack/untack menu item
               (define/private (tack/untack-callback arrows)
                 (let ([arrow-tacked?
-                       (lambda (arrow)
+                       (λ (arrow)
                          (hash-table-get
                           tacked-hash-table
                           arrow
-                          (lambda () #f)))]
+                          (λ () #f)))]
                       [untack-arrows? #f])
                   (for-each 
-                   (lambda (arrow)
+                   (λ (arrow)
                      (cond
                        [(var-arrow? arrow)
                         (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow)))]
                        [(tail-arrow? arrow)
                         (for-each-tail-arrows
-                         (lambda (arrow) (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow))))
+                         (λ (arrow) (set! untack-arrows? (or untack-arrows? (arrow-tacked? arrow))))
                          arrow)]))
                    arrows)
                   (for-each 
-                   (lambda (arrow)
+                   (λ (arrow)
                      (cond
                        [(var-arrow? arrow)
                         (hash-table-put! tacked-hash-table arrow (not untack-arrows?))]
                        [(tail-arrow? arrow)
                         (for-each-tail-arrows
-                         (lambda (arrow) 
+                         (λ (arrow) 
                            (hash-table-put! tacked-hash-table arrow (not untack-arrows?)))
                          arrow)]))
                    arrows))
@@ -669,20 +669,20 @@ If the namespace does not, they are colored the unbound color.
               (define/public (syncheck:jump-to-next-bound-occurrence text)
                 (jump-to-binding/bound-helper 
                  text 
-                 (lambda (pos text vec-ents)
+                 (λ (pos text vec-ents)
                    (jump-to-next-callback pos text vec-ents))))
               
               ;; syncheck:jump-to-binding-occurrence : text -> void
               (define/public (syncheck:jump-to-binding-occurrence text)
                 (jump-to-binding/bound-helper 
                  text 
-                 (lambda (pos text vec-ents)
+                 (λ (pos text vec-ents)
                    (jump-to-binding-callback vec-ents))))
               
               (define/private (jump-to-binding/bound-helper text do-jump)
                 (let ([pos (send text get-start-position)])
                   (when arrow-vectors
-                    (let ([arrow-vector (hash-table-get arrow-vectors text (lambda () #f))])
+                    (let ([arrow-vector (hash-table-get arrow-vectors text (λ () #f))])
                       (when arrow-vector
                         (let ([vec-ents (filter var-arrow? (vector-ref arrow-vector pos))])
                           (unless (null? vec-ents)
@@ -697,7 +697,7 @@ If the namespace does not, they are colored the unbound color.
                                                       (list (var-arrow-start-text arrow-key)
                                                             (var-arrow-start-pos-left arrow-key)
                                                             (var-arrow-start-pos-right arrow-key))
-                                                      (lambda () '()))])
+                                                      (λ () '()))])
                     (cond
                       [(null? orig-arrows) (void)]
                       [(null? (cdr orig-arrows)) (jump-to (car orig-arrows))]
@@ -737,7 +737,7 @@ If the namespace does not, they are colored the unbound color.
               (define/public (syncheck:jump-to-definition text)
                 (let ([pos (send text get-start-position)])
                   (when arrow-vectors
-                    (let ([arrow-vector (hash-table-get arrow-vectors text (lambda () #f))])
+                    (let ([arrow-vector (hash-table-get arrow-vectors text (λ () #f))])
                       (when arrow-vector
                         (let ([vec-ents (filter def-link? (vector-ref arrow-vector pos))])
                           (unless (null? vec-ents)
@@ -797,7 +797,7 @@ If the namespace does not, they are colored the unbound color.
               (send definitions begin-edit-sequence #f)
               (send definitions lock #f)
               (send definitions syncheck:clear-arrows)
-              (for-each (lambda (text) 
+              (for-each (λ (text) 
                           (send text thaw-colorer))
                         cleanup-texts)
               (set! cleanup-texts '())
@@ -829,7 +829,7 @@ If the namespace does not, they are colored the unbound color.
                                        (stretchable-height #f)
                                        (alignment '(center center))
                                        (style '(border))))
-            (send report-error-parent-panel change-children (lambda (l) null))
+            (send report-error-parent-panel change-children (λ (l) null))
             (let ([message-panel (instantiate vertical-panel% ()
                                    (parent report-error-panel)
                                    (stretchable-width #f)
@@ -845,7 +845,7 @@ If the namespace does not, they are colored the unbound color.
             (instantiate button% () 
               (label (string-constant hide))
               (parent report-error-panel)
-              (callback (lambda (x y) (hide-error-report)))
+              (callback (λ (x y) (hide-error-report)))
               (stretchable-height #t))
             (make-object vertical-panel% report-error-parent-panel))
           
@@ -855,7 +855,7 @@ If the namespace does not, they are colored the unbound color.
           (define/private (hide-error-report) 
             (when (member report-error-panel (send report-error-parent-panel get-children))
               (send report-error-parent-panel change-children
-                    (lambda (l) (remq report-error-panel l))))
+                    (λ (l) (remq report-error-panel l))))
             (send report-error-text lock #f)
             (send report-error-text delete/io 0 (send report-error-text last-position))
             (send report-error-text lock #t))
@@ -863,7 +863,7 @@ If the namespace does not, they are colored the unbound color.
           (define/private (show-error-report)
             (unless (member report-error-panel (send report-error-parent-panel get-children))
               (send report-error-parent-panel change-children
-                    (lambda (l) (cons report-error-panel l)))))
+                    (λ (l) (cons report-error-panel l)))))
           
           (define rest-panel 'uninitialized-root)
           (define super-root 'uninitialized-super-root)
@@ -891,7 +891,7 @@ If the namespace does not, they are colored the unbound color.
 
           (define/private (update-docs-visibility)
             (send super-root change-children 
-                  (lambda (l) 
+                  (λ (l) 
                     (let* ([first (if docs-panel-visible?
                                       (list docs-panel)
                                       null)]
@@ -925,7 +925,7 @@ If the namespace does not, they are colored the unbound color.
                               (loop (cdr lines)
                                     (cdr docs-messages)))]))])
               (unless (= (length to-be-shown) (length (send docs-panel get-children)))
-                (send docs-panel change-children (lambda (l) to-be-shown)))
+                (send docs-panel change-children (λ (l) to-be-shown)))
               (unless docs-panel-visible?
                 (set! docs-panel-visible? #t)
                 (update-docs-visibility))))
@@ -950,51 +950,51 @@ If the namespace does not, they are colored the unbound color.
                           [user-custodian #f]
                           [normal-termination? #f]
                           [cleanup
-                           (lambda () ; =drs=
+                           (λ () ; =drs=
                              (set-breakables old-break-thread old-custodian)
                              (enable-evaluation)
                              (send definitions-text end-edit-sequence)
                              (send report-error-text clear-output-ports)
                              (close-status-line 'drscheme:check-syntax))]
                           [kill-termination
-                           (lambda ()
+                           (λ ()
                              (unless normal-termination?
                                (parameterize ([current-eventspace drs-eventspace])
                                  (queue-callback
-                                  (lambda ()
+                                  (λ ()
                                     (syncheck:clear-highlighting)
                                     (cleanup)
                                     (custodian-shutdown-all user-custodian))))))]
                           [error-display-semaphore (make-semaphore 0)]
                           [uncaught-exception-raised
-                           (lambda () ;; =user=
+                           (λ () ;; =user=
                              (set! normal-termination? #t)
                              (parameterize ([current-eventspace drs-eventspace])
                                (queue-callback
-                                (lambda () ;;  =drs=
+                                (λ () ;;  =drs=
                                   (yield error-display-semaphore) ;; let error display go first
                                   (syncheck:clear-highlighting)
                                   (cleanup)
                                   (custodian-shutdown-all user-custodian)))))]
                           [error-port (send report-error-text get-err-port)]
                           [init-proc
-                           (lambda () ; =user=
+                           (λ () ; =user=
                              (set-breakables (current-thread) (current-custodian))
                              (set-directory definitions-text)
                              (error-display-handler 
-                              (lambda (msg exn) ;; =user=
+                              (λ (msg exn) ;; =user=
                                 (parameterize ([current-eventspace drs-eventspace])
                                   (queue-callback
-                                   (lambda () ;; =drs=
+                                   (λ () ;; =drs=
                                      (show-error-report))))
                                 
                                 (parameterize ([current-error-port error-port])
                                   (drscheme:debug:show-error-and-highlight 
                                    msg exn 
-                                   (lambda (src-to-display cms) ;; =user=
+                                   (λ (src-to-display cms) ;; =user=
                                      (parameterize ([current-eventspace drs-eventspace])
                                        (queue-callback
-                                        (lambda () ;; =drs=
+                                        (λ () ;; =drs=
                                           (send (get-interactions-text) highlight-errors src-to-display cms)))))))
                                 
                                 (semaphore-post error-display-semaphore))
@@ -1009,7 +1009,7 @@ If the namespace does not, they are colored the unbound color.
                                 (send report-error-text insert message)
                                 (when (exn:fail:syntax? exn)
                                   (send report-error-text insert " in:")
-                                  (for-each (lambda (stx) 
+                                  (for-each (λ (stx) 
                                               (send report-error-text insert
                                                     (format " ~s" (syntax-object->datum stx))))
                                             (exn:fail:syntax-exprs exn)))
@@ -1024,17 +1024,17 @@ If the namespace does not, they are colored the unbound color.
                              #;
                              (parameterize ([current-eventspace drs-eventspace])
                                (queue-callback
-                                (lambda () ;; =drs=
+                                (λ () ;; =drs=
                                   
                                   
-                                  (thread (lambda () (report-error msg exn)))
+                                  (thread (λ () (report-error msg exn)))
                                   ;; tell uncaught-expception-raised to cleanup
                                   (semaphore-post error-display-semaphore))))
                              
                              (error-print-source-location #f) ; need to build code to render error first
                              (current-exception-handler
                               (let ([oh (current-exception-handler)])
-                                (lambda (exn)
+                                (λ (exn)
                                   (uncaught-exception-raised)
                                   (oh exn))))
                              (update-status-line 'drscheme:check-syntax status-expanding-expression)
@@ -1044,7 +1044,7 @@ If the namespace does not, they are colored the unbound color.
                      (disable-evaluation) ;; this locks the editor, so must be outside.
                      (send definitions-text begin-edit-sequence #f)
                      (with-lock/edit-sequence
-                      (lambda ()
+                      (λ ()
                         (clear-annotations)
                         (reset-offer-kill)
                         (send definitions-text syncheck:init-arrows)
@@ -1057,15 +1057,15 @@ If the namespace does not, they are colored the unbound color.
                          #t
                          init-proc
                          kill-termination
-                         (lambda (sexp loop) ; =user=
+                         (λ (sexp loop) ; =user=
                            (cond
                              [(eof-object? sexp)
                               (set! normal-termination? #t)
                               (parameterize ([current-eventspace drs-eventspace])
                                 (queue-callback
-                                 (lambda () ; =drs=
+                                 (λ () ; =drs=
                                    (with-lock/edit-sequence
-                                    (lambda ()
+                                    (λ ()
                                       (expansion-completed user-namespace user-directory)
                                       (send definitions-text syncheck:sort-bindings-table)))
                                    (cleanup)
@@ -1075,9 +1075,9 @@ If the namespace does not, they are colored the unbound color.
                               (eval-compile-time-part-of-top-level sexp)
                               (parameterize ([current-eventspace drs-eventspace])
                                 (queue-callback
-                                 (lambda () ; =drs=
+                                 (λ () ; =drs=
                                    (with-lock/edit-sequence
-                                    (lambda ()
+                                    (λ ()
                                       (open-status-line 'drscheme:check-syntax)
                                       (update-status-line 'drscheme:check-syntax status-coloring-program)
                                       (expanded-expression user-namespace user-directory sexp jump-to-id)
@@ -1115,12 +1115,12 @@ If the namespace does not, they are colored the unbound color.
             (make-object button%
               (syncheck-bitmap this)
               (get-button-panel)
-              (lambda (button evt) (syncheck:button-callback))))
+              (λ (button evt) (syncheck:button-callback))))
           (define/public (syncheck:get-button) check-syntax-button)
           (send (get-definitions-text) set-styles-fixed #t)
           (send check-syntax-button show button-visible?)
           (send (get-button-panel) change-children
-                (lambda (l)
+                (λ (l)
                   (cons check-syntax-button
                         (remove check-syntax-button l))))))
       
@@ -1130,7 +1130,7 @@ If the namespace does not, they are colored the unbound color.
       (define (add-check-syntax-key-bindings keymap)
         (send keymap add-function
               "check syntax"
-              (lambda (obj evt)
+              (λ (obj evt)
                 (when (is-a? obj editor<%>)
                   (let ([canvas (send obj get-canvas)])
                     (when canvas
@@ -1139,8 +1139,8 @@ If the namespace does not, they are colored the unbound color.
                           (send frame syncheck:button-callback))))))))
         
         (let ([jump-callback
-               (lambda (send-msg)
-                 (lambda (obj evt)
+               (λ (send-msg)
+                 (λ (obj evt)
                    (when (is-a? obj text%)
                      (let ([canvas (send obj get-canvas)])
                        (when canvas
@@ -1151,13 +1151,13 @@ If the namespace does not, they are colored the unbound color.
                                  (send-msg defs obj))))))))))])
           (send keymap add-function
                 "jump to binding occurrence"
-                (jump-callback (lambda (defs obj) (send defs syncheck:jump-to-binding-occurrence obj))))
+                (jump-callback (λ (defs obj) (send defs syncheck:jump-to-binding-occurrence obj))))
           (send keymap add-function
                 "jump to next bound occurrence"
-                (jump-callback (lambda (defs obj) (send defs syncheck:jump-to-next-bound-occurrence obj))))
+                (jump-callback (λ (defs obj) (send defs syncheck:jump-to-next-bound-occurrence obj))))
           (send keymap add-function
                 "jump to definition (in other file)"
-                (jump-callback (lambda (defs obj) (send defs syncheck:jump-to-definition obj)))))
+                (jump-callback (λ (defs obj) (send defs syncheck:jump-to-definition obj)))))
         
         (send keymap map-function "f6" "check syntax")
         (send keymap map-function "c:c;c:c" "check syntax")
@@ -1228,7 +1228,7 @@ If the namespace does not, they are colored the unbound color.
                [tl-requires (make-hash-table 'equal)]
                [tl-require-for-syntaxes (make-hash-table 'equal)]
                [expanded-expression
-                (lambda (user-namespace user-directory sexp jump-to-id)
+                (λ (user-namespace user-directory sexp jump-to-id)
                   (parameterize ([current-load-relative-directory user-directory])
                     (let ([is-module? (syntax-case sexp (module)
                                         [(module . rest) #t]
@@ -1256,7 +1256,7 @@ If the namespace does not, they are colored the unbound color.
                                          tl-binders tl-varrefs tl-high-varrefs tl-tops 
                                          tl-requires tl-require-for-syntaxes)]))))]
                [expansion-completed
-                (lambda (user-namespace user-directory)
+                (λ (user-namespace user-directory)
                   (parameterize ([current-load-relative-directory user-directory])
                     (annotate-variables user-namespace
                                         tl-binders
@@ -1285,21 +1285,21 @@ If the namespace does not, they are colored the unbound color.
                  
           (let level-loop ([sexp sexp]
                            [high-level? #f])
-            (let* ([loop (lambda (sexp) (level-loop sexp high-level?))]
+            (let* ([loop (λ (sexp) (level-loop sexp high-level?))]
                    [varrefs (if high-level? high-varrefs low-varrefs)]
                    [collect-general-info
-                    (lambda (stx)
+                    (λ (stx)
                       (add-origins stx varrefs)
                       (add-disappeared-bindings stx binders varrefs)
                       (add-disappeared-uses stx varrefs))])
               (collect-general-info sexp)
-              (syntax-case* sexp (lambda case-lambda if begin begin0 let-values letrec-values set!
+              (syntax-case* sexp (λ case-lambda if begin begin0 let-values letrec-values set!
                                    quote quote-syntax with-continuation-mark 
                                    #%app #%datum #%top #%plain-module-begin
                                    define-values define-syntaxes module
                                    require require-for-syntax provide)
                 (if high-level? module-transformer-identifier=? module-identifier=?)
-                [(lambda args bodies ...)
+                [(λ args bodies ...)
                  (begin
                    (annotate-raw-keyword sexp varrefs)
                    (annotate-tail-position/last sexp (syntax->list (syntax (bodies ...))) tail-ht)
@@ -1308,12 +1308,12 @@ If the namespace does not, they are colored the unbound color.
                 [(case-lambda [argss bodiess ...]...)
                  (begin
                    (annotate-raw-keyword sexp varrefs)
-                   (for-each (lambda (bodies/stx) (annotate-tail-position/last sexp 
+                   (for-each (λ (bodies/stx) (annotate-tail-position/last sexp 
                                                                                (syntax->list bodies/stx)
                                                                                tail-ht))
                              (syntax->list (syntax ((bodiess ...) ...))))
                    (for-each
-                    (lambda (args bodies)
+                    (λ (args bodies)
                       (add-binders args binders)
                       (for-each loop (syntax->list bodies)))
                     (syntax->list (syntax (argss ...)))
@@ -1357,7 +1357,7 @@ If the namespace does not, they are colored the unbound color.
                    (for-each collect-general-info (syntax->list (syntax (bindings ...))))
                    (annotate-tail-position/last sexp (syntax->list (syntax (bs ...))) tail-ht)
                    (with-syntax ([(((xss ...) es) ...) (syntax (bindings ...))])
-                     (for-each (lambda (x) (add-binders x binders))
+                     (for-each (λ (x) (add-binders x binders))
                                (syntax->list (syntax ((xss ...) ...))))
                      (for-each loop (syntax->list (syntax (es ...))))
                      (for-each loop (syntax->list (syntax (bs ...))))))]
@@ -1367,7 +1367,7 @@ If the namespace does not, they are colored the unbound color.
                    (for-each collect-general-info (syntax->list (syntax (bindings ...))))
                    (annotate-tail-position/last sexp (syntax->list (syntax (bs ...))) tail-ht)
                    (with-syntax ([(((xss ...) es) ...) (syntax (bindings ...))])
-                     (for-each (lambda (x) (add-binders x binders))
+                     (for-each (λ (x) (add-binders x binders))
                                (syntax->list (syntax ((xss ...) ...))))
                      (for-each loop (syntax->list (syntax (es ...))))
                      (for-each loop (syntax->list (syntax (bs ...))))))]
@@ -1412,7 +1412,7 @@ If the namespace does not, they are colored the unbound color.
                    (annotate-raw-keyword sexp varrefs)
                    (add-binders (syntax vars) binders)
                    (when jump-to-id
-                     (for-each (lambda (id)
+                     (for-each (λ (id)
                                  (when (module-identifier=? id jump-to-id)
                                    (jump-to id)))
                                (syntax->list (syntax vars))))
@@ -1431,7 +1431,7 @@ If the namespace does not, they are colored the unbound color.
                                     (cons (syntax lang)
                                           (hash-table-get requires 
                                                           (syntax-object->datum (syntax lang))
-                                                          (lambda () '()))))
+                                                          (λ () '()))))
                    (for-each loop (syntax->list (syntax (bodies ...)))))]
                 
                 ; top level or module top level only:
@@ -1456,9 +1456,9 @@ If the namespace does not, they are colored the unbound color.
                  (let ([provided-varss (map extract-provided-vars
                                             (syntax->list (syntax (provide-specs ...))))])
                    (annotate-raw-keyword sexp varrefs)
-                   (for-each (lambda (provided-vars)
+                   (for-each (λ (provided-vars)
                                (for-each
-                                (lambda (provided-var)
+                                (λ (provided-var)
                                   (add-id varrefs provided-var))
                                 provided-vars))
                              provided-varss))]
@@ -1507,14 +1507,14 @@ If the namespace does not, they are colored the unbound color.
       ;;                    syntax
       ;;                 -> void
       (define (add-require-spec require-ht)
-        (lambda (raw-spec syntax)
+        (λ (raw-spec syntax)
           (when (syntax-original? syntax)
             (hash-table-put! require-ht
                              (syntax-object->datum raw-spec)
                              (cons syntax
                                    (hash-table-get require-ht
                                                    (syntax-object->datum raw-spec)
-                                                   (lambda () '())))))))
+                                                   (λ () '())))))))
       
       ;; annotate-unused-require : syntax -> void
       (define (annotate-unused-require req/tag)
@@ -1535,19 +1535,19 @@ If the namespace does not, they are colored the unbound color.
         (let ([unused-requires (make-hash-table 'equal)]
               [unused-require-for-syntaxes (make-hash-table 'equal)]
               [id-sets (list binders varrefs high-varrefs tops)])
-          (hash-table-for-each requires (lambda (k v) (hash-table-put! unused-requires k #t)))
-          (hash-table-for-each require-for-syntaxes (lambda (k v) (hash-table-put! unused-require-for-syntaxes k #t)))
+          (hash-table-for-each requires (λ (k v) (hash-table-put! unused-requires k #t)))
+          (hash-table-for-each require-for-syntaxes (λ (k v) (hash-table-put! unused-require-for-syntaxes k #t)))
           
-          (for-each (lambda (vars) 
-                      (for-each (lambda (var)
+          (for-each (λ (vars) 
+                      (for-each (λ (var)
                                   (when (syntax-original? var)
                                     (color-variable var identifier-binding)
                                     (make-rename-menu var id-sets)))
                                 vars))
                     (get-idss binders))
           
-          (for-each (lambda (vars) (for-each 
-                                    (lambda (var)
+          (for-each (λ (vars) (for-each 
+                                    (λ (var)
                                       (color-variable var identifier-binding)
                                       (connect-identifier var
                                                           binders
@@ -1558,8 +1558,8 @@ If the namespace does not, they are colored the unbound color.
                                     vars))
                     (get-idss varrefs))
           
-          (for-each (lambda (vars) (for-each 
-                                    (lambda (var)
+          (for-each (λ (vars) (for-each 
+                                    (λ (var)
                                       (color-variable var identifier-transformer-binding)
                                       (connect-identifier var
                                                           binders 
@@ -1571,9 +1571,9 @@ If the namespace does not, they are colored the unbound color.
                     (get-idss high-varrefs))
           
           (for-each 
-           (lambda (vars) 
+           (λ (vars) 
              (for-each
-              (lambda (var) 
+              (λ (var) 
                 (color/connect-top user-namespace binders var id-sets))
               vars))
            (get-idss tops))
@@ -1585,8 +1585,8 @@ If the namespace does not, they are colored the unbound color.
       (define (color-unused requires unused)
         (hash-table-for-each
          unused
-         (lambda (k v)
-           (for-each (lambda (stx) (color stx error-style-name))
+         (λ (k v)
+           (for-each (λ (stx) (color stx error-style-name))
                      (hash-table-get requires k)))))
       
       ;; connect-identifier : syntax
@@ -1612,7 +1612,7 @@ If the namespace does not, they are colored the unbound color.
       (define (connect-identifier/arrow var all-binders unused requires get-binding)
         (let ([binders (get-ids all-binders var)])
           (when binders
-            (for-each (lambda (x)
+            (for-each (λ (x)
                         (when (syntax-original? x)
                           (connect-syntaxes x var)))
                       binders))
@@ -1620,10 +1620,10 @@ If the namespace does not, they are colored the unbound color.
           (when (and unused requires)
             (let ([req-path (get-module-req-path (get-binding var))])
               (when req-path
-                (let ([req-stxes (hash-table-get requires req-path (lambda () #f))])
+                (let ([req-stxes (hash-table-get requires req-path (λ () #f))])
                   (when req-stxes
                     (hash-table-remove! unused req-path)
-                    (for-each (lambda (req-stx) (connect-syntaxes req-stx var))
+                    (for-each (λ (req-stx) (connect-syntaxes req-stx var))
                               req-stxes))))))))
           
       ;; get-module-req-path : binding -> (union #f require-sexp)
@@ -1643,7 +1643,7 @@ If the namespace does not, they are colored the unbound color.
         (let ([top-bound?
                (or (get-ids binders var)
                    (parameterize ([current-namespace user-namespace])
-                     (namespace-variable-value (syntax-e var) #t (lambda () #f))))])
+                     (namespace-variable-value (syntax-e var) #t (λ () #f))))])
           (if top-bound?
               (color var lexically-bound-variable-style-name)
               (color var error-style-name))
@@ -1668,9 +1668,9 @@ If the namespace does not, they are colored the unbound color.
       ;; add-var : hash-table -> syntax -> void
       ;; adds the variable to the hash table.
       (define (add-var ht)
-        (lambda (var)
+        (λ (var)
           (let* ([key (syntax-e var)]
-                 [prev (hash-table-get ht key (lambda () null))])
+                 [prev (hash-table-get ht key (λ () null))])
             (hash-table-put! ht key (cons var prev)))))
 
       ;; connect-syntaxes : syntax[original] syntax[original] -> void
@@ -1763,13 +1763,13 @@ If the namespace does not, they are colored the unbound color.
           (hash-table-get 
            tail-ht
            orig-stx
-           (lambda () null)))))
+           (λ () null)))))
 
       ;; annotate-require-open : namespace string -> (stx -> void)
       ;; relies on current-module-name-resolver, which in turn depends on
       ;; current-directory and current-namespace
       (define (annotate-require-open user-namespace user-directory)
-	(lambda (require-spec)
+	(λ (require-spec)
 	  (when (syntax-original? require-spec)
 	    (let ([source (syntax-source require-spec)])
 	      (when (and (is-a? source text%)
@@ -1802,12 +1802,12 @@ If the namespace does not, they are colored the unbound color.
       
       ;; make-require-open-menu : path -> menu -> void
       (define (make-require-open-menu file)
-        (lambda (menu)
+        (λ (menu)
           (let-values ([(base name dir?) (split-path file)])
             (instantiate menu-item% ()
               (label (format (string-constant cs-open-file) (path->string name)))
               (parent menu)
-              (callback (lambda (x y) (fw:handler:edit-file file))))
+              (callback (λ (x y) (fw:handler:edit-file file))))
             (void))))
       
       ;; possible-suffixes : (listof string)
@@ -1821,7 +1821,7 @@ If the namespace does not, they are colored the unbound color.
           (and ((string-length str) . > . 1)
                (char=? (string-ref str 0) #\,)
                (let ([fn (substring str 1 (string-length str))])
-                 (ormap (lambda (x)
+                 (ormap (λ (x)
                           (let ([test (string->path (string-append fn x))])
                             (and (file-exists? test)
                                  test)))
@@ -1896,7 +1896,7 @@ If the namespace does not, they are colored the unbound color.
       
       ;; annotate-raw-keyword : syntax id-map -> void
       ;; annotates keywords when they were never expanded. eg.
-      ;; if someone just types `(lambda (x) x)' it has no 'origin
+      ;; if someone just types `(λ (x) x)' it has no 'origin
       ;; field, but there still are keywords.
       (define (annotate-raw-keyword stx id-map)
         (unless (syntax-property stx 'origin)
@@ -1915,7 +1915,7 @@ If the namespace does not, they are colored the unbound color.
           
           (let loop ([stx stx]
                      [datum (syntax-object->datum stx)])
-	    (unless (hash-table-get ht datum (lambda () #f))
+	    (unless (hash-table-get ht datum (λ () #f))
 	      (hash-table-put! ht datum #t)
               (cond
 	       [(pair? stx) 
@@ -1971,8 +1971,8 @@ If the namespace does not, they are colored the unbound color.
       (define (add-tail-ht-links tail-ht)
         (hash-table-for-each
          tail-ht
-         (lambda (stx-from stx-tos)
-           (for-each (lambda (stx-to) (add-tail-ht-link stx-from stx-to))
+         (λ (stx-from stx-tos)
+           (for-each (λ (stx-to) (add-tail-ht-link stx-from stx-to))
                      stx-tos))))
       
       ;; add-tail-ht-link : syntax syntax -> void
@@ -2020,12 +2020,12 @@ If the namespace does not, they are colored the unbound color.
                        [fin (+ start (syntax-span stx))])
                   (send syncheck-text syncheck:add-menu
                         source start fin (syntax-e stx)
-                        (lambda (menu)
+                        (λ (menu)
                           (instantiate menu-item% ()
                             (parent menu)
                             (label (format (string-constant cs-rename-var) name-to-offer))
                             (callback
-                             (lambda (x y)
+                             (λ (x y)
                                (let ([frame-parent (find-menu-parent menu)])
                                  (rename-callback name-to-offer
                                                   stx
@@ -2055,7 +2055,7 @@ If the namespace does not, they are colored the unbound color.
       (define (rename-callback name-to-offer stx id-sets parent)
         (let ([new-sym 
                (fw:keymap:call/text-keymap-initializer
-                (lambda ()
+                (λ ()
                   (get-text-from-user
                    (string-constant cs-rename-id)
                    (format (string-constant cs-rename-var-to) name-to-offer)
@@ -2067,9 +2067,9 @@ If the namespace does not, they are colored the unbound color.
                      (quicksort 
                       (apply 
                        append
-                       (map (lambda (id-set) (or (get-ids id-set stx) '()))
+                       (map (λ (id-set) (or (get-ids id-set stx) '()))
                             id-sets))
-                      (lambda (x y) 
+                      (λ (x y) 
                         ((syntax-position x) . >= . (syntax-position y)))))])
               (cond
                 [(name-duplication? to-be-renamed id-sets new-sym)
@@ -2083,7 +2083,7 @@ If the namespace does not, they are colored the unbound color.
                    (let ([first-one-source (syntax-source (car to-be-renamed))])
                      (when (is-a? first-one-source text%)
                        (send first-one-source begin-edit-sequence)
-                       (for-each (lambda (stx) 
+                       (for-each (λ (stx) 
                                    (let ([source (syntax-source stx)])
                                      (when (is-a? source text%)
                                        (let* ([start (- (syntax-position stx) 1)]
@@ -2097,10 +2097,10 @@ If the namespace does not, they are colored the unbound color.
       ;; name-duplication? : (listof syntax) (listof id-set) symbol -> boolean
       ;; returns #t if the name chosen would be the same as another name in this scope.
       (define (name-duplication? to-be-renamed id-sets new-str)
-        (let ([new-ids (map (lambda (id) (datum->syntax-object id (string->symbol new-str)))
+        (let ([new-ids (map (λ (id) (datum->syntax-object id (string->symbol new-str)))
                             to-be-renamed)])
-          (ormap (lambda (id-set)
-                   (ormap (lambda (new-id) (get-ids id-set new-id)) 
+          (ormap (λ (id-set)
+                   (ormap (λ (new-id) (get-ids id-set new-id)) 
                           new-ids))
                  id-sets)))
                
@@ -2143,20 +2143,20 @@ If the namespace does not, they are colored the unbound color.
       
       ;; add-id : id-set identifier -> void
       (define (add-id mapping id)
-        (let ([old (module-identifier-mapping-get mapping id (lambda () '()))])
+        (let ([old (module-identifier-mapping-get mapping id (λ () '()))])
           (module-identifier-mapping-put! mapping id (cons id old))))
       
       ;; get-idss : id-set -> (listof (listof identifier))
       (define (get-idss mapping)
-        (module-identifier-mapping-map mapping (lambda (x y) y)))
+        (module-identifier-mapping-map mapping (λ (x y) y)))
       
       ;; get-ids : id-set identifier -> (union (listof identifier) #f)
       (define (get-ids mapping var)
-        (module-identifier-mapping-get mapping var (lambda () #f)))
+        (module-identifier-mapping-get mapping var (λ () #f)))
       
       ;; for-each-ids : id-set ((listof identifier) -> void) -> void
       (define (for-each-ids mapping f)
-        (module-identifier-mapping-for-each mapping (lambda (x y) (f y))))
+        (module-identifier-mapping-for-each mapping (λ (x y) (f y))))
 
       
       ;                                                 

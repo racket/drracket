@@ -25,15 +25,15 @@
           (init-field main-text)
           (define/private (edit-menu:do const)
             (send main-text do-edit-operation const))
-            [define/override file-menu:create-revert? (lambda () #f)]
-            [define/override file-menu:create-save? (lambda () #f)]
-            [define/override file-menu:create-save-as? (lambda () #f)]
-            [define/override file-menu:between-close-and-quit (lambda (x) (void))]
-            [define/override edit-menu:between-redo-and-cut (lambda (x) (void))]
-            [define/override edit-menu:between-select-all-and-find (lambda (x) (void))]
-            [define/override edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]
-            [define/override edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
-            [define/override edit-menu:create-find? (lambda () #f)]
+            [define/override file-menu:create-revert? (λ () #f)]
+            [define/override file-menu:create-save? (λ () #f)]
+            [define/override file-menu:create-save-as? (λ () #f)]
+            [define/override file-menu:between-close-and-quit (λ (x) (void))]
+            [define/override edit-menu:between-redo-and-cut (λ (x) (void))]
+            [define/override edit-menu:between-select-all-and-find (λ (x) (void))]
+            [define/override edit-menu:copy-callback (λ (menu evt) (edit-menu:do 'copy))]
+            [define/override edit-menu:select-all-callback (λ (menu evt) (edit-menu:do 'select-all))]
+            [define/override edit-menu:create-find? (λ () #f)]
           (super-new
             (label (string-constant about-drscheme-frame-title)))))
       
@@ -220,7 +220,7 @@
             (label #f)
             (choices (string-constants interact-with-drscheme-in-language))
             (parent natural-language-state-panel)
-            (callback (lambda (x y) (void)))))
+            (callback (λ (x y) (void)))))
         
         (define stupid-internal-define-syntax3
 	  (let loop ([languages (all-languages)]
@@ -268,13 +268,13 @@
         ;; note that `cu-message' is bound to the last message% object,
         ;; but it is not used anyway.
         (define cu-message
-          (let ([add (lambda (str)
+          (let ([add (λ (str)
                        (instantiate message% ()
                          (label str)
                          (parent check-updates-msgs-panel)))])
             (let loop ([message (format (string-constant vc-wizard-check-note))])
               (cond [(regexp-match #rx"^(.+?)\n(.+)$" message) =>
-                     (lambda (m) (add (cadr m)) (loop (caddr m)))]
+                     (λ (m) (add (cadr m)) (loop (caddr m)))]
                     [else (add message)]))))
 
         (define cu-space
@@ -287,7 +287,7 @@
           (instantiate button% ()
             (label (string-constant vc-wizard-check-button))
             (parent check-updates-state-panel)
-            (callback (lambda (x y) (check-version dlg)))))
+            (callback (λ (x y) (check-version dlg)))))
         
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -329,7 +329,7 @@
         (define back-button (instantiate button% ()
                               (label (string-constant wizard-back))
                               (parent bp)
-                              (callback (lambda (x y) (prev-state)))))
+                              (callback (λ (x y) (prev-state)))))
         (define next-button (instantiate button% ()
                               (label (if (< (string-length (string-constant wizard-next))
 					    (string-length (string-constant wizard-finish)))
@@ -337,7 +337,7 @@
 					 (string-constant wizard-next)))
                               (parent bp)
                               (style '(border))
-                              (callback (lambda (x y) (next-state)))))
+                              (callback (λ (x y) (next-state)))))
         (send next-button focus)
         
         (set-state 'natural-language)
@@ -378,12 +378,12 @@
       
       
       (define (same-widths items)
-        (let ([max-width (apply max (map (lambda (x) (send x get-width)) items))])
-          (for-each (lambda (x) (send x min-width max-width)) items)))
+        (let ([max-width (apply max (map (λ (x) (send x get-width)) items))])
+          (for-each (λ (x) (send x min-width max-width)) items)))
       
       (define (same-heights items)
-        (let ([max-height (apply max (map (lambda (x) (send x get-height)) items))])
-          (for-each (lambda (x) (send x min-height max-height)) items)))
+        (let ([max-height (apply max (map (λ (x) (send x get-height)) items))])
+          (for-each (λ (x) (send x min-height max-height)) items)))
       
       (define wrap-edit% 
         (class text:hide-caret/selection%
@@ -420,7 +420,7 @@
       
       (define (make-release-notes-button button-panel)
         (make-object button% (string-constant release-notes) button-panel
-          (lambda (a b)
+          (λ (a b)
             (help-desk:goto-release-notes))))
       
       (define tour-frame%
@@ -455,12 +455,12 @@
                [bottom-button-panel (make-object vertical-panel% outer-button-panel)]
                [tour-button (make-object button% (string-constant take-a-tour) 
                               top-button-panel
-                              (lambda (x y)
+                              (λ (x y)
                                 (help-desk:goto-tour))
                               '(border))]
                [release-notes-button (make-release-notes-button top-button-panel)]
                [close-button (make-object button% (string-constant close) bottom-button-panel
-                               (lambda x
+                               (λ x
                                  (send f close)))]
                [messages-panel (make-object vertical-panel% left-vp)]
                
@@ -491,13 +491,13 @@
                                       last-version)]
                              [else #f])])
                   (and msg (make-object message% msg messages-panel)))])
-          (for-each (lambda (native-lang-string language)
+          (for-each (λ (native-lang-string language)
                       (unless (equal? (this-language) language)
                         (instantiate button% ()
                           (label native-lang-string)
                           (parent bottom-vp)
                           (stretchable-width #t)
-                          (callback (lambda (x1 x2) (switch-language-to f language))))))
+                          (callback (λ (x1 x2) (switch-language-to f language))))))
                     (string-constants is-this-your-native-language)
                     (all-languages))
           (send bottom-vp stretchable-height #f)
@@ -556,19 +556,19 @@
                [d-http (make-object style-delta%)]
                
                [insert/clickback
-                (lambda (str clickback)
+                (λ (str clickback)
                   (send e change-style d-http)
                   (let* ([before (send e get-start-position)]
                          [_ (send e insert str)]
                          [after (send e get-start-position)])
                     (send e set-clickback before after 
-                          (lambda (a b c) (clickback))
+                          (λ (a b c) (clickback))
                           d-http))
                   (send e change-style d-usual))]
                
                [insert-url/external-browser
-                (lambda (str url)
-                  (insert/clickback str (lambda () (send-url url))))])
+                (λ (str url)
+                  (insert/clickback str (λ () (send-url url))))])
           
           (send* d-http 
             (copy d-usual)
@@ -611,7 +611,7 @@
             (insert #\newline)
             (insert "For licensing information see "))
           
-          (insert/clickback "our software license" (lambda () (help-desk:goto-plt-license)))
+          (insert/clickback "our software license" (λ () (help-desk:goto-plt-license)))
           
           (send* e
             (insert ".")
@@ -635,7 +635,7 @@
                 (insert "Installed tools:")
                 (insert #\newline))
               (for-each
-               (lambda (successful-tool)
+               (λ (successful-tool)
                  (let ([name (or (drscheme:tools:successful-tool-name successful-tool)
                                  (format "~s" (drscheme:tools:successful-tool-spec successful-tool)))]
                        [bm (drscheme:tools:successful-tool-bitmap successful-tool)]
@@ -657,7 +657,7 @@
           (send e insert (get-translating-acks))
           
           (let* ([tour-button (make-object button% (string-constant take-a-tour) button-panel
-                                (lambda (x y)
+                                (λ (x y)
                                   (help-desk:goto-tour)))]
                  [release-notes-button (make-release-notes-button button-panel)])
             (same-widths (list tour-button release-notes-button))
@@ -744,10 +744,10 @@
           (define-values (quit cancel)
             (gui-utils:ok/cancel-buttons
              bp
-             (lambda (x y)
+             (λ (x y)
                (set! cancelled? #f)
                (send dialog show #f))
-             (lambda (x y)
+             (λ (x y)
                (send dialog show #f))
              quit-label
              cancel-label))
@@ -773,7 +773,7 @@
         (unless cancelled?
           (let ([set-language? #t])
             (exit:insert-on-callback 
-             (lambda ()
+             (λ ()
                (when set-language?
                  (set-language-pref other-language))))
             (exit:exit)
@@ -789,12 +789,12 @@
                   (parent help-menu)
                   (label (string-constant tool-web-sites)))]
                [add
-                (lambda (name url . parent)
+                (λ (name url . parent)
                   (instantiate menu-item% ()
                     (label name)
                     (parent (if (null? parent) important-urls (car parent)))
                     (callback
-                     (lambda (x y)
+                     (λ (x y)
                        (send-url url)))))])
           (add (string-constant drscheme-homepage) "http://www.drscheme.org/")
           (add (string-constant plt-homepage) "http://www.plt-scheme.org/")
@@ -802,9 +802,9 @@
           (add (string-constant how-to-design-programs) "http://www.htdp.org/")
           (add (string-constant how-to-use-scheme) "http://www.htus.org/")
           
-          (for-each (lambda (tool)
+          (for-each (λ (tool)
                       (cond ((drscheme:tools:successful-tool-url tool) =>
-                             (lambda (url)
+                             (λ (url)
                                (add (drscheme:tools:successful-tool-name tool) url tool-urls-menu)))))
                     (drscheme:tools:get-successful-tools))
           
@@ -823,7 +823,7 @@
 
       (define (add-language-items-to-help-menu help-menu)
         (let ([added-any? #f])
-          (for-each (lambda (native-lang-string language)
+          (for-each (λ (native-lang-string language)
                       (unless (equal? (this-language) language)
                         (unless added-any?
                           (make-object separator-menu-item% help-menu)
@@ -831,6 +831,6 @@
                         (instantiate menu-item% ()
                           (label native-lang-string)
                           (parent help-menu)
-                          (callback (lambda (x1 x2) (switch-language-to #f language))))))
+                          (callback (λ (x1 x2) (switch-language-to #f language))))))
                     (string-constants interact-with-drscheme-in-language)
                     (all-languages)))))))

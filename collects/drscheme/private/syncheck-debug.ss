@@ -33,7 +33,7 @@
                           (cons
                            (hash-table-get range-start-ht x)
                            (send output-text last-position))
-                          (hash-table-get range-ht x (lambda () null)))))
+                          (hash-table-get range-ht x (λ () null)))))
       
       (define (make-modern text)
         (send text change-style
@@ -53,8 +53,8 @@
       
       (define ranges 
         (quicksort 
-         (apply append (hash-table-map range-ht (lambda (k vs) (map (lambda (v) (cons k v)) vs))))
-         (lambda (x y)
+         (apply append (hash-table-map range-ht (λ (k vs) (map (λ (v) (cons k v)) vs))))
+         (λ (x y)
            (<= (- (car (cdr x)) (cdr (cdr x)))
                (- (car (cdr y)) (cdr (cdr y)))))))
       
@@ -82,14 +82,14 @@
             [else (void)])))
       
       (for-each
-       (lambda (range)
+       (λ (range)
          (let* ([obj (car range)]
                 [stx (hash-table-get stx-ht obj)]
                 [start (cadr range)]
                 [end (cddr range)])
            (when (syntax? stx)
              (send output-text set-clickback start end 
-                   (lambda _ 
+                   (λ _ 
                      (send info-text begin-edit-sequence)
                      (send info-text erase)
                      (show-info stx)
@@ -104,10 +104,10 @@
         (send output-text set-clickback
               before
               (send output-text last-position)
-              (lambda _
+              (λ _
                 (send info-text begin-edit-sequence)
                 (send info-text erase)
-                (for-each (lambda (rng)
+                (for-each (λ (rng)
                             (let ([stx (hash-table-get stx-ht (car rng))])
                               (when (syntax? stx)
                                 (show-info stx))))
@@ -153,7 +153,7 @@
   (define (make-text-port text)
     (let-values ([(in out) (make-pipe)])
       (thread
-       (lambda ()
+       (λ ()
          (let loop ()
            (let ([c (read-char in)])
              (unless (eof-object? c)

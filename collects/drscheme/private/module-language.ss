@@ -86,7 +86,7 @@
                  (list? (cadr marshalled))
                  (vector? (caddr marshalled))
                  (andmap string? (vector->list (caddr marshalled)))
-                 (andmap (lambda (x) (or (string? x) (symbol? x)))
+                 (andmap (λ (x) (or (string? x) (symbol? x)))
                          (cadr marshalled))
                  (let ([super (super unmarshall-settings (car marshalled))])
                    (and super
@@ -100,13 +100,13 @@
             (set! iteration-number 0)
             (super on-execute settings run-in-user-thread)
             (run-in-user-thread
-             (lambda ()
+             (λ ()
                (current-command-line-arguments (module-language-settings-command-line-args settings))
                (let ([default (current-library-collection-paths)])
                  (current-library-collection-paths
                   (apply 
                    append
-                   (map (lambda (x) (if (symbol? x)
+                   (map (λ (x) (if (symbol? x)
                                         default
                                         (list x)))
                         (module-language-settings-collection-paths settings))))))))
@@ -120,7 +120,7 @@
             (let ([super-thunk (super front-end/complete-program port settings teachpack-cache)]
                   [filename (get-filename port)]
                   [module-name #f])
-              (lambda ()
+              (λ ()
                 (set! iteration-number (+ iteration-number 1))
                 (let ([super-result (super-thunk)])
                   (cond
@@ -170,8 +170,8 @@
                 (let ([stand-alone? (eq? 'stand-alone (car executable-specs))]
                       [gui? (eq? 'mred (cadr executable-specs))]
                       [executable-filename (caddr executable-specs)])
-                  (with-handlers ([(lambda (x) #f) ;exn:fail?
-                                   (lambda (x)
+                  (with-handlers ([(λ (x) #f) ;exn:fail?
+                                   (λ (x)
                                      (message-box
                                       (string-constant drscheme)
                                       (if (exn? x)
@@ -236,21 +236,21 @@
                      (parent cp-panel)
                      (choices '("a" "b" "c"))
                      (label #f)
-                     (callback (lambda (x y) (update-buttons)))))
+                     (callback (λ (x y) (update-buttons)))))
         (define button-panel (instantiate horizontal-panel% ()
                                (parent cp-panel)
                                (alignment '(center center))
                                (stretchable-height #f)))
         (define add-button (make-object button% (string-constant ml-cp-add) button-panel
-                             (lambda (x y) (add-callback))))
+                             (λ (x y) (add-callback))))
         (define add-default-button (make-object button% (string-constant ml-cp-add-default) button-panel
-                                     (lambda (x y) (add-default-callback))))
+                                     (λ (x y) (add-default-callback))))
         (define remove-button (make-object button% (string-constant ml-cp-remove) button-panel
-                                (lambda (x y) (remove-callback))))
+                                (λ (x y) (remove-callback))))
         (define raise-button (make-object button% (string-constant ml-cp-raise) button-panel
-                               (lambda (x y) (raise-callback))))
+                               (λ (x y) (raise-callback))))
         (define lower-button (make-object button% (string-constant ml-cp-lower) button-panel
-                               (lambda (x y) (lower-callback))))
+                               (λ (x y) (lower-callback))))
         
         (define (update-buttons)
           (let ([lb-selection (send lb get-selection)]
@@ -349,7 +349,7 @@
         
         (define (install-collection-paths paths)
           (send lb clear)
-          (for-each (lambda (cp)
+          (for-each (λ (cp)
                       (if (symbol? cp)
                           (send lb append
                                 (string-constant ml-cp-default-collection-path)
@@ -360,7 +360,7 @@
         (define (get-command-line-args)
           (let ([str (send args-text-box get-value)])
             (let ([read-res (parameterize ([read-accept-graph #f])
-                              (with-handlers ([exn:fail:read? (lambda (x) #())])
+                              (with-handlers ([exn:fail:read? (λ (x) #())])
                                 (read (open-input-string str))))])
               (cond
                 [(and (vector? read-res)
@@ -474,7 +474,7 @@
           ;; or #f if the beginning doesn't match "(module "
           (define/contract get-module-filename
             (-> (union false/c string?))
-            (lambda ()
+            (λ ()
               (let ([open-paren (skip-whitespace 0)])
                 (or (match-paren open-paren "(")
                     (match-paren open-paren "[")
@@ -482,7 +482,7 @@
           
           (define/contract match-paren
             (number? string? . -> . (union false/c string?))
-            (lambda (open-paren paren)
+            (λ (open-paren paren)
               (and (matches open-paren paren)
                    (let ([module (skip-whitespace (+ open-paren 1))])
                      (and (matches module "module")
@@ -496,7 +496,7 @@
 
           (define/contract matches
             (number? string? . -> . boolean?)
-            (lambda (start string)
+            (λ (start string)
               (let ([last-pos (last-position)])
                 (let loop ([i 0])
                   (cond
@@ -510,7 +510,7 @@
           
           (define/contract skip-whitespace
             (number? . -> . number?)
-            (lambda (start) 
+            (λ (start) 
               (let ([last-pos (last-position)])
                 (let loop ([pos start])
                   (cond
@@ -524,7 +524,7 @@
 
           (define/contract skip-to-whitespace
             (number? . -> . number?)
-            (lambda (start) 
+            (λ (start) 
               (let ([last-pos (last-position)])
                 (let loop ([pos start])
                   (cond

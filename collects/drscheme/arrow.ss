@@ -128,8 +128,8 @@
   ;; if can is #f, return #f. If o1, o2, or o3 is #f, assume that can is smaller than them
   (define (smallest? can o1 o2 o3)
     (and can
-         (andmap (lambda (x) (< can x))
-                 (filter (lambda (x) x)
+         (andmap (λ (x) (< can x))
+                 (filter (λ (x) x)
                          (list o1 o2 o3)))))
           
   

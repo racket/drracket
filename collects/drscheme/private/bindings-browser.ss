@@ -57,7 +57,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
       (begin (parameterize ([current-output-port output-port]
                             [pretty-print-columns 30])
                (for-each
-                (lambda (binding-pair)
+                (λ (binding-pair)
                   (let* ([stx (car binding-pair)]
                          [value (cadr binding-pair)])
                     ; this totally destroys the 'output-port' abstraction.  I don't know
@@ -131,8 +131,8 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
           (set! details-shown? #t)))
       
       (send outer-t insert (make-object turn-snip% 
-                             (lambda () (hide-details))
-                             (lambda () (show-details))))
+                             (λ () (hide-details))
+                             (λ () (show-details))))
       (send outer-t insert (format "bindings\n"))
       (send outer-t insert inner-es)
       (make-modern outer-t)
@@ -283,7 +283,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
   (define (make-text-port text)
     (make-output-port #f
                       always-evt
-                      (lambda (s start end flush?) 
+                      (λ (s start end flush?) 
                         (send text insert (substring s start end)
                               (send text last-position)
                               (send text last-position))

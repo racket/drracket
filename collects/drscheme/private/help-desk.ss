@@ -35,7 +35,7 @@
       ;; get-docs : (listof (cons path[short-dir-name] string[doc full name]))
       (define (get-docs) 
         (let ([dirs (find-doc-names)])
-          (map (lambda (pr)
+          (map (λ (pr)
                  (let-values ([(base name dir?) (split-path (car pr))])
                    (cons name (cdr pr))))
                dirs)))
@@ -75,7 +75,7 @@
             (instantiate menu:can-restore-menu-item% ()
               (label (string-constant plt:hd:new-help-desk))
               (parent file-menu)
-              (callback (lambda (x y) (new-help-desk))))
+              (callback (λ (x y) (new-help-desk))))
             (super file-menu:between-new-and-open file-menu))
           
           (super-new)
@@ -86,7 +86,7 @@
                                        (parent (get-menu-bar))
                                        (label (string-constant language-menu-name)))]
                    [change-language-callback
-                    (lambda ()
+                    (λ ()
                       (let ([new-settings (drscheme:language-configuration:language-dialog
                                            #f
                                            current-language
@@ -100,7 +100,7 @@
                            new-settings))))]
                    [lang-message
                     (new lang-message% 
-                         (button-release (lambda () (change-language-callback)))
+                         (button-release (λ () (change-language-callback)))
                          (parent choices-panel)
                          (font (send choices-panel get-control-font)))]
                    [language-item (new menu-item%
@@ -108,17 +108,17 @@
                                        (parent language-menu)
                                        (shortcut #\l)
                                        (callback
-                                        (lambda (x y)
+                                        (λ (x y)
                                           (change-language-callback))))])
             (frame:reorder-menus this)
             (send lang-message set-msg (get-language-name))
             
             ;; move the grow box spacer pane to the end
             (send choices-panel change-children
-                  (lambda (l)
+                  (λ (l)
                     (append
-                     (filter (lambda (x) (not (is-a? x grow-box-spacer-pane%))) l)
-                     (list (car (filter (lambda (x) (is-a? x grow-box-spacer-pane%)) l)))))))))
+                     (filter (λ (x) (not (is-a? x grow-box-spacer-pane%))) l)
+                     (list (car (filter (λ (x) (is-a? x grow-box-spacer-pane%)) l)))))))))
       
       (define lang-message%
         (class canvas%

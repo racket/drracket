@@ -44,11 +44,11 @@
       (define search-types
         (list (make-search-type
                (string-constant mfs-string-match/graphics)
-               (lambda (info search-string) (exact-match-searcher info search-string))
+               (λ (info search-string) (exact-match-searcher info search-string))
                (list (cons (string-constant mfs-case-sensitive-label) #f)))
               (make-search-type
                (string-constant mfs-regexp-match/no-graphics)
-               (lambda (info search-string) (regexp-match-searcher info search-string))
+               (λ (info search-string) (regexp-match-searcher info search-string))
                (list))))
       
       ;; search-entry = (make-search-entry string number number number)
@@ -61,7 +61,7 @@
       (preferences:set-default 'drscheme:multi-file-search:search-string "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-type
                                1
-                               (lambda (x) 
+                               (λ (x) 
                                  (and (number? x)
                                       (exact? x)
                                       (integer? x)
@@ -70,30 +70,30 @@
       
       ;; drscheme:mult-file-search:search-check-boxes : (listof (listof boolean))
       (preferences:set-default 'drscheme:multi-file-search:search-check-boxes 
-                               (map (lambda (x) (map cdr (search-type-params x)))
+                               (map (λ (x) (map cdr (search-type-params x)))
                                     search-types)
-                               (lambda (x) 
+                               (λ (x) 
                                  (and (list? x)
-                                      (andmap (lambda (x)
+                                      (andmap (λ (x)
                                                 (and (list? x)
                                                      (andmap boolean? x)))
                                               x))))
       
       (preferences:set-default 'drscheme:multi-file-search:percentages
                                '(1/3 2/3)
-                               (lambda (x) (and (list? x)
+                               (λ (x) (and (list? x)
                                                 (= 2 (length x))
                                                 (= 1 (apply + x)))))
       
       (preferences:set-default 'drscheme:multi-file-search:frame-size '(300 . 400) 
-                               (lambda (x) (and (pair? x)
+                               (λ (x) (and (pair? x)
                                                 (number? (car x))
                                                 (number? (cdr x)))))
       (preferences:set-default 'drscheme:multi-file-search:directory (car (filesystem-root-list)) path?)
       (preferences:set-un/marshall 
        'drscheme:multi-file-search:directory
-       (lambda (v) (path->string v))
-       (lambda (p) (if (path-string? p)
+       (λ (v) (path->string v))
+       (λ (p) (if (path-string? p)
                        (string->path p)
                        (car (filesystem-root-list)))))
       
@@ -106,9 +106,9 @@
         (define panel (make-object saved-vertical-resizable% (send frame get-area-container)))
         (define button-panel (make-object horizontal-panel% (send frame get-area-container)))
         (define open-button (make-object button% (string-constant mfs-open-file) button-panel
-                              (lambda (x y) (open-file-callback))))
+                              (λ (x y) (open-file-callback))))
         (define stop-button (make-object button% (string-constant mfs-stop-search) button-panel
-                              (lambda (x y) (stop-callback))))
+                              (λ (x y) (stop-callback))))
         (define grow-box-pane (make-object grow-box-spacer-pane% button-panel))
         
         (define zoom-text (make-object scheme:text%))
@@ -137,7 +137,7 @@
         
         ;; channel : async-channel[(union 'done search-entry)]
         (define channel (make-async-channel 100))
-        (define search-thd (thread (lambda () (do-search search-info channel))))
+        (define search-thd (thread (λ () (do-search search-info channel))))
         
         (send frame set-text-to-search results-text) ;; just to initialize it to something.
         (send results-text lock #t)
@@ -209,7 +209,7 @@
             ;; indent-all-lines : number -> void
             ;; inserts `offset' spaces to the beginning of each line,
             ;; except the last one. Must be at least one such line in the text.
-            (lambda (offset)
+            (λ (offset)
               (let ([spaces (make-string offset #\space)])
                 (let loop ([para (- (last-paragraph) 1)])
                   (let ([para-start (paragraph-start-position para)])
@@ -233,7 +233,7 @@
           
           [define old-line #f]
           [define/private hilite-line
-            (lambda (line)
+            (λ (line)
               (begin-edit-sequence)
               (lock #f)
               (when old-line
@@ -259,7 +259,7 @@
                     (send t set-position pos)))))]
           
           [define/public add-match
-            (lambda (base-filename full-filename line-string line-number col-number match-length)
+            (λ (base-filename full-filename line-string line-number col-number match-length)
               (lock #f)
               (let* ([new-line-position (last-position)]
                      [short-filename 
@@ -271,7 +271,7 @@
                      [len (string-length short-filename)]
                      [insertion-start #f]
                      [show-this-match
-                      (lambda ()
+                      (λ ()
                         (set! match-shown? #t)
                         (set! current-file full-filename)
                         (set! line-in-current-file line-number)
@@ -311,7 +311,7 @@
                                   (+ line-start col-number)
                                   (+ line-start col-number match-length)))
                   (set-clickback filename-start (last-position)
-                                 (lambda (_1 _2 _3)
+                                 (λ (_1 _2 _3)
                                    (show-this-match)))
                   (insert #\newline (last-position) (last-position))
                   
@@ -403,51 +403,51 @@
         
         (define dir-panel (make-object horizontal-panel% files-panel))
         (define dir-field (make-object text-field% (string-constant mfs-dir) dir-panel
-                            (lambda (x y) (dir-field-callback))))
+                            (λ (x y) (dir-field-callback))))
         (define dir-button (make-object button% (string-constant browse...) dir-panel 
-                             (lambda (x y) (dir-button-callback))))
+                             (λ (x y) (dir-button-callback))))
         
         (define recur-check-box (make-object check-box% (string-constant mfs-recur-over-subdirectories) files-panel
-                                  (lambda (x y) (recur-check-box-callback))))
+                                  (λ (x y) (recur-check-box-callback))))
         
         (define filter-panel (make-object horizontal-panel% files-panel))
         (define filter-check-box (make-object check-box% (string-constant mfs-regexp-filename-filter) filter-panel
-                                   (lambda (x y) (filter-check-box-callback))))
+                                   (λ (x y) (filter-check-box-callback))))
         (define filter-text-field (make-object text-field% #f filter-panel 
-                                    (lambda (x y) (filter-text-field-callback))))
+                                    (λ (x y) (filter-text-field-callback))))
         
         (define methods-choice (make-object choice% #f (map search-type-label search-types) method-panel 
-                                 (lambda (x y) (methods-choice-callback))))
+                                 (λ (x y) (methods-choice-callback))))
         (define search-text-field (make-object text-field% (string-constant mfs-search-string) method-panel
-                                    (lambda (x y) (search-text-field-callback))))
+                                    (λ (x y) (search-text-field-callback))))
         (define active-method-panel (make-object panel:single% method-panel))
         (define methods-check-boxess
           (let ([pref (preferences:get 'drscheme:multi-file-search:search-check-boxes)])
             (map
-             (lambda (search-type prefs-settings)
+             (λ (search-type prefs-settings)
                (let ([p (make-object vertical-panel% active-method-panel)]
                      [params (search-type-params search-type)])
                  (send p set-alignment 'left 'center)
-                 (map (lambda (flag-pair prefs-setting)
+                 (map (λ (flag-pair prefs-setting)
                         (let ([cb (make-object check-box% 
                                     (car flag-pair)
                                     p
-                                    (lambda (evt chk) (method-callback chk)))])
+                                    (λ (evt chk) (method-callback chk)))])
                           (send cb set-value prefs-setting)
                           cb))
                       params
                       (if (= (length params) (length prefs-settings))
                           prefs-settings
-                          (map (lambda (x) #f) params)))))
+                          (map (λ (x) #f) params)))))
              search-types
              (if (= (length search-types) (length pref))
                  pref
-                 (map (lambda (x) '()) search-types)))))
+                 (map (λ (x) '()) search-types)))))
         (define-values (ok-button cancel-button)
           (gui-utils:ok/cancel-buttons
            button-panel
-           (lambda (x y) (ok-button-callback))
-           (lambda (x y) (cancel-button-callback))))
+           (λ (x y) (ok-button-callback))
+           (λ (x y) (cancel-button-callback))))
         (define spacer (make-object grow-box-spacer-pane% button-panel))
         
         ;; initialized to a searcher during the ok button callback
@@ -465,17 +465,17 @@
         (define (ok-button-callback)
           (cond
             [(with-handlers ([exn:fail:filesystem?
-                              (lambda (x) #f)])
+                              (λ (x) #f)])
                (directory-exists? (send dir-field get-value)))
              (let ([_searcher
                     ((search-type-make-searcher (list-ref search-types (send methods-choice get-selection)))
-                     (map (lambda (cb) (send cb get-value))
+                     (map (λ (cb) (send cb get-value))
                           (send (send active-method-panel active-child) get-children))
                      (send search-text-field get-value))])
                (if (string? _searcher)
                    (message-box message-box-title _searcher dialog)
-                   (let ([regexp (with-handlers ([(lambda (x) #t)
-                                                  (lambda (exn)
+                   (let ([regexp (with-handlers ([(λ (x) #t)
+                                                  (λ (exn)
 						    (format "~a" (exn-message exn)))])
                                    (and (send filter-check-box get-value)
                                         (regexp (send filter-text-field get-value))))])
@@ -585,12 +585,12 @@
                [get-filenames (if (search-info-recur? search-info)
                                   (build-recursive-file-list dir filter)
                                   (build-flat-file-list dir filter))])
-          (with-handlers ([exn:break? (lambda (x) (async-channel-put channel 'break))])
+          (with-handlers ([exn:break? (λ (x) (async-channel-put channel 'break))])
             (let loop ()
               (let ([filename (get-filenames)])
                 (when filename
                   (searcher filename
-                            (lambda (line-string line-number col-number match-length)
+                            (λ (line-string line-number col-number match-length)
                               (async-channel-put
                                channel
                                (make-search-entry
@@ -606,23 +606,23 @@
       ;; thread: search thread
       (define (build-recursive-file-list dir filter)
         (letrec ([touched (make-hash-table 'equal)]
-                 [next-thunk (lambda () (process-dir dir (lambda () #f)))]
+                 [next-thunk (λ () (process-dir dir (λ () #f)))]
                  [process-dir
                   ; string[dirname] (listof string[filename]) -> (listof string[filename])
-                  (lambda (dir k)
+                  (λ (dir k)
                     (let* ([key (normalize-path dir)]
-                           [traversed? (hash-table-get touched key (lambda () #f))])
+                           [traversed? (hash-table-get touched key (λ () #f))])
                       (if traversed? 
                           (k)
                           (begin
                             (hash-table-put! touched key #t)
                             (process-dir-contents 
-                             (map (lambda (x) (build-path dir x))
+                             (map (λ (x) (build-path dir x))
                                   (directory-list dir))
                              k)))))]
                  [process-dir-contents
                   ; string[dirname] (listof string[filename]) -> (listof string[filename])
-                  (lambda (contents k)
+                  (λ (contents k)
                     (cond
                       [(null? contents) 
                        (k)]
@@ -633,23 +633,23 @@
                                  (or (not filter)
                                      (regexp-match filter (path->string file/dir))))
                             (set! next-thunk
-                                  (lambda ()
+                                  (λ ()
                                     (process-dir-contents (cdr contents) k)))
                             file/dir]
                            [(directory-exists? file/dir)
                             (process-dir-contents 
                              (cdr contents)
-                             (lambda ()
+                             (λ ()
                                (process-dir file/dir k)))]
                            [else 
                             (process-dir-contents (cdr contents) k)]))]))])
-          (lambda () (next-thunk))))
+          (λ () (next-thunk))))
       
       ;; build-flat-file-list : (union #f regexp) string -> (-> (union string #f))
       ;; thread: searching thread
       (define (build-flat-file-list dir filter)
-        (let ([contents (map (lambda (x) (build-path dir x)) (directory-list dir))])
-          (lambda ()
+        (let ([contents (map (λ (x) (build-path dir x)) (directory-list dir))])
+          (λ ()
             (let loop ()
               (cond
                 [(null? contents)
@@ -665,7 +665,7 @@
       ;; exact-match-searcher : make-searcher
       (define (exact-match-searcher params key)        ;; thread: main eventspace thread
         (let ([case-sensitive? (car params)])
-          (lambda (filename add-entry)                 ;; thread: searching thread
+          (λ (filename add-entry)                 ;; thread: searching thread
             (let ([text (make-object text:basic%)])
               (send text load-file filename)
               (let loop ([pos 0])
@@ -684,15 +684,15 @@
       ;; regexp-match-searcher : make-searcher
       ;; thread: searching thread
       (define (regexp-match-searcher parmas key)       ;; thread: main eventspace thread
-        (let ([re:key (with-handlers ([(lambda (x) #t)
-                                       (lambda (exn)
+        (let ([re:key (with-handlers ([(λ (x) #t)
+                                       (λ (exn)
                                          (format "~a" (exn-message exn)))])
                         (regexp key))])
           (if (string? re:key)
               re:key
-              (lambda (filename add-entry)             ;; thread: searching thread
+              (λ (filename add-entry)             ;; thread: searching thread
                 (call-with-input-file filename
-                  (lambda (port)
+                  (λ (port)
                     (let loop ([line-number 0])
                       (let ([line (read-line port)])
                         (cond

@@ -141,7 +141,7 @@
               (unless font-label-size-callback-running?
                 (set! font-label-size-callback-running? #t)
                 (queue-callback
-                 (lambda ()
+                 (λ ()
                    (set! label-font-size new-font-size)
                    (preferences:set 'drscheme:module-overview:label-font-size 
                                     new-font-size)
@@ -236,7 +236,7 @@
                             (new-min-level . > . current-level))
                     (send snip set-level new-min-level)
                     (for-each
-                     (lambda (child) (loop child (+ new-min-level 1)))
+                     (λ (child) (loop child (+ new-min-level 1)))
                      (send snip get-children))))))
             
             ;; find/create-snip : (union path string) boolean? -> word-snip/lines
@@ -247,7 +247,7 @@
               (hash-table-get
                snip-table
                name
-               (lambda () 
+               (λ () 
                  (let* ([snip (instantiate word-snip/lines% ()
                                 (lines (if is-filename? (count-lines name) #f))
                                 (word (let-values ([(_1 name _2) (split-path name)])
@@ -263,7 +263,7 @@
             (define/private (count-lines filename)
               (let ([lines
                      (call-with-input-file filename
-                       (lambda (port)
+                       (λ (port)
                          (let loop ([n 0])
                            (let ([l (read-line port)])
                              (if (eof-object? l)
@@ -313,11 +313,11 @@
             (define/private (remove-lib-linked)
               (remove-currrently-inserted)
               (for-each
-               (lambda (snip)
+               (λ (snip)
                  (insert snip)
                  (let loop ([snip snip])
                    (for-each
-                    (lambda (child)
+                    (λ (child)
                       (unless (memq child (send snip get-lib-children))
                         (insert child)
                         (loop child)))
@@ -334,15 +334,15 @@
             (define/private (add-all)
               (let ([ht (make-hash-table)])
                 (for-each
-                 (lambda (snip)
+                 (λ (snip)
                    (let loop ([snip snip])
-                     (unless (hash-table-get ht snip (lambda () #f))
+                     (unless (hash-table-get ht snip (λ () #f))
                        (hash-table-put! ht snip #t)
                        (insert snip)
                        (for-each loop (send snip get-children)))))
                  (get-top-most-snips))))
 
-            (define/private (get-top-most-snips) (hash-table-get level-ht 0 (lambda () null)))
+            (define/private (get-top-most-snips) (hash-table-get level-ht 0 (λ () null)))
               
             ;; render-snips : -> void
             (define/public (render-snips)
@@ -354,14 +354,14 @@
                 
                 (hash-table-for-each
                  level-ht
-                 (lambda (n v)
+                 (λ (n v)
                    (set! max-minor (max max-minor (apply + (map (if vertical?
-                                                                    (lambda (x) (get-snip-width x))
-                                                                    (lambda (x) (get-snip-height x)))
+                                                                    (λ (x) (get-snip-width x))
+                                                                    (λ (x) (get-snip-height x)))
                                                                 v))))))
                 
                 (let ([levels (quicksort (hash-table-map level-ht list)
-                                         (lambda (x y) (<= (car x) (car y))))])
+                                         (λ (x y) (<= (car x) (car y))))])
                   (let loop ([levels levels]
                              [major-dim 0])
                     (cond
@@ -371,12 +371,12 @@
                               [n (car level)]
                               [this-level-snips (cadr level)]
                               [this-minor (apply + (map (if vertical? 
-                                                            (lambda (x) (get-snip-width x))
-                                                            (lambda (x) (get-snip-height x)))
+                                                            (λ (x) (get-snip-width x))
+                                                            (λ (x) (get-snip-height x)))
                                                         this-level-snips))]
                               [this-major (apply max (map (if vertical? 
-                                                              (lambda (x) (get-snip-height x))
-                                                              (lambda (x) (get-snip-width x)))
+                                                              (λ (x) (get-snip-height x))
+                                                              (λ (x) (get-snip-width x)))
                                                           this-level-snips))])
                          (let loop ([snips this-level-snips]
                                     [minor-dim (/ (- max-minor this-minor) 2)])
@@ -441,7 +441,7 @@
                                                     200))
                                                   (parent right-button-menu)
                                                   (callback
-                                                   (lambda (x y)
+                                                   (λ (x y)
                                                      (handler:edit-file
                                                       (send snip get-filename)))))])
                            (send canvas popup-menu
@@ -467,7 +467,7 @@
                                  (remq this (hash-table-get level-ht level))))
               (set! level _l)
               (hash-table-put! level-ht level 
-                               (cons this (hash-table-get level-ht level (lambda () null)))))
+                               (cons this (hash-table-get level-ht level (λ () null)))))
             
             (super-instantiate ())))
         
@@ -567,7 +567,7 @@
                                         [else
                                          (apply string-append
                                                 (cons (substring short-name 0 1)
-                                                      (map (lambda (x) (substring x 1 2))
+                                                      (map (λ (x) (substring x 1 2))
                                                            ms)))])))))]
                            [(long) word]))
                    last-name])))
@@ -624,7 +624,7 @@
           (define (add-syntax-connections stx)
             (let ([module-codes (map compile (expand-syntax-top-level-with-compile-time-evals/flatten stx))])
               (for-each
-               (lambda (module-code)
+               (λ (module-code)
                  (when (compiled-module-expression? module-code)
                    (let* ([name (extract-module-name stx)]
                           [base 
@@ -636,7 +636,7 @@
                module-codes)))
           
           (define (build-module-filename str)
-            (let ([try (lambda (ext)
+            (let ([try (λ (ext)
                          (let ([tst (bytes->path (bytes-append (path->bytes str) ext))])
                            (and (file-exists? tst)
                                 tst)))])
@@ -650,28 +650,28 @@
             (add-module-code-connections filename (get-module-code filename)))
           
           (define (add-module-code-connections module-name module-code)
-            (unless (hash-table-get visited-hash-table module-name (lambda () #f))
+            (unless (hash-table-get visited-hash-table module-name (λ () #f))
               (async-channel-put progress-channel (format adding-file module-name))
               (hash-table-put! visited-hash-table module-name #t)
               (let-values ([(imports fs-imports ft-imports) (module-compiled-imports module-code)])
                 (let ([requires (extract-filenames imports module-name)]
                       [syntax-requires (extract-filenames fs-imports module-name)]
                       [template-requires (extract-filenames ft-imports module-name)])
-                  (for-each (lambda (require)
+                  (for-each (λ (require)
                               (add-connection module-name
                                               (req-filename require)
                                               (req-lib? require)
                                               'require)
                               (add-filename-connections (req-filename require)))
                             requires)
-                  (for-each (lambda (syntax-require)
+                  (for-each (λ (syntax-require)
                               (add-connection module-name 
                                               (req-filename syntax-require)
                                               (req-lib? syntax-require)
                                               'require-for-syntax)
                               (add-filename-connections (req-filename syntax-require)))
                             syntax-requires)
-                  (for-each (lambda (require)
+                  (for-each (λ (require)
                               (add-connection module-name
                                               (req-filename require)
                                               (req-lib? require)
@@ -748,7 +748,7 @@
         
         (define thd 
           (thread
-           (lambda ()
+           (λ ()
              (sleep 3)
              (send progress-frame show #t))))
         
@@ -767,7 +767,7 @@
         
         (define pasteboard (make-module-overview-pasteboard 
                             #f
-                            (lambda (x) (update-label x))))
+                            (λ (x) (update-label x))))
         
         (let ([success? (fill-pasteboard pasteboard text/pos show-status void)])
           (kill-thread thd)
@@ -800,21 +800,21 @@
                   (init-value (preferences:get 'drscheme:module-overview:label-font-size))
                   (parent vp)
                   (callback
-                   (lambda (x y)
+                   (λ (x y)
                      (send pasteboard set-label-font-size (send font-size-gauge get-value))))))
               (define lib-paths-checkbox
                 (instantiate check-box% ()
                   (label lib-paths-checkbox-constant)
                   (parent vp)
                   (callback
-                   (lambda (x y)
+                   (λ (x y)
                      (send pasteboard show-lib-paths (send lib-paths-checkbox get-value))))))
               
               (define ec (make-object canvas:basic% vp pasteboard))
               
               (send lib-paths-checkbox set-value (preferences:get 'drscheme:module-browser:show-lib-paths?))
               (set! update-label
-                    (lambda (s)
+                    (λ (s)
                       (if (and s (not (null? s)))
                           (let* ([currently-over (car s)]
                                  [fn (send currently-over get-filename)]
@@ -862,7 +862,7 @@
           (set! user-custodian (current-custodian))
           (set! user-thread (current-thread))
           (moddep-current-open-input-file
-           (lambda (filename)
+           (λ (filename)
              (let* ([p (open-input-file filename)]
                     [wxme? (regexp-match-peek #rx#"^WXME" p)])
                (if wxme?
@@ -876,7 +876,7 @@
           (current-load-relative-directory init-dir)
           (current-directory init-dir)
           (error-display-handler 
-           (lambda (str exn)
+           (λ (str exn)
              (set! error-str str)
              (custodian-shutdown-all user-custodian)))
           (semaphore-post init-complete))
@@ -900,15 +900,15 @@
         ;; this ensures that we can completely flush out the
         ;; connection-channel.
         (thread
-         (lambda ()
+         (λ ()
            (sync (thread-dead-evt user-thread))
            (async-channel-put connection-channel 'done)))
         
         (send pasteboard begin-adding-connections)
         (let ([evt
                (choice-evt
-                (handle-evt progress-channel (lambda (x) (cons 'progress x)))
-                (handle-evt connection-channel (lambda (x) (cons 'connect x))))])
+                (handle-evt progress-channel (λ (x) (cons 'progress x)))
+                (handle-evt connection-channel (λ (x) (cons 'connect x))))])
           (let loop ()
             (let* ([evt-value (yield evt)]
                    [key (car evt-value)]

@@ -34,11 +34,11 @@
         (mixin (frame:standard-menus<%>) (basics<%>)
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
           [define/private get-menu-bindings
-            (lambda ()
+            (λ ()
               (let ([name-ht (make-hash-table)])
                 (let loop ([menu-container (get-menu-bar)])
                   (for-each
-                   (lambda (item)
+                   (λ (item)
                      (when (is-a? item selectable-menu-item<%>)
                        (let ([short-cut (send item get-shortcut)])
                          (when short-cut
@@ -68,14 +68,14 @@
                 name-ht))]
           
           [define/private copy-hash-table
-            (lambda (ht)
+            (λ (ht)
               (let ([res (make-hash-table)])
                 (hash-table-for-each
                  ht
-                 (lambda (x y) (hash-table-put! res x y)))
+                 (λ (x y) (hash-table-put! res x y)))
                 res))]
           [define/private can-show-keybindings?
-            (lambda ()
+            (λ ()
               (let ([edit-object (get-edit-target-object)])
                 (and edit-object
                      (is-a? edit-object editor<%>)
@@ -83,7 +83,7 @@
                        (is-a? keymap keymap:aug-keymap<%>)))))]
           
           [define/private show-keybindings
-            (lambda ()
+            (λ ()
               (if (can-show-keybindings?)
                   (let ([edit-object (get-edit-target-object)])
                     (let ([keymap (send edit-object get-keymap)])
@@ -92,18 +92,18 @@
                                [bindings (hash-table-map table list)]
                                [w/menus 
                                 (append (hash-table-map menu-names list)
-                                        (filter (lambda (binding) (not (bound-by-menu? binding menu-names)))
+                                        (filter (λ (binding) (not (bound-by-menu? binding menu-names)))
                                                 bindings))]
                                [structured-list
                                 (mzlib:list:quicksort
                                  w/menus
-                                 (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
+                                 (λ (x y) (string-ci<=? (cadr x) (cadr y))))])
                           (show-keybindings-to-user structured-list this)))))
                   (bell)))]
           
           (define/private (bound-by-menu? binding menu-table)
-            (ormap (lambda (constituent)
-                     (hash-table-get menu-table (string->symbol constituent) (lambda () #f)))
+            (ormap (λ (constituent)
+                     (hash-table-get menu-table (string->symbol constituent) (λ () #f)))
                    (regexp-split #rx";" (symbol->string (car binding)))))
           
           (define/override (help-menu:before-about help-menu)
@@ -112,7 +112,7 @@
                (format (string-constant welcome-to-something)
                        (string-constant drscheme))
                help-menu
-               (lambda (item evt)
+               (λ (item evt)
                  (drscheme:app:invite-tour))))
           
           (define/override (help-menu:about-callback item evt) (drscheme:app:about-drscheme))
@@ -124,7 +124,7 @@
             (instantiate menu-item% ()
               (label (string-constant help-menu-check-for-updates))
               (parent menu)
-              (callback (lambda (item evt) (check-version this))))
+              (callback (λ (item evt) (check-version this))))
             (drscheme:app:add-important-urls-to-help-menu
              menu 
              (get-additional-important-urls))
@@ -132,7 +132,7 @@
                  (label (string-constant bug-report-submit-menu-item))
                  (parent menu)
                  (callback
-                  (lambda (x y)
+                  (λ (x y)
                     (help-desk:report-bug))))
             
             (drscheme:app:add-language-items-to-help-menu menu))
@@ -145,7 +145,7 @@
             (make-object menu-item% 
               (string-constant install-plt-file-menu-item...)
               file-menu
-              (lambda (item evt)
+              (λ (item evt)
                 (install-plt-file this)))
             (super file-menu:between-open-and-revert file-menu))
           
@@ -155,34 +155,34 @@
               (label (string-constant mfs-multi-file-search-menu-item))
               (parent menu)
               (callback
-               (lambda (_1 _2)
+               (λ (_1 _2)
                  (drscheme:multi-file-search:multi-file-search))))
             (new separator-menu-item% (parent menu)))
           
           (define/override (edit-menu:between-find-and-preferences menu)
             (make-object separator-menu-item% menu)
             (let ([keybindings-on-demand
-                   (lambda (menu-item)
+                   (λ (menu-item)
                      (let ([last-edit-object (get-edit-target-window)])
                        (send menu-item enable (can-show-keybindings?))))])
               (instantiate menu% ()
                 (label (string-constant keybindings-menu-item))
                 (parent menu)
                 (demand-callback
-                 (lambda (keybindings-menu)
-                   (for-each (lambda (old) (send old delete)) 
+                 (λ (keybindings-menu)
+                   (for-each (λ (old) (send old delete)) 
                              (send keybindings-menu get-items))
                    (new menu-item%
                         (parent keybindings-menu)
                         (label (string-constant keybindings-show-active))
-                        (callback (lambda (x y) (show-keybindings)))
+                        (callback (λ (x y) (show-keybindings)))
                         (help-string (string-constant keybindings-info))
                         (demand-callback keybindings-on-demand))
                    (new menu-item%
                         (parent keybindings-menu)
                         (label (string-constant keybindings-add-user-defined-keybindings))
                         (callback
-                         (lambda (x y) 
+                         (λ (x y) 
                            (let ([filename (finder:get-file #f
                                                             (string-constant keybindings-choose-user-defined-file)
                                                             #f "" this)])
@@ -191,13 +191,13 @@
                    (let ([ud (preferences:get 'drscheme:user-defined-keybindings)])
                      (unless (null? ud)
                        (new separator-menu-item% (parent keybindings-menu))
-                       (for-each (lambda (path)
+                       (for-each (λ (path)
                                    (new menu-item%
                                         (label (format (string-constant keybindings-menu-remove)
                                                        (path->string path)))
                                         (parent keybindings-menu)
                                         (callback
-                                         (lambda (x y) (remove-keybindings-file path)))))
+                                         (λ (x y) (remove-keybindings-file path)))))
                                  ud)))))))
             (unless (current-eventspace-has-standard-menus?)
               (make-object separator-menu-item% menu)))
@@ -205,7 +205,7 @@
           (super-new)))
 
       (define (add-keybindings-file path)
-        (with-handlers ([exn? (lambda (x)
+        (with-handlers ([exn? (λ (x)
                                 (message-box (string-constant drscheme)
                                              (exn-message x)))])
           (keymap:add-user-keybindings-file path)
@@ -231,7 +231,7 @@
         (define tab-panel
           (instantiate tab-panel% ()
             (parent dialog)
-            (callback (lambda (x y) (update-panels)))
+            (callback (λ (x y) (update-panels)))
             (choices (list (string-constant install-plt-web-tab)
                            (string-constant install-plt-file-tab)))))
         (define outer-swapping-panel (instantiate horizontal-panel% ()
@@ -266,7 +266,7 @@
         (define file-button (instantiate button% ()
                               (parent file-panel)
                               (label (string-constant browse...))
-                              (callback (lambda (x y) (browse)))))
+                              (callback (λ (x y) (browse)))))
         (define url-text-field (instantiate text-field% ()
                                  (parent url-panel)
                                  (label (string-constant install-plt-url))
@@ -277,10 +277,10 @@
         (define-values (ok-button cancel-button)
           (gui-utils:ok/cancel-buttons
            button-panel
-           (lambda (x y)
+           (λ (x y)
              (set! cancel? #f)
              (send dialog show #f))
-           (lambda (x y)
+           (λ (x y)
              (send dialog show #f))))
         
         ;; browse : -> void
@@ -318,8 +318,8 @@
       ;; install-plt-from-url : string (union #f dialog%) -> void
       ;; downloads and installs a .plt file from the given url
       (define (install-plt-from-url s-url parent)
-        (with-handlers ([(lambda (x) #f)
-                         (lambda (exn)
+        (with-handlers ([(λ (x) #f)
+                         (λ (exn)
                            (message-box (string-constant drscheme)
                                         (if (exn? exn)
                                             (format "~a" (exn-message exn))
@@ -343,16 +343,16 @@
                  [wait-to-break (make-semaphore 0)] 
                  ; Thread to perform the download: 
                  [t (thread 
-                     (lambda () 
+                     (λ () 
                        (semaphore-wait wait-to-start) 
                        (with-handlers ([exn:fail?
-                                        (lambda (x) 
+                                        (λ (x) 
                                           (set! exn x))] 
                                        [exn:break? ; throw away break exceptions 
                                         void])
                          (semaphore-post wait-to-break) 
                          (with-output-to-file tmp-filename 
-                           (lambda () 
+                           (λ () 
                              (let loop ([total 0]) 
                                (when gauge 
                                  (send gauge set-value  
@@ -368,18 +368,18 @@
             (send d center) 
             (make-object button% (string-constant &stop)
 			 d
-			 (lambda (b e) 
+			 (λ (b e) 
 			   (semaphore-wait wait-to-break) 
 			   (set! tmp-filename #f) 
 			   (send d show #f) 
 			   (break-thread t))) 
             ; Let thread run only after the dialog is shown 
-            (queue-callback (lambda () (semaphore-post wait-to-start))) 
+            (queue-callback (λ () (semaphore-post wait-to-start))) 
             (send d show #t) 
             (when exn (raise exn))
             (parameterize ([error-display-handler drscheme:init:original-error-display-handler])
               (run-installer tmp-filename
-                             (lambda ()
+                             (λ ()
                                (delete-file tmp-filename)))))))
       
       
@@ -401,26 +401,26 @@
                       (style '(resize-border)))]
                  [bp (make-object horizontal-panel% f)]
                  [b-name (make-object button% (string-constant keybindings-sort-by-name)
-                           bp (lambda x (update-bindings #f)))]
+                           bp (λ x (update-bindings #f)))]
                  [b-key (make-object button% (string-constant keybindings-sort-by-key)
-                          bp (lambda x (update-bindings #t)))]
+                          bp (λ x (update-bindings #t)))]
                  [lb
                   (make-object list-box% #f null f void)]
                  [bp2 (make-object horizontal-panel% f)]
                  [cancel (make-object button% (string-constant close)
-                           bp2 (lambda x (send f show #f)))]
+                           bp2 (λ x (send f show #f)))]
                  [space (make-object grow-box-spacer-pane% bp2)]
                  [update-bindings
-                  (lambda (by-key?)
+                  (λ (by-key?)
                     (let ([format-binding/name
-                           (lambda (b) (format "~a (~a)" (cadr b) (car b)))]
+                           (λ (b) (format "~a (~a)" (cadr b) (car b)))]
                           [format-binding/key
-                           (lambda (b) (format "~a (~a)" (car b) (cadr b)))]
+                           (λ (b) (format "~a (~a)" (car b) (cadr b)))]
                           [predicate/key
-                           (lambda (a b) (string-ci<=? (format "~a" (car a))
+                           (λ (a b) (string-ci<=? (format "~a" (car a))
                                                        (format "~a" (car b))))]
                           [predicate/name
-                           (lambda (a b) (string-ci<=? (cadr a) (cadr b)))])
+                           (λ (a b) (string-ci<=? (cadr a) (cadr b)))])
                       (send lb set
                             (if by-key?
                                 (map format-binding/key (mzlib:list:quicksort bindings predicate/key))
@@ -442,8 +442,8 @@
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
           (inherit get-editor get-menu% get-menu-bar)
           (define show-menu #f)
-          (define/public get-show-menu (lambda () show-menu))
-          (define/public update-shown (lambda () (void)))
+          (define/public get-show-menu (λ () show-menu))
+          (define/public update-shown (λ () (void)))
           (define/public (add-show-menu-items show-menu) (void))
           (super-new)
           (set! show-menu (make-object (get-menu%) (string-constant view-menu-label)
@@ -464,7 +464,7 @@
                (parent file-menu)
                (shortcut #\n)
                (callback
-                (lambda (x y)
+                (λ (x y)
                   (handler:edit-file #f)
                   #t)))
 	  (new menu-item%
@@ -472,20 +472,20 @@
                (parent file-menu)
                (shortcut #\o)
                (callback
-                (lambda (x y)
+                (λ (x y)
                   (handler:open-file)
                   #t)))
           (new menu%
                (label (string-constant open-recent-menu-item))
                (parent file-menu)
                (demand-callback
-                (lambda (menu)
+                (λ (menu)
                   (handler:install-recent-items menu))))
 	  (instantiate menu-item% ()
             (label (string-constant mfs-multi-file-search-menu-item))
             (parent file-menu)
             (callback
-             (lambda (_1 _2)
+             (λ (_1 _2)
                (drscheme:multi-file-search:multi-file-search))))
           (unless (current-eventspace-has-standard-menus?)
 	    (new separator-menu-item% (parent file-menu))
@@ -494,7 +494,7 @@
                  (parent file-menu)
                  (shortcut #\q)
                  (callback
-                  (lambda (x y)
+                  (λ (x y)
                     (when (exit:user-oks-exit)
                       (exit:exit))
                     #t))))
@@ -504,7 +504,7 @@
         (make-object menu-item%
           (string-constant help-desk)
           help-menu
-          (lambda (item evt)
+          (λ (item evt)
             (help:help-desk)
             #t)))
       

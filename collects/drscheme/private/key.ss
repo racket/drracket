@@ -8,10 +8,10 @@
   (define (break-threads)
     (parameterize ([current-custodian super-cust])
       (thread
-       (lambda ()
+       (λ ()
          (let loop ([super-cust super-cust]
                     [current-cust first-child])
-           (for-each (lambda (man)
+           (for-each (λ (man)
                        (when (thread? man)
                          (break-thread man))
                        (when (custodian? man)

@@ -21,7 +21,7 @@
       (define (setup-preferences)
         (preferences:add-panel
          (list (string-constant font-prefs-panel-title))
-         (lambda (panel)
+         (λ (panel)
            (let* ([main (make-object vertical-panel% panel)]
 		  [min-size 1]
 		  [max-size 72]
@@ -30,7 +30,7 @@
 				   (parent options-panel)
 				   (label (string-constant font-size)))]
                   [adjust-font-size
-                   (lambda (f)
+                   (λ (f)
                      (preferences:set
                       'framework:standard-style-list:font-size
                       (f (preferences:get
@@ -42,22 +42,22 @@
 			(max-value max-size)
 			(parent size-panel)
 			(callback
-			 (lambda (size evt)
+			 (λ (size evt)
                            (adjust-font-size
-                            (lambda (old-size)
+                            (λ (old-size)
                               (send size get-value)))))
 			(init-value
 			 (preferences:get 'framework:standard-style-list:font-size)))]
 		  [size-hp (new horizontal-pane% (parent size-panel))]
                   [mk-size-button
-                   (lambda (label chng)
+                   (λ (label chng)
                      (new button%
                           (parent size-hp)
                           (stretchable-width #t)
                           (callback
-                           (lambda (x y)
+                           (λ (x y)
                              (adjust-font-size
-                              (lambda (old-size)
+                              (λ (old-size)
                                 (min max-size (max min-size (chng old-size)))))))
                           (label label)))]
                   [size-sub1 (mk-size-button "-1" sub1)]
@@ -74,14 +74,14 @@
                                    (parent choice-panel)
                                    (stretchable-width #t)
                                    (callback
-                                    (lambda (font-name evt)
+                                    (λ (font-name evt)
                                       (preferences:set 
                                        'framework:standard-style-list:font-name
                                        (send font-name get-string-selection)))))]
                              [font-name (preferences:get 'framework:standard-style-list:font-name)])
                         (preferences:add-callback
                          'framework:standard-style-list:font-name
-                         (lambda (p v)
+                         (λ (p v)
                            (when (send choice find-string v)
                              (send choice set-string-selection v))))
                         (when (send choice find-string font-name)
@@ -91,7 +91,7 @@
                       (make-object button%
                         (string-constant set-font)
                         choice-panel
-                        (lambda xxx
+                        (λ xxx
                           (let* ([faces (get-face-list 'mono)]
                                  [init-choices
                                   (let ([init (preferences:get 'framework:standard-style-list:font-name)])
@@ -130,7 +130,7 @@
                                      [(partly-smoothed) 1]
                                      [(smoothed) 2]
                                      [(default) 3]))
-                        (callback (lambda (x y) 
+                        (callback (λ (x y) 
                                     (preferences:set 
                                      'framework:standard-style-list:smoothing
                                      (case (send x get-selection)
@@ -144,7 +144,7 @@
                   [msg (make-object message% (string-constant example-text) ex-panel)]
                   [canvas (make-object canvas:color% main text)]
                   [update-text
-                   (lambda (setting)
+                   (λ (setting)
                      (send text begin-edit-sequence)
                      (send text lock #f)
                      (send text erase)
@@ -171,10 +171,10 @@
              
              (preferences:add-callback
               'framework:standard-style-list:font-size
-              (lambda (p v) (send size-slider set-value v)))
+              (λ (p v) (send size-slider set-value v)))
              (preferences:add-callback
               drscheme:language-configuration:settings-preferences-symbol
-              (lambda (p v)
+              (λ (p v)
                 (update-text v)))
              (update-text (preferences:get drscheme:language-configuration:settings-preferences-symbol))
              (send ex-panel set-alignment 'left 'center)

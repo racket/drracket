@@ -34,7 +34,7 @@
                            language-settings)]
                 [settings (drscheme:language-configuration:language-settings-settings
                            language-settings)])
-            (lambda (input iter complete-program?)
+            (λ (input iter complete-program?)
               (let-values ([(port src)
                             (cond
                               [(input-port? input) (values input #f)]
@@ -48,7 +48,7 @@
                                      (drscheme:language:text/pos-text input))])])
                 (parameterize ([current-eventspace eventspace])
                   (queue-callback
-                   (lambda ()
+                   (λ ()
                      (let ([read-thnk 
                             (if complete-program?
                                 (send language front-end/complete-program port settings teachpack-cache)
@@ -57,18 +57,18 @@
                          (let ([in (read-thnk)])
                            (cond
                              [(eof-object? in)
-                              (iter in (lambda () (void)))]
+                              (iter in (λ () (void)))]
                              [else
-                              (iter in (lambda () (loop)))]))))))))))))
+                              (iter in (λ () (loop)))]))))))))))))
       
       (define (expand-program/multiple language-settings
                                        eval-compile-time-part? 
                                        init
                                        kill-termination)
         (let ([res (traverse-program/multiple language-settings init kill-termination)])
-          (lambda (input iter complete-program?)
+          (λ (input iter complete-program?)
             (let ([expanding-iter
-                   (lambda (rd cont)
+                   (λ (rd cont)
                      (cond
                        [(eof-object? rd) (iter rd cont)]
                        [eval-compile-time-part? 
@@ -105,16 +105,16 @@
                           language-settings)]
                [eventspace-main-thread #f]
                [run-in-eventspace
-                (lambda (thnk)
+                (λ (thnk)
                   (parameterize ([current-eventspace eventspace])
                     (let ([sema (make-semaphore 0)]
                           [ans #f])
                       (queue-callback
-                       (lambda ()
+                       (λ ()
                          (let/ec k
                            (parameterize ([error-escape-handler
                                            (let ([drscheme-expand-program-error-escape-handler
-                                                  (lambda () (k (void)))])
+                                                  (λ () (k (void)))])
                                              drscheme-expand-program-error-escape-handler)])
                              (set! ans (thnk))))
                          (semaphore-post sema)))
@@ -122,19 +122,19 @@
                       ans)))]
                [drs-snip-classes (get-snip-classes)])
           (run-in-eventspace
-           (lambda ()
+           (λ ()
              (current-custodian user-custodian)
              (set-basic-parameters drs-snip-classes)
              (drscheme:rep:current-language-settings language-settings)))
           (send language on-execute settings run-in-eventspace)
           (run-in-eventspace
-           (lambda ()
+           (λ ()
              (set! eventspace-main-thread (current-thread))
              (drscheme:teachpack:install-teachpacks user-teachpack-cache)
              (init)
              (break-enabled #t)))
           (thread
-           (lambda ()
+           (λ ()
              (thread-wait eventspace-main-thread)
              (kill-termination)))
           (values eventspace user-custodian user-teachpack-cache)))
@@ -152,7 +152,7 @@
       ;; sets the parameters that are shared between the repl's initialization
       ;; and expand-program
       (define (set-basic-parameters snip-classes)
-        (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
+        (for-each (λ (snip-class) (send (get-the-snip-class-list) add snip-class))
                   snip-classes)
         
         (current-thread-group (make-thread-group))        
@@ -163,10 +163,10 @@
         (current-ps-setup (make-object ps-setup%))
 
         (let ([user-custodian (current-custodian)])
-          (exit-handler (lambda (arg) ; =User=
+          (exit-handler (λ (arg) ; =User=
                           (custodian-shutdown-all user-custodian))))
         (current-namespace (make-namespace 'empty))
-        (for-each (lambda (x) (namespace-attach-module drscheme:init:system-namespace x))
+        (for-each (λ (x) (namespace-attach-module drscheme:init:system-namespace x))
                   to-be-copied-module-names))
       
       ;; these module specs are copied over to each new user's namespace 
@@ -177,11 +177,11 @@
               '(lib "cache-image-snip.ss" "mrlib")))
       
       ;; ensure that they are all here.
-      (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-module-specs)
+      (for-each (λ (x) (dynamic-require x #f)) to-be-copied-module-specs)
       ;; get the names of those modules.
       (define to-be-copied-module-names
         (let ([get-name
-               (lambda (spec)
+               (λ (spec)
                  (if (symbol? spec)
                      spec
                      ((current-module-name-resolver) spec #f #f)))])

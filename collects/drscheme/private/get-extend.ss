@@ -17,13 +17,13 @@
               [drscheme:debug : drscheme:debug^])
       
       (define make-extender
-        (lambda (get-base% name)
-          (let ([extensions (lambda (x) x)]
+        (λ (get-base% name)
+          (let ([extensions (λ (x) x)]
                 [built-yet? #f]
                 [built #f]
                 [verify
-                 (lambda (f)
-                   (lambda (%)
+                 (λ (f)
+                   (λ (%)
                      (let ([new% (f %)])
                        (if (and (class? new%)
                                 (subclass? new% %))
@@ -42,7 +42,7 @@
                        (if before?
                            (compose (verify extension) extensions)
                            (compose extensions (verify extension))))]))
-             (lambda ()
+             (λ ()
                (unless built-yet?
                  (set! built-yet? #t)
                  (set! built (extensions (get-base%))))

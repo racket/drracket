@@ -26,7 +26,7 @@
           ;      (inherit get-filename)
           ;      (override
           ;	[on-paint
-          ;	 (lambda (before? dc left top right bottom dx dy draw-caret)
+          ;	 (λ (before? dc left top right bottom dx dy draw-caret)
           ;	   (super-on-paint before? dc left top right bottom dx dy draw-caret)
           ;	   (let ([str (string-append
           ;			(mzlib:date:date->string (seconds->date (current-seconds)))

@@ -39,14 +39,14 @@
   (define (load-magic-images)
     (get-normal-bitmap)
     (for-each 
-     (lambda (magic-image)
+     (λ (magic-image)
        (unless (magic-image-bitmap magic-image)
          (set-magic-image-bitmap! 
           magic-image 
           (make-object bitmap% (build-path (collection-path "icons") (magic-image-filename magic-image))))))
      magic-images))
   
-  (define longest-magic-string (apply max (map (lambda (s) (string-length (magic-image-string s))) magic-images)))
+  (define longest-magic-string (apply max (map (λ (s) (string-length (magic-image-string s))) magic-images)))
   
   (define key-codes null)
   (define key-codes-len 0)
@@ -63,7 +63,7 @@
 
   (let ([set-splash-bitmap (dynamic-require '(lib "splash.ss" "framework") 'set-splash-bitmap)])
     ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-char-observer)
-     (lambda (evt)
+     (λ (evt)
        (add-key-code (send evt get-key-code))
        
        ;; as soon as something is typed, load the bitmaps
@@ -72,12 +72,12 @@
        (when (andmap char? key-codes)
          (let ((s (apply string key-codes)))
            (cond 
-             [(ormap (lambda (m)
+             [(ormap (λ (m)
                        (if (string=? s (magic-image-string m))
                            m
                            #f)) magic-images)
               => 
-              (lambda (match)
+              (λ (match)
                 (set! key-codes null)
                 (set-splash-bitmap
                  (if (and special-state (string=? special-state (magic-image-string match)))
@@ -114,13 +114,13 @@
                [b (new button% 
                        (label "Break Main Thread")
                        (callback
-                        (lambda (x y)
+                        (λ (x y)
                           (break-thread to-break)))
                        (parent f))]
                [b (new button% 
                        (label "Break All Threads")
                        (callback
-                        (lambda (x y)
+                        (λ (x y)
                           ((dynamic-require '(lib "key.ss" "drscheme" "private") 'break-threads))))
                        (parent f))])
           (send f show #t)))))

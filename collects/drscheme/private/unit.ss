@@ -74,7 +74,7 @@ tab panels new behavior:
       
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
-         (lambda (menu text event)
+         (λ (menu text event)
            (old menu text event)
            (when (and (is-a? text text%)
                       (or (is-a? text (get-definitions-text%))
@@ -87,11 +87,11 @@ tab panels new behavior:
                                 (find-symbol
                                  text
                                  (call-with-values
-                                  (lambda ()
+                                  (λ ()
                                     (send text dc-location-to-editor-location
                                           (send event get-x)
                                           (send event get-y)))
-                                  (lambda (x y)
+                                  (λ (x y)
                                     (send text find-position x y))))
                                 (send text get-text start end))]
                        [language
@@ -109,14 +109,14 @@ tab panels new behavior:
                                 str 
                                 (- 200 (string-length (string-constant search-help-desk-for)))))
                        menu
-                       (lambda x (help-desk:help-desk str #f 'keyword+index 'contains language)))
+                       (λ x (help-desk:help-desk str #f 'keyword+index 'contains language)))
                      (make-object menu-item%
                        (format (string-constant exact-lucky-search-help-desk-for) 
                                (shorten-str 
                                 str 
                                 (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
                        menu
-                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact language)))
+                       (λ x (help-desk:help-desk str #t 'keyword+index 'exact language)))
 		     (void)))))))))
       
       ;; find-symbol : number -> string
@@ -187,7 +187,7 @@ tab panels new behavior:
                [bp (make-object horizontal-panel% dlg)]
                [ok? #f]
                [validate-number
-                (lambda ()
+                (λ ()
                   (let ([num-s (string->number (send num get-value))]
                         [den-s (string->number (send den get-value))]
                         [whole-s (if (string=? (send whole get-value) "")
@@ -202,7 +202,7 @@ tab panels new behavior:
                               #f))
                         #f)))]
                [ok-callback
-                (lambda () 
+                (λ () 
                   (cond
                     [(validate-number)
                      (set! ok? #t)
@@ -213,12 +213,12 @@ tab panels new behavior:
                       (string-constant invalid-number)
                       dlg)]))]
                [cancel-callback 
-                (lambda () (send dlg show #f))])
+                (λ () (send dlg show #f))])
           (let-values ([(ok cancel) 
                         (gui-utils:ok/cancel-buttons
                          bp
-                         (lambda (x y) (ok-callback))
-                         (lambda (x y) (cancel-callback)))])
+                         (λ (x y) (ok-callback))
+                         (λ (x y) (cancel-callback)))])
             (let ([mw (max (send den-m get-width) (send num-m get-width))])
               (send den-m min-width mw)
               (send num-m min-width mw))
@@ -297,11 +297,11 @@ tab panels new behavior:
                   
                   (apply super-make-object args))]
                [get-program-editor-mixin
-                (lambda ()
+                (λ ()
                   (drscheme:tools:only-in-phase 'drscheme:unit:get-program-editor-mixin 'phase2 'init-complete)
                   program-editor-mixin)]
                [add-to-program-editor-mixin
-                (lambda (mixin)
+                (λ (mixin)
                   (drscheme:tools:only-in-phase 'drscheme:unit:add-to-program-editor-mixin 'phase1)
                   (set! program-editor-mixin (compose mixin program-editor-mixin)))])
           (values get-program-editor-mixin
@@ -310,7 +310,7 @@ tab panels new behavior:
       
       ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
-        (lambda (%)
+        (λ (%)
           (class %
             (inherit get-top-level-window)
             (define/override (on-focus on?)
@@ -358,7 +358,7 @@ tab panels new behavior:
       
       (define get-definitions-text%
         (let ([definitions-text% #f])
-          (lambda ()
+          (λ ()
             (drscheme:tools:only-in-phase 'phase2 'init-complete)
             (unless definitions-text%
               (set! definitions-text% (make-definitions-text%)))
@@ -427,7 +427,7 @@ tab panels new behavior:
             (define/override (set-modified mod?)
               (super set-modified mod?)
               (run-after-edit-sequence
-               (lambda ()
+               (λ ()
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
@@ -575,12 +575,12 @@ tab panels new behavior:
       
       (let ([old (keymap:add-to-right-button-menu)])
         (keymap:add-to-right-button-menu
-         (lambda (menu editor event)
+         (λ (menu editor event)
            (when (is-a? editor text%)
              (let* ([current-pos (get-pos editor event)]
                     [current-word (and current-pos (get-current-word editor current-pos))]
                     [defn (and current-word
-                               (ormap (lambda (defn) (and (string=? current-word (defn-name defn))
+                               (ormap (λ (defn) (and (string=? current-word (defn-name defn))
                                                           defn))
                                       (get-definitions #f editor)))])
                (when defn
@@ -588,7 +588,7 @@ tab panels new behavior:
                  (new menu-item%
                    (parent menu)
                    (label (format (string-constant jump-to-defn) (defn-name defn)))
-                   (callback (lambda (x y)
+                   (callback (λ (x y)
                                (send editor set-position (defn-start-pos defn))))))))
            (old menu editor event))))
 
@@ -596,7 +596,7 @@ tab panels new behavior:
       ;; returns the string that is being clicked on
       (define (get-current-word editor pos)
         (let* ([search
-                (lambda (dir offset)
+                (λ (dir offset)
                   (let loop ([pos pos])
                     (cond
                       [(or (= pos 0) 
@@ -606,7 +606,7 @@ tab panels new behavior:
                        (offset pos)]
                       [else (loop (dir pos))])))]
                [before (search sub1 add1)]
-               [after (search add1 (lambda (x) x))])
+               [after (search add1 (λ (x) x))])
           (send editor get-text before after)))
         
       (define func-defs-canvas%
@@ -632,11 +632,11 @@ tab panels new behavior:
 		   [defns (if sort-by-name?
 			      (quicksort 
 			       unsorted-defns
-			       (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
+			       (λ (x y) (string-ci<=? (defn-name x) (defn-name y))))
 			      unsorted-defns)])
 	      (make-object menu:can-restore-menu-item% sorting-name
 			   menu
-			   (lambda x
+			   (λ x
 			     (change-sorting-order)))
 	      (make-object separator-menu-item% menu)
 	      (if (null? defns)
@@ -662,7 +662,7 @@ tab panels new behavior:
 					       menu:can-restore-menu-item%)
 					   (gui-utils:trim-string (defn-name defn) 200)
 					   menu
-					   (lambda x
+					   (λ x
 					     (reset)
 					     (send text set-position (defn-start-pos defn) (defn-start-pos defn))
 					     (let ([canvas (send text get-canvas)])
@@ -706,7 +706,7 @@ tab panels new behavior:
                       (loop (car defs) (cdr defs))])))
           
           (when indent?
-            (for-each (lambda (defn)
+            (for-each (λ (defn)
                         (set-defn-name! defn
                                         (string-append
                                          (apply string
@@ -919,7 +919,7 @@ tab panels new behavior:
             (log-interactions)
             (send logging-menu-item set-label (string-constant log-definitions-and-interactions))
             (set! logging #f)
-            (send logging-panel change-children (lambda (l) null)))
+            (send logging-panel change-children (λ (l) null)))
           
           ;; build-logging-panel : -> void
           ;; builds the contents of the logging panel
@@ -927,17 +927,17 @@ tab panels new behavior:
             (define hp (make-object horizontal-panel% logging-panel '(border)))
             (make-object message% (string-constant logging-to) hp)
             (send (make-object message% (path->string logging) hp) stretchable-width #t)
-            (make-object button% (string-constant stop-logging) hp (lambda (x y) (stop-logging))))
+            (make-object button% (string-constant stop-logging) hp (λ (x y) (stop-logging))))
           
           ;; remove-logging-pref-callback : -> void
           ;; removes the callback that shows and hides the logging panel
           (field [remove-logging-pref-callback
                   (preferences:add-callback
                    'framework:show-status-line
-                   (lambda (p v)
+                   (λ (p v)
                      (when (is-a? logging-parent-panel panel%)
                        (send logging-parent-panel change-children
-                             (lambda (l)
+                             (λ (l)
                                (if v 
                                    (list logging-panel)
                                    null))))))])
@@ -962,7 +962,7 @@ tab panels new behavior:
                        #f]
                       [(eq? query 'yes)
                        (with-handlers ([exn:fail:filesystem?
-                                        (lambda (exn)
+                                        (λ (exn)
                                           (message-box 
                                            (string-constant drscheme)
                                            (format (string-constant error-erasing-log-directory)
@@ -971,7 +971,7 @@ tab panels new behavior:
                                                        (format "~s" exn)))
                                            this)
                                           #f)])
-                         (for-each (lambda (file) (delete-file (build-path log-directory file)))
+                         (for-each (λ (file) (delete-file (build-path log-directory file)))
                                    dir-list)
                          #t)])))))
 
@@ -986,14 +986,14 @@ tab panels new behavior:
                    [root (make-object cls louter-panel)])
               (set! module-browser-panel _module-browser-panel)
               (set! module-browser-parent-panel outer-panel)
-              (send outer-panel change-children (lambda (l) (remq module-browser-panel l)))
+              (send outer-panel change-children (λ (l) (remq module-browser-panel l)))
               (preferences:set 'drscheme:module-browser-size-percentage saved-p)
               (set! logging-parent-panel (new horizontal-panel%
                                            (parent louter-panel)
                                            (stretchable-height #f)))
               (set! logging-panel (make-object horizontal-panel% logging-parent-panel))
               (unless (preferences:get 'framework:show-status-line)
-                (send logging-parent-panel change-children (lambda (l) null)))
+                (send logging-parent-panel change-children (λ (l) null)))
               root))
 
           (inherit show-info hide-info is-info-hidden?)
@@ -1012,18 +1012,18 @@ tab panels new behavior:
             (cond
               [toolbar-shown?
                (show-info)
-               (send top-outer-panel change-children (lambda (l) (list top-panel)))
+               (send top-outer-panel change-children (λ (l) (list top-panel)))
                (send toolbar-menu-item set-label (string-constant hide-toolbar))]
               [else
                (hide-info)
-               (send top-outer-panel change-children (lambda (l) '()))
+               (send top-outer-panel change-children (λ (l) '()))
                (send toolbar-menu-item set-label (string-constant show-toolbar))])
             (update-defs/ints-resize-corner))
           
           (field [remove-show-status-line-callback
                   (preferences:add-callback
                    'framework:show-status-line
-                   (lambda (p v)
+                   (λ (p v)
                      (update-defs/ints-resize-corner/pref v)))])
           
           (define/private (update-defs/ints-resize-corner)
@@ -1052,19 +1052,19 @@ tab panels new behavior:
             
           (public clear-annotations)
           [define clear-annotations
-            (lambda ()
+            (λ ()
               (send interactions-text reset-highlighting))]
           
           (public get-directory needs-execution?)
           [define get-directory
-            (lambda ()
+            (λ ()
               (let ([filename (send definitions-text get-filename)])
                 (if (path? filename)
                     (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
                       base)
                     #f)))]
           [define needs-execution?
-            (lambda ()
+            (λ ()
               (send definitions-text needs-execution?))]
           
           [define definitions-item #f]
@@ -1073,7 +1073,7 @@ tab panels new behavior:
           [define save-button #f]
           [define save-init-shown? #f]
           
-          [define/private set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
+          [define/private set-save-init-shown? (λ (x) (set! save-init-shown? x))]
           
           [define canvas-show-mode #f]
           [define allow-split? #f]
@@ -1082,12 +1082,12 @@ tab panels new behavior:
           
           (public make-searchable)
           [define make-searchable
-            (lambda (canvas)
+            (λ (canvas)
               (update-info)
               (set! search-canvas canvas))]
           (override get-text-to-search)
           [define get-text-to-search
-            (lambda ()
+            (λ ()
               (if search-canvas
                   (send search-canvas get-editor)
                   (get-editor)))]
@@ -1143,12 +1143,12 @@ tab panels new behavior:
                  (send tabs-panel delete 0)
                  (loop)))
             '(for-each
-              (lambda (tab)
+              (λ (tab)
                 (let ([defs (tab-defs tab)])
                   (send tabs-panel append (send defs get-filename/untitled-name))))
               tabs))
 
-          [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
+          [define/override get-canvas% (λ () (drscheme:get/extend:get-definitions-canvas))]
           
           (define/public (update-running running?)
             (send running-message set-label 
@@ -1176,7 +1176,7 @@ tab panels new behavior:
               (update-shown)))
           
           (override get-editor%)
-          [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text))]
+          [define get-editor% (λ () (drscheme:get/extend:get-definitions-text))]
           (define/public (still-untouched?)
             (and (and (pair? tabs) (null? (cdr tabs))) ;; aka only one tab
                  (= (send definitions-text last-position) 0)
@@ -1226,7 +1226,7 @@ tab panels new behavior:
                        (shortcut #\=)
                        (parent file-menu)
                        (callback
-                        (lambda (x y)
+                        (λ (x y)
                           (create-new-tab))))))
           [define/override file-menu:between-open-and-revert
             (lambda (file-menu)
@@ -1238,38 +1238,38 @@ tab panels new behavior:
                  (shortcut #\-)
                  (parent file-menu)
                  (callback
-                  (lambda (x y)
+                  (λ (x y)
                     (close-current-tab))))
             (super file-menu:between-close-and-quit file-menu))
           
-          [define/override file-menu:save-string (lambda () (string-constant save-definitions))]
-          [define/override file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
+          [define/override file-menu:save-string (λ () (string-constant save-definitions))]
+          [define/override file-menu:save-as-string (λ () (string-constant save-definitions-as))]
           [define/override file-menu:between-save-as-and-print
-            (lambda (file-menu)
+            (λ (file-menu)
               (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-definitions-as-text)
                   sub-menu
-                  (lambda (_1 _2)
+                  (λ (_1 _2)
                     (let ([filename (send definitions-text put-file #f #f)])
                       (when filename
                         (send definitions-text save-file/gui-error filename 'text)))))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions)
                   sub-menu
-                  (lambda (_1 _2) 
+                  (λ (_1 _2) 
                     (send interactions-text save-file/gui-error)))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as)
                   sub-menu
-                  (lambda (_1 _2)
+                  (λ (_1 _2)
                     (let ([filename (send interactions-text put-file #f #f)])
                       (when filename
                         (send interactions-text save-file/gui-error filename 'standard)))))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as-text)
                   sub-menu
-                  (lambda (_1 _2)
+                  (λ (_1 _2)
                     (let ([filename (send interactions-text put-file #f #f)])
                       (when filename
                         (send interactions-text save-file/gui-error filename 'text)))))
@@ -1278,19 +1278,19 @@ tab panels new behavior:
                       (make-object menu:can-restore-menu-item%
                         (string-constant log-definitions-and-interactions)
                         file-menu
-                        (lambda (x y)
+                        (λ (x y)
                           (if logging
                               (stop-logging)
                               (start-logging)))))
                 (make-object separator-menu-item% file-menu)))]
           
-          [define/override file-menu:print-string (lambda () (string-constant print-definitions))]
+          [define/override file-menu:print-string (λ () (string-constant print-definitions))]
           (define/override (file-menu:between-print-and-close file-menu)
             (set! file-menu:print-transcript-item
                   (make-object menu:can-restore-menu-item%
                     (string-constant print-interactions)
                     file-menu
-                    (lambda (_1 _2)
+                    (λ (_1 _2)
                       (send interactions-text print
                             #t 
                             #t
@@ -1325,16 +1325,16 @@ tab panels new behavior:
                  (parent edit-menu)
                  (label (string-constant mode-submenu-label))
                  (demand-callback
-                  (lambda (menu)
-                    (for-each (lambda (item) (send item delete))
+                  (λ (menu)
+                    (for-each (λ (item) (send item delete))
                               (send menu get-items))
-                    (for-each (lambda (mode) 
+                    (for-each (λ (mode) 
                                 (let* ([item
                                         (new checkable-menu-item%
                                              (label (drscheme:modes:mode-name mode))
                                              (parent menu)
                                              (callback 
-                                              (lambda (_1 _2) (send definitions-text set-current-mode mode))))])
+                                              (λ (_1 _2) (send definitions-text set-current-mode mode))))])
                                   (when (send definitions-text is-current-mode? mode)
                                     (send item check #t))))
                               (drscheme:modes:get-modes))))))
@@ -1364,7 +1364,7 @@ tab panels new behavior:
           (define/private (split)
             (let* ([canvas-to-be-split (get-edit-target-window)]
                    [update
-                    (lambda (set-canvases! canvases canvas% text)
+                    (λ (set-canvases! canvases canvas% text)
                       (let-values ([(ox oy ow oh cursor-y)
                                     (get-visible-region canvas-to-be-split)])
                         (let ([orig-percentages (send resizable-panel get-percentages)]
@@ -1390,7 +1390,7 @@ tab panels new behavior:
                           
                           ;; with-handlers prevents bad calls to set-percentages
                           ;; might still leave GUI in bad state, however.
-                          (with-handlers ([exn:fail? (lambda (x) (void))])
+                          (with-handlers ([exn:fail? (λ (x) (void))])
                             (send resizable-panel set-percentages
                                   (let loop ([canvases orig-canvases]
                                              [percentages orig-percentages])
@@ -1417,12 +1417,12 @@ tab panels new behavior:
                           (send new-canvas focus))))])
               (cond
                 [(memq canvas-to-be-split definitions-canvases)
-                 (update (lambda (x) (set! definitions-canvases x))
+                 (update (λ (x) (set! definitions-canvases x))
                          definitions-canvases
                          (drscheme:get/extend:get-definitions-canvas)
                          definitions-text)]
                 [(memq canvas-to-be-split interactions-canvases)
-                 (update (lambda (x) (set! interactions-canvases x))
+                 (update (λ (x) (set! interactions-canvases x))
                          interactions-canvases
                          (drscheme:get/extend:get-interactions-canvas)
                          interactions-text)]
@@ -1455,7 +1455,7 @@ tab panels new behavior:
           ;; of the selection was visible before the split, respectively.
           (define/private (get-visible-region canvas)
             (send canvas call-as-primary-owner
-                  (lambda ()
+                  (λ ()
                     (let* ([text (send canvas get-editor)]
                            [admin (send text get-admin)]
                            [start (send text get-start-position)]
@@ -1476,7 +1476,7 @@ tab panels new behavior:
           ;; given to start if both are #t.
           (define/private (set-visible-region canvas x y w h cursor-y)
             (send canvas call-as-primary-owner
-                  (lambda ()
+                  (λ ()
                     (let* ([text (send canvas get-editor)]
                            [admin (send text get-admin)]
                            [nwb (box 0)]
@@ -1510,7 +1510,7 @@ tab panels new behavior:
           (define/private (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
-                    (lambda (get-canvases set-canvases!)
+                    (λ (get-canvases set-canvases!)
                       (if (= 1 (length (get-canvases)))
                           (bell)
                           (let* ([old-percentages (send resizable-panel get-percentages)]
@@ -1550,17 +1550,17 @@ tab panels new behavior:
                             
                             (let ([target-admin 
                                    (send target call-as-primary-owner
-                                         (lambda ()
+                                         (λ ()
                                            (send (send target get-editor) get-admin)))]
                                   [to-be-bigger-admin 
                                    (send soon-to-be-bigger-canvas call-as-primary-owner
-                                         (lambda ()
+                                         (λ ()
                                            (send (send soon-to-be-bigger-canvas get-editor) get-admin)))])
                               (let-values ([(bx by bw bh) (get-visible-area target-admin)])
                                 
                                 ;; this line makes the soon-to-be-bigger-canvas bigger
                                 ;; if it fails, we're out of luck, but at least we don't crash.
-                                (with-handlers ([exn:fail? (lambda (x) (void))])
+                                (with-handlers ([exn:fail? (λ (x) (void))])
                                   (send resizable-panel set-percentages percentages))
                                 
                                 (let-values ([(ax ay aw ah) (get-visible-area to-be-bigger-admin)])
@@ -1575,12 +1575,12 @@ tab panels new behavior:
               (cond
                 [(memq target definitions-canvases)
                  (handle-collapse
-                  (lambda () definitions-canvases)
-                  (lambda (c) (set! definitions-canvases c)))]
+                  (λ () definitions-canvases)
+                  (λ (c) (set! definitions-canvases c)))]
                 [(memq target interactions-canvases)
                  (handle-collapse
-                  (lambda () interactions-canvases)
-                  (lambda (c) (set! interactions-canvases c)))]
+                  (λ () interactions-canvases)
+                  (λ (c) (set! interactions-canvases c)))]
                 [else (bell)])))
           
 
@@ -1619,7 +1619,7 @@ tab panels new behavior:
 	    
 	    (let ([new-children
 		   (foldl
-		    (lambda (shown? children sofar)
+		    (λ (shown? children sofar)
 		      (if shown?
 			  (append children sofar)
 			  sofar))
@@ -1644,7 +1644,7 @@ tab panels new behavior:
 	      (send resizable-panel begin-container-sequence)
 	      
 	      ;; this might change the unit-window-size-percentage, so save/restore it
-	      (send resizable-panel change-children (lambda (l) new-children))
+	      (send resizable-panel change-children (λ (l) new-children))
 	      
 	      (preferences:set 'drscheme:unit-window-size-percentage p)
 	      
@@ -1652,13 +1652,13 @@ tab panels new behavior:
 	      (when (and (= 1 (length definitions-canvases))
 			 (= 1 (length interactions-canvases))
 			 (= 2 (length new-children)))
-		(with-handlers ([exn:fail? (lambda (x) (void))])
+		(with-handlers ([exn:fail? (λ (x) (void))])
 		  (send resizable-panel set-percentages
 			(list p (- 1 p))))))
 	    
 	    (send resizable-panel end-container-sequence)
 	    
-	    (when (ormap (lambda (child)
+	    (when (ormap (λ (child)
 			   (and (is-a? child editor-canvas%)
 				(not (send child has-focus?))))
 			 (send resizable-panel get-children))
@@ -1672,15 +1672,15 @@ tab panels new behavior:
 	    
 	    
 	    (for-each
-	     (lambda (get-item)
+	     (λ (get-item)
 	       (let ([item (get-item)])
 		 (when item
 		   (send item enable definitions-shown?))))
-	     (list (lambda () (file-menu:get-revert-item))
-		   (lambda () (file-menu:get-save-item))
-		   (lambda () (file-menu:get-save-as-item))
-					;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
-		   (lambda () (file-menu:get-print-item))))
+	     (list (λ () (file-menu:get-revert-item))
+		   (λ () (file-menu:get-save-item))
+		   (λ () (file-menu:get-save-as-item))
+					;(λ () (file-menu:save-as-text-item)) ; Save As Text...
+		   (λ () (file-menu:get-print-item))))
 	    (send file-menu:print-transcript-item enable interactions-shown?))
           
           (define/augment (on-close)
@@ -1767,7 +1767,7 @@ tab panels new behavior:
                   (send interactions-text evaluate-from-port
                         prt
                         #t
-                        (lambda ()
+                        (λ ()
                           (send interactions-text clear-undos)))))))
           
           (inherit revert save)
@@ -1845,7 +1845,7 @@ tab panels new behavior:
                 (set-box! b (+ (unbox b) 1))
                 (send (send tabs-panel get-parent)
                       change-children
-                      (lambda (l)
+                      (λ (l)
                         (if (memq tabs-panel l)
                             l
                             (cons tabs-panel l))))
@@ -1864,9 +1864,9 @@ tab panels new behavior:
               (set! current-tab tab)
               (set! definitions-text (tab-defs current-tab))
               (set! interactions-text (tab-ints current-tab))
-              (for-each (lambda (defs-canvas) (send defs-canvas set-editor definitions-text))
+              (for-each (λ (defs-canvas) (send defs-canvas set-editor definitions-text))
                         definitions-canvases)
-              (for-each (lambda (ints-canvas) (send ints-canvas set-editor interactions-text))
+              (for-each (λ (ints-canvas) (send ints-canvas set-editor interactions-text))
                         interactions-canvases)
               (restore-visible-tab-regions)
               (update-save-message)
@@ -1905,7 +1905,7 @@ tab panels new behavior:
           
           (define/private (save-visible-tab-regions)
             (define (get-visible-regions txt)
-              (map (lambda (canvas) (get-visible-region txt canvas))
+              (map (λ (canvas) (get-visible-region txt canvas))
                    (send txt get-canvases)))
             (define (get-visible-region txt canvas)
               (let ([xb (box 0)]
@@ -1913,7 +1913,7 @@ tab panels new behavior:
                     [wb (box 0)]
                     [hb (box 0)])
                 (send canvas call-as-primary-owner
-                      (lambda ()
+                      (λ ()
                         (let ([admin (send txt get-admin)])
                           (when admin
                             (send admin get-view xb yb wb hb)))))
@@ -1926,7 +1926,7 @@ tab panels new behavior:
               (when regions
                 (let ([canvases (send txt get-canvases)])
                   (when (= (length canvases) (length regions))
-                    (for-each (lambda (c r) (set-visible-region txt c r)) canvases regions)))))
+                    (for-each (λ (c r) (set-visible-region txt c r)) canvases regions)))))
             (define (set-visible-region txt canvas region)
               (send canvas scroll-to 
                     (first region)
@@ -1951,10 +1951,10 @@ tab panels new behavior:
           
           (define/override (editing-this-file? filename)
             (let ([path-equal?
-                   (lambda (x y)
+                   (λ (x y)
                      (equal? (normal-case-path (normalize-path x))
                              (normal-case-path (normalize-path y))))])
-              (ormap (lambda (tab)
+              (ormap (λ (tab)
                        (let ([fn (send (tab-defs tab) get-filename)])
                          (and fn
                               (path-equal? fn filename))))
@@ -1967,14 +1967,14 @@ tab panels new behavior:
           
           (define/private (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
-            (for-each (lambda (item) (send item delete)) teachpack-items)
+            (for-each (λ (item) (send item delete)) teachpack-items)
             (set! teachpack-items
-                  (map (lambda (name)
+                  (map (λ (name)
                          (make-object menu:can-restore-menu-item%
                            (format (string-constant clear-teachpack) 
                                    (mzlib:file:file-name-from-path name))
                            language-menu
-                           (lambda (item evt)
+                           (λ (item evt)
                              (let ([new-teachpacks 
                                     (drscheme:teachpack:new-teachpack-cache
                                      (remove
@@ -1997,7 +1997,7 @@ tab panels new behavior:
                   (make-object menu:can-restore-menu-item%
                     (string-constant hide-definitions-menu-item-label)
                     (get-show-menu)
-                    (lambda (_1 _2) 
+                    (λ (_1 _2) 
                       (toggle-show/hide-definitions)
                       (update-shown))
                     #\d
@@ -2006,7 +2006,7 @@ tab panels new behavior:
                   (make-object menu:can-restore-menu-item%
                     (string-constant show-interactions-menu-item-label)
                     (get-show-menu)
-                    (lambda (_1 _2) 
+                    (λ (_1 _2) 
                       (toggle-show/hide-interactions)
                       (update-shown))
                     #\e
@@ -2020,7 +2020,7 @@ tab panels new behavior:
                    (string-constant show-overview)))
               (parent (get-show-menu))
               (callback
-               (lambda (menu evt)
+               (λ (menu evt)
                  (if (delegated-text-shown?)
                      (begin
                        (send menu set-label (string-constant show-overview))
@@ -2038,7 +2038,7 @@ tab panels new behavior:
                                (string-constant show-module-browser)))
                     (parent (get-show-menu))
                     (callback
-                     (lambda (menu evt)
+                     (λ (menu evt)
                        (if module-browser-shown?
                            (hide-module-browser)
                            (show-module-browser))))))
@@ -2048,7 +2048,7 @@ tab panels new behavior:
                        (label (string-constant show-toolbar))
                        (parent show-menu)
                        (callback
-                        (lambda (x y)
+                        (λ (x y)
                           (toggle-toolbar-visiblity))))))
 
           
@@ -2095,7 +2095,7 @@ tab panels new behavior:
               (send module-browser-menu-item set-label (string-constant show-module-browser))
               (close-status-line 'plt:module-browser:mouse-over)
               (send module-browser-parent-panel change-children
-                    (lambda (l)
+                    (λ (l)
                       (remq module-browser-panel l)))))
           
           (define/private (can-browse-language?)
@@ -2104,7 +2104,7 @@ tab panels new behavior:
                    [strs (send lang get-language-position)]
                    [can-browse?
                     (or (regexp-match #rx"module" (car (last-pair strs)))
-                        (ormap (lambda (x) (regexp-match #rx"PLT" x))
+                        (ormap (λ (x) (regexp-match #rx"PLT" x))
                                strs))])
               (unless can-browse?
                 (message-box (string-constant drscheme)
@@ -2119,7 +2119,7 @@ tab panels new behavior:
               (set! module-browser-pb 
                     (drscheme:module-overview:make-module-overview-pasteboard
                      #t
-                     (lambda (x) (mouse-currently-over x))))
+                     (λ (x) (mouse-currently-over x))))
               (set! module-browser-ec (make-object editor-canvas%
                                         module-browser-panel
                                         module-browser-pb))
@@ -2129,7 +2129,7 @@ tab panels new behavior:
                       (label show-lib-paths)
                       (value (preferences:get 'drscheme:module-browser:show-lib-paths?))
                       (callback 
-                       (lambda (x y) 
+                       (λ (x y) 
                          (let ([val (send module-browser-lib-path-check-box get-value)])
                            (preferences:set 'drscheme:module-browser:show-lib-paths? val)
                            (send module-browser-pb show-lib-paths val))))))
@@ -2143,7 +2143,7 @@ tab panels new behavior:
                                         (string-constant module-browser-name-long)))
                          (selection (preferences:get 'drscheme:module-browser:name-length))
                          (callback
-                          (lambda (x y)
+                          (λ (x y)
                             (let ([selection (send module-browser-name-length-choice get-selection)])
                               (preferences:set 'drscheme:module-browser:name-length selection)
                               (update-module-browser-name-length selection))))))
@@ -2154,12 +2154,12 @@ tab panels new behavior:
                     (new button%
                       (parent module-browser-panel)
                       (label refresh)
-                      (callback (lambda (x y) (update-module-browser-pane)))
+                      (callback (λ (x y) (update-module-browser-pane)))
                       (stretchable-width #t))))
             
             (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
               (send module-browser-parent-panel change-children
-                    (lambda (l)
+                    (λ (l)
                       (cons module-browser-panel
                             (remq module-browser-panel l))))
               (with-handlers ([exn:fail? void])
@@ -2200,10 +2200,10 @@ tab panels new behavior:
                 definitions-text
                 0
                 (send definitions-text last-position))
-               (lambda (str) (update-status-line 
+               (λ (str) (update-status-line 
                               'plt:module-browser 
                               (format module-browser-progress-constant str)))
-               (lambda (user-thread user-custodian)
+               (λ (user-thread user-custodian)
                  (set-breakables user-thread user-custodian)))
               (set-breakables old-break-thread old-custodian)
               (enable-evaluation)
@@ -2253,7 +2253,7 @@ tab panels new behavior:
           
           (let* ([mb (get-menu-bar)]
                  [language-menu-on-demand
-                  (lambda (menu-item)
+                  (λ (menu-item)
                     (update-teachpack-menu))]
                  [_ (set! language-menu (make-object (get-menu%) 
                                           (string-constant language-menu-name)
@@ -2262,8 +2262,8 @@ tab panels new behavior:
                                           language-menu-on-demand))]
                  [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
                  [send-method
-                  (lambda (method)
-                    (lambda (_1 _2)
+                  (λ (method)
+                    (λ (_1 _2)
                       (let ([text (get-focus-object)])
                         (when (is-a? text scheme:text<%>)
                           (method text)))))])
@@ -2271,7 +2271,7 @@ tab panels new behavior:
             (make-object menu:can-restore-menu-item%
               (string-constant choose-language-menu-item-label)
               language-menu
-              (lambda (_1 _2)
+              (λ (_1 _2)
                 (let ([new-settings (drscheme:language-configuration:language-dialog
                                      #f
                                      (send definitions-text get-next-settings)
@@ -2286,18 +2286,18 @@ tab panels new behavior:
             (make-object menu:can-restore-menu-item%
               (string-constant add-teachpack-menu-item-label)
               language-menu
-              (lambda (_1 _2)
+              (λ (_1 _2)
                 (when (drscheme:language-configuration:add-new-teachpack this)
                   (send (get-definitions-text) teachpack-changed))))
             (let ([clear-all-on-demand
-                   (lambda (menu-item)
+                   (λ (menu-item)
                      (send menu-item enable
                            (not (null? (drscheme:teachpack:teachpack-cache-filenames
                                         (preferences:get 'drscheme:teachpacks))))))])
               (make-object menu:can-restore-menu-item% 
                 (string-constant clear-all-teachpacks-menu-item-label)
                 language-menu
-                (lambda (_1 _2) 
+                (λ (_1 _2) 
                   (when (drscheme:language-configuration:clear-all-teachpacks)
                     (send (get-definitions-text) teachpack-changed)))
                 #f
@@ -2308,60 +2308,60 @@ tab panels new behavior:
                   (make-object menu:can-restore-menu-item%
                     (string-constant execute-menu-item-label)
                     scheme-menu
-                    (lambda (_1 _2) (execute-callback))
+                    (λ (_1 _2) (execute-callback))
                     #\t
                     (string-constant execute-menu-item-help-string)))
             (make-object menu:can-restore-menu-item%
               (string-constant break-menu-item-label)
               scheme-menu
-              (lambda (_1 _2) (break-callback))
+              (λ (_1 _2) (break-callback))
               #\b
               (string-constant break-menu-item-help-string))
             (make-object menu:can-restore-menu-item%
               (string-constant kill-menu-item-label)
               scheme-menu
-              (lambda (_1 _2) (send interactions-text kill-evaluation))
+              (λ (_1 _2) (send interactions-text kill-evaluation))
               #\k
               (string-constant kill-menu-item-help-string))
             (new menu:can-restore-menu-item%
               (label (string-constant clear-error-highlight-menu-item-label))
               (parent scheme-menu)
-              (callback (lambda (_1 _2) (drscheme:rep:reset-error-ranges)))
+              (callback (λ (_1 _2) (drscheme:rep:reset-error-ranges)))
               (help-string (string-constant clear-error-highlight-item-help-string))
               (demand-callback
-               (lambda (item)
+               (λ (item)
                  (send item enable (drscheme:rep:get-error-ranges)))))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant create-executable-menu-item-label)
               scheme-menu
-              (lambda (x y) (create-executable this)))
+              (λ (x y) (create-executable this)))
             (make-object menu:can-restore-menu-item%
               (string-constant module-browser...)
               scheme-menu
-              (lambda (x y) (drscheme:module-overview:module-overview this)))
+              (λ (x y) (drscheme:module-overview:module-overview this)))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant reindent-menu-item-label)
               scheme-menu
-              (send-method (lambda (x) (send x tabify-selection))))
+              (send-method (λ (x) (send x tabify-selection))))
             (make-object menu:can-restore-menu-item%
               (string-constant reindent-all-menu-item-label)
               scheme-menu
-              (send-method (lambda (x) (send x tabify-all)))
+              (send-method (λ (x) (send x tabify-all)))
               #\i)
             (make-object menu:can-restore-menu-item%
               (string-constant box-comment-out-menu-item-label)
               scheme-menu
-              (send-method (lambda (x) (send x box-comment-out-selection))))
+              (send-method (λ (x) (send x box-comment-out-selection))))
             (make-object menu:can-restore-menu-item%
               (string-constant semicolon-comment-out-menu-item-label)
               scheme-menu
-              (send-method (lambda (x) (send x comment-out-selection))))
+              (send-method (λ (x) (send x comment-out-selection))))
             (make-object menu:can-restore-menu-item%
               (string-constant uncomment-menu-item-label)
               scheme-menu
-              (lambda (x y)
+              (λ (x y)
                 (let ([text (get-focus-object)])
                   (when (is-a? text text%)
                     (let ([admin (send text get-admin)])
@@ -2383,11 +2383,11 @@ tab panels new behavior:
           (define/public (get-special-menu) special-menu)
 
           (let ([has-editor-on-demand
-                 (lambda (menu-item)
+                 (λ (menu-item)
                    (let ([edit (get-edit-target-object)])
                      (send menu-item enable (and edit (is-a? edit editor<%>)))))]
                 [callback
-                 (lambda (menu evt)
+                 (λ (menu evt)
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
@@ -2397,14 +2397,14 @@ tab panels new behavior:
                                  (number-snip:make-fraction-snip number #f)))))
                      #t))]
                 [insert-lambda
-                 (lambda ()
+                 (λ ()
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
                        (send edit insert "\u03BB")))
                    #t)]
                 [insert-large-semicolon-letters
-                 (lambda ()
+                 (λ ()
                    (let ([edit (get-edit-target-object)])
                      (when edit
                        (let ([str (get-text-from-user (string-constant large-semicolon-letters)
@@ -2466,12 +2466,12 @@ tab panels new behavior:
               has-editor-on-demand)
             (make-object c% (string-constant insert-large-letters...)
               special-menu
-              (lambda (x y) (insert-large-semicolon-letters))
+              (λ (x y) (insert-large-semicolon-letters))
               #f #f
               has-editor-on-demand)
             (make-object c% (string-constant insert-lambda)
               special-menu
-              (lambda (x y) (insert-lambda))
+              (λ (x y) (insert-lambda))
               #\\
               #f
               has-editor-on-demand))
@@ -2482,14 +2482,14 @@ tab panels new behavior:
             (shortcut #\m)
             (label (string-constant split-menu-item-label))
             (parent (get-show-menu))
-            (callback (lambda (x y) (split)))
-            (demand-callback (lambda (item) (split-demand item))))
+            (callback (λ (x y) (split)))
+            (demand-callback (λ (item) (split-demand item))))
           (new menu:can-restore-menu-item% 
             (shortcut #\r)
             (label (string-constant collapse-menu-item-label))
             (parent (get-show-menu))
-            (callback (lambda (x y) (collapse)))
-            (demand-callback (lambda (item) (collapse-demand item))))
+            (callback (λ (x y) (collapse)))
+            (demand-callback (λ (item) (collapse-demand item))))
           
           (frame:reorder-menus this)
 
@@ -2530,7 +2530,7 @@ tab panels new behavior:
                                   (stretchable-height #f)
                                   (style '(deleted))
                                   (choices '("first name"))
-                                  (callback (lambda (x y)
+                                  (callback (λ (x y)
                                               (let ([sel (send tabs-panel get-selection)])
                                                 (when sel
                                                   (change-to-nth-tab sel)))))))
@@ -2559,14 +2559,14 @@ tab panels new behavior:
                 null))
           
           (public get-definitions-canvas get-interactions-canvas)
-          [define get-definitions-canvas (lambda () definitions-canvas)]
-          [define get-interactions-canvas (lambda () interactions-canvas)]
+          [define get-definitions-canvas (λ () definitions-canvas)]
+          [define get-interactions-canvas (λ () interactions-canvas)]
           
           (set! save-button
                 (make-object button% 
                   (make-save-bitmap this)
                   top-panel
-                  (lambda args
+                  (λ args
                     (when definitions-text
                       (save)
                       (send definitions-canvas focus)))))
@@ -2576,9 +2576,9 @@ tab panels new behavior:
           [define break-button (void)]
           [define execute-button (void)]
           [define button-panel (make-object horizontal-panel% top-panel)]
-          [define/public get-execute-button (lambda () execute-button)]
-          [define/public get-break-button (lambda () break-button)]
-          [define/public get-button-panel (lambda () button-panel)]
+          [define/public get-execute-button (λ () execute-button)]
+          [define/public get-break-button (λ () break-button)]
+          [define/public get-button-panel (λ () button-panel)]
           
           (inherit get-info-panel)
           (define running-message
@@ -2594,12 +2594,12 @@ tab panels new behavior:
                 (make-object button%
                   (make-execute-bitmap this)
                   button-panel
-                  (lambda (button evt) (execute-callback))))
+                  (λ (button evt) (execute-callback))))
           (set! break-button
                 (make-object button%
                   (make-break-bitmap this) 
                   button-panel
-                  (lambda (x y)
+                  (λ (x y)
 		    (break-callback))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2612,7 +2612,7 @@ tab panels new behavior:
           (send button-panel stretchable-width #f) 
           
           (send top-panel change-children
-                (lambda (l)
+                (λ (l)
                   (list name-panel save-button
                         (make-object vertical-panel% top-panel) ;; spacer
                         button-panel)))
@@ -2638,7 +2638,7 @@ tab panels new behavior:
 
           (when (= 2 (length (send resizable-panel get-children)))
             ;; should really test this, but too lazy to add inspector to framework (for now)
-            (with-handlers ([exn:fail? (lambda (x) (void))])
+            (with-handlers ([exn:fail? (λ (x) (void))])
               (send resizable-panel set-percentages
                     (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
                       (list p (- 1 p))))))
@@ -2678,65 +2678,17 @@ tab panels new behavior:
                 (handler:edit-file file))))
           (super-new)))
       
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;
+      ;; lambda-snipclass is for backwards compatibility
+      ;;
       (define lambda-snipclass
         (make-object (class snip-class% ()
-                       (define/override (read p)
-                         (make-object lambda-snip%))
+                       (define/override (read p) (make-object string-snip% "λ"))
                        (super-new))))
       (send lambda-snipclass set-version 1)
       (send lambda-snipclass set-classname "drscheme:lambda-snip%")
       (send (get-the-snip-class-list) add lambda-snipclass)
-      
-      (define greek-char-snip% 
-        (class* snip% (readable-snip<%>)
-          (init-field symbol one-char-string)
-          (define/public (read-special source line column position)
-	    (datum->syntax-object #'here symbol))
-
-          (define/private (get-greek-font)
-            (send the-font-list find-or-create-font 
-                  (preferences:get 'framework:standard-style-list:font-size)
-                  'symbol 'normal 'normal #f))
-          (define/public (get-string) (string->symbol symbol))
-          (define/override get-text
-            (case-lambda
-              [(x y) (string-append " " 
-                                    (symbol->string symbol)
-                                    " ")]
-              [(x y z) (string-append " " 
-                                      (symbol->string symbol)
-                                      " ")]))
-          (define/override (copy)
-            (make-object lambda-snip%))
-          (define/override (write p)
-            (void))
-          (define/override (get-extent dc x y wb hb descentb spaceb lspaceb rspaceb)
-            (let-values ([(w h d s) (send dc get-text-extent one-char-string (get-greek-font))])
-              (set-box/f! wb w)
-              (set-box/f! hb h)
-              (set-box/f! descentb d)
-              (set-box/f! spaceb s)
-              (set-box/f! lspaceb 0)
-              (set-box/f! rspaceb 0)))
-          (define/override (draw dc x y left top right bottom dx dy draw-caret)
-            (let ([font (send dc get-font)])
-              (send dc set-font (get-greek-font))
-              (let-values ([(lw lh ld ls) (send dc get-text-extent one-char-string)])
-                (send dc draw-text one-char-string x y
-                      ;(+ x (/ (- ww lw) 2))
-                      ;(+ y (- (- wh wd) (- lh ld)))
-                      ))
-              (send dc set-font font)))
-          (super-new)))
-
-      (define lambda-snip%
-        (class greek-char-snip%
-          (define/override (copy) (new lambda-snip%))
-          (super-new
-            (symbol 'lambda)
-            (one-char-string "l"))
-          (inherit set-snipclass)
-          (set-snipclass lambda-snipclass)))
       
       (define created-frame 'nothing-yet)
       
@@ -2770,5 +2722,5 @@ tab panels new behavior:
       
       (handler:insert-format-handler 
        "Units"
-       (lambda (filename) #t)
+       (λ (filename) #t)
        open-drscheme-window))))

@@ -116,11 +116,11 @@
         (class* object% (simple-module-based-language<%>)
           (init-field module
                       language-position
-                      (language-numbers (map (lambda (x) 0) language-position))
+                      (language-numbers (map (λ (x) 0) language-position))
                       (one-line-summary "")
                       (language-url #f)
                       (documentation-reference #f)
-                      (reader (lambda (src port)
+                      (reader (λ (src port)
 				(let ([v (read-syntax src port)])
                                   (if (eof-object? v)
 				      v
@@ -249,7 +249,7 @@
                                        (string-constant write-printing-style)
                                        (string-constant print-printing-style))
                                  output-panel
-                                 (lambda (rb evt)
+                                 (λ (rb evt)
                                    (let ([on? (not (= (send rb get-selection) 3))])
                                      (send fraction-style enable on?)
                                      (send show-sharing enable on?)
@@ -317,14 +317,14 @@
             (let ([converted-value
                    (simple-module-based-language-convert-value value settings)]
                   [use-number-snip?
-                   (lambda (x)
+                   (λ (x)
                      (and (number? x)
                           (exact? x)
                           (real? x)
                           (not (integer? x))))])
               (parameterize ([pretty-print-columns width]
                              [pretty-print-size-hook
-                              (lambda (value display? port)
+                              (λ (value display? port)
                                 (cond
                                   [(is-a? value snip%) 1]
                                   [(use-number-snip? value) 1]
@@ -332,7 +332,7 @@
                                   [(to-snip-value? value) 1]
                                   [else #f]))]
                              [pretty-print-print-hook
-                              (lambda (value display? port)
+                              (λ (value display? port)
                                 (cond
                                   [(is-a? value snip%)
                                    (write-special value port)
@@ -399,7 +399,7 @@
       ;; initialize-simple-module-based-language : setting ((-> void) -> void)
       (define (initialize-simple-module-based-language setting run-in-user-thread)
         (run-in-user-thread
-         (lambda ()
+         (λ ()
            (let ([annotations (simple-settings-annotations setting)])
              (when (memq annotations '(debug debug/profile test-coverage))
                (current-eval 
@@ -571,7 +571,7 @@
                                          (label (string-constant browse...))
                                          (parent filename-panel)
                                          (callback
-                                          (lambda (x y) (browse-callback)))))
+                                          (λ (x y) (browse-callback)))))
         (define type/base/help-panel (instantiate horizontal-panel% ()
                                        (parent dlg)
                                        (alignment '(center center))))
@@ -597,7 +597,7 @@
         (define help-button (make-object button% 
                               (string-constant help)
                               type/base/help-panel
-                              (lambda (x y)
+                              (λ (x y)
                                 (drscheme:help-desk:goto-help "drscheme" "Executables"))))
 
         (define button-panel (instantiate horizontal-panel% ()
@@ -607,7 +607,7 @@
         (define-values (ok-button cancel-button)
           (gui-utils:ok/cancel-buttons
            button-panel
-           (lambda (x y)
+           (λ (x y)
              (cond
                [(filename-ok?)
                 (set! cancelled? #f)
@@ -615,7 +615,7 @@
                [else (message-box (string-constant drscheme)
                                   (string-constant please-choose-an-executable-filename)
                                   dlg)]))
-           (lambda (x y) (send dlg show #f))
+           (λ (x y) (send dlg show #f))
            (string-constant create)
            (string-constant cancel)))
 
@@ -806,8 +806,8 @@
                                                           gui?
                                                           use-copy?)
         
-        (with-handlers ([(lambda (x) #f) ;exn:fail?
-                         (lambda (x)
+        (with-handlers ([(λ (x) #f) ;exn:fail?
+                         (λ (x)
                            (message-box 
                             (string-constant drscheme)
                             (format "~a" (exn-message x)))
@@ -820,7 +820,7 @@
                    (string->symbol (path->string name)))])
           
             (call-with-output-file bootstrap-tmp-filename
-              (lambda (port)
+              (λ (port)
                 (write `(let () ;; cannot use begin, since it gets flattened to top-level (and re-compiled!)
                           (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
                           (namespace-transformer-require ',transformer-module-language-spec)
@@ -835,7 +835,7 @@
                     init-code-mod-name
                     (cddr init-code))])
               (call-with-output-file init-code-tmp-filename
-                (lambda (port)
+                (λ (port)
                   (write new-init-code port))
                 'truncate 'text)))
           
@@ -857,10 +857,10 @@
                            (preferences:get 'drscheme:teachpacks))
                           pre-to-be-embedded-module-specs2)]
                  [pre-to-be-embedded-module-specs4
-                  (filter (lambda (x) (not (eq? x 'mzscheme)))
+                  (filter (λ (x) (not (eq? x 'mzscheme)))
                           pre-to-be-embedded-module-specs3)]
                  [to-be-embedded-module-specs
-                  (map (lambda (x) (list #f x))
+                  (map (λ (x) (list #f x))
                        pre-to-be-embedded-module-specs4)])
 
             (make-embedding-executable 
@@ -885,7 +885,7 @@
           (let loop ()
             (let ([c (read-char i)])
               (unless (eof-object? c)
-                (let ([next (lambda ()
+                (let ([next (λ ()
                               (display c o)
                               (loop))])
                   (case c
@@ -928,8 +928,8 @@
                                             gui?
                                             use-copy?)
 
-        (with-handlers ([(lambda (x) #f) ;exn:fail?
-                         (lambda (x)
+        (with-handlers ([(λ (x) #f) ;exn:fail?
+                         (λ (x)
                            (message-box 
                             (string-constant drscheme)
                             (format "~a" (exn-message x)))
@@ -958,9 +958,9 @@
                                                 transformer-module-spec
                                                 run-in-user-thread)
         (run-in-user-thread
-         (lambda ()
-           (with-handlers ([(lambda (x) #t)
-                            (lambda (x)
+         (λ ()
+           (with-handlers ([(λ (x) #t)
+                            (λ (x)
                               (display (exn-message x))
                               (newline))])
 	     (if use-copy?
@@ -971,7 +971,7 @@
       ;; module-based-language-front-end : (port reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
       (define (module-based-language-front-end port reader)
-        (lambda () 
+        (λ () 
           (reader (object-name port) port)))
       
       
@@ -986,11 +986,11 @@
         (set! to-snips (cons (make-to-snip predicate constructor) to-snips)))
       
       (define (value->snip v)
-        (ormap (lambda (to-snip) (and ((to-snip-predicate? to-snip) v)
+        (ormap (λ (to-snip) (and ((to-snip-predicate? to-snip) v)
                                       ((to-snip->value to-snip) v)))
                to-snips))
       (define (to-snip-value? v)
-        (ormap (lambda (to-snip) ((to-snip-predicate? to-snip) v)) to-snips))
+        (ormap (λ (to-snip) ((to-snip-predicate? to-snip) v)) to-snips))
       
       
 

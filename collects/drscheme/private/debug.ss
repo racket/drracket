@@ -180,7 +180,7 @@ profile todo:
       ;; adds debugging information to `sexp' and calls `oe'
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
-               (lambda (orig-exp)
+               (λ (orig-exp)
                  (if (compiled-expression? (if (syntax? orig-exp)  
                                                (syntax-e orig-exp)  
                                                orig-exp))
@@ -200,7 +200,7 @@ profile todo:
                                 [(null? exprs) (apply values last-one)]
                                 [else (i-loop (cdr exprs)
                                               (call-with-values
-                                               (lambda () (loop (car exprs)))
+                                               (λ () (loop (car exprs)))
                                                list))]))]
                            [_else 
                             ;; Not `begin', so proceed with normal expand and eval 
@@ -221,10 +221,10 @@ profile todo:
                (show-error-and-highlight 
                 msg 
                 exn
-                (lambda (srcs-to-display cms)
+                (λ (srcs-to-display cms)
                   (parameterize ([current-eventspace drscheme:init:system-eventspace])
                     (queue-callback
-                     (lambda ()
+                     (λ ()
                        ;; need to make sure that the user's eventspace is still the same
                        ;; and still running here?
                        (highlight-errors rep srcs-to-display cms))))))]
@@ -243,17 +243,17 @@ profile todo:
             (let ([note% (if (mf-bday?) mf-note% bug-note%)])
               (when note%
                 (let ([note (new note%)])
-                  (send note set-callback (lambda () (show-backtrace-window msg cms)))
+                  (send note set-callback (λ () (show-backtrace-window msg cms)))
                   (write-special note (current-error-port))
                   (display #\space (current-error-port))))))
           
           (let ([srcs-to-display (find-src-to-display exn cms)])
-            (for-each (lambda (src-to-display)
+            (for-each (λ (src-to-display)
                         (let ([src (srcloc-source src-to-display)])
                           (when (and (path? src) file-note%)
                             (let ([note (new file-note%)])
                               (send note set-callback 
-                                    (lambda () (open-and-highlight-in-file src-to-display)))
+                                    (λ () (open-and-highlight-in-file src-to-display)))
                               (write-special note (current-error-port))
                               (display #\space (current-error-port))
                               (display (path->string (find-relative-path (current-directory) src))
@@ -278,7 +278,7 @@ profile todo:
             (highlight-errors srcs-to-display
                               (and cms
                                    (filter 
-                                    (lambda (x)
+                                    (λ (x)
                                       (and (pair? x)
                                            (is-a? (car x) text:basic<%>)
                                            (pair? (cdr x))
@@ -290,7 +290,7 @@ profile todo:
         (let ([error-text-style-delta (make-object style-delta%)])
           (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
           (write-special (make-object string-snip% " in:") (current-error-port))
-          (for-each (lambda (expr)
+          (for-each (λ (expr)
                       (let ([snp (make-object string-snip%
                                    (format "~s" (syntax-object->datum expr)))])
                         (display " " (current-error-port))
@@ -305,12 +305,12 @@ profile todo:
       ;; adds in the bug icon, if there are contexts to display
       (define (make-debug-error-display-handler orig-error-display-handler)
         (make-debug-error-display-handler/text
-         (lambda ()
+         (λ ()
            (let ([rep (drscheme:rep:current-rep)])
              (and (is-a? rep drscheme:rep:text<%>)
                   (eq? (send rep get-err-port) (current-error-port))
                   rep)))
-         (lambda (rep errs arrows) (send rep highlight-errors errs arrows))
+         (λ (rep errs arrows) (send rep highlight-errors errs arrows))
          orig-error-display-handler))
 
       ;; find-src-to-display : exn (union #f (listof (list* <src> number number)))
@@ -343,7 +343,7 @@ profile todo:
 	  (let ([after (send rep last-position)])
 	    (send rep insert #\space after after)
 	    (send rep set-clickback before after
-		  (lambda (txt start end)
+		  (λ (txt start end)
 		    (clickback))))))
 
       ;; with-mark : mark-stx syntax (any? -> syntax) -> syntax
@@ -434,7 +434,7 @@ profile todo:
                  [index 0]
                  [how-many-at-once 15]
                  [show-next-dis
-                  (lambda ()
+                  (λ ()
                     (let ([start-pos (send text get-start-position)]
                           [end-pos (send text get-end-position)])
                       (send text begin-edit-sequence)
@@ -471,7 +471,7 @@ profile todo:
                                     hyper-start hyper-end)
                               (send text set-clickback
                                     hyper-start hyper-end
-                                    (lambda x
+                                    (λ x
                                       (send text begin-edit-sequence)
                                       (send text lock #f)
                                       (send text delete end-of-current (send text last-position))
@@ -520,7 +520,7 @@ profile todo:
             (send text change-style (gui-utils:get-clickback-delta) start-pos end-pos)
             (send text set-clickback
                   start-pos end-pos
-                  (lambda x
+                  (λ x
                     (open-and-highlight-in-file (make-srcloc debug-source #f #f start span)))))
           
           ;; make bindings hier-list
@@ -546,14 +546,14 @@ profile todo:
                          (let ([text (new text:basic%)])
                            (if (send text load-file (symbol->string file))
 			       (values text 
-				       (lambda () (send text on-close)))
-			       (values #f (lambda () (void)))))]
+				       (λ () (send text on-close)))
+			       (values #f (λ () (void)))))]
                         [(path? file)
                          (let ([text (new text:basic%)])
                            (if (send text load-file file)
 			       (values text 
-				       (lambda () (send text on-close)))
-			       (values #f (lambda () (void)))))]
+				       (λ () (send text on-close)))
+			       (values #f (λ () (void)))))]
                         [(is-a? file editor<%>)
                          (values file void)]
                         [else (error 'insert-context "unknown file spec ~e" file)])])
@@ -820,14 +820,14 @@ profile todo:
             (let* ([edit-sequence-ht (make-hash-table)]
                    [locked-ht (make-hash-table)]
                    [actions-ht (make-hash-table 'equal)]
-                   [on/syntaxes (hash-table-map ht (lambda (_ pr) pr))]
+                   [on/syntaxes (hash-table-map ht (λ (_ pr) pr))]
 
                    ;; can-annotate : (listof (list boolean syntax))
                    ;; boolean is #t => code was run
                    ;;            #f => code was not run
                    ;; remove those that cannot be annotated
                    [can-annotate
-                    (filter (lambda (pr)
+                    (filter (λ (pr)
                               (let ([stx (cadr pr)])
                                 (and (syntax? stx)
                                      (let ([src (syntax-source stx)]
@@ -844,13 +844,13 @@ profile todo:
                     (let (;; actions-ht : (list src number number) -> (list boolean syntax)
                           [actions-ht (make-hash-table 'equal)])
                       (for-each
-                       (lambda (pr)
+                       (λ (pr)
                          (let* ([stx (cadr pr)]
                                 [on? (car pr)]
                                 [key (list (syntax-source stx)
                                            (syntax-position stx)
                                            (syntax-span stx))]
-                                [old (hash-table-get actions-ht key (lambda () 'nothing))])
+                                [old (hash-table-get actions-ht key (λ () 'nothing))])
                            (cond
                              [(eq? old 'nothing) (hash-table-put! actions-ht key (list on? stx))]
                              [(car old) ;; recorded as executed
@@ -859,7 +859,7 @@ profile todo:
                               (when on?
                                 (hash-table-put! actions-ht key (list #t stx)))])))
                        can-annotate)
-                      (hash-table-map actions-ht (lambda (k v) v)))])
+                      (hash-table-map actions-ht (λ (k v) v)))])
               
               ;; if everything is covered *and* no coloring has been done, do no coloring.
               (unless (and (andmap car filtered)
@@ -873,7 +873,7 @@ profile todo:
                       [sorted
                        (quicksort
                         filtered
-                        (lambda (x y)
+                        (λ (x y)
                           (let* ([x-stx (cadr x)]
                                  [y-stx (cadr y)]
                                  [x-pos (syntax-position x-stx)]
@@ -892,12 +892,12 @@ profile todo:
                   ;; turn on edit-sequences in all editors to be touched by new annotations
                   ;; also fill in the edit-sequence-ht
                   (for-each
-                   (lambda (pr)
+                   (λ (pr)
                      (let ([src (syntax-source (cadr pr))])
                        (hash-table-get 
                         edit-sequence-ht
                         src
-                        (lambda ()
+                        (λ ()
                           (hash-table-put! edit-sequence-ht src #f)
                           (send src begin-edit-sequence #f)
                           (when (send src is-locked?)
@@ -913,12 +913,12 @@ profile todo:
                   ;; freeze the colorers (possibly re-freeze them)
                   (hash-table-for-each
                    edit-sequence-ht
-                   (lambda (src _)
+                   (λ (src _)
                      (send src freeze-colorer)))
                   
                   ;; set new annotations
                   (for-each
-                   (lambda (pr)
+                   (λ (pr)
                      (let ([stx (cadr pr)]
                            [on? (car pr)])
                        (when (syntax? stx)
@@ -937,23 +937,23 @@ profile todo:
                   ;; relock editors
                   (hash-table-for-each 
                    locked-ht
-                   (lambda (txt _) (send txt lock #t)))
+                   (λ (txt _) (send txt lock #t)))
                   
                   ;; end edit sequences
                   (hash-table-for-each 
                    edit-sequence-ht
-                   (lambda (txt _) (send txt end-edit-sequence)))
+                   (λ (txt _) (send txt end-edit-sequence)))
                   
                   ;; save thunk to reset these new annotations
                   (set! internal-clear-test-coverage-display
-                        (lambda ()
+                        (λ ()
                           (hash-table-for-each
                            edit-sequence-ht
-                           (lambda (txt _) 
+                           (λ (txt _) 
                              (send txt begin-edit-sequence #f)))
                           (hash-table-for-each
                            edit-sequence-ht
-                           (lambda (txt _) 
+                           (λ (txt _) 
                              (let ([locked? (send txt is-locked?)])
                                (when locked? (send txt lock #f))
                                (send txt change-style 
@@ -964,7 +964,7 @@ profile todo:
                                (when locked? (send txt lock #t)))))
                           (hash-table-for-each
                            edit-sequence-ht
-                           (lambda (txt _) 
+                           (λ (txt _) 
                              (let ([locked? (send txt is-locked?)])
                                (when locked? (send txt lock #f))
                                (send txt thaw-colorer)
@@ -1084,18 +1084,18 @@ profile todo:
                [adjust
                 (case (preferences:get 'drscheme:profile:scale)
                   [(sqrt) sqrt]
-                  [(square) (lambda (x) (* x x))]
-                  [(linear) (lambda (x) x)])]
+                  [(square) (λ (x) (* x x))]
+                  [(linear) (λ (x) x)])]
                [factor (adjust (if (zero? max-val) 0 (/ val max-val)))]
                [get-rgb-value
-                (lambda (sel)
+                (λ (sel)
                   (let ([small (sel color-min)]
                         [big (sel color-max)])
                     (inexact->exact (floor (+ (* factor (- big small)) small)))))])
           (make-object color% 
-            (get-rgb-value (lambda (x) (send x red)))
-            (get-rgb-value (lambda (x) (send x green)))
-            (get-rgb-value (lambda (x) (send x blue))))))
+            (get-rgb-value (λ (x) (send x red)))
+            (get-rgb-value (λ (x) (send x green)))
+            (get-rgb-value (λ (x) (send x blue))))))
       
       ;; extract-maximum : (listof prof-info) -> number
       ;; gets the maximum value of the currently preferred profiling info.
@@ -1105,7 +1105,7 @@ profile todo:
                        prof-info-time
                        prof-info-num)])
           (for-each
-           (lambda (val)
+           (λ (val)
              (set! max-value (max max-value (sel val))))
            infos)
           max-value))
@@ -1114,7 +1114,7 @@ profile todo:
       (define (extract-total-time infos)
         (let ([sum 0])
           (for-each
-           (lambda (val)
+           (λ (val)
              (set! sum (+ sum (prof-info-time val))))
            infos)
           sum))
@@ -1193,7 +1193,7 @@ profile todo:
             (let ([ht (send (get-interactions-text) get-profile-info)])
               (hash-table-for-each
                ht
-               (lambda (k info)
+               (λ (k info)
                  (set-prof-info-num! info 0)
                  (set-prof-info-time! info 0)))))
 
@@ -1204,7 +1204,7 @@ profile todo:
               (set! profile-info-visible? #f)
 	      (when profile-gui-constructed?
 		(send profile-info-outer-panel change-children
-		      (lambda (l)
+		      (λ (l)
 			(remq profile-info-panel l)))
 		(send profile-info-text clear-profile-display)
 		(update-shown))))
@@ -1216,7 +1216,7 @@ profile todo:
               (let/ec esc-k
                 (hash-table-for-each
                  ht
-                 (lambda (key v)
+                 (λ (key v)
                    (when (any-info? v)
                      (esc-k #t))))
                 #f)))
@@ -1249,7 +1249,7 @@ profile todo:
                     (label (string-constant profiling-hide-profile))
                     (parent show-menu)
                     (callback
-                     (lambda (x y)
+                     (λ (x y)
                        (toggle-profile-visible))))))
           
           ;; toggle-profile-visible : -> void
@@ -1265,7 +1265,7 @@ profile todo:
                   (send profile-info-text refresh-profile)
                   (set! profile-info-visible? #t)
                   (send profile-info-outer-panel change-children
-                        (lambda (l)
+                        (λ (l)
                           (append l (list profile-info-panel))))
                   (update-shown)]
                  [else
@@ -1314,7 +1314,7 @@ profile todo:
 					 (label #f)
 					 (parent profile-left-side)
 					 (callback
-					  (lambda (x y)
+					  (λ (x y)
 					    (preferences:set 'drscheme:profile-how-to-count
 							     (case (send profile-choice get-selection)
 							       [(0) 'time]
@@ -1332,14 +1332,14 @@ profile todo:
 		    (label (string-constant profiling-update))
 		    (parent profile-left-side)
 		    (callback
-		     (lambda (x y)
+		     (λ (x y)
 		       (send profile-info-text refresh-profile)))))
 		(define clear-profile-button 
 		  (instantiate button% ()
 		    (label (string-constant profiling-clear))
 		    (parent profile-left-side)
 		    (callback
-		     (lambda (x y)
+		     (λ (x y)
 		       (clear-profile-display)
 		       (clear-profile-info)))))
 		(send profile-choice set-selection (case (preferences:get 'drscheme:profile-how-to-count)
@@ -1361,7 +1361,7 @@ profile todo:
 		;; so that the invisible children get the right size.
 		(send this reflow-container)
 		(send profile-info-outer-panel change-children
-		      (lambda (l)
+		      (λ (l)
 			(remq profile-info-panel l))))
 	      (end-container-sequence)))))
       
@@ -1419,7 +1419,7 @@ profile todo:
                    [infos 
                     (filter
                      any-info?
-                     (map copy-prof-info (hash-table-map (get-profile-info) (lambda (key val) val))))]
+                     (map copy-prof-info (hash-table-map (get-profile-info) (λ (key val) val))))]
                    ;; each editor that gets some highlighting is put
                    ;; into this table and an edit sequence is begun for it.
                    ;; after all ranges are updated, the edit sequences are all closed.
@@ -1428,7 +1428,7 @@ profile todo:
                    [max-value (extract-maximum infos)]
                    [total-time (extract-total-time infos)]
                    [show-highlight
-                    (lambda (info)
+                    (λ (info)
                       (let* ([expr (prof-info-expr info)]
                              [src (syntax-source expr)]
                              [pos (syntax-position expr)]
@@ -1437,7 +1437,7 @@ profile todo:
                                    (is-a? src text:basic<%>)
                                    (number? pos)
                                    (number? span))
-                          (unless (hash-table-get in-edit-sequence src (lambda () #f))
+                          (unless (hash-table-get in-edit-sequence src (λ () #f))
                             (hash-table-put! in-edit-sequence src #t)
                             (send src begin-edit-sequence))
                           (let* ([color (get-color-value 
@@ -1448,11 +1448,11 @@ profile todo:
                                  [clr (send src highlight-range (- pos 1) (+ pos span -1) color)])
                             (let ([old-thnk thnk])
                               (set! thnk
-                                    (lambda ()
+                                    (λ ()
                                       (clr)
                                       (old-thnk))))))))]
                    [smaller-range?
-                    (lambda (x y)
+                    (λ (x y)
                       (let ([x-span (syntax-span (prof-info-expr x))]
                             [y-span (syntax-span (prof-info-expr y))])
                         (if (and x-span y-span)
@@ -1460,7 +1460,7 @@ profile todo:
                             #f)))]
                    
                    [show-line
-                    (lambda (info newline? highlight-line?)
+                    (λ (info newline? highlight-line?)
                       (let* ([expr (prof-info-expr info)]
                              [expr-src (syntax-source expr)]
                              [count (prof-info-num info)]
@@ -1477,13 +1477,13 @@ profile todo:
                                (let ([after (send src-loc-editor last-position)])
                                  (send src-loc-editor set-clickback 
                                        before after 
-                                       (lambda (text start end)
+                                       (λ (text start end)
                                          (open-file-and-goto-position expr-src (syntax-position expr)))))]
                               [(is-a? expr-src editor:basic<%>)
                                (send src-loc-editor change-style (gui-utils:get-clickback-delta) before after)
                                (send src-loc-editor set-clickback
                                      before after
-                                     (lambda (text start end)
+                                     (λ (text start end)
                                        (let ([window (send expr-src get-top-level-window)]
                                              [pos (syntax-position expr)])
                                          (when window (send window show #t))
@@ -1512,14 +1512,14 @@ profile todo:
                         (send count-editor set-paragraph-alignment (send count-editor last-paragraph) 'right)))]
                    
                    [bigger-value?
-                    (lambda (x y)
+                    (λ (x y)
                       (let ([sel (if (eq? 'count (preferences:get 'drscheme:profile-how-to-count))
                                      prof-info-num
                                      prof-info-time)])
                         (> (sel x) (sel y))))]
                    
                    [cleanup-editor
-                    (lambda (ed)
+                    (λ (ed)
                       (let* ([ed-admin (send ed get-admin)]
                              [snip (send ed-admin get-snip)]
                              [bl (box 0)]
@@ -1550,17 +1550,17 @@ profile todo:
               
               (hash-table-for-each
                in-edit-sequence
-               (lambda (key val)
+               (λ (key val)
                  (send key end-edit-sequence)))
               (set! clear-old-results 
-                    (lambda ()
+                    (λ ()
                       (hash-table-for-each
                        in-edit-sequence
-                       (lambda (key val) (send key begin-edit-sequence)))
+                       (λ (key val) (send key begin-edit-sequence)))
                       (thnk)
                       (hash-table-for-each
                        in-edit-sequence
-                       (lambda (key val) (send key end-edit-sequence)))
+                       (λ (key val) (send key end-edit-sequence)))
                       (set! clear-old-results void))))
             (lock #t)
             (end-edit-sequence)
@@ -1623,7 +1623,7 @@ profile todo:
                [decimal-part (- (* n 100) whole-part)]
                [truncated/moved-decimal-part (floor (* (expt 10 number-of-places) decimal-part))]
                [pad
-                (lambda (str)
+                (λ (str)
                   (if ((string-length str) . < . number-of-places)
                       (string-append (make-string (- number-of-places (string-length str)) #\0) 
                                      str)
@@ -1707,29 +1707,29 @@ profile todo:
       (define (add-prefs-panel)
         (preferences:add-panel
          (string-constant profiling)
-         (lambda (s-parent)
+         (λ (s-parent)
            (letrec ([parent (make-object vertical-panel% s-parent)]
                     [msg (make-object message% 
                            (string-constant profiling-color-config) 
                            parent)]
                     [hp (make-object horizontal-pane% parent)]
                     [low (make-object button% (string-constant profiling-low-color) hp 
-                           (lambda (x y) (color-callback #t)))]
+                           (λ (x y) (color-callback #t)))]
                     [color-bar (make-object color-bar% hp)]
                     [high (make-object button% (string-constant profiling-high-color) hp
-                            (lambda (x y) (color-callback #f)))]
+                            (λ (x y) (color-callback #f)))]
                     
                     [scale (instantiate radio-box% ()
                              (label (string-constant profiling-scale))
                              (parent parent)
-                             (callback (lambda (x y) (scale-callback)))
+                             (callback (λ (x y) (scale-callback)))
                              (choices
                               (list (string-constant profiling-sqrt)
                                     (string-constant profiling-linear)
                                     (string-constant profiling-square))))]
                     
                     [color-callback
-                     (lambda (low?)
+                     (λ (low?)
                        (let ([color (get-color-from-user 
                                      (if low?
                                          (string-constant profiling-choose-low-color)
@@ -1744,7 +1744,7 @@ profile todo:
                             (if low? 'drscheme:profile:low-color 'drscheme:profile:high-color)
                             color))))]
                     [scale-callback
-                     (lambda ()
+                     (λ ()
                        (preferences:set 
                         'drscheme:profile:scale
                         (case (send scale get-selection)
@@ -1753,7 +1753,7 @@ profile todo:
                           [(2) 'square])))])
              (preferences:add-callback
               'drscheme:profile:scale
-              (lambda (p v)
+              (λ (p v)
                 (send scale set-selection
                       (case v
                         [(sqrt) 0]
@@ -1793,24 +1793,24 @@ profile todo:
           ;; is called.
           (preferences:add-callback
            'drscheme:profile:scale
-           (lambda (p v)
+           (λ (p v)
              (unless in-on-paint?
                (queue-callback
-                (lambda ()
+                (λ ()
                   (on-paint))))))
           (preferences:add-callback
            'drscheme:profile:low-color
-           (lambda (p v)
+           (λ (p v)
              (unless in-on-paint?
                (queue-callback
-                (lambda ()
+                (λ ()
                   (on-paint))))))
           (preferences:add-callback
            'drscheme:profile:high-color
-           (lambda (p v)
+           (λ (p v)
              (unless in-on-paint?
                (queue-callback
-                (lambda ()
+                (λ ()
                   (on-paint))))))
 
           (super-instantiate ())))
