@@ -202,9 +202,9 @@
         (define stupid-internal-define-syntax2
           (begin
             (send nl-welcome-panel set-label-font
-                  (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))
-            (send nl-welcome-panel set-control-font
-                  (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))))
+                  (send the-font-list find-or-create-font 24 'default 'normal 'normal #f))
+            '(send nl-welcome-panel set-control-font
+                  (send the-font-list find-or-create-font 24 'default 'normal 'normal #f))))
         
         (define nl-welcome-msg (instantiate message%  ()
                                  (label (string-constant welcome-to-drscheme))

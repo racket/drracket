@@ -1,4 +1,16 @@
 ------------------------------
+        Version 202
+------------------------------
+
+GENERAL
+-------
+
+- improved the comment boxes
+
+- interaction between Help Desk and the external browser
+  should be much better
+
+------------------------------
         Version 201
 ------------------------------
 
@@ -11,6 +23,8 @@ GENERAL
 
 - got rid of the "text box" and added in "comment"
   boxes. commenting out code now uses those comment boxes.
+
+- Help Desk now uses an external browser
 
 FRAMEWORK AND TOOLS
 -------------------

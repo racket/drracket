@@ -927,11 +927,15 @@
                       
                       (inherit get-module get-transformer-module get-init-code)
                       (define/override (create-executable setting parent program-filename)
-                        (let ([executable-fn (drscheme:language:put-executable
-					      parent
-					      program-filename
-					      mred-launcher?
-					      #t)])
+                        (let ([executable-fn
+			       (drscheme:language:put-executable
+				parent
+				program-filename
+				mred-launcher?
+				#t
+				(if mred-launcher?
+				    (string-constant save-a-mred-launcher)
+				    (string-constant save-a-mzscheme-launcher)))])
                           (when executable-fn
                             (drscheme:language:create-module-based-launcher
                              program-filename

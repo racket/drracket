@@ -134,9 +134,6 @@
                                                                                                   
                                                                                                   
                                                                                                   
-                                                                                    
-                                                                                    
-
       
       ;; simple-module-based-language->module-based-language : module-based-language<%>
       ;; transforms a simple-module-based-language into a module-based-language<%>
@@ -502,7 +499,11 @@
         (let ([executable-specs (create-executable-gui parent
                                                        program-filename
                                                        #t 
-                                                       (not (boolean? mred-launcher)))])
+						       (if (boolean? mred-launcher)
+							   (if mred-launcher
+							       'mred
+							       'mzscheme)
+							   #t))])
           (when executable-specs
             (let* ([type (car executable-specs)]
                    [base (cadr executable-specs)]
@@ -525,8 +526,8 @@
       
       ;; create-executeable-gui : (union #f (is-a?/c top-level-area-container<%>))
       ;;                          (union #f string?)
-      ;;                          boolean
-      ;;                          boolean
+      ;;                          (union #t 'launcher 'stand-alone)
+      ;;                          (union #t 'mzscheme 'mred)
       ;;                       -> (union #f (list (union 'no-show 'launcher 'stand-alone)
       ;;                                          (union 'no-show 'mzscheme 'mred)
       ;;                                          string[filename]))
@@ -551,7 +552,7 @@
                                   (parent type/base/help-panel)
                                   (stretchable-width #f)))
         (define type-panel (make-object horizontal-panel% type/base-panel))
-        (define type-rb (and show-type
+        (define type-rb (and (boolean? show-type)
                              (instantiate radio-box% ()
                                (label (string-constant executable-type))
                                (choices (list (string-constant launcher)
@@ -559,7 +560,7 @@
                                (parent type-panel)
                                (callback void))))
         (define base-panel (make-object horizontal-panel% type/base-panel))
-        (define base-rb (and show-base
+        (define base-rb (and (boolean? show-base)
                              (instantiate radio-box% ()                         
                                (label (string-constant executable-base))
                                (choices (list "MzScheme" "MrEd"))
@@ -597,13 +598,30 @@
                                          (lambda (exn)
                                            (values #f (send filename-text-field get-value) #f))])
                           (split-path (send filename-text-field get-value)))])
-            (let ([filename 
-                   (put-executable/defaults
-                    dlg
-                    base
-                    name
-                    (= 0 (send base-rb get-selection))
-                    (not (= 0 (send type-rb get-selection))))])
+            (let* ([mzscheme?
+		    (cond
+		      [base-rb
+		       (= 0 (send base-rb get-selection))]
+		      [else (eq? show-base 'mzscheme)])]
+		   [launcher?
+		    (cond
+		      [type-rb
+		       (= 0 (send type-rb get-selection))]
+		      [else (eq? show-type 'launcher)])]
+		   [filename 
+		    (put-executable/defaults
+		     dlg
+		     base
+		     name
+		     (not mzscheme?)
+		     launcher?
+		     (if launcher?
+			 (if mzscheme?
+			     (string-constant save-a-mzscheme-launcher)
+			     (string-constant save-a-mred-launcher))
+			 (if mzscheme?
+			     (string-constant save-a-mzscheme-stand-alone-executable)
+			     (string-constant save-a-mred-stand-alone-executable))))])
               (when filename
                 (send filename-text-field set-value filename)))))
         
@@ -621,7 +639,7 @@
                 (case (send type-rb get-selection)
                   [(0) 'launcher]
                   [(1) 'stand-alone])
-                'now-show)
+                'no-show)
             (if base-rb
                 (case (send base-rb get-selection)
                   [(0) 'mzscheme]
@@ -631,7 +649,7 @@
 
       ;; put-executable : parent string boolean boolean -> (union false? string)
       ;; invokes the put-file dialog with arguments specific to building executables
-      (define (put-executable parent program-filename launcher? mred?)
+      (define (put-executable parent program-filename launcher? mred? title)
         (let-values ([(base name dir) (split-path program-filename)])
           (let ([default-name (default-executable-filename name mred?)])
             (put-executable/defaults
@@ -639,10 +657,11 @@
              base
              default-name
              launcher?
-             mred?))))
+             mred? 
+             title))))
       
-      ;; put-executable/default : parent string string boolean boolean -> (union false? string)
-      (define (put-executable/defaults parent default-dir default-name launcher? mred?)
+      ;; put-executable/defaults : parent string string boolean boolean -> (union false? string)
+      (define (put-executable/defaults parent default-dir default-name launcher? mred? title)
         (let-values ([(extension style filters)
                       (if launcher?
                           (if mred?
@@ -656,11 +675,11 @@
                            (embedding-executable-is-directory? mred?))]
                  [users-name
                   (if dir?
-                      (get-directory (string-constant save-an-executable)
+                      (get-directory title
                                      parent
                                      default-dir
                                      style)
-                      (put-file (string-constant save-an-executable)
+                      (put-file title
                                 parent
                                 default-dir
                                 default-name
