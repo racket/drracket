@@ -671,11 +671,12 @@
           
           (define protect
             (lambda (proc)
-              (let ([ut user-thread])
+              (let ([ut user-thread]
+		    [breaks-on? (break-enabled)])
                 (call-in-nested-thread
                  (lambda ()
                    (break-enabled #f)
-                   (proc ut))
+                   (proc ut breaks-on?))
                  drscheme:init:system-custodian))))
           
           ;; =User= (probably doesn't matter)
@@ -819,87 +820,142 @@
                    [fetch-char-sema (make-semaphore 1)]
                    [fetcher-spawned? #f]
                    [char-fetched-sema (make-semaphore)]
-                   [char-fetched #f])
+                   [char-fetched #f]
+		   [prefetched (cons 'dummy null)]) ; for peek lookaheads
                   (public
                     [fetch ; =Protected-User=
-                     (lambda (ut peek?)
-                       ; Only one reader at a time:
-                       (semaphore-wait/enable-break fetch-char-sema)
-                       ; Now we're the active reader...
-                       (unless fetcher-spawned?
-                         (set! fetcher-spawned? #t)
-                         ; Spawn a fetcher:
-                         (queue-system-callback
-                          ut
-                          (lambda () ; =Kernel=, =Handler=
-                            (if eof-received?
-                                (begin (set! char-fetched eof)
-                                       (set! eof-received? #t))
-                                (let ([text (init-transparent-input)])
-                                  (set! char-fetched (send text fetch-char))
-                                  ;; fetch-char might return void, 
-                                  ;; is there a race condition here, when peeking?
-                                  (when (eof-object? char-fetched)
-                                    (set! eof-received? #t))))
-                            (semaphore-post char-fetched-sema))))
-                       ; Wait for a char, allow breaks:
-                       (with-handlers ([(lambda (x) #t)
-                                        (lambda (x)
-                                          ; Let someone else try to read...
-                                          (semaphore-post fetch-char-sema)
-                                          (raise x))])
-                         (semaphore-wait/enable-break char-fetched-sema))
-                       ; Got the char (no breaks)
-                       (if peek?
-                           ; preserve the fecthed char
-                           (semaphore-post char-fetched-sema)
-                           ; Next reader'll have to spawn a fetcher
-                           (set! fetcher-spawned? #f))
-                       (begin0
-                         char-fetched
-                         ; Got our char; let another reader go
-                         (semaphore-post fetch-char-sema)))])
+		     ;; Returns one of:
+		     ;;   - character (for success)
+		     ;;   - #f (nothing ready, wait on maybe-char-ready-sema)
+		     ;;   - a semaphore (nothing ready, wait on the given semaphore)
+                     (lambda (ut peek? skip)
+		       ;; Only one reader at a time:
+                       (if (semaphore-try-wait? fetch-char-sema)
+			   ;; Now we're the active reader...
+			   ;; First look for a pre-fetched char:
+			   (let ([prefetched-char
+				  (if (not peek?)
+				      ;; No peek, so skip is 0
+				      (if (pair? (cdr prefetched))
+					  (begin0
+					   (cadr prefetched)
+					   (set-cdr! prefetched (cddr prefetched))
+					   ;; If prefetched went empty, then an in-progress
+					   ;; spawned fetcher is now fetching a normal
+					   ;; character, instead of a pre-character;
+					   ;; set up a thread to propagate the sema post:
+					   (when fetcher-spawned?
+					     (thread
+					      (lambda ()
+						;; Wait until lookahead done
+						(semaphore-wait maybe-later-char-ready-sema)
+						;; Let others know that the lookahead is done
+						(semaphore-post maybe-later-char-ready-sema)
+						;; Let others know that an immediate char is ready
+						(semaphore-post maybe-char-ready-sema)))))
+					  #f)
+				      ;; Peeking...
+				      (let loop ([prefetched (cdr prefetched)]
+						 [skip skip])
+					(cond
+					 [(null? prefetched) #f]
+					 [(zero? skip) (car prefetched)]
+					 [else (loop (cdr prefetched) (sub1 skip))])))])
+			     (if prefetched-char
+				 ;; Got our char; let another reader go and return
+				 (begin
+				   (semaphore-post fetch-char-sema)
+				   prefetched-char)
+				 ;; Need to work with a fetcher...
+				 (begin
+				   (unless fetcher-spawned?
+				     ;; Need to give the fetched a sema to post when it's done;
+				     ;; this semaphore is the one attached to the port,
+				     ;; or returned by the peek-char function.
+				     (let ([maybe-ready-sema (if (zero? skip)
+								 ;; Normal sema:
+								 maybe-char-ready-sema
+								 ;; New sema for this look-ahead:
+								 (let ([s (make-semaphore 1)])
+								   (set! maybe-later-char-ready-sema s)
+								   s))])
+				       ;; Going to spawn a catcher; no new chars
+				       ;; ready until the fetcher succeeds.
+				       (semaphore-wait maybe-ready-sema)
+				       (set! fetcher-spawned? #t)
+				       ;; Spawn a fetcher:
+				       (queue-system-callback
+					ut
+					(lambda () ; =Kernel=, =Handler=
+					  (if eof-received?
+					      (begin 
+						(set! char-fetched eof)
+						(set! eof-received? #t))
+					      (let ([text (init-transparent-input)])
+						(set! char-fetched (send text fetch-char))
+						;; fetch-char might return void
+						(when (eof-object? char-fetched)
+						  (set! eof-received? #t))))
+					  (semaphore-post maybe-ready-sema)
+					  (semaphore-post char-fetched-sema)))))
+				   ;; Look for a char
+				   (if (semaphore-try-wait? char-fetched-sema)
+				       ;; Got a char from the most recent fetcher
+				       (begin
+					 ;; Next reader'll have to spawn a fetcher
+					 ;; for new chars.
+					 (set! fetcher-spawned? #f)
+					 (begin0
+					  (if (not peek?)
+					      ;; Return the result
+					      char-fetched
+					      ;; Enqueue the char, then return #f so
+					      ;; another call will check the queue:
+					      (begin
+						(let loop ([pf prefetched])
+						  (if (null? (cdr pf))
+						      (set-cdr! pf (cons char-fetched null))
+						      (loop (cdr pf))))
+						#f))
+					  ;; Got our char; let another reader go
+					  (semaphore-post fetch-char-sema)))
+				       ;; No char
+				       (begin0
+					(if (and peek? (positive? skip))
+					    ;; Return a sema to block on; this
+					    ;; will get posted when a lookahead succeeds
+					    maybe-later-char-ready-sema
+					    ;; Not peeking: just return #f
+					    #f)
+					;; let another reader go
+					(semaphore-post fetch-char-sema))))))
+			   ;; No char -- couldn't even check for one
+			   #f))])
                   (sequence (super-init)))))
           (field (fetcher #f)
-                 (fetcher-semaphore (make-semaphore 1)))
+                 (fetcher-semaphore (make-semaphore 1))
+		 (maybe-char-ready-sema (make-semaphore 1))
+		 (maybe-later-char-ready-sema #f)) ; generated as it's needed
           (define drop-fetcher ; =Kernel=, =Handler=
             (lambda ()
               (semaphore-wait fetcher-semaphore)
               (set! fetcher #f)
-                (semaphore-post fetcher-semaphore)))
+	      (semaphore-post fetcher-semaphore)))
           (define this-in-fetch-char ; =User=
-            (lambda (peek?)
+            (lambda (peek? skip)
               (protect
-               (lambda (ut) ; =Protected-User=
+               (lambda (ut breaks-on?) ; =Protected-User=
                  (semaphore-wait fetcher-semaphore)
                  (unless fetcher (set! fetcher (make-fetcher)))
                  (semaphore-post fetcher-semaphore)
-                 (send fetcher fetch ut peek?)))))
-          
-          (define this-in-char-ready?
-            (lambda () ; =User=
-              (protect
-               (lambda (ut)  ; =Protected-User=
-                 (let ([answer #f]
-                       [s (make-semaphore 0)])
-                   (queue-system-callback
-                    ut
-                    (lambda () ; =Kernel=, =Handler=
-                      (if eof-received?
-                          (set! answer #t)
-                          (let ([text (init-transparent-input)])
-                            (set! answer (send text check-char-ready?))))
-                      (semaphore-post s)))
-                   ; enable-break in case the thread dies and the callback never 
-                   ;  happens:
-                   (semaphore-wait/enable-break s)
-                   answer)))))
-          
-          (define (this-in-read-char) ; =User=
-            (this-in-fetch-char #f))
-          
-          (define (this-in-peek-char) ; =User=
-            (this-in-fetch-char #t))
+                 (send fetcher fetch ut peek? skip)))))
+
+	  (define this-in-read-char ; =User=
+            (lambda ()
+	      (this-in-fetch-char #f 0)))
+	  (define this-in-peek-char ; =User=
+            (lambda (skip)
+	      (this-in-fetch-char #t skip)))
           
           (field (flushing-event-running (make-semaphore 1))
                  (limiting-sema (make-semaphore output-limit-size))) ; waited once foreach in io-collected-thunks
@@ -944,31 +1000,39 @@
                (run-io-collected-thunks))
              user-thread))
           
-          (define/public (queue-output thunk) ; =User=
-            (protect
-             (lambda (ut) ; =Protected-User=
-               ; limiting-sema prevents queueing too much output from the user
-               (semaphore-wait/enable-break limiting-sema)
-               ; Queue the output:
-               (semaphore-wait io-semaphore)
-               (if (eq? ut user-thread)
-                   ; Queue output:
-                   (set! io-collected-thunks (cons thunk io-collected-thunks))
-                   ; Release limit allocation, instead:
-                   (semaphore-post limiting-sema))
-               (semaphore-post io-semaphore)
-               ; If there's not one, queue an event that will flush the output queue
-               (when (semaphore-try-wait? flushing-event-running)
-                 ; Unlike most callbacks, this one has to run always, even if
-                 ;   the user thread changes.
-                 (queue-system-callback
-                  ut
-                  (lambda () ; =Kernel=, =Handler=
-                    (semaphore-post flushing-event-running)
-                    (if (eq? ut user-thread)
-                        (run-io-collected-thunks)
-                        (clear-io-collected-thunks)))
-                  #t)))))
+          (define/public queue-output
+	    (opt-lambda (thunk [nonblock? #f]) ; =User=
+	      (protect
+	       (lambda (ut breaks-on?) ; =Protected-User=
+					; limiting-sema prevents queueing too much output from the user
+		 (and ((if nonblock?
+			   semaphore-try-wait? 
+			   (if breaks-on? 
+			       semaphore-wait/enable-break 
+			       semaphore-wait))
+		       limiting-sema)
+		      (begin
+					; Queue the output:
+			(semaphore-wait io-semaphore)
+			(if (eq? ut user-thread)
+					; Queue output:
+			    (set! io-collected-thunks (cons thunk io-collected-thunks))
+					; Release limit allocation, instead:
+			    (semaphore-post limiting-sema))
+			(semaphore-post io-semaphore)
+					; If there's not one, queue an event that will flush the output queue
+			(when (semaphore-try-wait? flushing-event-running)
+					; Unlike most callbacks, this one has to run always, even if
+					;   the user thread changes.
+			  (queue-system-callback
+			   ut
+			   (lambda () ; =Kernel=, =Handler=
+			     (semaphore-post flushing-event-running)
+			     (if (eq? ut user-thread)
+				 (run-io-collected-thunks)
+				 (clear-io-collected-thunks)))
+			   #t))
+			#t))))))
           
             (define generic-write ; =Kernel=, =Handler=
               (lambda (text s style-func)
@@ -1012,10 +1076,10 @@
                   (send text lock c-locked?)
                   (send text end-edit-sequence))))
           
-          ;; this-result-write : (union string (instanceof snip%)) -> void
+          ;; this-result-write : (union string (instanceof snip%)) [bool] -> void
           ;; writes `s' as a value produced by the REPL.
           (define this-result-write 
-            (lambda (s) ; =User=
+            (opt-lambda (s [nonblock? #f]) ; =User=
               (queue-output
                (lambda () ; =Kernel=, =Handler=
                  (cleanup-transparent-io)
@@ -1023,12 +1087,13 @@
                                 s
                                 (lambda (start end)
                                   (change-style result-delta
-                                                start end)))))))
+                                                start end))))
+	       nonblock?)))
           
           (field (saved-newline? #f))
-          ;; this-out-write : (union string snip%) -> void
+          ;; this-out-write : (union string snip%) [bool] -> void
           (define this-out-write
-            (lambda (s) ; = User=
+            (opt-lambda (s [nonblock? #f]) ; = User=
               (queue-output
                (lambda () ; =Kernel=, =Handler=
                  (let* ([text (init-transparent-io #f)]
@@ -1053,10 +1118,12 @@
                               (send text change-style output-delta start end))))])
                    (when old-saved-newline?
                      (gw newline-string))
-                   (gw s1))))))
+                   (gw s1)))
+	       nonblock?)))
           
-          ;; this-err-write : (union string (instanceof snip%)) -> void
-          (define (this-err-write s) ; =User=
+          ;; this-err-write : (union string (instanceof snip%)) [bool] -> void
+          (define this-err-write 
+	    (opt-lambda (s [nonblock? #f]) ; =User=
             (queue-output
              (lambda () ; =Kernel=, =Handler=
                (cleanup-transparent-io)
@@ -1064,18 +1131,48 @@
                 this
                 s
                 (lambda (start end)
-                  (change-style error-delta start end))))))
+                  (change-style error-delta start end))))
+	     nonblock?)))
           
-          (field (this-err (make-output-port (lambda (x) (this-err-write x))
-                                             void))
-                 (this-out (make-output-port (lambda (x) (this-out-write x))
-                                             void))
-                 (this-in (make-input-port (lambda () (this-in-read-char))
-                                           (lambda () (this-in-char-ready?))
-                                           void
-                                           (lambda () (this-in-peek-char))))
-                 (this-result (make-output-port (lambda (x) (this-result-write x)) 
-                                                void)))
+          (field (this-err (make-custom-output-port limiting-sema
+						    (lambda (s start end flush?) 
+						      (if (this-err-write (substring s start end) flush?)
+							  (- end start)
+							  0))
+						    void
+						    void))
+                 (this-out (make-custom-output-port limiting-sema
+						    (lambda (s start end flush?) 
+						      (if (this-out-write (substring s start end) flush?)
+							  (- end start)
+							  0))
+						    void
+						    void))
+                 (this-in (make-custom-input-port maybe-char-ready-sema
+						  (lambda (s) 
+						    (let ([c (this-in-read-char)])
+						      (cond
+						       [(char? c)
+							(string-set! s 0 c)
+							1]
+						       [(not c) 0]
+						       [else c])))
+						  (lambda (s skip) 
+						    (let ([c (this-in-peek-char skip)])
+						      (cond
+						       [(char? c)
+							(string-set! s 0 c)
+							1]
+						       [(not c) 0]
+						       [else c])))
+						  void))
+                 (this-result (make-custom-output-port limiting-sema
+						       (lambda (s start end flush?) 
+							 (if (this-result-write (substring s start end) flush?)
+							     (- end start)
+							     0))
+						       void
+						       void)))
           
           (define (get-this-err) this-err)
           (define (get-this-out) this-out)
@@ -2281,7 +2378,7 @@
            [new-stream-start 0]
            [new-stream-end 0]
            [shutdown? #f])
-          
+
           (field
            [stream-start/end-protect (make-semaphore 1)]
            [wait-for-sexp (make-semaphore 0)]
@@ -2301,20 +2398,14 @@
                 (set-resetting #t)
                 (change-style consumed-delta start end)
                 (set-resetting old-resetting)))]
-          [define/public check-char-ready? ; =Reentrant=
-            (lambda ()
-              (semaphore-wait stream-start/end-protect)
-              (begin0
-                (not (null? old-stream-sections))
-                (semaphore-post stream-start/end-protect)))]
-            
+	    
           [define/public eof-received
             (lambda () ; =Kernel=, =Handler=
               (set! eof-submitted? #t)
               (unless (= new-stream-start (last-position))
                 (set! old-stream-sections 
-                      (append old-stream-sections 
-                              (list (cons new-stream-start (last-position))))))
+		      (append old-stream-sections 
+			      (list (cons new-stream-start (last-position))))))
               (set! new-stream-start (last-position))
               (set! new-stream-end (last-position))
               (semaphore-post wait-for-sexp))]
@@ -2389,8 +2480,8 @@
             (lambda (start end)
               (do-pre-eval)
               (set! old-stream-sections
-                    (append old-stream-sections
-                            (list (cons new-stream-start new-stream-end))))
+		    (append old-stream-sections
+			    (list (cons new-stream-start new-stream-end))))
               (set! new-stream-start (+ end 1))
               (set! new-stream-end (+ end 1))
               (semaphore-post wait-for-sexp)

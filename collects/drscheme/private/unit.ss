@@ -706,7 +706,8 @@
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
-          execute-callback))
+          execute-callback
+          run-breakable/killable))
 
       (define -frame%
         (class* super-frame% (drscheme:rep:context<%> -frame<%>)
@@ -1285,86 +1286,134 @@
                (send interactions-text shutdown)
                (send interactions-text on-close)
                (super-on-close))]
-           
-           [define running? #t]
-           
-           (define/public (break-callback)
-             (send interactions-text break)
-             (ensure-rep-shown)
-             (send (send interactions-text get-canvas) focus))
-           
-           (define/public (execute-callback)
-             (cond
-               [(send definitions-text save-file-out-of-date?)
-                (message-box 
-                 (string-constant drscheme)
-                 (string-constant definitions-modified)
-                 this)]
-               [else
-                (ensure-rep-shown)
-                (send definitions-text just-executed)
-                (send interactions-canvas focus)
-                (send interactions-text reset-console)
-                (send interactions-text clear-undos)
-                
-                (let ([start (if (and ((send definitions-text last-position) . >= . 2)
-                                      (char=? (send definitions-text get-character 0) #\#)
-                                      (char=? (send definitions-text get-character 1) #\!))
-                                 (send definitions-text paragraph-start-position 1)
-                                 0)])
-                  (send definitions-text split-snip start)
-                  (send interactions-text do-many-text-evals
-                        definitions-text 
-                        start
-                        (send definitions-text last-position)))
-                (send interactions-text clear-undos)]))
-           
-           (inherit get-menu-bar get-focus-object get-edit-target-object)
-           [define language-menu 'uninited-language-menu]
-           
-           (rename [super-on-size on-size])
-           (override on-size)
-           [define on-size
-             (lambda (w h)
-               (preferences:set 'drscheme:unit-window-width w)
-               (preferences:set 'drscheme:unit-window-height h)
-               (super-on-size w h))]
-           
-           (override get-editor get-canvas)
-           [define get-editor (lambda () definitions-text)]
-           [define get-canvas (lambda () definitions-canvas)]
-           
-           (define/override (get-delegated-text) definitions-text)
-           
-           [define definitions-text (make-object (drscheme:get/extend:get-definitions-text))]
-           [define interactions-text (make-object 
-                                         (drscheme:get/extend:get-interactions-text)
-                                       this)]
-           (public get-definitions-text get-interactions-text)
-           [define get-definitions-text (lambda () definitions-text)]
-           [define get-interactions-text (lambda () interactions-text)]
-           
-           [define update-teachpack-menu
-             (lambda ()
-               (for-each (lambda (item) (send item delete)) teachpack-items)
-               (set! teachpack-items
-                     (map (lambda (name)
-                            (make-object menu:can-restore-menu-item%
-                              (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
-                              language-menu
-                              (lambda (item evt)
-                                (drscheme:teachpack:set-teachpack-cache-filenames!
-                                 (preferences:get 'drscheme:teachpacks)
-                                 (mzlib:list:remove
-                                  name
-                                  (drscheme:teachpack:teachpack-cache-filenames
-                                   (preferences:get 'drscheme:teachpacks)))))))
-                          (drscheme:teachpack:teachpack-cache-filenames
-                           (preferences:get 'drscheme:teachpacks)))))]
-           
-           (define/public (get-definitions/interactions-panel-parent)
-             (get-area-container))
-           
+          
+          [define running? #t]
+          
+          ;; run-breakable/killable : (-> void) -> void
+          ;; creates a new thread to run the thunk
+          ;; and sets up the frame's GUI to allow
+          ;; breaking and killing and disallow other
+          ;; types of evaluation (so the break button 
+          ;; still has a single meaning)
+          (define/public (run-breakable/killable thunk)
+            (disable-evaluation)
+            (let* ([done (make-semaphore 0)]
+                   [before-beginning (make-semaphore 0)]
+                   [main-thread
+                    (thread
+                     (lambda ()
+                       (semaphore-wait before-beginning)
+                       (thunk)
+                       (semaphore-post done)))])
+              (set-break-callback
+               (lambda ()
+                 (make-break-callback main-thread)))
+              (thread
+               (lambda ()
+                 (thread-wait main-thread)
+                 (semaphore-post done)))
+              (thread
+               (lambda ()
+                 (semaphore-wait done)
+                 (queue-callback
+                  (lambda ()
+                    (enable-evaluation)
+                    (set-break-callback void)))))
+              (semaphore-post before-beginning)))
+
+          ;; make-break-callback : thread -> void
+          (define (make-break-callback thread)
+            ;; should handle killing, too.
+            (break-thread thread))
+
+          ;; internal-break-callback : (-> void)
+          (field (internal-break-callback void))
+          
+          ;; break-callback : -> void
+          (define/public (break-callback)
+            (internal-break-callback))
+          
+          ;; set-break-callback : (-> void) -> void
+          (define/public (set-break-callback thnk)
+            (set! internal-break-callback thnk))
+          
+          (define/public (execute-callback)
+            (cond
+              [(send definitions-text save-file-out-of-date?)
+               (message-box 
+                (string-constant drscheme)
+                (string-constant definitions-modified)
+                this)]
+              [else
+               (ensure-rep-shown)
+               (set-break-callback
+                (lambda ()
+                  (send interactions-text break)
+                  (ensure-rep-shown)
+                  (send (send interactions-text get-canvas) focus)))
+               (send definitions-text just-executed)
+               (send interactions-canvas focus)
+               (send interactions-text reset-console)
+               (send interactions-text clear-undos)
+               
+               (let ([start (if (and ((send definitions-text last-position) . >= . 2)
+                                     (char=? (send definitions-text get-character 0) #\#)
+                                     (char=? (send definitions-text get-character 1) #\!))
+                                (send definitions-text paragraph-start-position 1)
+                                0)])
+                 (send definitions-text split-snip start)
+                 (send interactions-text do-many-text-evals
+                       definitions-text 
+                       start
+                       (send definitions-text last-position)))
+               (send interactions-text clear-undos)]))
+          
+          (inherit get-menu-bar get-focus-object get-edit-target-object)
+          [define language-menu 'uninited-language-menu]
+          
+          (rename [super-on-size on-size])
+          (override on-size)
+          [define on-size
+            (lambda (w h)
+              (preferences:set 'drscheme:unit-window-width w)
+              (preferences:set 'drscheme:unit-window-height h)
+              (super-on-size w h))]
+          
+          (override get-editor get-canvas)
+          [define get-editor (lambda () definitions-text)]
+          [define get-canvas (lambda () definitions-canvas)]
+          
+          (define/override (get-delegated-text) definitions-text)
+          
+          [define definitions-text (make-object (drscheme:get/extend:get-definitions-text))]
+          [define interactions-text (make-object 
+                                        (drscheme:get/extend:get-interactions-text)
+                                      this)]
+          (public get-definitions-text get-interactions-text)
+          [define get-definitions-text (lambda () definitions-text)]
+          [define get-interactions-text (lambda () interactions-text)]
+          
+          [define update-teachpack-menu
+            (lambda ()
+              (for-each (lambda (item) (send item delete)) teachpack-items)
+              (set! teachpack-items
+                    (map (lambda (name)
+                           (make-object menu:can-restore-menu-item%
+                             (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
+                             language-menu
+                             (lambda (item evt)
+                               (drscheme:teachpack:set-teachpack-cache-filenames!
+                                (preferences:get 'drscheme:teachpacks)
+                                (mzlib:list:remove
+                                 name
+                                 (drscheme:teachpack:teachpack-cache-filenames
+                                  (preferences:get 'drscheme:teachpacks)))))))
+                         (drscheme:teachpack:teachpack-cache-filenames
+                          (preferences:get 'drscheme:teachpacks)))))]
+          
+          (define/public (get-definitions/interactions-panel-parent)
+            (get-area-container))
+          
           (inherit delegated-text-shown? hide-delegated-text show-delegated-text)
           (rename [super-add-show-menu-items add-show-menu-items])
           (define/override (add-show-menu-items show-menu)
@@ -1406,47 +1455,47 @@
                        (send menu set-label (string-constant hide-overview))
                        (preferences:set 'framework:show-delegate? #t)
                        (show-delegated-text)))))))
+          
+          (super-instantiate ()
+            (filename filename)
+            (width (preferences:get 'drscheme:unit-window-width))
+            (height (preferences:get 'drscheme:unit-window-height)))
+          
+          (let* ([mb (get-menu-bar)]
+                 [language-menu-on-demand
+                  (lambda (menu-item)
+                    (update-teachpack-menu))]
+                 [_ (set! language-menu (make-object (get-menu%) 
+                                          (string-constant language-menu-name)
+                                          mb
+                                          #f
+                                          language-menu-on-demand))]
+                 [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
+                 [send-method
+                  (lambda (method)
+                    (lambda (_1 _2)
+                      (let ([text (get-focus-object)])
+                        (when (or (eq? text definitions-text)
+                                  (eq? text interactions-text))
+                          (method text)))))])
             
-           (super-instantiate ()
-             (filename filename)
-             (width (preferences:get 'drscheme:unit-window-width))
-             (height (preferences:get 'drscheme:unit-window-height)))
-           
-           (let* ([mb (get-menu-bar)]
-                  [language-menu-on-demand
-                   (lambda (menu-item)
-                     (update-teachpack-menu))]
-                  [_ (set! language-menu (make-object (get-menu%) 
-                                           (string-constant language-menu-name)
-                                           mb
-                                           #f
-                                           language-menu-on-demand))]
-                  [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
-                  [send-method
-                   (lambda (method)
-                     (lambda (_1 _2)
-                       (let ([text (get-focus-object)])
-                         (when (or (eq? text definitions-text)
-                                   (eq? text interactions-text))
-                           (method text)))))])
-             
-             (make-object menu:can-restore-menu-item%
-               (string-constant choose-language-menu-item-label)
-               language-menu
-               (lambda (_1 _2)
-                 (let ([new-settings (drscheme:language-configuration:language-dialog
-                                      #f
-                                      (send definitions-text get-next-settings)
-                                      this)])
-                   (when new-settings
-                     (send definitions-text set-next-settings new-settings)
-                     (preferences:set
-                      drscheme:language-configuration:settings-preferences-symbol
-                      new-settings))))
-               #\l)
-             (make-object separator-menu-item% language-menu)
-             (make-object menu:can-restore-menu-item%
-               (string-constant add-teachpack-menu-item-label)
+            (make-object menu:can-restore-menu-item%
+              (string-constant choose-language-menu-item-label)
+              language-menu
+              (lambda (_1 _2)
+                (let ([new-settings (drscheme:language-configuration:language-dialog
+                                     #f
+                                     (send definitions-text get-next-settings)
+                                     this)])
+                  (when new-settings
+                    (send definitions-text set-next-settings new-settings)
+                    (preferences:set
+                     drscheme:language-configuration:settings-preferences-symbol
+                     new-settings))))
+              #\l)
+            (make-object separator-menu-item% language-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant add-teachpack-menu-item-label)
               language-menu
               (lambda (_1 _2)
                 (drscheme:language-configuration:add-new-teachpack this)))
@@ -1462,56 +1511,55 @@
                 #f
                 #f
                 clear-all-on-demand))
-             
-             (set! execute-menu-item
-                   (make-object menu:can-restore-menu-item%
-                     (string-constant execute-menu-item-label)
-                     scheme-menu
-                     (lambda (_1 _2) (execute-callback))
-                     #\t
-                     (string-constant execute-menu-item-help-string)))
-             (make-object menu:can-restore-menu-item%
-               (string-constant break-menu-item-label)
-               scheme-menu
-               (lambda (_1 _2) (break-callback))
-               #\b
-               (string-constant break-menu-item-help-string))
-             (make-object menu:can-restore-menu-item%
-               (string-constant kill-menu-item-label)
-               scheme-menu
-               (lambda (_1 _2) (send interactions-text kill-evaluation))
-               #\k
-               (string-constant kill-menu-item-help-string))
-             (make-object separator-menu-item% scheme-menu)
-             (make-object menu:can-restore-menu-item%
-               (string-constant create-executable-menu-item-label)
-               scheme-menu
-               (lambda (x y) (create-executable this)))
-             (make-object menu:can-restore-menu-item%
-               (string-constant module-browser...)
-               scheme-menu
-               (lambda (x y) (drscheme:module-overview:module-overview this)))
-             (make-object separator-menu-item% scheme-menu)
-             (make-object menu:can-restore-menu-item%
-               (string-constant reindent-menu-item-label)
-               scheme-menu
-               (send-method (lambda (x) (send x tabify-selection))))
-             (make-object menu:can-restore-menu-item%
-               (string-constant reindent-all-menu-item-label)
-               scheme-menu
-               (send-method (lambda (x) (send x tabify-all)))
-               #\i)
-             (make-object menu:can-restore-menu-item%
-               (string-constant comment-out-menu-item-label)
-               scheme-menu
-               (send-method (lambda (x) (send x comment-out-selection))))
-             (make-object menu:can-restore-menu-item%
-               (string-constant uncomment-menu-item-label)
-               scheme-menu
-               (send-method (lambda (x) (send x uncomment-selection)))))
-           
+            
+            (set! execute-menu-item
+                  (make-object menu:can-restore-menu-item%
+                    (string-constant execute-menu-item-label)
+                    scheme-menu
+                    (lambda (_1 _2) (execute-callback))
+                    #\t
+                    (string-constant execute-menu-item-help-string)))
+            (make-object menu:can-restore-menu-item%
+              (string-constant break-menu-item-label)
+              scheme-menu
+              (lambda (_1 _2) (break-callback))
+              #\b
+              (string-constant break-menu-item-help-string))
+            (make-object menu:can-restore-menu-item%
+              (string-constant kill-menu-item-label)
+              scheme-menu
+              (lambda (_1 _2) (send interactions-text kill-evaluation))
+              #\k
+              (string-constant kill-menu-item-help-string))
+            (make-object separator-menu-item% scheme-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant create-executable-menu-item-label)
+              scheme-menu
+              (lambda (x y) (create-executable this)))
+            (make-object menu:can-restore-menu-item%
+              (string-constant module-browser...)
+              scheme-menu
+              (lambda (x y) (drscheme:module-overview:module-overview this)))
+            (make-object separator-menu-item% scheme-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant reindent-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x tabify-selection))))
+            (make-object menu:can-restore-menu-item%
+              (string-constant reindent-all-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x tabify-all)))
+              #\i)
+            (make-object menu:can-restore-menu-item%
+              (string-constant comment-out-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x comment-out-selection))))
+            (make-object menu:can-restore-menu-item%
+              (string-constant uncomment-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x uncomment-selection)))))
           
-           (frame:reorder-menus this)
+          (frame:reorder-menus this)
            
           (make-object separator-menu-item% (get-show-menu))
           

@@ -13,7 +13,8 @@
 
   (define-syntax wrap-tool-inputs
     (lambda (stx)
-      (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
+      (let ([table (call-with-input-file (build-path (collection-path "drscheme"
+                                                                      "private")
                                                      "tool-info.ss")
                      (lambda (port)
                        (let loop ()
@@ -23,10 +24,14 @@
                                (cons ent (loop)))))))])
         (syntax-case stx ()
           [(_ body tool-name)
-           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object stx (cadr x))) table)]
-                         [(name ...) (map (lambda (x) (datum->syntax-object stx (car x))) table)])
+           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object stx (cadr x)))
+                                          table)]
+                         [(name ...) (map (lambda (x) (datum->syntax-object stx (car x)))
+                                          table)]
+                         [src-info (datum->syntax-object stx 'name)])
              (syntax
-              (let ([name (contract type name 'drscheme tool-name 'name)] ...)
+              (let ([name (contract type name 'drscheme tool-name 
+                                    (quote-syntax src-info))] ...)
                 body)))]))))
   
 

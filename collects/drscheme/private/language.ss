@@ -780,12 +780,19 @@
                                  (next-snip))]))]
                [char-ready? (lambda () #t)]
                [close (lambda () (void))]
-               [peek-char #f]
-               [port
-                (make-input-port read-char 
-                                 char-ready?
-                                 close
-                                 peek-char)])
+	       ;; We create a slow port for now; in the future, try
+	       ;; grabbing more characters:
+               [port (make-custom-input-port 
+		      #f
+		      (lambda (s)
+			(let ([c (read-char)])
+			  (if (char? c)
+			      (begin
+				(string-set! s 0 c)
+				1)
+			      c)))
+		      #f ; no peek
+		      close)])
           (update-str-to-snip)
           (port-count-lines! port)
           port))
