@@ -234,8 +234,8 @@
     (clear-definitions drs)
     (type-in-definitions drs expression)
 
-    (test "R4RS" 'off #f "(#&3/2 #&3/2)")    
-    (test "R4RS" 'on #f "(#0=#&3/2 #0#)")
+    (test "write" 'off #f "(#&3/2 #&3/2)")    
+    (test "write" 'on #f "(#0=#&3/2 #0#)")
     (when quasi-quote?
       (test "Quasiquote" 'off 'off "`(,(box 3/2) ,(box 3/2))")
       (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/2)) ,(box (+ 1 1/2)))")
