@@ -152,6 +152,7 @@
      current-rep
      current-language-settings
      get-drs-bindings-keymap
+     (struct exn:locs (locs))
      text%
      text<%>
      console-text<%>

@@ -17,6 +17,8 @@ profile todo:
            (lib "thread.ss")
            (lib "string-constant.ss" "string-constants"))
   
+  (define orig (current-output-port))
+  
   (provide debug@)
   (define debug@
     (unit/sig drscheme:debug^
@@ -25,7 +27,8 @@ profile todo:
               [drscheme:unit : drscheme:unit^]
               [drscheme:language : drscheme:language^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^])
-      
+
+      (define (printf . args) (apply fprintf orig args))
       
 
                                                         
@@ -157,7 +160,7 @@ profile todo:
 			   (let* ([src (car src-to-display)]
 				  [position (cadr src-to-display)]
 				  [span (cddr src-to-display)])
-			     (when (and (object? src)
+                             (when (and (object? src)
 					(is-a? src text:basic%))
 			       (send rep highlight-error src position (+ position span))))))))]
               [else 

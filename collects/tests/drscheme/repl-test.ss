@@ -592,7 +592,10 @@
                 [(send definitions-canvas has-focus?)
 		 (let ([start (car source-location)]
 		       [finish (cdr source-location)])
-		   (let ([error-range (send interactions-text get-error-range)])
+		   (let ([error-ranges (send interactions-text get-error-range)]
+			 [error-range (and error-ranges
+					   (not (null? error-ranges))
+					   (car error-ranges))])
 		     (unless (and error-range
 				  (= (cadr error-range) (loc-offset start))
 				  (= (caddr error-range) (loc-offset finish)))

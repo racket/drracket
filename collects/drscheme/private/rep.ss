@@ -45,6 +45,9 @@
       (rename [-text% text%]
               [-text<%> text<%>])
 
+      ;; locs = (listof (list text% number number))
+      (define-struct (exn:locs exn) (locs))
+      
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -167,15 +170,15 @@
                               (insert-file-name/icon src pos span line col))
                             (insert/delta rep (exn-message exn) error-delta)
                             (insert/delta rep "\n")
-                            (cond
-                              [(and (is-a? src text:basic%)
-                                    (number? line)
-                                    (number? col))
-                               (send rep highlight-error src (- pos 1) (+ pos -1 span))]
-                              [(and (is-a? src text:basic%)
-                                    (number? pos)
-                                    (number? span))
-                               (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
+                            (when (and (is-a? src text:basic%)
+                                       (number? pos)
+                                       (number? span))
+                               (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+                         [(exn:locs? exn)
+                          (let ([locs (exn:locs-locs exn)])
+                            (insert/delta rep (exn-message exn) error-delta)
+                            (insert/delta rep "\n")
+                            (send rep highlight-errors locs))]
                          [(exn? exn)
                           (insert/delta rep (exn-message exn) error-delta)
                           (insert/delta rep "\n")]
@@ -508,7 +511,7 @@
             (super-init (build-path (collection-path "icons") "eof.gif"))
             (set-flags (cons 'handles-events (get-flags))))))
       
-      (define error-range #f)
+      (define error-ranges #f)
       (define (reset-callback) (void))
       (define error-range/reset-callback-semaphore (make-semaphore 1))
       
@@ -561,6 +564,7 @@
       (define -text<%>
         (interface ()
           reset-highlighting
+          highlight-errors
           highlight-error
           highlight-error/forward-sexp
           
@@ -596,7 +600,7 @@
           wait-for-io-to-complete
           queue-output
           
-          get-error-range))
+          get-error-ranges))
 
       (define text-mixin
         (mixin ((class->interface text%) editor:basic<%> scheme:text<%> console-text<%>) (-text<%>)
@@ -1274,8 +1278,8 @@
                   [super-after-delete after-delete])
           (inherit get-inserting-prompt)
           
-          (public get-error-range)
-          (define (get-error-range) error-range)
+          (public get-error-ranges)
+          (define (get-error-ranges) error-ranges)
           
           ;; =User= and =Kernel=
           (define (highlight-error/forward-sexp text start)
@@ -1295,32 +1299,60 @@
                start
                (+ start span))))
           
+          ;; highlight-error : file number number -> void
+          (define (highlight-error file start end)
+            (highlight-errors (list (list file start end))))
+          
           ;; =User= and =Kernel= (maybe simultaneously)
-          (define (highlight-error file start finish)
-            (when (is-a? file text:basic<%>)
-              (send file begin-edit-sequence)
-              (reset-highlighting)
+          ;; highlight-errors : (cons (list file number number) (listof (list file number number)))
+          (define/public (highlight-errors locs)
+            (let* ([first-error-range (car locs)]
+                   [first-file (car first-error-range)]
+                   [first-start (cadr first-error-range)]
+                   [first-finish (caddr first-error-range)])
+              (reset-highlighting)  ;; grabs error-range/reset-callback-sempahore
               (semaphore-wait error-range/reset-callback-semaphore)
-              (set! error-range (list file start finish))
-              (if color?
-                  (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
-                    (when (is-a? file drscheme:unit:definitions-text<%>)
-                      (send file set-position start start))
-                    (set! reset-callback
-                          (lambda ()
-                            (unless (get-inserting-prompt)
-                              (semaphore-wait error-range/reset-callback-semaphore)
-                              (set! error-range #f)
-                              (set! reset-callback void)
-                              (reset)
-                              (semaphore-post error-range/reset-callback-semaphore)))))
-                  (send file set-position start finish))
-              (send file scroll-to-position start #f finish)
-              (send file end-edit-sequence)
-              (send file set-caret-owner #f 'global)
+              (set! error-ranges locs)
+              
+              (for-each (lambda (loc) 
+                          (let ([file (car loc)])
+                            (when (is-a? file text:basic<%>)
+                              (send file begin-edit-sequence))))
+                        locs)
+              
+              (when color?
+                (let ([resets
+                       (map (lambda (loc)
+                              (let ([file (car loc)]
+                                    [start (cadr loc)]
+                                    [finish (caddr loc)])
+                                (if (is-a? file text:basic<%>)
+                                    (send file highlight-range start finish error-color #f #f 'high)
+                                    void)))
+                            locs)])
+                  (set! reset-callback
+                        (lambda ()
+                          (unless (get-inserting-prompt)
+                            (semaphore-wait error-range/reset-callback-semaphore)
+                            (set! error-ranges #f)
+                            (set! reset-callback void)
+                            (for-each (lambda (x) (x)) resets)
+                            (semaphore-post error-range/reset-callback-semaphore))))))
+
+              (unless (is-a? first-file -text<%>)
+                (send first-file set-position first-start first-start)
+                (send first-file scroll-to-position first-start #f first-finish))
+              (for-each (lambda (loc)
+                          (let ([file (car loc)])
+                            (when (is-a? file text:basic<%>)
+                              (send file end-edit-sequence))))
+                        locs)
+              (send first-file set-caret-owner #f 'global)
+              
               (semaphore-post error-range/reset-callback-semaphore)))
           
-          (define (reset-highlighting) (reset-callback))
+          (define (reset-highlighting)
+            (reset-callback))
           
           (define (on-set-media) (void))
           
