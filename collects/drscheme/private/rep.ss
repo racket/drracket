@@ -16,7 +16,6 @@
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-	   ;(lib "errortrace.ss" "errortrace")
            (prefix mzlib:pretty-print: (lib "pretty.ss"))
            (prefix print-convert: (lib "pconvert.ss")))  
   
@@ -68,33 +67,30 @@
       ;; the highlight must be set after the error message because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display/debug-handler msg exn)
-	(let-values ([(src position other-position)
+	(let-values ([(src position other-position module form)
 		      (if (exn? exn)
 			  (extract-file/position-from-exn exn)
 			  (values #f #f #f))])
 	  (let ([rep (current-rep)])
-
-	    (printf "src: ~s position: ~s: other-position: ~s~n"
-		    src position other-position)
 	    
-	    (when (string? src)
-	      (let ([pos (send rep last-position)])
-		(send rep insert file-icon pos pos)
-		(send rep set-clickback pos (+ pos 1)
-		      (lambda (txt start end) 
-			(let ([file (handler:edit-file src)])
-			  (when (and (is-a? file drscheme:unit:frame%)
-				     position)
-			    (if other-position
-				(send (send file get-interactions-text)
-				      highlight-error
-				      (send file get-definitions-text)
-				      position
-				      other-position)
-				(send (send file get-interactions-text)
-				      highlight-error/forward-sexp
-				      (send file get-definitions-text)
-				      position))))))))
+            (let ([locked? (send rep is-locked?)])
+              (send rep lock #f)
+              (when (string? src)
+                (let ([pos (send rep last-position)])
+                  (send rep insert file-icon pos pos)
+                  (send rep insert #\space (+ pos 1) (+ pos 1))
+                  (send rep set-clickback pos (+ pos 1)
+                        (lambda (txt start end)
+                          (open-file-and-highlight src position other-position)))))
+              (when module
+                (let ([pos (send rep last-position)])
+                  (send rep insert docs-icon pos pos)
+                  (send rep insert docs-icon (+ pos 1) (+ pos 1))
+                  (send rep set-clickback pos (+ pos 1)
+                        (lambda (txt start end)
+                          (show-documentation module form)))))
+              (send rep lock locked?))
+              
 	    
 	    ((error-display-handler) msg)
 	    
@@ -103,26 +99,64 @@
 		  (send rep highlight-error src position other-position)
 		  (send rep highlight-error/forward-sexp src position))))))
 
-      ;; extract-file/position-from-exn : exn ->
-      ;;                                  (values (union #f string (instanceof text:basic%))
-      ;;                                          (union #f number)
-      ;;                                          (union #f number))
+      ;; open-file-and-highlight : string (union number #f) (union number #f)
+      ;; opens the file named by filename. If position is #f,
+      ;; doesn't highlight anything. If position is a number and other-position
+      ;; is #f, highlights the range from position to the end of sexp.
+      ;; if other-position is a number, highlights from position to 
+      ;; other position.
+      (define (open-file-and-highlight filename position other-position)
+        (let ([file (handler:edit-file filename)])
+          (when (and (is-a? file drscheme:unit:frame%)
+                     position)
+            (if other-position
+                (send (send file get-interactions-text)
+                      highlight-error
+                      (send file get-definitions-text)
+                      position
+                      other-position)
+                (send (send file get-interactions-text)
+                      highlight-error/forward-sexp
+                      (send file get-definitions-text)
+                      position)))))
+      
+      ;; show-documentation : symbol (union #f symbol) -> void
+      (define (show-documentation module form)
+        (message-box "open docs here"
+                     (format "module: ~s~nform: ~s~n" module form)))
+      
+      ;; extract-info-from-exn : exn ->
+      ;;                         (values (union #f string (instanceof text:basic%))
+      ;;                                 (union #f number)
+      ;;                                 (union #f number)
+      ;;                                 (union #f symbol)
+      ;;                                 (union #f symbol))
       ;; the first result is the filename or editor where the error occurred
       ;; the second result is the position in the file or editor where it occured
-      ;; the last result is #f when the starting position should be considered
+      ;; the third result is #f when the starting position should be considered
       ;;     the beginning of an sexp and it is the end of the
       ;;     region to highlight otherwise.
+      ;; the fourth result is a symbol naming the module defining the form that
+      ;;     signalled the error
+      ;; the fifth result is a symbol naming the form that signaled the error.
       (define (extract-file/position-from-exn exn)
 	(cond
-	  [(exn:syntax? exn) (let ([stx (exn:syntax-expr exn)])
-			       (if stx
-				   (values (syntax-source stx)
-					   (and (syntax-position stx)
-						(- (syntax-position stx) 1))
-					   #f)
-				   (values #f #f #f)))]
+	  [(exn:syntax? exn) 
+           (let ([stx (exn:syntax-expr exn)])
+             (if stx
+                 (values (syntax-source stx)
+                         (and (syntax-position stx)
+                              (- (syntax-position stx) 1))
+                         #f
+                         (exn:syntax-module exn)
+                         (exn:syntax-form exn))
+                 (values #f #f #f
+                         (exn:syntax-module exn)
+                         (exn:syntax-form exn))))]
+          [(exn:read? exn)
+           (values (exn:read-source exn) #f #f #f #f)]
 	  [else
-	   (values #f #f #f)]))
+	   (values #f #f #f #f #f)]))
 
       ;; (parameter (string (union #f exn) -> void))
       (define error-display/debug-handler (make-parameter drscheme-error-display/debug-handler))
@@ -392,6 +426,13 @@
         (let ([bitmap
                (make-object bitmap%
                  (build-path (collection-path "icons") "file.gif"))])
+          (if (send bitmap ok?)
+              (make-object image-snip% bitmap)
+              (make-object string-snip% "[open file]"))))
+      (define docs-icon
+        (let ([bitmap
+               (make-object bitmap%
+                 (build-path (collection-path "icons") "book.gif"))])
           (if (send bitmap ok?)
               (make-object image-snip% bitmap)
               (make-object string-snip% "[open file]"))))
