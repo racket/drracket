@@ -833,7 +833,28 @@ tab panels new behavior:
       ;; visible-defs : (listof (list number number number number))
       ;; visible-ints : (listof (list number number number number))
       ;; i : number  -- which tab this is in the tab panel
-      (define-struct tab (defs ints visible-defs visible-ints i) (make-inspector))
+      ;; enabled? : boolean -- indicates if evaluation (or editing) is allowed in this tab, currently
+      (define-struct tab (defs ints visible-defs visible-ints i enabled?) (make-inspector))
+
+      (define tab%
+        (class object%
+          (init-field defs
+                      ints
+                      i)
+          (field [enabled? #t]
+                 [visible-defs #f]
+                 [visible-ints #f])
+          (define/public (get-defs) defs)
+          (define/public (get-ints) ints)
+          (define/public (get-visible-defs) visible-defs)
+          (define/public (set-visible-defs vd) (set! visible-defs vd))
+          (define/public (get-visible-ints) visible-ints)
+          (define/public (set-visible-ints vi) (set! visible-ints vi))
+          (define/public (get-i) i)
+          (define/public (set-i _i) (set! i _i))
+          (define/public (get-enabled) enabled?)
+          (define/public (set-enabled e?) (set! enabled? e?))
+          (super-new)))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
@@ -1033,23 +1054,18 @@ tab panels new behavior:
                   [else
                    (send (car cs) set-resize-corner #f)
                    (loop (cdr cs))]))))
-            
-          (public clear-annotations)
-          [define clear-annotations
-            (λ ()
-              (send interactions-text reset-highlighting))]
           
-          (public get-directory needs-execution?)
-          [define get-directory
-            (λ ()
-              (let ([filename (send definitions-text get-filename)])
-                (if (path? filename)
-                    (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
-                      base)
-                    #f)))]
-          [define needs-execution?
-            (λ ()
-              (send definitions-text needs-execution?))]
+          (define/public (clear-annotations)
+            (send interactions-text reset-highlighting))
+          
+          (define/public (get-directory)
+            (let ([filename (send definitions-text get-filename)])
+              (if (path? filename)
+                  (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
+                    base)
+                  #f)))
+          (define/public (needs-execution?)
+            (send definitions-text needs-execution?))
           
           [define definitions-item #f]
           [define interactions-item #f]
@@ -1064,37 +1080,50 @@ tab panels new behavior:
           [define forced-quit? #f]
           [define search-canvas #f]
           
-          (public make-searchable)
-          [define make-searchable
-            (λ (canvas)
-              (update-info)
-              (set! search-canvas canvas))]
-          (override get-text-to-search)
-          [define get-text-to-search
-            (λ ()
-              (if search-canvas
-                  (send search-canvas get-editor)
-                  (get-editor)))]
+          (define/public (make-searchable canvas)
+            (update-info)
+            (set! search-canvas canvas))
+          (define/override (get-text-to-search)
+            (if search-canvas
+                (send search-canvas get-editor)
+                (get-editor)))
           
-          [define was-locked? #f]
+          (define was-locked? #f)
           
-          (define/pubment (disable-evaluation)
+          (define/pubment (disable-evaluation tab)
+            (unless (send tab get-enabled)
+              (error 'disable-evaluation "tab already disabled"))
+            (send tab set-enabled #f)
+            (let ([defs (send tab get-defs)]
+                  [ints (send tab get-ints)])
+              (send defs lock #t)
+              (send ints lock #t))
+            (disable-global-controls)
+            (inner (void) disable-evaluation tab))
+          
+          (define/private (disable-global-controls)
             (when execute-menu-item
               (send execute-menu-item enable #f))
             (send execute-button enable #f)
-            (send definitions-text lock #t)
-            (send interactions-text lock #t)
-            (send file-menu:create-new-tab-item enable #f)
-            (inner (void) disable-evaluation))
-          (define/pubment (enable-evaluation)
+            (send file-menu:create-new-tab-item enable #f))
+          
+          (define/pubment (enable-evaluation tab)
+            (when (send tab get-enabled)
+              (error 'enable-evaluation "tab already enabled"))
+            (send tab set-enabled #t)
+            (let ([defs (send tab get-defs)]
+                  [ints (send tab get-ints)])
+              (send defs lock #f)
+              (unless (send ints eval-busy?)
+                (send ints lock #f)))
+            (enable-global-controls)
+            (inner (void) enable-evaluation tab))
+          
+          (define/private (enable-global-controls)
             (when execute-menu-item
               (send execute-menu-item enable #t))
             (send execute-button enable #t)
-            (send definitions-text lock #f)
-            (unless (send interactions-text eval-busy?)
-              (send interactions-text lock #f))
-            (send file-menu:create-new-tab-item enable #t)
-            (inner (void) enable-evaluation))
+            (send file-menu:create-new-tab-item enable #t))
           
           (inherit set-label)
           (inherit modified)
@@ -1120,11 +1149,11 @@ tab panels new behavior:
           (define/private (update-tabs-labels)
             (for-each
              (λ (tab)
-               (let* ([label (get-defs-tab-label (tab-defs tab))])
-                 (unless (equal? label (send tabs-panel get-item-label (tab-i tab)))
-                   (send tabs-panel set-item-label (tab-i tab) label))))
+               (let* ([label (get-defs-tab-label (send tab get-defs))])
+                 (unless (equal? label (send tabs-panel get-item-label (send tab get-i)))
+                   (send tabs-panel set-item-label (send tab get-i) label))))
              tabs)
-            (send tabs-panel set-selection (tab-i current-tab))
+            (send tabs-panel set-selection (send current-tab get-i))
             (send (send tabs-panel get-parent)
                   change-children
                   (λ (l)
@@ -1159,7 +1188,7 @@ tab panels new behavior:
               (let loop ([tabs tabs])
                 (unless (null? tabs)
                   (let ([tab (car tabs)])
-                    (if (eq? (tab-ints tab) rep)
+                    (if (eq? (send tab get-ints) rep)
                         (change-to-tab tab)
                         (loop (cdr tabs)))))))
             (unless interactions-shown?
@@ -1684,8 +1713,8 @@ tab panels new behavior:
           (define/augment (can-close?)
             (and (andmap (lambda (tab)
                            (or (eq? tab current-tab)
-                               (and (send (tab-defs tab) can-close?)
-                                    (send (tab-ints tab) can-close?))))
+                               (and (send (send tab get-defs) can-close?)
+                                    (send (send tab get-ints) can-close?))))
                          tabs)
                  (send interactions-text can-close?)
                  (inner #t can-close?)))
@@ -1693,8 +1722,8 @@ tab panels new behavior:
             (inner (void) on-close)
             (for-each (lambda (tab)
                         (unless (eq? tab current-tab)
-                          (send (tab-defs tab) on-close)
-                          (send (tab-ints tab) on-close)))
+                          (send (send tab get-defs) on-close)
+                          (send (send tab get-ints) on-close)))
                       tabs)
             (when (eq? this newest-frame)
               (set! newest-frame #f))
@@ -1822,13 +1851,15 @@ tab panels new behavior:
           (define/override (get-open-here-editor) definitions-text)
           
           (define definitions-text (new (drscheme:get/extend:get-definitions-text)))
-          (define interactions-text (make-object (drscheme:get/extend:get-interactions-text) this))
+          (define interactions-text (new (drscheme:get/extend:get-interactions-text) 
+                                         (context this)))
           (define/public (get-definitions-text) definitions-text)
           (define/public (get-interactions-text) interactions-text)
           
           ;; wire the definitions text to the interactions text and initialize it.
           (define/private (init-definitions-text)
             (send definitions-text set-interactions-text interactions-text)
+            (send interactions-text set-definitions-text definitions-text)
             (send definitions-text change-mode-to-match))
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1837,11 +1868,16 @@ tab panels new behavior:
           ;;
           
           ;; tabs : (listof tab)
-          (define tabs (list (make-tab definitions-text interactions-text #f #f 0)))
+          (define tabs (list (new tab%
+                                  (defs definitions-text)
+                                  (ints interactions-text)
+                                  (i 0))))
           
           ;; current-tab : tab
           ;; corresponds to the tabs-panel's active button.
           (define current-tab (car tabs))
+          
+          (define/public (get-current-tab) current-tab)
           
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
@@ -1849,7 +1885,7 @@ tab panels new behavior:
             (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                    [defs (new (drscheme:get/extend:get-definitions-text))]
                    [tab-count (length tabs)]
-                   [new-tab (make-tab defs ints #f #f tab-count)])
+                   [new-tab (new tab% (defs defs) (ints ints) (i tab-count))])
               (set! tabs (append tabs (list new-tab)))
               (send tabs-panel append (get-defs-tab-label defs))
               (change-to-nth-tab (- (send tabs-panel get-number) 1))
@@ -1869,8 +1905,8 @@ tab panels new behavior:
               (save-visible-tab-regions)
               (send definitions-text set-delegate #f)
               (set! current-tab tab)
-              (set! definitions-text (tab-defs current-tab))
-              (set! interactions-text (tab-ints current-tab))
+              (set! definitions-text (send current-tab get-defs))
+              (set! interactions-text (send current-tab get-ints))
               (for-each (λ (defs-canvas) (send defs-canvas set-editor definitions-text))
                         definitions-canvases)
               (for-each (λ (ints-canvas) (send ints-canvas set-editor interactions-text))
@@ -1878,6 +1914,11 @@ tab panels new behavior:
               (restore-visible-tab-regions)
               (update-save-message)
               (update-save-button)
+              
+              (if (send tab get-enabled)
+                  (enable-global-controls)
+                  (disable-global-controls))
+              
               (send definitions-text update-frame-filename)
               (send definitions-text set-delegate old-delegate)))
           
@@ -1885,38 +1926,30 @@ tab panels new behavior:
           (define/public (prev-tab) (change-to-delta-tab -1))
           
           (define/private (change-to-delta-tab dt)
-            (change-to-nth-tab (modulo (+ (tab-i current-tab) dt) (length tabs))))
+            (change-to-nth-tab (modulo (+ (send current-tab get-i) dt) (length tabs))))
           
           (define/private (close-current-tab)
             (cond
               [(null? tabs) (void)]
               [(null? (cdr tabs)) (void)]
               [else
-               (let loop ([l-tabs tabs]
-                          [acc null])
+               (let loop ([l-tabs tabs])
                  (cond
                    [(null? l-tabs) (error 'close-current-tab "uh oh.3")]
                    [else
                     (let ([tab (car l-tabs)])
                       (if (eq? tab current-tab)
                           (when (close-tab tab)
-                            (let ([new-tabs (append 
-                                             (reverse acc) 
-                                             (map (lambda (t)
-                                                    (make-tab (tab-defs t)
-                                                              (tab-ints t)
-                                                              (tab-visible-defs t)
-                                                              (tab-visible-ints t)
-                                                              (- (tab-i t) 1)))
-                                                  (cdr l-tabs)))])
-                              (send tabs-panel delete (tab-i tab))
-                              (set! tabs new-tabs)
-                              (update-menu-bindings) 
-                              (change-to-tab (if (null? acc)
-                                                 (car new-tabs)
-                                                 (car acc)))))
-                          (loop (cdr l-tabs)
-                                (cons tab acc))))]))]))
+                            (for-each (lambda (t) (send t set-i (- (send t get-i) 1)))
+                                      (cdr l-tabs))
+                            (set! tabs (remq tab tabs))
+                            (send tabs-panel delete (send tab get-i))
+                            (update-menu-bindings) 
+                            (change-to-tab (cond
+                                             [(< (tab-i tab) (length tabs))
+                                              (list-ref tabs (tab-i tab))]
+                                             [else (car tabs)])))
+                          (loop (cdr l-tabs))))]))]))
           
           (define/private (close-tab tab)
             (let ([close-editor
@@ -1927,8 +1960,8 @@ tab panels new behavior:
                         #t]
                        [else
                         #f]))])
-              (and (close-editor (tab-defs tab))
-                   (close-editor (tab-ints tab)))))
+              (and (close-editor (send tab get-defs))
+                   (close-editor (send tab get-ints)))))
           
           (define/public (open-in-new-tab filename)
             (create-new-tab)
@@ -1954,8 +1987,8 @@ tab panels new behavior:
                           (when admin
                             (send admin get-view xb yb wb hb)))))
                 (list (unbox xb) (unbox yb) (unbox wb) (unbox hb))))
-            (set-tab-visible-ints! current-tab (get-visible-regions interactions-text))
-            (set-tab-visible-defs! current-tab (get-visible-regions definitions-text)))
+            (send current-tab set-visible-ints (get-visible-regions interactions-text))
+            (send current-tab set-visible-defs (get-visible-regions definitions-text)))
                 
           (define/private (restore-visible-tab-regions)
             (define (set-visible-regions txt regions)
@@ -1970,8 +2003,8 @@ tab panels new behavior:
                     (third region)
                     (fourth region)
                     #t))
-            (set-visible-regions interactions-text (tab-visible-ints current-tab))
-            (set-visible-regions definitions-text (tab-visible-defs current-tab)))
+            (set-visible-regions interactions-text (send current-tab get-visible-ints))
+            (set-visible-regions definitions-text (send current-tab get-visible-defs)))
 
           (define/private (pathname-equal? p1 p2) (string=? (path->string (normalize-path p1))
                                                             (path->string (normalize-path p2))))
@@ -1979,7 +2012,7 @@ tab panels new behavior:
             (let loop ([tabs tabs])
               (unless (null? tabs)
                 (let* ([tab (car tabs)]
-                       [tab-filename (send (tab-defs tab) get-filename)])
+                       [tab-filename (send (send tab get-defs) get-filename)])
                   (if (and tab-filename
                            (pathname-equal? filename tab-filename))
                       (change-to-tab tab)
@@ -1991,7 +2024,7 @@ tab panels new behavior:
                      (equal? (normal-case-path (normalize-path x))
                              (normal-case-path (normalize-path y))))])
               (ormap (λ (tab)
-                       (let ([fn (send (tab-defs tab) get-filename)])
+                       (let ([fn (send (send tab get-ints) get-filename)])
                          (and fn
                               (path-equal? fn filename))))
                      tabs)))
@@ -2255,7 +2288,7 @@ tab panels new behavior:
               (send module-browser-button enable #f)
               (send module-browser-lib-path-check-box enable #f)
               (send module-browser-name-length-choice enable #f)
-              (disable-evaluation)
+              (disable-evaluation current-tab)
               (drscheme:module-overview:fill-pasteboard 
                module-browser-pb
                (drscheme:language:make-text/pos
@@ -2263,12 +2296,12 @@ tab panels new behavior:
                 0
                 (send definitions-text last-position))
                (λ (str) (update-status-line 
-                              'plt:module-browser 
-                              (format module-browser-progress-constant str)))
+                         'plt:module-browser 
+                         (format module-browser-progress-constant str)))
                (λ (user-thread user-custodian)
                  (set-breakables user-thread user-custodian)))
               (set-breakables old-break-thread old-custodian)
-              (enable-evaluation)
+              (enable-evaluation current-tab)
               (send module-browser-button enable #t)
               (send module-browser-lib-path-check-box enable #t)
               (send module-browser-name-length-choice enable #t)
