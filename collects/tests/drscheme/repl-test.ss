@@ -1,3 +1,5 @@
+;; change this to _save_ files instead of creating a file directly.
+
 (define-struct test (program
 		     r4rs-load-answer
 		     prepend-filename?    ;; (union #f #t 2)
@@ -9,7 +11,10 @@
 		     r4rs-execute-answer
 
 		     r4rs-execute-location
-		     ;; (union 'definitions 'unlocated-error (cons number number))
+		     ;; (union 'definitions
+		     ;;        'unlocated-error
+		     ;;        (cons number number)  -- error range
+		     ;;        #f)                   -- no error
 		     
 		     mred-execute-answer
 		     mred-load-answer
@@ -115,7 +120,7 @@
    (make-test "    (eval '(lambda ()))"
 	      "1.5-1.24: lambda: malformed expression"
 	      2
-	      ". lambda: malformed expression"
+	      "<image> lambda: malformed expression"
 	      (vector 4 23)
 	      "lambda: bad syntax in: (lambda ())"
 	      "lambda: bad syntax in: (lambda ())"
@@ -124,7 +129,7 @@
    (make-test "    (eval 'x)"
 	      "1.5-1.14: reference to undefined identifier: x"
 	      2
-	      ". reference to undefined identifier: x"
+	      "<image> reference to undefined identifier: x"
 	      (vector 4 13)
 	      "reference to undefined identifier: x"
 	      "reference to undefined identifier: x"
@@ -211,18 +216,31 @@
 	      #f)
 
    ;; error escape handler test
-   (make-test (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
-	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
-	      2
-	      (format ". car: expects 1 argument, given 0~n15")
-	      'definitions
+   (make-test
+    (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
+    (format "5.20-5.25: car: expects 1 argument, given 0~n15")
+    2
+    (format "<image> car: expects 1 argument, given 0~n15")
+    'definitions
 
-	      (format "car: expects 1 argument, given 0~n15")
-	      (format "car: expects 1 argument, given 0~n15")
+    (format "car: expects 1 argument, given 0~n15")
+    (format "car: expects 1 argument, given 0~n15")
+    #f
+    #f)
+   
+   
+
+   ;; non-strings snip test
+   (make-test 'abc-text-box
+	      "[abc]"
+	      #f
+	      "[abc]"
+	      #f
+	      "non-string-snip"
+	      "non-string-snip"
 	      #f
 	      #f)
-   
-   
+
    ;; macro tests
    (make-test "(define-macro m (lambda (x) (+ x 1))) (m 2)"
 	      "3"
@@ -305,9 +323,9 @@
 
    (make-test
     (format "(define s (make-semaphore 0))~n(queue-callback~n(lambda ()~n(dynamic-wind~nvoid~n(lambda () (car))~n(lambda () (semaphore-post s)))))~n(yield s)")
-    "6.12-6.17: car: expects 1 argument, given 0"
+    "6.16-6.21: car: expects 1 argument, given 0"
     2
-    ". car: expects 1 argument, given 0"
+    "<image> car: expects 1 argument, given 0"
     (vector 99 104)
     "car: expects 1 argument, given 0"
     "car: expects 1 argument, given 0"
@@ -380,7 +398,6 @@
 (define wait-for-execute (lambda () (wait-for-button execute-button)))
 (define get-int-pos (lambda () (get-text-pos interactions-text)))
 
-
 (define tmp-load-filename
   (normalize-path (build-path (current-load-relative-directory) "repl-test-tmp.ss")))
 
@@ -397,8 +414,8 @@
 	     [prepend-filename? (test-prepend-filename? in-vector)]
 	     [load-answer
 	      (case prepend-filename?
-		[(2) (string-append ". . " tmp-load-filename ": " pre-load-answer)]
-		[(#t) (string-append ". " tmp-load-filename ": " pre-load-answer)]
+		[(2) (string-append "<image> <image> " tmp-load-filename ": " pre-load-answer)]
+		[(#t) (string-append "<image> " tmp-load-filename ": " pre-load-answer)]
 		[(#f) pre-load-answer])]
 	     [execute-answer (test-r4rs-execute-answer in-vector)]
 	     [execute-location (test-r4rs-execute-location in-vector)]
@@ -411,7 +428,15 @@
 	; load contents of test-file into the REPL, recording
 	; the start and end positions of the text
 	
-	(insert-string program)
+	(cond
+	 [(string? program)
+	  (insert-string program)]
+	 [(eq? program 'abc-text-box)
+	  (fw:test:menu-select "Edit" "Insert Text Box")
+	  (fw:test:keystroke #\a)
+	  (fw:test:keystroke #\b)
+	  (fw:test:keystroke #\c)])
+	  
 	(do-execute drscheme-frame (not breaking-test?))
 	(when breaking-test?
 	  (fw:test:button-push (ivar drscheme-frame stop-execute-button))
@@ -419,8 +444,7 @@
 
 	(let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
 	       [received-execute
-		(send interactions-text get-text 
-		      execute-text-start execute-text-end)])
+		(fetch-output drscheme-frame execute-text-start execute-text-end)])
 	  
 	  ; check focus and selection for execute test
 	  (unless raw?
@@ -466,11 +490,8 @@
 	  
 	  (fw:test:new-window interactions-canvas)
 	  
-	  ; construct the load file
-	  
-	  (call-with-output-file tmp-load-filename
-	    (lambda (port) (display program port))
-	    'truncate)
+	  ; save the file so that load is in sync
+	  (fw:test:menu-select "File" "Save Definitions")
 	  
 	  ; make sure that a prompt is available at end of the REPL
 	  (unless (and (char=? #\>
@@ -496,8 +517,7 @@
 	    
 	    (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
 		   [received-load 
-		    (send interactions-text get-text 
-			  load-text-start load-text-end)])
+		    (fetch-output drscheme-frame load-text-start load-text-end)])
 	      
 	      ; check load text 
 	      (let ([expected
@@ -548,6 +568,10 @@
 	(unless (eq? drs2 drs)
 	  (error 'kill-tests "expected original drscheme frame to come back to the front"))))))
 
+(when (file-exists? tmp-load-filename)
+  (delete-file tmp-load-filename))
+(save-drscheme-window-as tmp-load-filename)
+
 (kill-tests)
-(run-test-in-language-level #f)
 (run-test-in-language-level #t)
+(run-test-in-language-level #f)

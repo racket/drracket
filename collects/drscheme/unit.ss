@@ -29,32 +29,52 @@
 	   [executable-filename
 	    (if (eq? (system-type) 'windows)
 		(string-append (basename program-filename) ".exe")
-		(basename program-filename))])
+		(basename program-filename))]
+	   [settings (fw:preferences:get drscheme:language:settings-preferences-symbol)])
+      
       (cond
        [(not program-filename)
 	(mred:message-box "Create Launcher"
 			  "You must save your program before creating a launcher"
 			  frame)]
+
        [else
-	(let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
-	       [v-settings (struct->vector settings)]
-	       [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
-	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-	       [filename 
+	(let* ([filename 
 		(parameterize ([fw:finder:dialog-parent-parameter frame]
 			       [fw:finder:default-extension "exe"])
 		  (fw:finder:put-file
 		   executable-filename
-		   #f #f "Save a Launcher"))])
+		   #f #f "Save a Launcher"))]
+	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
+	       [teachpacks (fw:preferences:get 'drscheme:teachpack-file)])
 	  (when filename
-	    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
-				     "-e" (format "(define settings ~s)" v-settings)
-				     "-e" (format "(define teachpacks '~s)" teachpacks))])
-	      ((if (and in-mz? (null? teachpacks))
+	    (cond
+	     ;; this condition should guarantee that the language
+	     ;; matches the default mred or mzscheme initial language.
+	     ;; in that case, we don't need to load any of the
+	     ;; zodiac or drs support so that program starts up much
+	     ;; faster.
+	     [(and (null? teachpacks)
+		   (basis:full-language? settings)
+		   (not (basis:zodiac-vocabulary? settings))
+		   (ormap (lambda (x) (equal? x settings)) basis:settings))
+	      ((if in-mz?
 		   launcher:make-mzscheme-launcher
 		   launcher:make-mred-launcher)
-	       (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-	       filename))))])))
+	       (list "-qmve"
+		     (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
+			     program-filename))
+	       filename)]
+	     [else
+	      (let* ([v-settings (struct->vector settings)]
+		     [definitions (list "-e" (format "(define filename ~s)" program-filename)
+					"-e" (format "(define settings ~s)" v-settings)
+					"-e" (format "(define teachpacks '~s)" teachpacks))])
+		((if (and in-mz? (null? teachpacks))
+		     launcher:make-mzscheme-launcher
+		     launcher:make-mred-launcher)
+		 (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+		 filename))])))])))
   
   (define make-bitmap 
     (case-lambda 
