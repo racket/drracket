@@ -70,7 +70,7 @@
                       (let* ([choice
                               (new choice%
                                    (label (string-constant font-name))
-                                   (choices (editor:get-fixed-faces))
+                                   (choices (get-face-list 'mono))
                                    (parent choice-panel)
                                    (stretchable-width #t)
                                    (callback
@@ -87,7 +87,7 @@
                         (string-constant set-font)
                         choice-panel
                         (lambda xxx
-                          (let* ([faces (editor:get-fixed-faces)]
+                          (let* ([faces (get-face-list 'mono)]
                                  [init-choices
                                   (let ([init (preferences:get 'framework:standard-style-list:font-name)])
                                     (let loop ([faces faces]
@@ -103,13 +103,13 @@
                                  [choice (get-choices-from-user
                                           (string-constant select-font-name)
                                           (string-constant select-font-name)
-                                          (editor:get-fixed-faces)
+                                          (get-face-list 'mono)
                                           #f
                                           init-choices)])
                             (when choice
                               (preferences:set 
                                'framework:standard-style-list:font-name 
-                               (list-ref (editor:get-fixed-faces) (car choice)))))))]
+                               (list-ref (get-face-list 'mono) (car choice)))))))]
                      [else (error 'font-name-control "unknown system type: ~s~n" (system-type))])]
                   [smoothing-contol
                    (new choice%
@@ -154,10 +154,10 @@
                            \n~
                            \n;; examples as tests~
                            \n(howmany empty)~
-                           \n=~
+                           \n\"should be\"~
                            \n0~
                            \n~
-                           \n(howmany (cons 1 (cons 2 (cons 3 empty))))
+                           \n(howmany (cons 1 (cons 2 (cons 3 empty))))~
                            \n\"should be\"~
                            \n3"))
                      (send text set-position 0 0)
