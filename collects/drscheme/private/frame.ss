@@ -292,12 +292,11 @@
                  [t (thread 
                      (lambda () 
                        (semaphore-wait wait-to-start) 
-                       (with-handlers ([void 
+                       (with-handlers ([exn:fail?
                                         (lambda (x) 
-                                          (when (not-break-exn? x) 
-                                            (set! exn x)))] 
-                                       [void ; throw away break exceptions 
-                                        void]) 
+                                          (set! exn x))] 
+                                       [exn:break? ; throw away break exceptions 
+                                        void])
                          (semaphore-post wait-to-break) 
                          (with-output-to-file tmp-filename 
                            (lambda () 

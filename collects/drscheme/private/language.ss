@@ -601,26 +601,29 @@
            (string-constant cancel)))
 
         (define (browse-callback)
-          (let-values ([(base name dir) 
-                        (split-path (send filename-text-field get-value))])
-            (let* ([mzscheme? (currently-mzscheme-binary?)]
-		   [launcher? (currently-launcher?)]
-		   [filename 
-		    (put-executable/defaults
-		     dlg
-		     base
-		     name
-		     (not mzscheme?)
-		     launcher?
-		     (if launcher?
-			 (if mzscheme?
-			     (string-constant save-a-mzscheme-launcher)
-			     (string-constant save-a-mred-launcher))
-			 (if mzscheme?
-			     (string-constant save-a-mzscheme-stand-alone-executable)
-			     (string-constant save-a-mred-stand-alone-executable))))])
-              (when filename
-                (send filename-text-field set-value filename)))))
+          (let ([ftf (send filename-text-field get-value)])
+            (let-values ([(base name _) 
+                          (if (path-string? ftf)
+                              (split-path ftf)
+                              (values (current-directory) "" #f))])
+              (let* ([mzscheme? (currently-mzscheme-binary?)]
+                     [launcher? (currently-launcher?)]
+                     [filename 
+                      (put-executable/defaults
+                       dlg
+                       base
+                       name
+                       (not mzscheme?)
+                       launcher?
+                       (if launcher?
+                           (if mzscheme?
+                               (string-constant save-a-mzscheme-launcher)
+                               (string-constant save-a-mred-launcher))
+                           (if mzscheme?
+                               (string-constant save-a-mzscheme-stand-alone-executable)
+                               (string-constant save-a-mred-stand-alone-executable))))])
+                (when filename
+                  (send filename-text-field set-value filename))))))
         
         (define (currently-mzscheme-binary?)
           (cond

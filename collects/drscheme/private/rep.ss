@@ -178,57 +178,47 @@ TODO
           (send text lock #f)
           (cond
             [(exn:fail:syntax? exn)
-             (let* ([expr (exn:fail:syntax-expr exn)]
-                    [src (and (syntax? expr) (syntax-source expr))]
-                    [pos (and (syntax? expr) (syntax-position expr))]
-                    [span (and (syntax? expr) (syntax-span expr))]
-                    [col (and (syntax? expr) (syntax-column expr))]
-                    [line (and (syntax? expr) (syntax-line expr))])
-               (when (and (string? src)
-                          (number? pos)
-                          (number? span)
-                          (number? line)
-                          (number? col))
-                 (insert-file-name/icon src pos span line col))
-               (insert/delta text (format "~a" (exn-message exn)) error-delta)
-               (when (syntax? expr)
-                 (insert/delta text " in: ")
-                 (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
-               (insert/delta text "\n")
-               (when (and (is-a? src text:basic%)
-                          (number? pos)
-                          (number? span))
-                 (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
-            [(exn:read? exn)
-             (let ([src (exn:read-source exn)]
-                   [pos (exn:read-position exn)]
-                   [span (exn:read-span exn)]
-                   [line (exn:read-line exn)]
-                   [col (exn:read-column exn)])
-               (when (and (string? src)
-                          (number? pos)
-                          (number? span)
-                          (number? line)
-                          (number? col))
-                 (insert-file-name/icon src pos span line col))
-               (insert/delta text (format "~a" (exn-message exn)) error-delta)
-               (insert/delta text "\n")
-               (when (and (is-a? src text:basic%)
-                          (number? pos)
-                          (number? span))
-                 (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
-            [(exn:locs? exn)
-             (let ([locs (exn:locs-locs exn)])
-               (insert/delta text (format "~a" (exn-message exn)) error-delta)
-               (insert/delta text "\n")
-               (when (andmap (lambda (loc)
-                               (and (list? loc)
-                                    (= 3 (length loc))
-                                    (is-a? (first loc) text:basic%)
-                                    (number? (second loc))
-                                    (number? (third loc))))
-                             locs)
-                 (highlight-errors locs)))]
+             (for-each
+              (lambda (expr)
+                (let ([src (and (syntax? expr) (syntax-source expr))]
+                      [pos (and (syntax? expr) (syntax-position expr))]
+                      [span (and (syntax? expr) (syntax-span expr))]
+                      [col (and (syntax? expr) (syntax-column expr))]
+                      [line (and (syntax? expr) (syntax-line expr))])
+                  (when (and (string? src)
+                             (number? pos)
+                             (number? span)
+                             (number? line)
+                             (number? col))
+                    (insert-file-name/icon src pos span line col))
+                  (insert/delta text (format "~a" (exn-message exn)) error-delta)
+                  (when (syntax? expr)
+                    (insert/delta text " in: ")
+                    (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
+                  (insert/delta text "\n")
+                  (when (and (is-a? src text:basic%)
+                             (number? pos)
+                             (number? span))
+                    (highlight-errors (list (list src (- pos 1) (+ pos -1 span)))))))
+              (exn:fail:syntax-exprs exn))]
+            [(exn:fail:read? exn)
+             '(let ([src (exn:read-source exn)]
+                    [pos (exn:read-position exn)]
+                    [span (exn:read-span exn)]
+                    [line (exn:read-line exn)]
+                    [col (exn:read-column exn)])
+                (when (and (string? src)
+                           (number? pos)
+                           (number? span)
+                           (number? line)
+                           (number? col))
+                  (insert-file-name/icon src pos span line col))
+                (insert/delta text (format "~a" (exn-message exn)) error-delta)
+                (insert/delta text "\n")
+                (when (and (is-a? src text:basic%)
+                           (number? pos)
+                           (number? span))
+                  (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
             [(exn? exn)
              (insert/delta text (format "~a" (exn-message exn)) error-delta)
              (insert/delta text "\n")]
@@ -335,9 +325,8 @@ TODO
       (define drs-bindings-keymap-mixin
 	(mixin (editor:keymap<%>) (editor:keymap<%>)
 	  (rename [super-get-keymaps get-keymaps])
-	  (override get-keymaps)
-	  [define (get-keymaps)
-	    (cons drs-bindings-keymap (super-get-keymaps))]
+	  (define/override (get-keymaps)
+	    (cons drs-bindings-keymap (super-get-keymaps)))
 	  (super-instantiate ())))
       
       ;; Max length of output queue (user's thread blocks if the
@@ -559,35 +548,6 @@ TODO
                       deltas)
             (values before after))))
 
-      (define console-text<%>
-        (interface ()
-          reset-console
-          set-resetting
-          get-resetting
-          
-          get-inserting-prompt
-          
-          copy-prev-previous-expr
-          copy-next-previous-expr
-          copy-previous-expr
-          clear-previous-expr-positions
-          set-prompt-mode
-          get-prompt-mode
-          ready-non-prompt
-          
-          balance-required
-          
-          initialize-console
-          
-          reset-pretty-print-width
-          
-          get-prompt
-          insert-prompt
-          set-prompt-position
-          get-prompt-position
-          
-          eval-busy?))
-
       (define -text<%>
         (interface ()
           reset-highlighting
@@ -613,68 +573,85 @@ TODO
           
           shutdown
           
-          get-error-ranges))
+          get-error-ranges
+          
+          reset-console
+          set-resetting
+          get-resetting
+          
+          get-inserting-prompt
+          
+          copy-prev-previous-expr
+          copy-next-previous-expr
+          copy-previous-expr
+          set-prompt-mode
+          get-prompt-mode
+          ready-non-prompt
+          
+          balance-required
+          
+          initialize-console
+          
+          reset-pretty-print-width
+          
+          get-prompt
+          insert-prompt
+          set-prompt-position
+          get-prompt-position))
 
       (define text-mixin
         (mixin ((class->interface text%)
                 editor:file<%>
                 scheme:text<%>
-                console-text<%>
                 color:text<%>
                 text:ports<%>)
-                (-text<%>)
+          (-text<%>)
           (init-field context)
-          (inherit insert change-style
+          (inherit auto-wrap
+                   begin-edit-sequence
+                   change-style
+                   clear-undos
+                   delete
+                   end-edit-sequence
+                   erase
+                   find-snip
+                   find-string
                    get-active-canvas
-                   set-styles-sticky
-                   get-style-list
-                   clear-undos set-caret-owner
-                   clear-previous-expr-positions
+                   get-admin
+                   get-can-close-parent
+                   get-canvases
+                   get-character
                    get-end-position
-                   set-clickback
-                   erase 
-                   get-prompt-mode
-                   ready-non-prompt
-                   set-prompt-mode
-                   delete lock is-locked?
-                   paragraph-start-position
+                   get-err-port
+                   get-extent
+                   get-in-port
+                   get-out-port
+                   get-snip-position
+                   get-start-position
+                   get-style-list
+                   get-text
+                   get-top-level-window
+                   get-value-port
+                   insert
+                   invalidate-bitmap-cache
+                   is-locked?
                    last-position
-                   set-resetting
+                   line-location
+                   lock
+                   paragraph-start-position
                    position-line
                    position-paragraph
-                   set-position
-                   begin-edit-sequence
-                   end-edit-sequence
-                   reset-pretty-print-width
-                   scroll-to-position
-                   get-admin
-                   set-prompt-position
-                   get-canvases find-snip
                    release-snip
-                   reset-region update-region-end
-                   get-out-port
-                   get-in-port
-                   get-value-port
-                   get-err-port)
-          (rename [super-initialize-console initialize-console]
-                  [super-reset-console reset-console])
-          
-          (override get-prompt eval-busy?
-                    initialize-console
-                    reset-console)
-          
-          (public
-            reset-highlighting
-            highlight-error
-            highlight-error/forward-sexp
-            
-            kill-evaluation
-            
-            display-results
-            
-            run-in-evaluation-thread
-            
-            shutdown)
+                   reset-region
+                   run-after-edit-sequence
+                   scroll-to-position
+                   set-caret-owner
+                   set-clickback
+                   set-position
+                   set-styles-sticky
+                   set-unread-start-point
+                   split-snip
+                   update-region-end)
           
           (unless (is-a? context context<%>)
             (error 'drscheme:rep:text% 
@@ -682,6 +659,10 @@ TODO
                    context))
           
           (define/public (get-context) context)
+          
+          (field (resetting? #f))
+          (define/public (get-resetting) resetting?)
+          (define/public (set-resetting v) (set! resetting? v))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;					       ;;;
@@ -714,7 +695,7 @@ TODO
           
           ;; display-results : (listof TST) -> void
           ;; prints each element of anss that is not void as values in the REPL.
-          (define (display-results anss) ; =User=, =Handler=, =Breaks=
+          (define/public (display-results anss) ; =User=, =Handler=, =Breaks=
             (for-each 
              (lambda (v)
                (unless (void? v)
@@ -725,7 +706,7 @@ TODO
                          v
                          settings
                          (get-value-port)
-                         (lambda (x) (error))
+                         (lambda (x) (void))
 			 (get-repl-char-width)))))
              anss))
 
@@ -754,16 +735,10 @@ TODO
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
-          (override after-insert after-delete)
-          (rename [super-after-insert after-insert]
-                  [super-after-delete after-delete])
-          (inherit get-inserting-prompt)
-          
-          (public get-error-ranges)
-          (define (get-error-ranges) error-ranges)
+          (define/public (get-error-ranges) error-ranges)
           
           ;; =User= and =Kernel=
-          (define (highlight-error/forward-sexp text start)
+          (define/public (highlight-error/forward-sexp text start)
             (let ([end (if (is-a? text scheme:text<%>)
                            (or (send text get-forward-sexp start)
                                (+ start 1))
@@ -771,7 +746,7 @@ TODO
               (highlight-error text start end)))
           
           ;; =User= and =Kernel=
-          (define (highlight-error/line-col text start-line start-col span)
+          (define/public (highlight-error/line-col text start-line start-col span)
             (let ([start
                    (+ (send text paragraph-start-position start-line)
                       start-col)])
@@ -781,7 +756,7 @@ TODO
                (+ start span))))
           
           ;; highlight-error : file number number -> void
-          (define (highlight-error file start end)
+          (define/public (highlight-error file start end)
             (highlight-errors (list (list file start end))))
           
           ;; =User= and =Kernel= (maybe simultaneously)
@@ -854,7 +829,7 @@ TODO
               
               (semaphore-post error-range/reset-callback-semaphore)))
           
-          (define (reset-highlighting)
+          (define/public (reset-highlighting)
             (reset-error-ranges))
           
           ;; remove-duplicate-error-arrows : (listof X) -> (listof X)
@@ -880,14 +855,61 @@ TODO
                         (and (is-a? admin editor-snip-editor-admin<%>)
                              (loop (send (send (send admin get-snip) get-admin) get-editor))))])))
                     
-          (define after-insert
-            (lambda (x y)
-              (reset-highlighting)
-              (super-after-insert x y)))
-          (define after-delete
-            (lambda (x y)
-              (reset-highlighting)
-              (super-after-delete x y)))
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  specialization
+          ;;
+          
+          (rename [super-after-set-size-constraint after-set-size-constraint]
+                  [super-get-keymaps get-keymaps]
+                  [super-can-insert? can-insert?]
+                  [super-after-insert after-insert]
+                  [super-can-delete? can-delete?]
+                  [super-after-delete after-delete]
+                  [super-can-change-style? can-change-style?]
+                  [super-after-change-style after-change-style]
+                  [super-on-edit-sequence on-edit-sequence]
+                  [super-after-edit-sequence after-edit-sequence]
+                  [super-after-set-position after-set-position])
+          
+          (define can-something
+            (opt-lambda (super start len)
+              (cond
+                [(or resetting?
+                     (not (number? prompt-position))
+                     (>= start prompt-position))
+                 (super start len)]
+                [else 
+                 #f])))
+          (define after-something
+            (lambda (combine start len)
+              (when (or resetting?
+                        (and prompt-mode? (< start prompt-position)))
+                (set! prompt-position (combine prompt-position len)))))
+          
+          (define/override get-keymaps
+            (lambda ()
+              (cons scheme-interaction-mode-keymap (super-get-keymaps))))
+          
+          (define/override can-insert?
+            (lambda (start len)
+              (can-something (lambda (x y) (super-can-insert? x y)) start len)))
+          (define/override can-delete?
+            (lambda (start len)
+              (can-something (lambda (x y) (super-can-delete? x y)) start len)))
+          (define/override (can-change-style? start len)
+            (can-something (lambda (x y) (super-can-change-style? x y)) start len))
+          (define/override (after-insert start len)
+            (after-something + start len)
+            (reset-highlighting)
+            (super-after-insert start len))
+          (define/override (after-delete start len)
+            (after-something - start len)
+            (reset-highlighting)
+            (super-after-delete start len))
+          (define/override (after-change-style start len)
+            (after-something (lambda (start len) start) start len)
+            (super-after-change-style start len))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
@@ -895,8 +917,7 @@ TODO
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
-          (define (get-prompt) "> ")
-          (define (eval-busy?)
+          (define/public (eval-busy?)
             (not (and (get-user-thread)
                       (thread-running? (get-user-thread)))))
           
@@ -975,7 +996,6 @@ TODO
                            (send lang front-end/interaction port source settings user-teachpack-cache))])
                  (let loop () 
                    (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                     (printf "do-many.1 ~s\n" sexp/syntax/eof)
                      (cond
                        [(eof-object? sexp/syntax/eof)
                         (void)]
@@ -986,7 +1006,6 @@ TODO
                             (lambda ()
                               (eval-syntax sexp/syntax/eof))
                             (lambda x 
-                              (printf "do-many.2 ~s\n" x)
                               (display-results x)))
                            (flush-output (get-value-port))))
                         (loop)])))))))
@@ -1055,7 +1074,7 @@ TODO
 	      (set! user-custodian #f)
               (set! user-thread-box (make-weak-box #f))))
           
-          (define (kill-evaluation) ; =Kernel=, =Handler=
+          (define/public (kill-evaluation) ; =Kernel=, =Handler=
             (when user-custodian
               (custodian-shutdown-all user-custodian))
 	    (set! user-custodian #f))
@@ -1117,14 +1136,12 @@ TODO
                        (update-running #f)
                        (cleanup))))))))
           
-          (define run-in-evaluation-thread ; =Kernel=
-            (lambda (thunk)
-              (semaphore-wait eval-thread-state-sema)
-              (set! eval-thread-thunks (append eval-thread-thunks (list thunk)))
-              (semaphore-post eval-thread-state-sema)
-              (semaphore-post eval-thread-queue-sema)))
+          (define/public (run-in-evaluation-thread thunk) ; =Kernel=
+            (semaphore-wait eval-thread-state-sema)
+            (set! eval-thread-thunks (append eval-thread-thunks (list thunk)))
+            (semaphore-post eval-thread-state-sema)
+            (semaphore-post eval-thread-queue-sema))
           
-          (inherit get-top-level-window)
           (define init-evaluation-thread ; =Kernel=
             (lambda ()
               (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
@@ -1227,7 +1244,6 @@ TODO
           
           (field (shutting-down? #f))
 
-          (inherit get-can-close-parent)
           (rename [super-can-close? can-close?])
           (define/override (can-close?)
             (and (cond
@@ -1262,15 +1278,19 @@ TODO
           (rename [super-on-close on-close])
           (define/override (on-close)
             (shutdown)
+            (preferences:set 'drscheme:console-previous-exprs 
+                             (trim-previous-exprs
+                              (append 
+                               (preferences:get 'drscheme:console-previous-exprs)
+                               local-previous-exprs)))
             (super-on-close))
           
-          (define shutdown ; =Kernel=, =Handler=
-            (lambda ()
-              (set! shutting-down? #t)
-              (when (thread? thread-killed)
-                (kill-thread thread-killed)
-                (set! thread-killed #f))
-              (shutdown-user-custodian)))
+          (define/public (shutdown) ; =Kernel=, =Handler=
+            (set! shutting-down? #t)
+            (when (thread? thread-killed)
+              (kill-thread thread-killed)
+              (set! thread-killed #f))
+            (shutdown-user-custodian))
           
           (define update-running ; =User=, =Handler=, =No-Breaks=
             (lambda (bool)
@@ -1373,13 +1393,12 @@ TODO
                         ; =User=, =Non-Handler=, =No-Breaks=
                         (primitive-dispatch-handler eventspace)])))))))
           
-          (define (reset-console)
+          (define/public (reset-console)
             (when (thread? thread-killed)
               (kill-thread thread-killed))
             (send context clear-annotations)
             (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
-            (clear-previous-expr-positions)
             (set! should-collect-garbage? #t)
             
             ;; in case the last evaluation thread was killed, clean up some state.
@@ -1432,14 +1451,10 @@ TODO
             (set-unread-start-point (last-position))
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
-            (end-edit-sequence)
-            
-            (super-reset-console)
-            (reset-region 0 'end))
+            (reset-region 0 'end)
+            (end-edit-sequence))
           
-          (inherit set-unread-start-point)
-          (define (initialize-console)
-            (super-initialize-console)
+          (define/public (initialize-console)
             
             (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
             (let-values ([(before after)
@@ -1454,164 +1469,12 @@ TODO
             (send context enable-evaluation)
             (insert-prompt)
             (clear-undos))
-          (inherit get-prompt-position)
-          (rename (super-insert-prompt insert-prompt))
-          (define/override (insert-prompt)
-            (super-insert-prompt)
-            (reset-region (get-prompt-position) 'end))
-          
-          (super-instantiate ())
-          (inherit auto-wrap)
-          (auto-wrap #t)
-          (set-styles-sticky #f)))
-      
-      (define console-text-mixin
-        (mixin ((class->interface text%)
-                color:text<%>
-                editor:basic<%>
-                editor:keymap<%>) (console-text<%>)
-          (inherit position-line position-location
-                   line-location get-admin
-                   set-position set-caret-owner
-                   clear-undos insert delete
-                   begin-edit-sequence
-                   end-edit-sequence
-                   run-after-edit-sequence
-                   change-style split-snip
-                   scroll-to-position is-locked? lock
-                   last-position get-start-position get-end-position
-                   get-text get-snip-position
-                   get-character find-snip find-string
-                   erase
-                   invalidate-bitmap-cache
-                   get-extent get-style-list)
-          (rename [super-after-set-size-constraint after-set-size-constraint]
-                  [super-get-keymaps get-keymaps])
-          (rename [super-can-insert? can-insert?]
-                  [super-after-insert after-insert]
-                  
-                  [super-can-delete? can-delete?]
-                  [super-after-delete after-delete]
-                  
-                  [super-can-change-style? can-change-style?]
-                  [super-after-change-style after-change-style]
-                  
-                  [super-on-edit-sequence on-edit-sequence]
-                  [super-after-edit-sequence after-edit-sequence]
-                  
-                  [super-after-set-position after-set-position])
-          (override get-keymaps
-                    can-insert?
-                    can-delete?
-                    can-change-style?
-                    after-insert
-                    after-delete
-                    after-change-style
-                    on-edit-sequence
-                    after-edit-sequence
-                    after-set-position)
-          
-          (public set-resetting
-                  get-resetting
-                  
-                  get-inserting-prompt
-                  
-                  copy-prev-previous-expr
-                  copy-next-previous-expr
-                  copy-previous-expr
-                  clear-previous-expr-positions
-                  set-prompt-mode
-                  get-prompt-mode
-                  ready-non-prompt
-                  
-                  balance-required
-                  
-                  initialize-console
-                  
-                  reset-pretty-print-width
-                  
-                  get-prompt
-                  insert-prompt
-                  set-prompt-position
-                  get-prompt-position
-                  
-                  eval-busy?)
           
           (define edit-sequence-count 0)
           
           (define orig-stdout (current-output-port))
           (define orig-stderr (current-error-port))
           (define normal-delta #f)
-          
-          (define get-keymaps
-            (lambda ()
-              (cons scheme-interaction-mode-keymap (super-get-keymaps))))
-          
-          ;; used to highlight the prompt that the caret is "in the range of".
-          ;; not currently used at all.
-          (define find-which-previous-sexp
-            (lambda ()
-              (let*-values ([(x y) (values (get-start-position) (get-end-position))])
-                (let loop ([sexps previous-expr-positions])
-                  (cond
-                    [(null? sexps) (values #f #f)]
-                    [(pair? sexps) (let* ([hd (car sexps)]
-                                          [left (car hd)]
-                                          [right (cdr hd)]
-                                          [tl (cdr sexps)])
-                                     (if (and (<= left x right)
-                                              (<= left y right))
-                                         (values left right)
-                                         (loop tl)))])))))
-          (define can-something
-            (opt-lambda (super start len)
-              (cond
-                [(or resetting?
-                     (not (number? prompt-position))
-                     (>= start prompt-position))
-                 (super start len)]
-                [else 
-                 #f])))
-          (define after-something
-            (lambda (combine start len)
-              (when (or resetting?
-                        (and prompt-mode? (< start prompt-position)))
-                (set! prompt-position (combine prompt-position len)))))
-          
-          (field (resetting? #f))
-          (define (get-resetting) resetting?)
-          (define (set-resetting v) (set! resetting? v))
-          
-          (define can-insert?
-            (lambda (start len)
-              (can-something (lambda (x y) (super-can-insert? x y)) start len)))
-          (define can-delete?
-            (lambda (start len)
-              (can-something (lambda (x y) (super-can-delete? x y)) start len)))
-          (define can-change-style?
-            (lambda (start len)
-              (can-something (lambda (x y) (super-can-change-style? x y)) start len)))
-          (define after-insert
-            (lambda (start len)
-              (after-something + start len)
-              (super-after-insert start len)))
-          (define after-delete
-            (lambda (start len)
-              (after-something - start len)
-              (super-after-delete start len)))
-          (define after-change-style
-            (lambda (start len)
-              (after-something (lambda (start len) start) start len)
-              (super-after-change-style start len)))
-          (define on-edit-sequence
-            (lambda ()
-              (super-on-edit-sequence)))
-          (define after-edit-sequence
-            (lambda ()
-              (super-after-edit-sequence)))
-          (define after-set-position
-            (lambda ()
-              (super-after-set-position)))
           
           (define last-str (lambda (l)
                              (if (null? (cdr l))
@@ -1620,11 +1483,11 @@ TODO
           
           (field (prompt-mode? #f)
                  (prompt-position 0))
-          (define (get-prompt-mode) prompt-mode?)
-          (define (set-prompt-mode x) (set! prompt-mode? x))
-          (define get-prompt (lambda () "> "))
-          (define set-prompt-position (lambda (v) (set! prompt-position v)))
-          (define (get-prompt-position) prompt-position)
+          (define/public (get-prompt) "> ")
+          (define/public (get-prompt-mode) prompt-mode?)
+          (define/public (set-prompt-mode x) (set! prompt-mode? x))
+          (define/public (set-prompt-position v) (set! prompt-position v))
+          (define/public (get-prompt-position) prompt-position)
           (define find-prompt 
             (lambda (pos) 
               (if (> pos prompt-position)
@@ -1632,19 +1495,14 @@ TODO
                   0)))
           
           (field (balance-required-cell #t))
-          (define balance-required
+          (define/public balance-required
             (case-lambda
               [() balance-required-cell]
               [(x) (set! balance-required-cell x)]))
           
-          (field (previous-expr-pos -1)
-                 (previous-expr-positions null))
+          (field (previous-expr-pos -1))
           
-          (define clear-previous-expr-positions
-            (lambda ()
-              (set! previous-expr-positions null)))
-          
-          (define copy-previous-expr
+          (define/public copy-previous-expr
             (lambda ()
               (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
                 (begin-edit-sequence)
@@ -1660,7 +1518,7 @@ TODO
                 (set-position (last-position))
                 (end-edit-sequence))))
           
-          (define copy-next-previous-expr
+          (define/public copy-next-previous-expr
             (lambda ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
@@ -1669,7 +1527,7 @@ TODO
                             (add1 previous-expr-pos)
                             0))
                   (copy-previous-expr)))))
-          (define copy-prev-previous-expr
+          (define/public copy-prev-previous-expr
             (lambda ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
@@ -1692,14 +1550,7 @@ TODO
                             (list snips)
                             (cons (car l) (loop (cdr l))))))])
               (set! local-previous-exprs new-previous-exprs)))
-          (rename [super-on-close on-close])
-          (define/override (on-close)
-            (preferences:set 'drscheme:console-previous-exprs 
-                             (trim-previous-exprs
-                              (append 
-                               (preferences:get 'drscheme:console-previous-exprs)
-                               local-previous-exprs)))
-            (super-on-close))
+          
           (define/private (trim-previous-exprs lst)
             (if ((length lst). >= .  console-max-save-previous-exprs)
                 (cdr lst)
@@ -1718,34 +1569,30 @@ TODO
                           (loop (send snip next)
                                 (cons (send snip copy) snips))]
                          [else snips]))])
-                (set! previous-expr-positions (cons (cons start end) previous-expr-positions))
                 (set! previous-expr-pos -1)
                 (add-to-previous-exprs snips)
                 ;(do-eval start end)
                 )))
           
-          (define reset-pretty-print-width
-            (lambda ()
-              (let* ([standard (send (get-style-list) find-named-style "Standard")])
-                (when standard
-                  (let* ([admin (get-admin)]
-                         [width
-                          (let ([bw (box 0)]
-                                [b2 (box 0)])
-                            (send admin get-view b2 b2 bw b2)
-                            (unbox bw))]
-                         [dc (send admin get-dc)]
-                         [new-font (send standard get-font)]
-                         [old-font (send dc get-font)])
-                    (send dc set-font new-font)
-                    (let* ([char-width (send dc get-char-width)]
-                           [min-columns 50]
-                           [new-columns (max min-columns 
-                                             (floor (/ width char-width)))])
-                      (send dc set-font old-font)
-                      (pretty-print-columns new-columns)))))))
-                    
-          (define eval-busy? (lambda () #f))
+          (define/public (reset-pretty-print-width)
+            (let* ([standard (send (get-style-list) find-named-style "Standard")])
+              (when standard
+                (let* ([admin (get-admin)]
+                       [width
+                        (let ([bw (box 0)]
+                              [b2 (box 0)])
+                          (send admin get-view b2 b2 bw b2)
+                          (unbox bw))]
+                       [dc (send admin get-dc)]
+                       [new-font (send standard get-font)]
+                       [old-font (send dc get-font)])
+                  (send dc set-font new-font)
+                  (let* ([char-width (send dc get-char-width)]
+                         [min-columns 50]
+                         [new-columns (max min-columns 
+                                           (floor (/ width char-width)))])
+                    (send dc set-font old-font)
+                    (pretty-print-columns new-columns))))))
           
           (field [submit-predicate
                   (lambda (text prompt-position)
@@ -1754,8 +1601,8 @@ TODO
             (set! submit-predicate p))
           
           (field (inserting-prompt #f))
-          (define (get-inserting-prompt) inserting-prompt)
-          (define (insert-prompt)
+          (define/public (get-inserting-prompt) inserting-prompt)
+          (define/public (insert-prompt)
             (set! prompt-mode? #t)
             (fluid-let ([inserting-prompt #t])
               (begin-edit-sequence)
@@ -1777,24 +1624,22 @@ TODO
                 ;(clear-undos)
                 (lock c-locked?)
                 (end-edit-sequence)
-                (scroll-to-position start-selection #f (last-position) 'start))))
-          (define/public reset-console
-            (lambda ()
-              (void)))
-          (define ready-non-prompt
-            (lambda ()
-              (when prompt-mode?
-                (set! prompt-mode? #f)
-                (let ([c-locked (is-locked?)])
-                  (begin-edit-sequence)
-                  (lock #f)
-                  (insert #\newline (last-position))
-                  (lock c-locked)	   
-                  (end-edit-sequence)))))	  
-          (define initialize-console
-            (lambda ()
-              #t))
-          (super-instantiate ())))
+                (scroll-to-position start-selection #f (last-position) 'start)
+                (reset-region prompt-position 'end))))
+          
+          (define/public (ready-non-prompt)
+            (when prompt-mode?
+              (set! prompt-mode? #f)
+              (let ([c-locked (is-locked?)])
+                (begin-edit-sequence)
+                (lock #f)
+                (insert #\newline (last-position))
+                (lock c-locked)	   
+                (end-edit-sequence))))
+          
+          (super-new)
+          (auto-wrap #t)
+          (set-styles-sticky #f)))
       
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
@@ -1802,13 +1647,12 @@ TODO
       (define -text% 
         (drs-bindings-keymap-mixin
          (text-mixin 
-          (console-text-mixin
-           (text:ports-mixin
-            (scheme:text-mixin
-             (color:text-mixin
-              (text:info-mixin
-               (editor:info-mixin
-                (text:searching-mixin
-                 (text:nbsp->space-mixin
-                  (mode:host-text-mixin
-                   text:clever-file-format%)))))))))))))))
+          (text:ports-mixin
+           (scheme:text-mixin
+            (color:text-mixin
+             (text:info-mixin
+              (editor:info-mixin
+               (text:searching-mixin
+                (text:nbsp->space-mixin
+                 (mode:host-text-mixin
+                  text:clever-file-format%))))))))))))))

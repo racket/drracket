@@ -176,7 +176,6 @@
      (struct exn:locs (locs))
      text%
      text<%>
-     console-text<%>
      context<%>))
   
   (define-signature drscheme:app^

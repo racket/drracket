@@ -471,8 +471,7 @@ tab panels new behavior:
                   (when filename
                     ;; if a filesystem error happens, just give up
                     ;; on setting the file creator and type.
-                    (with-handlers ([exn:i/o:filesystem?
-                                     void])
+                    (with-handlers ([exn:fail:filesystem? void])
                       (let-values ([(creator type) (file-creator-and-type filename)])
                         (file-creator-and-type filename "DrSc" type))))))
               (super-after-save-file success?))
