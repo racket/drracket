@@ -155,9 +155,17 @@
       ;; `name' is the name of the tool (only used in about box)
       (define (load/invoke-tool coll-dir)
         (lambda (in-path icon-spec name tool-url)
-          (let ([tool-bitmap
-                 (and icon-spec
-                      (install-tool-bitmap name icon-spec))])
+          (let* ([icon-path 
+                  (cond
+                    [(string? icon-spec)
+                     (build-path coll-dir icon-spec)]
+                    [(and (list? icon-spec)
+                          (andmap string? icon-spec))
+                     (build-path (apply collection-path (cdr icon-spec)) (car icon-spec))]
+                    [else #f])]
+                 [tool-bitmap
+                  (and icon-path
+                       (install-tool-bitmap name icon-path))])
             (let/ec k
               (unless (or (string? in-path)
                           (and (list? in-path)
@@ -220,15 +228,13 @@
            x)))
 
 
-      ;; install-tool-bitmap : string module-path -> bitmap
+      ;; install-tool-bitmap : string path -> bitmap
       ;; adds the tool's bitmap to the splash screen
       (define (install-tool-bitmap name bitmap-path)
         (let/ec k
           (let ([bitmap
                  (with-handlers ([exn:fail:filesystem? (lambda (x) (k (void)))])
-                   (make-object bitmap%
-                     (build-path (build-path (apply collection-path (cdr bitmap-path)) (car bitmap-path)))
-		     'unknown/mask))])
+                   (make-object bitmap% bitmap-path 'unknown/mask))])
             (unless (and (is-a? bitmap bitmap%)
                          (send bitmap ok?))
               (k #f))
