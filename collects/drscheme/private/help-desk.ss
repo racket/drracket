@@ -2,22 +2,22 @@
 (module help-desk mzscheme
   (require (lib "unitsig.ss")
            (lib "string-constant.ss" "string-constants")
-	   (lib "mred.ss" "mred")
+           (lib "mred.ss" "mred")
            (lib "external.ss" "browser")
-           ;(lib "help-desk.ss" "help")
+           (lib "help-desk.ss" "help")
            (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "list.ss")
-	   "drsig.ss")
+           "drsig.ss")
   
   (provide help-desk@)
   
   (define help-desk@
-    (unit/sig  drscheme:help-desk^
+    (unit/sig drscheme:help-desk^
       (import [drscheme:frame : drscheme:frame^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:teachpack : drscheme:teachpack^])
-
+      
       ;; : -> string
       (define (get-computer-language-info)
         (let* ([language/settings (preferences:get 
@@ -31,11 +31,9 @@
            (list
             (send language get-language-position)
             (send language marshall-settings settings)))))
-
+      
       ;; get-docs : (listof (cons string[short-dir-name] string[doc full name]))
       (define (get-docs) 
-        '()
-        #;
         (let ([dirs (find-doc-names)])
           (map (lambda (pr)
                  (let-values ([(base name dir?) (split-path (car pr))])
@@ -47,24 +45,10 @@
                 (drscheme:teachpack:teachpack-cache-filenames
                  (preferences:get 'drscheme:teachpacks))))
       
-      ;(set-bug-report-info! "Computer Language" get-computer-language-info)
-      ;(set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
-
-      (define get-hd-cookie
-        (let ([hd-cookie #f])
-          (lambda ()
-            (error 'get-hd-cookie "no")
-            #;
-            (unless hd-cookie
-              (set! hd-cookie (start-help-server 
-                               (lambda (x)
-                                 (drscheme:frame:basics-mixin
-                                  (drscheme-help-desk-mixin
-                                   x))))))
-            hd-cookie)))
+      (set-bug-report-info! "Computer Language" get-computer-language-info)
+      (set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
       
-      (define (drscheme-help-desk-mixin x) x)
-      #;(define drscheme-help-desk-mixin
+      (define drscheme-help-desk-mixin
         (mixin (frame:standard-menus<%>) ()
           (define/override (file-menu:create-open-recent?) #t)
           
@@ -85,19 +69,13 @@
             (send (drscheme:language-configuration:language-settings-language current-language)
                   get-language-name))
           
-          (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
             (instantiate menu:can-restore-menu-item% ()
               (label (string-constant plt:hd:new-help-desk))
               (parent file-menu)
-              (callback (lambda (x y) 
-                          (let ([hd-cookie (get-hd-cookie)])
-                            (visit-url-in-new-browser 
-                             hd-cookie
-                             (make-home-page-url
-                              (hd-cookie-port hd-cookie)))))))
-            (super-file-menu:between-new-and-open file-menu))
-
+              (callback (lambda (x y) (new-help-desk))))
+            (super file-menu:between-new-and-open file-menu))
+          
           (super-new)
           
           (inherit get-menu-bar)
@@ -171,63 +149,32 @@
                    (send dc draw-text dots (- cw dw) (- (/ ch 2) (/ th 2)))]))))
           (super-new)))
       
-      (define (goto-help manual link)
-        (error 'goto-help "no ~s ~s" manual link)
-        
-        #;
-        (when (get-hd-cookie)
-          (goto-manual-link (get-hd-cookie) manual link)))
-      
-      (define (goto-hd-loc cookie where)
-        (error 'goto-hd-loc "no ~s\n" where)
-	#;
-        (when cookie
-	  (goto-hd-location cookie where)))
+      (define (goto-help manual link) (goto-manual-link manual link))
+      (define (goto-tour) (goto-hd-location 'hd-tour))
+      (define (goto-release-notes) (goto-hd-location 'release-notes))
+      (define (goto-plt-license) (goto-hd-location 'plt-license))
 
-      (define (goto-tour)
-        (goto-hd-loc (get-hd-cookie) 'hd-tour))
-      
-      (define (goto-release-notes)
-        (goto-hd-loc (get-hd-cookie) 'release-notes))
-      
-      (define (goto-plt-license)
-        (goto-hd-loc (get-hd-cookie) 'plt-license))
-      
-      (define (help-desk . x) (error 'help-desk "no ~s\n" x))
-      #;
       (define help-desk
         (case-lambda
-          [() 
-           (let* ([cookie (get-hd-cookie)]
-                  [already-frame ((hd-cookie-find-browser cookie))])
-             (if already-frame
-                 (send already-frame show #t)
-                 (goto-hd-location cookie 'front-page)))]
+          [() (show-help-desk)]
           [(key) (help-desk key #f)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'contins)]
           [(key lucky? type mode) 
-           (let ([hd-cookie (get-hd-cookie)])
-             (when hd-cookie
-               (let ([browser (hd-cookie->browser hd-cookie)])
-                 (let-values ([(manuals doc.txt?) (send browser order-manuals (map car (get-docs)))])
-                   (search-for-docs
-                    hd-cookie
-                    key
-                    (case type
-                      [(keyword) "keyword"]
-                      [(keyword+index) "keyword-index"]
-                      [(keyword+index+text) "keyword-index-text"]
-                      [else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
-                    (case mode
-                      [(exact) "exact-match"]
-                      [(contains) "containing-match"]
-                      [(regexp) "regexp-match"]
-                      [else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
-                    lucky?
-                    (map string->symbol manuals)
-                    doc.txt?
-                    (send browser get-language-name))))))]))
+           (search-for-docs
+            key
+            (case type
+              [(keyword) "keyword"]
+              [(keyword+index) "keyword-index"]
+              [(keyword+index+text) "keyword-index-text"]
+              [else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
+            (case mode
+              [(exact) "exact-match"]
+              [(contains) "containing-match"]
+              [(regexp) "regexp-match"]
+              [else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
+            lucky?
+            (map car (get-docs)))]))
       
       ;; open-url : string -> void
       (define (open-url x) (send-url x)))))
