@@ -46,8 +46,9 @@
 				    button-panel
 				    (lambda (b e) (kill)))]
                      [done (make-object button% (string-constant close) button-panel (lambda (b e) (done-callback)))]
-                     [output (make-custom-output-port
+                     [output (make-output-port
                               #f
+                              always-evt
                               (lambda (s start end flush?)
                                 (parameterize ([current-eventspace inst-eventspace])
                                   (queue-callback
@@ -59,7 +60,6 @@
                                              (regexp-match re:newline s))
                                        (send text lock #t)))))
                                 (- end start))
-                              void
                               void)]
                      [kill
                       (lambda ()

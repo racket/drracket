@@ -283,14 +283,14 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
   (define (make-text-port text)
-    (make-custom-output-port #f
-			     (lambda (s start end flush?) 
-			       (send text insert (substring s start end)
-				     (send text last-position)
-				     (send text last-position))
-			       (- end start))
-			     void
-			     void)))
+    (make-output-port #f
+                      always-evt
+                      (lambda (s start end flush?) 
+                        (send text insert (substring s start end)
+                              (send text last-position)
+                              (send text last-position))
+                        (- end start))
+                      void)))
 
 ; one trivial test case:
 ;

@@ -83,6 +83,7 @@ profile todo:
           
           (define callback void)
           (define/public (set-callback cb) (set! callback cb))
+          (define/public (get-callback) callback)
           
           (define grabbed? #f)
           (define clicked? #f)
@@ -141,7 +142,10 @@ profile todo:
       
       (define bug-note%
         (class clickable-image-snip%
-          (define/override (copy) (new bug-note%))
+          (inherit get-callback)
+          (define/override (copy) 
+            (let ([n (new bug-note%)])
+              (send n set-callback (get-callback))))
           (super-make-object bug-bitmap)))
       
       ;; mf-note : (union string (instanceof snip%))

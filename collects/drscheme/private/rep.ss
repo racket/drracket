@@ -1286,7 +1286,7 @@ TODO
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
               ;(current-input-port (get-in-port))
-              (current-input-port (make-custom-input-port (lambda (x) eof) (lambda (x y) eof) void))
+              (current-input-port (make-input-port #f (lambda (bytes) eof) (lambda (x y) eof) void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler

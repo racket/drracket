@@ -830,18 +830,18 @@
         ;; connection-channel.
         (thread
          (lambda ()
-           (object-wait-multiple #f (thread-dead-waitable user-thread))
+           (sync (thread-dead-evt user-thread))
            (async-channel-put connection-channel 'done)))
         
         (send pasteboard begin-adding-connections)
-        (let ([waitable
-               (waitables->waitable-set
-                (make-wrapped-waitable progress-channel (lambda (x) (cons 'progress x)))
-                (make-wrapped-waitable connection-channel (lambda (x) (cons 'connect x))))])
+        (let ([evt
+               (choice-evt
+                (finish-evt progress-channel (lambda (x) (cons 'progress x)))
+                (finish-evt connection-channel (lambda (x) (cons 'connect x))))])
           (let loop ()
-            (let* ([waitable-value (yield waitable)]
-                   [key (car waitable-value)]
-                   [val (cdr waitable-value)])
+            (let* ([evt-value (yield evt)]
+                   [key (car evt-value)]
+                   [val (cdr evt-value)])
               (case key
                 [(progress) 
                  (show-status val)
