@@ -173,8 +173,6 @@
            void))
        #f))
     
-    (define modern-style-list (make-object style-list%))
-    
     (define (make-big-text label . args)
       (let ([canvas 
              (apply
@@ -182,8 +180,9 @@
               label 
               (lambda (panel)
                 (let* ([text (make-object (editor:keymap-mixin text:basic%))]
-                       [canvas (make-object editor-canvas% panel text)])
-                  (send text set-style-list modern-style-list)
+                       [canvas (make-object canvas:basic% panel text)])
+                  (send text set-style-list (scheme:get-style-list))
+                  (send text set-styles-fixed #t)
                   canvas))
               #t
               args)])
@@ -198,19 +197,15 @@
                                            (string-constant bug-report-field-reproduce2))
                                      #t))
     
-    (define synthesized-outer-panel (make-object vertical-panel% outermost-panel))
-    (define synthesized-panel (make-object vertical-panel% synthesized-outer-panel))
+    (define synthesized-dialog (make-object dialog% (string-constant bug-report-synthesized-information)))
+    (define synthesized-panel (make-object vertical-panel% synthesized-dialog))
+    (define synthesized-button-panel (make-object horizontal-panel% synthesized-dialog))
+    (define ok-button (make-object button% (string-constant ok) synthesized-button-panel
+                        (lambda (x y)
+                          (send synthesized-dialog show #f))))
     (define synthesized-info-shown? #t)
-    (define (toggle-synthesized-info)
-      (cond
-        [synthesized-info-shown?
-         (set! synthesized-info-shown? #f)
-         (send synthesized-button set-label (string-constant bug-report-show-synthesized-info))
-         (send synthesized-outer-panel change-children (lambda (l) null))]
-        [else
-         (set! synthesized-info-shown? #t)
-         (send synthesized-button set-label (string-constant bug-report-hide-synthesized-info))
-         (send synthesized-outer-panel change-children (lambda (l) (list synthesized-panel)))]))
+    (define (show-synthesized-info)
+      (send synthesized-dialog show #t))
     
     (define version
       (build/label
@@ -222,7 +217,7 @@
        #f
        #f
        synthesized-panel
-       #t))
+       #f))
     (define environment
       (build/label
        (string-constant bug-report-field-environment)
@@ -233,7 +228,7 @@
        #f
        #f
        synthesized-panel
-       #t))
+       #f))
     
     (define human-language
       (build/label 
@@ -244,8 +239,7 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel
-       #t))
+       synthesized-panel))
     
     (define language-level
       (build/label
@@ -256,8 +250,7 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel
-       #t))
+       synthesized-panel))
     
     (define teachpacks
       (build/label
@@ -268,38 +261,24 @@
             (make-object text-field% #f panel void ""))))
        #f
        #f
-       synthesized-panel
-       #t))
+       synthesized-panel))
 
     (define docs-installed
-      (build/label 
+      (make-big-text
        (string-constant bug-report-field-docs-installed)
-       (lambda (panel)            
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
        #t
-       synthesized-panel
-       #t))
+       synthesized-panel))
     
     (define collections
       (make-big-text 
        (string-constant bug-report-field-collections)
        #t
-       synthesized-panel
-       #t))
-
-    (define (longer-of s1 s2)
-      (if ((string-length s1) . >= . (string-length s2))
-          s1
-          s2))
+       synthesized-panel))
 
     (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
     (define synthesized-button (make-object button%
-                                 (longer-of (string-constant bug-report-show-synthesized-info)
-                                            (string-constant bug-report-hide-synthesized-info))
-                                 button-panel (lambda x (toggle-synthesized-info))))
+                                 (string-constant bug-report-show-synthesized-info)
+                                 button-panel (lambda x (show-synthesized-info))))
     (define ok-button (make-object button% (string-constant bug-report-submit) button-panel (lambda x (ok))))
     (define cancel-button (make-object button% (string-constant cancel) button-panel (lambda x (cancel))))
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
@@ -340,7 +319,7 @@
          (format ">Release:        ~a" (send version get-value))
          ">Environment:"
          (format "~a" (send environment get-value))
-         "Docs Installed:" (format "~a" (send docs-installed get-value))
+         "Docs Installed:" (format "~a" (send (send docs-installed get-editor) get-text))
          "Collections: "
          (format "~a" (send (send collections get-editor) get-text))
          (format "Human Language: ~a" (send human-language get-value))
@@ -451,16 +430,6 @@
     (define (cleanup-frame)
       (send bug-frame close))
     
-    (let ([delta (make-object style-delta% 'change-normal)]
-          [style (send modern-style-list find-named-style "Standard")])
-      (send delta set-delta 'change-family 'modern)
-      (if style
-          (send style set-delta delta)
-          (send modern-style-list new-named-style "Standard"
-                (send modern-style-list find-or-create-style
-                      (send modern-style-list find-named-style "Basic")
-                      delta))))
-    
     (send severity set-selection 1)
     (send priority set-selection 1)
     (send version set-value   
@@ -476,7 +445,7 @@
     (send (send collections get-editor)
           insert       
           (format "~s"
-                  (map (lambda (x) 
+                  (map (lambda (x)
                          (list x 
                                (if (directory-exists? x)
                                    (directory-list x)
@@ -485,9 +454,9 @@
     
     (send human-language set-value (this-language))
     
-    (send collections min-width 150)
     (send (send collections get-editor) auto-wrap #t)
-    (send synthesized-outer-panel stretchable-width #f)
+    (send (send docs-installed get-editor) auto-wrap #t)
+    (send synthesized-button-panel set-alignment 'right 'center)
     
     (align-labels)
     (send button-panel set-alignment 'right 'center)
@@ -497,15 +466,13 @@
               summary)
           focus)
     
-    (send docs-installed set-value       
+    (send (send docs-installed get-editor) insert
           (format "~s"
                   (with-handlers ([(lambda (x) #t)
                                    (lambda (x) "none")])
                     (directory-list (collection-path "doc")))))
     (send teachpacks set-value (format "~s" (get-teachpack-filenames)))
     (send language-level set-value (format "~s" (get-language-level)))
-    
-    (toggle-synthesized-info)
     
     (send bug-frame show #t))
   
