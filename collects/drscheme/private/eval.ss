@@ -39,10 +39,12 @@
                             (cond
                               [(input-port? input) (values input #f)]
                               [else (values
-                                     (open-input-text-editor
-                                      (drscheme:language:text/pos-text input)
-                                      (drscheme:language:text/pos-start input)
-                                      (drscheme:language:text/pos-end input))
+                                     (let ([p (open-input-text-editor
+                                               (drscheme:language:text/pos-text input)
+                                               (drscheme:language:text/pos-start input)
+                                               (drscheme:language:text/pos-end input))])
+                                       (port-count-lines! p)
+                                       p)
                                      (drscheme:language:text/pos-text input))])])
                 (parameterize ([current-eventspace eventspace])
                   (queue-callback
