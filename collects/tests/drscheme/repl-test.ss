@@ -217,6 +217,17 @@
 		#f
                 void
                 void)
+     
+     (make-test "(begin (values) 1)"
+		"1"
+		"1"
+		#f
+		'interactions
+		#f
+		#f
+		#f
+                void
+                void)
 
      (make-test (string-append
                  "(module m mzscheme (provide e) (define e #'1))\n"
