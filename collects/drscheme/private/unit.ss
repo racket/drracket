@@ -1696,13 +1696,15 @@
           (define/private (show-module-browser)
             (when module-browser-panel
               (unless module-browser-ec 
-                (set! module-browser-ec (make-object editor-canvas% module-browser-panel))
                 (set! module-browser-pb 
                       (drscheme:module-overview:make-module-overview-pasteboard
                        #t
                        #f 
                        void;mouse-currently-over
-                       )))
+                       ))
+                (set! module-browser-ec (make-object editor-canvas%
+                                          module-browser-panel
+                                          module-browser-pb)))
               (let ([p (preferences:get 'drscheme:module-browser-size-percentage)])
                 (send module-browser-parent-panel begin-container-sequence)
                 (send module-browser-parent-panel change-children
@@ -1721,20 +1723,28 @@
                       (remq module-browser-panel l)))))
           
           (define/private (calculate-module-browser)
-            (drscheme:eval:expand-program 
-             (drscheme:language:make-text/pos (get-definitions-text) 0 0)
+            (drscheme:eval:expand-program
+             (let ([defs (get-definitions-text)])
+               (drscheme:language:make-text/pos 
+                defs
+                0
+                (send defs last-position)))
              (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))
              #t
              void
              void
              (lambda (exp cont)
                (cond
-                 [(eof-object? exp) (void)]
+                 [(eof-object? exp) 
+                  (void)]
                  [(syntax? exp) 
-                  (send module-browser-pb add-connections exp)
+                  (let ([err (send module-browser-pb add-connections exp)])
+                    (when err
+                      (message-box "DrScheme" err)))
                   (cont)]
-                 [(pair? exp) (void)]))))
-             
+                 [(pair? exp)
+                  (void)]))))
+          
           (super-instantiate ()
             (filename filename)
             (width (preferences:get 'drscheme:unit-window-width))

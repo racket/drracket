@@ -7,6 +7,9 @@ todo :
  - add a way to hide lib-based paths to show-menu version of graph
  - lines field can be #f and filename field might not be a file, so double check everything
    and rename things!
+ - double clicking should open the file (or maybe set the insertion point?)
+ - progress messages
+ - build abstraction for drscheme:eval?
  
 |#
 (module module-overview mzscheme
@@ -144,6 +147,7 @@ todo :
             ;; returns a string error message if there was an error expanding
             ;; the program
             (define/public (add-connections filename/stx)
+              
               (define visited-hash-table (make-hash-table))
               (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
                                        (instantiate frame% ()
@@ -168,23 +172,25 @@ todo :
                  (unless done?
                    (send progress-frame show #t))
                  (semaphore-post sema)))
-              (begin-edit-sequence)
               
+              (begin-edit-sequence)
               (with-handlers ([not-break-exn?
                                (lambda (x) 
                                  (set! error
                                        (if (exn? x)
                                            (format "~a" (exn-message x))
                                            (format "uncaught exn: ~s" x))))])
-                (if (string? filename/stx)
-                    (add-filename-connections filename/stx
-                                              visited-hash-table
-                                              (lambda (l) (set! max-lines (max l max-lines)))
-                                              progress-message)
-                    (add-syntax-connections filename/stx 
-                                            visited-hash-table
-                                            (lambda (l) (set! max-lines (max l max-lines)))
-                                            progress-message))
+                (cond
+                  [(string? filename/stx)
+                   (add-filename-connections filename/stx
+                                             visited-hash-table
+                                             (lambda (l) (set! max-lines (max l max-lines)))
+                                             progress-message)]
+                  [(syntax? filename/stx)
+                   (add-syntax-connections filename/stx 
+                                           visited-hash-table
+                                           (lambda (l) (set! max-lines (max l max-lines)))
+                                           progress-message)])
                 
                 (send progress-message set-label laying-out-graph-label)
                 
@@ -210,14 +216,14 @@ todo :
               (let* ([module-code (compile stx)]
                      [name (extract-module-name stx)]
                      [visited-key (string->symbol name)]
-                     [snip (find/create-snip name)])
+                     [snip (find/create-snip name #f)])
                 (hash-table-put! visited-hash-table visited-key #t)
                 (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
                   (let ([requires (extract-filenames imports name)]
                         [syntax-requires (extract-filenames fs-imports name)])
                     (for-each (lambda (require)
-                                (add-connection name
-                                                (req-filename require)
+                                (add-connection name #f
+                                                (req-filename require) #t
                                                 (req-lib? require)
                                                 #f)
                                 (add-filename-connections (req-filename require)
@@ -226,8 +232,8 @@ todo :
                                                           progress-message))
                               requires)
                     (for-each (lambda (syntax-require)
-                                (add-connection name 
-                                                (req-filename syntax-require)
+                                (add-connection name #f
+                                                (req-filename syntax-require) #t
                                                 (req-lib? syntax-require)
                                                 #t)
                                 (add-filename-connections (req-filename syntax-require) 
@@ -251,30 +257,36 @@ todo :
                     (send progress-message set-label (format adding-file filename))
                     (hash-table-put! visited-hash-table visited-key #t)
                     (let ([module-code (get-module-code filename)]
-                          [lines (send (find/create-snip filename) get-lines)])
+                          [lines (send (find/create-snip filename #t) get-lines)])
                       (when lines (update-max-lines lines))
                       (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
                         (let ([requires (extract-filenames imports filename)]
                               [syntax-requires (extract-filenames fs-imports filename)])
                           (for-each (lambda (require)
-                                      (add-connection filename 
-                                                      (req-filename require)
+                                      (add-connection filename  #t
+                                                      (req-filename require) #t
                                                       (req-lib? require)
                                                       #f)
                                       (loop (req-filename require)))
                                     requires)
                           (for-each (lambda (syntax-require)
-                                      (add-connection filename 
-                                                      (req-filename syntax-require)
+                                      (add-connection filename #t
+                                                      (req-filename syntax-require) #t
                                                       (req-lib? syntax-require)
                                                       #t)
                                       (loop (req-filename syntax-require)))
                                     syntax-requires))))))))
               
-            ;; add-connection : string string -> void
-            (define (add-connection filename-original filename-require lib-path? for-syntax?)
-              (let* ([original-snip (find/create-snip filename-original)]
-                     [require-snip (find/create-snip filename-require)]
+            ;; add-connection : string boolean string boolean boolean boolean -> void
+            ;; name-original and name-require and the identifiers for those paths and
+            ;; original-filename? and require-filename? are booleans indicating if the names
+            ;; are filenames.
+            (define (add-connection name-original original-filename?
+                                    name-require require-filename?
+                                    lib-path?
+                                    for-syntax?)
+              (let* ([original-snip (find/create-snip name-original original-filename?)]
+                     [require-snip (find/create-snip name-require require-filename?)]
                      [original-level (send original-snip get-level)]
                      [require-level (send require-snip get-level)])
                 (if for-syntax?
@@ -324,38 +336,38 @@ todo :
                 (- (unbox bb)
                    (unbox tb))))
             
-            ;; find/create-snip : (union string[filename] string) -> word-snip/lines
+            ;; find/create-snip : (union string[filename] string) boolean? -> word-snip/lines
             ;; snip-table : hash-table[sym -o> snip]
             ;; finds the snip with this key, or creates a new
             ;; ones. For the same key, always returns the same snip.
             ;; uses snip-table as a cache for this purpose.
             (define snip-table (make-hash-table))
-            (define (find/create-snip filename)
-              (let ([key (string->symbol filename)])
+            (define (find/create-snip name is-filename?)
+              (let ([key (string->symbol name)])
                 (hash-table-get
                  snip-table
                  key
                  (lambda () 
                    (let* ([snip (instantiate word-snip/lines% ()
-                                  (lines (count-lines filename))
-                                  (word (format "~a" (name->label filename)))
-                                  (filename filename))])
+                                  (lines (if is-filename? (count-lines name) #f))
+                                  (word (format "~a" (if is-filename?
+                                                         (name->label name)
+                                                         name)))
+                                  (filename (if is-filename? name #f)))])
                      (insert snip)
                      (hash-table-put! snip-table key snip)
                      snip)))))
             
-            ;; count-lines : (union string string[filename]) -> (union #f number)
+            ;; count-lines : string[filename] -> (union #f number)
             (define (count-lines filename)
-              (if (file-exists? filename)
-                  #f
-                  (call-with-input-file filename
-                    (lambda (port)
-                      (let loop ([n 0])
-                        (let ([l (read-line port)])
-                          (if (eof-object? l)
-                              n
-                              (loop (+ n 1))))))
-                    'text)))
+              (call-with-input-file filename
+                (lambda (port)
+                  (let loop ([n 0])
+                    (let ([l (read-line port)])
+                      (if (eof-object? l)
+                          n
+                          (loop (+ n 1))))))
+                'text))
             
             ;; name->label : string -> string
             ;; constructs a label for the little boxes in terms
@@ -405,6 +417,7 @@ todo :
               (remove-currrently-inserted)
               (for-each
                (lambda (snip)
+                 (insert snip)
                  (let loop ([snip snip])
                    (for-each
                     (lambda (child)
@@ -503,7 +516,9 @@ todo :
                    (let-values ([(x y) (dc-location-to-editor-location ex ey)])
                      (let ([snip (find-snip x y)]
                            [canvas (get-canvas)])
-                       (when (and snip canvas)
+                       (when (and snip
+                                  canvas
+                                  (send snip get-filename))
                          (let* ([right-button-menu (make-object popup-menu%)]
                                 [open-file-item (instantiate menu-item% ()
                                                   (label 
@@ -552,13 +567,16 @@ todo :
             (define/public (get-word) word)
             (define/public (get-lines) lines)
             
-            (field (lines-brush #f)
-                   (normalized-line 0))
+            (field (lines-brush #f))
             (define/public (normalize-lines n)
-              (let* ([grey (inexact->exact (floor (- 255 (* 255 (sqrt (/ lines n))))))])
-                (set! lines-brush (send the-brush-list find-or-create-brush
-                                        (make-object color% grey grey grey)
-                                        'solid))))
+              (if lines
+                  (let* ([grey (inexact->exact (floor (- 255 (* 255 (sqrt (/ lines n))))))])
+                    (set! lines-brush (send the-brush-list find-or-create-brush
+                                            (make-object color% grey grey grey)
+                                            'solid)))
+                  (set! lines-brush (send the-brush-list find-or-create-brush
+                                          "salmon"
+                                          'solid))))
             
             (field (snip-width 0)
                    (snip-height 0))
