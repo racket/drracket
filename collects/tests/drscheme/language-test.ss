@@ -667,72 +667,7 @@
             (case-lambda
              [(x) (member #\newline (string->list x))]
              [() "newlines in result (may need to make the window smaller)"]))))
-  
-  (define (whitespace-string=? string1 string2)
-    (let loop ([i 0]
-               [j 0]
-               [in-whitespace? #t])
-      (cond
-        [(= i (string-length string1)) (only-whitespace? string2 j)]
-        [(= j (string-length string2)) (only-whitespace? string1 i)]
-        [else (let ([c1 (string-ref string1 i)]
-                    [c2 (string-ref string2 j)])
-                (cond
-                  [in-whitespace?
-                   (cond
-                     [(whitespace? c1)
-                      (loop (+ i 1)
-                            j
-                            #t)]
-                     [(whitespace? c2)
-                      (loop i
-                            (+ j 1)
-                            #t)]
-                     [else (loop i j #f)])]
-                  [(and (whitespace? c1)
-                        (whitespace? c2))
-                   (loop (+ i 1)
-                         (+ j 1)
-                         #t)]
-                  [(char=? c1 c2)
-                   (loop (+ i 1)
-                         (+ j 1)
-                         #f)]
-                  [else #f]))])))
-  
-  (define (whitespace? c)
-    (or (char=? c #\newline)
-        (char=? c #\space)
-        (char=? c #\tab)
-        (char=? c #\return)))
-  
-  (define (only-whitespace? str i)
-    (let loop ([n i])
-      (cond
-        [(= n (string-length str))
-         #t]
-        [(whitespace? (string-ref str n))
-         (loop (+ n 1))]
-        [else #f])))
-  
-;; whitespace-string=? tests
-  '(map (lambda (x) (apply equal? x))
-        (list (list #t (whitespace-string=? "a" "a"))
-              (list #f (whitespace-string=? "a" "A"))
-              (list #f (whitespace-string=? "a" " "))
-              (list #f (whitespace-string=? " " "A"))
-              (list #t (whitespace-string=? " " " "))
-              (list #t (whitespace-string=? " " "  "))
-              (list #t (whitespace-string=? "  " "  "))
-              (list #t (whitespace-string=? "  " " "))
-              (list #t (whitespace-string=? "a a" "a a"))
-              (list #t (whitespace-string=? "a a" "a  a"))
-              (list #t (whitespace-string=? "a  a" "a a"))
-              (list #t (whitespace-string=? " a" "a"))
-              (list #t (whitespace-string=? "a" " a"))
-              (list #t (whitespace-string=? "a " "a"))
-              (list #t (whitespace-string=? "a" "a "))))
-  
+
   (define re:out-of-sync
     (regexp
      "WARNING: Interactions window is out of sync with the definitions window\\."))

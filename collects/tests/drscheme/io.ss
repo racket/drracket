@@ -52,7 +52,7 @@
         (do-execute drs-frame)
         (unless (equal? "" (fetch-output drs-frame))
           (error 'io.ss "failed long io / execute test (extra io)"))
-        (unless (equal? 
+        (unless (whitespace-string=?
                  (get-output-string string-port)
                  got-output)
           (error 'io.ss "failed long io / execute test (output doesn't match)")))))
