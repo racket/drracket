@@ -13,7 +13,8 @@
   
   (define multi-file-search@
     (unit/sig drscheme:multi-file-search^
-      (import [drscheme:frame : drscheme:frame^])
+      (import [drscheme:frame : drscheme:frame^]
+              [drscheme:unit : drscheme:unit^])
       
       ;; multi-file-search : -> void
       ;; opens a dialog to configure the search and initiates the search
@@ -164,7 +165,9 @@
                (do-search
                 search-info 
                 (lambda (base-filename filename line-string line-number col-number match-length)
-                  ;; somehow, when lots of results are found, this still doesn't work properly
+                  ;; somehow, when lots of results are found
+                  ;; and the break button is clicked,
+                  ;; this still doesn't work properly
                   ;; and drscheme can get stuck.
                   (dynamic-disable-break
                    (lambda ()
@@ -233,12 +236,14 @@
       ;;   search-complete : -> void
       ;;      inserts a message saying "no matches found" if none were reported
       (define results-text%
-        (class text:basic% 
+        (class text% 
           (init-field zoom-text)
           (inherit insert last-paragraph erase
                    paragraph-start-position paragraph-end-position
                    last-position change-style
-                   set-clickback set-position)
+                   set-clickback set-position
+                   end-edit-sequence begin-edit-sequence
+                   lock)
           
           [define filename-delta (make-object style-delta% 'change-bold)]
           [define match-delta (let ([d (make-object style-delta%)])
@@ -268,11 +273,16 @@
           
           ;; current-file : (union #f string)
           ;; the name of the currently viewed file, if one if viewed.
+          ;; line-in-current-file and col-in-current-file are linked
           [define current-file #f]
+          [define line-in-current-file #f]
+          [define col-in-current-file #f]
           
           [define old-line #f]
           [define hilite-line
             (lambda (line)
+              (begin-edit-sequence)
+              (lock #f)
               (when old-line
                 (change-style unhilite-line-delta
                               (paragraph-start-position old-line)
@@ -281,12 +291,20 @@
                 (change-style hilite-line-delta
                               (paragraph-start-position line)
                               (paragraph-end-position line)))
-              (set! old-line line))]
+              (set! old-line line)
+              (lock #t)
+              (end-edit-sequence))]
           
-          [define/public open-file
-            (lambda ()
-              (when current-file
-                (handler:edit-file current-file)))]
+          [define/public (open-file)
+            (when current-file
+              (let ([f (handler:edit-file current-file)])
+                (when (and f
+                           (is-a? f drscheme:unit:frame<%>))
+                  (let* ([t (send f get-definitions-text)]
+                         [pos (+ (send t paragraph-start-position line-in-current-file)
+                                 col-in-current-file)])
+                    (send t set-position pos)))))]
+          
           [define/public add-match
             (lambda (base-filename full-filename line-string line-number col-number match-length)
               (let* ([new-line-position (last-position)]
@@ -300,6 +318,8 @@
                       (lambda ()
                         (set! match-shown? #t)
                         (set! current-file full-filename)
+                        (set! line-in-current-file line-number)
+                        (set! col-in-current-file col-number)
                         (set-position new-line-position new-line-position)
                         (send zoom-text begin-edit-sequence)
                         (send zoom-text lock #f)
@@ -343,13 +363,17 @@
                     (show-this-match)))))]
 
           (define/public (search-interrupted)
+            (lock #f)
             (insert #\newline (last-position) (last-position))
-            (insert (string-constant mfs-search-interrupted) (last-position) (last-position)))
+            (insert (string-constant mfs-search-interrupted) (last-position) (last-position))
+            (lock #t))
           
           (define/public (search-complete)
             (unless match-shown?
+              (lock #f)
               (insert #\newline (last-position) (last-position))
-              (insert (string-constant mfs-no-matches-found) (last-position) (last-position))))
+              (insert (string-constant mfs-no-matches-found) (last-position) (last-position))
+              (lock #t)))
           
           (inherit get-style-list set-style-list set-styles-sticky)
           (super-instantiate ())

@@ -46,7 +46,7 @@
                        get/extend number-snip teachpack module-overview tools)]
             [debug : drscheme:debug^
                    (debug@ rep frame unit language language-configuration)]
-            [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame)]
+            [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame unit)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep debug)]
             [language-configuration : drscheme:language-configuration/internal^ 
                                     (language-configuration@ unit rep teachpack
