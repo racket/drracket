@@ -8,7 +8,7 @@
 	  [help-desk : help:drscheme-interface^])
   
   (define about-frame%
-    (class (drscheme:frame:basics-mixin frame:standard-menus%) (main-text)
+    (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (main-text)
       (private
         [edit-menu:do 
          (lambda (const)
@@ -110,7 +110,7 @@
 				 "notes.html"))))))
 
   (define tour-frame%
-    (class/d (drscheme:frame:basics-mixin frame:standard-menus%) args
+    (class/d (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) args
       ((override edit-menu:undo
 		 edit-menu:redo
 		 edit-menu:cut

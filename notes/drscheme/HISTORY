@@ -1,5 +1,12 @@
 Version 102:
 
+102d7
+
+  - drscheme now has a little button on the bar that lets you hop
+    around between definitions in the program. It is approximate in
+    that it doesn't really know every detail about the lexical
+    structure of scheme, but it should still be quite useful. 
+
 102d6
 
  PRS: 1341

@@ -435,6 +435,148 @@ get-directory: (-> (union string #f))
       (stretchable-height #f)))
 
   
+  (define func-defs-canvas%
+    (class/d mred:canvas% (parent text)
+      ((override on-paint on-event)
+       (inherit get-client-size get-dc popup-menu min-height min-width
+		stretchable-width
+		stretchable-height)
+       (rename [super-on-event on-event]))
+
+      (define-struct defn (indent name pos))
+
+      (define tag-string "(define")
+      (define (get-definitions)
+	(let* ([min-indent 0]
+	       [defs (let loop ([pos 0])
+		       (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
+			 (if defn-pos
+			     (let ([indent (get-defn-indent defn-pos)]
+				   [name (get-defn-name (+ defn-pos (string-length tag-string)))])
+			       (set! min-indent (min indent min-indent))
+			       (cons (make-defn indent name defn-pos)
+				     (loop (+ defn-pos (string-length tag-string)))))
+			     null)))])
+	  (for-each (lambda (defn)
+		      (set-defn-name! defn
+				      (string-append
+				       (apply string
+					      (vector->list
+					       (make-vector (- (defn-indent defn) min-indent) #\space)))
+				       (defn-name defn))))
+		    defs)
+	  defs))
+
+      (define (get-defn-indent pos)
+	(let* ([para (send text position-paragraph pos)]
+	       [para-start (send text paragraph-start-position para #t)])
+	  (max 0 (- pos para-start))))
+
+      (define (skip-to-whitespace/paren pos)
+	(let loop ([pos pos])
+	  (if (>= pos (send text last-position))
+	      (send text last-position)
+	      (let ([char (send text get-character pos)])
+		(cond
+		 [(or (char=? #\) char)
+		      (char=? #\( char)
+		      (char=? #\] char)
+		      (char=? #\[ char)
+		      (char-whitespace? char))
+		  pos]
+		 [else (loop (+ pos 1))])))))
+
+      (define (skip-whitespace/paren pos)
+	(let loop ([pos pos])
+	  (if (>= pos (send text last-position))
+	      (send text last-position)
+	      (let ([char (send text get-character pos)])
+		(cond
+		 [(or (char=? #\) char)
+		      (char=? #\( char)
+		      (char=? #\] char)
+		      (char=? #\[ char)
+		      (char-whitespace? char))
+		  (loop (+ pos 1))]
+		 [else pos])))))
+
+      (define (get-defn-name define-pos)
+	(if (>= define-pos (send text last-position))
+	    "<end of buffer>"
+	    (let* ([start-pos (skip-whitespace/paren (skip-to-whitespace/paren define-pos))]
+		   [end-pos (skip-to-whitespace/paren start-pos)])
+	      (send text get-text start-pos end-pos))))
+
+      (define inverted? #f)
+
+      (define font (send mred:the-font-list find-or-create-font 12 'decorative 'normal 'normal #f))
+      (define label "(define")
+      (define black (make-object mred:color% "BLACK"))
+      (define white (make-object mred:color% "WHITE"))
+
+      (define (on-paint)
+	(let ([dc (get-dc)])
+	  (let-values ([(w h) (get-client-size)])
+	    (if inverted?
+		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
+		       (send dc set-brush (send mred:the-brush-list find-or-create-brush "BLACK" 'solid))
+		       (send dc set-text-foreground white))
+		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
+		       (send dc set-brush (send mred:the-brush-list find-or-create-brush "WHITE" 'solid))
+		       (send dc set-text-foreground black)))
+	    (send dc set-font font)
+	    (send dc draw-rectangle 0 0 w h)
+	    (send dc draw-text label 1 1))))
+
+      (define (on-event evt)
+	(cond
+	 [(send evt button-down?)
+	  (set! inverted? #t)
+	  (on-paint)
+	  (let ([menu (make-object mred:popup-menu% "Definitions")])
+	    (let loop ([defns (get-definitions)])
+	      (unless (null? defns)
+		(let* ([defn (car defns)]
+		       [next-start (if (null? (cdr defns))
+				       #f
+				       (defn-pos (car (cdr defns))))]
+					      
+		       [checked? (and next-start
+				      (and (<= (defn-pos defn)
+					       (send text get-start-position))
+					   (<  (send text get-end-position)
+					       next-start)))]
+		       [item
+			(make-object (if checked?
+					 mred:checkable-menu-item%
+					 mred:menu-item%)
+			  (defn-name defn)
+			  menu
+			  (lambda x
+			    (set! inverted? #f)
+			    (on-paint)
+			    (send text set-position (defn-pos defn) (defn-pos defn))
+			    (when (send text get-canvas)
+			      (send (send text get-canvas) focus))))])
+		  (when checked?
+		    (send item check #t))
+		  (loop (cdr defns)))))
+	    (popup-menu menu
+			(inexact->exact (send evt get-x))
+			(inexact->exact (send evt get-y))))]
+	 [(send evt button-up?)
+	  (set! inverted? #f)
+	  (on-paint)]
+	 [else (super-on-event evt)]))
+
+      (super-init parent)
+
+      (let-values ([(w h a d) (send (get-dc) get-text-extent label font)])
+	(min-width (+ 2 (inexact->exact (ceiling w))))
+	(min-height (+ 2 (inexact->exact (ceiling h)))))
+      (stretchable-width #f)
+      (stretchable-height #f)))
+
   (define super-frame%
     (drscheme:frame:mixin
      (drscheme:frame:basics-mixin fw:frame:searchable%)))
@@ -874,6 +1016,9 @@ get-directory: (-> (union string #f))
 	[execute-button (void)]
 	[button-panel (make-object mred:horizontal-panel% top-panel)])
       
+      (private
+	[func-defs-canvas (make-object func-defs-canvas% button-panel definitions-text)])
+
       (sequence
 	(set! execute-button
 	      (make-object mred:button%
