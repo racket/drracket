@@ -227,8 +227,8 @@
       (send d-usual set-weight-on 'normal)
       (send* editor-canvas
 	     (set-editor main-text)
-	     (stretchable-width #f)
-	     (stretchable-height #f))
+	     (stretchable-width #t)
+	     (stretchable-height #t))
 
       ;; 50 is close enough to the space
       (if (send plt-bitmap ok?)
@@ -273,7 +273,14 @@
 	     (insert "  ")
 	     (insert (banner))
 	     (insert "  McMicMac (c) 1995-1998 PLT, Rice University (Shriram Krishnamurthi)")
-	     (insert #\newline)
+	     (insert #\newline))
+      
+      (when (eq? (system-type) 'macos)
+        (send* e
+          (insert "  The A List (c) 1997-2000 Kyle Hammond")
+          (insert #\newline)))
+
+      (send* e
 	     (auto-wrap #t)
 	     (set-autowrap-bitmap #f)
 	     (lock #t))

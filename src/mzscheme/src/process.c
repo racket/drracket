@@ -1234,7 +1234,9 @@ static void remove_process(Scheme_Process *r)
 #ifdef RUNSTACK_IS_GLOBAL
   if (r == scheme_current_process) {
     r->runstack = MZ_RUNSTACK;
+    MZ_RUNSTACK = NULL;
     r->runstack_start = MZ_RUNSTACK_START;
+    MZ_RUNSTACK_START = NULL;
     r->cont_mark_stack = MZ_CONT_MARK_STACK;
     r->cont_mark_pos = MZ_CONT_MARK_POS;
   }

@@ -277,7 +277,7 @@ They correspond exclusively to forms built into the language.
 
   case-lambda lambda define-internal begin-internal begin begin0 if
   with-continuation-mark quote set!-values local define local-define
-  define-values struct define-struct define-structure let-struct let
+  define-values struct define-struct let-struct let
   let* delay time let-values let*-values letrec-values letrec or nor
   and nand recur rec cond case evcase when unless let/cc let/ec do
   fluid-let parameterize with-handlers define-macro let-macro unquote
@@ -318,7 +318,7 @@ programs.
   of nothing but internal definitions is invalid (since this must
   translate into the letrec family, which needs a body).
 
-> term:duplicate-interal-def
+> term:duplicate-internal-def
 
   Each name can be defined only once internally.
 
@@ -671,7 +671,6 @@ present at all subsequent language levels.
 )#|  intermediate:  |#(
 
   kwd:local
-  kwd:define-structure
   kwd:let-struct
   kwd:let
   kwd:let*
@@ -766,7 +765,7 @@ do not occur (fallbacks that are never fallen back to):
      beginner:      |#(
 
   term:internal-def-not-foll-by-expr   ;; *
-  term:duplicate-interal-def           ;; *
+  term:duplicate-internal-def          ;; *
   term:case/lambda-only-in-def
   term:define-internal-invalid-posn    ;; *
   term:define-illegal-implicit-begin
@@ -783,7 +782,6 @@ do not occur (fallbacks that are never fallen back to):
   term:repeated-identifier
   term:invalid-identifier
   term:proc-arity->=-1
-  term:set!-no-mutate-lambda-bound     ;; *
   term:def-not-at-top-level
   term:cannot-bind-kwd
   term:macro-error
@@ -791,7 +789,7 @@ do not occur (fallbacks that are never fallen back to):
 )#|  intermediate:  |#(
 
   term:internal-def-not-foll-by-expr  ;; *
-  term:duplicate-interal-def          ;; *
+  term:duplicate-internal-def         ;; *
   term:define-internal-invalid-posn   ;; *
   term:define-illegal-implicit-begin
   term:if-must-have-else
@@ -806,7 +804,6 @@ do not occur (fallbacks that are never fallen back to):
   term:repeated-identifier
   term:invalid-identifier
   term:proc-arity->=-1
-  term:set!-no-mutate-lambda-bound    ;; *
   term:def-not-at-top-level
   term:cannot-bind-kwd
   term:macro-error
@@ -815,7 +812,7 @@ do not occur (fallbacks that are never fallen back to):
 )#|  advanced:      |#(
 
   term:internal-def-not-foll-by-expr   ;; *
-  term:duplicate-interal-def           ;; *
+  term:duplicate-internal-def          ;; *
   term:define-internal-invalid-posn    ;; *
   term:struct-not-id
   term:super-struct-invalid
@@ -831,12 +828,13 @@ do not occur (fallbacks that are never fallen back to):
   term:def-not-at-top-level
   term:cannot-bind-kwd
   term:macro-error
+  term:set!-no-mutate-lambda-bound
 
 
 )#|  full scheme:   |#(
 
   term:internal-def-not-foll-by-expr
-  term:duplicate-interal-def
+  term:duplicate-internal-def
   term:define-internal-invalid-posn
   term:struct-not-id
   term:super-struct-invalid

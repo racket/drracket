@@ -262,7 +262,7 @@ get_bucket (Scheme_Hash_Table *table, const char *key, int add, Scheme_Bucket *b
     if (table->weak) {
 #ifdef MZ_PRECISE_GC
       void *kb;
-      kb = GC_malloc_weak_box((void *)key, (void **)bucket, (void **)bucket - (void **)&bucket->val);
+      kb = GC_malloc_weak_box((void *)key, (void **)bucket, (void **)&bucket->val - (void **)bucket);
       bucket->key = (char *)kb;
 #else
       char *kb;
@@ -505,7 +505,7 @@ long scheme_hash_key(Scheme_Object *o)
 
   if (!hash_key_procs[t]) {
     printf("Can't hash %d\n", t);
-    exit(0);
+    abort();
   }
 
   return hash_key_procs[t](o);

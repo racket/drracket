@@ -8,6 +8,8 @@
           [s : stepper:model^]
 	  stepper:shared^)
 
+  (define the-undefined-value (letrec ([x x]) x))
+  
   (define nothing-so-far (gensym "nothing-so-far-"))
   
   (define memoized-read->raw
@@ -136,25 +138,19 @@
                     (or (z:lambda-varref? expr)
                         (let ([var (z:varref-var expr)])
                           (with-handlers 
-                              ([exn:variable? (lambda args (printf "c~n") #f)])
-                            (printf "a~n")
-                            (or (and (printf "a.5~n")
-                                     (s:check-pre-defined-var var)
+                              ([exn:variable? (lambda args #f)])
+                            (or (and (s:check-pre-defined-var var)
                                      (or (procedure? (s:global-lookup var))
                                          (eq? var 'empty)))
                                 (let ([val (if (z:top-level-varref? expr)
                                                (s:global-lookup var)
-                                               (begin
-                                                 (printf "fkjd~n")
-                                                 (lookup-binding mark-list (z:bound-varref-binding expr))))])
-                                  (printf "past lookup-binding~n")
+                                               (lookup-binding mark-list (z:bound-varref-binding expr)))])
                                   (and (procedure? val)
                                        (not (continuation? val))
                                        (eq? var
                                             (closure-record-name 
                                              (closure-table-lookup val (lambda () #f)))))))))))
                (and (z:app? expr)
-                    (printf "into app~n")
                     (let ([fun-val (mark-binding-value
                                     (lookup-binding mark-list (get-arg-binding 0)))])
                       (and (procedure? fun-val)
@@ -420,7 +416,9 @@
                             [val rhs-list
                                  (let loop ([binding-sets binding-sets] [rhs-vals rhs-vals] [rhs-sources vals])
                                    (cond [(null? binding-sets) null]
-                                         [(eq? (car rhs-vals) *unevaluated*)
+                                         [(eq? (car rhs-vals) (if letrec?
+                                                                  the-undefined-value
+                                                                  *unevaluated*))
                                           (cons so-far
                                                 (map (lambda (expr)
                                                        (rectify-source-expr expr mark-list (if letrec?
@@ -568,17 +566,19 @@
                   (cdr mark-list)
                   #f))))
          
-         (define (let-style-abstraction binding-sets body)
+         (define (let-style-abstraction letrec? binding-sets body)
            (let* ([redex (rectify-inner mark-list #f)]
                   [binding-list (apply append binding-sets)]
                   [new-names (map insert-lifted-name binding-list)]
-                  [dummy-var-list (build-list (length binding-list) get-arg-binding)]
+                  [dummy-var-list (if letrec?
+                                      binding-list
+                                      (build-list (length binding-list) get-arg-binding))]
                   [rhs-vals (map (lambda (arg-temp) 
                                    (mark-binding-value (lookup-binding mark-list arg-temp)))
                                  dummy-var-list)]
-                  [before-step (current-def-rectifier redex (cdr mark-list) #f)]
+                  [before-step (current-def-rectifier highlight-placeholder (cdr mark-list) #f)]
                   [reduct (rectify-source-expr body mark-list null)]
-                  [after-step (current-def-rectifier reduct (cdr mark-list) #f)]
+                  [after-step (current-def-rectifier highlight-placeholder (cdr mark-list) #f)]
                   [new-defines (map (lambda (name val) `(define ,name ,val)) new-names rhs-vals)])
              (list new-defines before-step redex after-step reduct)))
            
@@ -586,13 +586,14 @@
          (define (rectify-let-values-step)
            (let* ([source-expr (mark-source (car mark-list))])
              (apply let-style-abstraction
+                    (z:letrec-values-form? source-expr)
                     (map (lambda (accessor) (accessor source-expr))
                          (cond [(z:let-values-form? source-expr)
                                 (list z:let-values-form-vars
                                       z:let-values-form-body)]
                                [(z:letrec-values-form? source-expr)
                                 (list z:letrec-values-form-vars
-                                      z:let-values-form-body)])))))
+                                      z:letrec-values-form-body)])))))
                     
                     
          ;         (define (confusable-value? val)

@@ -170,7 +170,6 @@
                                             (z:scheme-expand new-expr 'previous user-vocabulary))))])
                    (let*-values ([(annotated-list envs) (a:annotate (list new-expr) (list new-parsed) packaged-envs break #f)]
                                  [(annotated) (car annotated-list)])
-                     (printf "annotated:~n~a~n" annotated)
                      (set! packaged-envs envs)
                      (set! current-expr new-parsed)
                      (check-for-repeated-names new-parsed exception-handler)
@@ -212,16 +211,13 @@
                   (finish-thunk reconstructed redex)))))])
       (case break-kind
         [(normal-break)
-         (printf "entering normal-break~n")
          (when (not (r:skip-redex-step? mark-list))
-           (printf "not skipping step~n")
            (reconstruct-helper 
             (lambda (reconstructed redex)
               (set! held-expr reconstructed)
               (set! held-redex redex)
               (continue-user-computation)))
-           (suspend-user-computation))
-         (printf "finished normal-break~n")]
+           (suspend-user-computation))]
         [(result-break)
          (when (not (or (r:skip-redex-step? mark-list)
                         (and (null? returned-value-list)

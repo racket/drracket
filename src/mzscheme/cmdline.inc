@@ -160,6 +160,36 @@ static int finish_cmd_line_run(FinishArgs *fa, void (*repl)(void))
   return exit_val;
 }
 
+#ifndef NO_FILE_SYSTEM_UTILS
+static void init_collection_paths(Scheme_Env *global_env)
+{		
+  if (!scheme_setjmp(scheme_error_buf)) {
+    scheme_eval_string("(#%current-library-collection-paths "
+		        "(#%path-list-string->path-list "
+		         "(#%or (#%getenv \"PLTCOLLECTS\") \"\")"
+		         "(#%or"
+		          "(#%ormap"
+		           "(#%lambda (f) (#%let ([p (f)]) (#%and p (#%directory-exists? p) (#%list p))))"
+		           "(#%list"
+		            "(#%lambda () (#%let ((v (#%getenv \"PLTHOME\")))"
+		                          "(#%and v (#%build-path v \"collects\"))))"
+		            "(#%lambda () (#%find-executable-path program \"collects\"))"
+#ifdef UNIX_FILE_SYSTEM
+# ifdef USE_BEOS_SNOOZE
+		            "(#%lambda () \"/boot/apps/plt/collects\")"
+# else
+		            "(#%lambda () \"/usr/local/lib/plt/collects\")"
+# endif
+#endif
+#ifdef DOS_FILE_SYSTEM
+		            "(#%lambda () \"c:\\plt\\collects\")"
+#endif
+		          ")) #%null)))",
+		       global_env);
+  }
+}
+#endif
+
 #ifdef USE_OSKIT_CONSOLE
 /* Hack to disable normal input mode: */
 int osk_not_console = 0;
@@ -552,30 +582,8 @@ static int run_from_cmd_line(int argc, char *argv[],
 
 #ifndef NO_FILE_SYSTEM_UTILS
   /* Setup path for "collects" collection directory: */
-  if (!no_lib_path) {
-    scheme_eval_string("(#%current-library-collection-paths "
-		        "(#%path-list-string->path-list "
-		         "(#%or (#%getenv \"PLTCOLLECTS\") \"\")"
-		         "(#%or"
-		          "(#%ormap"
-		           "(#%lambda (f) (#%let ([p (f)]) (#%and p (#%directory-exists? p) (#%list p))))"
-		           "(#%list"
-		            "(#%lambda () (#%let ((v (#%getenv \"PLTHOME\")))"
-		                          "(#%and v (#%build-path v \"collects\"))))"
-		            "(#%lambda () (#%find-executable-path program \"collects\"))"
-#ifdef UNIX_FILE_SYSTEM
-# ifdef USE_BEOS_SNOOZE
-		            "(#%lambda () \"/boot/apps/plt/collects\")"
-# else
-		            "(#%lambda () \"/usr/local/lib/plt/collects\")"
-# endif
-#endif
-#ifdef DOS_FILE_SYSTEM
-		            "(#%lambda () \"c:\\plt\\collects\")"
-#endif
-		          ")) #%null)))",
-		       global_env);
-  }
+  if (!no_lib_path)
+    init_collection_paths(global_env);
 #endif /* NO_FILE_SYSTEM_UTILS */
 
 #ifndef MZSCHEME_CMD_LINE  

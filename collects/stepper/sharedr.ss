@@ -59,7 +59,6 @@
   
   (define (get-binding-name binding)
     (let ([name (lookup-new-binding-name binding)])
-      (printf "looked up name: ~a~n" name)
       (or name
 	  (let* ([orig-name (z:binding-orig-name binding)]
 		 [name (string->uninterned-symbol (symbol->string orig-name))])

@@ -353,7 +353,7 @@
 		      [raw-fields (map utils:read->raw (z:struct-form-fields expr))])
 		  (if super-expr
 		      (let*-values
-                          ([(values annotated-super-expr free-bindings-super-expr) 
+                          ([(annotated-super-expr free-bindings-super-expr) 
                             (non-tail-recur super-expr)]
                            [(annotated)
                             `(#%struct 
@@ -566,7 +566,7 @@
                         (values (expr-cheap-wrap `(#%letrec-values ,bindings ,annotated-body))
                                 free-bindings-outer))
                       (let* ([outer-initialization
-                              `((,binding-names (values ,@binding-names)))]
+                              `((,binding-names (#%values ,@binding-names)))]
                              [set!-clauses
                               (map (lambda (binding-set val)
                                      `(#%set!-values ,(map get-binding-name binding-set) ,val))
@@ -575,24 +575,19 @@
                              [middle-begin
                               `(#%begin ,@set!-clauses ,(double-break-wrap annotated-body))]
                              [wrapped-begin
-                              (begin
-                                (printf "debug-info: ~n~a~n" 
-                                        (make-debug-info-app (binding-set-union tail-bound binding-list)
+                              (wcm-wrap (make-debug-info-app (binding-set-union tail-bound binding-list)
                                                              (binding-set-union free-bindings-inner binding-list)
-                                                             'let-body))
-                                (wcm-wrap (make-debug-info-app (binding-set-union tail-bound binding-list)
-                                                               (binding-set-union free-bindings-inner binding-list)
-                                                               'let-body)
-                                          middle-begin))]
+                                                             'let-body)
+                                        middle-begin)]
                              [whole-thing
                               `(#%letrec-values ,outer-initialization ,wrapped-begin)])
                         (values whole-thing free-bindings-outer))))]
                
 	       [(z:define-values-form? expr)  
 		(let*-values
-                    ([(bindings) (z:define-values-form-vars expr)]
-                     [(_1) (map utils:check-for-keyword bindings)]
-                     [(binding-names) (map z:binding-var bindings)]
+                    ([(vars) (z:define-values-form-vars expr)]
+                     [(_1) (map utils:check-for-keyword vars)]
+                     [(binding-names) (map z:varref-var vars)]
                      
                      ; NB: this next recurrence is NOT really tail, but we cannot
                      ; mark define-values itself, so we mark the sub-expr as
@@ -601,30 +596,33 @@
                      
                      [(val) (z:define-values-form-val expr)]
                      [(annotated-val free-bindings-val)
-                      (define-values-recur val)]
-                     [(free-bindings) (remq* bindings free-bindings-val)])
+                      (define-values-recur val)])
                       (cond [(and (z:case-lambda-form? val) (not cheap-wrap?))
                              (values `(#%define-values ,binding-names
                                        (#%let ((,closure-temp ,annotated-val))
                                         (,update-closure-record-name ,closure-temp (#%quote ,(car binding-names)))
                                         ,closure-temp))
-                                     free-bindings)]
+                                     free-bindings-val)]
                             [(z:struct-form? val)
                              (values `(#%define-values ,binding-names
                                        ,(wrap-struct-form binding-names annotated-val)) 
-                                     free-bindings)]
+                                     free-bindings-val)]
                             [else
                              (values `(#%define-values ,binding-names
                                        ,annotated-val) 
-                                     free-bindings)]))]
+                                     free-bindings-val)]))]
 	       
 	       [(z:set!-form? expr)
                 (utils:check-for-keyword (z:set!-form-var expr)) 
                 (let*-values 
-                    ([(v) (translate-varref (z:set!-form-var expr))]
+                    ([(var) (z:set!-form-var expr)]
+                     [(v) (translate-varref var)]
                      [(annotated-body rhs-free-bindings)
                       (non-tail-recur (z:set!-form-val expr))]
-                     [(free-bindings) (binding-set-union (list (z:set!-form-var expr)) rhs-free-bindings)]
+                     [(free-bindings) (binding-set-union (if (z:top-level-varref? var)
+                                                             null
+                                                             (list (z:bound-varref-binding var)))
+                                                         rhs-free-bindings)]
                      [(debug-info) (make-debug-info-normal free-bindings)]
                      [(annotated) `(#%set! ,v ,annotated-body)])
                    (values (if cheap-wrap?
