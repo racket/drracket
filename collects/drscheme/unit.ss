@@ -527,9 +527,9 @@ get-directory: (-> (union string #f))
 	[update-save-message
 	 (lambda (name)
 	   (when name-message
-	     (let* ([name (mzlib:file:normalize-path name)]
-		    [short-name (mzlib:file:file-name-from-path name)])
-	       (send name-message set-message name short-name))))])
+	     (let* ([long-name (mzlib:file:normalize-path name)]
+		    [short-name (mzlib:file:file-name-from-path long-name)])
+	       (send name-message set-message long-name short-name))))])
       (override
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
@@ -909,9 +909,15 @@ get-directory: (-> (union string #f))
       (inherit get-label)
       (sequence
 	
+	;; (get-label) shouldn't be #f, but I'm not sure....
 	(send name-message set-message
 	      filename
-	      (or (get-label) "Untitled")) ;; (get-label) shouldn't be #f, but I'm not sure....
+	      (or (get-label) "Untitled"))
+	'(send name-message set-message
+	      filename
+	      (if (get-label)   
+		  (mzlib:file:file-name-from-path (get-label))
+		  "Untitled"))
 
 	(update-save-button #f)
 

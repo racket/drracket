@@ -31,7 +31,7 @@ Version 102:
  - Help Desk now has a "feeling lucky" option ala google (menu
    shortcut: l). It goes directly to the first item that would have
    been found in a regular search.
-
+c
  - Clicking on an error message link in drscheme now uses the "feeling
    lucky" style search in help desk.
 
