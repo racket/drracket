@@ -15,7 +15,7 @@
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:graph : drscheme:graph^]
 	  [drscheme:snip : drscheme:snip^])
-
+  
   (fw:keymap:add-to-right-button-menu
    (lambda (menu text event)
      (when (and (is-a? text mred:text%)
@@ -29,9 +29,14 @@
 	 (unless (= 0 (send text last-position))
 	   (let ([str
 		  (if (= end start)
-		      (let* ([pos (send text find-position
-					(send event get-x)
-					(send event get-y))]
+		      (let* ([pos 
+                              (call-with-values
+                               (lambda ()
+                                 (send text dc-location-to-editor-location
+                                       (send event get-x)
+                                       (send event get-y)))
+                               (lambda (x y)
+                                 (send text find-position x y)))]
 			     [before
 			      (let loop ([i (- pos 1)]
 					 [chars null])
@@ -62,7 +67,7 @@
 		 (format "Exact lucky search in Help Desk for \"~a\"" str)
 		 menu
 		 (lambda x (drscheme:help-desk:help-desk str #t 'keyword+index 'exact))))))))))
-
+  
   (define (get-fraction-from-user)
     (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
 	   [hp (make-object mred:horizontal-panel% dlg)]
@@ -91,16 +96,16 @@
 			  #f))
 		    #f)))]
 	   [ok (make-object mred:button% "OK" bp 
-			    (lambda x
-			      (cond
-			       [(validate-number)
-				(set! ok? #t)
-				(send dlg show #f)]
-			       [else 
-				(mred:message-box
-				 "DrScheme"
-				 "Invalid number: must be an exact, real, non-integral number.")]))
-			    '(border))]
+                 (lambda x
+                   (cond
+                     [(validate-number)
+                      (set! ok? #t)
+                      (send dlg show #f)]
+                     [else 
+                      (mred:message-box
+                       "DrScheme"
+                       "Invalid number: must be an exact, real, non-integral number.")]))
+                 '(border))]
 	   [cancel (make-object mred:button% "Cancel" bp (lambda x (send dlg show #f)))])
       (let ([mw (max (send den-m get-width) (send num-m get-width))])
 	(send den-m min-width mw)
@@ -108,7 +113,7 @@
       (send bp set-alignment 'right 'center)
       (send dlg show #t)
       (and ok? (validate-number))))
-
+  
   (define (basename fn)
     (if fn
 	(let* ([file-name (mzlib:file:file-name-from-path fn)]
@@ -119,7 +124,7 @@
 					1))
 	      file-name))
 	"Untitled"))
-
+  
   (define (create-launcher frame)
     (let* ([program-filename (send (ivar frame definitions-text) get-filename)]
 	   [executable-filename
@@ -129,48 +134,48 @@
 	   [settings (fw:preferences:get drscheme:language:settings-preferences-symbol)])
       
       (cond
-       [(not program-filename)
-	(mred:message-box "Create Launcher"
-			  "You must save your program before creating a launcher"
-			  frame)]
-
-       [else
-	(let* ([filename 
-		(parameterize ([fw:finder:dialog-parent-parameter frame]
-			       [fw:finder:default-extension "exe"])
-		  (fw:finder:put-file
-		   executable-filename
-		   #f #f "Save a Launcher"))]
-	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-	       [teachpacks (fw:preferences:get 'drscheme:teachpack-file)])
-	  (when filename
-	    (cond
+        [(not program-filename)
+         (mred:message-box "Create Launcher"
+                           "You must save your program before creating a launcher"
+                           frame)]
+        
+        [else
+         (let* ([filename 
+                 (parameterize ([fw:finder:dialog-parent-parameter frame]
+                                [fw:finder:default-extension "exe"])
+                   (fw:finder:put-file
+                    executable-filename
+                    #f #f "Save a Launcher"))]
+                [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
+                [teachpacks (fw:preferences:get 'drscheme:teachpack-file)])
+           (when filename
+             (cond
 	     ;; this condition should guarantee that the language
 	     ;; matches the default mred or mzscheme initial language.
 	     ;; in that case, we don't need to load any of the
 	     ;; zodiac or drs support so that program starts up much
 	     ;; faster.
-	     [(and (null? teachpacks)
-		   (basis:full-language? settings)
-		   (not (basis:zodiac-vocabulary? settings))
-		   (ormap (lambda (x) (equal? x settings)) basis:settings))
-	      ((if in-mz?
-		   launcher:make-mzscheme-launcher
-		   launcher:make-mred-launcher)
-	       (list "-qmve"
-		     (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
-			     program-filename))
-	       filename)]
-	     [else
-	      (let* ([v-settings (struct->vector settings)]
-		     [definitions (list "-e" (format "(define filename ~s)" program-filename)
-					"-e" (format "(define settings ~s)" v-settings)
-					"-e" (format "(define teachpacks '~s)" teachpacks))])
-		((if (and in-mz? (null? teachpacks))
-		     launcher:make-mzscheme-launcher
-		     launcher:make-mred-launcher)
-		 (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-		 filename))])))])))
+               [(and (null? teachpacks)
+                     (basis:full-language? settings)
+                     (not (basis:zodiac-vocabulary? settings))
+                     (ormap (lambda (x) (equal? x settings)) basis:settings))
+                ((if in-mz?
+                     launcher:make-mzscheme-launcher
+                     launcher:make-mred-launcher)
+                 (list "-qmve"
+                       (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
+                               program-filename))
+                 filename)]
+               [else
+                (let* ([v-settings (struct->vector settings)]
+                       [definitions (list "-e" (format "(define filename ~s)" program-filename)
+                                          "-e" (format "(define settings ~s)" v-settings)
+                                          "-e" (format "(define teachpacks '~s)" teachpacks))])
+                  ((if (and in-mz? (null? teachpacks))
+                       launcher:make-mzscheme-launcher
+                       launcher:make-mred-launcher)
+                   (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+                   filename))])))])))
   
   (define make-bitmap 
     (case-lambda 
@@ -215,25 +220,25 @@
 		      [(bitmap-dc) (make-object mred:bitmap-dc%)]
 		      [(new-bitmap) (make-object mred:bitmap% new-width new-height)])
 	  (cond
-	   [(or (= img-width 0)
-		(= img-height 0))
-	    text]
-	   [else
-	    (send* bitmap-dc
-		   (set-bitmap new-bitmap)
-		   (set-scale 1 1)
-		   (set-font font)
-		   (clear)
-		   (draw-text text (+ outside-margin img-width middle-margin)
-			      (- (/ new-height 2) (/ height 2))))
-	    (let ([bm (send img-bitmap-dc get-bitmap)])
-	      (send img-bitmap-dc set-bitmap #f)
-	      (send bitmap-dc draw-bitmap
-		    bm
-		    outside-margin
-		    (- (/ new-height 2) (/ img-height 2)))
-	      (send bitmap-dc set-bitmap #f)
-	      new-bitmap)])))]))
+            [(or (= img-width 0)
+                 (= img-height 0))
+             text]
+            [else
+             (send* bitmap-dc
+               (set-bitmap new-bitmap)
+               (set-scale 1 1)
+               (set-font font)
+               (clear)
+               (draw-text text (+ outside-margin img-width middle-margin)
+                          (- (/ new-height 2) (/ height 2))))
+             (let ([bm (send img-bitmap-dc get-bitmap)])
+               (send img-bitmap-dc set-bitmap #f)
+               (send bitmap-dc draw-bitmap
+                     bm
+                     outside-margin
+                     (- (/ new-height 2) (/ img-height 2)))
+               (send bitmap-dc set-bitmap #f)
+               new-bitmap)])))]))
   
   (define make-execute-bitmap (make-bitmap "execute"))
   (define make-save-bitmap (make-bitmap "save"))
@@ -330,7 +335,7 @@
        (inherit get-top-level-window)
        (rename [super-after-insert after-insert]
 	       [super-after-delete after-delete]))
-
+      
       (define (reset-highlighting)
 	(let ([f (get-top-level-window)])
 	  (when f
@@ -339,31 +344,31 @@
 		(let ([reset (ivar interactions-text reset-highlighting)])
 		  (when (procedure? reset)
 		    (reset))))))))
-
+      
       (define (after-insert x y)
 	(reset-highlighting)
 	(super-after-insert x y))
-
+      
       (define (after-delete x y)
 	(reset-highlighting)
 	(super-after-delete x y))
-
+      
       (apply super-init args)))
-
+  
   (define definitions-super%
     (program-editor-mixin
      (fw:scheme:text-mixin
       (drscheme:rep:drs-bindings-keymap-mixin
        fw:text:info%))))
-
+  
   (define definitions-text%
     (class definitions-super% ()
-
+      
       (public
 	[clear-annotations
 	 (lambda ()
 	   (void))])
-
+      
       (inherit get-top-level-window)
       (private
         [reset-highlighting
@@ -386,29 +391,29 @@
          (lambda (x y)
            (reset-highlighting)
            (super-on-delete x y))])
-
+      
       (rename
        [super-set-modified set-modified]
        [super-set-filename set-filename])
       (inherit is-modified? run-after-edit-sequence)
       (override
-       [set-modified
-	(lambda (mod?)
-	  (super-set-modified mod?)
-	  (run-after-edit-sequence
-	   (lambda ()
-	     (let ([f (get-top-level-window)])
-	       (when f
-		 (send f update-save-button (is-modified?)))))))]
-       [set-filename
-	(case-lambda
-	 [(fn) (set-filename fn #f)]
-	 [(fn tmp?)
-	  (let ([f (get-top-level-window)])
-	    (when f
-	      (send f update-save-message fn)))
-	  (super-set-filename fn tmp?)])])
-
+        [set-modified
+         (lambda (mod?)
+           (super-set-modified mod?)
+           (run-after-edit-sequence
+            (lambda ()
+              (let ([f (get-top-level-window)])
+                (when f
+                  (send f update-save-button (is-modified?)))))))]
+        [set-filename
+         (case-lambda
+          [(fn) (set-filename fn #f)]
+          [(fn tmp?)
+           (let ([f (get-top-level-window)])
+             (when f
+               (send f update-save-message fn)))
+           (super-set-filename fn tmp?)])])
+      
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete])
       (private
@@ -442,7 +447,7 @@
 	 (lambda x
 	   (set! needs-execution-state #t)
 	   (apply super-after-delete x))])
-
+      
       (inherit get-filename)
       (private
 	[tmp-date-string #f]
@@ -455,26 +460,26 @@
 	      (if (string? fn)
 		  fn
 		  "Untitled"))))])
-	 
+      
       (rename [super-on-paint on-paint])
       (override
-       [on-paint
-	(lambda (before dc left top right bottom dx dy draw-caret)
-	  (when (and before
-		     (or (is-a? dc mred:post-script-dc%)
-			 (is-a? dc mred:printer-dc%)))
-	    (set! tmp-date-string (get-date-string))
-	    (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
-	      (send (mred:current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
-	  (super-on-paint before dc left top right bottom dx dy draw-caret)
-	  (when (and (not before)
-		     (or (is-a? dc mred:post-script-dc%)
-			 (is-a? dc mred:printer-dc%)))
-	    (send dc draw-text (get-date-string) 0 0)
-	    (void)))])
+        [on-paint
+         (lambda (before dc left top right bottom dx dy draw-caret)
+           (when (and before
+                      (or (is-a? dc mred:post-script-dc%)
+                          (is-a? dc mred:printer-dc%)))
+             (set! tmp-date-string (get-date-string))
+             (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
+               (send (mred:current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
+           (super-on-paint before dc left top right bottom dx dy draw-caret)
+           (when (and (not before)
+                      (or (is-a? dc mred:post-script-dc%)
+                          (is-a? dc mred:printer-dc%)))
+             (send dc draw-text (get-date-string) 0 0)
+             (void)))])
       (sequence
 	(super-init))))
-
+  
   (define func-defs-canvas%
     (class/d mred:canvas% (parent text)
       ((override on-paint on-event)
@@ -482,9 +487,9 @@
 		stretchable-width
 		stretchable-height)
        (rename [super-on-event on-event]))
-
+      
       (define-struct defn (indent name start-pos end-pos))
-
+      
       (define tag-string "(define")
       (define (get-definitions)
 	(let* ([min-indent 0]
@@ -508,7 +513,7 @@
                 [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
                                                     (defn-start-pos first)))
                       (loop (car defs) (cdr defs))])))
-
+          
           (unless sort-by-name?
             (for-each (lambda (defn)
                         (set-defn-name! defn
@@ -523,7 +528,7 @@
                defs
                (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
               defs)))
-
+      
       (define (get-defn-indent pos)
 	(let* ([para (send text position-paragraph pos)]
 	       [para-start (send text paragraph-start-position para #t)])
@@ -532,130 +537,130 @@
 	    (if (< c-pos pos)
 		(let ([char (send text get-character c-pos)])
 		  (cond
-		   [(char=? char #\tab)
-		    (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
-		   [else
-		    (loop (+ c-pos 1) (+ offset 1))]))
+                    [(char=? char #\tab)
+                     (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+                    [else
+                     (loop (+ c-pos 1) (+ offset 1))]))
 		offset))))
-
+      
       (define (skip-to-whitespace/paren pos)
 	(let loop ([pos pos])
 	  (if (>= pos (send text last-position))
 	      (send text last-position)
 	      (let ([char (send text get-character pos)])
 		(cond
-		 [(or (char=? #\) char)
-		      (char=? #\( char)
-		      (char=? #\] char)
-		      (char=? #\[ char)
-		      (char-whitespace? char))
-		  pos]
-		 [else (loop (+ pos 1))])))))
-
+                  [(or (char=? #\) char)
+                       (char=? #\( char)
+                       (char=? #\] char)
+                       (char=? #\[ char)
+                       (char-whitespace? char))
+                   pos]
+                  [else (loop (+ pos 1))])))))
+      
       (define (skip-whitespace/paren pos)
 	(let loop ([pos pos])
 	  (if (>= pos (send text last-position))
 	      (send text last-position)
 	      (let ([char (send text get-character pos)])
 		(cond
-		 [(or (char=? #\) char)
-		      (char=? #\( char)
-		      (char=? #\] char)
-		      (char=? #\[ char)
-		      (char-whitespace? char))
-		  (loop (+ pos 1))]
-		 [else pos])))))
-
+                  [(or (char=? #\) char)
+                       (char=? #\( char)
+                       (char=? #\] char)
+                       (char=? #\[ char)
+                       (char-whitespace? char))
+                   (loop (+ pos 1))]
+                  [else pos])))))
+      
       (define (get-defn-name define-pos)
 	(if (>= define-pos (send text last-position))
 	    "<end of buffer>"
 	    (let* ([start-pos (skip-whitespace/paren (skip-to-whitespace/paren define-pos))]
 		   [end-pos (skip-to-whitespace/paren start-pos)])
 	      (send text get-text start-pos end-pos))))
-
+      
       (define inverted? #f)
-
+      
       (define label "(define ...)")
-
+      
       (define (on-paint)
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
 	    (drscheme:frame:draw-button-label dc label w h inverted?))))
-
+      
       (define sort-by-name? #f)
       (define sorting-name "Sort by name")
       (define (change-sorting-order)
         (set! sort-by-name? (not sort-by-name?))
         (set! sorting-name (if sort-by-name? "Sort by position in file" "Sort by name"))
         (void))
-
+      
       (define (on-event evt)
 	(cond
-	 [(send evt button-down?)
-	  (set! inverted? #t)
-	  (on-paint)
-	  (let ([menu (make-object mred:popup-menu% #f
-				   (lambda x
-				     (set! inverted? #f)
-				     (on-paint)))]
-		[defns (get-definitions)])
-            (make-object fw:menu:can-restore-menu-item% sorting-name
-              menu
-              (lambda x
-                (change-sorting-order)))
-            (make-object mred:separator-menu-item% menu)
-	    (if (null? defns)
-		(send (make-object fw:menu:can-restore-menu-item%
-			"<< no definitions found >>"
-			menu
-			void)
-		      enable #f)
-		(let loop ([defns defns])
-		  (unless (null? defns)
-		    (let* ([defn (car defns)]
-			   [checked? 
-                            (let ([t-start (send text get-start-position)]
-                                  [t-end (send text get-end-position)]
-                                  [d-start (defn-start-pos defn)]
-                                  [d-end (defn-end-pos defn)])
-                              (or (<= t-start d-start t-end)
-                                  (<= t-start d-end t-end)
-                                  (<= d-start t-start t-end d-end)))]
-			   [item
-			    (make-object (if checked?
-					     fw:menu:can-restore-checkable-menu-item%
-					     fw:menu:can-restore-menu-item%)
-			      (defn-name defn)
-			      menu
-			      (lambda x
-				(set! inverted? #f)
-				(on-paint)
-				(send text set-position (defn-start-pos defn) (defn-start-pos defn))
-				(let ([canvas (send text get-canvas)])
-				  (when canvas
-				    (send canvas focus)))))])
-		      (when checked?
-			(send item check #t))
-		      (loop (cdr defns))))))
-	    (popup-menu menu
-			0
-			height))]
-	 [else (super-on-event evt)]))
-
+          [(send evt button-down?)
+           (set! inverted? #t)
+           (on-paint)
+           (let ([menu (make-object mred:popup-menu% #f
+                         (lambda x
+                           (set! inverted? #f)
+                           (on-paint)))]
+                 [defns (get-definitions)])
+             (make-object fw:menu:can-restore-menu-item% sorting-name
+               menu
+               (lambda x
+                 (change-sorting-order)))
+             (make-object mred:separator-menu-item% menu)
+             (if (null? defns)
+                 (send (make-object fw:menu:can-restore-menu-item%
+                         "<< no definitions found >>"
+                         menu
+                         void)
+                       enable #f)
+                 (let loop ([defns defns])
+                   (unless (null? defns)
+                     (let* ([defn (car defns)]
+                            [checked? 
+                             (let ([t-start (send text get-start-position)]
+                                   [t-end (send text get-end-position)]
+                                   [d-start (defn-start-pos defn)]
+                                   [d-end (defn-end-pos defn)])
+                               (or (<= t-start d-start t-end)
+                                   (<= t-start d-end t-end)
+                                   (<= d-start t-start t-end d-end)))]
+                            [item
+                             (make-object (if checked?
+                                              fw:menu:can-restore-checkable-menu-item%
+                                              fw:menu:can-restore-menu-item%)
+                               (defn-name defn)
+                               menu
+                               (lambda x
+                                 (set! inverted? #f)
+                                 (on-paint)
+                                 (send text set-position (defn-start-pos defn) (defn-start-pos defn))
+                                 (let ([canvas (send text get-canvas)])
+                                   (when canvas
+                                     (send canvas focus)))))])
+                       (when checked?
+                         (send item check #t))
+                       (loop (cdr defns))))))
+             (popup-menu menu
+                         0
+                         height))]
+          [else (super-on-event evt)]))
+      
       (super-init parent)
-
+      
       (define-values (width height) (drscheme:frame:calc-button-min-sizes (get-dc) label))
       (min-width width)
       (min-height height)
       (stretchable-width #f)
       (stretchable-height #f)))
-
+  
   (define (set-box/f! b v) (when (box? b) (set-box! b v)))
-
+  
   (define super-frame%
     (drscheme:frame:mixin
      (drscheme:frame:basics-mixin fw:frame:searchable%)))
-
+  
   (define frame%
     (class* super-frame% (drscheme:rep:context<%>) (filename)
       (inherit get-canvas
@@ -670,7 +675,7 @@
 	       file-menu:get-save-as-item
 	       file-menu:get-revert-item
 	       file-menu:get-print-item)
-
+      
       (rename [super-update-shown update-shown]
 	      [super-on-close on-close])
       (public
@@ -689,7 +694,7 @@
         [clear-annotations
          (lambda ()
            (send definitions-text clear-annotations))])
-
+      
       (public
 	[definitions-item #f]
 	[interactions-item #f]
@@ -751,7 +756,7 @@
 	   (when name-message
 	     (send name-message set-message #t name)))])
       (override
-       [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
+        [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
 	[ensure-defs-shown
 	 (lambda ()
@@ -781,23 +786,23 @@
 	      (send definitions-text set-filename name)]
 	     [else (send definitions-text clear)])
 	   (send definitions-canvas focus))])
-
+      
       (private
-       [drscheme-manual 
-	"PLT DrScheme: Programming Environment Manual"]
-       [hidden?
-	(lambda (item)
-	  (let ([label (send item get-label)])
-	    (and (string? label)
-		 (>= (string-length label) 4)
-		 (string=? (substring label 0 4) "Show"))))]
+        [drscheme-manual 
+         "PLT DrScheme: Programming Environment Manual"]
+        [hidden?
+         (lambda (item)
+           (let ([label (send item get-label)])
+             (and (string? label)
+                  (>= (string-length label) 4)
+                  (string=? (substring label 0 4) "Show"))))]
 	[save-as-text-from-text
 	 (lambda (text)
 	   (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
 			 (fw:finder:put-file))])
 	     (when file
 	       (send text save-file file 'text))))])
-
+      
       (public
 	[toggle-show/hide
 	 (lambda (item)
@@ -810,10 +815,10 @@
 			  "Hide")]
 		     [back (substring label 4 (string-length label))])
 		 (send item set-label (string-append new-front back))))))])
-
+      
       (private
 	[file-menu:print-transcript-item #f])
-
+      
       (rename
        [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
       (override
@@ -849,12 +854,12 @@
 	       sub-menu
 	       (lambda (_1 _2)
 		 (save-as-text-from-text interactions-text)))
-					;	   (make-object mred:separator-menu-item% file-menu)
-					;	   (make-object fw:menu:can-restore-menu-item%
-					;	     "Show Interactions History"
-					;	     file-menu
-					;	     (lambda (_1 _2)
-					;	       (drscheme:rep:show-interactions-history)))
+             ;	   (make-object mred:separator-menu-item% file-menu)
+             ;	   (make-object fw:menu:can-restore-menu-item%
+             ;	     "Show Interactions History"
+             ;	     file-menu
+             ;	     (lambda (_1 _2)
+             ;	       (drscheme:rep:show-interactions-history)))
 	     (make-object mred:separator-menu-item% file-menu)))]
 	[file-menu:print-string (lambda () "Definitions")]
 	[file-menu:between-print-and-close
@@ -869,33 +874,33 @@
 			   #t
 			   (fw:preferences:get 'framework:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
-
+      
       (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
       (inherit get-menu-item%)
       (override
-       [add-edit-menu-snip-items
-	(lambda (edit-menu)
-	  (super-add-edit-menu-snip-items edit-menu)
-	  (let ([c% (class (get-menu-item%) args
-		      (inherit enable)
-		      (rename [super-on-demand on-demand])
-		      (override
-		       [on-demand
-			(lambda ()
-			  (let ([edit (get-edit-target-object)])
-			    (enable (and edit (is-a? edit mred:editor<%>)))))])
-		      (sequence (apply super-init args)))])
-	    (make-object c% "Insert Fraction..." edit-menu
-			 (lambda (menu evt)
-			   (let ([edit (get-edit-target-object)])
-			     (when (and edit
-					(is-a? edit mred:editor<%>))
-			       (let ([number (get-fraction-from-user)])
-				 (when number
-				   (send edit insert
-					 (make-object drscheme:snip:whole/part-number-snip%
-					   number)))))
-			     #t)))))])
+        [add-edit-menu-snip-items
+         (lambda (edit-menu)
+           (super-add-edit-menu-snip-items edit-menu)
+           (let ([c% (class (get-menu-item%) args
+                       (inherit enable)
+                       (rename [super-on-demand on-demand])
+                       (override
+                         [on-demand
+                          (lambda ()
+                            (let ([edit (get-edit-target-object)])
+                              (enable (and edit (is-a? edit mred:editor<%>)))))])
+                       (sequence (apply super-init args)))])
+             (make-object c% "Insert Fraction..." edit-menu
+               (lambda (menu evt)
+                 (let ([edit (get-edit-target-object)])
+                   (when (and edit
+                              (is-a? edit mred:editor<%>))
+                     (let ([number (get-fraction-from-user)])
+                       (when number
+                         (send edit insert
+                               (make-object drscheme:snip:whole/part-number-snip%
+                                 number)))))
+                   #t)))))])
       (private
 	[item->child
 	 (lambda (item)
@@ -935,11 +940,11 @@
 			  (send panel get-children))
 	       (let loop ([children (send panel get-children)])
 		 (cond
-		  [(null? children) (void)]
-		  [else (let ([child (car children)])
-			  (if (is-a? child mred:editor-canvas%)
-			      (send child focus)
-			      (loop (cdr children))))])))
+                   [(null? children) (void)]
+                   [else (let ([child (car children)])
+                           (if (is-a? child mred:editor-canvas%)
+                               (send child focus)
+                               (loop (cdr children))))])))
 	     
              
 	     (let ([defs-show? (not (hidden? definitions-item))])
@@ -962,7 +967,7 @@
 	   (send interactions-text shutdown)
 	   (send interactions-text on-close)
 	   (super-on-close))])
-	
+      
       (public
 	[running? #t]; is this necessary?
 	[execute-callback
@@ -972,7 +977,7 @@
 	   (send interactions-canvas focus)
 	   (send interactions-text reset-console)
 	   (send interactions-text clear-undos)
-
+           
 	   (let ([start (if (and (>= (send definitions-text last-position) 2)
 				 (char=? (send definitions-text get-character 0) #\#)
 				 (char=? (send definitions-text get-character 1) #\!))
@@ -982,27 +987,27 @@
 		   definitions-text start
 		   (send definitions-text last-position)))
 	   (send interactions-text clear-undos))])
-  
+      
       (public
 	[after-change-name void])
-
+      
       (inherit get-menu-bar get-focus-object get-edit-target-object)
       (private
 	[language-menu 'uninited-language-menu])
-
+      
       (rename [super-on-size on-size])
       (override
-       [on-size
-	(lambda (w h)
-	  (fw:preferences:set 'drscheme:unit-window-width w)
-	  (fw:preferences:set 'drscheme:unit-window-height h)
-	  (super-on-size w h))])
+        [on-size
+         (lambda (w h)
+           (fw:preferences:set 'drscheme:unit-window-width w)
+           (fw:preferences:set 'drscheme:unit-window-height h)
+           (super-on-size w h))])
       (sequence
 	(super-init filename
 		    #f
 		    (fw:preferences:get 'drscheme:unit-window-width)
 		    (fw:preferences:get 'drscheme:unit-window-height))
-
+        
 	(let* ([mb (get-menu-bar)]
 	       [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]
 	       [scheme-menu (make-object (get-menu%) "S&cheme" mb)]
@@ -1055,9 +1060,9 @@
 	    "&Uncomment"
 	    scheme-menu
 	    (send-method 'uncomment-selection)))
-
+        
 	(fw:frame:reorder-menus this)
-	     
+        
 	(set! definitions-item
 	      (make-object fw:menu:can-restore-menu-item%
 		"Hide &Definitions"
@@ -1088,27 +1093,27 @@
 	[definitions-canvas (get-canvas)]
 	[definitions-text (get-editor)]
 	[interactions-canvas (make-object 
-			      (drscheme:get/extend:get-interactions-canvas%)
-			      (get-area-container))]
+                                 (drscheme:get/extend:get-interactions-canvas%)
+                               (get-area-container))]
 	[interactions-text (make-object 
-			    (drscheme:get/extend:get-interactions-text%)
+                               (drscheme:get/extend:get-interactions-text%)
                              this)])
-
+      
       (sequence
 	(send* interactions-canvas 
 	  ;(scroll-with-bottom-base #t)
 	  (set-editor interactions-text))
 	(send interactions-text auto-wrap #t)
-
+        
 	(set! save-button
 	      (make-object mred:button% 
-			   (make-save-bitmap this)
-			   top-panel
-			   (lambda args
-			     (let* ([text definitions-text])
-			       (when text
-				 (send text save-file)
-				 (send definitions-canvas focus))))))
+                (make-save-bitmap this)
+                top-panel
+                (lambda args
+                  (let* ([text definitions-text])
+                    (when text
+                      (send text save-file)
+                      (send definitions-canvas focus))))))
 	
 	(set! name-message (make-object drscheme:frame:name-message% name-panel)))
       (private 
@@ -1139,7 +1144,7 @@
       
       (private
 	[func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)])
-
+      
       (sequence
 	(set! execute-button
 	      (make-object mred:button%
@@ -1156,7 +1161,7 @@
 		  (send (send interactions-text get-canvas) focus))))
 	(send button-panel stretchable-height #f)
 	(send button-panel stretchable-width #f) 
-
+        
 	(send top-panel change-children
 	      (lambda (l)
 		(list name-panel save-button
@@ -1175,20 +1180,20 @@
       (inherit get-label)
       (sequence
 	
-
+        
 	(let ([m (send definitions-canvas get-editor)])
 	  (set-save-init-shown?
 	   (and m (send m is-modified?))))
-
+        
 	;; (get-label) shouldn't be #f, but I'm not sure....
 	(send name-message set-message
 	      (if filename #t #f)
               (or filename (get-label) "Untitled"))
-
+        
 	(update-save-button #f)
-
+        
 	(send interactions-text initialize-console)
-
+        
 	(unless filename
 	  (toggle-show/hide interactions-item))
 	
@@ -1221,7 +1226,7 @@
 		 [frame (make-object frame% name)])
 	    (send frame show #t)
 	    frame))]))
-
+  
   (fw:handler:insert-format-handler 
    "Units"
    (lambda (filename) #t)
@@ -1231,76 +1236,76 @@
 ;; old lambda snipclass
 ;; nixed becuase of poor support from reader
 
-          (make-object mred:separator-menu-item% scheme-menu)
-          (make-object fw:menu:can-restore-menu-item%
-            "Insert &Lambda"
-            scheme-menu
-            (lambda x (let ([editor (get-edit-target-object)])
-                        (when editor
-                          (send editor insert (make-object lambda-snip%)))))
-            #\l)
+(make-object mred:separator-menu-item% scheme-menu)
+(make-object fw:menu:can-restore-menu-item%
+  "Insert &Lambda"
+  scheme-menu
+  (lambda x (let ([editor (get-edit-target-object)])
+              (when editor
+                (send editor insert (make-object lambda-snip%)))))
+  #\l)
 
 
-  (define lambda-snipclass
-    (make-object (class mred:snip-class% ()
-                   (override
-                     [read
-                      (lambda (p)
-                        (make-object lambda-snip%))])
-                   (sequence
-                     (super-init)))))
-  (send lambda-snipclass set-version 1)
-  (send lambda-snipclass set-classname "mred:lambda-snip%")
-  (send (mred:get-the-snip-class-list) add lambda-snipclass)
+(define lambda-snipclass
+  (make-object (class mred:snip-class% ()
+                 (override
+                   [read
+                    (lambda (p)
+                      (make-object lambda-snip%))])
+                 (sequence
+                   (super-init)))))
+(send lambda-snipclass set-version 1)
+(send lambda-snipclass set-classname "mred:lambda-snip%")
+(send (mred:get-the-snip-class-list) add lambda-snipclass)
 
-  (define lambda-snip% 
-    (class* mred:snip% (fw:gui-utils:text-snip<%>) ()
-      (private
-        [get-normal-font
-         (lambda ()
-           (send mred:the-font-list find-or-create-font
-                 (fw:preferences:get 'drscheme:font-size)
-                 'modern 'normal 'normal #f))]
-        [get-lambda-font
-         (lambda ()
-           (send mred:the-font-list find-or-create-font 
-                 (fw:preferences:get 'drscheme:font-size)
-                 'symbol 'normal 'normal #f))])
-      (public
-        [get-string
-         (lambda () "lambda")])
-      (override
-        [get-text
-         (case-lambda
-          [(x y) " lambda "]
-          [(x y z) " lambda "])]
-        [copy
-         (lambda ()
-           (make-object lambda-snip%))]
-        [write
-         (lambda (p)
-           (void))]
-        [get-extent
-         (lambda (dc x y wb hb descentb spaceb lspaceb rspaceb)
-           (let-values ([(w h d s) (send dc get-text-extent "W" (get-normal-font))])
-             (set-box/f! wb w)
-             (set-box/f! hb h)
-             (set-box/f! descentb d)
-             (set-box/f! spaceb s)
-             (set-box/f! lspaceb 0)
-             (set-box/f! rspaceb 0)))]
-        [draw
-         (lambda (dc x y left top right bottom dx dy draw-caret)
-           (let ([font (send dc get-font)])
-             (let-values ([(ww wh wd ws) (send dc get-text-extent "W" (get-normal-font))])
-               (send dc set-font (get-lambda-font))
-               (let-values ([(lw lh ld ls) (send dc get-text-extent "l")])
-                 (send dc draw-text "l" 
-                       (+ x (/ (- ww lw) 2))
-                       (+ y (- (- wh wd) (- lh ld)))))
-               (send dc set-font font))))])
-      (inherit set-snipclass)
-      (sequence
-        (super-init)
-        (set-snipclass lambda-snipclass))))
+(define lambda-snip% 
+  (class* mred:snip% (fw:gui-utils:text-snip<%>) ()
+    (private
+      [get-normal-font
+       (lambda ()
+         (send mred:the-font-list find-or-create-font
+               (fw:preferences:get 'drscheme:font-size)
+               'modern 'normal 'normal #f))]
+      [get-lambda-font
+       (lambda ()
+         (send mred:the-font-list find-or-create-font 
+               (fw:preferences:get 'drscheme:font-size)
+               'symbol 'normal 'normal #f))])
+    (public
+      [get-string
+       (lambda () "lambda")])
+    (override
+      [get-text
+       (case-lambda
+        [(x y) " lambda "]
+        [(x y z) " lambda "])]
+      [copy
+       (lambda ()
+         (make-object lambda-snip%))]
+      [write
+       (lambda (p)
+         (void))]
+      [get-extent
+       (lambda (dc x y wb hb descentb spaceb lspaceb rspaceb)
+         (let-values ([(w h d s) (send dc get-text-extent "W" (get-normal-font))])
+           (set-box/f! wb w)
+           (set-box/f! hb h)
+           (set-box/f! descentb d)
+           (set-box/f! spaceb s)
+           (set-box/f! lspaceb 0)
+           (set-box/f! rspaceb 0)))]
+      [draw
+       (lambda (dc x y left top right bottom dx dy draw-caret)
+         (let ([font (send dc get-font)])
+           (let-values ([(ww wh wd ws) (send dc get-text-extent "W" (get-normal-font))])
+             (send dc set-font (get-lambda-font))
+             (let-values ([(lw lh ld ls) (send dc get-text-extent "l")])
+               (send dc draw-text "l" 
+                     (+ x (/ (- ww lw) 2))
+                     (+ y (- (- wh wd) (- lh ld)))))
+             (send dc set-font font))))])
+    (inherit set-snipclass)
+    (sequence
+      (super-init)
+      (set-snipclass lambda-snipclass))))
 |#
