@@ -43,7 +43,7 @@
                       (lambda ()
                         (current-output-port output)
                         (current-error-port output)
-                        (parameterize ([current-namespace (make-namespace 'mred)]
+                        (parameterize ([current-namespace (make-namespace)]
                                        [exit-handler (lambda (v) (custodian-shutdown-all cust))])
                           (printf "Loading installer...~n")
                           (namespace-variable-binding 'argv (vector file))

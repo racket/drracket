@@ -480,6 +480,7 @@
 			       (if (url? url)
 				   (list (url->string url) (url-fragment url))
 				   url)))))]
+	    [after-set-page (lambda () (void))]
             [set-page
              (lambda (page notify?)
                (let ([e (car page)]
@@ -499,6 +500,7 @@
                  (set-editor e (and current (zero? (cadr current)) (zero? spos)))
                  (send e scroll-to-position spos #f epos 'start)
                  (send e end-edit-sequence)
+		 (after-set-page)
                  (when (or (positive? spos) (not current) (positive? (cadr current)))
                    (refresh))))])
           (sequence
