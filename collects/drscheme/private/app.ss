@@ -1,6 +1,7 @@
 
 (module app mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "mred.ss" "mred")
@@ -35,7 +36,7 @@
             [edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
             [edit-menu:create-find? (lambda () #f)])
           (sequence
-            (super-init "About DrScheme"))))
+            (super-init (string-constant about-drscheme-frame-title)))))
       
       (define (check-new-version)
         (let ([this-version (version:version)]
@@ -99,7 +100,7 @@
                           "plt.gif"))))
       
       (define (make-tour-button button-panel)
-        (make-object button% "Take a Tour!" button-panel
+        (make-object button% (string-constant take-a-tour) button-panel
           (lambda x 
             (help-desk:open-url
              (string-append
@@ -110,7 +111,7 @@
       
       
       (define (make-release-notes-button button-panel)
-        (make-object button% "Release Notes" button-panel
+        (make-object button% (string-constant release-notes) button-panel
           (lambda x 
             (help-desk:open-url 
              (string-append
@@ -148,7 +149,8 @@
           (apply super-make-object args)))
       
       (define (invite-tour)
-        (let* ([f (make-object tour-frame% "Welcome to DrScheme")]
+        (let* ([f (make-object tour-frame% (format (string-constant welcome-to-something) 
+                                                   (string-constant drscheme)))]
                [panel (send f get-area-container)]
                [top-hp (make-object horizontal-panel% panel)]
                [left-vp (make-object vertical-panel% top-hp)]
@@ -162,7 +164,7 @@
                [bottom-button-panel (make-object vertical-panel% outer-button-panel)]
                [tour-button (make-tour-button top-button-panel)]
                [release-notes-button (make-release-notes-button top-button-panel)]
-               [close-button (make-object button% "Close" bottom-button-panel
+               [close-button (make-object button% (string-constant close) bottom-button-panel
                                (lambda x
                                  (send f close)))]
                [messages-panel (make-object vertical-panel% left-vp)]
@@ -170,12 +172,16 @@
                [this-version (version:version)]
                [last-version (preferences:get 'drscheme:last-version)]
                [this-version-message (make-object message%
-                                       (format "Welcome to DrScheme, version ~a" this-version)
+                                       (format (string-constant welcome-to-drs-version) this-version)
                                        messages-panel)]
                [last-version-message
                 (if (and last-version 
                          (not (equal? this-version last-version)))
-                    (make-object message% (format " (previous version ~a)" last-version) messages-panel)
+                    (make-object message% 
+                      (string-append 
+                       " "
+                       (format (string-constant parenthetical-last-version) last-version))
+                      messages-panel)
                     #f)])
           (send messages-panel stretchable-height #f)
           (send bottom-button-panel stretchable-height #f)
@@ -241,7 +247,7 @@
             (stretchable-width #t)
             (stretchable-height #t))
           
-      ;; 50 is close enough to the space
+          ;; 50 is close enough to the space
           (if (send plt-bitmap ok?)
               (send* editor-canvas
                 (min-width (+ (* 2 (send plt-bitmap get-width)) 50))
@@ -252,7 +258,7 @@
           
           (send* e 
             (change-style d-dr)
-            (insert (format "Welcome to DrScheme version ~a" this-version))
+            (insert (format (string-constant welcome-to-drs-version) this-version))
             (change-style d-usual))
           
           (send e insert " by ")

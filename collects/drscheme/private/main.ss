@@ -1,6 +1,7 @@
 
 (module main mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -103,8 +104,8 @@
                               (cons (normalize-path file) (loop (cdr files)))
                               (begin
                                 (message-box
-                                 "DrScheme"
-                                 (format "Cannot open ~a becuase it does not exist" file))
+                                 (string-constant drscheme)
+                                 (format (string-constant cannot-open-because-dne) file))
                                 (loop (cdr files)))))]))]
              [no-dups (remove-duplicates normalized/filtered)])
         (if (null? no-dups)

@@ -178,7 +178,7 @@
                      (set! inverted? #f)
                      (on-paint)
                      (message-box 
-                      "DrScheme"
+                      (string-constant drscheme)
                       (string-constant no-full-name-since-not-saved))]
                     [else
                      (void)])]
@@ -286,19 +286,19 @@
           [define help-menu:before-about
             (lambda (help-menu)
               (make-object menu-item%
-                "Help Desk"
+                (string-constant help-desk)
                 help-menu
                 (lambda (item evt)
                   (help:help-desk)))
               (make-object menu-item%
                 (format (string-constant welcome-to-something)
-                        "DrScheme")
+                        (string-constant drscheme))
                 help-menu
                 (lambda (item evt)
                   (drscheme:app:invite-tour))))]
             
             [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-            [define help-menu:about-string (lambda () "DrScheme")]
+            [define help-menu:about-string (lambda () (string-constant drscheme))]
             [define help-menu:create-about? (lambda () #t)]
             
           [define (file-menu:open-callback item evt) (handler:open-file)]

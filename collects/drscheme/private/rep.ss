@@ -20,7 +20,7 @@
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (lib "pretty.ss")
+           (LIB "pretty.ss")
            (prefix print-convert: (lib "pconvert.ss")))
   
   (provide rep@)
@@ -157,7 +157,6 @@
       ;; if other-position is a number, highlights from position to 
       ;; other position.
       (define (open-file-and-highlight filename position other-position)
-        (message-box "oh" (format "open-and-highlight.1 ~s" (list filename position other-position)))
         (let ([file (handler:edit-file filename)])
           (when (and (is-a? file drscheme:unit:frame%)
                      position)
@@ -1262,7 +1261,7 @@
               (insert #\newline (last-position) (last-position))
               (let ([start (last-position)])
                 (insert
-                 "WARNING: Interactions window is out of sync with the definitions window. Click Execute."
+                 (string-constant interactions-out-of-sync)
                  start start)
                 (let ([end (last-position)])
                   (change-style warning-style-delta start end)))

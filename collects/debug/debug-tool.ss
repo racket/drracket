@@ -177,7 +177,7 @@
         
         (set! current-backtrace-window 
               (make-object backtrace-frame%
-                "Backtrace - DrScheme"
+                (string-constant backtrace-window-title)
                 #f
                 (preferences:get 'drscheme:backtrace-window-width)
                 (preferences:get 'drscheme:backtrace-window-height)
@@ -364,7 +364,7 @@
       
       ;; get-filename : debug-source -> string
       (define (get-filename file)
-        (let ([untitled "<<unknown>>"])
+        (let ([untitled (string-constant unknown-debug-frame)])
           (cond
             [(symbol? file) (symbol->string file)]
             [(is-a? file editor<%>)
@@ -374,11 +374,11 @@
                    (let ([filename (send (send frame get-definitions-text) get-filename)])
                      (cond
                        [(and filename (eq? file (send frame get-interactions-text)))
-                        (string-append filename "'s interactions")]
+                        (format (string-constant files-interactions) filename)]
                        [(eq? file (send frame get-interactions-text))
-                        "interactions"]
+                        (string-constant stack-frame-in-current-interactions)]
                        [filename filename]
-                       [else "definitions"]))
+                       [else (string-constant stack-frame-in-current-definitions)]))
                    (or (send file get-filename) 
                        untitled)))])))
 
@@ -432,5 +432,7 @@
            (teachpack-names null))
          #t))
 
-      (add-debug-lang '(lib "full-mzscheme.ss" "lang") '("Full" "Textual (MzScheme)"))
-      (add-debug-lang '(lib "full-mred.ss" "lang") '("Full" "Graphical (MrEd)")))))
+      (add-debug-lang '(lib "full-mzscheme.ss" "lang") (list (string-constant full-languages)
+                                                             (string-constant mzscheme-w/debug)))
+      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant full-languages)
+                                                         (string-constant mred-w/debug))))))

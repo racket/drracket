@@ -51,15 +51,15 @@
       (define (can-close?)
         (or ok-to-close?
             (eq? 'yes
-                 (message-box "Cancel Bug Report?"
-                              "Are you sure that you want to cancel sending this bug report?"
+                 (message-box (string-constant cancel-bug-report?)
+                              (string-constant are-you-sure-cancel-bug-report?)
                               this
                               '(yes-no)))))
       
       (super-make-object title)))
   
   (define (help-desk:report-bug)
-    (define bug-frame (instantiate bug-frame% () (title "Bug Report Form")))
+    (define bug-frame (instantiate bug-frame% () (title (string-constant bug-report-form))))
     (define top-panel (make-object vertical-panel% (send bug-frame get-area-container)))
     
     (define lps null)
@@ -100,7 +100,7 @@
     
     (define name
       (build/label 
-       "Name"
+       (string-constant bug-report-field-name)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -112,7 +112,7 @@
     
     (define email  
       (build/label
-       "Email"
+       (string-constant bug-report-field-email)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -124,7 +124,7 @@
     
     (define summary
       (build/label
-       "Summary" 
+       (string-constant bug-report-field-summary) 
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -134,7 +134,7 @@
     
     (define severity
       (build/label 
-       "Severity" 
+       (string-constant bug-report-field-severity) 
        (lambda (panel)
          (make-object choice% 
            #f
@@ -150,7 +150,7 @@
     
     (define bug-class
       (build/label
-       "Class" 
+       (string-constant bug-report-field-class)
        (lambda (panel)
          (make-object choice%
            #f
@@ -164,7 +164,7 @@
     
     (define priority
       (build/label
-       "Priority" 
+       (string-constant bug-report-form-priority)
        (lambda (panel)
          (make-object choice%
            #f
@@ -192,8 +192,9 @@
         (send canvas allow-tab-exit #t)
         canvas))
     
-    (define description (make-big-text "Description"))
-    (define reproduce (make-big-text '("Steps to" "Reproduce")))
+    (define description (make-big-text (string-constant bug-report-field-description)))
+    (define reproduce (make-big-text (list (string-constant bug-report-field-reproduce1)
+                                           (string-constant bug-report-field-reproduce1))))
     
     (define synthesized-outer-panel (make-object vertical-panel% top-panel))
     (define synthesized-panel (make-object vertical-panel% synthesized-outer-panel))
@@ -202,16 +203,16 @@
       (cond
         [synthesized-info-shown?
          (set! synthesized-info-shown? #f)
-         (send synthesized-button set-label "Show Synthesized Info")
+         (send synthesized-button set-label (string-constant bug-report-show-synthesized-info))
          (send synthesized-outer-panel change-children (lambda (l) null))]
         [else
          (set! synthesized-info-shown? #t)
-         (send synthesized-button set-label "Hide Synthesized Info")
+         (send synthesized-button set-label (string-constant bug-report-hide-synthesized-info))
          (send synthesized-outer-panel change-children (lambda (l) (list synthesized-panel)))]))
     
     (define version
       (build/label
-       "Version"
+       (string-constant bug-report-field-version)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -221,7 +222,7 @@
        synthesized-panel))
     (define environment
       (build/label
-       "Environment"
+       (string-constant bug-report-field-environment)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -232,7 +233,7 @@
     
     (define tools
       (build/label
-       "Tools"
+       (string-constant bug-report-field-tools)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -242,7 +243,7 @@
        synthesized-panel))
     (define docs-installed
       (build/label 
-       "Docs Installed"
+       (string-constant bug-report-field-docs-installed)
        (lambda (panel)            
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -253,7 +254,7 @@
     
     (define language-level
       (build/label
-       "Language"
+       (string-constant bug-report-field-language)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -264,7 +265,7 @@
     
     (define teachpacks
       (build/label
-       "Teachpacks"
+       (string-constant bug-report-field-teachpacks)
        (lambda (panel)
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -275,7 +276,7 @@
     
     (define collections
       (build/label 
-       "Collections"
+       (string-constant bug-report-field-collections)
        (lambda (panel)            
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -286,7 +287,7 @@
     
     (define human-language
       (build/label 
-       "Human Language"
+       (string-constant bug-report-field-human-language)
        (lambda (panel)            
          (keymap:call/text-keymap-initializer
           (lambda ()
@@ -295,10 +296,18 @@
        #f
        synthesized-panel))
     
+    (define (longer-of s1 s2)
+      (if ((string-length s1) . >= . (string-length s2))
+          s1
+          s2))
+
     (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
-    (define synthesized-button (make-object button% "Show Synthesized Info" button-panel (lambda x (toggle-synthesized-info))))
-    (define ok-button (make-object button% "Submit" button-panel (lambda x (ok))))
-    (define cancel-button (make-object button% "Cancel" button-panel (lambda x (cancel))))
+    (define synthesized-button (make-object button%
+                                 (longer-of (string-constant bug-report-show-synthesized-info)
+                                            (string-constant bug-report-hide-synthesized-info))
+                                 button-panel (lambda x (toggle-synthesized-info))))
+    (define ok-button (make-object button% (string-constant bug-report-submit) button-panel (lambda x (ok))))
+    (define cancel-button (make-object button% (string-constant cancel) button-panel (lambda x (cancel))))
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
     
     ;; smtp-send-bug-report : -> void
@@ -352,10 +361,10 @@
     ; send-bug-report : (-> boolean)
     ; returns true if uncancelled
     (define (send-bug-report)
-      (letrec ([f (make-object dialog% "Sending Bug Report" bug-frame)]
+      (letrec ([f (make-object dialog% (string-constant sending-bug-report) bug-frame)]
                [sema (make-semaphore 0)]
-               [msg (make-object message% "Sending Bug Report" f)]
-               [button (make-object button% "Cancel" f
+               [msg (make-object message% (string-constant sending-bug-report) f)]
+               [button (make-object button% (string-constant cancel) f
                          (lambda (x y)
                            (break-thread smtp-thread)
                            (send f show #f)))]
@@ -372,8 +381,8 @@
                                       (queue-callback
                                        (lambda ()
                                          (message-box 
-                                          "Error Sending Bug Report"
-                                          (format "An error occurred when sending this bug report. If your internet connection is otherwise working fine, please visit:~n~n    http://www.cs.rice.edu/CS/PLT/Bugs/~n~nand submit the bug via our online web-form. Sorry for the difficulties.~n~nThe error message is:~n~a"
+                                          (string-constant error-sending-bug-report)
+                                          (format (string-constant error-sending-bug-report-expln)
                                                   (if (exn? x)
                                                       (exn-message x)
                                                       (format "~s" x))))))
@@ -391,26 +400,10 @@
         (send f show #t)
         (when sucess?
           (message-box 
-           "Bug Report Sent"
-           "Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."
+           (string-constant bug-report-sent)
+           (string-constant bug-report-sent-detail)
            bug-frame))
         sucess?))
-    
-    ;; get-err-msg : string -> string
-    ;; builds an error message telling the user to see the web-based form.
-    (define (get-err-msg str)
-      (string-append 
-       str "\n\n"
-       "There has been an error submitting your bug report. "
-       "If your internet connection is otherwise working, "
-       "chances are that DrScheme's bug "
-       "reporting system will not work for your computer."
-       "In that case, please use our web-based bug report form,"
-       "at:\n\n"
-       "   http://www.cs.rice.edu/CS/PLT/Bugs/\n\n"
-       "Sorry for any inconvenience.\n"
-       "\n\n"
-       str))
     
     (define (get-strings canvas)
       (let ([t (send canvas get-editor)])
@@ -421,8 +414,6 @@
                               (send t paragraph-start-position n)
                               (send t paragraph-end-position n))
                         (loop (+ n 1)))]))))
-    
-    
     
     (define (sanity-checking)
       (let ([no-value?
@@ -435,15 +426,18 @@
           (for-each
            (lambda (field field-name)
              (when (no-value? field)
-               (message-box "Illegal Bug Report"
-                            (format "Please fill in the \"~a\" field" field-name))
+               (message-box (string-constant illegal-bug-report)
+                            (format (string-constant pls-fill-in-field) field-name))
                (done-checking #f)))
            (list name summary description reproduce)
-           (list "Name" "Summary" "Description" "Steps to Reproduce"))
-          
+           (list (string-constant bug-report-field-name)
+                 (string-constant bug-report-field-name-summary)
+                 (string-constant bug-report-field-name-description)
+                 (string-constant bug-report-field-steps-to-reproduce)))
           
           (unless (member #\@ (string->list (or (preferences:get 'drscheme:email) "")))
-            (message-box "Illegal Bug Report" "Malformed email address")
+            (message-box (string-constant illegal-bug-report)
+                         (string-constant malformed-email-address))
             (done-checking #f))
           (done-checking #t))))
     
@@ -498,7 +492,7 @@
                                    "non-existant path")))
                        (current-library-collection-paths))))
     
-    (send human-language set-value "(string-constant human-language)")
+    (send human-language set-value (string-constant human-language))
     
     (align-labels)
     (send button-panel set-alignment 'right 'center)

@@ -35,7 +35,9 @@
       ;; default-language-position : (listof string)
       ;; if a language is registered with this position, it is
       ;; considered the default language
-      (define default-language-position '("HtDP" "Beginning Student"))
+      (define default-language-position
+        (list (string-constant how-to-design-programs)
+              (string-constant beginning-student)))
 
       ;; languages : (listof (instanceof language<%>))
       ;; all of the languages supported in DrScheme
@@ -395,8 +397,8 @@
                    [tp-filenames (drscheme:teachpack:teachpack-cache-filenames tp-cache)]
                    [new-item (normalize-path lib-file)])
               (if (member (normal-case-path new-item) (map normal-case-path tp-filenames))
-                  (message-box "DrScheme Teachpacks"
-                               (format "Already added ~a Teachpack"
+                  (message-box (string-constant drscheme-teachpack-message-title)
+                               (format (string-constant already-added-teachpack)
                                        new-item)
                                frame)
                   (drscheme:teachpack:set-teachpack-cache-filenames!
