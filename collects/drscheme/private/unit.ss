@@ -2144,8 +2144,8 @@ tab panels new behavior:
                     (lambda (l)
                       (cons module-browser-panel
                             (remq module-browser-panel l))))
-              (send module-browser-parent-panel set-percentages
-                    (list p (- 1 p)))
+              (with-handlers ([exn:fail? void])
+                (send module-browser-parent-panel set-percentages (list p (- 1 p))))
               (send module-browser-parent-panel end-container-sequence)
               (calculate-module-browser)))
             

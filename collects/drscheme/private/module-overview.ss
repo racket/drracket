@@ -3,6 +3,7 @@
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
 	   (lib "list.ss")
+           (lib "string.ss")
            (lib "moddep.ss" "syntax")
            (lib "toplevel.ss" "syntax")
            (lib "framework.ss" "framework")
@@ -120,7 +121,7 @@
                                           (* 2 label-font-size)
                                           2))
             (define (get-snip-vspace) (if vertical?
-                                          15
+                                          30
                                           2))
             (define snip-height #f)
             
@@ -290,9 +291,22 @@
               (if (file-exists? filename)
                   (let-values ([(base name dir?) (split-path filename)])
                     (let ([m (regexp-match #rx#"^(.*)\\.[^.]*$" (path->bytes name))])
-                      (if m
-                          (path->string (bytes->path (cadr m)))
-                          name)))
+                      (let ([short-name (if m 
+                                            (path->string (bytes->path (cadr m)))
+                                            (path->string name))])
+                        (if show-filenames?
+                            (path->string filename)
+                            (if (string=? short-name "")
+                                ""
+                                (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
+                                  (cond
+                                    [(null? ms)
+                                     (substring short-name 0 (min 2 (string-length short-name)))]
+                                    [else
+                                     (apply string-append
+                                            (cons (substring short-name 0 1)
+                                                  (map (lambda (x) (substring x 1 2))
+                                                       ms)))])))))))
                   (path->string filename)))
             
             (field [lib-paths-on? (preferences:get 'drscheme:module-browser:show-lib-paths?)])
@@ -425,8 +439,10 @@
                          (let* ([right-button-menu (make-object popup-menu%)]
                                 [open-file-item (instantiate menu-item% ()
                                                   (label 
-                                                   (format open-file-format
-                                                           (send snip get-word)))
+                                                   (trim-string
+                                                    (format open-file-format
+                                                            (path->string (send snip get-filename)))
+                                                    200))
                                                   (parent right-button-menu)
                                                   (callback
                                                    (lambda (x y)
@@ -439,6 +455,11 @@
                 [else (super on-event evt)]))
             
             (super-instantiate ())))
+        
+        (define (trim-string str len)
+          (cond
+            [(<= (string-length str) len) str]
+            [else (substring str (- (string-length str) len) (string-length str))]))
         
         (define (level-mixin %)
           (class %
@@ -486,15 +507,11 @@
             
             (define/override (get-extent dc x y wb hb descent space lspace rspace)
               (cond
-                [show-filenames?
-                 (let-values ([(w h a d) (send dc get-text-extent word label-font)])
-                   (set! snip-width (+ w 4))
-                   (set! snip-height (+ h 4)))]
                 [(equal? word "")
                  (set! snip-width 15)
                  (set! snip-height 15)]
                 [else
-                 (let-values ([(w h a d) (send dc get-text-extent (substring word 0 1) label-font)])
+                 (let-values ([(w h a d) (send dc get-text-extent word label-font)])
                    (set! snip-width (+ w 4))
                    (set! snip-height (+ h 4)))])
               (set-box/f wb snip-width)
@@ -516,12 +533,7 @@
                                (<= top (+ y snip-height) bottom)))
                   (send dc draw-rectangle x y snip-width snip-height)
                   (send dc set-text-foreground text-color)
-                  (cond
-                    [show-filenames?
-                     (send dc draw-text word (+ x 2) (+ y 2))]
-                    [(equal? word "")
-                     (void)]
-                    [else (send dc draw-text (string (string-ref word 0)) (+ x 2) (+ y 2))]))
+                  (send dc draw-text word (+ x 2) (+ y 2)))
                 (send dc set-brush old-brush)
                 (send dc set-text-foreground old-text-foreground)
                 (send dc set-font old-font)))
