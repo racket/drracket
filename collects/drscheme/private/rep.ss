@@ -105,6 +105,10 @@ TODO
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
         (printf "msg: ~s\n" msg)
+        (when (exn? exn)
+          ((dynamic-require '(lib "errortrace-lib.ss" "errortrace") 'print-error-trace)
+           drscheme:init:original-output-port
+           exn))
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
           (cond
@@ -567,7 +571,6 @@ TODO
           display-results
           
           run-in-evaluation-thread
-          do-many-evals
           after-many-evals
           
           shutdown
@@ -935,9 +938,17 @@ TODO
             ;; clears out the extra eof, if one is still there after evaluation
             (send-eof-to-in-port)
             (send-eof-to-in-port)
-            (evaluate-from-port (get-in-port) #f))
+            (evaluate-from-port 
+             (get-in-port) 
+             #f
+             (lambda ()
+               (let ([ip (get-in-port)])
+                 (when (byte-ready? ip)
+                   (let ([b (peek-byte ip)])
+                     (when (eof-object? b)
+                       (read-byte ip))))))))
           
-          (define/public (evaluate-from-port port complete-program?) ; =Kernel=, =Handler=
+          (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
             (send context disable-evaluation)
             (send context reset-offer-kill)
             (send context set-breakables (get-user-thread) (get-user-custodian))
@@ -956,48 +967,46 @@ TODO
                       [get-sexp/syntax/eof 
                        (if complete-program?
                            (send lang front-end/complete-program port settings user-teachpack-cache)
-                           (send lang front-end/interaction port settings user-teachpack-cache))]
-                      [already-exited? #f])
-                 (protect-user-evaluation
-                  ; Evaluate the expression(s)
-                  (lambda () ; =User=, =Handler=, =No-Breaks=
-                    ; This procedure must also ensure that breaks are off before
-                    ;  returning or escaping.
-                    
-                    ; Evaluate the user's expression. We're careful to turn on
-                    ;   breaks as we go in and turn them off as we go out.
-                    ;   (Actually, we adjust breaks however the user wanted it.)
-                    ; A continuation hop might take us out of this instance of
-                    ;   evaluation and into another one, which is fine.
-                    
-                    (dynamic-wind
-                     (lambda () 
-                       (break-enabled user-break-enabled)
-                       (set! user-break-enabled 'user))
-                     (lambda ()
-                       (let loop ()
-                         (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                           (unless (eof-object? sexp/syntax/eof)
-                             (call-with-values
-                              (lambda () (eval-syntax sexp/syntax/eof))
-                              (lambda x (display-results x)))
-                             (loop)))))
-                     (lambda () 
-                       (set! user-break-enabled (break-enabled))
-                       (break-enabled #f)
-                       (unless already-exited?
-                         (set! already-exited? #t)
-                         ;; want to do this for errors, but not for continuation jumps
-                         (fprintf (get-out-port) (get-prompt))
-                         (flush-output (get-out-port))))))
-                  
-                  ; Cleanup after evaluation:
-                  (lambda () ; =User=, =Handler=, =No-Breaks=
-                    (queue-system-callback/sync
-                     (get-user-thread)
-                     (lambda () ; =Kernel=, =Handler= 
-                       (after-many-evals)
-                       (cleanup-interaction)))))))))
+                           (send lang front-end/interaction port settings user-teachpack-cache))])
+                 
+                 ; Evaluate the user's expression. We're careful to turn on
+                 ;   breaks as we go in and turn them off as we go out.
+                 ;   (Actually, we adjust breaks however the user wanted it.)
+                 ; A continuation hop might take us out of this instance of
+                 ;   evaluation and into another one, which is fine.
+                 
+                 (let/ec k
+                   (let ([saved-error-escape-k (current-error-escape-k)]
+                         [cleanup? #f])
+                     (dynamic-wind
+                      (lambda ()
+                        (set! cleanup? #f)
+                        (current-error-escape-k (lambda () 
+                                                  (set! cleanup? #t)
+                                                  (k (void)))))
+                      (lambda () 
+                        (let loop ()
+                          (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                            (unless (eof-object? sexp/syntax/eof)
+                              (call-with-values
+                               (lambda ()
+                                 (eval-syntax sexp/syntax/eof))
+                               (lambda x (display-results x)))
+                              (loop))))
+                        (set! cleanup? #t))
+                      (lambda () 
+                        (current-error-escape-k saved-error-escape-k)
+                        (when cleanup?
+                          (fprintf (get-out-port) (get-prompt))
+                          (flush-output (get-out-port))
+                          (set! in-evaluation? #f)
+                          (update-running #f)
+                          (cleanup)
+                          (queue-system-callback/sync
+                           (get-user-thread)
+                           (lambda () ; =Kernel=, =Handler= 
+                             (after-many-evals)
+                             (cleanup-interaction))))))))))))
           
           (define/public (after-many-evals) (void))
           

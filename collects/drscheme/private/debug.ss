@@ -987,7 +987,7 @@ profile todo:
         (let ([profile-info (current-profile-info)])
           (hash-table-put! profile-info
 			   key 
-			   (make-prof-info #f 0 0 (and name (syntax-e name)) expr))))
+			   (make-prof-info #f 0 0 (and (syntax? name) (syntax-e name)) expr))))
   
       ;; register-profile-start : sym -> (union #f number)
       ;; =user=
