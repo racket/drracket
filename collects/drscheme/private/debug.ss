@@ -138,14 +138,10 @@ profile todo:
 			   (send rep lock #f)
 			   (when (and cms
 				      (not (null? cms)))
-			     (let ([mf-bday?
-				    (let ([date (seconds->date (current-seconds))])
-				      (and (= (date-month date) 10)
-					   (= (date-day date) 29)))])
-			       (insert/clickback rep
-						 (if mf-bday? mf-note bug-note)
-						 (lambda ()
-						   (show-backtrace-window msg cms mf-bday?)))))
+                             (insert/clickback rep
+                                               (if (mf-bday?) mf-note bug-note)
+                                               (lambda ()
+                                                 (show-backtrace-window msg cms))))
 			   (when src-to-display
 			     (let ([src (car src-to-display)])
 			       (when (symbol? src)
@@ -299,13 +295,12 @@ profile todo:
             
       ;; show-backtrace-window : string
       ;;                         (listof (cons debug-source (cons number number)))
-      ;;                         boolean
       ;;                         -> 
       ;;                         void
-      (define (show-backtrace-window error-text dis mf-bday?)
+      (define (show-backtrace-window error-text dis)
         (reset-backtrace-window)
         (letrec ([text (make-object text:hide-caret/selection%)]
-                 [mf-bday-note (when mf-bday?
+                 [mf-bday-note (when (mf-bday?)
                                  (instantiate message% ()
                                    (label (string-constant happy-birthday-matthias))
                                    (parent current-backtrace-window)))]
@@ -381,6 +376,13 @@ profile todo:
           (send text lock #t)
           (send text hide-caret #t)
           (send current-backtrace-window show #t)))
+
+      ;; mf-bday? : -> boolean
+      ;; Matthias's birthday
+      (define (mf-bday?)
+        (let ([date (seconds->date (current-seconds))])
+          (and (= (date-month date) 10)
+               (= (date-day date) 29))))
       
       ;; show-frame : (instanceof editor-canvas%)
       ;;              (instanceof text%) 
