@@ -120,14 +120,14 @@
                                        sc-smoothing-default))
                         (parent choice-panel)
                         (stretchable-width #t)
-                        (selection (case (preferences:get 'framework:standard-style-list:font-smoothing)
+                        (selection (case (preferences:get 'framework:standard-style-list:smoothing)
                                      [(unsmoothed) 0]
                                      [(partly-smoothed) 1]
                                      [(smoothed) 2]
                                      [(default) 3]))
                         (callback (lambda (x y) 
                                     (preferences:set 
-                                     'framework:standard-style-list:font-smoothing
+                                     'framework:standard-style-list:smoothing
                                      (case (send x get-selection)
                                        [(0) 'unsmoothed]
                                        [(1) 'partly-smoothed]
