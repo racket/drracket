@@ -1,32 +1,9 @@
 #|
 
-tab panels bug fixes:
-  - when only one tab left, hide tab panel
-  - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
-  - contour
-  - logging
-  - test autosave when closing a single tab
-  - disable close-tab when only one tab (in gui and in callback)
-  - definitions popup does use the current  tab
-
-on close:
-  - can-close? & on-close in frame need to account for all tabs
-    (skip current tab, except for interactions; do all other tabs)
-
-      - send the editor on-close
-      - send the editor can-close?
-
-waiting for matthew:
-  - tabs don't have the right names when files are opened
-  - when switching tabs automatically (say for an error) the tab bar doesn't update
-  - when creating a new tab, the tab bar doesn't update
-
 closing:
   warning messages don't have frame as parent.....
 
 tab panels new behavior:
-  - closing a single tab
-  - open files in new tabs (not new windows)
   - save all tabs (pr 6689?)
 |#
 
@@ -1707,10 +1684,20 @@ tab panels new behavior:
 	    (send file-menu:print-transcript-item enable interactions-shown?))
           
           (define/augment (can-close?)
-            (and (send interactions-text can-close?)
-                 (inner #t (can-close?))))
+            (and (andmap (lambda (tab)
+                           (or (eq? tab current-tab)
+                               (and (send (tab-defs tab) can-close?)
+                                    (send (tab-ints tab) can-close?))))
+                         tabs)
+                 (send interactions-text can-close?)
+                 (inner #t can-close?)))
           (define/augment (on-close)
             (inner (void) on-close)
+            (for-each (lambda (tab)
+                        (unless (eq? tab current-tab)
+                          (send (tab-defs tab) on-close)
+                          (send (tab-ints tab) on-close)))
+                      tabs)
             (when (eq? this created-frame)
               (set! created-frame #f))
             (when logging
@@ -1896,8 +1883,8 @@ tab panels new behavior:
           
           (define/private (close-current-tab)
             (cond
-              [(null? tabs) (error 'close-current-tab "uh oh")]
-              [(null? (cdr tabs)) (error 'close-current-tab "uh oh.2")]
+              [(null? tabs) (void)]
+              [(null? (cdr tabs)) (void)]
               [else
                (let loop ([l-tabs tabs]
                           [acc null])
@@ -1918,9 +1905,8 @@ tab panels new behavior:
                                                   (cdr l-tabs)))])
                               (send tabs-panel delete (tab-i tab))
                               (set! tabs new-tabs)
-                              (print "change-to-tab ~s ~s\n" l-tabs acc)
                               (change-to-tab (if (null? acc)
-                                                 (car l-tabs)
+                                                 (car new-tabs)
                                                  (car acc)))))
                           (loop (cdr l-tabs)
                                 (cons tab acc))))]))]))

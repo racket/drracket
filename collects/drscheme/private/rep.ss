@@ -1125,8 +1125,8 @@ TODO
                              (string-constant program-is-still-running)
                              (string-constant close-anyway)
                              (string-constant cancel)
-                             (or (get-top-level-window) (get-can-close-parent))
                              #f
+                             (or (get-top-level-window) (get-can-close-parent))
                              '(default=1 caution)
                              2)
                             1)]
@@ -1139,8 +1139,8 @@ TODO
                              (string-constant program-has-open-windows)
                              (string-constant close-anyway)
                              (string-constant cancel)
-                             (or (get-top-level-window) (get-can-close-parent))
                              #f
+                             (or (get-top-level-window) (get-can-close-parent))
                              '(default=1 caution)
                              2)
                             1)]
