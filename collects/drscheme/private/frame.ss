@@ -310,7 +310,14 @@
               (parent menu)
               (callback
                (lambda (item evt)
-                 (check-version this))))
+		 (when 
+		  (eq? 'yes 
+		       (message-box 
+			"Update check"
+			"Check for PLT software updates over the Internet?"
+			this
+			'(yes-no)))
+                 (check-version this)))))
             (drscheme:app:add-language-items-to-help-menu menu))
           
           [define (file-menu:open-callback item evt) (handler:open-file)]
