@@ -1,69 +1,19 @@
-199 final
+Version 200alpha1:
 
-THINGS STILL MISSING (and promised to be broken...)
+THINGS MISSING (as compared to 103):
 
  - launchers
  - project manager
 
-CONTROVERSIAL
-
-- The language dialog contains a full language that
-  is the combination of the graphical mred language
-  and the advanced HtDP language (each contains something
-  the other doesn't). Some people seem to think that will
-  make the language dialog too cluttered, but I think that
-  people who might use that language won't be able to find
-  it otherwise. I put it in for one iteration so people can
-  at least see it there. With strenuous complaints, I will
-  remove it.
-
-TRANSLATIONS
-
-- added `open-recent-menu-item' string constant. This is the
-  label of a menu that contains all of the recently opened
-  filenames, accessible via the file menu.
-- added `open-recent-info' string constant. It is the 
-  help string for the previous item.
-
-- removed r5rs-w/debug and changed r5rs-lang-name so
-  it match the English:
- 
-     Standard (R5RS)
-
-- added `full-language', as the name of a new language
-  that includes all of the functionality of the
-  teaching languages plus the Graphical (MrEd) language.
-
-- added `introduction-to-language-dialog' a string
-  that appears above the language dialog when the language
-  dialog is first displayed (at the startup of drscheme).
-  It asks the user to select a language and explains that
-  many intro courses need no changes.
-
-- added `show-overview' and `hide-overview' string
-  constants. They are menu labels that show and hide the
-  new definitions window overview.
-
-LIBRARY FUNCTIONALITY CHANGES
-
-OTHER
+GENERAL
 
 - added a code overview window that is
   visible along the rhs of the drscheme
   window. Use the `show' menu to make 
   it visible.
 
-- found 3 more dialogs that didn't have
-  parents and gave them parents.
-
-- revert is disabled when the editor is locked.
-
-- keybindings menu works again.
-
 - drscheme's new version window is now a 
   modified version of the language dialog
-
-- the language dialog is rearranged.
 
 - the language settings are now frame-specific.
   If you change the language in one
@@ -71,212 +21,24 @@ OTHER
   the most recently set language is what is
   used for newly created windows.
 
-- changed "Bring window to front..." shortcut to
-  `h' -- it used to conflict with Break.
-
-- fixed c-x;) keybinding and added something
-  to the info panel to show when a recording
-  is in progress.
-
-- when error-port isn't the original error port,
-  the fancy error display in drscheme goes away.
-
-- fixed bug for saved language preferences.
-  they are now restored.
-
 - added "Open recent" menu item
-
-- fixed up the teachpacks to load faster.
 
 - bug reports now go to the new bugs.plt-scheme.org
   server (and to bugs@plt-scheme.org)
 
-199d7
+- error messages output improved
 
-THINGS STILL MISSING (and promised to be broken...)
-
- - launchers
- - project manager
-
-TRANSLATIONS
-
-- added `accept-and-quit' and `accept-and-exit'
-  probably in all other languages besides English, 
-  these should be have the same translation.
-
-- added `debugging' and `dynamic-properties' string
-  constants. The first is the label for a check box that
-  determines if debugging is enabled for this language. The
-  second is a label in the "show details" section of the
-  language levels. It is in parallel to "input syntax" and
-  "output syntax".
-
-- added `bad-module-language-specs' that contains an error
-  message for when info.ss-specified languages have
-  problems. See the English for details.
-
-OTHER
-
-- error message printing in DrScheme now takes
-  full advantage of the error-print-source-location
-  parameter to make a colored error message.
-
-- debugging is now available to all languages and
-  the debug tool is gone.
-
-- added info.ss mechanism to specify the same content
-  as in simple-module-based-language<%>.
-
-- the EoPL language is now a info.ss-specified language (the
-  only one!). It still has a tool, but only so that it
-  can put a little icon and something shows up in the About
-  Box of DrScheme.
-
-- the teaching languages and the hangman teachpack now
-  collude to support the abstraction breaking necessary for
-  that teachpack.
-
-  This means that the hangman teachpack doesn't work in any
-  other languages (unlike the other teachpacks).
-
-- teaching languages now have source location
-  highlighting for runtime errors.
-
-
-199d6
-
-PRs:  2109
-
-As requested on plt-scheme, I've added a mechanism 
-for collapsing and expanding sexpressions to drscheme.
-right-click to collapse the enclosing sexpression
-to something like (...) and right click on that
-to expand it back to the previous text.
-
-THINGS STILL MISSING (and promised to be broken :)
-
- - launchers
- - project manager
-
-TRANSLATIONS
-
- - added `collapse-sexp' and `expand-sexp'
-   for the popup menu item. right click on a
-   (matched) parenthesis to see the words.
-
-MINOR CHANGES AND BUG FIXES
-
-- Check Syntax now works better at the top level.
-
-199d5
-
-PRs: 2062 2086 2116
-  
-New language level: module. It behaves like `require'ing the
-  definitions window, except that the REPL will contain
-  every defined identifier in the module, not just those
-  that are provided.
-
-TeachPacks are back.
-
-THINGS STILL MISSING (and promised to be broken :)
-
- - launchers
- - project manager
-
-FUNCTIONALITY CHANGES
-
-- TeachPacks are now implemented as modules.
-  They are `namespace-require'd when execute is clicked.
-
-- the get-teachpack-names method is gone from
-  the language<%> interface.
-
-- the expand-program method is now called after
-  expansion is finished, with eof. This is a good
-  time to kill the eventspace that was created
-  for the expansion.
-
-MINOR CHANGES AND BUG FIXES
-
-- moved the Windows menu to the 
-  second to last position of the menubar.
-
-- split/collapse are now in the show menu
-
-- check syntax now works properly behind 
-  define-syntax, and other misc. bugs fixed.
-
-199d4
-
-TRANSLATIONS
-
-- changed the way menu strings are constructed (used
-  to concatenate things in a very English specific
-  way). So, the menus section of string constants
-  should be double checked. I fixed it as best I
-  could, based on what was already there.
-
-- added r5rs-like string constant, removed full-languages
-  constant. This shows up in the language dialog. The second
-  turn down tab used to be "Full" (in English). It is now
-  "R5RS-like".
-  
-- added bring-frame-to-front and bring-frame-to-front...
-  for the title of a new menu item in the windows menu
-  and the title of the dialog that it brings up.
-
-FUNCTIONALITY CHANGES
-
-- the framework no longer implicit string-appends various strings
-  to construct menu labels. This means that the methods
-  of the form file-menu:new-string now specify the entire
-  label of the menu, not just the bit after `New'.
-
-- all languages created by the simple-module-based-language
-  mixin have 'mzscheme set as the initial contents
-  of the transformer portion of their namespace.
-
-- drscheme:language:make-simple-settings/parse has been
-  eliminated; use drscheme:language:make-simple-settings
-  instead.
-  
-- added gui-utils:alphabetic-list-box% to framework
-
-MINOR CHANGES AND BUG FIXES
-
-- improved print-convert (and thus, drscheme's 
-  non-write printers) for syntax and regexps.
+- added a mechanism for collapsing and expanding
+  sexpressions to drscheme. right-click to collapse the
+  enclosing sexpression to something like (...) and right
+  click on that to expand it back to the previous text.
 
 - added an emacs-like c-x c-b feature to drscheme.
   type <menukey>-b to popup a window of the open frames
   and choose one without using the mouse by typing.
 
-- changed "Full" to "R5RS-like" for language category.
-
-- added r5rs and r5rs debugging languages to "R5RS-like".
-
-- fixed misc Check Syntax problems -- it should now
-  be in good shape (please report any bugs or bug-like
-  behavior now)
-
-- search dialog only shows replacing bit if the 
-  buffer is unlocked.
-
 - The enter key now submits the interaction in the REPL,
   even if the cursor isn't at the end of a sexpression.
-
-- fixed a long standing bug where the paren highlighter
-  would highlight parens inside single semi-colon comments
-  in a funny way.
-
-199d3
-
-!!! WARNINGS !!!
-
-- Check Syntax now exists, but is not completely
-  functional yet. In particular, ignore the red-color
-  on the language-position of modules.
 
 - It is possible to switch the interface language of
   DrSheme's GUI. The mechanism is in place, in any
@@ -285,380 +47,91 @@ MINOR CHANGES AND BUG FIXES
   funny warnings when starting up DrScheme to that
   effect. Ignore them unless you are working on
   the translation.
-  
-FUNCTIONALITY CHANGES
-
-- all string constants that appear in DrScheme's GUI
-  must now be put in the string-constants collection.
-  Search in Help Desk for `string-constant' for more
-  details.
-  
-- Help Desk now downloads its docs from the old pre-v200
-  tag place.
-
-- added `expand-program' to tools interface. useful for
-  all tools that process program text.
-  
-- added vertical-dragable-mixin, vertical-dragable%, 
-  vertical-dragable<%> to framework.
-
-- removed vertical-resizable<%>, vertical-resizable-mixin,
-  vertical-resizable%, vertical-resizable-pane% from
-  framework
-
-- added icon:get-up/down-cursor and 
-  icon:get-left/right-cursor to the framework.
-  They return the standard cursors for sizing 
-  columns left and right, and up and down.
-
-- exit:exit and exit:can-exit? now accept optional 
-  booleans that specify if the user should be asked
-  about quitting.
-  
-MINOR CHANGES AND BUG FIXES
 
 - drscheme constructor and quasiquote printers
   now shows syntax's structure, and module-path-index
   structure.
 
-- drscheme's quasiquote printer now works a little bit
+- DrScheme's quasiquote printer now works a little bit
   better for expressions like '('a 'a).
   It used to show `((,'quote a) (,'quote a)), but
   now it shows `('a 'a).
 
-- the resize tab has been changed -- just grab and drag
-  the space between the definitions and interactions
-  windows now, instead of that ugly little triangle
-  that used to be on the right.
+- The portion of space between the definitions and
+  interactions window is now interactively changable.
 
-- several misc bugs in split/collapse functionality
-  fixed.
+- the bug report form now connects to bugs.drscheme.org
+  instead of cs.rice.edu directly, so earthlink users
+  should be able to submit PRs via Help Desk.
+
+- adding splitting of the definitions and interactions
+  canvases, to be able to see two different parts of the
+  buffer simultaneously
+
+- when saving or executing, 
+  if the file has been overwritten in the filesystem, 
+  drscheme prompts you to make sure you want to overwrite
+  or execute the file.
+   
+- added Teach Youself Scheme in Fixnum Days to 
+  DrScheme's documentation.
+
+- implicit sequencing has been eliminated from the advanced language 
+  level in order to give better error messages. Use an explicit `begin' 
+  for sequencing. (this change was made between 102 and
+  103, but we forgot to put it into the release notes)
+
+- teachpacks finally support macro definitions.
+ 
+- there is now a little eof icon next to the input box when
+  input is expected. you can click it send an eof. It closes
+  the input port until execute is next clicked.
+
+- many minor improvements to the Help Desk html renderer.
+
+- the filename button (in the top right of the drs frame)
+  now pops up a menu of the directories
+  that contain the saved file's directories. Choose one
+  to open a `get-file' dialog in that directory.
+ 
+- (without checking the syntax) the right click context-sensitive menu
+  has an entry to search based either on the selection, or on the text
+  that was clicked on.
+
+- DrScheme now prints exact real numbers as graphical fractions
+  (instead of the (+ 1 1/2) notation). These are also valid as
+  input, but you have to copy and paste to get them into your
+  program.
+
+- Added an "insert fraction" menu item to the edit menu for
+  inserting fractions directly into the program.
+
+FRAMEWORK and TOOLS
+-------------------
+
+- it is now possible to add languages to DrScheme,
+  as tools.
+
+- changed many filenames to match the new -unit.ss, and -sig.ss
+  convention instead of the old r.ss and s.ss convention.
+
+- changed guiutils.ss to gui-utils.ss in framework collection.
+
+- tools are now specified in info.ss files in top-level
+  collections, rather than in a subcollection of the
+  drscheme collection (see the tools manual for details).
+
+- added gui-utils:alphabetic-list-box% to framework
+
+- added `expand-program' to tools interface for
+  tools that process program text.
   
-- showing/hiding the definitions and interactions windows
-  restores relative sizing of windows.
-  (splitting and collapsing may still mess it up, tho)
-  
-
-199d2
-
-FUNCTIONALITY CHANGES
-
-  - the splash screen now only allows a single
-    splash screen (per namespace).
-
-MINOR CHANGES AND BUG FIXES
-
-  - structs now print properly in the REPL.
-
-  - the bug report form now connects to bugs.drscheme.org
-    instead of cs.rice.edu directly, so earthlink users
-    should be able to submit PRs via Help Desk.
-
-  - the resize tab should work properly now.
-
-  - the language dialog cancels properly and
-    properly restores defaults when re-opened.
-
-199d1
-
-WARNINGS
-
- This release is a first cut intended for 
- tools implementors to have something to work with.
- There are still many things missing. The biggest
- omissions:
-
- - the syntax checker,
- - the project manager,
- - teachpacks, and
- - launchers
-
-FUNCTIONALITY CHANGES
-
- - it is now possible to add languages to DrScheme,
-   as tools.
- - tools are now specified in info.ss files in top-level
-   collections, rather than in a subcollection of the
-   drscheme collection (see the tools manual for details).
- - added multi file searching
- - new mechanism for specifying languages
-   added to tools interface.
- - changed guiutils.ss to gui-utils.ss in framework collection.
- - changed many other names to match the new -unit.ss, and -sig.ss
-   convention instead of the old r.ss and s.ss convention.
-
-The tools and framework manuals have also been released. There are some issues with tex2page that I haven't figured out, so some links may not work.
-
-
-103d105
-
-PRS FIXED
-
-  1801: graphics help failure
-  1798: help desk build path problems
-  1641: relative paths problem when searching in help desk
-
-FUNCTIONALITY CHANGES
-
- - Changed the defaults colors in Check Syntax to match
-   what Dorai Sitaram uses for the upcoming web release of 
-   How to Design Programs (excellent choices!)
-
- - adding splitting of the definitions and interactions
-   canvases, to be able to see two different parts of the
-   buffer simultaneously
-
-MINOR CHANGES AND BUG FIXES
-
- - when saving or executing, 
-   if the file has been overwritten in the filesystem, 
-   drscheme prompts you to make sure you want to overwrite
-   or execute the file.
-   
- - added save-file-out-of-date? to editor:basic<%>
-
- - improved the read/write display in drscheme frames
-   (was "locked" and "unlocked", now is "Read/Write" and "Read only"
-    and the "Read only" variant is yellow on black)
-
- - Help Desk no longer exits when submitting a bug report.
-
-The exp-tagged source (in CVS) for DrScheme is now version 
-103d104.
-
- PRS
-
-  1410: read-line in DrScheme
-  1642: bad teachpack causes drscheme to freeze
-  1663: Dr. Scheme pasting what's on the clipboard when you don't want it too
-  1681: backtrace window should indicate source out-of-synch
-  1682: indentation and #%
-  1702: DrScheme filename popup doesn't always update on save
-  1726: Colour parameters in sixlib procedures are not too coherent
-  1747: faulty teachpacks no longer signal an error
-  1783: DrScheme, standard input, and eof
-  1792: interactive movable split-pane & scrolling-content feature request
-        (just the movable split-pane part is done)
-
- FUNCTIONALITY CHANGES
- 
- - added Teach Youself Scheme in Fixnum Days (with Dorai's permission)
-   to our documentation. To get it, you should delete plt/collects/doc/help,
-   start up Help Desk (to redownload that directory), restart Help Desk,
-   and then follow the big "Scheme" link on the front page, to the
-   "Teach Yourself Scheme in Fixnum Days" link to download it. Once
-   it is downloaded, the index will be added to Help Desk for easy
-   searching.
-
- - implicit sequencing has been eliminated from the advanced language 
-   level in order to give better error messages. Use an explicit `begin' 
-   for sequencing. (this change was made between 102 and
-   103, but we forgot to put it into the release notes)
-
- - teachpacks finally support macro definitions.
-   Download the revised documentation to see how!
-   (throw away your copy of plt/collects/doc/drscheme/
-    and start up help desk. search for teachpack
-    follow the link and download the new docs)
- 
- - DrScheme's main two windows now have a little draggable
-   thumb that changes the percentage difference between
-   the windows
-   
- - added panel:vertical-resizable%, panel:vertical-resiable-pane%,
-   panel:vertical-resizable-mixin, and panel:vertical-resizable<%>
-   to framework
- 
- MINOR CHANGES AND BUG FIXES
-
- - there is now a little eof icon next to the input box when
-   input is expected. you can click it send an eof (close the
-   input port until execute is next clicked). Suggestions for
-   a better icon welcome.
-  
- - misc changes to html.ss in the browser collection
-   to support Teach Yourself Scheme in Fixnum Days,
-   including more colors, div support, better whitespace
-   management, and transparent url links.
-
-
-The exp-tagged source (in CVS) for DrScheme is now version 
-103d103.
-
- PRS
- 
-   1772: Unexpected (read-char) behavior-one problem on MacOS, a different one on Unix
-   1774: need to define set-first! and set-rest!
-   1780: help-desk allows blank descriptions and steps to reproduce 
-   
- FUNCTIONALITY CHANGES
- 
- - the filename button (in the top right of the drs frame)
-   now pops up a menu of the directories
-   that contain the saved file's directories. Choose one
-   to open a `get-file' dialog in that directory.
- 
- - teaching language's primitives are now keywords.
-   This means that functions like `length' cannot be redefined
-   in the teaching languages. This change was made to
-   be compatible with the stepper.
- 
- - added `clear-annotations' to drscheme:rep:context<%>
-   
-103d102
-
- PRS
-
-  1719:  insert fraction isn't one step
-
- FUNCTIONALITY CHANGES
- 
- - check syntax now shows teaching language primitive docs in drscheme window,
-   viar right-button popup menu.
- 
- - check syntax now opens full scheme primitive docs in help desk, 
-   via right-button popup menu.
-
- - (without checking the syntax) the right click context-sensitive menu
-   has an entry to search based either on the selection, or on the text
-   that was clicked on.
-
- - the project manager has split up the files in the project
-   into two lists: elaboration files and regular files. The
-   elaboration files are loaded before the regular files.
-
- - check syntax has been integrated with the project manager. When both
-   are installed, check syntax will load the files in the
-   project-manager's "elaboration" window before checking the syntax.
-   This means that you can stick signature definitions in a project's
-   elaboration window and check syntax on individual files in the project.
-
-   Using this feature, I was able to check the syntax of help-win.ss
-   in the help collection and finally rename `f' to help-desk-frame! (that
-   had been bugging me for quite some time.... it is not an
-   easy search-and-replace kind of change :)
-
- - added clear-annotations to definitions-text% class for tools.
-   
- - Thanks to Philippe Meunier and Paul Steckler, a preliminary version 
-   of a spidey rewrite is available. To get it, you need to cvs two 
-   new directories:
-   
-      plt/collects/newspidey
-     
-   and
-   
-      plt/collects/drscheme/tools/spidey2
-     
-   Note that this is _very_ preliminary. So far, it only handles 
-   lambda, case-lambda, variables, application, car, cdr and cons
-   and only in the full scheme language.
-      
-MINOR CHANGES AND BUG FIXES
- 
- - the "drscheme jr" test suite now runs in both drscheme and
-   drscheme jr The guts have been abstracted out from the support
-   for running the test. See readme.txt in plt/tests/drscheme-jr
-   for details.
-
- - when in "sort by name" mode for the "(define ...)" button, 
-   the check marks are now correct.
-
- - error message from turtle primitives when window is not
-   open has been fixed.
-
- - added turtle primitives to the documented functions in
-   advanced.
-
- - the main drscheme window remembers how big it was last
-   resized to, and uses that size to as the default for
-   the next frame that is created.
-
- - new language detail: teaching language primitives and
-   syntax. It only applies to the 2 mred language levels and
-   it adds the core libraries, the turtles library, and the
-   posn structs to drscheme.
-
- - internal errors that happen on the user's thread no
-   longer wedge drscheme.
-
- - check syntax now creates its own eventspace, etc. to check the
-   syntax. That means that checking the syntax of this program:
-    
-      (begin-elaboration-time (eval '(define x 1)))
-    
-   no longer defines x in the repl. Ditto for other things,
-   like killing threads and such.
-
-103d101
-
- PRS
-
-  512: menu keybindings should change automatically according to pref
-
- FUNCTIONALITY CHANGES
-
-  - The teaching languages in DrScheme only have the primitives
-    that are listed in the documentation, now.
-
-  - DrScheme now prints exact real numbers as graphical fractions
-    (instead of the (+ 1 1/2) notation). These are also valid as
-    input, but you have to copy and paste to get them into your
-    program.
-
-  - Added an "insert fraction" menu item to the edit menu for
-    inserting fractions directly into the program.
-
-	 MINOR CHANGES AND BUG FIXES
-
-  - check syntax now rechecks the syntax right after an
-    alpha conversion, since alpha conversion may introduce
-    syntax errors into the program. Also, this makes it easier
-    to rename multiple identifiers.
-
-103d100
-
- PRS
-
- FUNCTIONALITY CHANGES
-
- - there is a replacement for the info.ss file in town, now.
-   Instead of the info.ss file, consider using an info-table.ss
-   file. This file is designed to be computer editable and eventually
-   the project manager will have an editor for that (with an
-   integrated help system).
-
-   If an info-table.ss file is present and an info.ss file is also
-   present, the info-table.ss file is consulted first and the info.ss
-   file is consulted if the info-table.ss file doesn't have that
-   binding.
-
- - please do not load info.ss files directly anymore. Use
-   the get-info.ss library in the setup collection. I have already
-   changed these uses:
-    - zo compiler
-    - help desk (blurb stuff)
-    - setup
-   I know only of this use that must be changed:
-    - mzc
-
-  - separated searchable-mixin into two pieces:
-    - searchable-mixin, and searchable-text-mixin.
-
- MINOR CHANGES AND BUG FIXES
- 
-  - added control-x o as a keybinding that switches the focus
-    between the interactions and definitions windows.
-
-  - when drscheme frame is associated with a project, clicking the
-    execute button will prompt the user about executing the project.
-
-  - language dialog now has a parent.
-
-  - drscheme:language:language-dialog procedure accepts an optional
-    second argument specifing the parent of the dialog
-    (defaults to #f)
-
+- exit:exit and exit:can-exit? now accept optional 
+  booleans that specify if the user should be asked
+  about quitting.
+
+- the splash screen now only allows a single
+  splash screen (per namespace).
 
 Version 103:
 
