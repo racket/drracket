@@ -330,7 +330,7 @@
 					   ; document-not-found produces HTML:
 					   (not html?)))
 				  ; Save the file
-				  (end-busy-cursor)
+				  (end-busy-cursor) ; turn off cursor for a moment...
 				  (let* ([orig-name (and (url? url)
 							   (let ([m (regexp-match "([^/]*)$" (url-path url))])
 							     (and m (cadr m))))]
@@ -360,6 +360,7 @@
 							  (send d center)
 							  (send d show #t)
 							  (unless (or d? i?)
+							    (begin-busy-cursor) ; turn the cursor back on before escaping
 							    (raise (make-exn:cancelled "Package cancelled"
 										       (current-continuation-marks))))
 							  i?))]
@@ -372,7 +373,7 @@
 							  #f ; should be calling window!
 							  #f
 							  orig-name))])
-				    (begin-busy-cursor)
+				    (begin-busy-cursor) ; turn the cursor back on
 				    (when f
 				      (let* ([d (make-object dialog% "Downloading" top-level-window)]
 					     [message (make-object message% "Downloading file..." d)]
