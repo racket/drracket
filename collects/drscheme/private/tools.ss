@@ -70,7 +70,12 @@
           [else
            (let ([onlys (getenv "PLTONLYTOOL")])
              (if onlys
-                 (let ([filtered (filter (lambda (x) (string=? onlys x)) collections)])
+                 (let* ([allowed (let ([exp (read (open-input-string onlys))])
+                                   (cond 
+                                     [(symbol? exp) (list exp)]
+                                     [(pair? exp) exp]
+                                     [else '()]))]
+                        [filtered (filter (lambda (x) (memq (string->symbol x) allowed)) collections)])
                    (printf "PLTONLYTOOL: only loading ~s\n" filtered)
                    (for-each load/invoke-tools filtered))
                  (for-each load/invoke-tools collections)))])
