@@ -757,7 +757,7 @@ If the namespace does not, they are colored the unbound color.
       (define syncheck-bitmap
         (drscheme:unit:make-bitmap
          (string-constant check-syntax)
-         (build-path (collection-path "icons") "syncheck.bmp")))
+         (build-path (collection-path "icons") "syncheck.png")))
       
       (define syncheck-frame<%>
         (interface ()

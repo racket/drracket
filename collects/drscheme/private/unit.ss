@@ -270,8 +270,7 @@ tab panels new behavior:
                           (build-path
                            (collection-path "icons")
                            (string-append button-name ".bmp")))]
-          [(text filename-or-bitmap) (make-bitmap text filename-or-bitmap 'unknown)]
-          [(text filename-or-bitmap bitmap-spec)
+          [(text filename-or-bitmap)
            (lambda (area-container-window)
              (let*-values ([(outside-margin) 2]
                            [(middle-margin) 3]
@@ -280,7 +279,7 @@ tab panels new behavior:
                             (let ([mdc (make-object bitmap-dc%)]
                                   [q (if (filename-or-bitmap . is-a? . bitmap%)
                                          filename-or-bitmap
-                                         (make-object bitmap% filename-or-bitmap bitmap-spec))])
+                                         (make-object bitmap% filename-or-bitmap 'unknown/mask))])
                               (if (send q ok?)
                                   (begin (send mdc set-bitmap q)
                                          (values mdc
@@ -356,16 +355,13 @@ tab panels new behavior:
       
       (define make-execute-bitmap 
         (make-bitmap (string-constant execute-button-label) 
-                     (build-path (collection-path "icons") "run.png")
-                     'png/mask))
+                     (build-path (collection-path "icons") "run.png")))
       (define make-save-bitmap 
         (make-bitmap (string-constant save-button-label) 
-                     (build-path (collection-path "icons") "save.png")
-                     'png/mask))
+                     (build-path (collection-path "icons") "save.png")))
       (define make-break-bitmap 
         (make-bitmap (string-constant break-button-label) 
-                     (build-path (collection-path "icons") "break.png")
-                     'png/mask))
+                     (build-path (collection-path "icons") "break.png")))
       
       (define-values (get-program-editor-mixin add-to-program-editor-mixin)
         (let* ([program-editor-mixin
