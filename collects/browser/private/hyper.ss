@@ -126,12 +126,10 @@ A test case:
                             (equal? 8000 (url-port url)))]
                       [else #f])])
             
-            (rename [super-after-set-position after-set-position])
       
-            (rename [super-get-keymaps get-keymaps])
             (define/override (get-keymaps)
               (cons hyper-keymap
-                    (super-get-keymaps)))
+                    (super get-keymaps)))
 	    (define/public (get-hyper-keymap)
 	      hyper-keymap)
             
@@ -139,7 +137,7 @@ A test case:
               (lambda ()
                 (unless (zero? (get-end-position))
                   (hide-caret #f))
-                (super-after-set-position))]
+                (super after-set-position))]
             (field
              [doc-notes null]
              [title #f]
@@ -640,7 +638,6 @@ A test case:
             ;; use on-event rather than on-default-event since we want
             ;; to override the caret handling snip in the case that
             ;; an image-map-snip is there.
-            (rename [super-on-event on-event])
             (define/override (on-event event)
               (let* ([edge-close-b (box 0)]
                      [on-it-b (box #f)]
@@ -671,9 +668,9 @@ A test case:
                                         (<= snip-top editor-event-y snip-bot))
                                    (let-values ([(x y) (editor-location-to-dc-location snip-left snip-top)])
                                      (send snip on-event (get-dc) x y snip-left snip-top event))]
-                                  [else (super-on-event event)])))]
-                           [else (super-on-event event)]))]
-                      [else (super-on-event event)])))))
+                                  [else (super on-event event)])))]
+                           [else (super on-event event)]))]
+                      [else (super on-event event)])))))
             
             (super-instantiate ())
 

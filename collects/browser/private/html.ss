@@ -109,7 +109,6 @@
                                    (max y1 y2))
                                   rects)))))
           
-          (rename [super-on-event on-event])
           (define/override (on-event dc x y editor-x editor-y evt)
             (when (send evt button-up?)
               (let* ([snipx (- (send evt get-x) x)]
@@ -117,7 +116,7 @@
                      [rect (find-rect snipx snipy)])
                 (when rect
                   (send html-text post-url (image-map-rect-href rect)))))
-            (super-on-event dc x y editor-x editor-y evt))
+            (super on-event dc x y editor-x editor-y evt))
           
           (define/override (adjust-cursor dc x y editor-x editor-y evt)
             (let ([snipx (- (send evt get-x) x)]
