@@ -35,6 +35,7 @@
 		    signal-not-boolean
 		    eq?-only-compares-symbols?
 		    printing))
+   setting-name
    install-language
    eq?-only-compares-symbols
    r4rs-style-printing
