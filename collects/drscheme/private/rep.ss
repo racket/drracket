@@ -639,7 +639,8 @@ TODO
                   
                   (when first-loc
                     (let ([first-finish (+ first-start first-span)])
-                      (send first-file set-position first-start first-start)
+                      (when (eq? first-file defs) ;; only move set the cursor in the defs window
+                        (send first-file set-position first-start first-start))
                       (send first-file scroll-to-position first-start #f first-finish)))
                   
                   (for-each (lambda (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
