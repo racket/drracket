@@ -94,6 +94,7 @@
                         panel
                         void))
          #f))
+      (send severity set-selection 1)
       
       (define bug-classes '(("software bug" "sw-bug")
                             ("documentation bug" "doc-bug")
@@ -170,6 +171,18 @@
          #f))
       (send tools set-value 
             (format "~s" (directory-list (collection-path "drscheme" "tools"))))
+      (define docs-installed
+        (build/label 
+         "Docs Installed"
+         (lambda (panel)            
+           (make-object text-field% #f panel void
+                        ""))
+         #f))
+      (send docs-installed set-value       
+            (format "~s"
+		    (with-handlers ([(lambda (x) #t)
+				     (lambda (x) "none")])
+		      (directory-list (collection-path "doc")))))
       (define collections
         (build/label 
          "Collections"
@@ -230,6 +243,7 @@
            ">Environment:"
            (format "~a" (send environment get-value))
            (format "Tools: ~a" (send tools get-value))
+           "Docs Installed:" (format "~a" (send docs-installed get-value))
            "Collections:"
            (format "~a" (send collections get-value))
            ">Fix: ")
