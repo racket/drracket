@@ -2,15 +2,52 @@
         Version 204
 ------------------------------
 
-- parenthesis highlight color is now configurable
+  - integrated the module browser into the main drscheme
+    window. Use the show menu to open a panel on the lhs of
+    the drscheme window containing a DAG representing the
+    modules that are required (only works for programs in
+    modules).
 
-- the top level function declarations in algol60 are now
-  available in the REPL and in the test suite tool
+  - integrated Bruce Hauman's rewrite of the match.ss
+    library (ongoing).
 
-- Removed `Windows' menu from windows and unix versions.
+  - added arrows to check syntax that show the (syntactic)
+    tail structure of the program.
 
-- Windows installer generates Program menu shortcuts for all
-  users
+  - fixed many many problems with Help Desk. Some of the
+    more interesting ones:
+    - manual downloading now works.
+    - bug report form is a mred window now.
+    - doc.txt highlighting is in the right place now
+    - doc.txt search restults now go to the right place
+    - servlets are now modules (with no more free vars)
+    - browser menus work properly
+    - urls outside of our documentation use an external browser
+    - eliminated many (now unecessary) redirections
+    - various responsiveness improvements 
+
+  - help desk as a standalone web server isn't supported
+    anymore.
+
+  - added a status line class to the framework, which is
+    used for check syntax and the module browser. both show
+    status as the check the program and show information on
+    mouse-over. Also, the contour window shows you the line
+    under the mouse in a status line on mouse over.
+
+  - added an extra level of hierarchy to the language
+    dialog, but without the turn-down triangles. this helps
+    organize the language dialog somewhat.
+
+  - parenthesis highlight color is now configurable
+
+  - the top level function declarations in algol60 are now
+    available in the REPL and in the test suite tool
+
+  - Removed `Windows' menu from windows and unix versions.
+
+  - Windows installer generates Program menu shortcuts for
+    all users
 
 ------------------------------
         Version 203
