@@ -374,8 +374,10 @@
         (define method-panel (make-object vertical-panel% method-inset-outer-panel))
         
         (define dir-panel (make-object horizontal-panel% files-panel))
-        (define dir-field (make-object text-field% (string-constant mfs-dir) dir-panel (lambda (x y) (dir-field-callback))))
-        (define dir-button (make-object button% (string-constant browse...) dir-panel (lambda (x y) (dir-button-callback))))
+        (define dir-field (make-object text-field% (string-constant mfs-dir) dir-panel
+                            (lambda (x y) (dir-field-callback))))
+        (define dir-button (make-object button% (string-constant browse...) dir-panel 
+                             (lambda (x y) (dir-button-callback))))
         
         (define recur-check-box (make-object check-box% (string-constant mfs-recur-over-subdirectories) files-panel
                                   (lambda (x y) (recur-check-box-callback))))
@@ -486,13 +488,11 @@
                           (send methods-choice get-selection))))
         (define (search-text-field-callback)
           (preferences:set 'drscheme:multi-file-search:search-string (send search-text-field get-value)))
-        (define (dir-callback)
-          (preferences:set 'drscheme:multi-file-search:directory-string (send dir-field get-value)))
         (define (dir-button-callback) 
           (let ([d (get-directory)])
             (when (and d
                        (directory-exists? d))
-              (preferences:set 'drscheme:multi-file-search:directory-string d)
+              (preferences:set 'drscheme:multi-file-search:directory d)
               (send dir-field set-value d))))
         
         (define (get-files)
@@ -632,10 +632,4 @@
                                             (car pos)
                                             (- (cdr pos) (car pos))))))
                            (loop (+ line-number 1))]))))
-                  'text)))))
-      
-      ;; -> string
-      ;; stub for soon to come mred primitive
-      (define (get-directory) 
-        (message-box "Directory choice not implemented" 
-                     "The directory choice primitive is not yet implemented. Tune in later")))))
+                  'text))))))))
