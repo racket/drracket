@@ -77,7 +77,7 @@
   ;; becuase it uses a better algorithm to find the snip
   ;; wdie widths.
   '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
-     (inherit get-media)
+     (inherit get-editor)
      (rename [super-on-size on-size]
 	     [super-set-media set-media])
      (public)
@@ -90,7 +90,7 @@
 	      (let* ([snip-x-pos&margins
 		      (let loop ([snip s])
 			(let* ([snip-x-pos (box 0)]
-			       [containing-media (send (send snip get-admin) get-media)]
+			       [containing-media (send (send snip get-admin) get-editor)]
 			       [containing-admin (send containing-media get-admin)])
 			  (send containing-media get-snip-position-and-location
 				snip (box 0) snip-x-pos (box 0))
@@ -105,7 +105,7 @@
 		     [outer-snip (let loop ([snip s])
 				   (let ([containing-admin
 					  (send (send (send snip get-admin)
-						      get-media) get-admin)])
+						      get-editor) get-admin)])
 				     (if (is-a? containing-admin mred:editor-snip-editor-admin%)
 					 (loop (send containing-admin get-snip))
 					 snip)))]					
@@ -113,7 +113,7 @@
 					[extra-space 2] ;; this is to allow the edit room
 					;; to show the caret at the end
 					;; of the line
-					[media (get-media)])
+					[media (get-editor)])
 				   (send (send media get-admin)
 					 get-view null null width null)
 				   (- (unbox width)
@@ -151,36 +151,46 @@
   (define make-searchable-canvas%
     (lambda (%)
       (class-asi %
-	(inherit frame)
-	(rename [super-on-set-focus on-set-focus])
-	(public
-	  [on-set-focus
-	   (lambda ()
-	     (send frame make-searchable this)
-	     (super-on-set-focus))]))))
+	(inherit get-top-level-window)
+	(rename [super-on-focus on-focus])
+	(override
+	  [on-focus
+	   (lambda (x)
+	     (when x
+	       (send (get-top-level-window) make-searchable this))
+	     (super-on-focus x))]))))
   
   (define interactions-canvas% (make-searchable-canvas% fw:canvas:wide-snip%))
   
   (define definitions-canvas%
     (class (make-searchable-canvas% mred:editor-canvas%) args
-      (inherit get-media frame)
-      (rename [super-edit-modified edit-modified])
-      (public
-	[edit-renamed
-	 (lambda (name)
-	   (send frame update-save-message name))]
-	[edit-modified
-	 (lambda (mod?)
-	   (send frame update-save-button mod?)
-	   (super-edit-modified mod?))])
+      (inherit get-top-level-window get-editor)
       (sequence
 	(apply super-init args)
-	(let ([m (get-media)])
-	  (send frame set-save-init-shown?
-		(and (not (null? m)) (send m modified?)))))))
+	(let ([m (get-editor)])
+	  (send (get-top-level-window) set-save-init-shown?
+		(and m (send m modified?)))))))
   
   (define definitions-edit%
     (class fw:scheme:text% (unit . args)
+      (inherit get-top-level-window)
+      (rename
+       [super-set-modified set-modified]
+       [super-set-filename set-filename])
+      (override
+       [set-modified
+	(lambda (mod?)
+	  (let ([f (get-top-level-window)])
+	    (when f
+	      (send f update-save-button mod?)))
+	  (super-set-modified mod?))]
+       [set-filename
+	(lambda (fn)
+	  (let ([f (get-top-level-window)])
+	    (when f
+	      (send f update-save-message fn)))
+	  (super-set-filename fn))])
+
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete])
       (public
@@ -198,7 +208,8 @@
 	[already-warned? #f]
 	[already-warned
 	 (lambda ()
-	   (set! already-warned? #t))]
+	   (set! already-warned? #t))])
+      (override
 	[after-insert
 	 (lambda x
 	   (set! needs-execution? #t)
@@ -215,13 +226,12 @@
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
       (inherit get-canvas
-	       set-title-prefix show-menu
-	       show menu-bar% make-menu
+	       set-label-prefix show-menu
+	       show get-menu%
 	       active-edit active-canvas panel update-info
 	       file-menu file-menu:open-id file-menu:new-id file-menu:save-id 
 	       file-menu:save-as-id file-menu:revert-id file-menu:print-id)
-      (rename [super-make-menu-bar make-menu-bar]
-	      [super-update-shown update-shown]
+      (rename [super-update-shown update-shown]
 	      [super-do-close do-close]
 	      [help-menu:super-insert-items help-menu:insert-items])
       (public
@@ -249,7 +259,7 @@
 	[get-edit-to-search
 	 (lambda ()
 	   (if search-canvas
-	       (send search-canvas get-media)
+	       (send search-canvas get-editor)
 	       (get-edit)))]
 	[get-info-edit
 	 (lambda ()
@@ -471,10 +481,43 @@
 		    file-menu:print-id)))
 	   (send file-menu enable file-menu:print-transcript-id 
 		 (not (hidden? show-menu interactions-id))))]
-	[make-menu-bar
+	
+	[do-close
 	 (lambda ()
-	   (let ([mb (super-make-menu-bar)]
-		 [language-menu (make-menu)])
+	   (remove-library-callback)
+	   (when (eq? this created-frame)
+	     (set! created-frame #f))
+	   (send unit frame-closed)
+	   (send interactions-edit shutdown)
+	   (super-do-close))]
+	
+	[running? #t]; is this necessary?
+	[execute-callback
+	 (lambda ()
+	   (ensure-interactions-shown)
+	   (send definitions-edit just-executed)
+	   (send interactions-canvas set-focus)
+	   (send interactions-edit reset-console)
+	   (send interactions-edit clear-undos)
+	   (send interactions-edit do-many-buffer-evals
+		 definitions-edit 0
+		 (send definitions-edit last-position))
+	   (send interactions-edit clear-undos))])
+  
+      (public
+	[after-change-name void]
+	[after-add-import (lambda () (update-imports))]
+	[after-add-export (lambda () (update-imports))]
+	[after-remove-import (lambda () (update-imports))]
+	[after-remove-export (lambda () (update-imports))]
+	[get-unit (lambda () unit)])
+
+      (inherit get-menu-bar)
+      (sequence
+	(super-init unit)
+
+	(let ([mb (get-menu-bar)]
+	      [language-menu (make-menu)])
 
 	     (set! scheme-menu (make-menu))
 
@@ -539,39 +582,6 @@
 			 #f
 			 "e"))
 	     mb))]
-	
-	[do-close
-	 (lambda ()
-	   (remove-library-callback)
-	   (when (eq? this created-frame)
-	     (set! created-frame #f))
-	   (send unit frame-closed)
-	   (send interactions-edit shutdown)
-	   (super-do-close))]
-	
-	[running? #t]; is this necessary?
-	[execute-callback
-	 (lambda ()
-	   (ensure-interactions-shown)
-	   (send definitions-edit just-executed)
-	   (send interactions-canvas set-focus)
-	   (send interactions-edit reset-console)
-	   (send interactions-edit clear-undos)
-	   (send interactions-edit do-many-buffer-evals
-		 definitions-edit 0
-		 (send definitions-edit last-position))
-	   (send interactions-edit clear-undos))])
-  
-      (public
-	[after-change-name void]
-	[after-add-import (lambda () (update-imports))]
-	[after-add-export (lambda () (update-imports))]
-	[after-remove-import (lambda () (update-imports))]
-	[after-remove-export (lambda () (update-imports))]
-	[get-unit (lambda () unit)])
-
-      (sequence
-	(super-init unit))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% panel)])
@@ -699,7 +709,7 @@
 	(update-imports)
 	(update-shown)
 	
-	(set-title-prefix "DrScheme")
+	(set-label-prefix "DrScheme")
 	
 	(send definitions-canvas set-focus)
 	(cond
