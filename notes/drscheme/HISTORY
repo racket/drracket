@@ -4,9 +4,9 @@ General
 -------
 
  - Graphics functions were removed from the teaching languages
-   (Beginner, Intermediate, and Advanced), except that Advanced still
-   contains Turtles. To use graphics functions, you must select a
-   library (and the libraries are not yet updated).
+   (Beginner, Intermediate, and Advanced), except Turtles in
+   Advanced. To use graphics functions, you must select a library (and
+   the teaching libraries are not yet updated).
 
  - The MzScheme and MrEd languages match exactly the languages
    provided by the MzScheme and MrEd executables.
