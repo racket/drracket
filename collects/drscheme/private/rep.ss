@@ -71,7 +71,7 @@
                   (apply values last-time-values)
                   (call-with-values
                    (lambda () (eval exp))
-                   loop))))))
+                   (lambda x (loop x))))))))
       
       ;; build-input : string[file-exists?] -> input
       ;; returns an input to be used with a language's `front-end' method
@@ -112,7 +112,10 @@
                           (open-file-and-highlight src position other-position)))))
               (when module
                 (let ([pos (send rep last-position)])
-                  (send rep insert docs-icon pos pos)
+                  (send rep insert (if (string? docs-icon)
+				       docs-icon
+				       (send docs-icon copy))
+			pos pos)
                   (send rep insert #\space (+ pos 1) (+ pos 1))
                   (send rep set-clickback pos (+ pos 1)
                         (lambda (txt start end)
@@ -313,7 +316,7 @@
 
       (define-struct sexp (left right prompt))
       
-      (define newline-string (string #\newline))
+      (define newline-string "\n")
       
       (define console-max-save-previous-exprs 30)
       (let* ([list-of? (lambda (p?)

@@ -1,4 +1,4 @@
-(module repl-test mzscheme
+>(module repl-test mzscheme
   (require "drscheme-test-util.ss"
            (lib "class.ss")
            (lib "file.ss")
@@ -12,11 +12,7 @@
                        execute-answer        ;; : string
                        load-answer           ;; : string
 
-                       prepend-filename?     ;; : (union #f 1 2)
-		       ;; 1 means name and 1 dot.
-		       ;; 2 means name and 2 dots.
-		       ;; #f means no name and no dots.
-		       ;; this only applies to the load tests
+                       has-backtrace?        ;; : boolean
                        
                        source-location ;; : (union 'definitions
                                        ;;          'interactions
@@ -30,7 +26,13 @@
 		       ;; if 'definitions, no source location and
 		       ;;     the focus must be in the definitions window
                        
-                       source-location-in-message? ;; : boolean
+                       source-location-in-message  ;; : (union #f 'read 'expand)
+		       ;; 'read indicates that the error message is a read error, so
+		       ;; the source location is the port info, and 'expand indicates
+		       ;; that the error messsage is an expansion time error, so the
+		       ;; the source location is the repl.
+		       ;; #f indicates no source location error message
+
                        breaking-test?))            ;; : boolean
   
   (define test-data
@@ -40,30 +42,30 @@
      (make-test "("
                 "read: expected a ')'; started in "
                 "read: expected a ')'; started in "
-                1
+                #f
                 (cons (vector 0 0 0) (vector 0 1 1))
-                #t
+		'read
                 #f)
      (make-test "."
                 "read: illegal use of \".\" in "
                 "read: illegal use of \".\" in "
-                1
+                #f
 		(cons (vector 0 0 0) (vector 0 1 1))
-                #t
+		'read
                 #f)
      (make-test "(lambda ())"
                 "lambda: bad syntax in: (lambda ())"
                 "lambda: bad syntax in: (lambda ())"
-                2
-                (cons (vector 0 0 0) (vector 0 11 11))
                 #f
+                (cons (vector 0 0 0) (vector 0 11 11))
+		'expand
                 #f)
      (make-test "xx"
                 "reference to undefined identifier: xx"
                 "reference to undefined identifier: xx"
-                2
-                (cons (vector 0 0 0) (vector 0 2 2))
                 #f
+                (cons (vector 0 0 0) (vector 0 2 2))
+		'expand
                 #f)
      (make-test "(raise 1)"
                 "uncaught exception: 1"
@@ -319,20 +321,42 @@
         (let* ([program (test-program in-vector)]
                [execute-answer (test-execute-answer in-vector)]
 	       [source-location (test-source-location in-vector)]
+	       [source-location-in-message (test-source-location-in-message in-vector)]
+	       [error-start (and source-location-in-message
+				 (number->string (+ 1 (vector-ref (car source-location) 2))))]
 	       [formatted-execute-answer
-		(if (and (pair? source-location)
-			 (test-source-location-in-message? in-vector))
-		    (string-append execute-answer
-				   "USERPORT:"
-				   (number->string
-				    (+ 1 (vector-ref (car source-location) 2))))
-		    execute-answer)]
+		(let* ([pre
+			(if source-location-in-message
+			    (string-append execute-answer
+					   (case source-location-in-message
+					     [(read) "USERPORT"]
+					     [(expand) "#<struct:object:definitions-text%>"])
+					   ":"
+					   error-start)
+			    execute-answer)]
+		       [w/backtrace
+			(if (and (test-has-backtrace? in-vector)
+				 (not raw?))
+			    (string-append "{image} " pre)
+			    pre)]
+		       [w/docs-icon
+			(if (eq? source-location-in-message 'expand)
+			    (string-append "{image} " w/backtrace)
+			    w/backtrace)])
+		  w/docs-icon)]
                [load-answer (test-load-answer in-vector)]
                [formatted-load-answer
-                (case (test-prepend-filename? in-vector)
-                  [(2) (string-append "{image} {image} " tmp-load-filename ": " load-answer)]
-                  [(1) (string-append "{image} " tmp-load-filename ": " load-answer)]
-                  [(#f) load-answer])]
+		(let* ([w/backtrace/file-icon
+			(if raw?
+			    (string-append "{image} " load-answer)
+			    (string-append "{image} {image} " load-answer))]
+		       [w/docs-icon
+			(if (eq? source-location-in-message 'expand)
+			    (string-append "{image} " w/backtrace/file-icon)
+			    w/backtrace/file-icon)])
+		  (if source-location-in-message
+		      (string-append w/docs-icon tmp-load-filename ":" error-start)
+		      w/docs-icon))]
                [breaking-test? (test-breaking-test? in-vector)])
           
           (clear-definitions drscheme-frame)
