@@ -317,7 +317,7 @@
       
       (inherit set-label)
       (public
-	[update-save-button
+        [update-save-button
 	 (lambda (mod?)
 	   (if save-button
 	       (send save-button show mod?)
@@ -325,16 +325,12 @@
 	[update-save-message
 	 (lambda (name)
 	   (when save-button
-	     (let* ([name 
-		     (if name
-			 (or (mzlib:file:file-name-from-path name)
-			     "Untitled") 
-			 "Untitled")]
-		    [msg (make-object mred:message% name top-panel)])
-	       (set! name-message msg)
-	       (set-label name)
-	       (send top-panel change-children
-		     (lambda (l) (build-top-panel-children))))))])
+		 (let* ([fname (and name (mzlib:file:file-name-from-path name))]
+			[msg (make-object mred:message% (or fname "") top-panel)])
+		   (set! name-message msg)
+		   (set-label name)
+		   (send top-panel change-children
+			 (lambda (l) (build-top-panel-children))))))])
       (override
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
@@ -704,17 +700,18 @@
 		 library-msg
 		 button-panel))])
       
+      (inherit get-label)
       (sequence
 	
 	(update-save-button #f)
 
-	(update-save-message
-	 (let ([fn (send definitions-text get-filename)])
-	   (cond
-	     [(not fn) "Untitled"]
-	     [(mzlib:file:file-name-from-path fn) => (lambda (x) x)]
-	     [else "Untitled"])))
+	(update-save-message (get-label))
 	
+	 '(let ([fn (send definitions-text get-filename)])
+	   (cond
+	    [(and fn (mzlib:file:file-name-from-path fn)) => (lambda (x) x)]
+	    [else (next-untitled-name)]))
+
 	(send interactions-text initialize-console)
 
 	(when (and (not filename)
