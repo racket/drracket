@@ -30,15 +30,16 @@
       (define (run-installer file)
         (letrec ([f (make-object (class100 dialog% ()
                                    (override
-                                     [can-close? (lambda () (send done is-enabled?))])
+                                     [can-close? (lambda () (send done is-enabled?))]
+				     [on-close (lambda () (semaphore-post s))])
                                    (sequence
                                      (super-init "Install Progress"
                                                  #f 600 300 #f #f '(resize-border)))))]
                  [c (make-object editor-canvas% f)]
                  [e (make-object text%)]
                  [s (make-semaphore)]
-                 [done (make-object button% "Ok" f (lambda (b e) 
-                                                     (semaphore-post s)))]
+                 [done (make-object button% "Close" f (lambda (b e) 
+							(semaphore-post s)))]
                  [output (make-output-port
                           (lambda (s)
                             (send e lock #f)
@@ -49,6 +50,7 @@
                           void)]
                  [cust (make-custodian)])
           (send done enable #f)
+	  ((current-text-keymap-initializer) (send e get-keymap))
           (send e lock #t)
           (send c set-editor e)
           (let ([t (parameterize ([current-custodian cust])
@@ -78,7 +80,14 @@
 						       (archives (list file))
 						       ;; Here's where we make get a directory:
 						       (current-target-directory-getter
-							(lambda () (get-directory "Select the destination for unpacked items"))))
+							(lambda ()
+							  (sleep 0.2) ; kludge to allow f to appear first
+							  (end-busy-cursor)
+							  (let ([d (get-directory "Select the destination for unpacking" f)])
+							    (unless d
+							      (printf ">>> Cancelled <<<~n"))
+							    (begin-busy-cursor)
+							    d))))
 						     soption)]
 				  [setup : () (setup@
 					       SOPTION
@@ -94,12 +103,6 @@
             (custodian-shutdown-all cust)
             (end-busy-cursor)
             (send done enable #t)
-            (fprintf output "(Click Ok to close this progress window.)~n")
-            (send e lock #f)
-            (send e change-style
-                  (make-object style-delta% 'change-bold)
-                  (send e line-start-position (sub1 (send e last-line)))
-                  (send e last-position))
             (yield s)
             (begin-busy-cursor)
             (send f show #f)
