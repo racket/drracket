@@ -152,8 +152,10 @@
 		       (write str/sexp port))
 		     (get-output-string port)))])
       (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
-      (let ([len (string-length str)])
-	(fw:test:new-window (ivar/proc frame canvas-ivar))
+      (let ([len (string-length str)]
+	    [canvas (ivar/proc frame canvas-ivar)])
+	(fw:test:new-window canvas)
+	(send (send canvas get-editor) set-caret-owner #f)
 	(let loop ([i 0])
 	  (unless (>= i len)
 	    (let ([c (string-ref str i)])
