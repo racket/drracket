@@ -79,6 +79,27 @@ profile todo:
               (make-object image-snip% b)
               "[err trace]")))
 
+      '(define clickable-img-snip%
+         (class image-snip%
+           (define grabbed? #f)
+           (define mouse-x #f)
+           (define mouse-y #f)
+           (define/override (on-event dc x y editorx editory evt)
+             (cond
+               [(send evt button-down 'left)
+                (set! grabbed? #t)
+                (set! mouse-x x)
+                (invalidate)]
+               [(send evt leaving?)
+                (set! clicked? #f)
+                (set! mouse-x #f)
+                (set! mouse-y #f)
+                (invalidate)]
+               [(send evt button-up 'left)
+                (set! clicked? #f)
+                (set! grabbed? #t)]))))
+               
+      
       ;; mf-note : (union string (instanceof snip%))
       (define mf-note
         (let ([bitmap
@@ -168,28 +189,21 @@ profile todo:
 		      [src-to-display (find-src-to-display exn 
                                                            (and cms
                                                                 (map st-mark-source cms)))])
-                 ;; should send the snip directly into the port!
-                 '(queue-output
-                   text
-                   (lambda ()
-                     (let ([locked? (send text is-locked?)])
-                       (send text begin-edit-sequence)
-                       (send text lock #f)
-                       (when (and cms
-                                  (not (null? cms)))
-                         (insert/clickback text
-                                           (if (mf-bday?) mf-note bug-note)
-                                           (lambda ()
-                                             (show-backtrace-window msg cms k))))
-                       (when src-to-display
-                         (let ([src (car src-to-display)])
-                           (when (symbol? src)
-                             (insert/clickback 
-                              text file-note
-                              (lambda ()
-                                (open-and-highlight-in-file src-to-display))))))
-                       (send text lock locked?)
-                       (send text end-edit-sequence))))
+                 
+                 (when (and cms
+                            (not (null? cms)))
+                   (insert/clickback text
+                                     (if (mf-bday?) mf-note bug-note)
+                                     (lambda ()
+                                       (show-backtrace-window msg cms k))))
+                 (when src-to-display
+                   (let ([src (car src-to-display)])
+                     (when (symbol? src)
+                       (insert/clickback 
+                        text file-note
+                        (lambda ()
+                          (open-and-highlight-in-file src-to-display))))))
+                 
                  (orig-error-display-handler msg exn)
                  
                  ;; not sure how the syncronization should work here...

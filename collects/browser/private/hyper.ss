@@ -385,7 +385,8 @@ A test case:
                          (cond
                            [(or (and mime-type (regexp-match "application/" mime-type))
                                 (and (url? url)
-                                     (regexp-match "[.]plt$" (url-path url))
+                                     (not (null? (url-path url)))
+                                     (regexp-match "[.]plt$" (car (last-pair (url-path url))))
                                      ; document-not-found produces HTML:
                                      (not html?)))
                             ; Save the file
@@ -517,7 +518,8 @@ A test case:
                                                        (current-continuation-marks)))))]
                            [(or (port? url)
                                 (and (url? url)
-                                     (regexp-match "[.]html?$" (url-path url)))
+                                     (not (null? (url-path url)))
+                                     (regexp-match "[.]html?$" (car (last-pair (url-path url)))))
                                 html?)
                             ; HTML
                             (progress #t)
@@ -603,8 +605,7 @@ A test case:
                                                              (stop-busy)
                                                              (finish-without-dialog
                                                               (lambda ()
-                                                                (read-from-port p empty-header)))
-                                                             empty-header)))])
+                                                                (read-from-port p empty-header))))))])
                                          (call/input-url 
                                           url 
                                           (if post-string 
@@ -616,8 +617,7 @@ A test case:
                                               (finish-without-dialog
                                                (lambda ()
                                                  (read-from-port p headers)))
-                                              headers))
-                                          null))))
+                                              headers))))))
                                    "Fetching page ..."))
                                 (lambda ()
                                   (stop-busy)
@@ -724,11 +724,12 @@ A test case:
       ;; call-with-hyper-panel : object ((is-a?/c hyper-panel<%>) -> void) -> void
       (define (call-with-hyper-panel text f)
         (when (is-a? text hyper-text<%>)
-          (let* ([canvas (send text get-canvas)]
-                 [panel
-                  (and canvas
-                       (send (send canvas get-top-level-window) get-hyper-panel))])
-            (f panel))))
+          (let ([canvas (send text get-canvas)])
+            (when canvas
+              (let ([tlw (send canvas get-top-level-window)])
+                (printf "tlw: ~s\n" tlw)
+                (when (is-a? tlw hyper-frame<%>)
+                  (f (send tlw get-hyper-panel))))))))
             
       ;; path-below? : string[normalized-path] string[normalized-path] -> boolean
       ;; returns #t if subpath points to a place below top
@@ -771,8 +772,8 @@ A test case:
                  (parent menu))))
            (old menu editor event))))
       
-      (define (hyper-canvas-mixin super%)
-        (class super%
+      (define hyper-canvas-mixin
+        (mixin ((class->interface editor-canvas%)) ()
           (inherit get-editor set-editor refresh get-parent get-top-level-window)
           
           (define/public (get-editor%) hyper-text%)
@@ -874,7 +875,7 @@ A test case:
 		 (after-set-page)
                  (when (or (positive? spos) (not current) (positive? (cadr current)))
                    (refresh))))]
-          (super-instantiate ())))
+          (super-new)))
       
       (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
       
@@ -915,8 +916,8 @@ A test case:
             (let-values ([(w h d a) (send dc get-text-extent "X" font)])
               (min-client-height (+ 4 (inexact->exact (ceiling h))))))))
       
-      (define (hyper-panel-mixin super%)
-        (class super% 
+      (define hyper-panel-mixin
+        (mixin (area-container<%>) ()
           (init info-line?)
           (inherit reflow-container)
           (super-instantiate ())

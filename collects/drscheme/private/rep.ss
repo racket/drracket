@@ -999,102 +999,6 @@ TODO
                        (after-many-evals)
                        (cleanup-interaction)))))))))
           
-          (define/public (evaluate-from-port-old port complete-program?) ; =Kernel=, =Handler=
-            (do-many-evals
-             (lambda (single-loop-eval)  ; =User=, =Handler=
-               (let* ([settings (current-language-settings)]
-                      [lang (drscheme:language-configuration:language-settings-language settings)]
-                      [settings (drscheme:language-configuration:language-settings-settings settings)]
-                      [get-sexp/syntax/eof 
-                       (if complete-program?
-                           (send lang front-end/complete-program port settings user-teachpack-cache)
-                           (send lang front-end/interaction port settings user-teachpack-cache))]
-                      [already-exited? #f]
-                      [successful? #f]
-                      [got-eof? #f])
-                 (let loop ()
-                   (dynamic-wind
-                    void
-                    (lambda ()
-                      (set! successful? #f)
-                      (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                        (cond
-                          [(eof-object? sexp/syntax/eof)
-                           (void)]
-                          [else
-                           (single-loop-eval
-                            (lambda ()
-                              (call-with-values
-                               (lambda ()
-                                 (eval-syntax sexp/syntax/eof))
-                               (lambda x
-                                 (display-results x)))))
-                           (loop)])))
-                    (lambda ()
-                      #|                           
-                      ;; flush out extraneous eof object, if one is there
-                      ;; only necessary for the REPL, but doesn't hurt definitions
-                      (when (char-ready? port)
-                        (let ([pc (peek-byte-or-special port)])
-                          (when (eof-object? pc)
-                            (read-byte port))))
-                      |#
-                      
-                      (unless already-exited?
-                        (set! already-exited? #t)
-                        ;; want to do this for errors, but not for continuation jumps
-                        (fprintf (get-out-port) (get-prompt))
-                        (flush-output (get-out-port))))))))))
-          
-          ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
-          (define/public do-many-evals ; =Kernel=, =Handler=
-            
-            ;; run-loop has the loop. It expects one argument, a procedure that
-            ;; can be called with a thunk. The argument to run-loop maintains the right
-            ;; breaking state and calls the thunk it was called with.
-            (lambda (run-loop)  ;; (((-> void) -> void) -> void)
-              (send context disable-evaluation)
-              (send context set-breakables (get-user-thread) (get-user-custodian))
-              (reset-pretty-print-width)
-              (ready-non-prompt)
-              (when should-collect-garbage?
-                (set! should-collect-garbage? #f)
-                (collect-garbage))
-              (set! need-interaction-cleanup? #t)
-              
-              (run-in-evaluation-thread
-               (lambda () ; =User=, =Handler=, =No-Breaks=
-                 (send context reset-offer-kill)
-                 
-                 (protect-user-evaluation
-                  ; Evaluate the expression(s)
-                  (lambda () ; =User=, =Handler=, =No-Breaks=
-                    ; This procedure must also ensure that breaks are off before
-                    ;  returning or escaping.
-                    (run-loop
-                     (lambda (thunk) ;; (-> void)
-                       ; Evaluate the user's expression. We're careful to turn on
-                       ;   breaks as we go in and turn them off as we go out.
-                       ;   (Actually, we adjust breaks however the user wanted it.)
-                       ; A continuation hop might take us out of this instance of
-                       ;   evaluation and into another one, which is fine.
-                       (dynamic-wind
-                        (lambda () 
-                          (break-enabled user-break-enabled)
-                          (set! user-break-enabled 'user))
-                        (lambda ()
-                          (thunk))
-                        (lambda () 
-                          (set! user-break-enabled (break-enabled))
-                          (break-enabled #f))))))
-                  
-                  ; Cleanup after evaluation:
-                  (lambda () ; =User=, =Handler=, =No-Breaks=
-                    (queue-system-callback/sync
-                     (get-user-thread)
-                     (lambda () ; =Kernel=, =Handler= 
-                       (cleanup-interaction)))))))))
-          
           (define/public (after-many-evals) (void))
           
           (define shutdown-user-custodian ; =Kernel=, =Handler=
@@ -1485,7 +1389,7 @@ TODO
             
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
-            (reset-region 0 (last-position))
+            (reset-region (last-position) (last-position))
             (set-unread-start-point (last-position))
             (set-insertion-point (last-position))
             (set-allow-edits #f)
@@ -1493,7 +1397,8 @@ TODO
             (end-edit-sequence))
           
           (define/public (initialize-console)
-            
+            (begin-edit-sequence)
+            (freeze-colorer)
             (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
             (let-values ([(before after)
                           (insert/delta this (string-constant drscheme) click-delta drs-font-delta)])
@@ -1502,9 +1407,12 @@ TODO
               (set-clickback before after 
                              (lambda args (drscheme:app:about-drscheme))
                              click-delta))
+            (reset-region (last-position) (last-position))
+            (thaw-colorer)
             (send context disable-evaluation)
             (reset-console)
             (send context enable-evaluation)
+            (end-edit-sequence)
             (clear-undos))
           
           (define edit-sequence-count 0)
