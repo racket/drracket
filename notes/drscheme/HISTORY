@@ -1,25 +1,41 @@
-Version 100alpha3:
+Version 100:
 
 General
 -------
 
- - A test version of the expression stepper is included with DrScheme.
+ - DrScheme's languages have changed. The new languages are:
+
+    - Beginner
+    - Intermediate
+    - Advanced
+    - MzScheme
+    - MrEd
+
+   The first three languages are essentially the same as in version
+   53, except that graphics primitives have been removed. (Instead,
+   domain-specific graphics commands can be loaded as libraries.) The
+   turtles remain in the advanced language.
+
+   The MzScheme and MrEd languages match exactly the languages
+   provided by the MzScheme and MrEd executables.
+
+ - A simple algebraic stepper, dubbed The Foot, is now available.  The
+   Foot permits users to construct a source-level evaluation trace for
+   programs written in the Beginner language. It will be expanded in
+   future releases.
+
+ - DrScheme's Help Desk provides online help for DrScheme, its
+   languages, and its libraries.
 
  - Graphics functions were removed from the teaching languages
    (Beginner, Intermediate, and Advanced), except Turtles in
    Advanced. To use graphics functions, you must select a library (and
    the teaching libraries are not yet updated).
 
- - The MzScheme and MrEd languages match exactly the languages
-   provided by the MzScheme and MrEd executables.
-
  - The old viewport-based graphics library can be loaded into the MrEd
    Debug language via (require-library "graphic.ss" "graphics").
 
- - I/O within DrScheme is substantially improved and secure.
-
- - Beginner contains define-struct. Intermediate prints lists with the
-   `list' abbreviation.
+ - I/O within DrScheme is substantially improved.
 
  - The library and tool interfaces for extended DrScheme have
    changed.
