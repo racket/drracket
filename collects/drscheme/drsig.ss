@@ -1,7 +1,6 @@
 (define-signature drscheme:tool^
-  ((struct tool (name file))
-   tools
-   load/invoke-tool))
+  ((struct tool (name file callback))
+   tools))
 
 (define-signature drscheme:basis^
   (level->number
