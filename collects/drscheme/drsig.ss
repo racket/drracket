@@ -3,6 +3,7 @@
 (require-library "zsigs.ss" "zodiac")
 (require-library "sigs.ss" "zodiac")
 (require-library "ariess.ss" "cogen")
+(require-library "params.ss" "userspce")
 (require-library "sig.ss" "userspce")
 (require-library "gusrspcs.ss" "gusrspce")
 (require-library "pconvers.ss")
