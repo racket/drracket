@@ -1347,8 +1347,8 @@
               (lambda (_1 _2) (send interactions-text kill-evaluation))
               #\k
               (string-constant kill-menu-item-help-string))
-            (make-object separator-menu-item% scheme-menu)
-            (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
+            ;(make-object separator-menu-item% scheme-menu)
+            ;(make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant reindent-menu-item-label)
