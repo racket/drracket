@@ -1,3 +1,29 @@
+103d101
+
+ PRS
+
+  512: menu keybindings should change automatically according to pref
+
+ FUNCTIONALITY CHANGES
+
+  - The teaching languages in DrScheme only have the primitives
+    that are listed in the documentation, now.
+
+  - DrScheme now prints exact real numbers as graphical fractions
+    (instead of the (+ 1 1/2) notation). These are also valid as
+    input, but you have to copy and paste to get them into your
+    program.
+
+  - Added an "insert fraction" menu item to the edit menu for
+    inserting fractions directly into the program.
+
+ MINOR CHANGES AND BUG FIXES
+
+  - check syntax now rechecks the syntax right after an
+    alpha conversion, since alpha conversion may introduce
+    syntax errors into the program. Also, this makes it easier
+    to rename multiple identifiers.
+
 103d100
 
  PRS
