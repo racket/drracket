@@ -239,14 +239,16 @@
                           (build-path
                            (collection-path "icons")
                            (string-append button-name ".bmp")))]
-          [(text filename)
+          [(text filename-or-bitmap)
            (lambda (area-container-window)
              (let*-values ([(outside-margin) 2]
                            [(middle-margin) 3]
                            [(font) (send area-container-window get-control-font)]
                            [(img-bitmap-dc img-width img-height)
                             (let ([mdc (make-object bitmap-dc%)]
-                                  [q (make-object bitmap% filename)])
+                                  [q (if (filename-or-bitmap . is-a? . bitmap%)
+					 filename-or-bitmap
+					 (make-object bitmap% filename-or-bitmap))])
                               (if (send q ok?)
                                   (begin (send mdc set-bitmap q)
                                          (values mdc

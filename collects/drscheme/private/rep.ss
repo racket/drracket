@@ -356,12 +356,8 @@
       
       (define drs-font-delta (make-object style-delta% 'change-family 'decorative))
       
-      (define output-delta (make-object style-delta%
-                             'change-weight
-                             'bold))
-      (define result-delta (make-object style-delta%
-                             'change-weight
-                             'bold))
+      (define output-delta (make-object style-delta%)) ; used to be 'change-weight 'bold
+      (define result-delta (make-object style-delta%)) ; used to be 'change-weight 'bold
       (define error-delta (make-object style-delta%
                             'change-style
                             'slant))
@@ -2537,7 +2533,8 @@
            (text:searching-mixin
             text:autowrap%)))))
       
-      (define consumed-delta (make-object style-delta% 'change-bold))
+      (define consumed-delta (make-object style-delta%))
+      (send (send consumed-delta get-foreground-mult) set 0.75 0.75 0.75)
 	   
       (define transparent-io-text%
         (class* transparent-io-super% (transparent-io-text<%>) 

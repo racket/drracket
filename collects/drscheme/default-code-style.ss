@@ -21,7 +21,7 @@
   
   ;; color-default-code-styles : (listof (list symbol code-style))
   (define color-default-code-styles
-    (list (list 'keyword (make-code-style '(40 25 15) #f #t #f))
+    (list (list 'keyword (make-code-style '(40 25 15) #f #f #f))
           (list 'unbound-variable (make-code-style "red" #f #f #f))
           (list 'bound-variable (make-code-style "navy" #f #f #f))
           (list 'primitive (make-code-style "navy" #f #f #f))
