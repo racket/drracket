@@ -119,11 +119,4 @@
     (mred:add-preference-callback 'drscheme:project-visible?
 				  (lambda (p v) 
 				    (send console show v) 
-				    #t))
-
-    (mzlib:pretty-print@:pretty-print-size-hook 
-     (lambda (x _) (and (is-a? x wx:snip%) 1)))
-    (mzlib:pretty-print@:pretty-print-print-hook
-     (lambda (x _) 
-       (let ([edit (ivar console console-edit)])
-	 (send edit insert (send x copy) (send edit last-position)))))))
+				    #t))))
