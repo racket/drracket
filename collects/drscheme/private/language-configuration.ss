@@ -137,7 +137,8 @@
 	  ;; get/set-selected-language-settings (union #f (-> settings))
 	  (define get/set-selected-language-settings #f)
 
-	  ;; language-mixin : (implements language<%>) -> ((implements hierlist<%>) -> (implements hierlist<%>))
+	  ;; language-mixin : (implements language<%>) (implements area-container<%>) get/set ->
+          ;;                  ((implements hierlist<%>) -> (implements hierlist<%>))
 	  ;; a mixin that responds to language selections and updates the details-panel
 	  (define (language-mixin language language-details-panel get/set-settings)
             (lambda (%)
