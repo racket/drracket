@@ -595,8 +595,8 @@ profile todo:
             (when rep
               (let ([ht (make-hash-table)])
                 (current-test-coverage-info ht)
-                (send rep set-test-coverage-info ht)))
-            (hash-table-put! (current-test-coverage-info) key (list #f expr)))))
+                (send rep set-test-coverage-info ht)))))
+        (hash-table-put! (current-test-coverage-info) key (list #f expr)))
   
       (define (test-covered key)
         (let ([v (hash-table-get (current-test-coverage-info) key)])
