@@ -192,7 +192,11 @@
          #f))
       (send collections set-value       
             (format "~s"
-                    (map (lambda (x) (list x (directory-list x)))
+                    (map (lambda (x) 
+                           (list x 
+                                 (if (directory-exists? x)
+                                     (directory-list x)
+                                     "non-existant path")))
                          (current-library-collection-paths))))
       
       (align-labels)
