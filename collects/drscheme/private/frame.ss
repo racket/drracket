@@ -4,7 +4,8 @@
            (lib "unitsig.ss")
            (lib "class.ss")
            "drsig.ss"
-	   (lib "mred.ss" "mred")
+           (lib "version.ss" "version")
+           (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
@@ -99,7 +100,7 @@
           (send dc set-font button-label-font)
           (let-values ([(tw th _2 _3) (send dc get-text-extent label)])
             
-	;; 1 is for the outer drop shadow box
+            ;; 1 is for the outer drop shadow box
             (send dc draw-text label
                   (+ button-label-inset
                      (if inverted? drop-shadow-size 1))
@@ -110,10 +111,10 @@
         (class canvas% 
           (init-field parent)
           (inherit popup-menu get-dc get-size get-client-size min-width min-height
-		   stretchable-width stretchable-height
-		   get-top-level-window)
-	  (public set-message) ;; set-message : boolean (union #f string) -> void
-	  (override on-event on-paint)
+                   stretchable-width stretchable-height
+                   get-top-level-window)
+          (public set-message) ;; set-message : boolean (union #f string) -> void
+          (override on-event on-paint)
           
           (define paths #f)
           (define label (string-constant untitled))
@@ -281,10 +282,10 @@
           
           (override file-menu:open-callback file-menu:open-string
                     file-menu:new-callback  file-menu:new-string
-		    help-menu:about-callback help-menu:about-string help-menu:create-about?
+                    help-menu:about-callback help-menu:about-string help-menu:create-about?
                     help-menu:before-about
-		    file-menu:between-open-and-revert
-		    edit-menu:between-find-and-preferences)
+                    file-menu:between-open-and-revert
+                    edit-menu:between-find-and-preferences)
           [define help-menu:before-about
             (lambda (help-menu)
               (make-object menu-item%
@@ -304,6 +305,12 @@
           [define help-menu:create-about? (lambda () #t)]
           
           (define/override (help-menu:after-about menu)
+            (instantiate menu-item% ()
+              (label (string-constant help-menu-check-for-updates))
+              (parent menu)
+              (callback
+               (lambda (item evt)
+                 (check-version))))
             (drscheme:app:add-language-items-to-help-menu menu))
           
           [define (file-menu:open-callback item evt) (handler:open-file)]
@@ -331,8 +338,8 @@
                        (let ([last-edit-object (get-edit-target-window)])
                          (send menu-item enable (can-show-keybindings?))))])
                 (instantiate menu-item% ()
-		  (label (string-constant keybindings-menu-item))
-		  (parent menu)
+                  (label (string-constant keybindings-menu-item))
+                  (parent menu)
                   (callback (lambda x (show-keybindings)))
                   (help-string (string-constant keybindings-info))
                   (demand-callback keybindings-on-demand)))
@@ -352,8 +359,8 @@
       
       (define (show-keybindings-to-user bindings frame)
         (letrec ([f (instantiate keybindings-dialog% ()
-		      (label (string-constant keybindings-frame-title))
-		      (parent frame)
+                      (label (string-constant keybindings-frame-title))
+                      (parent frame)
                       (width (car (preferences:get 'drscheme:keybindings-window-size)))
                       (height (cdr (preferences:get 'drscheme:keybindings-window-size)))
                       (style '(resize-border)))]
@@ -391,11 +398,11 @@
           (send f show #t)))
       
       (define <%>
-	(interface (frame:editor<%> basics<%> frame:text-info<%>)
-	  running
-	  not-running
-	  get-show-menu
-	  update-shown))
+        (interface (frame:editor<%> basics<%> frame:text-info<%>)
+          running
+          not-running
+          get-show-menu
+          update-shown))
       
       (define -mixin
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
@@ -409,11 +416,11 @@
           [define update-shown (lambda () (void))]
           
           [define get-bitmap/string
-           (lambda (icon string)
-             (let ([p (build-path (collection-path "icons") icon)])
-               (if (file-exists? p)
-                   (make-object bitmap% p 'gif)
-                   string)))]
+            (lambda (icon string)
+              (let ([p (build-path (collection-path "icons") icon)])
+                (if (file-exists? p)
+                    (make-object bitmap% p 'gif)
+                    string)))]
           (field
            [currently-running? #f]
            [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" (string-constant not-running))]
