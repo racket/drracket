@@ -140,14 +140,19 @@
                   (install-plt-file this)))
               (super-file-menu:between-open-and-revert file-menu))]
           
+          (rename [super-file-menu:between-close-and-quit file-menu:between-close-and-quit])
+          (define/override (file-menu:between-close-and-quit menu)
+            (super-file-menu:between-close-and-quit menu)
+            (new separator-menu-item% (parent menu))
+            (instantiate menu-item% ()
+              (label (string-constant mfs-multi-file-search-menu-item))
+              (parent menu)
+              (callback
+               (lambda (_1 _2)
+                 (drscheme:multi-file-search:multi-file-search)))))
+          
           [define edit-menu:between-find-and-preferences
             (lambda (menu)
-              (instantiate menu-item% ()
-                (label (string-constant mfs-multi-file-search-menu-item))
-                (parent menu)
-                (callback
-                 (lambda (_1 _2)
-                   (drscheme:multi-file-search:multi-file-search))))
               (make-object separator-menu-item% menu)
               (let ([keybindings-on-demand
                      (lambda (menu-item)
@@ -465,7 +470,13 @@
                (demand-callback
                 (lambda (menu)
                   (handler:install-recent-items menu))))
-	  (unless (current-eventspace-has-standard-menus?)
+	  (instantiate menu-item% ()
+            (label (string-constant mfs-multi-file-search-menu-item))
+            (parent file-menu)
+            (callback
+             (lambda (_1 _2)
+               (drscheme:multi-file-search:multi-file-search))))
+          (unless (current-eventspace-has-standard-menus?)
 	    (new separator-menu-item% (parent file-menu))
 	    (new menu-item%
                (label (string-constant quit-menu-item-others))
