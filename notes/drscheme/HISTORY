@@ -2,6 +2,9 @@
         Version 299
 ------------------------------
 
+ - front-end/complete-program and front-end/interaction
+   methods now accept a port, instead of an `input'.
+
  - added ->r contract combinator
 
 ------------------------------
