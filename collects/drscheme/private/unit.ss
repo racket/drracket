@@ -2554,10 +2554,11 @@
               (begin (send created-frame change-to-file name)
                      (send created-frame show #t)
                      created-frame)
-              (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
-		     [frame (new drs-frame% (filename name))])
-                (send frame show #t)
-                frame))]))
+	      (time
+	       (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
+		      [frame (new drs-frame% (filename name))])
+		 (send frame show #t)
+		 frame)))]))
       
       (handler:insert-format-handler 
        "Units"
