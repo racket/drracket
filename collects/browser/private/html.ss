@@ -7,7 +7,7 @@
            (lib "etc.ss")
            (lib "list.ss")
            (lib "string.ss")
-           (lib "thread.ss")
+           (lib "port.ss")
            (lib "url-sig.ss" "net")
 	   (rename (lib "html.ss" "html") read-html-as-xml read-html-as-xml)
 	   (rename (lib "html.ss" "html") read-html-comments read-html-comments)
