@@ -245,10 +245,9 @@
                                                num-left)])
                                     (if (= num-left 1)
                                         (string-constant last-stack-frame)
-                                        (format (string-constant more-stack-frames) 
-                                                (if (<= num-left num-to-show)
-                                                    'last
-                                                    'next)
+                                        (format (if (<= num-left num-to-show)
+                                                    (string-constant next-stack-frames)
+                                                    (string-constant last-stack-frames))
                                                 num-to-show))))
                             (let ([hyper-end (send text last-position)])
                               (send text change-style (gui-utils:get-clickback-delta)
