@@ -147,13 +147,10 @@
            (lambda ()
              (with-handlers ([exn:break?
                               (lambda (x)
-                                (printf "in exn handler\n")
                                 (queue-callback
                                  (lambda ()
-                                   (printf "search interrupted callback\n")
                                    (send results-text search-interrupted))
-                                 #f)
-                                (printf "end of exn handler\n"))])
+                                 #f))])
                (do-search
                 search-info 
                 (lambda (base-filename filename line-string line-number col-number match-length)
@@ -183,8 +180,7 @@
                 (lambda ()
                   (send stop-button enable #f)
                   (send results-text search-complete))
-                #f))
-             (printf "thread done\n"))))
+                #f)))))
         
         (send frame reflow-container)
         (send panel set-percentages (preferences:get 'drscheme:multi-file-search:percentages))
