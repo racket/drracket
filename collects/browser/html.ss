@@ -60,6 +60,23 @@
 	     [else
 	      (loop (add1 n))])))))
 
+  (define (make-get-field str)
+    (let ([s (apply
+	      string-append
+	      (map
+	       (lambda (c)
+		 (format "[~a~a]"
+			 (char-upcase c)
+			 (char-downcase c)))
+	       (string->list str)))]
+	  [spc (string #\space #\tab #\newline #\return #\vtab)])
+      (let ([re:plain (regexp (format "(^|[~a])~a[~a]*=[~a]*([^ ]*)" spc s spc spc))]
+	    [re:quote (regexp (format "(^|[~a])~a[~a]*=[~a]*\"([^\"]*)\"" spc s spc spc))])
+	(lambda (args)
+	  (let ([m (or (regexp-match re:quote args)
+		       (regexp-match re:plain args))])
+	    (and m (caddr m)))))))
+
   (define html-convert
     (lambda (p b)
       (letrec 
@@ -136,89 +153,84 @@
 		(set! i-buffer null)))]
 
 	   [parse-image-source
-	    (let ([re:quote-img (regexp "[Ss][Rr][Cc][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:img (regexp "[Ss][Rr][Cc][ ]*=[ ]*([^ ]*)")])
+	    (let ([get-src (make-get-field "src")])
 	      (lambda (s)
-		(let ([m (or (regexp-match re:quote-img s)
-			     (regexp-match re:img s))])
-		  (if m
+		(let ([src (get-src s)])
+		  (if src
 		      (with-handlers ([void (lambda (x) null)])
-			(combine-url/relative base-path (cadr m)))
+			(combine-url/relative base-path src))
 		      null))))]
 	   
-	   [re:quote-scheme (regexp "[Mm][Zz][sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
+	   [get-mzscheme-arg (let ([get (make-get-field "mzscheme")])
+			       (lambda (s)
+				 (let ([v (get s)])
+				   (and v (regexp-replace* "[|]" v "\"")))))]
 		  
 	   [parse-href
-	    (let ([re:quote-href (regexp "[hH][rR][eE][fF][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:href (regexp "[hH][rR][eE][fF][ ]*=[ ]*([^ ]*)")]
-		  [re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")]
+	    (let ([get-href (make-get-field "href")]
+		  [get-name (make-get-field "name")]
 		  [href-error
 		   (lambda (s)
 		     (html-error "bad reference in ~s" s))])
 	      (lambda (s)
 		(let* ([url-string
 			(cond 
-			 [(or (regexp-match re:quote-href s)
-			      (regexp-match re:href s))
-			  => (lambda (m)
-			       (let ([str (cadr m)])
-				 (if (string=? str "")
-				     (begin (href-error s)
-					    #f)
-				     str)))]
+			 [(get-href s)
+			  => (lambda (str)
+			       (if (string=? str "")
+				   (begin (href-error s)
+					  #f)
+				   str))]
 			 [else #f])]
-		       [label (let ([m (if url-string
-					   #f
-					   (or (regexp-match re:quote-name s)
-					       (regexp-match re:name s)))])
-				(if m
-				    (cadr m)
-				    #f))]
-		       [scheme (let ([m (regexp-match re:quote-scheme s)])
-				 (and m (regexp-replace* "[|]" (cadr m) "\"")))])
+		       [label (if url-string
+				  #f
+				  (get-name s))]
+		       [scheme (get-mzscheme-arg s)])
 		  (values url-string label scheme))))]
 
 	   [parse-mzscheme
 	    (lambda (args)
-	      (let ([m (regexp-match re:quote-scheme args)])
-		(and m (cadr m))))]
+	      (get-mzscheme-arg args))]
 	    
-	   [parse-name
-	    (let ([re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")])
-	      (lambda (args)
-		(let ([m (or (regexp-match re:quote-name args)
-			     (regexp-match re:name args))])
-		  (and m (cadr m)))))]
+	   [parse-name (make-get-field "name")]
 
-	   [parse-type
-	    (let ([re:quote-type (regexp "[tT][yY][pP][eE][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:type (regexp "[tT][yY][pP][eE][ ]*=[ ]*([^ ]*)")])
-	      (lambda (args)
-		(let ([m (or (regexp-match re:quote-type args)
-			     (regexp-match re:type args))])
-		  (and m (cadr m)))))]
+	   [parse-type (make-get-field "type")]
 
 	   [parse-font
-	    (let ([re:quote-size (regexp "[sS][iI][zZ][eE][ ]*=[ ]*\"([^\"]*)\"")]
-		  [re:size (regexp "[sS][iI][zZ][eE][ ]*=[ ]*([^ ]*)")])
+	    (let ([get-size (make-get-field "size")]
+		  [get-color (make-get-field "color")]
+		  [get-bg-color (make-get-field "bgcolor")])
 	      (lambda (args)
-		(let ([m (or (regexp-match re:quote-size args)
-			     (regexp-match re:size args))])
-		  (and m (let* ([spec (cadr m)]
-				[n (string->number spec)])
-			   (and n
-				(integer? n)
-				(<= -127 n 127)
-				(cond
-				 [(char=? #\+ (string-ref spec 0))
-				  (make-object style-delta% 'change-bigger n)]
-				 [(negative? n)
-				  (make-object style-delta% 'change-smaller (- n))]
-				 [else
-				  (make-object style-delta% 'change-size n)])))))))]
-
+		(let ([size (get-size args)]
+		      [color (get-color args)]
+		      [bg-color (get-bg-color args)])
+		  (let ([size
+			 (and size (let* ([n (string->number size)])
+				   (and n
+					(integer? n)
+					(<= -127 n 127)
+					(cond
+					 [(char=? #\+ (string-ref size 0))
+					  (make-object style-delta% 'change-bigger n)]
+					 [(negative? n)
+					  (make-object style-delta% 'change-smaller (- n))]
+					 [else
+					  (make-object style-delta% 'change-size n)]))))]
+			[color (and color (let ([d (make-object style-delta%)])
+					    (send d set-delta-foreground color)))]
+			[bg-color (and bg-color (let ([d (make-object style-delta%)])
+						  (send d set-delta-background bg-color)))])
+		    (let loop ([delta #f][l (list size color bg-color)])
+		      (cond
+		       [(null? l) delta]
+		       [(not (car l)) (loop delta (cdr l))]
+		       [else (if delta
+				 (loop (begin
+					 (send delta collapse (car l))
+					 delta)
+				       (cdr l))
+				 (loop (car l) (cdr l)))]))))))]
+	   
 	   [make-unsupported
 	    (lambda (tag args)
 	      (let ([name (parse-name args)]
