@@ -175,6 +175,18 @@
 	      #f
 	      #f)
    
+   ;; new namespace test
+   (make-test (format "(current-namespace (make-namespace))~nif")
+	      "compile: illegal use of a syntactic form name in: if"
+	      #f
+	      "compile: illegal use of a syntactic form name in: if"
+	      'interactions
+
+	      "compile: illegal use of a syntactic form name in: if"
+	      "compile: illegal use of a syntactic form name in: if"
+	      #f
+	      #f)
+
    ;; error escape handler test
    (make-test (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
 	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
