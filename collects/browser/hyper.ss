@@ -598,6 +598,7 @@
 				 'default 'normal 'normal)]
 	      [dc (get-dc)])
 	  (send dc set-font font)
+	  (send dc set-text-foreground (make-object color% "FOREST GREEN"))
 	  (let-values ([(w h d a) (send dc get-text-extent "X" font)])
 	    (min-client-height (+ 4 (inexact->exact (ceiling h)))))))))
 
