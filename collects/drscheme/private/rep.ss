@@ -652,7 +652,7 @@
           get-error-ranges))
 
       (define text-mixin
-        (mixin ((class->interface text%) editor:basic<%> scheme:text<%> console-text<%>) (-text<%>)
+        (mixin ((class->interface text%) editor:basic<%> scheme:text<%> console-text<%> color:text<%>) (-text<%>)
           (init-field context)
           (inherit insert change-style get-canvas
                    get-active-canvas
@@ -663,7 +663,6 @@
                    get-end-position
                    set-clickback
                    do-post-eval
-                   insert-prompt
                    erase 
                    get-prompt-mode
                    ready-non-prompt
@@ -682,7 +681,8 @@
                    get-admin
                    set-prompt-position
                    get-canvases find-snip
-                   release-snip)
+                   release-snip
+                   reset-region update-region-end)
           (rename [super-initialize-console initialize-console]
                   [super-reset-console reset-console]
                   [super-on-close on-close])
@@ -1588,6 +1588,7 @@
           
           (field (eval-count 0))
           (define (do-eval start end)
+            (update-region-end end)
             (set! eval-count (add1 eval-count))
             (when (5 . <= . eval-count)
               (collect-garbage)
@@ -2090,7 +2091,8 @@
             (set! already-warned? #f)
             (end-edit-sequence)
             
-            (super-reset-console))
+            (super-reset-console)
+            (reset-region 0 'end))
           
           (define (initialize-console)
             (super-initialize-console)
@@ -2105,7 +2107,13 @@
                              click-delta))
             (reset-console)
             (insert-prompt)
-            (clear-undos))
+            (clear-undos)
+            (reset-region 0 'end))
+          (inherit get-prompt-position)
+          (rename (super-insert-prompt insert-prompt))
+          (define/override (insert-prompt)
+            (super-insert-prompt)
+            (reset-region (get-prompt-position) 'end))
           
           (super-instantiate ())
           
@@ -2671,13 +2679,12 @@
       (define -text% 
         (drs-bindings-keymap-mixin
          (text-mixin 
-          (color:interactions-mixin
-           (console-text-mixin
-            (scheme:text-mixin
-             (color:text-mixin
-              (text:info-mixin
-               (editor:info-mixin
-                (text:searching-mixin
-                 (text:nbsp->space-mixin
-                  (mode:host-text-mixin
-                   text:clever-file-format%)))))))))))))))
+          (console-text-mixin
+           (scheme:text-mixin
+            (color:text-mixin
+             (text:info-mixin
+              (editor:info-mixin
+               (text:searching-mixin
+                (text:nbsp->space-mixin
+                 (mode:host-text-mixin
+                  text:clever-file-format%))))))))))))))
