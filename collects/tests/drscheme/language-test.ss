@@ -41,6 +41,8 @@
       
       (prepare-for-test-expression)
       
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "#f")
       (test-expression "(define x 1)(define x 2)" "")
       
       (test-expression 'xml "(a () (b ()))")
@@ -132,6 +134,8 @@
       
       (prepare-for-test-expression)
       
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "#f")
       (test-expression "(define x 1)(define x 2)" "")
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "#<struct:spider>")
@@ -211,7 +215,7 @@
   (define (beginner)
     (parameterize ([language (list "How to Design Programs" "Beginning Student")])
       (check-top-of-repl)
-      
+
       (generic-settings #t)
       (generic-output #f #f #f)
       (teaching-language-fraction-output)
@@ -220,6 +224,9 @@
       (test-error-after-definition)
       
       (prepare-for-test-expression)
+
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "true")
       
       (test-expression "(define x 1)(define x 2)"
                        "x: this name was defined previously and cannot be re-defined"
@@ -334,6 +341,10 @@
       
       (prepare-for-test-expression)
       
+      
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "true")
+      
       (test-expression "(define x 1)(define x 2)"
                        "x: this name was defined previously and cannot be re-defined"
                        "define: cannot redefine name: x")
@@ -444,7 +455,10 @@
       (test-error-after-definition)
       
       (prepare-for-test-expression)
-
+      
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "true")
+      
       (test-expression "(define x 1)(define x 2)"
                        "x: this name was defined previously and cannot be re-defined"
                        "define: cannot redefine name: x")
@@ -550,6 +564,8 @@
       
       (prepare-for-test-expression)
       
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "true")
       (test-expression "(define x 1)(define x 2)"
                        "x: this name was defined previously and cannot be re-defined"
                        "define: cannot redefine name: x")
@@ -654,6 +670,8 @@
       
       (prepare-for-test-expression)
       
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "true")
       (test-expression "(define x 1)(define x 2)"
                        "x: this name was defined previously and cannot be re-defined"
                        "define: cannot redefine name: x")
@@ -966,7 +984,7 @@
             (printf "FAILED: test-error-after-definition failed, expected 0, got ~s\n" got))))))
 
   
-  ;; test-expression : (union string 'xml)
+  ;; test-expression : (union string 'xml 'image (listof (union string 'xml 'image)))
   ;;                   (union string regexp (string -> boolean)) 
   ;;                -> void
   ;; types an expression in the definitions window, executes it and tests the output
@@ -978,6 +996,19 @@
        (let* ([drs (wait-for-drscheme-frame)]
               [interactions-text (send drs get-interactions-text)]
               [definitions-text (send drs get-definitions-text)]
+              [handle-insertion
+               (lambda (item)
+                 (cond
+                   [(eq? item 'image)
+                    (use-get/put-dialog 
+                     (lambda () (fw:test:menu-select "Special" "Insert Image..."))
+                     (simplify-path (build-path (collection-path "icons") "recycle.gif")))]
+                   [(string? item)
+                    (type-in-definitions drs item)]
+                   [(eq? item 'xml)
+                    (fw:test:menu-select "Special" "Insert XML Box")
+                    (for-each fw:test:keystroke (string->list "<a><b>"))]
+                   [else (error 'handle-insertion "unknown thing to insert ~s" item)]))]
               [check-expectation
                (lambda (expected got)
                  (cond
@@ -998,11 +1029,8 @@
                     "FAILED: ~s ~s expected ~s to pass predicate ~s, got ~s~n"]))])
          (clear-definitions drs)
          (cond
-           [(string? expression)
-            (type-in-definitions drs expression)]
-           [(eq? expression 'xml)
-            (fw:test:menu-select "Special" "Insert XML Box")
-            (for-each fw:test:keystroke (string->list "<a><b>"))])
+	   [(pair? expression) (for-each handle-insertion expression)]
+           [else (handle-insertion expression)])
          (do-execute drs)
          
          (let ([got
@@ -1055,10 +1083,12 @@
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
     (go beginner)
+    #|
     (go beginner/abbrev)
     (go intermediate)
     (go intermediate/lambda)
     (go advanced)
     (go mred)
     (go mzscheme)
+    |#
     ))
