@@ -100,7 +100,7 @@
               (rename [super-on-select on-select])
               (define (on-select i)
                 (cond
-		  [(is-a? i hieritem-language<%>)
+		  [(and i (is-a? i hieritem-language<%>))
 		   (send i selected)]
 		  [else
 		   (nothing-selected)]))
@@ -113,7 +113,7 @@
 	  (define details-panel (make-object panel:single% outermost-panel))
 	  (define button-panel (make-object horizontal-panel% dialog))
 
-	  (define no-details-panel (make-object panel% details-panel))
+	  (define no-details-panel (make-object vertical-panel% details-panel))
 
           (define languages-table (make-hash-table))
           (define languages (get-languages))
@@ -158,10 +158,11 @@
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let-values ([(language-details-panel get-settings) (make-details-panel language)])
+		 (let-values ([(language-details-panel get-settings)
+			       (make-details-panel language)])
 		   (let ([item
 			  (send hier-list new-item
-				(language-mixin language details-panel get-settings))])
+				(language-mixin language language-details-panel get-settings))])
 		   (send (send item get-editor) insert (car lng))))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
@@ -180,11 +181,18 @@
                                           (cdr lng)))])))
           
 	  ;; make-details-panel : ((instanceof language<%>) -> (values panel (-> settings)))
+	  ;; adds a details panel for `language', using
+	  ;; the language's default settings, unless this is
+	  ;; the to-show language.
 	  (define (make-details-panel language)
 	    (let ([panel (make-object vertical-panel% details-panel)])
 	      (values
 	       panel
-	       (send language config-panel panel))))
+	       (send language config-panel
+		     panel
+		     (if (eq? language language-to-show)
+			 settings-to-show
+			 (send language default-settings))))))
 
 	  ;; close-all-languages : -> void
 	  ;; closes all of the tabs in the language hier-list.
@@ -201,29 +209,36 @@
 
 	  ;; open-current-language : -> void
 	  ;; opens the tabs that lead to the current language
+	  ;; and selects the current language
 	  (define (open-current-language)
 	    (let loop ([hi languages-hier-list]
-		       [position (send language-to-show get-language-position)])
-	      (cond
-		[(null? position) (void)]
-		[(null? (cdr position)) (void)]
-		[else
-		 (let ([child (filter (lambda (x)
-					(equal? (send (send x get-editor) get-text)
-						(car position)))
-				      (send hi get-items))])
-		   ;; know child is a singleton list by construction of the dialog,
-		   ;; but lets check the condition here again and just fail gracefully.
-		   (unless (null? child)
-		     (send (car child) open)
-		     (loop (car child)
-			   (cdr position))))])))
+		       [first-pos (car (send language-to-show get-language-position))]
+		       [position (cdr (send language-to-show get-language-position))])
+		 (let ([child
+			;; know that this `car' is okay by construction of the dialog
+			(car 
+			 (filter (lambda (x)
+				   (equal? (send (send x get-editor) get-text)
+					   first-pos))
+				 (send hi get-items)))])
+		   (cond
+		     [(null? position)
+		      (send child select #t)]
+		     [else
+		      (send child open)
+		      (loop child (car position) (cdr position))]))))
 
-	  (define (ok-callback) (void))
-	  (define (cancel-callback) (void))
+	  (define (ok-callback)
+	    (preferences:set settings-preferences-symbol
+			     (make-language-settings
+			      selected-language
+			      (get-selected-language-settings)))
+	    (send dialog show #f))
+	  (define (cancel-callback)
+	    (send dialog show #f))
 
-	  (define ok-button (make-object button% "OK" button-panel (lambda (x y) (ok-callback))))
 	  (define cancel-button (make-object button% "Cancel" button-panel (lambda (x y) (cancel-callback))))
+	  (define ok-button (make-object button% "OK" button-panel (lambda (x y) (ok-callback))))
 
 	  (send button-panel set-alignment 'right 'center)
 	  (send button-panel stretchable-height #f)
