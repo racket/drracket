@@ -863,25 +863,29 @@ If the namespace does not, they are colored the unbound color.
                     (lambda (l) (cons report-error-panel l)))))
           
           (define/private (report-error message exn)
-            (send* report-error-text
-              (begin-edit-sequence)
-              (lock #f)
-              (erase))
+            (drscheme:debug:show-error-and-highlight message exn (get-interactions-text))
             
-            (send report-error-text insert message)
-            (when (exn:fail:syntax? exn)
-              (send report-error-text insert " in:")
-              (for-each (lambda (stx) 
-                          (send report-error-text insert
-                                (format " ~s" (syntax-object->datum stx))))
-                        (exn:fail:syntax-exprs exn)))
-            
-            (send* report-error-text
-              (set-position 0 0)
-              (lock #t)
-              (end-edit-sequence))
-
-            (show-error-report))
+            #;
+            (begin
+              (send* report-error-text
+                (begin-edit-sequence)
+                (lock #f)
+                (erase))
+              
+              (send report-error-text insert message)
+              (when (exn:fail:syntax? exn)
+                (send report-error-text insert " in:")
+                (for-each (lambda (stx) 
+                            (send report-error-text insert
+                                  (format " ~s" (syntax-object->datum stx))))
+                          (exn:fail:syntax-exprs exn)))
+              
+              (send* report-error-text
+                (set-position 0 0)
+                (lock #t)
+                (end-edit-sequence))
+              
+              (show-error-report)))
           
           (define rest-panel 'uninitialized-root)
           (define super-root 'uninitialized-super-root)

@@ -58,6 +58,7 @@
 
      add-prefs-panel
      
+     show-error-and-highlight
      open-and-highlight-in-file
      show-backtrace-window
      get-cm-key))

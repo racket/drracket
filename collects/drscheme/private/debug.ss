@@ -218,67 +218,73 @@ profile todo:
           (let ([rep (get-rep)])
             (cond
               [rep
-               (let* ([cms (and (exn? exn) 
-                                (continuation-mark-set? (exn-continuation-marks exn))
-                                (continuation-mark-set->list 
-                                 (exn-continuation-marks exn)
-                                 cm-key))])
-                 (when (and cms
-                            (pair? cms))
-                   (let ([note% (if (mf-bday?) mf-note% bug-note%)])
-                     (when note%
-                       (let ([note (new note%)])
-                         (send note set-callback (lambda () (show-backtrace-window msg cms)))
-                         (write-special note (current-error-port))
-                         (display #\space (current-error-port))))))
-                 
-                 (let ([srcs-to-display (find-src-to-display exn cms)])
-                   (for-each (lambda (src-to-display)
-                               (let ([src (srcloc-source src-to-display)])
-                                 (when (and (path? src) file-note%)
-                                   (let ([note (new file-note%)])
-                                     (send note set-callback 
-                                           (lambda () (open-and-highlight-in-file src-to-display)))
-                                     (write-special note (current-error-port))
-                                     (display #\space (current-error-port))
-                                     (display (path->string (find-relative-path (current-directory) src))
-                                              (current-error-port))
-                                     (let ([line (srcloc-line src-to-display)]
-                                           [col (srcloc-column src-to-display)])
-                                       (when (and (number? line) 
-                                                  (number? col))
-                                         (fprintf (current-error-port) ":~a:~a" line col)))
-                                     (display ": " (current-error-port))))))
-                             srcs-to-display)
-                   
-                   (display msg (current-error-port))
-                   (when (exn:fail:syntax? exn)
-                     (show-syntax-error-context (current-error-port) exn))
-                   (newline (current-error-port))
-                   
-                   ;; need to flush here so that error annotations inserted in next line
-                   ;; don't get erased if this output were to happen after the insertion
-                   (flush-output (current-error-port))
-                   
-                   (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                     (queue-callback
-                      (lambda ()
-                        ;; need to make sure that the user's eventspace is still the same
-                        ;; and still running here?
-                        (highlight-errors rep
-                                          srcs-to-display
-                                          (and cms
-                                               (filter 
-                                                (lambda (x)
-                                                  (and (pair? x)
-                                                       (is-a? (car x) text:basic<%>)
-                                                       (pair? (cdr x))
-                                                       (number? (cadr x))
-                                                       (number? (cddr x))))
-                                                cms))))))))]
+               (show-error-and-highlight 
+                msg 
+                exn
+                (lambda (srcs-to-display cms)
+                  (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                    (queue-callback
+                     (lambda ()
+                       ;; need to make sure that the user's eventspace is still the same
+                       ;; and still running here?
+                       (highlight-errors rep srcs-to-display cms))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
+      
+      (define (show-error-and-highlight msg exn rep highlight-errors)
+        (let* ([cms (and (exn? exn) 
+                         (continuation-mark-set? (exn-continuation-marks exn))
+                         (continuation-mark-set->list 
+                          (exn-continuation-marks exn)
+                          cm-key))])
+          (when (and cms
+                     (pair? cms))
+            (let ([note% (if (mf-bday?) mf-note% bug-note%)])
+              (when note%
+                (let ([note (new note%)])
+                  (send note set-callback (lambda () (show-backtrace-window msg cms)))
+                  (write-special note (current-error-port))
+                  (display #\space (current-error-port))))))
+          
+          (let ([srcs-to-display (find-src-to-display exn cms)])
+            (for-each (lambda (src-to-display)
+                        (let ([src (srcloc-source src-to-display)])
+                          (when (and (path? src) file-note%)
+                            (let ([note (new file-note%)])
+                              (send note set-callback 
+                                    (lambda () (open-and-highlight-in-file src-to-display)))
+                              (write-special note (current-error-port))
+                              (display #\space (current-error-port))
+                              (display (path->string (find-relative-path (current-directory) src))
+                                       (current-error-port))
+                              (let ([line (srcloc-line src-to-display)]
+                                    [col (srcloc-column src-to-display)])
+                                (when (and (number? line) 
+                                           (number? col))
+                                  (fprintf (current-error-port) ":~a:~a" line col)))
+                              (display ": " (current-error-port))))))
+                      srcs-to-display)
+            
+            (display msg (current-error-port))
+            (when (exn:fail:syntax? exn)
+              (show-syntax-error-context (current-error-port) exn))
+            (newline (current-error-port))
+            
+            ;; need to flush here so that error annotations inserted in next line
+            ;; don't get erased if this output were to happen after the insertion
+            (flush-output (current-error-port))
+            
+            (highlight-errors srcs-to-display
+                              (and cms
+                                   (filter 
+                                    (lambda (x)
+                                      (and (pair? x)
+                                           (is-a? (car x) text:basic<%>)
+                                           (pair? (cdr x))
+                                           (number? (cadr x))
+                                           (number? (cddr x))))
+                                    cms))))))
       
       (define (show-syntax-error-context port exn)
         (let ([error-text-style-delta (make-object style-delta%)])
