@@ -18,10 +18,9 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program/multiple language-settings
-                                       eval-compile-time-part? 
-                                       init
-                                       kill-termination)
+      (define (traverse-program/multiple language-settings
+                                         init
+                                         kill-termination)
         (let-values ([(eventspace custodian) (build-user-eventspace/custodian
                                               language-settings
                                               init
@@ -39,17 +38,29 @@
                               (send language front-end/complete-program input settings)
                               (send language front-end/interaction input settings))])
                      (let loop ()
-                       (let ([in (let ([rd (read-thnk)])
-                                   (cond
-                                     [(eof-object? rd) rd]
-                                     [eval-compile-time-part? 
-                                      (expand-top-level-with-compile-time-evals rd)]
-                                     [else (expand rd)]))])
+                       (let ([in (read-thnk)])
                          (cond
                            [(eof-object? in)
                             (iter in (lambda () (void)))]
                            [else
                             (iter in (lambda () (loop)))])))))))))))
+      
+      (define (expand-program/multiple language-settings
+                                       eval-compile-time-part? 
+                                       init
+                                       kill-termination)
+        (let ([res (traverse-program/multiple language-settings init kill-termination)])
+          (lambda (input iter complete-program?)
+            (let ([expanding-iter
+                   (lambda (rd cont)
+                     (cond
+                       [(eof-object? rd) (iter rd cont)]
+                       [eval-compile-time-part? 
+                        (iter (expand-top-level-with-compile-time-evals rd) cont)]
+                       [else (iter (expand rd) cont)]))])
+              (res input 
+                   expanding-iter
+                   complete-program?)))))
       
       (define (expand-program input
                               language-settings

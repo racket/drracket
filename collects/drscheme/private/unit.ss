@@ -20,7 +20,7 @@
   (provide unit@)
   
   (define module-browser-progress-constant "Module Browser: ~a")
-  (define status-expanding-definitions "Module Browser: expanding definitions")
+  (define status-compiling-definitions "Module Browser: compiling definitions")
   
   (define unit@
     (unit/sig drscheme:unit^
@@ -1703,16 +1703,23 @@
           (define/private (show-module-browser)
             (when module-browser-panel
               (open-status-line 'plt:module-browser:mouse-over)
+              
+              ;; open twice here -- once for the callbacks from make-module-overview-pasteboard
+              ;; and once for the status messages during drscheme:init:expand-program
               (open-status-line 'plt:module-browser)
-              (update-status-line 'plt:module-browser status-expanding-definitions)
+              (open-status-line 'plt:module-browser)
+              
+              (update-status-line 'plt:module-browser status-compiling-definitions)
               (unless module-browser-ec 
                 (set! module-browser-pb 
                       (drscheme:module-overview:make-module-overview-pasteboard
                        #t
                        #f 
                        (lambda (x) (mouse-currently-over x))
-                       (lambda (msg) 
-                         (show-module-browser-status msg))))
+                       (lambda (msg)
+                         (if (eq? msg 'done)
+                             (close-module-browser-status)
+                             (show-module-browser-status msg)))))
                 (set! module-browser-ec (make-object editor-canvas%
                                           module-browser-panel
                                           module-browser-pb)))
@@ -1728,28 +1735,43 @@
                 (calculate-module-browser))))
           
           (field [status-callback-running? #f]
+                 [status-callback-close? #f]
                  [status-callback-str #f]
                  [status-callback-sema (make-semaphore 1)])
           (define/private (show-module-browser-status msg)
             (semaphore-wait status-callback-sema)
             (set! status-callback-str msg)
+            (start-status-callback)
+            (semaphore-post status-callback-sema))
+          
+          (define/private (close-module-browser-status)
+            (semaphore-wait status-callback-sema)
+            (set! status-callback-close? #t)
+            (start-status-callback)
+            (semaphore-post status-callback-sema))
+          
+          ;; @pre in atomic region, wrt close-module-browser-status and show-module-browser-status
+          (define (start-status-callback)
             (unless status-callback-running? 
               (set! status-callback-running? #t)
               (thread
                (lambda ()
-                 (sleep .1)
-                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                 (sleep)
+                 (parameterize ([current-eventspace drscheme:init:system-eventspace]) 
+                   ;; must run in the eventspace of this frame (which is drscheme:init:system-eventspace)
                    (queue-callback
                     (lambda ()
-                      (update-status-line
-                       'plt:module-browser 
-                       (format module-browser-progress-constant status-callback-str))
                       (semaphore-wait status-callback-sema)
+                      (if status-callback-close?
+                          (close-status-line 'plt:module-browser)
+                          (update-status-line
+                           'plt:module-browser 
+                           (format module-browser-progress-constant status-callback-str)))
                       (set! status-callback-running? #f)
                       (set! status-callback-str #f)
+                      (set! status-callback-close? #f)
                       (semaphore-post status-callback-sema))
-                    #f)))))
-            (semaphore-post status-callback-sema))
+                    #f))))))
           
           (define/private (hide-module-browser)
             (when module-browser-panel
@@ -1761,34 +1783,41 @@
           (define/private (mouse-currently-over snips)
             (if (null? snips)
                 (update-status-line 'plt:module-browser:mouse-over #f)
-                (let ([snip (car snips)])
-                  (update-status-line 'plt:module-browser:mouse-over
-                                      (or (send snip get-filename)
-                                          (send snip get-word))))))
+                (let* ([snip (car snips)]
+                       [lines (send snip get-lines)]
+                       [name (or (send snip get-filename)
+                                 (send snip get-word))]
+                       [str (if lines
+                                (format (string-constant module-browser-filename-format) name lines)
+                                name)])
+                  (update-status-line 'plt:module-browser:mouse-over str))))
             
           (define/private (calculate-module-browser)
-            (let ([defs (get-definitions-text)])
-              (drscheme:eval:expand-program
-               (drscheme:language:make-text/pos 
-                defs
-                0
-                (send defs last-position))
-               (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))
-               #t
-               (lambda () (set-directory defs))
-               (lambda () (close-status-line 'plt:module-browser))
-               (lambda (exp cont)
-                 (cond
-                   [(eof-object? exp) 
-                    (close-status-line 'plt:module-browser)]
-                   [(syntax? exp) 
-                    (let ([err (send module-browser-pb add-connections exp)])
-                      (when err
-                        (message-box "DrScheme" err)))
-                    (update-status-line 'plt:module-browser status-expanding-definitions)
-                    (cont)]
-                   [(pair? exp)
-                    (void)])))))
+            (let* ([defs (get-definitions-text)]
+                   [text-pos (drscheme:language:make-text/pos 
+                              defs
+                              0
+                              (send defs last-position))]
+                   [language-settings (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))]
+                   [kill-termination (lambda ()
+                                       (close-status-line 'plt:module-browser))]
+                   [init (lambda () (set-directory defs))]
+                   [complete-program? #t]
+                   [iter 
+                    (lambda (exp cont)
+                      (cond
+                        [(eof-object? exp) 
+                         (close-status-line 'plt:module-browser)]
+                        [(pair? exp) (void)]
+                        [else
+                         (let ([err (send module-browser-pb add-connections exp)])
+                           (when err
+                             (message-box "DrScheme" err)))
+                         (update-status-line 'plt:module-browser status-compiling-definitions)
+                         (cont)]))])
+              ((drscheme:eval:traverse-program/multiple
+                language-settings init kill-termination)
+               text-pos iter complete-program?)))
           
           ;; set-directory : text -> void
           ;; sets the current-directory and current-load-relative-directory

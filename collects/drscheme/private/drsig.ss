@@ -137,6 +137,7 @@
   (define-signature drscheme:eval^
     (expand-program
      expand-program/multiple
+     traverse-program/multiple
      build-user-eventspace/custodian
      set-basic-parameters
      get-snip-classes))

@@ -7,6 +7,9 @@
   (define install-cm? (and (not debugging?)
                            (getenv "PLTDRCM")))
   
+  (define cm-trace? (and install-cm?
+                         (equal? (getenv "PLTDRCM") "trace")))
+  
   (when debugging?
     (printf "PLTDRDEBUG: installing errortrace\n")
     (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
@@ -28,7 +31,10 @@
   (when install-cm?
     (printf "PLTDRCM: installing compilation manager\n")
     (current-load/use-compiled
-     ((dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))))
+     ((dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)))
+    (when cm-trace?
+      ((dynamic-require '(lib "cm.ss") 'manager-trace-handler)
+       (lambda (x) (display x) (newline)))))
 
   (cond
     [debugging? 

@@ -15,7 +15,9 @@ todo :
  
  - double clicking should open the file (or maybe set the insertion point?)
  
- - build abstraction for drscheme:eval?
+ - build abstraction for breakable drscheme:eval?
+ 
+ - test errors during compilation for module browser
  
  - in unit.ss
     - status line messages timing is wrong (can be closed and still sending messages)
@@ -161,7 +163,7 @@ todo :
             ;; add-connections : (union syntax string[filename]) -> (union #f string)
             ;; recursively adds a connections from this file and
             ;; all files it requires
-            ;; returns a string error message if there was an error expanding
+            ;; returns a string error message if there was an error compiling
             ;; the program
             (define/public (add-connections filename/stx)
               
@@ -200,11 +202,12 @@ todo :
                 
                 (update-progress laying-out-graph-label)
                 
-                (let loop ([snip (find-first-snip)])
-                  (when snip
-                    (when (is-a? snip word-snip/lines%)
-                      (send snip normalize-lines max-lines))
-                    (loop (send snip next))))
+                (unless (zero? max-lines)
+                  (let loop ([snip (find-first-snip)])
+                    (when snip
+                      (when (is-a? snip word-snip/lines%)
+                        (send snip normalize-lines max-lines))
+                      (loop (send snip next)))))
                 
                 (unless (preferences:get 'drscheme:module-browser:show-lib-paths?)
                   (remove-lib-linked))
@@ -215,6 +218,7 @@ todo :
 
               (semaphore-post sema)
               (end-edit-sequence)
+              (update-progress 'done)
               error)
             
             ;; add-syntax-connections : syntax hash-table (number -> void) (string -> void) -> void
@@ -462,7 +466,7 @@ todo :
                        (for-each loop (send snip get-children)))))
                  (get-top-most-snips))))
 
-            (define (get-top-most-snips) (hash-table-get level-ht 0))
+            (define (get-top-most-snips) (hash-table-get level-ht 0 (lambda () null)))
               
             ;; render-snips : -> void
             (define/public (render-snips)
@@ -524,6 +528,15 @@ todo :
             (define/override (on-mouse-over-snips snips)
               (mouse-currently-over snips))
             
+            (rename [super-on-double-click on-double-click])
+            (define/override (on-double-click snip event)
+              (cond
+                [(is-a? snip boxed-word-snip<%>) 
+                 (let ([fn (send snip get-filename)])
+                   (when fn
+                     (handler:edit-file fn)))]
+                [else (super-on-double-click snip event)]))
+              
             (rename [super-on-event on-event])
             (define/override (on-event evt)
               (cond
@@ -534,6 +547,7 @@ todo :
                      (let ([snip (find-snip x y)]
                            [canvas (get-canvas)])
                        (when (and snip
+                                  (is-a? snip boxed-word-snip<%>)
                                   canvas
                                   (send snip get-filename))
                          (let* ([right-button-menu (make-object popup-menu%)]
@@ -672,7 +686,7 @@ todo :
                             #f
                             #t
                             (lambda (x) (update-label x))
-                            (lambda (msg) (when msg (send progress-message set-label msg)))))
+                            (lambda (msg) (when (string? msg) (send progress-message set-label msg)))))
         
         (kill-thread thd)
         (send progress-frame show #f)
