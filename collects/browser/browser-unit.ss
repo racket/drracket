@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
            (lib "mred-sig.ss" "mred")
            (lib "plt-installer-sig.ss" "setup")
+           "browser-sig.ss"
            "private/btree.ss"
            "private/bullet.ss"
            "private/html.ss"

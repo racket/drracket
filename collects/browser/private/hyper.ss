@@ -1,5 +1,7 @@
 (module hyper mzscheme
   (require (lib "unitsig.ss")
+           (lib "class.ss")
+           (lib "class100.ss")
            "sig.ss"
            "../browser-sig.ss"
            (lib "file.ss")
@@ -14,7 +16,7 @@
   (define hyper@
     (unit/sig browser^
       (import html^
-              (bullet : bullet-snip^)
+              (bullet : bullet^)
               mred^
               setup:plt-installer^)
       
@@ -31,106 +33,21 @@
       
       (define-struct hypertag (name position))
       
-      #|
-      (define scrolling-canvas%
-        (class canvas% (loi frame)
-          (private
-            [bitmaps
-             (map (lambda (i)
-                    (cond
-                      [(string? i)
-                       (make-object bitmap% i 'gif)]
-                      [(is-a? i bitmap%) i]
-                      [else (error 'scrolling-canvas% "expected a list of bitmaps or filenames, got: ~e"
-                                   i)]))
-                  loi)]
-            [current-bitmap (if (null? bitmaps)
-                                (error 'scrolling-canvas%
-                                       "expected at least one bitmap, got none")
-                                (car bitmaps))]
-            
-            [width (apply max (map (lambda (x) (send x get-width)) bitmaps))]
-            [height (apply max (map (lambda (x) (send x get-height)) bitmaps))])
-          
-          (inherit get-dc)
-          (override
-            [on-paint
-             (lambda ()
-               (let ([dc (get-dc)])
-                 (send dc clear)
-                 (send dc draw-bitmap current-bitmap
-                       (floor (- (/ width 2) (/ (send current-bitmap get-width) 2)))
-                       (floor (- (/ height 2) (/ (send current-bitmap get-height) 2))))))])
-          
-          (private
-            [thread-desc #f])
-          (public
-            [start
-             (lambda ()
-               (unless thread-desc
-                 (set! thread-desc
-                       (thread
-                        (letrec ([f
-                                  (lambda (first?)
-                                    (with-handlers ([void void])
-                                      (let loop ([l (if first?
-                                                        (cdr bitmaps)
-                                                        bitmaps)])
-                                        (cond
-                                          [(null? l) (f #f)]
-                                          [else
-                                           (queue-callback
-                                            (lambda ()
-                                              (set! current-bitmap (car l))
-                                              (on-paint)))
-                                           (sleep 2/3)
-                                           (loop (cdr l))]))))])
-                          (lambda ()
-                            (f #t)))))))]
-            [stop
-             (lambda ()
-               (when thread-desc
-                 (break-thread thread-desc)
-                 (queue-callback
-                  (lambda ()
-                    (set! current-bitmap (car bitmaps))
-                    (on-paint)))
-                 (set! thread-desc #f)))])
-          
-          (inherit min-width min-height stretchable-width stretchable-height)
-          (sequence
-            (super-init frame)
-            (min-width width)
-            (min-height height)
-            (stretchable-width #f)
-            (stretchable-height #f))))
-      
-      (define bitmaps
-        (let* ([images
-                (list "mini-plt.gif"
-                      "animate1.gif"
-                      "animate2.gif"
-                      "animate3.gif")])
-          (map 
-           (lambda (x)
-             (make-object bitmap%
-               (build-path (collection-path "icons") x)
-               'gif))
-           images)))
-      
-      |#
-      
       (define hyper-style-list (make-object style-list%))
       
       (define hyper-text-mixin
         (lambda (super%)
-          (class super% (url top-level-window . args)
+          (class100 super% (_url _top-level-window . args)
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                      change-style get-style-list set-style-list
                      set-modified auto-wrap get-view-size
                      find-snip get-snip-position set-clickback get-canvas
                      get-visible-position-range insert last-position hide-caret
                      get-end-position set-autowrap-bitmap)
+
+            (private-field [url _url]
+                           [top-level-window _top-level-window])
+
             (rename [super-after-set-position after-set-position])
             
             (override
@@ -139,7 +56,7 @@
                  (unless (zero? (get-end-position))
                    (hide-caret #f))
                  (super-after-set-position))])
-            (private
+            (private-field
               [doc-notes null]
               [title #f]
               [htmling? #f]
@@ -198,7 +115,7 @@
                                     (f x))))]
               [get-title (lambda () (or title (and (url? url) (url->string url))))]
               [set-title (lambda (t) (set! title t))])
-            (public
+            (private-field
               [hyper-delta (make-object style-delta% 'change-underline #t)])
             (sequence
               (let ([mult (send hyper-delta get-foreground-mult)]
@@ -258,7 +175,6 @@
                                                 (eval-scheme-string scheme-string))))))]
               [eval-scheme-string
                (lambda (s)
-                 
                  (let ([v (dynamic-wind
                            begin-busy-cursor
                            (lambda () (eval-string s))
@@ -528,7 +444,7 @@
       (define hyper-text% (hyper-text-mixin text%))
       
       (define (hyper-canvas-mixin super%)
-        (class super% args
+        (class100 super% args
           (inherit get-editor set-editor refresh get-parent get-top-level-window)
           
           (public
@@ -591,10 +507,10 @@
       (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
       
       (define info-canvas%
-        (class canvas% (parent)
+        (class100 canvas% (parent)
           (inherit min-client-height get-dc stretchable-height
                    enable refresh show)
-          (private
+          (private-field
             [text ""])
           (override
             [on-paint
@@ -631,11 +547,11 @@
                 (min-client-height (+ 4 (inexact->exact (ceiling h)))))))))
       
       (define (hyper-panel-mixin super%)
-        (class super% (info-line? . args)
+        (class100 super% (info-line? . args)
           (inherit reflow-container)
           (sequence (apply super-init args))
           
-          (private
+          (private-field
             [url-message ;; doesn't work for forwards and backwards in the history
              (and #f
                   (directory-exists? (build-path (collection-path "mzlib")
@@ -687,7 +603,7 @@
             [get-canvas% (lambda () hyper-canvas%)]
             [make-canvas (lambda (f) (make-object (get-canvas%) f))]
             [make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
-          (private
+          (private-field
             [past null]
             [future null] 
             
@@ -708,8 +624,8 @@
             [forw (and control-bar?
                        (make-object button% "Forward >" hp
                          (lambda (b ev) 
-                           (forward))))]
-            
+                           (forward))))])
+          (private
             [home-callback
              (lambda () 
                (cond
@@ -723,11 +639,13 @@
                     (set! init-page (send c current-page))
                     (update-buttons init-page))]
                  [else 
-                  (send c set-page init-page #t)]))]
+                  (send c set-page init-page #t)]))])
+          (private-field
             [home (and control-bar?
                        (make-object button% "Home" hp
                          (lambda (b ev)
-                           (home-callback))))]
+                           (home-callback))))])
+          (private
             [update-buttons
              (lambda (page)
                (unless init-page
@@ -752,7 +670,8 @@
                           past))
                  (let ([c (send choice get-number)])
                    (unless (zero? c)
-                     (send choice set-selection (length future))))))]
+                     (send choice set-selection (length future))))))])
+          (private-field
             [choice (and control-bar?
                          (make-object choice% #f null hp
                            (lambda (ch e)
@@ -768,8 +687,8 @@
                                     (go (car l))]
                                    [else (loop (cdr l)
                                                (cons (car l) pre)
-                                               (sub1 pos))]))))))]
-            ; [progress (make-object scrolling-canvas% bitmaps hp)]
+                                               (sub1 pos))]))))))])
+          (private-field
             [info (and info-line?
                        (make-object info-canvas% this))]
             [c (make-canvas this)])
@@ -784,7 +703,7 @@
                (home-callback))]
             
             ; [get-progress (lambda () progress)]
-            [on-navigate void]
+            [on-navigate (lambda () (void))]
             [filter-notes (lambda (l) (apply string-append l))]
             [get-canvas (lambda () c)]
             [on-url-click (lambda (k url) (k url))]
@@ -819,8 +738,8 @@
       (define hyper-panel% (hyper-panel-mixin vertical-panel%))
       
       (define (hyper-frame-mixin super%)
-        (class super% (start-url . args)
-          (private
+        (class100 super% (start-url . args)
+          (private-field
             [p #f])
           (public
             [get-hyper-panel% (lambda () hyper-panel%)]
