@@ -268,16 +268,22 @@
 	 (lambda ()
 	   (get-edit-to-search))])
       
-      (private [was-locked? #f])
+      (private [was-locked? #f]
+	       [execute-menu-item #f]
+	       [scheme-menu #f])
       (public
 	[disable-evaluation
 	 (lambda ()
+	   (when (and scheme-menu execute-menu-item)
+	     (send scheme-menu enable execute-menu-item #f))
 	   (send execute-button enable #f)
 	   (set! was-locked? (ivar definitions-edit locked?))
 	   (send definitions-edit lock #t)
 	   (send interactions-edit lock #t))]
 	[enable-evaluation
 	 (lambda ()
+	   (when (and scheme-menu execute-menu-item)
+	     (send scheme-menu enable execute-menu-item #t))
 	   (send execute-button enable #t)
 	   (send definitions-edit lock was-locked?)
 	   (send interactions-edit lock #f))])
@@ -390,7 +396,7 @@
 		   (save-as-text-from-edit interactions-edit)))
 	   (send file-menu append-separator)
 	   (send file-menu append-item
-		 "Show Interactions History..."
+		 "Show Interactions History"
 		 mred:show-interactions-history)
 	   (send file-menu append-separator))]
 	[file-menu:print-string "Definitions"]
@@ -471,8 +477,9 @@
 	[make-menu-bar
 	 (lambda ()
 	   (let ([mb (super-make-menu-bar)]
-		 [scheme-menu (make-menu)]
 		 [language-menu (make-menu)])
+
+	     (set! scheme-menu (make-menu))
 
 	     (send* mb
 	       (append scheme-menu "S&cheme")
@@ -480,11 +487,13 @@
 	     
 	     (drscheme:language:fill-language-menu language-menu)
 	     
+	     (set! execute-menu-item
+		   (send scheme-menu
+			 append-item "Execute"
+			 (lambda ()
+			   (execute-callback))
+			 "Restart the program in the definitions window" #f "t"))
 	     (send* scheme-menu
-	       (append-item "Execute"
-			    (lambda ()
-			      (execute-callback))
-			    "Restart the program in the definitions window" #f "t")
 	       (append-item "Break"
 			    (lambda ()
 			      (send interactions-edit break))
@@ -557,9 +566,11 @@
 	   (send definitions-edit just-executed)
 	   (send interactions-canvas set-focus)
 	   (send interactions-edit reset-console)
+	   (send interactions-edit clear-undos)
 	   (send interactions-edit do-many-buffer-evals
 		 definitions-edit 0
-		 (send definitions-edit last-position)))])
+		 (send definitions-edit last-position))
+	   (send interactions-edit clear-undos))])
   
       (public
 	[after-change-name void]
