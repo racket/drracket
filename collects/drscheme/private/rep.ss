@@ -999,7 +999,7 @@
               (semaphore-wait fetcher-semaphore)
               (set! fetcher #f)
 	      (semaphore-post fetcher-semaphore)))
-          (define this-in-fetch-char ; =User=
+          (define this-in-fetch-byte ; =User=
             (lambda (peek? skip)
               (protect
                (lambda (ut breaks-on?) ; =Protected-User=
@@ -1225,7 +1225,7 @@
 						  void))
                  (this-result (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						       (lambda (s start end flush?) 
-							 (if (this-result-write (subytes s start end) flush?)
+							 (if (this-result-write (subbytes s start end) flush?)
 							     (- end start)
 							     0))
 						       void
