@@ -16,21 +16,13 @@
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
-    (with-handlers ([(lambda (x) (not (exn:break? x)))
-                     (lambda (x) (lambda () 'unknown))])
-      (namespace-variable-binding 'get-language-level)))
+    (namespace-variable-value 'get-language-level #f (lambda () 'unknown)))
   (define get-teachpack-filenames
-    (with-handlers ([(lambda (x) (not (exn:break? x)))
-                     (lambda (x) (lambda () 'unknown))])
-      (namespace-variable-binding 'get-teachpack-filenames)))
+    (namespace-variable-value 'get-teachpack-filenames #f (lambda () 'unknown)))
   
   ;; this one should be defined by help desk.
   (define frame-mixin
-    (with-handlers ([not-break-exn?
-                     (lambda (exn)
-                       (lambda (x)
-                         x))])
-      (namespace-variable-binding 'help-desk:frame-mixin)))
+    (namespace-variable-value 'help-desk:frame-mixin #f (lambda () (lambda (x) x))))
   
   (preferences:set-default 'drscheme:email "" string?)
   (preferences:set-default 'drscheme:full-name "" string?)

@@ -13,7 +13,7 @@
            (lib "file.ss")
            (lib "plt-installer.ss" "setup"))
   
-  (define argv (namespace-variable-binding 'argv))
+  (define argv (current-command-line-arguments))
   
   (provide main@)
   
