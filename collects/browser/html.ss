@@ -612,7 +612,7 @@
 		      [pre-newlines
 		       (case tag
 			 [(dl ul table) (if (< enum-depth 1) 2 1)]
-			 [(tr td) 1]
+			 [(tr) 1]
 			 [(pre) 2]
 			 [(h1 h2 h3) 2]
 			 [else 0])])
@@ -632,7 +632,7 @@
 			 (set-title (get-text pos end-pos))
 			 (delete pos end-pos)
 			 (result pos #t)]
-			[(dl ul table tr td)
+			[(dl ul table tr)
 			 (let ([new-end (+ end-pos (try-newline end-pos pre-newlines #t))])
 			   ; At end, make sure indentation is reset:
 			   (let ([m (btree-get indents new-end)])
