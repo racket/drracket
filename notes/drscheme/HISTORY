@@ -2,6 +2,8 @@
         Version 204
 ------------------------------
 
+- parenthesis highlight color is now configurable
+
 - the top level function declarations in algol60 are now
   available in the REPL and in the test suite tool
 
