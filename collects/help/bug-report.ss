@@ -289,7 +289,7 @@
        #t
        synthesized-panel
        #t))
-    
+
     (define (longer-of s1 s2)
       (if ((string-length s1) . >= . (string-length s2))
           s1
@@ -321,7 +321,9 @@
           bug-report-email-address
           (insert-field
            "From"
-           (preferences:get 'drscheme:email)
+           (format "~a <~a>" 
+                   (preferences:get 'drscheme:full-name)
+                   (preferences:get 'drscheme:email))
            empty-header))))
        (append
         (list
@@ -340,7 +342,7 @@
          (format "~a" (send environment get-value))
          "Docs Installed:" (format "~a" (send docs-installed get-value))
          "Collections: "
-         (format "~a" (send collections get-value))
+         (format "~a" (send (send collections get-editor) get-text))
          (format "Human Language: ~a" (send human-language get-value))
          ">Fix: ")
         (cons
@@ -471,7 +473,8 @@
                   (system-type #t)
                   (system-library-subpath)
                   (get-display-depth)))
-    (send collections set-value       
+    (send (send collections get-editor)
+          insert       
           (format "~s"
                   (map (lambda (x) 
                          (list x 
@@ -481,6 +484,10 @@
                        (current-library-collection-paths))))
     
     (send human-language set-value (this-language))
+    
+    (send collections min-width 150)
+    (send (send collections get-editor) auto-wrap #t)
+    (send synthesized-outer-panel stretchable-width #f)
     
     (align-labels)
     (send button-panel set-alignment 'right 'center)
