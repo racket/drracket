@@ -694,7 +694,12 @@
                    [summaries (info-proc 'drscheme-language-one-line-summaries 
                                          (lambda ()
                                            (map (lambda (lang-position) "")
-                                                lang-positions)))])
+                                                lang-positions)))]
+                   [reader-specs
+                    (info-proc 'drscheme-language-readers
+                               (lambda ()
+                                 (map (lambda (lang-position) 'mzscheme)
+                                      lang-positions)))])
               (cond
                 [(and (list? lang-positions)
                       (andmap (lambda (lang-position numbers)
@@ -714,25 +719,53 @@
                               lang-modules)
                       (list? summaries)
                       (andmap string? summaries)
+                      
+                      (list? reader-specs)
+                      (andmap (lambda (x)
+                                (or (symbol? x)
+                                    (and (list? x)
+                                         (andmap string? x))))
+                              reader-specs)
+                      
                       (= (length lang-positions)
                          (length lang-modules)
-                         (length summaries)))
+                         (length summaries)
+                         (length reader-specs)))
                  (for-each
-                  (lambda (lang-module lang-position lang-numbers one-line-summary)
+                  (lambda (lang-module lang-position lang-numbers one-line-summary reader-spec)
                     (let ([%
                            ((drscheme:language:get-default-mixin)
                             (drscheme:language:module-based-language->language-mixin
                              (drscheme:language:simple-module-based-language->module-based-language-mixin
-                              drscheme:language:simple-module-based-language%)))])
+                              drscheme:language:simple-module-based-language%)))]
+                          [reader
+                           (with-handlers ([not-break-exn?
+                                            (lambda (x)
+                                              (message-box (string-constant drscheme)
+                                                           (if (exn? x)
+                                                               (exn-message x)
+                                                               (format "~s" x)))
+                                              read-syntax)])
+                             (contract
+                              (opt-> (any?)
+                                     (port? (list/p (and/f number? integer? exact? (>=/c 0))
+                                                    (and/f number? integer? exact? (>=/c 0))
+                                                    (and/f number? integer? exact? (>=/c 0))))
+                                     (or/f syntax? eof-object?))
+                              (dynamic-require reader-spec 'read-syntax)
+                              (string->symbol (format "~s" lang-position))
+                              'drscheme))])
                       (add-language (instantiate % ()
                                       (module `(lib ,@lang-module))
                                       (language-position lang-position)
                                       (language-numbers lang-numbers)
-                                      (one-line-summary one-line-summary)))))
+                                      (one-line-summary one-line-summary)
+                                      (reader reader)))))
                   lang-modules
                   lang-positions
                   numberss
-                  summaries)]
+                  summaries
+                  reader-specs)]
                 [else
                  (message-box (string-constant drscheme)
                               (format (string-constant bad-module-language-specs)

@@ -66,6 +66,8 @@
           get-transformer-module
           use-namespace-require/copy?
 	  config-panel
+
+          get-reader
 	  
           on-execute
           get-init-code
@@ -83,7 +85,8 @@
           get-module
           get-language-position
           get-language-numbers
-          get-one-line-summary))
+          get-one-line-summary
+          get-reader))
       
       
                                           
@@ -107,12 +110,14 @@
                       language-position
                       (language-numbers (map (lambda (x) 0) language-position))
                       (one-line-summary "")
-                      (documentation-reference #f))
+                      (documentation-reference #f)
+                      (reader read-syntax))
           (define/public (get-module) module)
 	  (define/public (get-language-position) language-position)
           (define/public (get-language-numbers) language-numbers)
           (define/public (get-one-line-summary) one-line-summary)
-	  (super-instantiate ())))
+	  (define/public (get-reader) reader)
+          (super-instantiate ())))
       
 
                                                                                                   
@@ -429,7 +434,7 @@
       (define module-based-language->language-mixin
 	(mixin (module-based-language<%>) (language<%>)
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
-                   get-init-code use-mred-launcher?)
+                   get-init-code use-mred-launcher? get-reader)
 	  (rename [super-on-execute on-execute])
           (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
@@ -439,7 +444,7 @@
                                               (get-transformer-module)
                                               run-in-user-thread))
           (define/public (front-end input settings)
-            (module-based-language-front-end input))
+            (module-based-language-front-end input (get-reader)))
           (define/public (create-executable setting parent program-filename executable-filename)
             (create-module-based-language-executable parent 
                                                      program-filename
@@ -640,8 +645,9 @@
 		 (namespace-require module-spec))
 	     (namespace-transformer-require transformer-module-spec)))))
 
-      ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
-      (define (module-based-language-front-end input)
+      ;; module-based-language-front-end : (input reader -> (-> (union sexp syntax eof)))
+      ;; type reader = type-spec-of-read-syntax (see mz manual for details)
+      (define (module-based-language-front-end input reader)
         (let-values ([(port source offset line col)
                       (cond
                         [(string? input)
@@ -679,7 +685,7 @@
             (lambda ()
               (if closed?
                   eof
-                  (let ([result (read-syntax source port (list line col offset))])
+                  (let ([result (reader source port (list line col offset))])
                     (if (eof-object? result)
                         (begin
                           (set! closed? #t)

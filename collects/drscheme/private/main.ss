@@ -29,7 +29,8 @@
               [drscheme:module-language : drscheme:module-language^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:tools : drscheme:tools^]
-              [drscheme:debug : drscheme:debug^])
+              [drscheme:debug : drscheme:debug^]
+              [drscheme:frame : drscheme:frame^])
       
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
@@ -313,7 +314,6 @@
        (lambda (filename)
          (run-installer filename)))
       
-      
       (drscheme:tools:load/invoke-all-tools
        (lambda ()
          (void))
@@ -385,6 +385,12 @@
 		       (drscheme:language-configuration:make-language-settings
 			lang
 			(or settings (send lang default-settings)))))))))
+      
+
+      (handler:set-recent-items-frame-superclass
+       (drscheme:frame:basics-mixin
+        (frame:standard-menus-mixin
+         frame:basic%)))
       
       ;;
       ;; Show expanded language dialog when version changes

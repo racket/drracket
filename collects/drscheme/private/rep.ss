@@ -1423,7 +1423,7 @@
                       (thread-running? (get-user-thread)))))
           
           (field (user-language-settings 'uninitialized-user-language-settings)
-                 (user-custodian (make-custodian))
+                 (user-custodian #f)
                  (user-eventspace-box (make-weak-box #f))
                  (user-namespace-box (make-weak-box #f))
                  (user-thread-box (make-weak-box #f)))
@@ -1579,7 +1579,9 @@
             ;  actions must occur (e.g., the exit handler for the user's
             ;  thread). In that case, shut down user-custodian directly.
             (lambda ()
-              (custodian-shutdown-all user-custodian)
+              (when user-custodian
+                (custodian-shutdown-all user-custodian))
+	      (set! user-custodian #f)
               (set! user-thread-box (make-weak-box #f))
               (semaphore-wait io-semaphore)
               (for-each (lambda (i) (semaphore-post limiting-sema)) io-collected-thunks)
@@ -1587,7 +1589,9 @@
               (semaphore-post io-semaphore)))
           
           (define (kill-evaluation) ; =Kernel=, =Handler=
-            (custodian-shutdown-all user-custodian))
+            (when user-custodian
+              (custodian-shutdown-all user-custodian))
+	    (set! user-custodian #f))
           
           (field (user-break-enabled #t))
           
