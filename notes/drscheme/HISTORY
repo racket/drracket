@@ -1,3 +1,47 @@
+103d100
+
+ PRS
+
+ FUNCTIONALITY CHANGES
+
+ - there is a replacement for the info.ss file in town, now.
+   Instead of the info.ss file, consider using an info-table.ss
+   file. This file is designed to be computer editable and eventually
+   the project manager will have an editor for that (with an
+   integrated help system).
+
+   If an info-table.ss file is present and an info.ss file is also
+   present, the info-table.ss file is consulted first and the info.ss
+   file is consulted if the info-table.ss file doesn't have that
+   binding.
+
+ - please do not load info.ss files directly anymore. Use
+   the get-info.ss library in the setup collection. I have already
+   changed these uses:
+    - zo compiler
+    - help desk (blurb stuff)
+    - setup
+   I know only of this use that must be changed:
+    - mzc
+
+  - separated searchable-mixin into two pieces:
+    - searchable-mixin, and searchable-text-mixin.
+
+ MINOR CHANGES AND BUG FIXES
+ 
+  - added control-x o as a keybinding that switches the focus
+    between the interactions and definitions windows.
+
+  - when drscheme frame is associated with a project, clicking the
+    execute button will prompt the user about executing the project.
+
+  - language dialog now has a parent.
+
+  - drscheme:language:language-dialog procedure accepts an optional
+    second argument specifing the parent of the dialog
+    (defaults to #f)
+
+
 Version 103:
 
 General
