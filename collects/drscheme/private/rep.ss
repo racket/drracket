@@ -567,7 +567,8 @@
             [on-event
              (lambda (dc x y editor-x editor-y evt)
                (cond
-                 [(send evt get-left-down) (send rep submit-eof)]
+                 [(send evt get-left-down) 
+                  (send rep submit-eof)]
                  [else (super-on-event dc x y editor-x editor-y evt)]))]
             [adjust-cursor
              (lambda (dc x y editorx editory evt)
@@ -776,7 +777,7 @@
                           (- (last-position) 1))
                   (lock c-locked?)
                   (for-each (lambda (c) (send c recalc-snips))
-                            (get-canvases))	
+                            (get-canvases))
                   (end-edit-sequence))))
             (define (hide-eof-icon) 
               (when eof-snip
@@ -848,7 +849,8 @@
                             ut
                             (lambda () ; =Kernel=, =Handler=
                               (if eof-received?
-                                  (set! char-fetched eof)
+                                  (begin (set! char-fetched eof)
+                                         (set! eof-received? #t))
                                   (let ([text (init-transparent-input)])
                                     (set! char-fetched (send text fetch-char))
                                     ;; fetch-char might return void, 
@@ -2384,9 +2386,10 @@
           [define/public eof-received
             (lambda () ; =Kernel=, =Handler=
               (set! eof-submitted? #t)
-              (set! old-stream-sections 
-                    (append old-stream-sections 
-                            (list (cons new-stream-start (last-position)))))
+              (unless (= new-stream-start (last-position))
+                (set! old-stream-sections 
+                      (append old-stream-sections 
+                              (list (cons new-stream-start (last-position))))))
               (set! new-stream-start (last-position))
               (set! new-stream-end (last-position))
               (semaphore-post wait-for-sexp))]
@@ -2424,7 +2427,8 @@
             (lambda (_program-output?)
               (set! program-output? _program-output?))]
           (rename [super-can-insert? can-insert?]
-                  [super-can-change-style? can-change-style?])
+                  [super-can-change-style? can-change-style?]
+                  [super-after-delete after-delete])
           (define/override can-insert?
             (lambda (start len)
               (or program-output?
@@ -2433,6 +2437,13 @@
             (lambda (start len)
               (let ([super? (super-can-change-style? start len)])
                 (or program-output? super?)))]
+          (define/override (after-delete start len)
+            (super-after-delete start len)
+            ;; assume that when start is in the stream
+            ;; is the only case of interest and that
+            ;; (in that case) start+len is also inside the range
+            (when (<= new-stream-start start new-stream-end)
+              (set! new-stream-end (- new-stream-end len))))
           [define/override after-insert
             (lambda (start len)
               (super-after-insert start len)
