@@ -2,6 +2,8 @@
         Version 300
 ------------------------------
 
+ - Help Desk searching is now language-sensitive.
+
  - Check syntax is now integrated (better) with the syntax
    colorer.
 
