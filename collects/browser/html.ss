@@ -7,11 +7,57 @@
 	  bullet-snip^
 	  mred^)
     
+  ;; CACHE
+  
   (define NUM-CACHED 10)
   (define cached (make-vector 10 null))
   (define cached-name (make-vector 10 ""))
   (define cached-use (make-vector 10 0))
 
+  
+  ;; NON BREAKING SPACE
+  
+  (define nbsp-snip%
+    (class snip% ()
+      (inherit get-style)
+      (override
+        [get-extent
+         (let ([set-box/f!
+                (lambda (b v)
+                  (when (box? b) (set-box! b v)))])
+           (lambda (dc x y width-box height-box descent-box space-box lspace-box rspace-box)
+             (let-values ([(width height descent ascent)
+                           (send dc get-text-extent " " (send (get-style) get-font))])
+               (set-box/f! width-box width)
+               (set-box/f! height-box height)
+               (set-box/f! descent-box descent)
+               (set-box/f! space-box ascent)
+               (set-box/f! lspace-box 0)
+               (set-box/f! rspace-box 0))))]
+        [get-text
+         (lambda (offset num flattened?)
+           (cond
+             [(> offset 0) ""]
+             [(< num 1) ""]
+             [else (string (latin-1-integer->char 160))]))])
+      (inherit set-snipclass)
+      (sequence
+        (super-init)
+        (set-snipclass nbsp-snipclass))))
+  
+  (define nbsp-snipclass
+    (make-object
+     (class snip-class% ()
+       (override
+         [read
+          (lambda (f)
+            (make-object nbsp-snip%))])
+       (sequence (super-init)))))
+  
+  (send nbsp-snipclass set-version 1)
+  (send nbsp-snipclass set-classname "mred:nbsp")
+  (send (get-the-snip-class-list) add nbsp-snipclass)
+  
   (define html-status-handler
     (make-parameter
      void
@@ -133,24 +179,26 @@
   (define face-list #f)
 
   (define latin-1-symbols
-    '(("amp" 38) ("gt" 62) ("lt" 60) ("quot" 34) ("nbsp" 160) ("iexcl" 161)
-		 ("cent" 162) ("pound" 163) ("curren" 164) ("yen" 165) ("brvbar" 166) ("sect" 167)
-		 ("uml" 168) ("copy" 169) ("ordf" 170) ("laquo" 171) ("not" 172) ("shy" 173)
-		 ("reg" 174) ("macr" 175) ("deg" 176) ("plusmn" 177) ("sup2" 178) ("sup3" 179)
-		 ("acute" 180) ("micro" 181) ("para" 182) ("middot" 183) ("cedil" 184) ("sup1" 185)
-		 ("ordm" 186) ("raquo" 187) ("frac14" 188) ("frac12" 189) ("frac34" 190) ("iquest" 191)
-		 ("Agrave" 192) ("Aacute" 193) ("Acirc" 194) ("Atilde" 195) ("Auml" 196) ("Aring" 197)
-		 ("AElig" 198) ("Ccedil" 199) ("Egrave" 200) ("Eacute" 201) ("Ecirc" 202) ("Euml" 203)
-		 ("Igrave" 204) ("Iacute" 205) ("Icirc" 206) ("Iuml" 207) ("ETH" 208) ("Ntilde" 209)
-		 ("Ograve" 210) ("Oacute" 211) ("Ocirc" 212) ("Otilde" 213) ("Ouml" 214) ("times" 215)
-		 ("Oslash" 216) ("Ugrave" 217) ("Uacute" 218) ("Ucirc" 219) ("Uuml" 220) ("Yacute" 221)
-		 ("THORN" 222) ("szlig" 223) ("agrave" 224) ("aacute" 225) ("acirc" 226) ("atilde" 227)
-		 ("auml" 228) ("aring" 229) ("aelig" 230) ("ccedil" 231) ("egrave" 232) ("eacute" 233)
-		 ("ecirc" 234) ("euml" 235) ("igrave" 236) ("iacute" 237) ("icirc" 238) ("iuml" 239)
-		 ("eth" 240) ("ntilde" 241) ("ograve" 242) ("oacute" 243) ("ocirc" 244) ("otilde" 245)
-		 ("ouml" 246) ("divide" 247) ("oslash" 248) ("ugrave" 249) ("uacute" 250) ("ucirc" 251)
-		 ("uuml" 252) ("yacute" 253) ("thorn" 254) ("yuml" 255)))
+    '(("amp" 38)
+      ("gt" 62) ("lt" 60) ("quot" 34) ("nbsp" 160) ("iexcl" 161)
+      ("cent" 162) ("pound" 163) ("curren" 164) ("yen" 165) ("brvbar" 166) ("sect" 167)
+      ("uml" 168) ("copy" 169) ("ordf" 170) ("laquo" 171) ("not" 172) ("shy" 173)
+      ("reg" 174) ("macr" 175) ("deg" 176) ("plusmn" 177) ("sup2" 178) ("sup3" 179)
+      ("acute" 180) ("micro" 181) ("para" 182) ("middot" 183) ("cedil" 184) ("sup1" 185)
+      ("ordm" 186) ("raquo" 187) ("frac14" 188) ("frac12" 189) ("frac34" 190) ("iquest" 191)
+      ("Agrave" 192) ("Aacute" 193) ("Acirc" 194) ("Atilde" 195) ("Auml" 196) ("Aring" 197)
+      ("AElig" 198) ("Ccedil" 199) ("Egrave" 200) ("Eacute" 201) ("Ecirc" 202) ("Euml" 203)
+      ("Igrave" 204) ("Iacute" 205) ("Icirc" 206) ("Iuml" 207) ("ETH" 208) ("Ntilde" 209)
+      ("Ograve" 210) ("Oacute" 211) ("Ocirc" 212) ("Otilde" 213) ("Ouml" 214) ("times" 215)
+      ("Oslash" 216) ("Ugrave" 217) ("Uacute" 218) ("Ucirc" 219) ("Uuml" 220) ("Yacute" 221)
+      ("THORN" 222) ("szlig" 223) ("agrave" 224) ("aacute" 225) ("acirc" 226) ("atilde" 227)
+      ("auml" 228) ("aring" 229) ("aelig" 230) ("ccedil" 231) ("egrave" 232) ("eacute" 233)
+      ("ecirc" 234) ("euml" 235) ("igrave" 236) ("iacute" 237) ("icirc" 238) ("iuml" 239)
+      ("eth" 240) ("ntilde" 241) ("ograve" 242) ("oacute" 243) ("ocirc" 244) ("otilde" 245)
+      ("ouml" 246) ("divide" 247) ("oslash" 248) ("ugrave" 249) ("uacute" 250) ("ucirc" 251)
+      ("uuml" 252) ("yacute" 253) ("thorn" 254) ("yuml" 255)))
 
+  
   (define html-convert
     (lambda (p b)
       (letrec 
@@ -775,7 +823,7 @@
 	(let ([l (find-string-all (string (latin-1-integer->char 160)) 'forward 0)])
 	  (for-each
 	   (lambda (p)
-	     (insert " " (add1 p)) ; important: gets style from predecessor
+	     (insert (make-object nbsp-snip%) (add1 p)) ; important: gets style from predecessor
 	     (delete p (add1 p)))
 	   l))
 
