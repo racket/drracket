@@ -369,12 +369,12 @@
                                     (syntax name))])
              (with-syntax ([s-prefixed-name (datum->syntax-object (syntax name) prefixed-name)]
                            [(to-provide-specs ...)
-                            (cons
-                             (syntax (all-from lang))
-                             (get-provide-specs
+                            (get-provide-specs
+                             (cons
+                              (syntax (require lang))
                               (syntax->list
                                (syntax (bodies ...)))))]
-                           [(no-provide-bodies ...)
+                           [(rewritten-bodies ...)
                             (map
                              rewrite-provide
                              (syntax->list
@@ -384,7 +384,7 @@
                 (syntax (module s-prefixed-name lang
                           (#%plain-module-begin 
                            (provide to-provide-specs ...)
-                           no-provide-bodies ...))))))]
+                           rewritten-bodies ...))))))]
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
@@ -440,77 +440,54 @@
                        filename)
                unexpanded-stx)))))
       
-      ;; get-provide-spec : syntax -> (union (listof syntax) #f)
-      ;; given a top-level module expression, returns #f if it
-      ;; doesn't indtrouce any identifiers to the top-level scope
-      ;; of the modules, or, if it does, returns a list of syntax
-      ;; corresponding to the argument to `provide' to export those
-      ;; definitions.
+      ;; get-provide-specs : (listof syntax) -> (listof syntax) 
       (define (get-provide-specs bodies)
-        (let loop ([bodies bodies]
-                   [vars null]
-                   [module-specs null]
-                   [module-syms null])
-          (let ([module-loop
-                 (lambda (syntax-module-spec specs)
-                   (let* ([module-spec (syntax-object->datum syntax-module-spec)]
-                          [module-sym 
-                           (if (symbol? module-spec)
-                               module-spec
-                               ((current-module-name-resolver) module-spec #f #f))]
-                          [next-bodies
-                           (cons (with-syntax ([(specs ...) specs])
-                                   (syntax (require specs ...)))
-                                 (cdr bodies))])
-                     (if (memq module-sym module-syms)
-                         (loop next-bodies
-                               vars
-                               module-specs
-                               module-syms)
-                         (loop next-bodies
-                               vars
-                               (cons syntax-module-spec module-specs)
-                               (cons module-sym module-syms)))))])
+        (let ([required-specs (make-hash-table 'equal)])
+          (let loop ([bodies bodies]
+                     [vars null])
             (cond
               [(null? bodies) 
                (append vars
-                       (map (lambda (x)
-                              (with-syntax ([x x])
-                                (syntax (all-from x))))
-                            module-specs))]
+                       (hash-table-map
+                        required-specs
+                        (lambda (key value)
+                          (with-syntax ([x value])
+                            (syntax (all-from x))))))]
               [else
                (let ([body (car bodies)])
                  (syntax-case body (define-values define-syntaxes require prefix all-except rename)
                    [(define-values (new-vars ...) body)
                     (loop (cdr bodies)
                           (append (syntax->list (syntax (new-vars ...)))
-                                  vars)
-                          module-specs
-                          module-syms)]
+                                  vars))]
                    [(define-syntaxes (new-vars ...) body)
                     (loop (cdr bodies)
                           (append (syntax->list (syntax (new-vars ...)))
-                                  vars)
-                          module-specs
-                          module-syms)]
-                   [(require (prefix identifier module-name) specs ...) 
-                    (module-loop (syntax module-name) (syntax (specs ...)))]
-                   [(require (all-except module-name identifer ...) specs ...) 
-                    (module-loop (syntax module-name) (syntax (specs ...)))]
-                   [(require (rename module-name local-identifer exported-identifer) specs ...)
-                    (module-loop (syntax module-name) (syntax (specs ...)))]
-                   [(require module-name specs ...)
-                    (module-loop (syntax module-name) (syntax (specs ...)))]
-                   [(require)
-                    (loop (cdr bodies)
-                          vars
-                          module-specs
-                          module-syms)]
+                                  vars))]
+                   [(require specs ...)
+                    (for-each (lambda (spec)
+                                (syntax-case spec (prefix all-except rename)
+                                  [(prefix identifier module-name) 
+                                   (hash-table-put! required-specs
+                                                    (syntax-object->datum (syntax module-name)) 
+                                                    (syntax module-name))]
+                                  [(all-except module-name identifer ...) 
+                                   (hash-table-put! required-specs
+                                                    (syntax-object->datum (syntax module-name))
+                                                    (syntax module-name))]
+                                  [(rename module-name local-identifer exported-identifer)
+                                   (hash-table-put! required-specs 
+                                                    (syntax-object->datum (syntax module-name))
+                                                    (syntax module-name))]
+                                  [module-name
+                                   (hash-table-put! required-specs 
+                                                    (syntax-object->datum (syntax module-name))
+                                                    (syntax module-name))]))
+                              (syntax->list (syntax (specs ...))))
+                    (loop (cdr bodies) vars)]
                    [else 
                     (loop (cdr bodies)
-                          vars
-                          module-specs
-                          module-syms)]))]))))
+                          vars)]))]))))
       
       ;; maybe-add : syntax (listof module-spec-sym) -> (listof module-spec-sym)
       (define (maybe-add syntax-module-spec other-specs)
@@ -529,10 +506,29 @@
       ;; this makes that still work properly.
       (define (rewrite-provide body)
         (syntax-case body (provide)
-          [(provide vars ...)
-           (syntax (if #f (begin vars ...)))]
+          [(provide provide-specs ...)
+           (with-syntax ([(vars ...) (extract-provided-vars (syntax->list (syntax (provide-specs ...))))])
+             (syntax (if #f (begin (void) vars ...))))]
           [_ body]))
       
+      ;; extract-provided-vars : (listof syntax) -> (listof syntax)
+      ;; extracts the names of the variables mentioned in the provide specification
+      (define (extract-provided-vars provide-specs)
+        (let loop ([provide-specs provide-specs])
+          (cond
+            [(null? provide-specs) null]
+            [else
+             (syntax-case (car provide-specs) (rename struct all-from all-from-except all-defined all-defined-except)
+               [(rename local-identifier export-identifier)
+                (cons (syntax local-identifier) (loop (cdr provide-specs)))]
+               [(struct struct-identifier (field-identifier ...)) (loop (cdr provide-specs))]
+               [(all-from module-name) (loop (cdr provide-specs))]
+               [(all-from-except module-name identifer ...) (loop (cdr provide-specs))]
+               [(all-defined) (loop (cdr provide-specs))]
+               [(all-defined-except identifier ...) (loop (cdr provide-specs))]
+               [id (identifier? (syntax id)) (cons (syntax id) (loop (cdr provide-specs)))]
+               [_ (loop (cdr provide-specs))])])))
+
       (define module-language-put-file-mixin
         (mixin (text:basic<%>) ()
           (inherit get-text last-position get-character get-top-level-window)

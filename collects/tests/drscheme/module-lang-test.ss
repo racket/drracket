@@ -42,6 +42,12 @@
                      "foldl"
                      ". reference to undefined identifier: foldl")
           
+          (make-test "(module m mzscheme (require (prefix mz: mzscheme)))" "mz:+" #rx"primitive:+")
+          
+          (make-test "(module n mzscheme (provide (all-from-except mzscheme +)))"
+                     "+"
+                     #rx"primitive:+")
+          
           (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
                      "foldl"
                      (regexp "foldl>"))
@@ -54,13 +60,22 @@
                               (this-expression-source-directory)
                               "module-lang-test-tmp.ss"))
                      "x"
-                     "1")))
+                     "1")
+          
+          ;; + shouldn't be bound in the REPL because it isn't bound
+          ;; in the module.
+          (make-test (format "(module m (file \"~a\") x)"
+                             (build-path 
+                              (this-expression-source-directory)
+                              "module-lang-test-tmp.ss"))
+                     "+"
+                     ". reference to undefined identifier: +")))
   
   ;; set up language for last test.
   (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp.ss")
     (lambda (port)
       (write `(module module-lang-test-tmp mzscheme
-                (provide (all-from mzscheme)
+                (provide (all-from-except mzscheme +)
                          x)
                 (define x 1))
              port))
