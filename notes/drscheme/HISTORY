@@ -33,6 +33,12 @@
         Version 204
 ------------------------------
 
+  - contract -> supports multiple values using this syntax:
+
+   (-> integer? (values integer? integer?))
+
+  - parenthesis highlight color is now configurable
+
   - integrated the module browser into the main drscheme
     window. Use the show menu to open a panel on the lhs of
     the drscheme window containing a DAG representing the
@@ -69,8 +75,6 @@
   - added an extra level of hierarchy to the language
     dialog, but without the turn-down triangles. this helps
     organize the language dialog somewhat.
-
-  - parenthesis highlight color is now configurable
 
   - the top level function declarations in algol60 are now
     available in the REPL and in the test suite tool
