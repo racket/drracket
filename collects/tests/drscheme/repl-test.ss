@@ -589,8 +589,8 @@
   
   (define (run-test-in-language-level raw?)
     (let ([level (if raw?
-                     (list "Full" "Graphical without debugging (MrEd)")
-                     (list "Full" "Graphical (MrEd)"))]
+                     (list "R5RS-like" "Graphical without debugging (MrEd)")
+                     (list "R5RS-like" "Graphical (MrEd)"))]
           [drs (wait-for-drscheme-frame)])
       (printf "running ~s tests\n" level)
       (set-language-level! level)
@@ -627,7 +627,7 @@
       (delete-file tmp-load-filename))
     (save-drscheme-window-as tmp-load-filename)
     
-    ;(set-language-level! (list "Full" "Graphical (MrEd)")) (kill-tests)
+    ;(set-language-level! (list "R5RS-like" "Graphical (MrEd)")) (kill-tests)
     
     (run-test-in-language-level #f)
     (run-test-in-language-level #t)))

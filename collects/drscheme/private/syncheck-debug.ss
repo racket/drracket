@@ -4,8 +4,9 @@
            (lib "class.ss")
            (lib "mred.ss" "mred"))
   
-  (provide debug-origin)  ;; : sexp [syntax] -> void
-                          ;; creates a frame for examining the origin fields of an expanded sexp
+  (provide debug-origin)  ;; : syntax [syntax] -> void
+                          ;; creates a frame for examining the 
+                          ;; origin and source fields of an expanded sexp
   
   (define debug-origin
     (case-lambda 
@@ -51,12 +52,15 @@
                (- (car (cdr y)) (cdr (cdr y)))))))
       
       (define (show-info stx)
-        (let loop ([origin (syntax-property stx 'origin)]
-                   [syms null])
+        (fprintf info-port "source: ~a\nposition: ~s\noffset: ~s\n\n"
+                 (syntax-source stx)
+                 (syntax-position stx)
+                 (syntax-span stx))
+        (let loop ([origin (syntax-property stx 'origin)])
           (cond
-            [(cons? origin)
-             (loop (car stx))
-             (loop (cdr stx))]
+            [(pair? origin)
+             (loop (car origin))
+             (loop (cdr origin))]
             [(syntax? origin) 
              (display origin info-port)
              (newline info-port)

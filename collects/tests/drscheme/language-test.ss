@@ -17,7 +17,7 @@
     (set-language-level! (language) close-dialog?))
   
   (define (raw-mred)
-    (parameterize ([language (list "Full" "Graphical without debugging (MrEd)")])
+    (parameterize ([language (list "R5RS-like" "Graphical without debugging (MrEd)")])
 
       (check-top-of-repl)
 
@@ -94,7 +94,7 @@
       (test-expression "argv" "#0()")))
   
   (define (raw-mzscheme)
-    (parameterize ([language (list "Full" "Textual without debugging (MzScheme)")])
+    (parameterize ([language (list "R5RS-like" "Textual without debugging (MzScheme)")])
 
       (check-top-of-repl)
 
@@ -167,7 +167,7 @@
       (test-expression "argv" "#0()")))
   
   (define (mred)
-    (parameterize ([language (list "Full" "Graphical (MrEd)")])
+    (parameterize ([language (list "R5RS-like" "Graphical (MrEd)")])
       (check-top-of-repl)
 
       (generic-settings #f)
@@ -248,7 +248,7 @@
       (test-expression "argv" "#0()")))
   
   (define (mzscheme)
-    (parameterize ([language (list "Full" "Textual (MzScheme)")])
+    (parameterize ([language (list "R5RS-like" "Textual (MzScheme)")])
 
       (check-top-of-repl)
 

@@ -184,7 +184,7 @@
      "reference to undefined identifier: x"))
   
     (define (good-tests)
-      (set-language-level! '("Full" "Graphical without debugging (MrEd)"))
+      (set-language-level! '("R5RS-like" "Graphical without debugging (MrEd)"))
       (generic-tests)
       
       (set-language-level! '("How to Design Programs" "Beginning Student"))

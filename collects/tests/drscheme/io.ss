@@ -99,7 +99,7 @@
   
   (define drs-frame (wait-for-drscheme-frame))
   (define interactions-text (send drs-frame get-interactions-text))
-  (set-language-level! '("Full" "Textual without debugging (MzScheme)"))
+  (set-language-level! '("R5RS-like" "Textual without debugging (MzScheme)"))
   
   (define (run-test)
     (long-io/execute-test)
