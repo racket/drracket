@@ -44,14 +44,16 @@
 	  ;; for use in pretty printing the snip.
 	  get-character-width))
 
-      (define (format-source-loc x) (format "~s" x))
-      
       (define primitive-eval (current-eval))
       
       ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
       (define current-language-settings (make-parameter #f))
       
+      ;; current-rep : (parameter (instanceof rep:text%))
+      ;; the repl that controls the evaluation in this thread.
+      (define current-rep (make-parameter 'current-rep-not-yet-set))
+
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
             
@@ -63,8 +65,23 @@
       (define error-display/debug-handler
         (make-parameter
          (lambda (msg exn)
+	   (printf "error-display/debug-handler: ~s~n~s~n"
+		   (exn:syntax? exn)
+		   exn)
 	   (when (exn:syntax? exn)
-	     (send (current-rep) ...))
+	     (let* ([stx (exn:syntax-expr exn)]
+		    [src (syntax-source stx)]
+		    [rep (current-rep)])
+	       (cond
+		 [(is-a? src text:basic%)
+		  (printf "1~n")
+		  (send rep highlight-error/forward-sexp src (syntax-position stx))]
+		 [else
+		  (printf "2~n")
+		  (let ([pos (send rep last-position)])
+		    (send rep insert file-icon pos pos)
+		    (send rep set-clickback pos (+ pos 1)
+			  (lambda (txt start end) (handler:edit-file src))))])))
            ((error-display-handler) msg))))
       
       ;; drscheme-error-value->string-handler : TST number -> string
@@ -94,7 +111,7 @@
       (define (drscheme-exception-handler exn)
         (let ([dh (error-display/debug-handler)])
           (if (exn? exn)
-	      (dh (format "~a" (exn-message exn)) exn)
+	      (dh (exn-message exn) exn)
               (dh (format "uncaught exception: ~e" exn) #f)))
         ((error-escape-handler))
         ((error-display-handler) "Exception handler did not escape")
@@ -713,7 +730,8 @@
               display-results
               
               reset-highlighting
-              format-source-loc
+	      highlight-error
+	      highlight-error/forward-sexp
               
               get-user-custodian
               get-user-eventspace
@@ -1283,12 +1301,37 @@
                            (lambda (x) (this-result-write x))))))
                anss))
                         
-            (define (reset-highlighting) (void))
-            
-            ;; format-source-loc : syntax -> string
-            (define format-source-loc ;; =Kernel=, =Handler=
-              (lambda (stx)
-                (format "~s" stx)))
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;                                            ;;;
+      ;;;            Error Highlighting              ;;;
+      ;;;                                            ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	    (inherit get-inserting-prompt)
+	    (field (error-range #f)
+		   (reset-callback void))
+	    (define (highlight-error/forward-sexp text start)
+	      (highlight-error text start (+ start 1)))
+	    (define (highlight-error file start finish)
+	      (when (is-a? file text:basic%)
+		(send file begin-edit-sequence)
+		(wait-for-io-to-complete)
+		(reset-highlighting)
+		(set! error-range (cons start finish))
+		(if color?
+		    (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
+		      (set! reset-callback
+			    (lambda ()
+			      (unless (get-inserting-prompt)
+				(set! error-range #f)
+				(reset)
+				(set! reset-callback void)))))
+		    (send file set-position start finish))
+		(send file scroll-to-position start #f finish)
+		(send file end-edit-sequence)
+		(send file set-caret-owner #f 'global)))
+
+            (define (reset-highlighting) (reset-callback))
             
             (define (on-set-media) (void))
             
@@ -1709,11 +1752,11 @@
             
             (define initialize-parameters ; =User=
               (lambda ()
+		(current-rep this)
               	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
                 (current-exception-handler drscheme-exception-handler)
                 (current-load-relative-directory #f)
-                (initial-exception-handler drscheme-exception-handler)
                 (current-custodian user-custodian)
                 (global-port-print-handler drscheme-port-print-handler)
                 
@@ -1941,6 +1984,8 @@
               (public set-resetting
 		      get-resetting
                       
+		      get-inserting-prompt
+
                       copy-prev-previous-expr
                       copy-next-previous-expr
                       copy-previous-expr
@@ -2242,6 +2287,7 @@
                        (super-on-local-char key)]))))
               
               (field (inserting-prompt #f))
+	      (define (get-inserting-prompt) inserting-prompt)
               (define (insert-prompt)
                 (set! prompt-mode? #t)
                 (fluid-let ([inserting-prompt #t])
