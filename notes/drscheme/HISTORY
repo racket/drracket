@@ -1,16 +1,7 @@
 Version 103:
 
-103d2
-
- PRS:
-
-  1577: DrScheme doesn't set current-load-relative-directory
-  1578: can't interrupt parse
-  1582: Help-desk configurability
-  1566: Bug icon broken in project window
-  1565: Invoking drscheme executable on project file has unexpected results
-
- FUNCTIONALITY CHANGES
+General
+-------
 
  - typing characters in to the definitions and interactions window
    should be more responsive now (it was noticably slow on slower
@@ -19,13 +10,8 @@ Version 103:
  - files added to projects are now stored as relative files, 
    by default. (use project menu to change the default)
 
- MINOR CHANGES AND BUG FIXES
-
  - project files are saved using a platform-independant syntax for
    paths now.
-
- - if the collection path setting in the project manager is empty
-   (just spaces and/or returns) it is ignored.
 
  - Using file|open and choosing a project file (based on contents) will open
    the project file. (this only will work with project files saved in this
@@ -34,20 +20,11 @@ Version 103:
 
  - Opening or a .plt file will install the .plt file, after querying the user.
 
- - if a semicolon is preceded by a back slash, paren matching still
-   happens.
-
  - added break button to project windows 
    (does the same thing as the break menu item always did)
 
  - added save button and little "full name" thingy to project
    frames
-
-103d1 
-
-  - primitives in the teaching languages now restricted to 
-    only the appropriate ones, instead of all of the primatives
-    available in mzscheme
 
 Version 102:
 
