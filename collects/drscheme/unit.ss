@@ -1094,11 +1094,14 @@
 	    (send-method 'uncomment-selection))	  
           (make-object mred:separator-menu-item% scheme-menu)
           (make-object mred:menu-item%
-            "Insert Lambda"
+            "Insert &Lambda"
             scheme-menu
             (lambda x (let ([editor (get-edit-target-object)])
                         (when editor
-                          (send editor insert (make-object lambda-snip%)))))))
+                          (send editor insert (make-object lambda-snip%)))))
+	    (and
+	     (fw:preferences:get 'framework:menu-bindings)
+	     #\l)))
 
 	(fw:frame:reorder-menus this)
 	     
