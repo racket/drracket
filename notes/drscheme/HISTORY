@@ -5,6 +5,13 @@
  - front-end/complete-program and front-end/interaction
    methods now accept a port, instead of an `input'.
 
+ - added an extra argument to create-executable in
+   drscheme:language:language<%> and get-init-code in
+   drscheme:language:module-based-language<%>
+
+ - errortrace internal interface has changed (see docs for
+   details)
+
  - added ->r contract combinator
 
 ------------------------------
