@@ -111,7 +111,7 @@
 		(send the-color-database find-color str)))))
 
       (define html-eval-ok (make-parameter #t))
-      (define html-img-ok (make-parameter #f))
+      (define html-img-ok (make-parameter #t))
       
       (define get-image-from-url
         (lambda (url)
