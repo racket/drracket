@@ -2,6 +2,17 @@ Version 52:
 
 General
 -------
+
+- Snoopy indicates when work is happening in the user's program. While
+  DrScheme is doing work for the user, Snoopy chases the Red
+  Baron. While DrScheme is not doing any work in the user's program,
+  Snoopy sleeps.
+
+- the thread that evaluations (including execution) take place on is
+  the same as the eventspace's main thread, unless the evaluation
+  thread is killed. In that case, the eventspace's main thread is
+  re-generated, but the execution thread does not.
+
 - the turtles window does not survive across executions anymore
 
 - the Quasi-R4RS language level has been renamed to R4RS+
@@ -23,7 +34,6 @@ DrScheme Tools/Libraries
       all of the information about the language level
   - the process-*/zodiac and process-*/no-zodiac proceudres
     are no longer methods and their arguments have changed
-  - 
 
 Version 51:
 
