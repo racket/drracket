@@ -60,7 +60,6 @@ tab panels new behavior:
               [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:language : drscheme:language^]
               [drscheme:get/extend : drscheme:get/extend^]
-              [drscheme:number-snip : drscheme:number-snip^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-overview : drscheme:module-overview^]
               [drscheme:tools : drscheme:tools^]
@@ -2432,7 +2431,7 @@ tab panels new behavior:
                        (let ([number (get-fraction-from-user this)])
                          (when number
                            (send edit insert
-                                 (drscheme:number-snip:make-fraction-snip number #f)))))
+                                 (number-snip:make-fraction-snip number #f)))))
                      #t))]
                 [insert-lambda
                  (lambda ()

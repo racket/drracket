@@ -31,7 +31,6 @@
   (define rep@
     (unit/sig drscheme:rep^
       (import (drscheme:init : drscheme:init^)
-              (drscheme:number-snip : drscheme:number-snip^)
               (drscheme:language-configuration : drscheme:language-configuration/internal^)
 	      (drscheme:language : drscheme:language^)
               (drscheme:app : drscheme:app^)
@@ -582,8 +581,6 @@
           set-prompt-position
           get-prompt-position
           
-          do-pre-eval
-          do-post-eval
           eval-busy?))
 
       (define -text<%>
@@ -630,7 +627,6 @@
                    clear-previous-expr-positions
                    get-end-position
                    set-clickback
-                   do-post-eval
                    erase 
                    get-prompt-mode
                    ready-non-prompt
@@ -890,96 +886,6 @@
               (reset-highlighting)
               (super-after-delete x y)))
           
-          
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;;                                            ;;;
-          ;;;                Parameters                  ;;;
-          ;;;                                            ;;;
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          
-          ;; drscheme-port-print-handler : TST port -> void
-          ;; effect: prints the value on the port
-          ;; default setting for the behavior of the `print' primitive.
-          (define (drscheme-port-print-handler value port)
-            (let ([language (drscheme:language-configuration:language-settings-language
-                             (current-language-settings))]
-                  [settings (drscheme:language-configuration:language-settings-settings
-                             (current-language-settings))])
-              (send language render-value
-                    value
-                    settings
-                    port 
-                    (cond
-                      [(eq? port this-out) (lambda (x) (this-out-write x))]
-                      [(eq? port this-err) (lambda (x) (this-err-write x))]
-                      ;; this case should never happen.
-                      [(eq? port this-result) (lambda (x) (this-result-write x))]
-                      [else #f]))))
-          
-          (inherit get-dc)
-          (define (drscheme-pretty-print-size-hook x _ port)
-            (and (or (eq? port this-out)
-                     (eq? port this-err)
-                     (eq? port this-result))
-                 (cond
-                   [(is-a? x sized-snip<%>) (send x get-character-width)]
-                   [(is-a? x snip%) 
-                    (let ([dc (get-dc)]
-                          [wbox (box 0)])
-                      (send x get-extent dc 0 0 wbox #f #f #f #f #f)
-                      (let-values ([(xw xh xa xd) (send dc get-text-extent "x")])
-                        (max 1 (inexact->exact (ceiling (/ (unbox wbox) xw))))))]
-                   [(syntax? x) 
-                    ;; two spaces is about how big the turn down triangle
-                    ;; and the extra space accounts for. Of course, when
-                    ;; it is opened, this will be all wrong.
-                    (+ 2 (string-length (format "~s" x)))]
-                   [((use-number-snip) x)
-                    (let ([number-snip-type ((which-number-snip) x)])
-                      (cond
-                        [(memq number-snip-type '(repeating-decimal 
-                                                  repeating-decimal-e
-                                                  mixed-fraction
-                                                  mixed-fraction-e))
-                         1] ;; no idea of size yet
-                        [else 
-                         (error 'which-number-snip
-                                "unexpected result from parameter: ~e" 
-                                number-snip-type)]))]
-                   [else #f])))
-          
-          (define (drscheme-pretty-print-print-hook x _ port)
-            (let ([port-out-write
-                   (cond
-                     [(eq? port this-out) (lambda (x) (this-out-write x))]
-                     [(eq? port this-err) (lambda (x) (this-err-write x))]
-                     [(eq? port this-result) (lambda (x) (this-result-write x))]
-                     ;; this case should only happen if the user's program overrides the pretty-print-size-hook
-                     ;; and doesnt' override the pretty-print-print-hook to match.
-                     [else #f])])
-              (if port-out-write
-                  (let ([snip/str
-                         (cond
-                           [(syntax? x) (render-syntax/snip x)]
-                           [((use-number-snip) x)
-                            (let ([number-snip-type ((which-number-snip) x)])
-                              (cond
-                                [(eq? number-snip-type 'repeating-decimal)
-                                 (drscheme:number-snip:make-repeating-decimal-snip x #f)]
-                                [(eq? number-snip-type 'repeating-decimal-e)
-                                 (drscheme:number-snip:make-repeating-decimal-snip x #t)]
-                                [(eq? number-snip-type 'mixed-fraction)
-                                 (drscheme:number-snip:make-fraction-snip x #f)]
-                                [(eq? number-snip-type 'mixed-fraction-e)
-                                 (drscheme:number-snip:make-fraction-snip x #t)]
-                                [else
-                                 (error 'which-number-snip
-                                        "expected either 'repeating-decimal, 'repeating-decimal-e, 'mixed-fraction, or 'mixed-fraction-e got : ~e"
-                                        number-snip-type)]))]
-                           [else x])])
-                    (port-out-write snip/str))
-                  (display x))))
-          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
           ;;;                Evaluation                  ;;;
@@ -1140,11 +1046,7 @@
               (when user-custodian
                 (custodian-shutdown-all user-custodian))
 	      (set! user-custodian #f)
-              (set! user-thread-box (make-weak-box #f))
-              (semaphore-wait io-semaphore)
-              (for-each (lambda (i) (semaphore-post limiting-sema)) io-collected-thunks)
-              (set! io-collected-thunks null)
-              (semaphore-post io-semaphore)))
+              (set! user-thread-box (make-weak-box #f))))
           
           (define (kill-evaluation) ; =Kernel=, =Handler=
             (when user-custodian
@@ -1394,11 +1296,6 @@
               (current-custodian user-custodian)
               (current-load text-editor-load-handler)
               
-              (global-port-print-handler drscheme-port-print-handler)
-              (setup-display/write-handlers)
-              (pretty-print-size-hook drscheme-pretty-print-size-hook)
-              (pretty-print-print-hook drscheme-pretty-print-print-hook)
-              
               (drscheme:eval:set-basic-parameters snip-classes)
               (current-rep this)
               (let ([dir (or (send context get-directory)
@@ -1408,10 +1305,10 @@
               
               (set! user-namespace-box (make-weak-box (current-namespace)))
               
-              (current-output-port this-out)
-              (current-error-port this-err)
-              (current-value-port this-result)
-              (current-input-port this-in)
+              (current-output-port (get-out-port))
+              (current-error-port (get-err-port))
+              (current-value-port (get-value-port))
+              (current-input-port (get-in-port))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler
@@ -1995,11 +1892,12 @@
         (drs-bindings-keymap-mixin
          (text-mixin 
           (console-text-mixin
-           (scheme:text-mixin
-            (color:text-mixin
-             (text:info-mixin
-              (editor:info-mixin
-               (text:searching-mixin
-                (text:nbsp->space-mixin
-                 (mode:host-text-mixin
-                  text:clever-file-format%))))))))))))))
+           (text:ports-mixin
+            (scheme:text-mixin
+             (color:text-mixin
+              (text:info-mixin
+               (editor:info-mixin
+                (text:searching-mixin
+                 (text:nbsp->space-mixin
+                  (mode:host-text-mixin
+                   text:clever-file-format%)))))))))))))))

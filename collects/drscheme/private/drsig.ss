@@ -8,7 +8,6 @@
            drscheme:get-collection^
            drscheme:main^
            drscheme:init^
-           drscheme:number-snip^
            drscheme:language-configuration^
            drscheme:language-configuration/internal^
            drscheme:tools^
@@ -85,10 +84,6 @@
      system-namespace
      first-dir
      all-toplevel-collections))
-  
-  (define-signature drscheme:number-snip^ 
-    (make-repeating-decimal-snip
-     make-fraction-snip))
   
   (define-signature drscheme:language-configuration^
     (add-language
@@ -266,7 +261,6 @@
   
   (define-signature drscheme:tool^
     ((unit drscheme:debug : drscheme:debug^)
-     (unit drscheme:number-snip : drscheme:number-snip^)     
      (unit drscheme:unit : drscheme:unit^)
      (unit drscheme:rep : drscheme:rep^)
      (unit drscheme:frame : drscheme:frame^)

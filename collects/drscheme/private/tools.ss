@@ -23,7 +23,6 @@
               [drscheme:language-configuration : drscheme:language-configuration^]
 	      [drscheme:help-desk : drscheme:help-desk^]
               [drscheme:init : drscheme:init^]
-              [drscheme:number-snip : drscheme:number-snip^]
 	      [drscheme:debug : drscheme:debug^]
               [drscheme:eval : drscheme:eval^]
               [drscheme:teachpack : drscheme:teachpack^]
