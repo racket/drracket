@@ -4,9 +4,17 @@ Version 102:
 
  PRS:
  
+   1478: parity reversed in Dr Jr command line flag
    1480: default launcher name is "Save A Launcher"
-   1506: Help Desk exits gracelessly when interrupted
+   1484: cannot paste in search box on macos
+   1490: alt-tduring execution has different binding
+   1499: text mode display auto-wraps
    1502: (define's hard to find
+   1506: Help Desk exits gracelessly when interrupted
+   1507: thread error freezes repl
+
+   1503: Launcher prints debug info
+    - unable to reproduce
 
  FUNCTIONALITY CHANGES
 

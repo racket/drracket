@@ -13,10 +13,25 @@
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:graph : drscheme:graph^])
   
+  (define (basename fn)
+    (if fn
+	(let* ([file-name (mzlib:file:file-name-from-path fn)]
+	       [ext (mzlib:file:filename-extension file-name)])
+	  (if ext
+	      (substring file-name 0 (- (string-length file-name)
+					(string-length ext)
+					1))
+	      file-name))
+	"Untitled"))
+
   (define (create-launcher frame)
     (if (eq? (system-type) 'macos)
         (mred:message-box "DrScheme Launcher" "Launchers are not yet supported under MacOS." frame)
-        (let ([program-filename (send (ivar frame definitions-text) get-filename)])
+        (let* ([program-filename (send (ivar frame definitions-text) get-filename)]
+	       [executable-filename
+		(if (eq? (system-type) 'windows)
+		    (string-append (basename program-filename) ".exe")
+		    (basename program-filename))])
           (cond
             [(not program-filename)
              (mred:message-box "Create Launcher"
@@ -28,8 +43,11 @@
                     [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
                     [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
                     [filename 
-                     (parameterize ([fw:finder:dialog-parent-parameter frame])
-                       (fw:finder:put-file"Untitled" #f #f "Save a Launcher"))])
+                     (parameterize ([fw:finder:dialog-parent-parameter frame]
+				    [fw:finder:default-extension "exe"])
+                       (fw:finder:put-file
+			executable-filename
+			#f #f "Save a Launcher"))])
                (when filename
                  (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
                                           "-e" (format "(define settings ~s)" v-settings)

@@ -200,13 +200,13 @@
    
    ;; new namespace test
    (make-test (format "(current-namespace (make-namespace))~nif")
-	      "compile: illegal use of a syntactic form name in: if"
-	      #f
-	      "compile: illegal use of a syntactic form name in: if"
-	      'unlocated-error
+	      "2.1-2.3: keyword: Invalid use of keyword if"
+	      2
+	      "keyword: Invalid use of keyword if"
+	      (vector 37 39)
 
-	      "keyword: Invalid use of keyword if"
-	      "keyword: Invalid use of keyword if"
+	      "compile: illegal use of a syntactic form name in: if"
+	      "compile: illegal use of a syntactic form name in: if"
 	      #f
 	      #f)
 
@@ -348,13 +348,12 @@
 	      "#1(2)" #f "#1(2)" #f
 	      "#1(2)" "#1(2)" #f #f)
 
-
    ;; thread tests
-   (make-test "(thread (lambda () x))"
-	      "1.19-1.20: reference to undefined identifier: x"
-	      2
+   (make-test "(begin (thread (lambda () x)) (sleep 1/10))"
+	      "1.27-1.28: reference to undefined identifier: x"
+	      #t
 	      "reference to undefined identifier: x"
-	      (vector 19 20)
+	      (vector 26 27)
 	      "reference to undefined identifier: x"
 	      "reference to undefined identifier: x"
 	      #f
@@ -473,13 +472,20 @@
 	    (lambda (port) (display program port))
 	    'truncate)
 	  
+	  ; make sure that a prompt is available at end of the REPL
+	  (unless (and (char=? #\>
+			       (send interactions-text get-character
+				     (- (send interactions-text last-position) 2)))
+		       (char=? #\space
+			       (send interactions-text get-character
+				     (- (send interactions-text last-position) 1))))
+	    (fw:test:keystroke #\return))
+
 	  ; stuff the load command into the REPL 
-	  
 	  (for-each fw:test:keystroke
 		    (string->list (format "(load ~s)" tmp-load-filename)))
 	  
 	  ; record current text position, then stuff a CR into the REPL
-	  
 	  (let ([load-text-start (+ 1 (send interactions-text last-position))])
 	    
 	    (fw:test:keystroke #\return)
@@ -543,5 +549,5 @@
 	  (error 'kill-tests "expected original drscheme frame to come back to the front"))))))
 
 (kill-tests)
-(run-test-in-language-level #t)
 (run-test-in-language-level #f)
+(run-test-in-language-level #t)
