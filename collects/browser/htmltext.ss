@@ -12,7 +12,7 @@
 	   (lib "external.ss" "browser")
            (lib "macro.ss" "framework"))
            
-  '(define-values/invoke-unit/sig 
+  (define-values/invoke-unit/sig 
      html^
      (compound-unit/sig
        (import (MRED : mred^) (URL : net:url^))
@@ -65,15 +65,7 @@
       (raise-type-error 'render-html-to-text "input port" 0 (list port text%-obj)))
     (unless (text%-obj . is-a? . html-text<%>)
       (raise-type-error 'render-html-to-text "html-text<%> object" 0 (list port text%-obj)))
-    (send text%-obj begin-edit-sequence)
-    (let loop ()
-      (let ([l (read-line port)])
-	(unless (eof-object? l)
-	  (send text%-obj insert l)
-	  (send text%-obj insert "\n")
-	  (loop))))
-    (send text%-obj end-edit-sequence)
-    '(parameterize ([html-eval-ok eval-ok?]
+    (parameterize ([html-eval-ok eval-ok?]
 		    [html-img-ok img-ok?])
        (html-convert port text%-obj)))
   

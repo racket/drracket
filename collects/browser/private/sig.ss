@@ -10,7 +10,8 @@
 
   (define-signature html-export^
     (html-img-ok
-     html-eval-ok))
+     html-eval-ok
+     image-map-snip%))
   
   (define-signature html^
     (html-convert
@@ -47,9 +48,7 @@
      hyper-no-show-frame%
      
      editor->page
-     page->editor
-     
-     image-map-snip%))
+     page->editor))
   
   (define-signature relative-btree^
     (make-btree

@@ -20,7 +20,7 @@
               (tcp : net:tcp^)
               (url : net:url^))
       (link [bullet : bullet^ (bullet@ mred)]
-            [html : html^ (html@ bullet hyper mred url)]
+            [html : html^ (html@ bullet mred url)]
             [hyper : hyper^ (hyper@ html mred plt-installer url)])
       (export (open hyper)
               (open (bullet : bullet-export^))
