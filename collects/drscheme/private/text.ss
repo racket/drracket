@@ -1,6 +1,7 @@
 
 (module text mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
            "drsig.ss"
            (lib "framework.ss" "framework")
            (lib "zodiac.ss" "syntax"))
@@ -17,7 +18,7 @@
           is-printing?))
       
       (define text%
-        (class* fw:scheme:text% (text<%>) args
+        (class100* fw:scheme:text% (text<%>) args
           (private
             [printing? #f])
           (public

@@ -1,6 +1,8 @@
 
 (module app mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
+	   (lib "class100.ss")
            "drsig.ss"
            "mred-wrap.ss"
            (lib "framework.ss" "framework")
@@ -13,23 +15,22 @@
               (drscheme:frame : drscheme:frame^)
               (help-desk : drscheme:help-interface^))
       (define about-frame%
-        (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (main-text)
+        (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (main-text)
           (private
             [edit-menu:do 
              (lambda (const)
-               (lambda (_1 _2)
-                 (send main-text do-edit-operation const)))])
+	       (send main-text do-edit-operation const)))])
           (override
-            [file-menu:revert #f]
-            [file-menu:save #f]
-            [file-menu:save-as #f]
+            [file-menu:create-revert? (lambda () #f)]
+            [file-menu:create-save? (lambda () #f)]
+            [file-menu:create-save-as? (lambda () #f)]
             [file-menu:between-close-and-quit (lambda (x) (void))]
             [file-menu:between-print-and-close (lambda (x) (void))]
             [edit-menu:between-redo-and-cut (lambda (x) (void))]
             [edit-menu:between-select-all-and-find (lambda (x) (void))]
-            [edit-menu:copy (edit-menu:do 'copy)]
-            [edit-menu:select-all (edit-menu:do 'select-all)]
-            [edit-menu:find #f])
+            [edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]
+            [edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
+            [edit-menu:create-find? (lambda () #f)])
           (sequence
             (super-init "About DrScheme"))))
       
@@ -60,7 +61,7 @@
          "Paul Steckler."))
       
       (define wrap-edit% 
-        (class-asi text%
+        (class100-asi text%
           (inherit begin-edit-sequence end-edit-sequence
                    get-max-width find-snip position-location)
           (rename [super-after-set-size-constraint after-set-size-constraint])
@@ -115,25 +116,27 @@
                           "notes.html"))))))
       
       (define tour-frame%
-        (class/d (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) args
-          ((override edit-menu:undo
-                     edit-menu:redo
-                     edit-menu:cut
-                     edit-menu:copy
-                     edit-menu:paste
-                     edit-menu:clear
-                     edit-menu:select-all
-                     edit-menu:between-select-all-and-find
-                     edit-menu:between-find-and-preferences
-                     edit-menu:between-redo-and-cut
-                     file-menu:between-print-and-close))
-          (define edit-menu:undo #f)
-          (define edit-menu:redo #f)
-          (define edit-menu:cut #f)
-          (define edit-menu:copy #f)
-          (define edit-menu:paste #f)
-          (define edit-menu:clear #f)
-          (define edit-menu:select-all #f)
+        (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
+	  (init-rest args)
+
+          (override edit-menu:undo
+		    edit-menu:redo
+		    edit-menu:cut
+		    edit-menu:copy
+		    edit-menu:paste
+		    edit-menu:clear
+		    edit-menu:select-all
+		    edit-menu:between-select-all-and-find
+		    edit-menu:between-find-and-preferences
+		    edit-menu:between-redo-and-cut
+		    file-menu:between-print-and-close)
+          (define (edit-menu:create-undo?) #f)
+          (define (edit-menu:create-redo?) #f)
+          (define (edit-menu:create-cut?) #f)
+          (define (edit-menu:create-copy?) #f)
+          (define (edit-menu:create-paste?) #f)
+          (define (edit-menu:create-clear?) #f)
+          (define (edit-menu:create-select?)-all #f)
           (define (edit-menu:between-select-all-and-find x) (void))
           (define (edit-menu:between-find-and-preferences x) (void))
           (define (edit-menu:between-redo-and-cut x) (void))

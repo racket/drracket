@@ -103,12 +103,12 @@
                      (if inverted? drop-shadow-size 1))))))
       
       (define name-message%
-        (class/d mred:canvas% (parent)
-          ((inherit popup-menu get-dc get-size get-client-size min-width min-height
-                    stretchable-width stretchable-height
-                    get-top-level-window)
-           (public set-message) ;; set-message : boolean (union #f string) -> void
-           (override on-event on-paint))
+        (class mred:canvas% (parent)
+          (inherit popup-menu get-dc get-size get-client-size min-width min-height
+		   stretchable-width stretchable-height
+		   get-top-level-window)
+	  (public set-message) ;; set-message : boolean (union #f string) -> void
+	  (override on-event on-paint)
           
           (define paths #f)
           (define label "Untitled")
