@@ -10,7 +10,6 @@
 		  (mred-program-launcher-path "DrScheme")))]
 	      [(compile-prefix) 
 	       '(begin
-		  (require-library "errortrace.ss" "errortrace")
 		  (require-library "refer.ss")
 		  (require-library "drsig.ss" "drscheme"))]
 	      [(compile-omit-files)
