@@ -174,10 +174,10 @@
                            (list (list #f `(file ,program-filename)))
                            null
                            null
-                           (list (if gui? "-Zmvqe" "-mvqe")
+                           (list (if gui? "-Zmvqe-" "-mvqe-")
                                  (format "~s" `(require ,(string->symbol short-program-name))))))
                         ((if gui? make-mred-launcher make-mzscheme-launcher)
-                         (list "-mvqt" program-filename)
+                         (list "-mvqt-" program-filename)
                          executable-filename)))))))
           
           (super-instantiate ()
