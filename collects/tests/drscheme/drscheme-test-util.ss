@@ -268,6 +268,9 @@
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-text) refresh-delayed?))
  
+  ;; has-error? : frame -> (union #f string)
+  ;; returns the error text of an error in the interactions window of the frame or #f if there is none.
+  ;; ensures that frame is front most.
   (define (has-error? frame)
     (verify-drscheme-frame-frontmost 'had-error? frame)
     (let* ([interactions-text (ivar frame interactions-text)]
@@ -292,14 +295,11 @@
 		  (if (and (= 255 (send color red))
 			   (= 0 (send color blue) (send color green)))
 		      
-		      (let loop ([end (send snip next)])
-			(let ([color (send (send end get-style) get-foreground)])
-			  (if (and (= 255 (send color red))
-				   (= 0 (send color blue) (send color green)))
-			      (loop (send end next))
-			      (send interactions-text get-text
-				    pos
-				    (send interactions-text get-snip-position end)))))
+		      ;; return the text of the entire line containing the red text
+                      (let ([para (send interactions-text position-paragraph pos)])
+                        (send interactions-text get-text
+                              (send interactions-text paragraph-start-position para)
+                              (send interactions-text paragraph-end-position para)))
 
 		      (loop (+ pos (send snip get-count)))))]))])))))
 
