@@ -382,9 +382,9 @@
           
           
           (inherit get-editor)
-          (rename [super-file-menu:print file-menu:print])
+          (rename [super-file-menu:print-callback file-menu:print-callback])
           (override
-            [file-menu:print
+            [file-menu:print-callback
              (lambda (item control)
                (let ([ps-setup (make-object ps-setup%)])
                  (send ps-setup copy-from (current-ps-setup))

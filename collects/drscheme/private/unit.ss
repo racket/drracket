@@ -316,7 +316,7 @@
   ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
         (lambda (%)
-          (class100-asi %
+          (class100 % args
             (inherit get-top-level-window)
             (rename [super-on-focus on-focus])
             (override
@@ -324,7 +324,8 @@
                (lambda (on?)
                  (when on?
                    (send (get-top-level-window) make-searchable this))
-                 (super-on-focus on?))]))))
+                 (super-on-focus on?))])
+            (sequence (apply super-init args)))))
       
       (define interactions-canvas% (make-searchable-canvas%
                                     (canvas:info-mixin

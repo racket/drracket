@@ -5,7 +5,15 @@
            "text.ss"
            "main-before.ss"
            "app.ss"
-           "main.ss")
+           "main.ss"
+           "snip.ss"
+           "load-handler.ss"
+           "rep.ss"
+           "frame.ss"
+           "unit.ss"
+           "get-extend.ss"
+           "help-interface.ss"
+           "language.ss")
   (provide drscheme@)
   
   (define drscheme@
@@ -22,6 +30,6 @@
             [language : drscheme:language^ (language@ unit)]            
             [help-interface : drscheme:help-interface^ (help-interface@ frame language)]
             [main-before : () (main-before@ app unit get/extend language)]
-	    [app : drscheme:app^ (app@ unit frame help-desk)]
+	    [app : drscheme:app^ (app@ unit frame help-interface)]
             [main : drscheme:main^ (main@ app unit get/extend language)])
       (export))))

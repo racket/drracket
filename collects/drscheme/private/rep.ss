@@ -593,7 +593,7 @@
                      do-post-eval
                      insert-prompt
                      erase 
-                     get-prompt-mode?
+                     get-prompt-mode
                      ready-non-prompt
                      set-prompt-mode
                      delete lock is-locked?
@@ -796,7 +796,7 @@
                 (let ([c-locked? (is-locked?)])
                   (begin-edit-sequence)
                   (lock #f)
-                  (let ([starting-at-prompt-mode? (get-prompt-mode?)])
+                  (let ([starting-at-prompt-mode? (get-prompt-mode)])
                     (set! transparent-text (make-object transparent-io-text% this))
                     
                     (send transparent-text auto-wrap #t)
@@ -983,7 +983,7 @@
                            (send text begin-edit-sequence)))])
                   (add-text text))
                 
-                (when (get-prompt-mode?)
+                (when (get-prompt-mode)
                   (insert (string #\newline) (last-position) (last-position) #f))
                 
                 (let* ([start (if (is-a? text transparent-io-text<%>)
@@ -2177,7 +2177,6 @@
       (define transparent-io-text%
         (class100* transparent-io-super% (transparent-io-text<%>) (_rep-text)
           (inherit change-style
-                   prompt-position set-prompt-position
                    get-resetting set-resetting lock get-text
                    set-position last-position get-character
                    clear-undos set-cursor

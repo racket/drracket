@@ -94,7 +94,8 @@
    81))
 
 (module drscheme mzscheme
-  (require "private/link.ss")
+  (require "private/link.ss"
+           (lib "unitsig.ss"))
   ((namespace-variable-binding 'shutdown-splash))
   (invoke-unit/sig drscheme@)
   ((namespace-variable-binding 'close-splash)))
