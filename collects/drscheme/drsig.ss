@@ -16,7 +16,7 @@
   (load/link-tool))
 
 (define-signature drscheme:frame^
-  (scheme-project-frame%))
+  (scheme-project-member-frame%))
 
 (define-signature drscheme:edit^
   (console-edit%))
