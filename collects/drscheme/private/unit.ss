@@ -1,6 +1,7 @@
 #|
 
 tab panels bug fixes:
+  - when only one tab left, hide tab panel
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
   - logging
@@ -855,7 +856,7 @@ tab panels new behavior:
       ;; visible-defs : (listof (list number number number number))
       ;; visible-ints : (listof (list number number number number))
       ;; i : number  -- which tab this is in the tab panel
-      (define-struct tab (defs ints visible-defs visible-ints i))
+      (define-struct tab (defs ints visible-defs visible-ints i) (make-inspector))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
@@ -1884,21 +1885,34 @@ tab panels new behavior:
               (send definitions-text set-delegate old-delegate)))
           
           (define/private (close-current-tab)
-            (let loop ([tabs tabs]
-                       [acc null])
-              (cond
-                [(null? tabs) (error 'close-current-tab "uh oh")]
-                [else
-                 (let ([tab (car tabs)])
-                   (if (eq? tab current-tab)
-                       (when (close-tab tab)
-                         (let ([new-tabs (append (reverse acc) (cdr tabs))])
-                           (change-to-tab (if (null? acc)
-                                              (car tabs)
-                                              (car acc)))
-                           (set! tabs new-tabs)))
-                       (loop (cdr tabs)
-                             (cons tab acc))))])))
+            (cond
+              [(null? tabs) (error 'close-current-tab "uh oh")]
+              [(null? (cdr tabs)) (error 'close-current-tab "uh oh.2")]
+              [else
+               (let loop ([l-tabs tabs]
+                          [acc null])
+                 (cond
+                   [(null? l-tabs) (error 'close-current-tab "uh oh.3")]
+                   [else
+                    (let ([tab (car l-tabs)])
+                      (if (eq? tab current-tab)
+                          (when (close-tab tab)
+                            (let ([new-tabs (append 
+                                             (reverse acc) 
+                                             (map (lambda (t)
+                                                    (make-tab (tab-defs t)
+                                                              (tab-ints t)
+                                                              (tab-visible-defs t)
+                                                              (tab-visible-ints t)
+                                                              (- (tab-i t) 1)))
+                                                  (cdr l-tabs)))])
+                              (send tabs-panel delete (tab-i tab))
+                              (set! tabs new-tabs)
+                              (change-to-tab (if (null? acc)
+                                                 (cadr l-tabs)
+                                                 (car acc)))))
+                          (loop (cdr l-tabs)
+                                (cons tab acc))))]))]))
           
           (define/private (close-tab tab)
             (let ([close-editor
