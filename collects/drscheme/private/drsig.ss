@@ -167,7 +167,8 @@
                               printing-style 
                               fraction-style
                               show-sharing
-                              insert-newlines))
+                              insert-newlines
+                              debugging))
      simple-settings->vector
      open-input-text
 

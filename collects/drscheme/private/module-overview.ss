@@ -766,6 +766,12 @@
                         (height (preferences:get 'drscheme:module-overview:window-height))
                         (alignment '(left center))))
         (define pasteboard (make-object draw-lines-pasteboard%))
+        (define root-message (instantiate message% ()
+                               (label 
+                                (format (string-constant module-browser-root-filename)
+                                        filename))
+                               (parent (send frame get-area-container))
+                               (stretchable-width #t)))
         (define label-message (instantiate message% ()
                                 (label "")
                                 (parent (send frame get-area-container))
