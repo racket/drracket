@@ -107,13 +107,16 @@
 
 |#
 
+  (define on-installer-run
+    (make-parameter void))
+
   (define (run-installer file)
     (letrec ([f (make-object (class dialog% ()
 			       (override
 				 [can-close? (lambda () (send done is-enabled?))])
 			       (sequence
 				 (super-init "Install Progress"
-					     #f 400 300))))]
+					     #f 400 300 #f #f '(resize-border)))))]
 	     [c (make-object editor-canvas% f)]
 	     [e (make-object text%)]
 	     [s (make-semaphore)]
@@ -158,7 +161,8 @@
 	(yield s)
 	(begin-busy-cursor)
 	(send f show #f)
-	(yield s))))
+	(yield s)
+	((on-installer-run)))))
 
   (define hyper-text-mixin
     (lambda (super%)

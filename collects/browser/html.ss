@@ -687,6 +687,9 @@
 			   (insert unsupported pos)
 			   (change-style normal-style pos (+ pos len))
 			   (result (+ pos len) #f))]
+			[(style)
+			 (delete pos end-pos)
+			 (result pos #f)]
 			[else 
 			 (html-error "unimplemented tag: ~s" tag)
 			 (normal)]))))]))]
