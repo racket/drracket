@@ -179,7 +179,7 @@
 	   [preformatted-tags '(pre blockquote)]
 	   [comment-tags '(script)]
 	   [atomic-tags '(p br hr li dd dt img html !-- meta link input)]
-	   [enum-tags '(ul dl ol)]
+	   [enum-tags '(ul dl ol menu)]
 
 	   [delta:fixed (make-object style-delta% 'change-family 'modern)]
 	   [delta:bold (make-object style-delta% 'change-bold)] 
@@ -617,7 +617,7 @@
 				     (not (memq tag preformatted-tags)))]
 		      [pre-newlines
 		       (case tag
-			 [(dl ul table) (if (< enum-depth 1) 2 1)]
+			 [(dl ul menu table) (if (< enum-depth 1) 2 1)]
 			 [(tr) 1]
 			 [(pre) 2]
 			 [(h1 h2 h3) 2]
@@ -638,7 +638,7 @@
 			 (set-title (get-text pos end-pos))
 			 (delete pos end-pos)
 			 (result pos #t)]
-			[(dl ul table tr)
+			[(dl ul menu table tr)
 			 (let ([new-end (+ end-pos (try-newline end-pos pre-newlines #t))])
 			   ; At end, make sure indentation is reset:
 			   (let ([m (btree-get indents new-end)])
