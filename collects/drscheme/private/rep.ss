@@ -1474,9 +1474,7 @@
                          (lambda x (display-results x)))))
                      (recur)]))
                 start
-                end
-                #t
-                #t)))))
+                end)))))
         
         
 	;; do-many-evals : ((((-> void) -> void) -> void) -> void)
