@@ -17,7 +17,7 @@
     (set-language-level! (language) close-dialog?))
   
   (define (mred)
-    (parameterize ([language (list "R5RS-like" "Graphical (MrEd)")])
+    (parameterize ([language (list "PLT" "Graphical (MrEd)")])
       (check-top-of-repl)
 
       (generic-settings #f)
@@ -89,7 +89,7 @@
       (test-expression "argv" "#0()")))
   
   (define (mzscheme)
-    (parameterize ([language (list "R5RS-like" "Textual (MzScheme)")])
+    (parameterize ([language (list "PLT" "Textual (MzScheme)")])
 
       (check-top-of-repl)
 
