@@ -105,7 +105,7 @@
       (define open-url
         (opt-lambda (url [progress void])
           (with-help-desk-frame
-           #f
+           #t
            (lambda ()
              (send help-desk-frame goto-url url progress)))))
       
