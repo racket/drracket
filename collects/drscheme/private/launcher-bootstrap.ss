@@ -38,9 +38,7 @@
   (for-each (lambda (x) (namespace-attach-module original-namespace x))
             to-be-copied-module-names)
   (namespace-variable-binding 'argv program-argv)
-  ((if use-require/copy? 
-       namespace-require/copy
-       namespace-require)
+  ((if use-require/copy? namespace-require/copy namespace-require)
    language-module-spec)
   (namespace-transformer-require transformer-module-spec)
 

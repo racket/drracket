@@ -155,6 +155,7 @@
                   file-name))
             (string-constant untitled)))
       
+      ;; create-executable : (instanceof drscheme:unit:frame<%>) -> void
       (define (create-executable frame)
         (let* ([definitions-text (send frame get-definitions-text)]
                [program-filename (send definitions-text get-filename)])
@@ -185,15 +186,14 @@
                           #f #f
                           (string-constant save-an-executable)))])
                  (when executable-filename
-                   (let ([settings (preferences:get 
-                                    drscheme:language-configuration:settings-preferences-symbol)])
+                   (let ([settings (send (send frame get-definitions-text) get-next-setting)])
                      (send (drscheme:language-configuration:language-settings-language settings)
                            create-executable
                            (drscheme:language-configuration:language-settings-settings settings)
                            frame
                            program-filename
                            executable-filename)))))])))
-      
+
       (define make-bitmap 
         (case-lambda 
          [(button-name) (make-bitmap 
