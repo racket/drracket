@@ -306,7 +306,8 @@
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
     
     (define (get-query)
-      (list (cons 'replyto (preferences:get 'drscheme:email))
+      (list (cons 'help-desk "true")
+            (cons 'replyto (preferences:get 'drscheme:email))
             (cons 'originator (preferences:get 'drscheme:full-name))
             (cons 'subject (send summary get-value))
             (cons 'severity (send severity get-string-selection))
