@@ -114,13 +114,6 @@
 
   (define hyper-style-list (make-object style-list%))
 
-  (define on-installer-run
-    (make-parameter void))
-
-  (define (run-installer filename)
-    (plt-installer:run-installer filename)
-    ((on-installer-run)))
-
   (define hyper-text-mixin
     (lambda (super%)
       (class super% (url top-level-window . args)

@@ -17,6 +17,7 @@
 (require-library "compiles.ss" "dynext")
 (require-library "links.ss" "dynext")
 (require-relative-library "load-handlers.ss")
+(require-library "plt-installers.ss" "setup")
 
 (require-library "sig.ss" "help")
 
