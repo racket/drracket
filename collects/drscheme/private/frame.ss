@@ -185,14 +185,14 @@
             (parent parent)
             (alignment '(left center))
             (label (string-constant install-plt-file-dialog-title))))
-        (define choice
+        (define tab-panel
           (instantiate tab-panel% ()
             (parent dialog)
             (callback (lambda (x y) (update-panels)))
             (choices (list (string-constant install-plt-web-tab)
                            (string-constant install-plt-file-tab)))))
         (define outer-swapping-panel (instantiate horizontal-panel% ()
-                                       (parent dialog)
+                                       (parent tab-panel)
                                        (stretchable-height #f)))
         (define spacing-panel (instantiate horizontal-panel% ()
                                 (stretchable-width #f)
@@ -251,7 +251,7 @@
         ;; from-web? : -> boolean
         ;; returns #t if the user has selected a web address
         (define (from-web?)
-          (zero? (send choice get-selection)))
+          (zero? (send tab-panel get-selection)))
         
         (define cancel? #t)
         
