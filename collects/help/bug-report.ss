@@ -230,16 +230,6 @@
        #f
        synthesized-panel))
     
-    (define tools
-      (build/label
-       (string-constant bug-report-field-tools)
-       (lambda (panel)
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
     (define docs-installed
       (build/label 
        (string-constant bug-report-field-docs-installed)
@@ -343,7 +333,6 @@
          (format ">Release:        ~a" (send version get-value))
          ">Environment:"
          (format "~a" (send environment get-value))
-         (format "Tools: ~a" (send tools get-value))
          "Docs Installed:" (format "~a" (send docs-installed get-value))
          "Collections: "
          (format "~a" (send collections get-value))
@@ -477,13 +466,6 @@
                   (system-type #t)
                   (system-library-subpath)
                   (get-display-depth)))
-    (send tools set-value 
-          (format "~s"
-		  (with-handlers ([not-break-exn?
-				   (lambda (x)
-				     (exn-message x))])
-		    (directory-list (collection-path "drscheme" "tools")))))
-    
     (send collections set-value       
           (format "~s"
                   (map (lambda (x) 
