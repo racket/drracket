@@ -55,19 +55,19 @@
       (define (load/invoke-all-tools phase1-extras phase2-extras)
         (set! current-phase 'loading-tools)
         (load/invoke-all-tools/collections
-         (all-tool-collections)
+         (all-tool-directories)
          phase1-extras
          phase2-extras))
 
-      (define (all-tool-collections)
-        (map (λ (x) (apply collection-path x))
-             (find-relevant-collections '(tools tool-icons tool-names tool-urls))))
+
+      (define (all-tool-directories)
+        (find-relevant-directories '(tools tool-icons tool-names tool-urls)))
       
-      ;; loads the the tools in each collection
+      ;; loads the the tools in each directory
       ;; unless PLTNOTOOLS is set, in which case it
       ;; just runs the phases. If PLTONLYTOOL is set,
       ;; it only loads tools in those collections
-      (define (load/invoke-all-tools/collections collections phase1-extras phase2-extras)
+      (define (load/invoke-all-tools/collections directories phase1-extras phase2-extras)
         (cond
           [(getenv "PLTNOTOOLS") (printf "PLTNOTOOLS: skipping tools\n")]
           [else
@@ -82,10 +82,10 @@
                                             (let-values ([(base name dir) (split-path x)])
                                               (memq (string->symbol (path->string name))
                                                     allowed)))
-                                          collections)])
+                                          directories)])
                    (printf "PLTONLYTOOL: only loading ~s\n" filtered)
                    (for-each load/invoke-tools filtered))
-                 (for-each load/invoke-tools collections)))])
+                 (for-each load/invoke-tools directories)))])
         (run-phases phase1-extras phase2-extras))
 
       
