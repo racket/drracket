@@ -16,11 +16,9 @@
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
    [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
    [make-top-level-mark (syntax? . -> . syntax?)]
-   [lookup-binding (case-> (-> mark-list? identifier? any)
-                           (-> mark-list? identifier? procedure? any)
-                           (-> mark-list? identifier? procedure? procedure? any))]
-   [lookup-binding-with-symbol (-> mark-list? symbol? any)]
-   [lookup-binding-list-with-symbol (-> mark-list? symbol? any)])
+   [lookup-all-bindings ((identifier? . -> . boolean?) mark-list? . -> . (listof any?))]
+   [lookup-first-binding ((identifier? . -> . boolean?) mark-list? ( -> any) . -> . any?)]
+   [lookup-binding (mark-list? identifier? . -> . any)])
   
   (provide
    make-debug-info
@@ -36,7 +34,7 @@
    mark-binding-binding
    display-mark
    all-bindings
-   lookup-binding-list
+   #;lookup-binding-list
    debug-key
    extract-mark-list
    (struct normal-breakpoint-info (mark-list kind))
@@ -51,8 +49,6 @@
   (define-struct breakpoint-halt ())
   (define-struct expression-finished (returned-value-list))
   
-  (define identifier-list? (listof identifier?))
-
   (define-struct skipto-mark-struct ())
   (define skipto-mark? skipto-mark-struct?)
   (define skipto-mark (make-skipto-mark-struct))
@@ -80,10 +76,6 @@
   
   (define (mark-source mark)
     (full-mark-struct-source (mark)))
-  
-  ;; extract-locations : mark-set -> (listof syntax-object)
-  (define (extract-locations mark-set)
-    (map mark-source (extract-mark-list mark-set)))
     
   ; : identifier -> identifier
   (define (make-mark-binding-stx id)
@@ -129,45 +121,26 @@
   ; possible optimization: rig the mark-maker to guarantee statically that a
   ; variable can occur at most once in a mark.  
   
-  (define (binding-matches matcher mark binding)
-    (let ([matches
-           (filter (lambda (b)
-                     (matcher (mark-binding-binding b) binding))
-                   (mark-bindings mark))])
-      (if (and (pair? matches) (pair? (cdr matches))) ; (> (length matches) 1)
-          (error 'lookup-binding "multiple bindings found for ~a" binding)
-          matches)))
+  (define (binding-matches matcher mark)
+    (filter (lambda (binding-pair) (matcher (mark-binding-binding binding-pair))) (mark-bindings mark)))
   
+  (define (lookup-all-bindings matcher mark-list)
+    (apply append (map (lambda (m) (binding-matches matcher m)) mark-list)))
   
-  (define lookup-binding
-    (case-lambda
-      ((mark-list binding binding-matcher fail-thunk)
-       (if (null? mark-list)
-           (fail-thunk)
-          (let ([matches (binding-matches binding-matcher (car mark-list) binding)])
-            (cond [(null? matches)
-                   (lookup-binding (cdr mark-list) binding binding-matcher fail-thunk)]
-                  [else
-                   (mark-binding-value (car matches))]))))
-      ((mark-list binding binding-matcher)
-       (lookup-binding mark-list binding binding-matcher 
-                       (lambda ()
-                         (error 'lookup-binding "variable not found in environment: ~a~n" (if (syntax? binding) 
-                                                                                              (syntax-object->datum binding)
-                                                                                              binding)))))
-      ((mark-list binding)
-       (lookup-binding mark-list
-                       binding
-                       module-identifier=?))))
- 
-  (define (lookup-binding-with-symbol mark-list binding)
-    (lookup-binding mark-list binding (lambda (id sym) (eq? (syntax-e id) sym))))
+  (define (lookup-first-binding matcher mark-list fail-thunk)
+    (let ([all-bindings (lookup-all-bindings matcher mark-list)])
+      (if (null? all-bindings)
+          (fail-thunk)
+          (car all-bindings))))
   
-  (define (lookup-binding-list mark-list binding)
-    (apply append (map (lambda (x) (binding-matches module-identifier=? x binding)) mark-list)))
-  
-  (define (lookup-binding-list-with-symbol mark-list sym)
-    (apply append (map (lambda (x) (binding-matches (lambda (stx y) (eq? (syntax-e stx) y)) x sym)) mark-list)))
+  (define (lookup-binding mark-list id)
+    (mark-binding-value
+     (lookup-first-binding (lambda (id2) (module-identifier=? id id2)) 
+                           mark-list 
+                           (lambda ()
+                             (error 'lookup-binding "variable not found in environment: ~a~n" (if (syntax? id) 
+                                                                                                  (syntax-object->datum id)
+                                                                                                  id))))))
   
   (define (all-bindings mark)
     (map mark-binding-binding (mark-bindings mark)))
