@@ -19,6 +19,9 @@
   
   (provide unit@)
   
+  (define module-browser-progress-constant "Module Browser: ~a")
+  (define status-expanding-definitions "Module Browser: expanding definitions")
+  
   (define unit@
     (unit/sig drscheme:unit^
       (import [help-desk : drscheme:help-desk^]
@@ -33,7 +36,8 @@
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-overview : drscheme:module-overview^]
               [drscheme:tools : drscheme:tools^]
-              [drscheme:eval : drscheme:eval^])
+              [drscheme:eval : drscheme:eval^]
+              [drscheme:init : drscheme:init^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
@@ -1694,15 +1698,21 @@
                  [module-browser-ec #f]
                  [module-browser-pb #f])
 
+          (inherit open-status-line close-status-line update-status-line)
+          
           (define/private (show-module-browser)
             (when module-browser-panel
+              (open-status-line 'mouse-over)
+              (open-status-line 'plt:module-browser)
+              (update-status-line 'plt:module-browser status-expanding-definitions)
               (unless module-browser-ec 
                 (set! module-browser-pb 
                       (drscheme:module-overview:make-module-overview-pasteboard
                        #t
                        #f 
-                       void;mouse-currently-over
-                       ))
+                       (lambda (x) (mouse-currently-over x))
+                       (lambda (msg) 
+                         (show-module-browser-status msg))))
                 (set! module-browser-ec (make-object editor-canvas%
                                           module-browser-panel
                                           module-browser-pb)))
@@ -1717,34 +1727,80 @@
                 (send module-browser-parent-panel end-container-sequence)
                 (calculate-module-browser))))
           
+          (field [status-callback-running? #f]
+                 [status-callback-str #f]
+                 [status-callback-sema (make-semaphore 1)])
+          (define/private (show-module-browser-status msg)
+            (semaphore-wait status-callback-sema)
+            (set! status-callback-str msg)
+            (unless status-callback-running? 
+              (set! status-callback-running? #t)
+              (thread
+               (lambda ()
+                 (sleep .1)
+                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                   (queue-callback
+                    (lambda ()
+                      (update-status-line
+                       'plt:module-browser 
+                       (format module-browser-progress-constant status-callback-str))
+                      (semaphore-wait status-callback-sema)
+                      (set! status-callback-running? #f)
+                      (set! status-callback-str #f)
+                      (semaphore-post status-callback-sema))
+                    #f)))))
+            (semaphore-post status-callback-sema))
+          
           (define/private (hide-module-browser)
             (when module-browser-panel
+              (close-status-line 'mouse-over)
               (send module-browser-parent-panel change-children
                     (lambda (l) 
                       (remq module-browser-panel l)))))
           
+          (define/private (mouse-currently-over snips)
+            (if (null? snips)
+                (update-status-line 'mouse-over "")
+                (let ([snip (car snips)])
+                  (update-status-line 'mouse-over
+                                      (or (send snip get-filename)
+                                          (send snip get-word))))))
+            
           (define/private (calculate-module-browser)
-            (drscheme:eval:expand-program
-             (let ([defs (get-definitions-text)])
+            (let ([defs (get-definitions-text)])
+              (drscheme:eval:expand-program
                (drscheme:language:make-text/pos 
                 defs
                 0
-                (send defs last-position)))
-             (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))
-             #t
-             void
-             void
-             (lambda (exp cont)
-               (cond
-                 [(eof-object? exp) 
-                  (void)]
-                 [(syntax? exp) 
-                  (let ([err (send module-browser-pb add-connections exp)])
-                    (when err
-                      (message-box "DrScheme" err)))
-                  (cont)]
-                 [(pair? exp)
-                  (void)]))))
+                (send defs last-position))
+               (preferences:get (drscheme:language-configuration:get-settings-preferences-symbol))
+               #t
+               (lambda () (set-directory defs))
+               (lambda () (close-status-line 'plt:module-browser))
+               (lambda (exp cont)
+                 (cond
+                   [(eof-object? exp) 
+                    (close-status-line 'plt:module-browser)]
+                   [(syntax? exp) 
+                    (let ([err (send module-browser-pb add-connections exp)])
+                      (when err
+                        (message-box "DrScheme" err)))
+                    (update-status-line 'plt:module-browser status-expanding-definitions)
+                    (cont)]
+                   [(pair? exp)
+                    (void)])))))
+          
+          ;; set-directory : text -> void
+          ;; sets the current-directory and current-load-relative-directory
+          ;; based on the file saved in the definitions-text
+          (define (set-directory definitions-text)
+            (let* ([tmp-b (box #f)]
+                   [fn (send definitions-text get-filename tmp-b)])
+              (unless (unbox tmp-b)
+                (when fn
+                  (let-values ([(base name dir?) (split-path fn)])
+                    (current-directory base)
+                    (current-load-relative-directory base))))))
           
           (super-instantiate ()
             (filename filename)

@@ -6,7 +6,7 @@ todo :
    use framework for that one. also include check syntax
    (and talk to philippe about spidey)
    
- - the flag that controls if the new font size also re-lays out the snips
+ - the flag that controls the new font size and also re-lays out the snips needs to be re-instated
 
  - add a way to hide lib-based paths to show-menu version of graph
  
@@ -17,6 +17,10 @@ todo :
  
  - build abstraction for drscheme:eval?
  
+ - in unit.ss
+    - status line messages timing is wrong (can be closed and still sending messages)
+    - shutdown the custodian when expansion is finished
+
 |#
 (module module-overview mzscheme
   (require (lib "mred.ss" "mred")
@@ -76,10 +80,14 @@ todo :
       (define-struct req (filename lib?))
       ;; type req = (make-req string[filename] boolean)
       
-      ;; make-module-overview-pasteboard : string vertical? ((union #f snip) -> void) -> (union string pasteboard)
+      ;; make-module-overview-pasteboard : string
+      ;;                                   vertical?
+      ;;                                   ((union #f snip) -> void)
+      ;;                                   ((union #f string) -> void)
+      ;;                                -> (union string pasteboard)
       ;; string as result indicates an error message
       ;; pasteboard as result is the pasteboard to show
-      (define (make-module-overview-pasteboard vertical? show-filenames? mouse-currently-over)
+      (define (make-module-overview-pasteboard vertical? show-filenames? mouse-currently-over update-progress)
         
         (define level-ht (make-hash-table))
         (define label-font (find-label-font (preferences:get 'drscheme:module-overview:label-font-size)))
@@ -125,7 +133,9 @@ todo :
             (define snip-height #f)
             
             (define font-label-size-callback-running? #f)
-            (define/public (set-label-font-size new-font-size)
+            (define new-font-size #f)
+            (define/public (set-label-font-size size-to-set)
+              (set! new-font-size size-to-set)
               (unless font-label-size-callback-running?
                 (set! font-label-size-callback-running? #t)
                 (queue-callback
@@ -144,6 +154,7 @@ todo :
                    (unless dont-move-snips
                      (render-snips))
                    (end-edit-sequence)
+                   (set! new-font-size #f)
                    (set! font-label-size-callback-running? #f))
                  #f)))
             
@@ -155,15 +166,6 @@ todo :
             (define/public (add-connections filename/stx)
               
               (define visited-hash-table (make-hash-table))
-              (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
-                                       (instantiate frame% ()
-                                         ;(parent parent)
-                                         (label progress-label)
-                                         (width 600))))
-              (define progress-message (instantiate message% ()
-                                         (label "")
-                                         (stretchable-width #t)
-                                         (parent progress-frame)))
               (define sema (make-semaphore 1))
               (define done? #f)
               
@@ -171,13 +173,6 @@ todo :
               (define error #f)
               
               (define max-lines 0)
-              (thread
-               (lambda ()
-                 (sleep 3)
-                 (semaphore-wait sema)
-                 (unless done?
-                   (send progress-frame show #t))
-                 (semaphore-post sema)))
               
               (begin-edit-sequence)
               (with-handlers ([not-break-exn?
@@ -191,14 +186,14 @@ todo :
                    (add-filename-connections filename/stx
                                              visited-hash-table
                                              (lambda (l) (set! max-lines (max l max-lines)))
-                                             progress-message)]
+                                             update-progress)]
                   [(syntax? filename/stx)
                    (add-syntax-connections filename/stx 
                                            visited-hash-table
                                            (lambda (l) (set! max-lines (max l max-lines)))
-                                           progress-message)])
+                                           update-progress)])
                 
-                (send progress-message set-label laying-out-graph-label)
+                (update-progress laying-out-graph-label)
                 
                 (let loop ([snip (find-first-snip)])
                   (when snip
@@ -212,41 +207,42 @@ todo :
                 (render-snips))
               (semaphore-wait sema)
               (set! done? #t)
-              (send progress-frame show #f)
+
               (semaphore-post sema)
               (end-edit-sequence)
               error)
             
-            ;; add-syntax-connections : syntax hash-table (number -> void) message% -> void
-            (define/private (add-syntax-connections stx visited-hash-table update-max-lines progress-message)
-              (let* ([module-code (compile stx)]
-                     [name (extract-module-name stx)]
-                     [visited-key (string->symbol name)]
-                     [snip (find/create-snip name #f)])
-                (hash-table-put! visited-hash-table visited-key #t)
-                (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                  (let ([requires (extract-filenames imports name)]
-                        [syntax-requires (extract-filenames fs-imports name)])
-                    (for-each (lambda (require)
-                                (add-connection name #f
-                                                (req-filename require) #t
-                                                (req-lib? require)
-                                                #f)
-                                (add-filename-connections (req-filename require)
-                                                          visited-hash-table
-                                                          update-max-lines
-                                                          progress-message))
-                              requires)
-                    (for-each (lambda (syntax-require)
-                                (add-connection name #f
-                                                (req-filename syntax-require) #t
-                                                (req-lib? syntax-require)
-                                                #t)
-                                (add-filename-connections (req-filename syntax-require) 
-                                                          visited-hash-table
-                                                          update-max-lines
-                                                          progress-message))
-                              syntax-requires)))))
+            ;; add-syntax-connections : syntax hash-table (number -> void) (string -> void) -> void
+            (define/private (add-syntax-connections stx visited-hash-table update-max-lines update-progress)
+              (let ([module-code (compile stx)])
+                (when (compiled-module-expression? module-code)
+                  (let* ([name (extract-module-name stx)]
+                         [visited-key (string->symbol name)]
+                         [snip (find/create-snip name #f)])
+                    (hash-table-put! visited-hash-table visited-key #t)
+                    (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
+                      (let ([requires (extract-filenames imports name)]
+                            [syntax-requires (extract-filenames fs-imports name)])
+                        (for-each (lambda (require)
+                                    (add-connection name #f
+                                                    (req-filename require) #t
+                                                    (req-lib? require)
+                                                    #f)
+                                    (add-filename-connections (req-filename require)
+                                                              visited-hash-table
+                                                              update-max-lines
+                                                              update-progress))
+                                  requires)
+                        (for-each (lambda (syntax-require)
+                                    (add-connection name #f
+                                                    (req-filename syntax-require) #t
+                                                    (req-lib? syntax-require)
+                                                    #t)
+                                    (add-filename-connections (req-filename syntax-require) 
+                                                              visited-hash-table
+                                                              update-max-lines
+                                                              update-progress))
+                                  syntax-requires)))))))
             
             (define (extract-module-name stx)
               (syntax-case stx (module)
@@ -255,12 +251,12 @@ todo :
                  (format "~s" (syntax-object->datum (syntax m-name)))]
                 [else "<<unknown>>"]))
             
-            ;; add-filename-connections : string hash-table (number -> void) message% -> void
-            (define/private (add-filename-connections filename visited-hash-table update-max-lines progress-message)
+            ;; add-filename-connections : string hash-table (number -> void) (string -> void)  -> void
+            (define/private (add-filename-connections filename visited-hash-table update-max-lines update-progress)
               (let loop ([filename filename])
                 (let ([visited-key (string->symbol filename)])
                   (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
-                    (send progress-message set-label (format adding-file filename))
+                    (update-progress (format adding-file filename))
                     (hash-table-put! visited-hash-table visited-key #t)
                     (let ([module-code (get-module-code filename)]
                           [lines (send (find/create-snip filename #t) get-lines)])
@@ -640,11 +636,31 @@ todo :
       
       (define (module-overview/file filename parent)
         (define update-label void)
+
+        (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
+                                 (instantiate frame% ()
+                                   (parent parent)
+                                   (label progress-label)
+                                   (width 600))))
+        (define progress-message (instantiate message% ()
+                                   (label "")
+                                   (stretchable-width #t)
+                                   (parent progress-frame)))
+        
+        (define thd 
+          (thread
+           (lambda ()
+             (sleep 3)
+             (send progress-frame show #t))))
+        
         (define pasteboard (make-module-overview-pasteboard 
                             #f
                             #t
-                            (lambda (x) (update-label x))))
+                            (lambda (x) (update-label x))
+                            (lambda (msg) (when msg (send progress-message set-label msg)))))
         
+        (kill-thread thd)
+        (send progress-frame show #f)
         
         (cond
           [(send pasteboard add-connections filename)
