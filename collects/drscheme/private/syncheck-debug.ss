@@ -7,6 +7,7 @@
   (provide debug-origin)  ;; : syntax [syntax] -> void
                           ;; creates a frame for examining the 
                           ;; origin and source fields of an expanded sexp
+                          ;; also the 'bound-in-source syntax property
   
   (define debug-origin
     (case-lambda 
@@ -19,14 +20,20 @@
       (define info-text (make-object text%))
       (define info-port (make-text-port info-text))
       
+      ;; assume that there aren't any eq? sub structures, only eq? flat stuff (symbols, etc)
+      ;; this is guaranteed by syntax-object->datum/ht
+      (define range-start-ht (make-hash-table))
       (define range-ht (make-hash-table))
+      (define original-output-port (current-output-port))
       (define (range-pretty-print-pre-hook x v)
-        (hash-table-put! range-ht x (send output-text last-position)))
+        (hash-table-put! range-start-ht x (send output-text last-position)))
       (define (range-pretty-print-post-hook x v)
         (hash-table-put! range-ht x 
                          (cons
-                          (hash-table-get range-ht x)
-                          (send output-text last-position))))
+                          (cons
+                           (hash-table-get range-start-ht x)
+                           (send output-text last-position))
+                          (hash-table-get range-ht x (lambda () null)))))
       
       (define (make-modern text)
         (send text change-style
@@ -46,26 +53,29 @@
       
       (define ranges 
         (quicksort 
-         (hash-table-map range-ht cons)
+         (apply append (hash-table-map range-ht (lambda (k vs) (map (lambda (v) (cons k v)) vs))))
          (lambda (x y)
            (<= (- (car (cdr x)) (cdr (cdr x)))
                (- (car (cdr y)) (cdr (cdr y)))))))
       
       (define (show-info stx)
-        (fprintf info-port "source: ~a\nposition: ~s\noffset: ~s\n\n"
+        (fprintf info-port "datum: ~s\nsource: ~a\nposition: ~s\noffset: ~s\nbound-in-source: ~s\n\n"
+                 (syntax-object->datum stx)
                  (syntax-source stx)
                  (syntax-position stx)
-                 (syntax-span stx))
+                 (syntax-span stx)
+                 (syntax-property stx 'bound-in-source))
         (let loop ([origin (syntax-property stx 'origin)])
           (cond
             [(pair? origin)
              (loop (car origin))
              (loop (cdr origin))]
-            [(syntax? origin) 
+            [(syntax? origin)
+             (display "  " info-port)
              (display origin info-port)
              (newline info-port)
              (fprintf info-port
-                      "original? ~a\ndatum:\n~a\n\n"
+                      "  original? ~a\n  datum:\n  ~a\n\n"
                       (and (syntax? origin) (syntax-original? origin))
                       (and (syntax? origin) (syntax-object->datum origin)))]
             [else (void)])))
@@ -96,8 +106,8 @@
               (lambda _
                 (send info-text begin-edit-sequence)
                 (send info-text erase)
-                (for-each (lambda (x) 
-                            (let ([stx (hash-table-get stx-ht (car x))])
+                (for-each (lambda (rng)
+                            (let ([stx (hash-table-get stx-ht (car rng))])
                               (when (syntax? stx)
                                 (show-info stx))))
                           ranges)
@@ -133,7 +143,7 @@
                        res)]
                     [else 
                      (let ([res (syntax-object->datum stx)])
-                       (hash-table-put! ht obj res)
+                       (hash-table-put! ht res stx)
                        res)])))
               ht)))
   
