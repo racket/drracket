@@ -7,11 +7,14 @@
 
 (require-library "url.ss" "net")
 
-(invoke-open-unit/sig
- (require-relative-library "browserr.ss")
- #f
- mzlib:function^
- mzlib:string^
- mzlib:file^
- mzlib:url^
- mred^)
+(begin-elaboration-time
+ (require-library "invoke.ss"))
+
+(define-values/invoke-unit/sig browser^
+  (require-relative-library "browserr.ss")
+  #f
+  mzlib:function^
+  mzlib:string^
+  mzlib:file^
+  mzlib:url^
+  mred^)
