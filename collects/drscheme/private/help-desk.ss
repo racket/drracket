@@ -20,7 +20,7 @@
       (define (get-computer-language-info)
         (list
          (list
-          "Computer Language"
+          "Computer language"
           (format "~s"
                   (send 
                    (drscheme:language-configuration:language-settings-language
