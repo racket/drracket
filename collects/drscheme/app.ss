@@ -120,9 +120,4 @@
 	 [(null? frames) (make-object drscheme:frame:unit-frame% #f #f)]
 	 [else (car frames)])))
     (mred:debug:printf 'super-init "after console")
-    (define eval-string (lambda args (void)))
-
-    (mred:add-preference-callback 'drscheme:project-visible?
-				  (lambda (p v) 
-				    (send console show v) 
-				    #t))))
+    (define eval-string (lambda args (void)))))
