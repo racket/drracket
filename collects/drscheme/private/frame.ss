@@ -313,8 +313,8 @@
 		 (when 
 		  (eq? 'yes 
 		       (message-box 
-			"Update check"
-			"Check for PLT software updates over the Internet?"
+			(string-constant 'vc-update-check)
+		        (string-constant 'vc-check-prompt)
 			this
 			'(yes-no)))
                  (check-version this)))))
