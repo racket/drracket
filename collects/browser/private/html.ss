@@ -1,3 +1,4 @@
+
 (module html mzscheme
   (require (lib "unitsig.ss")
            "sig.ss"
@@ -5,14 +6,15 @@
            (lib "file.ss")
            (lib "list.ss")
            (lib "string.ss")
-           (lib "url.ss" "net"))
-  
+           (lib "url.ss" "net")
+           (lib "class.ss"))
+
   (provide html@)
   
   (define html@
     (unit/sig browser:html^
       (import relative-btree^
-              bullet-snip^
+              bullet^
               mred^)
       
       (define extra-colors-table
@@ -24,7 +26,7 @@
           ("crimson" ,(make-object color% #xDC #x14 #x3C))
           ("darkblue" ,(make-object color% 0  0  100))))
       
-  ;; CACHE
+      ; CACHE
       (define NUM-CACHED 10)
       (define cached (make-vector 10 null))
       (define cached-name (make-vector 10 ""))
@@ -106,7 +108,7 @@
           (let loop ([n 0])
             (cond
               [(= n NUM-CACHED)
-	  ;; Look for item to uncache
+	  ; Look for item to uncache
                (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
                (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
                           (if (= n NUM-CACHED)
@@ -413,10 +415,10 @@
                                                  [else "BUTTON"])
                                                "BUTTON")])))))]
                
-	   ;; Make sure newline strength before pos is count; returns number inserted
+	   ; Make sure newline strength before pos is count; returns number inserted
                [try-newline-whitespace? (lambda (x)
                                           (and (char-whitespace? x)
-                                           ;; exclude &nbsp; from this test
+                                               ; exclude &nbsp; from this test
                                                (not (= (char->latin-1-integer x) 160))))]
                [try-newline
                 (lambda (pos count maybe-tabbed?)
@@ -482,7 +484,7 @@
                               pos)
                           (get-char))]))))]
                
-	   ;; Find next "<", translating whitespace, &# along the way
+	   ; Find next "<", translating whitespace, &# along the way
                [find-bracket
                 (lambda (start-pos dewhite? del-white?)
                   (let find-bracket ([pos start-pos][del-white? del-white?])
@@ -529,7 +531,7 @@
                          (buffer-insert ch pos)
                          (find-bracket (add1 pos) #f)]))))]
                
-	   ;; Read inside of <>; return content-of-string
+	   ; Read inside of <>; return content-of-string
                [read-bracket
                 (lambda ()
                   (let ([first (get-char)])
@@ -545,7 +547,7 @@
                                    (begin
                                      (set! inserted-chars (list* c1 inserted-chars))
                                      #f))))
-		    ;; Comment - special parsing
+		    ; Comment - special parsing
                         (let loop ([l (list #\space #\- #\- #\!)][dash-count 0])
                           (let ([ch (get-char)])
                             (cond
@@ -557,7 +559,7 @@
                               [(char=? #\- ch)
                                (loop (cons ch l) (add1 dash-count))]
                               [else (loop (cons ch l) 0)])))
-		    ;; Not a comment - parse with attention to quotes
+		    ; Not a comment - parse with attention to quotes
                         (let ([done (lambda (name)
                                       (list->string (reverse! name)))])
                           (let loop ([ch first][name null][quotes null])
@@ -575,8 +577,8 @@
                               [else
                                (loop (get-char) (cons ch name) quotes)]))))))]
                
-	   ;; Parse string from inside <> into 
-	   ;; (values html-tag-symbol tag-args-str end-tag?)
+	   ; Parse string from inside <> into 
+	   ; (values html-tag-symbol tag-args-str end-tag?)
                [parse-command
                 (let ([re:start (regexp (format "^([^~a/][^~a/]*)(.*)" whitespaces whitespaces))]
                       [re:end (regexp (format "^/([^~a]*)(.*)" whitespaces))])
@@ -591,9 +593,9 @@
                       (string-lowercase! tag)
                       (values (string->symbol tag) args match-end))))]
                
-	   ;; Given CMD, find </CMD>; remove </CMD> and return position
-	   ;; Translate nested <CMD2> ... </CMD2>
-	   ;; Returns (values end-pos del-white? found-extra-end extra-args)
+	   ; Given CMD, find </CMD>; remove </CMD> and return position
+	   ; Translate nested <CMD2> ... </CMD2>
+	   ; Returns (values end-pos del-white? found-extra-end extra-args)
                [find-end
                 (lambda (tag pos dewhite? del-white? enum-depth)
                   (let-values ([(pos del-white?) (find-bracket pos dewhite? del-white?)])
@@ -777,7 +779,7 @@
                               (change-style delta:fixed pos end-pos)
                               (normal)]
                              [(pre)
-			 ;; If it starts with a newline, delete it:
+			 ; If it starts with a newline, delete it:
                               (let ([end-pos (if (and (< xpos end-pos)
                                                       (eq? (get-character xpos) #\newline))
                                                  (begin
@@ -825,8 +827,8 @@
                               (html-error "unimplemented tag: ~s" tag)
                               (normal)]))))]))]
                
-	   ;; Given pos for open bracket, find end and translate contents.
-	   ;; Return (values position-for-continuing-search del-white?)
+	   ; Given pos for open bracket, find end and translate contents.
+	   ; Return (values position-for-continuing-search del-white?)
                [translate
                 (lambda (pos dewhite? del-white? enum-depth)
                   (let-values ([(cmd) (read-bracket)])
@@ -851,7 +853,7 @@
                    (lambda () (translate pos #t del-white? 0))
                    loop))))
             
-        ;; Install indentation
+        ; Install indentation
             (btree-for-each
              indents
              (lambda (pos data)
@@ -865,7 +867,7 @@
                                         (* 2 (get-bullet-width) depth)
                                         0))))
             
-	;; Install center alignments
+	; Install center alignments
             (btree-for-each
              centers
              (lambda (pos para-len)

@@ -1,6 +1,6 @@
 (module browser-unit mzscheme
   (require (lib "unitsig.ss")
-           (lib "mred-sig.ss" "mred.ss")
+           (lib "mred-sig.ss" "mred")
            (lib "plt-installer-sig.ss" "setup")
            "private/btree.ss"
            "private/bullet.ss"

@@ -1,10 +1,12 @@
 (module bullet mzscheme 
   (require (lib "unitsig.ss")
            (lib "mred-sig.ss" "mred")
-           "sig.ss")
-  (provide bullet-snip@)
+           "sig.ss"
+           (lib "class100.ss")
+           (lib "class.ss"))
   
   (provide bullet@)
+
   (define bullet@
     (unit/sig bullet^
       (import mred^)
@@ -21,8 +23,9 @@
       (define transparent-brush (make-object brush% "WHITE" 'transparent))
       
       (define bullet-snip%
-        (class snip% (depth)
+        (class100 snip% (_depth)
           (inherit set-snipclass set-count get-style)
+          (private-field [depth _depth])
           (private
             [zero (lambda (b) (when b (set-box! b 0)))]
             [get-height (lambda (dc)
@@ -46,9 +49,9 @@
                (let ([y (+ y (ceiling (/ (- (get-height dc) (bullet-size)) 2)))])
                  (let-values ([(draw solid?)
                                (case depth
-                                 [(0) (values (ivar dc draw-ellipse) #t)]
-                                 [(1) (values (ivar dc draw-ellipse) #f)]
-                                 [else (values (ivar dc draw-rectangle) #f)])])
+                                 [(0) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #t)]
+                                 [(1) (values (lambda (x y w h) (send dc draw-ellipse x y w h)) #f)]
+                                 [else (values (lambda (x y w h) (send dc draw-rectangle x y w h)) #f)])])
                    (let ([b (send dc get-brush)])
                      (send dc set-brush
                            (if solid?
@@ -79,7 +82,7 @@
       
       (define bullet-snip-class
         (make-object 
-            (class snip-class% ()
+            (class100 snip-class% ()
               (inherit set-classname)
               (override
                 [read

@@ -9,7 +9,7 @@
     (html-convert
      html-status-handler))
   
-  (define-signature bullet-snip^
+  (define-signature bullet^
     (bullet-snip%
      bullet-size
      get-bullet-width))
