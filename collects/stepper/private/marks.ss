@@ -20,7 +20,7 @@
    mark-binding-value
    mark-binding-binding
    expose-mark
-   ;display-mark
+   display-mark
    lookup-binding
    lookup-binding-list
    debug-key
@@ -134,7 +134,7 @@
                          (mark-binding-value binding)))
                  bindings))))
   
-  '(define (display-mark mark)
+  (define (display-mark mark)
     (let ([exposed (expose-mark mark)])
       (printf "source: ~a~n" (let ([read (cp:read-getter (car exposed))])
                                (and read
