@@ -239,10 +239,15 @@
 	   (lambda (start end url-string)
 	     (let* ([new-link (make-hyperlink start end url-string)])
 	       (set-clickback start end (make-clickback-funct url-string))))]
+
+          ;; remember the directory when the callback is added (during parsing)
+          ;; and restore it during the evaluation of the callback.
 	  [add-scheme-callback
 	   (lambda (start end scheme-string)
-	     (set-clickback start end (lambda (edit start end)
-					(eval-scheme-string scheme-string))))]
+             (let ([dir (current-load-relative-directory)])
+               (set-clickback start end (lambda (edit start end)
+                                          (parameterize ([current-load-relative-directory dir])
+                                            (eval-scheme-string scheme-string))))))]
 	  [eval-scheme-string
 	   (lambda (s)
 	     
@@ -419,6 +424,16 @@
                                 [wait-to-continue (make-semaphore 0)]
                                 [wait-to-break (make-semaphore 0)]
                                 [wait-to-show (make-semaphore 1)]
+                                [directory
+                                 (or (if (and (url? url)
+                                              (string=? "file" (url-scheme url)))
+                                         (let ([path (url-path url)])
+                                           (let-values ([(base name dir?) (split-path path)])
+                                             (if (string? base)
+                                                 base
+                                                 #f)))
+                                         #f)
+                                     (current-load-relative-directory))]
                                 ; Thread to perform the download:
                                 [t (parameterize ([break-enabled #f])
                                      (thread
@@ -433,7 +448,8 @@
                                                               (when e
                                                                 (send e erase)
                                                                 (send e insert s))
-                                                              (semaphore-post wait-to-show))])
+                                                              (semaphore-post wait-to-show))]
+                                                           [current-load-relative-directory directory])
                                               (html-convert p this))))
                                         (set! done? #t)
                                         (semaphore-wait wait-to-show)

@@ -610,7 +610,7 @@
 							(if (exn? exn)
 							    (exn-message exn)
 							    (format "~s" exn))))])
-				      (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
+                                      (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
 			     (when (string? s)
 			       ; Put result back into the input stream:
 			       (set! inserted-chars (append (string->list s) inserted-chars)))
@@ -740,7 +740,7 @@
 			[(h2) (heading delta:h2)]
 			[(h3) (heading delta:h3)]
 			[(a) (let-values ([(url-string label scheme) (parse-href args)])
-			       (cond
+                               (cond
 				[url-string
 				 (add-link pos end-pos url-string)
 				 (make-link-style pos end-pos)]
