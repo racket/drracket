@@ -215,7 +215,8 @@
           (let ([bitmap
                  (with-handlers ([not-break-exn? (lambda (x) (k (void)))])
                    (make-object bitmap%
-                     (build-path (build-path (apply collection-path (cdr bitmap-path)) (car bitmap-path)))))])
+                     (build-path (build-path (apply collection-path (cdr bitmap-path)) (car bitmap-path)))
+		     'unknown/mask))])
             (unless (and (is-a? bitmap bitmap%)
                          (send bitmap ok?))
               (k #f))
@@ -235,7 +236,7 @@
                      (let ([bdc (make-object bitmap-dc%)]
                            [translated-tool-bitmap-y (max 0 (- (send splash-bitmap get-height) tool-bitmap-y tool-bitmap-size))])
                        
-                       ;; truncate the bitmap, if necessary
+                       ;; truncate/expand the bitmap, if necessary
                        (unless (and (= tool-bitmap-size (send bitmap get-width))
                                     (= tool-bitmap-size (send bitmap get-height)))
                          (let ([new-b (make-object bitmap% tool-bitmap-size tool-bitmap-size #f)])
@@ -249,7 +250,10 @@
                                  (max 0 (- (/ tool-bitmap-size 2)
                                            (/ (send bitmap get-width) 2)))
                                  (max 0 (- (/ tool-bitmap-size 2)
-                                           (/ (send bitmap get-height) 2))))
+                                           (/ (send bitmap get-height) 2)))
+				 'solid
+				 (make-object color% "black")
+				 (send bitmap get-loaded-mask))
                            (send bdc set-bitmap #f)
                            (set! bitmap new-b)))
                        
