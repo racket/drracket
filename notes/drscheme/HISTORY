@@ -1,3 +1,26 @@
+The exp-tagged source (in CVS) for DrScheme is now version 
+103d103.
+
+ PRS
+ 
+   1772: Unexpected (read-char) behavior-one problem on MacOS, a different one on Unix
+   1774: need to define set-first! and set-rest!
+   1780: help-desk allows blank descriptions and steps to reproduce 
+   
+ FUNCTIONALITY CHANGES
+ 
+ - the filename button (in the top right of the drs frame)
+   now pops up a menu of the directories
+   that contain the saved file's directories. Choose one
+   to open a `get-file' dialog in that directory.
+ 
+ - teaching language's primitives are now keywords.
+   This means that functions like `length' cannot be redefined
+   in the teaching languages. This change was made to
+   be compatible with the stepper.
+ 
+ - added `clear-annotations' to drscheme:rep:context<%>
+   
 103d102
 
  PRS
