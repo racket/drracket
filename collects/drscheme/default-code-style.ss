@@ -16,6 +16,7 @@
           (list 'bound-variable (make-code-style "black" #f #f #t))
           (list 'primitive (make-code-style "navy" #f #f #f))
           (list 'constant (make-code-style '(51 135 39) #f #f #f))
+          (list 'tail-call (make-code-style "black" #f #t #f))
           (list 'base (make-code-style "brown" #f #f #f))))
   
   ;; color-default-code-styles : (listof (list symbol code-style))
@@ -25,4 +26,5 @@
           (list 'bound-variable (make-code-style "navy" #f #f #f))
           (list 'primitive (make-code-style "navy" #f #f #f))
           (list 'constant (make-code-style '(51 135 39) #f #f #f))
+          (list 'tail-call (make-code-style "orange" #f #t #f))
           (list 'base (make-code-style "brown" #f #f #f)))))
