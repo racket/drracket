@@ -359,7 +359,7 @@
             (reset-highlighting)
             (super-after-delete x y))
           
-          (apply super-init args)))
+          (apply super-make-object args)))
       
       (define definitions-super%
         (program-editor-mixin
@@ -420,7 +420,7 @@
           
           (rename [super-after-insert after-insert]
                   [super-after-delete after-delete])
-          (private
+          (private-field
             [needs-execution-state #f]
             [already-warned-state #f]
             [execute-language (preferences:get drscheme:language:settings-preferences-symbol)])
@@ -444,13 +444,13 @@
                (set! already-warned-state #t))])
           (override
             [after-insert
-             (lambda x
+             (lambda (x y)
                (set! needs-execution-state #t)
-               (apply super-after-insert x))]
+               (super-after-insert x y))]
             [after-delete
-             (lambda x
+             (lambda (x y)
                (set! needs-execution-state #t)
-               (apply super-after-delete x))])
+               (super-after-delete x y))])
           
           (inherit get-filename)
           (private-field
@@ -654,7 +654,7 @@
                              height))]
               [else (super-on-event evt)]))
           
-          (super-init parent)
+          (super-make-object parent)
           
           (define-values (width height) (drscheme:frame:calc-button-min-sizes (get-dc) label))
           (min-width width)
@@ -682,11 +682,12 @@
                                (length (send unit-frame get-interactions-canvases)))
                             (= 2 (length percentages)))
                    (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
-          (sequence (apply super-init args))))
+          (sequence 
+            (apply super-init args))))
       
       (define frame%
         (class100* super-frame% (drscheme:rep:context<%>) (filename)
-          (inherit set-label-prefix show-menu
+          (inherit set-label-prefix get-show-menu
                    show get-menu%
                    get-area-container
                    update-info
@@ -717,7 +718,7 @@
              (lambda ()
                (send definitions-text clear-annotations))])
           
-          (public-field
+          (private-field
             [definitions-item #f]
             [interactions-item #f]
             ;[imports-id #f]
@@ -728,7 +729,7 @@
 	  (public
             [set-save-init-shown? (lambda (x) (set! save-init-shown? x))])
           
-          (public-field
+          (private-field
             [canvas-show-mode #f]
             [allow-split? #f]
             [forced-quit? #f])
@@ -838,7 +839,7 @@
                          [back (substring label 4 (string-length label))])
                      (send item set-label (string-append new-front back))))))])
           
-          (private
+          (private-field
             [file-menu:print-transcript-item #f])
           
           (rename
@@ -1033,7 +1034,8 @@
                               (lambda ()
                                 (let ([edit (get-edit-target-object)])
                                   (enable (and edit (is-a? edit editor<%>)))))])
-                           (sequence (apply super-init args)))])
+                           (sequence 
+                             (apply super-init args)))])
                  (make-object c% "Insert Fraction..." edit-menu
                    (lambda (menu evt)
                      (let ([edit (get-edit-target-object)])
@@ -1060,7 +1062,7 @@
                      ))]
             [update-shown/ensure-one
              (lambda (last-one)
-               (when (andmap hidden? (get-sub-items))
+               (when (andmap (lambda (x) (hidden? x)) (get-sub-items))
                  (toggle-show/hide last-one))
                (update-shown))])
           (override
@@ -1094,11 +1096,11 @@
                  (for-each
                   (lambda (get-item)
                     (send (get-item) enable defs-show?))
-                  (list file-menu:get-revert-item
-                        file-menu:get-save-item
-                        file-menu:get-save-as-item
-                        ;file-menu:save-as-text-item ; Save As Text...
-                        file-menu:get-print-item)))
+                  (list (lambda (x) (file-menu:get-revert-item x))
+                        (lambda (x) (file-menu:get-save-item x))
+                        (lambda (x) (file-menu:get-save-as-item x))
+                        ;(lambda (x) (file-menu:save-as-text-item x)) ; Save As Text...
+                        (lambda (x) (file-menu:get-print-item x)))))
                (send file-menu:print-transcript-item enable
                      (not (hidden? interactions-item))))]
             
@@ -1111,7 +1113,7 @@
                (send interactions-text on-close)
                (super-on-close))])
           
-          (public-field
+          (private-field
             [running? #t])
 	  (public
             [execute-callback
@@ -1157,7 +1159,7 @@
             [get-editor (lambda () definitions-text)]
             [get-canvas (lambda () definitions-canvas)])
           
-          (private
+          (private-field
             [definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
             [interactions-text (make-object 
                                    (drscheme:get/extend:get-interactions-text%)
@@ -1230,7 +1232,7 @@
             (set! definitions-item
                   (make-object menu:can-restore-menu-item%
                     "Hide &Definitions"
-                    show-menu
+                    (get-show-menu)
                     (lambda (_1 _2) 
                       (toggle-show/hide definitions-item)
                       (update-shown/ensure-one interactions-item))
@@ -1239,7 +1241,7 @@
             (set! interactions-item
                   (make-object menu:can-restore-menu-item%
                     "Show &Interactions"
-                    show-menu
+                    (get-show-menu)
                     (lambda (_1 _2) 
                       (toggle-show/hide interactions-item)
                       (update-shown/ensure-one definitions-item))
@@ -1253,7 +1255,7 @@
             (send name-panel stretchable-width #f)
             (send name-panel stretchable-height #f))
           
-          (private
+          (private-field
             [definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
                                   resizable-panel)]
             [definitions-canvases (list definitions-canvas)]
@@ -1261,8 +1263,8 @@
                                    resizable-panel)]
             [interactions-canvases (list interactions-canvas)])
           (public
-            [get-definitions-canvas (labda () definitions-canvas)]
-            [get-interactions-canvas (labda () interactions-canvas)])
+            [get-definitions-canvas (lambda () definitions-canvas)]
+            [get-interactions-canvas (lambda () interactions-canvas)])
           
           (sequence
             (send interactions-text auto-wrap #t)
@@ -1302,7 +1304,7 @@
             (update-teachpack-menu
              (preferences:get 'drscheme:teachpack-file)))
           
-          (public-field
+          (private-field
             [stop-execute-button (void)]
             [execute-button (void)]
             [button-panel (make-object horizontal-panel% top-panel)])

@@ -2,6 +2,7 @@
 (module frame mzscheme
   (require (lib "unitsig.ss")
            (lib "class.ss")
+           (lib "class100.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -15,6 +16,7 @@
       (import (drscheme:unit : drscheme:unit^)
               (drscheme:app : drscheme:app^)
               (help : drscheme:help-interface^))
+      (rename [-mixin mixin])
       
       (define button-label-font
         (send the-font-list find-or-create-font
@@ -104,7 +106,8 @@
                      (if inverted? drop-shadow-size 1))))))
       
       (define name-message%
-        (class canvas% (parent)
+        (class canvas% 
+          (init-field parent)
           (inherit popup-menu get-dc get-size get-client-size min-width min-height
 		   stretchable-width stretchable-height
 		   get-top-level-window)
@@ -197,7 +200,7 @@
                 (when (and (> w 5) (> h 5))
                   (draw-button-label dc label w h inverted?)))))
           
-          (super-init parent)
+          (super-make-object parent)
           (update-min-sizes)
           (stretchable-width #f)
           (stretchable-height #f)))
@@ -390,7 +393,7 @@
           
           (rename [super-make-root-area-container make-root-area-container])
           (inherit get-info-panel)
-          (public
+          (private-field
             [root-panel #f])
           (override
             [make-root-area-container
@@ -400,9 +403,10 @@
                  (set! root-panel s-root)
                  root))])
           
-          (public-field
-            [show-menu #f])
+          (private-field
+           [show-menu #f])
           (public
+            [get-show-menu (lambda () show-menu)]
             [update-shown (lambda () (void))])
           
           (private
@@ -413,9 +417,9 @@
                      (make-object bitmap% p 'gif)
                      string)))])
           (private-field
-            [currently-running? #f]
-            [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" "not running")]
-            [active-bitmap (get-bitmap/string "snoopy-active.gif" "running")])
+           [currently-running? #f]
+           [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" "not running")]
+           [active-bitmap (get-bitmap/string "snoopy-active.gif" "running")])
           (public
             [running
              (lambda ()

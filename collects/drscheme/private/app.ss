@@ -15,11 +15,12 @@
               (drscheme:frame : drscheme:frame^)
               (help-desk : drscheme:help-interface^))
       (define about-frame%
-        (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (main-text)
+        (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (_main-text)
+          (private-field [main-text _main-text])
           (private
             [edit-menu:do 
              (lambda (const)
-	       (send main-text do-edit-operation const)))])
+	       (send main-text do-edit-operation const))])
           (override
             [file-menu:create-revert? (lambda () #f)]
             [file-menu:create-save? (lambda () #f)]
@@ -119,13 +120,13 @@
         (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
 	  (init-rest args)
 
-          (override edit-menu:undo
-		    edit-menu:redo
-		    edit-menu:cut
-		    edit-menu:copy
-		    edit-menu:paste
-		    edit-menu:clear
-		    edit-menu:select-all
+          (override edit-menu:create-undo?
+		    edit-menu:create-redo?
+		    edit-menu:create-cut?
+		    edit-menu:create-copy?
+		    edit-menu:create-paste?
+		    edit-menu:create-clear?
+		    edit-menu:create-select-all?
 		    edit-menu:between-select-all-and-find
 		    edit-menu:between-find-and-preferences
 		    edit-menu:between-redo-and-cut
@@ -136,13 +137,13 @@
           (define (edit-menu:create-copy?) #f)
           (define (edit-menu:create-paste?) #f)
           (define (edit-menu:create-clear?) #f)
-          (define (edit-menu:create-select?)-all #f)
+          (define (edit-menu:create-select-all?) #f)
           (define (edit-menu:between-select-all-and-find x) (void))
           (define (edit-menu:between-find-and-preferences x) (void))
           (define (edit-menu:between-redo-and-cut x) (void))
           (define (file-menu:between-print-and-close x) (void))
           
-          (apply super-init args)))
+          (apply super-make-object args)))
       
       (define (invite-tour)
         (let* ([f (make-object tour-frame% "Welcome to DrScheme")]
