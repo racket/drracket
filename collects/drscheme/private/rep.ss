@@ -424,7 +424,7 @@ TODO
           
           get-prompt
           insert-prompt))
-
+      
       (define text-mixin
         (mixin ((class->interface text%)
                 text:ports<%>
@@ -456,6 +456,7 @@ TODO
                    get-err-port
                    get-extent
                    get-in-port
+                   get-in-box-port
                    get-insertion-point
                    get-out-port
                    get-snip-position
@@ -477,6 +478,7 @@ TODO
                    position-line
                    position-paragraph
                    release-snip
+                   reset-input-box
                    reset-region
                    run-after-edit-sequence
                    scroll-to-position
@@ -712,70 +714,6 @@ TODO
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
-          ;;;              User Std Input                ;;;
-          ;;;                                            ;;;
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-          (define current-input-text% (text:ports-mixin text:standard-style-list%))
-          
-          (define current-input-text #f)
-          (define current-input-port-args #f)
-          (define current-text-inserted? #f)
-          
-          (define user-input-port
-            (let* ([read-proc 1]
-                   [peek-proc 2]
-                   [close-proc 3]
-                   [progress-evt-proc 4]
-                   [commit-proc 5]
-                   [location-proc 6]
-                   [call
-                    (λ (i . args)
-                      (apply (list-ref current-input-port-args i) args))])
-              (make-input-port this
-                               (λ (bstr)
-                                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                                   (queue-callback
-                                    (λ ()
-                                      (show-input-text))))
-                                 (call read-proc bstr))
-                               (λ (bstr num p-evt)
-                                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                                   (queue-callback
-                                    (λ ()
-                                      (show-input-text))))
-                                 (call peek-proc bstr num p-evt))
-                               (λ () (call close-proc))
-                               (λ () (call progress-evt-proc))
-                               (λ (kr evt done-evt) (call commit-proc kr evt done-evt))
-                               (λ () (call location-proc)))))
-          
-          (define/private (show-input-text)
-            (unless current-text-inserted?
-              (set! current-text-inserted? #t)
-              (let ([locked? (is-locked?)])
-                (let ([es (new editor-snip% (editor current-input-text))])
-                  (let ([canvases (get-canvases)])
-                    (for-each (λ (canvas) (send canvas add-wide-snip es))
-                              canvases))
-                  (lock #f)
-                  (unless (= (get-insertion-point)
-                             (paragraph-start-position (position-paragraph (get-insertion-point))))
-                    (insert-between "\n"))
-                  (insert-between es)
-                  (insert-between "\n")
-                  (set-insertion-point (last-position))
-                  (set-unread-start-point (last-position))
-                  (set-caret-owner es 'immediate)
-                  (lock locked?)))))
-          
-          (define/private (reset-input-text)
-            (set! current-text-inserted? #f)
-            (set! current-input-text (new current-input-text%))
-            (set! current-input-port-args (send current-input-text get-in-port-args)))
-              
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;;                                            ;;;
           ;;;                Evaluation                  ;;;
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -883,7 +821,8 @@ TODO
           (define/public (get-prompt) "> ")
           (define/public (insert-prompt)
             (set! inserting-prompt? #t)
-            (reset-input-text)
+            (begin-edit-sequence)
+            (reset-input-box)
             (let* ([pmt (get-prompt)]
                    [prompt-space (string-length pmt)])
               
@@ -900,6 +839,7 @@ TODO
                 (set! prompt-position sp)
                 (reset-region sp 'end)
                 (when (is-frozen?) (thaw-colorer))))
+            (end-edit-sequence)
             (set! inserting-prompt? #f))
           
           (field [submit-predicate
@@ -1243,7 +1183,7 @@ TODO
               (current-output-port (get-out-port))
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
-              (current-input-port user-input-port)
+              (current-input-port (get-in-box-port))
               ;(current-input-port (make-input-port #f (λ (bytes) eof) #f void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
@@ -1325,6 +1265,7 @@ TODO
             ;; clear out repl first before doing any work.
             (begin-edit-sequence)
             (freeze-colorer)
+            (reset-input-box)
             (delete (paragraph-start-position 1) (last-position))
             (end-edit-sequence)
             
@@ -1501,8 +1442,7 @@ TODO
           
           (super-new)
           (auto-wrap #t)
-          (set-styles-sticky #f)
-          (reset-input-text)))
+          (set-styles-sticky #f)))
       
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
