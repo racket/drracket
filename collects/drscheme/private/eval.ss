@@ -46,8 +46,8 @@
                    (lambda ()
                      (let ([read-thnk 
                             (if complete-program?
-                                (send language front-end/complete-program port src settings teachpack-cache)
-                                (send language front-end/interaction port src settings teachpack-cache))])
+                                (send language front-end/complete-program port settings teachpack-cache)
+                                (send language front-end/interaction port settings teachpack-cache))])
                        (let loop ()
                          (let ([in (read-thnk)])
                            (cond

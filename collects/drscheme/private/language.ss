@@ -480,10 +480,10 @@
                                               (get-module)
                                               (get-transformer-module)
                                               run-in-user-thread))
-          (define/public (front-end/complete-program port source settings teachpack-cache)
-            (module-based-language-front-end port source (get-reader)))
-          (define/public (front-end/interaction port source settings teachpack-cache)
-            (module-based-language-front-end port source (get-reader)))
+          (define/public (front-end/complete-program port settings teachpack-cache)
+            (module-based-language-front-end port (get-reader)))
+          (define/public (front-end/interaction port settings teachpack-cache)
+            (module-based-language-front-end port (get-reader)))
           (define/public (create-executable setting parent program-filename)
             (create-module-based-language-executable parent 
                                                      program-filename
@@ -946,10 +946,10 @@
 		 (namespace-require module-spec))
 	     (namespace-transformer-require transformer-module-spec)))))
 
-      ;; module-based-language-front-end : (port source reader -> (-> (union sexp syntax eof)))
+      ;; module-based-language-front-end : (port reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
-      (define (module-based-language-front-end port source reader)
-        (lambda () (reader source port (list 1 0 0))))
+      (define (module-based-language-front-end port reader)
+        (lambda () (reader "I don't know!" port (list 1 0 0))))
 
                                                                       
                                              ;                        

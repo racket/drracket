@@ -1822,7 +1822,6 @@ tab panels new behavior:
                                0)])
                 (send definitions-text split-snip start)
                 (send interactions-text evaluate-from-port
-                      this
                       (open-input-text-editor definitions-text start)
                       #t))
               (send interactions-text clear-undos)))

@@ -935,9 +935,9 @@ TODO
             ;; clears out the extra eof, if one is still there after evaluation
             (send-eof-to-in-port)
             (send-eof-to-in-port)
-            (evaluate-from-port this (get-in-port) #f))
+            (evaluate-from-port (get-in-port) #f))
           
-          (define/public (evaluate-from-port src port complete-program?) ; =Kernel=, =Handler=
+          (define/public (evaluate-from-port port complete-program?) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([settings (current-language-settings)]
@@ -945,14 +945,16 @@ TODO
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
                        (if complete-program?
-                           (send lang front-end/complete-program port src settings user-teachpack-cache)
-                           (send lang front-end/interaction port src settings user-teachpack-cache))]
+                           (send lang front-end/complete-program port settings user-teachpack-cache)
+                           (send lang front-end/interaction port settings user-teachpack-cache))]
                       [already-exited? #f]
+                      [successful? #f]
                       [got-eof? #f])
                  (let loop ()
                    (dynamic-wind
                     void
                     (lambda ()
+                      (set! successful? #f)
                       (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                         (cond
                           [(eof-object? sexp/syntax/eof)
@@ -973,9 +975,11 @@ TODO
                                (lambda ()
                                  (eval-syntax sexp/syntax/eof))
                                (lambda x
-                                 (display-results x)))))])))
+                                 (display-results x)))))
+                           (set! sucessful? #t)])))
                     (lambda ()
                       (cond
+                        [(not successful?) (void)]
                         [got-eof?
                          (unless already-exited?
                            (set! already-exited? #t)

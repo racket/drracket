@@ -122,9 +122,9 @@
           
           (define/override (get-style-delta) module-language-style-delta)
           
-          (define/override (front-end/complete-program input settings teachpack-cache)
-            (let ([super-thunk (super-front-end/complete-program input settings teachpack-cache)]
-                  [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
+          (define/override (front-end/complete-program port settings teachpack-cache)
+            (let ([super-thunk (super-front-end/complete-program port settings teachpack-cache)]
+                  [filename (get-filename port)]
                   [module-name #f])
               (lambda ()
                 (set! iteration-number (+ iteration-number 1))
@@ -421,11 +421,14 @@
                                "only module expressions are allowed"
                                unexpanded-stx)]))
 
-      ;; get-definitions-filename : (union text% #f) -> (union string #f)
+      ;; get-filename : port -> (union string #f)
       ;; extracts the file the definitions window is being saved in, if any.
-      (define (get-definitions-filename definitions-text)
-        (and (is-a? definitions-text text%)
-             (let ([canvas (send definitions-text get-canvas)])
+      (define (get-filename port)
+        (let ([source #;(port-source port)
+                      #f])
+          (cond
+            [(is-a? source text%)
+             (let ([canvas (send source get-canvas)])
                (and canvas
                     (let ([frame (send canvas get-top-level-window)])
                       (and (is-a? frame drscheme:unit:frame%)
@@ -435,7 +438,9 @@
                                                   b)])
                              (if (unbox b)
                                  #f
-                                 filename))))))))
+                                 filename))))))]
+            [(string? source) source]
+            [else #f])))
       
       ;; check-filename-matches : string datum syntax -> void
       (define re:check-filename-matches (regexp "^(.*)\\.[^.]*$"))
