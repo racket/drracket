@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
-           (lib "browser.ss" "net")
+           (lib "external.ss" "browser")
            (lib "help-desk.ss" "help")
            (lib "framework.ss" "framework")
            (lib "class.ss")

@@ -4,7 +4,7 @@
            (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "mred.ss" "mred")
-           (lib "browser.ss" "net")
+           (lib "external.ss" "browser")
            "drsig.ss"
            "../acks.ss"
            (lib "framework.ss" "framework")

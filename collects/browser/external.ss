@@ -1,4 +1,4 @@
-(module browser mzscheme
+(module external mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "mred.ss" "mred")
            (lib "class.ss")
@@ -13,6 +13,7 @@
            (rename raw:browser-preference? browser-preference?)
            update-browser-preference
 	   install-help-browser-preference-panel
+	   add-to-browser-prefs-panel
            tool@)
   
   ; : -> bool
@@ -125,19 +126,29 @@
 	(map (lambda (f) (f)) callbacks)
 	ok?)))
   
-  (define prefs-installed? #f)
+  (define panel-installed? #f)
+  (define prefs-panel #f)
   (define synchronized? #f)
+  (define additions null)
 
   (define (install-help-browser-preference-panel)
-    (unless prefs-installed?
-      (set! prefs-installed? #t)
+    (unless panel-installed?
+      (set! panel-installed? #t)
       (make-help-browser-preference-panel
        #t #t
        (lambda (f) (fw:preferences:add-panel
 		    (string-constant browser)
 		    (lambda (parent)
 		      (let-values ([(panel cbs) (f parent)])
+		        (set! prefs-panel panel)
+			(map (lambda (f) (f panel)) additions)
+			(set! additions null)
 			panel)))))))
+
+  (define (add-to-browser-prefs-panel proc)
+    (if prefs-panel
+	(proc prefs-panel)
+	(set! additions (append additions (list proc)))))
   
   (define (make-help-browser-preference-panel set-help? ask-later? mk)
     
@@ -145,7 +156,7 @@
      (lambda (parent)
        (define callbacks null)
        (let ([pref-panel (instantiate vertical-panel% ()
-				       (parent parent) (alignment '(center center)))])
+				       (parent parent) (alignment '(left center)))])
 
 	 ;; -------------------- external browser for Unix --------------------
 	 (when (unix-browser?)

@@ -25,7 +25,7 @@
            (lib "framework.ss" "framework")
 	   (lib "moddep.ss" "syntax")
            (lib "toplevel.ss" "syntax")
-           (lib "browser.ss" "net"))
+           (lib "external.ss" "browser"))
   
   (provide rep@)
   
