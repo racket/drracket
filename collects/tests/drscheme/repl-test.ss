@@ -21,8 +21,8 @@
                        ;; only applies to the debug tests
                        
                        source-location ;; : (union 'definitions
-                       ;;          'interactions
-                       ;;          (cons loc loc))
+                       ;;                          'interactions
+                       ;;                          (cons loc loc))
 		       ;; if cons, the car and cdr are the start and end positions resp.
 		       ;; if 'interactions, no source location and
 		       ;;    the focus must be in the interactions window
@@ -45,6 +45,57 @@
   
   (define test-data
     (list
+
+     ;; XML tests
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>")
+      "(a ())"
+      "(a ())"
+      #f
+      'definitions
+      #f
+      #f
+      #f)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Box")
+        "1")
+      "(a () 1)"
+      "(a () 1)"
+      #f
+      'definitions
+      #f
+      #f
+      #f)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Splice Box")
+        "'(1)")
+      "(a () 1)"
+      "(a () 1)"
+      #f
+      'definitions
+      #f
+      #f
+      #f)
+     
+     (make-test
+      '(("Special" "Insert XML Box")
+        "<a>"
+        ("Special" "Insert Scheme Splice Box")
+        "1")
+      "scheme-splice-box: expected a list, found: 1"
+      "scheme-splice-box: expected a list, found: 1"
+      #t
+      'interactions
+      #f
+      #f
+      #f)
      
      ;; basic tests
      (make-test "("
@@ -306,8 +357,6 @@
                 #f
                 #f)
      
-     
-     
      (make-test
       "(define s (make-semaphore 0))\n(queue-callback\n(lambda ()\n(dynamic-wind\nvoid\n(lambda () (car))\n(lambda () (semaphore-post s)))))\n(yield s)"
       "car: expects 1 argument, given 0"
@@ -503,10 +552,22 @@
             [(eq? program 'fraction-sum)
              (setup-fraction-sum-interactions)]
             [(eq? program 'abc-text-box)
-             (test:menu-select "Edit" "Insert Text Box")
+             (test:menu-select "Special" "Insert Text Box")
              (test:keystroke #\a)
              (test:keystroke #\b)
-             (test:keystroke #\c)])
+             (test:keystroke #\c)]
+            [(list? program)
+             (for-each
+              (lambda (item)
+                (cond
+                  [(string? item) (insert-string item)]
+                  [(eq? item 'left)
+                   (send definitions-text 
+                         set-position
+                         (- (send definitions-text get-start-position) 1)
+                         (- (send definitions-text get-start-position) 1))]
+                  [(pair? item) (apply test:menu-select item)]))
+              program)])
 	  
           (do-execute drscheme-frame #f)
           (when breaking-test?

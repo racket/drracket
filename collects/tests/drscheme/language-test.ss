@@ -927,7 +927,7 @@
       
       ;; setup comment box
       (clear-definitions drs)
-      (fw:test:menu-select "Edit" "Insert Text Box")
+      (fw:test:menu-select "Special" "Insert Text Box")
       (fw:test:keystroke #\a)
       (fw:test:keystroke #\b)
       (fw:test:keystroke #\c)
