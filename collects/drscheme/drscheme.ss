@@ -1,9 +1,6 @@
 (module drscheme mzscheme
   (define debugging? (getenv "PLTDRDEBUG"))
   
-  (define profiling? (and debugging?
-                          (equal? (getenv "PLTDRDEBUG") "profile")))
-  
   (define install-cm? (and (not debugging?)
                            (getenv "PLTDRCM")))
   
@@ -11,22 +8,22 @@
                          (equal? (getenv "PLTDRCM") "trace")))
   
   (when debugging?
-    (printf "PLTDRDEBUG: installing errortrace\n")
-    (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
-    (when profiling?
-      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
-      (let ([enable-initially?
-             (with-handlers ([exn:fail? (lambda (x) #f)])
-               (display "PLTDRDEBUG: Turn on profiling during startup? [y/N] ")
-               (flush-output)
-               (let ([l (read-line)])
-                 (and (string? l)
-                      (regexp-match "[yY]" l))))])
-        (printf "PLTDRDEBUG: turning on profiling ")
-        (if enable-initially?
-            (printf "(initially recording)\n")
-            (printf "(not during startup)\n"))
-        ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-record-enabled) enable-initially?))))
+    (printf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
+    (use-compiled-file-paths (list (build-path "compiled" "errortrace")))
+    (let-values ([(make-compilation-manager-load/use-compiled-handler
+                   manager-trace-handler)
+                  (parameterize ([current-namespace (make-namespace)])
+                    ((dynamic-require '(lib "cm.ss") 'current-managed-zo-compile)
+                     (dynamic-require '(lib "zo-compile.ss" "errortrace") 'zo-compile))
+                    (values
+                     (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)
+                     (dynamic-require '(lib "cm.ss") 'manager-trace-handler)))])
+      (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
+      (when cm-trace?
+        (manager-trace-handler
+         (lambda (x) (display x) (newline)))))
+    (error-display-handler (dynamic-require '(lib "errortrace-lib.ss" "errortrace")
+                                            'errortrace-error-display-handler)))
   
   (when install-cm?
     (printf "PLTDRCM: installing compilation manager\n")
@@ -41,8 +38,4 @@
         (manager-trace-handler
          (lambda (x) (display x) (newline))))))
 
-  (cond
-    [debugging? 
-     (dynamic-require '(lib "drscheme-debug.ss" "drscheme" "private") #f)]
-    [else
-     (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f)]))
+  (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f))

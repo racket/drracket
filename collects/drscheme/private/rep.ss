@@ -929,6 +929,7 @@ TODO
             (send context enable-evaluation))
           
           (define/override (on-submit)
+            (car)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
             ;; an eof really does come thru the calls to `read'. handle-repl-evaluation
@@ -976,7 +977,7 @@ TODO
                                  (eval-syntax sexp/syntax/eof))
                                (lambda x
                                  (display-results x)))))
-                           (set! sucessful? #t)])))
+                           (set! successful? #t)])))
                     (lambda ()
                       (cond
                         [(not successful?) (void)]

@@ -633,9 +633,7 @@
                          (cond
                            [(and (file-exists? file/dir)
                                  (or (not filter)
-                                     (if (regexp? filter)
-                                         (regexp-match filter (path->string file/dir))
-                                         (regexp-match filter (path->bytes file/dir)))))
+                                     (regexp-match filter (path->string file/dir))))
                             (set! next-thunk
                                   (lambda ()
                                     (process-dir-contents (cdr contents) k)))
