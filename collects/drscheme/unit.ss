@@ -469,7 +469,7 @@
 	     (drscheme:language:fill-language-menu language-menu)
 	     
 	     (send* scheme-menu
-	       (append-item "Restart"
+	       (append-item "Execute"
 			    (lambda ()
 			      (execute-callback))
 			    "Restart the program in the definitions window" #f "t")
