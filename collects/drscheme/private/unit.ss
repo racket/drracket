@@ -2401,7 +2401,7 @@ tab panels new behavior:
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
-                       (send edit insert #;"λ" (new lambda-snip%))))
+                       (send edit insert "\u03BB")))
                    #t)]
                 [insert-large-semicolon-letters
                  (lambda ()
