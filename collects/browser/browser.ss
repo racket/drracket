@@ -2,7 +2,7 @@
 (require-library "url.ss" "net")
 (load-relative "html.ss")
 
-(define history-limit 40)
+(define history-limit 20)
 
 (define-struct hyperlink (anchor-start 
 			  anchor-end
@@ -20,14 +20,10 @@
 
       (private
 	[title #f]
-	[htmling? #f]
-	[reverse-links
-	 (lambda ()
-	   (set! hyperlinks-list (reverse! hyperlinks-list)))])
+	[htmling? #f])
       
       (public  
 	[hypertags-list (list (make-hypertag "top" 0))]
-	[hyperlinks-list ()]
 	[map-shift-style 
 	 (lambda (start end shift-style)
 	   (let loop ([pos start])
@@ -46,7 +42,7 @@
 	 (lambda (start end)
 	   (map-shift-style start end 
 			    (send (get-style-list) find-named-style "h-link-style")))]
-	[get-url (lambda () url)]
+	[get-url (lambda () (and (url? url) url))]
 	[make-clickback-funct
 	 (lambda (url-string)
 	   (lambda (edit start end)
@@ -59,16 +55,7 @@
 						  (exn-message x)
 						  x))))])
 	       (send (get-canvas) goto-url url-string (get-url)))))]	
-	[install-clickbacks 
-	 (lambda ()
-	   (let install-loop ([links-left hyperlinks-list])
-	     (unless (null? links-left)
-	       (set-clickback  (hyperlink-anchor-start (car links-left))
-			       (hyperlink-anchor-end (car links-left))
-			       (make-clickback-funct
-				(hyperlink-url-string (car links-left))))
-	       (install-loop (cdr links-left)))))]
-	[get-title (lambda () (or title (url->string url)))]
+	[get-title (lambda () (or title (and (url? url) (url->string url))))]
 	[set-title (lambda (t) (set! title t))])
       (public
 	[hyper-delta (make-object style-delta% 'change-underline #t)])
@@ -115,38 +102,45 @@
 	[add-link 
 	 (lambda (start end url-string)
 	   (let* ([new-link (make-hyperlink start end url-string)])
-	     <(set-clickback start end 
-			    (make-clickback-funct url-string))
-	     (set! hyperlinks-list
-		   (cons new-link hyperlinks-list))))])
+	     (set-clickback start end (make-clickback-funct url-string))))]
+	[add-scheme-callback
+	 (lambda (start end scheme-string)
+	   (set-clickback start end (lambda (edit start end)
+				      (eval-scheme-string scheme-string))))]
+	[eval-scheme-string
+	 (lambda (s)
+	   (let ([v (eval-string s)])
+	     (when (string? v)
+	       (send (get-canvas) goto-url (open-input-string v) (get-url)))))])
       (sequence
 	(super-init)
 	(add-h-link-style)
-	(let* ([p (get-pure-port url)])
-	  (dynamic-wind (lambda ()
-			  (begin-busy-cursor)
-			  (begin-edit-sequence #f))
-			(lambda () 
-			  (set! htmling? #t)
-			  (erase)
-			  (clear-undos)
-			  (html-convert p this))
-			(lambda ()
-			  (end-edit-sequence)
-			  (end-busy-cursor)
-			  (set! htmling? #f)
-			  (close-input-port p)))
-	  (reverse-links)
-	  (set-modified #f)
-	  (install-clickbacks)
-	  (auto-wrap #t)
-	  (lock #t))))))
+	(when url
+	  (let* ([p (if (port? url)
+			url
+			(get-pure-port url))])
+	    (dynamic-wind (lambda ()
+			    (begin-busy-cursor)
+			    (begin-edit-sequence #f))
+			  (lambda () 
+			    (set! htmling? #t)
+			    (erase)
+			    (clear-undos)
+			    (html-convert p this))
+			  (lambda ()
+			    (end-edit-sequence)
+			    (end-busy-cursor)
+			    (set! htmling? #f)
+			    (close-input-port p)))
+	    (set-modified #f)
+	    (auto-wrap #t)
+	    (lock #t)))))))
 
 (define hyper-text% (hyper-text-mixin text%))
 
 (define (hyper-canvas-mixin super%)
   (class super% args
-    (inherit get-editor set-editor refresh get-top-level-window)
+    (inherit get-editor set-editor refresh get-parent)
     (public
       [make-editor (lambda (url) (make-object hyper-text% url))]
       [current-page
@@ -158,17 +152,17 @@
 		  (send e get-visible-position-range sbox ebox)
 		  (list e (unbox sbox) (unbox ebox))))))]
       [goto-url
-       (lambda (url-string relative)
-	 (let* ([url (if (url? url-string)
-			 url-string
+       (lambda (url relative)
+	 (let* ([url (if (or (url? url) (port? url))
+			 url
 			 (if relative
 			     (combine-url/relative 
 			      relative
-			      url-string)
-			     (string->url url-string)))]
+			      url)
+			     (string->url url)))]
 		[e (make-editor url)]
-		[tag-pos (send e find-tag (url-fragment url))])
-	   (set-page (list e (or tag-pos 0) (send e last-position)) (get-editor))))]
+		[tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+	   (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
       [set-page
        (lambda (page notify?)
 	 (let ([e (car page)]
@@ -180,29 +174,29 @@
 	   (when curr
 	     (let ([wbox (box 0)])
 	       (send curr get-view-size wbox (box 0))
-	       (send e set-max-width (unbox wbox))))
+	       (when (send e auto-wrap)
+		 (send e set-max-width (unbox wbox)))))
 	   (send e begin-edit-sequence)
 	   (when notify?
-	     (send (get-top-level-window) leaving-page current (list e 0 0)))
-	   (set-editor e (or (not current) (and (zero? (cadr current)) (zero? spos))))
+	     (send (get-parent) leaving-page current (list e 0 0)))
+	   (set-editor e (and current (zero? (cadr current)) (zero? spos)))
 	   (send e scroll-to-position spos #f epos 'start)
 	   (send e end-edit-sequence)
-	   (when (or (positive? spos) (positive? (cadr current)))
+	   (when (or (positive? spos) (not current) (positive? (cadr current)))
 	     (refresh))))])
     (sequence
       (apply super-init args))))
 
 (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
 
-(define (hyper-frame-mixin super%)
-  (class super% (start-url . args)
-    (inherit show reflow-container)
-    (sequence
-      (apply super-init args))
+(define (hyper-panel-mixin super%)
+  (class super% args
+    (inherit reflow-container)
+    (sequence (apply super-init args))
     (private
       [past null] [future null]
       [hp (make-object horizontal-panel% this)]
-      [back (make-object button% "< Backward" hp
+      [back (make-object button% "< Rewind" hp
 			 (lambda (b ev) 
 			   (let ([page (car past)])
 			     (set! future (cons (send c current-page) future))
@@ -221,18 +215,22 @@
 			(send forward enable (pair? future))
 			(send choice clear)
 			(for-each
-			 (lambda (page)
-			   (send choice append (send (car page) get-title)))
-			 (append (reverse future)
-				 (list page)
-				 past))
-			(send choice set-selection (length future)))]
+			 (lambda (p)
+			   (send choice append 
+				 (let ([s (send (car p) get-title)])
+				   (or s "Untitled"))))
+			 (append (reverse past)
+				 (if page (list page) null)
+				 future))
+			(let ([c (send choice get-number)])
+			  (unless (zero? c)
+			    (send choice set-selection (length past)))))]
       [choice (make-object choice% #f null hp
 			   (lambda (ch e)
 			     (let* ([l (append (reverse past)
 					       (list (send c current-page))
 					       future)]
-				    [pos (- (length l) (send choice get-selection) 1)])
+				    [pos (send choice get-selection)])
 			       (let loop ([l l][pre null][pos pos])
 				 (cond
 				  [(zero? pos)
@@ -245,9 +243,11 @@
 					      (sub1 pos))])))))]
       [c (make-object hyper-canvas% this)])
     (public
+      [get-canvas (lambda () c)]
       [leaving-page (lambda (page new-page)
 		      (set! future null)
-		      (set! past (cons page past))
+		      (when page
+			(set! past (cons page past)))
 		      (when (> (length past) history-limit)
 			(set! past
 			      (let loop ([l past])
@@ -258,9 +258,20 @@
     (sequence
       (send choice stretchable-width #t)
       (send hp stretchable-height #f)
-      (show #t)
-      (send c goto-url start-url #f)
-      (update-buttons (send c current-page)))))
+      (update-buttons #f))))
+
+(define hyper-panel% (hyper-panel-mixin vertical-panel%))
+
+(define (hyper-frame-mixin super%)
+  (class super% (start-url . args)
+    (inherit show)
+    (sequence 
+      (apply super-init args)
+      (let ([p (make-object hyper-panel% this)])
+	(show #t)
+	(send (send p get-canvas) goto-url start-url #f)))))
+
+(define (editor->page e) (list e 0 0))
 
 (define (open-url file)
   (make-object (hyper-frame-mixin frame%) file "Browser" #f 500 450))

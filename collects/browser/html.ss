@@ -70,6 +70,7 @@
 	 [change-style (ivar b change-style)]
 	 [last-position (ivar b last-position)]
 	 [add-link (ivar b add-link)]
+	 [add-scheme-callback (ivar b add-scheme-callback)]
 	 [make-link-style (ivar b make-link-style)]
 	 [add-tag (ivar b add-tag)]
 	 [get-url (ivar b get-url)]
@@ -139,6 +140,7 @@
 		[re:href (regexp "[hH][rR][eE][fF][ ]*=[ ]*([^ ]*)")]
 		[re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		[re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")]
+		[re:quote-scheme (regexp "[sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		[href-error
 		 (lambda (s)
 		   (html-error "bad reference in ~s" s))])
@@ -160,8 +162,10 @@
 					     (regexp-match re:name s)))])
 			      (if m
 				  (cadr m)
-				  #f))])
-		(values url-string label))))]
+				  #f))]
+		     [scheme (let ([m (regexp-match re:quote-scheme s)])
+			       (and m (regexp-replace* "[|]" (cadr m) "\"")))])
+		(values url-string label scheme))))]
 	 
 	 ;; Make sure newline strength before pos is count; returns number inserted
 	 [try-newline
@@ -264,7 +268,9 @@
 				(result (case val
 					  [(160) #\space]
 					  [(169) "(c)"]
-					  [else ""])))))
+					  [else (if (< 0 val 128) 
+						    (string (integer->char val))
+						    "")])))))
 			(let loop ([l (list ch)])
 			  (let ([ch (get-char)])
 			    (if (or (char=? #\null ch) (char=? #\; ch))
@@ -449,13 +455,17 @@
 		      [(h1) (heading delta:h1)]
 		      [(h2) (heading delta:h2)]
 		      [(h3) (heading delta:h3)]
-		      [(a) (let-values ([(url-string label) (parse-href args)])
-			     (if url-string
-				 (begin
-				   (add-link pos end-pos url-string)
-				   (make-link-style pos end-pos))
-				 (when label
-				   (add-tag label pos)))
+		      [(a) (let-values ([(url-string label scheme) (parse-href args)])
+			     (cond
+			      [url-string
+			       (add-link pos end-pos url-string)
+			       (make-link-style pos end-pos)]
+			      [label
+			       (add-tag label pos)]
+			      [scheme
+			       (add-scheme-callback pos end-pos scheme)
+			       (make-link-style pos end-pos)]
+			      [else (void)])
 			     (normal))]
 		      [else 
 		       (html-error "unimplemented tag: ~s" tag)
