@@ -645,7 +645,6 @@
               set-display/write-handlers
               display-results
               
-              get-error-range
               reset-highlighting
               format-source-loc
               
@@ -1479,7 +1478,6 @@
                        ; No user code has been evaluated yet, so we're in the clear...
                        (break-enabled #f)
                        (set! user-thread (current-thread))
-                       (current-language language)
 		       (initialize-parameters user-setting)
                        
                        (let ([drscheme-error-escape-handler

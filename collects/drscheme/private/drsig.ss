@@ -136,9 +136,9 @@
     (language<%>
      module-based-language<%>
      simple-module-based-language<%>
-     simple-module-based-language
-     simple-module-based-language->module-based-language
-     module-based-language->language))
+     simple-module-based-language%
+     simple-module-based-language->module-based-language%
+     module-based-language->language%))
   
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)

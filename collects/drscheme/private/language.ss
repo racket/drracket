@@ -1,6 +1,7 @@
 
 (module language mzscheme
   (require (lib "unitsig.ss")
+           (lib "hierlist.ss" "hierlist")
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
@@ -22,7 +23,7 @@
       (define configure-language-title "Configure Language")
       
       (define settings-preferences-symbol 
-        (string->symbol (format "drscheme:~a-settings" (version))))
+        (string->symbol (format "drscheme:~a-settings" (version:version))))
       
       (define (get-printer-style-number printing-setting)
         (case printing-setting
@@ -42,11 +43,11 @@
       (define (calculate-available-languages)
         (let ([make-simple
                (lambda (lang ps)
-                 (drscheme:language-tower:module-based-language->language
-                  (drscheme:language-tower:simple-module-based-language->module-based-language
-                   (make-object drscheme:language-tower:simple-module-based-language 
-                     `(lib ,lang "langs")
-                     ps))))])
+                 (make-object drscheme:language-tower:module-based-language->language%
+		   (make-object drscheme:language-tower:simple-module-based-language->module-based-language%
+		     (make-object drscheme:language-tower:simple-module-based-language%
+		       `(lib ,lang "langs")
+		       ps))))])
           (list (make-simple "beginner.ss" '("HtDP" "Beginning Student"))
                 (make-simple "intermediate.ss" '("HtDP" "Intermediate Student"))
                 (make-simple "advanced.ss" '("HtDP" "Intermediate Student"))
@@ -70,26 +71,70 @@
           (define dialog (make-object dialog% configure-language-title parent))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object hierarchical-list% outermost-panel))
-          (define table-hierarchy (make-hash-table))
+	  (define details-panel (make-object panel:
+          (define languages-table (make-hash-table))
           (define languages (get-available-languages))
-          
+
+	  ;; details-panels-associations : (listof (list language panel (-> settings)))
+	  (define details-panels-associations
+	    (map (lambda (language)
+		   (let ([panel (make-object vertical-panel% details-panel)])
+		     (list
+		      language
+		      panel
+		      (send language config-panel panel))))
+		 languages))
+
+	  ;; hier-list items that implement this interface correspond to
+	  ;; actual 
+	  (define hierlist-language<%>
+	    (interface (hierarchical-list-item<%>)
+	      show-details))
+
+	  ;; language-container-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
+	  ;; a mixin that delegates item clicks to the item clicked on, if it
+	  ;; is a language.
+	  (define (language-container-mixin %)
+	    (class %
+	      (override on-select)
+	      (rename [super-on-select on-select])
+	      (define (on-select i)
+		(when (is-a? hieritem-language<%>)
+		  (send i show-details)))
+	      (super-initialize ())))
+
+	  ;; language-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
+	  ;; a mixin that responds to language selections and updates the details-panel
+	  (define (language-mixin % language)
+	    (class* % (hierlist-language<%>)
+	      (public show-details)
+	      (define (show-details)
+		(send details-panel active-child
+		      (second (assoc language details-panels-associations))))))
+
+	  ;; add-language : (instanceof language<%>) -> void
+	  ;; adds the language to the dialog
           (define (add-language language)
-            (let add-sub-language ([ht outer-ht]
+            (let add-sub-language ([ht languages-table]
                                    [hier-list languages-hier-list]
-                                   [lng language])
+                                   [lng (send language get-language-position)])
               (cond
-                [(null? (cdr lng)) (send hier-list add-item (car lng))]
-                [else (let ([sub-lng (car ln)]
-                            [sub-hier-list/sub-ht
+                [(null? (cdr lng))
+		 (let ([item (send hier-list new-item)])
+		   (send (send item get-editor) insert (car lng)))]
+                [else (let ([sub-lng (car lng)]
+                            [sub-ht/sub-hier-list
                              (hash-table-get
                               ht
                               (string->symbol (car lng))
                               (lambda ()
-                                (let ([x (cons (send hier-list add-list (car lng)) (make-hash-table))])
+                                (let* ([new-list (send hier-list new-list)]
+				       [x (cons (make-hash-table) new-list)])
+				  (send (send new-list get-editor) insert (car lng))
                                   (hash-table-put! ht (string->symbol (car lng)) x)
                                   x)))])
-                        (add-sub-language (cdr sub-hier-list/sub-ht)
-                                          (car sub-hier-list/sub-ht)
+                        (add-sub-language (car sub-ht/sub-hier-list)
+                                          (cdr sub-ht/sub-hier-list)
                                           (cdr lng)))])))
           
           (for-each add-language languages)
@@ -499,14 +544,13 @@
       ;; and sets it. Uses the argument for the parent
       ;; to the dialog
       (define (choose-language frame)
-        (error 'choose-language "not yet implemented")
         (let ([new-settings (language-dialog
                              (preferences:get settings-preferences-symbol)
                              frame)])
           (when new-settings
-            (preferences:set
-             settings-preferences-symbol
-             new-settings))))
+            '(preferences:set
+	      settings-preferences-symbol
+	      new-settings))))
       
       (define (fill-language-menu frame language-menu)
         (make-object menu:can-restore-menu-item%
