@@ -403,8 +403,8 @@
 	(public
 	 [frame% f%]
 	 [this% snip%]
-	 [width 70]
-	 [height 30]
+	 [width 70] [set-width (lambda (v) (set! width v))]
+	 [height 30] [set-height (lambda (v) (set! height v))]
 	 [parents null]
 	 [children null])
 	
