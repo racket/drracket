@@ -4,7 +4,8 @@
            (lib "class.ss")
            (lib "mred.ss" "mred"))
   
-  (provide debug-origin)
+  (provide debug-origin)  ;; : sexp [syntax] -> void
+                          ;; creates a frame for examining the origin fields of an expanded sexp
   
   (define debug-origin
     (case-lambda 

@@ -312,7 +312,7 @@
             [define file-menu:between-open-and-revert
              (lambda (file-menu) 
                (make-object menu-item% 
-                 (string-constant open-url)
+                 (string-constant open-url...)
                  file-menu
                  (lambda (item evt)
                    (help:open-users-url this))))]

@@ -120,7 +120,11 @@
   ;; 
       
       (preferences:set-default 'drscheme:last-version #f
-                                  (lambda (x)
-                                    (or (string? x)
-                                        (not x))))
+                               (lambda (x)
+                                 (or (string? x)
+                                     (not x))))
+      (preferences:set-default 'drscheme:last-language #f
+                               (lambda (x)
+                                 (or (string? x)
+                                     (not x))))
       (drscheme:app:check-new-version))))

@@ -40,11 +40,12 @@
       
       (define (check-new-version)
         (let ([this-version (version:version)]
-              [last-version (preferences:get 'drscheme:last-version)])
-          
+              [last-version (preferences:get 'drscheme:last-version)]
+              [last-language (preferences:get 'drscheme:last-language)])
           (when (or (not last-version)
-                    (not (equal? last-version this-version)))
-            
+                    (not last-language)
+                    (not (equal? last-version this-version))
+                    (not (equal? last-language (this-language))))
             (invite-tour))))
       
       (define (same-widths items)
@@ -153,6 +154,7 @@
                                                    (string-constant drscheme)))]
                [panel (send f get-area-container)]
                [top-hp (make-object horizontal-panel% panel)]
+               [bottom-vp (make-object vertical-panel% panel)]
                [left-vp (make-object vertical-panel% top-hp)]
                [plt-bitmap (get-plt-bitmap)]
                [plt-icon (make-object message% (if (send plt-bitmap ok?)
@@ -171,18 +173,43 @@
                
                [this-version (version:version)]
                [last-version (preferences:get 'drscheme:last-version)]
+               [last-language (preferences:get 'drscheme:last-language)]
+               [welcome-to-drs-msg (make-object message% (string-constant welcome-to-drscheme) messages-panel)]
                [this-version-message (make-object message%
-                                       (format (string-constant welcome-to-drs-version) this-version)
+                                       (format (string-constant version/language)
+                                               this-version 
+                                               (this-language))
                                        messages-panel)]
                [last-version-message
-                (if (and last-version 
-                         (not (equal? this-version last-version)))
-                    (make-object message% 
-                      (string-append 
-                       " "
-                       (format (string-constant parenthetical-last-version) last-version))
-                      messages-panel)
-                    #f)])
+                (let ([msg (cond
+                             [(and last-version
+                                   last-language
+                                   (not (equal? this-version last-version))
+                                   (not (equal? (this-language) last-language)))
+                              (format (string-constant parenthetical-last-version/language)
+                                      last-version last-language)]
+                             [(and last-language
+                                   (not (equal? (this-language) last-language)))
+                              (format (string-constant parenthetical-last-language)
+                                      last-language)]
+                             [(and last-version
+                                   (not (equal? this-version last-version)))
+                              (format (string-constant parenthetical-last-version)
+                                      last-version)]
+                             [else #f])])
+                  (and msg (make-object message% msg messages-panel)))])
+          (printf "this-language ~s~n" (this-language))
+          (for-each (lambda (native-lang-string language)
+                      (printf "~s ~s~n" native-lang-string language)
+                      (unless (equal? (this-language) language)
+                        (instantiate button% ()
+                          (label native-lang-string)
+                          (parent bottom-vp)
+                          (stretchable-width #t)
+                          (callback (lambda (x1 x2) (switch-language-to language))))))
+                    (string-constants is-this-your-native-language)
+                    (all-languages))
+          (send bottom-vp stretchable-height #f)
           (send messages-panel stretchable-height #f)
           (send bottom-button-panel stretchable-height #f)
           (send top-button-panel set-alignment 'center 'center)
@@ -196,6 +223,21 @@
           (send tour-button focus)
           (preferences:set 'drscheme:last-version this-version)
           (send f show #t)))
+
+      (define (switch-language-to language)
+        (when (gui-utils:get-choice
+               (string-constant are-you-sure-you-want-to-switch-languages)
+               (string-constant yes)
+               (string-constant no)
+               (string-constant drscheme)
+               #f)
+          (let ([set-language? #f])
+            (exit:insert-on-callback 
+             (lambda () 
+               (when set-language?
+                 (write-resource "mred" "gui_language" language))))
+            (exit:exit #t)
+            (set! set-language? #f))))
       
       (define (about-drscheme)
         (let* ([e (make-object wrap-edit%)]
@@ -258,7 +300,9 @@
           
           (send* e 
             (change-style d-dr)
-            (insert (format (string-constant welcome-to-drs-version) this-version))
+            (insert (format (string-constant welcome-to-drs-version/language) 
+                            this-version
+                            (this-language)))
             (change-style d-usual))
           
           (send e insert " by ")

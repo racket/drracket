@@ -15,13 +15,14 @@
            (lib "class.ss")
            (lib "class100.ss")
            (lib "list.ss")
+           (lib "pretty.ss")
+           (lib "etc.ss")
+           (prefix print-convert: (lib "pconvert.ss"))
            "drsig.ss"
            (lib "string-constant.ss" "string-constants")
-           (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (LIB "pretty.ss")
-           (prefix print-convert: (lib "pconvert.ss")))
+	   (lib "moddep.ss" "syntax"))
   
   (provide rep@)
   
@@ -68,28 +69,36 @@
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
             
-      ;; drscheme-load-handler : string ->* TST
+      ;; drscheme-load-handler : string ??? ->* TST
       ;; =User=
       ;; the default load handler for programs running in DrScheme
-      (define (drscheme-load-handler filename)
+      (define (drscheme-load-handler filename expected-module)
         (unless (string? filename)
-          (raise (raise-type-error
-                  'drscheme-load-handler
-                  "string"
-                  filename)))
+	  (raise-type-error 'drscheme-load-handler "string" filename))
         (let* ([input (build-input filename)]
                [ls (current-language-settings)]
                [language (drscheme:language-configuration:language-settings-language ls)]
                [settings (drscheme:language-configuration:language-settings-settings ls)]
                [thnk (send language front-end input settings)])
           (parameterize ([read-accept-compiled #t])
-            (let loop ([last-time-values (list (void))])
-              (let ([exp (thnk)])
-                (if (eof-object? exp)
-                    (apply values last-time-values)
-                    (call-with-values
-                     (lambda () (eval exp))
-                     (lambda x (loop x)))))))))
+	    (if expected-module
+		(let ([first (thnk)]
+		      [module-ized-exp (check-module-form exp expected-module filename)]
+		      [second (thnk)])
+		  (unless (eof-object? second)
+		    (raise-syntax-error
+		     'drscheme-load-handler
+		     (format "expected only a `module' declaration for `~s', but found an extra expression"
+			     expected-module)
+		     second))
+		  (eval module-ized-exp))
+		(let loop ([last-time-values (list (void))])
+		  (let ([exp (thnk)])
+		    (if (eof-object? exp)
+			(apply values last-time-values)
+			(call-with-values
+			 (lambda () (eval exp))
+			 (lambda x (loop x))))))))))
       
       ;; build-input : string[file-exists?] -> input
       ;; returns an input to be used with a language's `front-end' method
@@ -1218,15 +1227,12 @@
                         (lambda ()
                           (send language front-end input settings)))])
                   (let loop ()
-                    (let ([in (time
-                               (begin0 
-                                 (run-in-eventspace
-                                  (lambda ()
-                                    (let ([rd (read-thnk)])
-                                      (if (eof-object? rd)
-                                          rd
-                                          (expand rd)))))
-                                 (printf "expand~n")))])
+                    (let ([in (run-in-eventspace
+                               (lambda ()
+                                 (let ([rd (read-thnk)])
+                                   (if (eof-object? rd)
+                                       rd
+                                       (expand rd)))))])
                       (unless (eof-object? in)
                         (iter
                          exn-raised?
