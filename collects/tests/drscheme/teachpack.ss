@@ -241,5 +241,39 @@
 		     (list* l " " (loop)))))))
     'text))
 
+(define known-bad-teachpacks '("graphing.ss"))
+
+(define (test-built-in-teachpacks)
+  (clear-definitions drs-frame)
+  (type-in-definitions drs-frame "1")
+  (let* ([test-teachpack
+          (lambda (dir)
+            (lambda (teachpack)
+              (when (or (equal? "ss" (filename-extension teachpack))
+                        (equal? "scm" (filename-extension teachpack)))
+                (unless (member teachpack known-bad-teachpacks)
+                  (printf "  testing ~a~n" teachpack)
+                  (let ([filename (normal-case-path (build-path dir teachpack))])
+                    (fw:test:menu-select "Language" "Clear All Teachpacks")
+                    (use-get/put-dialog
+                     (lambda ()
+                       (fw:test:menu-select "Language" "Add Teachpack..."))
+                     filename)
+                    (do-execute drs-frame)
+                    
+                    (let ([got (fetch-output drs-frame)]
+                          [expected (format "Teachpack: ~a.~n1" filename)])
+                      (unless (equal? got expected)
+                        (printf "FAILED built in teachpack test: ~a~n" filename)
+                        (printf "       got: ~s~n  expected: ~s~n" got expected))))))))]
+         [test-teachpacks
+          (lambda (dir)
+            (for-each (test-teachpack dir) (directory-list dir)))]
+         [teachpack-dir (normalize-path (build-path (collection-path "mzlib") 'up 'up "teachpack"))])
+    (set-language-level! "Beginning Student")
+    (test-teachpacks teachpack-dir)
+    (test-teachpacks (build-path teachpack-dir "htdp"))))
+      
 (bad-tests)
 (good-tests)
+(test-built-in-teachpacks)
