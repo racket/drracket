@@ -598,6 +598,7 @@
           (inherit insert change-style get-canvas
                    get-active-canvas
                    set-styles-sticky
+                   get-style-list
                    clear-undos set-caret-owner
                    clear-previous-expr-positions
                    get-end-position
@@ -1234,8 +1235,27 @@
                          settings
                          this-result
                          (lambda (x) (this-result-write x))
-			 80))))
+			 (get-repl-char-width)))))
              anss))
+
+        ;; get-repl-char-width : -> (and/f exact? integer?)
+        ;; returns the width of the repl in characters, or 80 if the
+        ;; answer cannot be found.
+        (define/private (get-repl-char-width)
+          (let ([admin (get-admin)]
+                [standard (send (get-style-list) find-named-style "Standard")])
+            (if (and admin standard)
+                (let ([bw (box 0)])
+                  (send admin get-view #f #f bw #f)
+                  (let* ([dc (send admin get-dc)]
+                         [standard-font (send standard get-font)]
+                         [old-font (send dc get-font)])
+                    (send dc set-font standard-font)
+                    (let* ([char-width (send dc get-char-width)]
+                           [answer (inexact->exact (floor (/ (unbox bw) char-width)))])
+                      (send dc set-font old-font)
+                      answer)))
+                80)))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;

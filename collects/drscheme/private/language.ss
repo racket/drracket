@@ -302,7 +302,10 @@
                               (simple-settings-fraction-style settings))])
               (cond
                 [(simple-settings-insert-newlines settings)
-                 (pretty-print converted-value port)]
+                 (if (number? width)
+                     (parameterize ([pretty-print-columns width])
+                       (pretty-print converted-value port))
+                     (pretty-print converted-value port))]
                 [else
                  (parameterize ([pretty-print-columns 'infinity])
                    (pretty-print converted-value port))
