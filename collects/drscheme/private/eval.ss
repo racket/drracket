@@ -170,6 +170,7 @@
       ;; these module specs are copied over to each new user's namespace 
       (define to-be-copied-module-specs
         (list 'mzscheme
+              '(lib "foreign.ss")
               '(lib "mred.ss" "mred")
               '(lib "cache-image-snip.ss" "mrlib")))
       
