@@ -156,8 +156,8 @@
         (define snip/lines% (blank-snip-mixin (snip/lines-mixin snip%)))
         (define word-snip/lines% (boxed-word-snip-mixin (snip/lines-mixin snip%)))
         
-        (define dark-syntax-pen (send the-pen-list find-or-create-pen "darkorchid" 2 'solid))
-        (define dark-pen (send the-pen-list find-or-create-pen "blue" 2 'solid))
+        (define dark-syntax-pen (send the-pen-list find-or-create-pen "darkorchid" 1 'solid))
+        (define dark-pen (send the-pen-list find-or-create-pen "blue" 1 'solid))
         (define light-syntax-pen (send the-pen-list find-or-create-pen "plum" 1 'solid))
         (define light-pen (send the-pen-list find-or-create-pen "light blue" 1 'solid))
         
