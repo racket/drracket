@@ -28,7 +28,8 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^]
               [drscheme:app : drscheme:app^]
-              [drscheme:tools : drscheme:tools^])
+              [drscheme:tools : drscheme:tools^]
+              [drscheme:help-desk : drscheme:help-desk^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.
@@ -96,34 +97,23 @@
       ;; type language-settings = (make-language-settings (instanceof language<%>) settings)
       (define-struct language-settings (language settings))
        
-      
-                                                        
- ;;;                                                    
-   ;                                                    
-   ;                                                    
-   ;    ;;;;  ; ;;;    ;;; ;;;  ;;  ;;;;    ;;; ;  ;;;  
-   ;        ;  ;;  ;  ;   ;  ;   ;      ;  ;   ;  ;   ; 
-   ;     ;;;;  ;   ;  ;   ;  ;   ;   ;;;;  ;   ;  ;;;;; 
-   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;     
-   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ; 
- ;;;;;;  ;;; ;;;;  ;;  ;;;;   ;;; ;  ;;; ;  ;;;;   ;;;  
-                          ;                    ;        
-                          ;                    ;        
-                       ;;;                  ;;;         
-
-                                          
-    ;;    ;           ;;;                 
-     ;                  ;                 
-     ;                  ;                 
-  ;;;;  ;;;    ;;;;     ;     ;;;    ;;; ;
- ;   ;    ;        ;    ;    ;   ;  ;   ; 
- ;   ;    ;     ;;;;    ;    ;   ;  ;   ; 
- ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
- ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
-  ;;; ; ;;;;;   ;;; ; ;;;;;;  ;;;    ;;;; 
-                                        ; 
-                                        ; 
-                                     ;;;  
+ 
+;                                                                                                      
+;                                                                                                      
+;                                                                                                      
+;   ;                                                                ;   ;          ;                  
+;   ;                                                                ;              ;                  
+;   ;                                                                ;              ;                  
+;   ;   ;;;    ; ;;     ;; ;   ;   ;   ;;;     ;; ;    ;;;        ;; ;   ;   ;;;    ;    ;;;     ;; ;  
+;   ;  ;   ;   ;;  ;   ;  ;;   ;   ;  ;   ;   ;  ;;   ;   ;      ;  ;;   ;  ;   ;   ;   ;   ;   ;  ;;  
+;   ;      ;   ;   ;  ;    ;   ;   ;      ;  ;    ;  ;    ;     ;    ;   ;      ;   ;  ;     ; ;    ;  
+;   ;   ;;;;   ;   ;  ;    ;   ;   ;   ;;;;  ;    ;  ;;;;;;     ;    ;   ;   ;;;;   ;  ;     ; ;    ;  
+;   ;  ;   ;   ;   ;  ;    ;   ;   ;  ;   ;  ;    ;  ;          ;    ;   ;  ;   ;   ;  ;     ; ;    ;  
+;   ;  ;   ;   ;   ;   ;  ;;   ;  ;;  ;   ;   ;  ;;   ;          ;  ;;   ;  ;   ;   ;   ;   ;   ;  ;;  
+;   ;   ;;;;;  ;   ;    ;; ;    ;; ;   ;;;;;   ;; ;    ;;;;       ;; ;   ;   ;;;;;  ;    ;;;     ;; ;  
+;                          ;                      ;                                                 ;  
+;                     ;    ;                 ;    ;                                            ;    ;  
+;                      ;;;;                   ;;;;                                              ;;;;   
 
       
       ;; language-dialog : (boolean language-setting -> language-setting)
@@ -133,7 +123,7 @@
       ;; as the defaults in the dialog and the output language setting is the user's choice
       ;; todo: when button is clicked, ensure language is selected
       (define language-dialog
-        (opt-lambda (show-welcome? language-settings-to-show [parent #f])
+        (opt-lambda (show-welcome? language-settings-to-show [parent #f] [manuals? #f])
           (define ret-dialog%
             (class dialog%
               (rename [super-on-subwindow-char on-subwindow-char])
@@ -164,7 +154,11 @@
                                  (stretchable-height #f)))
           
           (define-values (get-selected-language get-selected-language-settings)
-            (fill-language-dialog language-dialog-meat-panel button-panel language-settings-to-show))
+            (fill-language-dialog language-dialog-meat-panel 
+                                  button-panel 
+                                  language-settings-to-show 
+                                  #f
+                                  manuals?))
           
           ;; cancelled? : boolean
           ;; flag that indicates if the dialog was cancelled.
@@ -217,7 +211,7 @@
       ;; as the defaults in the dialog and the output language setting is the user's choice
       ;; if re-center is a dialog, when the show details button is clicked, the dialog is recenterd.
       (define fill-language-dialog
-        (opt-lambda (parent show-details-parent language-settings-to-show [re-center #f])
+        (opt-lambda (parent show-details-parent language-settings-to-show [re-center #f] [manuals? #f])
 
 	  (define language-to-show (language-settings-language language-settings-to-show))
 	  (define settings-to-show (language-settings-settings language-settings-to-show))
@@ -330,8 +324,17 @@
 
           (define outermost-panel (make-object horizontal-panel% parent))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
-          (define details-outer-panel (make-object vertical-pane% outermost-panel))
-	  (define details-panel (make-object panel:single% details-outer-panel))
+          (define details-outer-panel (make-object vertical-panel% outermost-panel))
+          (define details/manual-parent-panel (make-object vertical-panel% details-outer-panel))
+	  (define details-panel (make-object panel:single% details/manual-parent-panel))
+          (define manual-ordering-panel (new vertical-panel% (parent details/manual-parent-panel)))
+          
+          (define manual-ordering-text (new text%))
+          (define manual-ordering-canvas (new editor-canvas% 
+                                              (parent manual-ordering-panel)
+                                              (editor manual-ordering-text)
+                                              (min-width 300)))
+          
           (define one-line-summary-message (instantiate message% ()
                                              (parent parent)
                                              (label "")
@@ -362,7 +365,8 @@
                   (send details-panel active-child language-details-panel)
                   (send one-line-summary-message set-label (send language get-one-line-summary))
                   (send revert-to-defaults-button enable #t)
-		  (set! get/set-selected-language-settings get/set-settings)
+                  (update-manual-ordering-text language)
+                  (set! get/set-selected-language-settings get/set-settings)
 		  (set! selected-language language))
                 (apply super-make-object args))))
 
@@ -376,6 +380,60 @@
 	    (set! get/set-selected-language-settings #f)
 	    (set! selected-language #f))
 
+          ;; update-manual-ordering-text : -> void
+          ;; updates the manual ordering text with the order the manuals are searched for this language
+          (define (update-manual-ordering-text language)
+            (send manual-ordering-text begin-edit-sequence)
+            (send manual-ordering-text lock #f)
+            (send manual-ordering-text erase)
+            (send manual-ordering-text insert (string-constant plt:hd:manual-search-ordering))
+            (send manual-ordering-text insert "\n\n")
+            (send manual-ordering-text change-style 
+                  (make-object style-delta% 'change-bold)
+                  0
+                  (- (send manual-ordering-text last-position) 2))
+            (let ([docs (drscheme:help-desk:get-docs)]
+                  [manual-name-style-delta
+                   (make-object style-delta%)])
+              (let-values ([(ordered doc.txt?)
+                            (send language order-manuals (map car docs))])
+                (let loop ([ordered ordered]
+                           [n 1])
+                  (cond
+                    [(null? ordered) 
+                     (when doc.txt?
+                       (insert-single "doc.txt files" n))]
+                    [else 
+                     (let* ([ent (car ordered)]
+                            [full-name (assoc ent docs)])
+                       (cond
+                         [full-name
+                          (insert-single (cdr full-name) n)
+                          (loop (cdr ordered) (+ n 1))]
+                         [else
+                          (loop (cdr ordered) n)]))]))))
+                
+            (send manual-ordering-text set-position 0)
+            (send manual-ordering-text lock #t)
+            (send manual-ordering-text end-edit-sequence))
+
+          (define manual-number-style-delta (make-object style-delta%))
+          (define stupid-internal-define-syntax1
+            (send manual-number-style-delta set-delta-foreground "darkblue"))
+          
+          (define (insert-single name n)
+            (let ([n-sp (send manual-ordering-text last-position)])
+              (send manual-ordering-text insert (number->string n))
+              (let ([n-ep (send manual-ordering-text last-position)])
+                (send manual-ordering-text insert ") ")
+                (send manual-ordering-text insert name)
+                (send manual-ordering-text insert "\n")
+                
+                (send manual-ordering-text change-style
+                      manual-number-style-delta
+                      n-sp
+                      (+ n-ep 1)))))
+          
           ;; add-language-to-dialog : (instanceof language<%>) -> void
 	  ;; adds the language to the dialog
 	  ;; opens all of the turn-down tags
@@ -399,7 +457,7 @@
               #|
               
               inline the first level of the tree into just items in the hierlist
-              keep track of the strting (see call to sort method below) by
+              keep track of the starting (see call to sort method below) by
               adding a second field to the second level of the tree that indicates
               what the sorting number is for its level above (in the second-number mixin)
               
@@ -614,7 +672,7 @@
                     (if details-shown? (list revert-to-defaults-button) null)))
             (send details-outer-panel change-children
                   (lambda (l)
-                    (if details-shown? (list details-panel) null)))
+                    (if details-shown? (list details/manual-parent-panel) null)))
             (send parent end-container-sequence))
 
           ;; revert-to-defaults-callback : -> void
@@ -633,15 +691,13 @@
                                    (lambda (x y)
                                      (details-callback))))
           
-          (define revert-to-defaults-outer-panel (make-object horizontal-pane% show-details-parent))
+          (define revert-to-defaults-outer-panel (make-object horizontal-panel% show-details-parent))
           (define revert-to-defaults-button (make-object button% 
                                               (string-constant revert-to-language-defaults)
                                               revert-to-defaults-outer-panel
                                               (lambda (_1 _2)
                                                 (revert-to-defaults-callback))))
 
-          (send details-outer-panel stretchable-width #t)
-          (send details-outer-panel stretchable-width #f)
           (send revert-to-defaults-outer-panel stretchable-width #f)
           (send revert-to-defaults-outer-panel stretchable-height #f)
           (send outermost-panel set-alignment 'center 'center)
@@ -685,6 +741,27 @@
 
           ;; remove the newline at the front of the first inlined category
           (send (send (car (send languages-hier-list get-items)) get-editor) delete 0 1)
+          
+          (cond
+            [manuals? 
+             (unless details-shown?
+               (details-callback))
+             (send show-details-parent change-children
+                   (lambda (l)
+                     (remq revert-to-defaults-outer-panel
+                           (remq details-button l))))
+             (send details/manual-parent-panel change-children 
+                   (lambda (l)
+                     (list manual-ordering-panel)))]
+            [else 
+             (send details-outer-panel stretchable-width #f)
+             (send details/manual-parent-panel change-children 
+                   (lambda (l)
+                     (list details-panel)))])
+          
+          (send manual-ordering-text hide-caret #t)
+          (send manual-ordering-text auto-wrap #t)
+          (send manual-ordering-text lock #t)
           
 	  (send languages-hier-list stretchable-width #t)
 	  (send languages-hier-list stretchable-height #t)
@@ -1119,7 +1196,14 @@
                   [(eof-object? res) res]
                   [else `(expand ',res)]))))
           (super-instantiate ())))
-                                       
+
+      (define (r5rs-manuals-mixin %)
+        (class %
+          (define/override (order-manuals x)
+            (values 
+             (list "r5rs" "drscheme" "tour" "help")
+             #f))
+          (super-new)))
       
       ;; add-built-in-languages : -> void
       (define (add-built-in-languages)
@@ -1207,4 +1291,4 @@
                         (list -10 -1000)
                         #f
                         (string-constant r5rs-one-line-summary)
-                        (lambda (x) x))))))))
+                        r5rs-manuals-mixin)))))))

@@ -54,13 +54,12 @@
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep debug)]
             [language-configuration : drscheme:language-configuration/internal^ 
                                     (language-configuration@ unit rep teachpack
-                                                             init language app
-                                                             tools)]
+                                                           init language app
+                                                           tools help-desk)]
             [font : drscheme:font^ (font@ language-configuration)]
             [module-language : drscheme:module-language^ 
                              (module-language@ language-configuration language unit rep)]
-            [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration
-                                                       teachpack)]
+            [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration teachpack)]
 	    [app : drscheme:app^ (app@ unit frame language-configuration help-desk tools)]
             [main : () (main@ 
                         app unit get/extend language-configuration language teachpack

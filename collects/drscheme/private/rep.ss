@@ -298,7 +298,7 @@
                                  (send obj get-text start end))])
                    (if (equal? "" str)
                        (drscheme:help-desk:help-desk)
-                       (drscheme:help-desk:help-desk str #f 'keyword+index 'contains 'all)))]
+                       (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))]
                 [else                   
                  (drscheme:help-desk:help-desk)])))
       (send drs-bindings-keymap add-function

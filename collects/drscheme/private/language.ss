@@ -42,6 +42,8 @@
           default-settings
 	  default-settings?
           
+          order-manuals
+          
           front-end/complete-program
           front-end/interaction
 	  config-panel
@@ -463,6 +465,8 @@
                    get-init-code use-mred-launcher get-reader)
 	  (rename [super-on-execute on-execute])
 
+          (define/public (order-manuals x) (values x #t))
+          
           (inherit get-language-position)
           (define/public (get-language-name)
             (let ([pos (get-language-position)])

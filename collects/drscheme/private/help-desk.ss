@@ -30,6 +30,14 @@
            (list
             (send language get-language-position)
             (send language marshall-settings settings)))))
+
+      ;; get-docs : (listof (cons string[short-dir-name] string[doc full name]))
+      (define (get-docs) 
+        (let ([dirs (find-doc-names)])
+          (map (lambda (pr)
+                 (let-values ([(base name dir?) (split-path (car pr))])
+                   (cons name (cdr pr))))
+               dirs)))
       
       (define (get-teachpack-filenames)
         (format "~s"
@@ -58,6 +66,17 @@
             (handler:edit-file #f)
             #t)
           
+          (define current-language 
+            (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+          
+          (define/override (order-manuals x)
+            (send (drscheme:language-configuration:language-settings-language current-language)
+                  order-manuals
+                  x))
+          (define/override (get-language-name) 
+            (send (drscheme:language-configuration:language-settings-language current-language)
+                  get-language-name))
+          
           (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
             (instantiate menu:can-restore-menu-item% ()
@@ -70,7 +89,30 @@
                              (make-home-page-url
                               (hd-cookie-port hd-cookie)))))))
             (super-file-menu:between-new-and-open file-menu))
-          (super-instantiate ())))
+
+          (super-new)
+          
+          (inherit get-menu-bar)
+          (let* ([language-menu (new menu% 
+                                     (parent (get-menu-bar))
+                                     (label (string-constant language-menu-name)))]
+                 [language-item (new menu-item%
+                                     (label (string-constant choose-language-menu-item-label))
+                                     (parent language-menu)
+                                     (shortcut #\l)
+                                     (callback
+                                      (lambda (x y)
+                                        (let ([new-settings (drscheme:language-configuration:language-dialog
+                                                             #f
+                                                             current-language
+                                                             this 
+                                                             #t)])
+                                          (when new-settings
+                                            (set! current-language new-settings)
+                                            (preferences:set
+                                             drscheme:language-configuration:settings-preferences-symbol
+                                             new-settings))))))])
+            (frame:reorder-menus this))))
       
       (define (goto-help manual link)
         (with-handlers ([not-break-exn?
@@ -108,8 +150,7 @@
           [(key) (help-desk key #f)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'contins)]
-          [(key lucky? type mode) (help-desk key lucky? type mode 'all)]
-          [(key lucky? type mode manuals)
+          [(key lucky? type mode) 
 	   (when (get-hd-cookie)
 	     (search-for-docs
 	      (get-hd-cookie)
@@ -124,12 +165,10 @@
 		[(contains) "containing-match"]
 		[(regexp) "regexp-match"]
 		[else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
-              (case manuals
-                [(student) "student-manuals"]
-                [(professional) "professional-manuals"]
-                [(all) "all-manuals"]
-                [else (error 'drscheme:help-desk:help-desk "unknown manuals argument: ~s" manuals)])
-	      lucky?))]))
+	      lucky?
+              '()
+              #t
+              #f))]))
       
       ;; open-url : string -> void
       (define (open-url x) (send-url x)))))

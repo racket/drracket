@@ -200,6 +200,7 @@
      goto-release-notes
      goto-plt-license
      help-desk
+     get-docs
      open-url))
   
   (define-signature drscheme:language^
