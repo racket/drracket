@@ -1,3 +1,6 @@
+(define-signature drscheme:language^
+  (fill-language-menu))
+
 (define-signature drscheme:tool^
   ((struct tool (name file callback))
    tools))

@@ -3,13 +3,13 @@
   (unit/sig drscheme:unit^
     (import [mred : mred^]
 	    [mzlib : mzlib:core^]
-	    [drscheme:basis : drscheme:basis^]
 	    [drscheme:setup : drscheme:setup^]
 	    [drscheme:compound-unit : drscheme:compound-unit^]
 	    [drscheme:tool : drscheme:tool^]
 	    [drscheme:frame : drscheme:frame^]
 	    [drscheme:edit : drscheme:edit^]
-	    [drscheme:rep : drscheme:rep^])
+	    [drscheme:rep : drscheme:rep^]
+	    [drscheme:language : drscheme:language^])
     
     (mred:debug:printf 'invoke "drscheme:unit@")
 
@@ -165,46 +165,7 @@
 		      (append tools-menu "&Tools")
 		      (append language-menu "&Language"))
 
-	       (send* language-menu
-		      (append-item "Select Library..."
-				   (let ([lib-dir "/home/comp210"]
-					 [save-dir ""])
-				     (lambda ()
-				       (set! save-dir 
-					     (mred:current-find-file-directory))
-				       (mred:current-find-file-directory lib-dir)
-				       (let ([lib-file (mred:get-file 
-							() 
-							"Select a Library" 
-                                                        ".*\\.ss$")])
-					 (when lib-file
-					   (mred:set-preference
-					    'drscheme:library-file lib-file)))
-				       (set! lib-dir
-					     (mred:current-find-file-directory))
-				       (mred:current-find-file-directory save-dir))))
-		      (append-item "Clear Library"
-				   (lambda ()
-				     (mred:set-preference 'drscheme:library-file #f)))
-		      (append-separator)
-		      (append-check-set
-		       (map cons drscheme:basis:level-strings
-			    drscheme:basis:level-symbols)
-		       (let ([state #t])
-			 (lambda (s)
-			   (mred:set-preference 'drscheme:scheme-level s)
-			   (when state
-			     (set! state #f)
-			     (unless (mred:get-choice
-				      "Changes to the language level will not take effect until DrScheme is restarted"
-				      "Continue Working"
-				      "Exit")
-			       (mred:exit)))))
-		       (drscheme:basis:level->number
-			(mred:get-preference 'drscheme:scheme-level))))
-
-		 
-
+	       (drscheme:language:fill-language-menu language-menu)
 	       
 	       (for-each 
 		(lambda (x)
