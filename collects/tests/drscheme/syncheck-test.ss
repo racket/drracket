@@ -132,20 +132,18 @@
                   (")"    base)))
      (make-test "(let ([x 1]) (set! x 2))"
                 '(("("    base)
-                  ("let"  keyword)
-                  (" (["  base)
-                  ("x"    bound-variable)
-                  (" "    base)
-                  ("1"    constant)
-                  ("]) "  base)
-                  ("("    tail-call)
-                  ("set!" keyword)
-                  (" "    base)
-                  ("x"    bound-variable)
-                  (" "    base)
-                  ("2"    constant)
-                  (")"    tail-call)
-                  (")"    base)))
+                  ("let"   keyword)
+                  (" (["   base)
+                  ("x"     bound-variable)
+                  (" "     base)
+                  ("1"     constant)
+                  ("]) ("  base)
+                  ("set!"  keyword)
+                  (" "     base)
+                  ("x"     bound-variable)
+                  (" "     base)
+                  ("2"     constant)
+                  ("))"    base)))
      (make-test "object%"
                 '(("object%" bound-variable)))
      (make-test "unbound-id"
@@ -330,7 +328,19 @@
                   ("2"        constant)
                   (")"        base)))
 
-      (make-test "`(a ,2 b c d)" '())
+     (make-test "`(a ,2 b c d)"
+                `(("`"  keyword)
+                  ("("  base)
+                  ("a"  constant)
+                  (" ," base)
+                  ("2"  constant)
+                  (" "  base)
+                  ("b"  constant)
+                  (" "  base)
+                  ("c"  constant)
+                  (" "  base)
+                  ("d"  constant)
+                  (")"  base)))
      
      (make-test "#!"
                 '(("#!" base)))
@@ -363,167 +373,6 @@
                   ("provide"  keyword)
                   ("))"       base)))
 
-     
-;                                                                            
-;                                                                            
-;                                                                            
-;               ;   ;                     ;   ;                              
-;                   ;                     ;   ;                              
-;   ;               ;                     ;   ;       ;                  ;   
-;  ;;;;  ;;;    ;   ;        ;;;   ;;;    ;   ;      ;;;;   ;;;    ;;;  ;;;; 
-;   ;   ;   ;   ;   ;       ;   ; ;   ;   ;   ;       ;    ;   ;  ;      ;   
-;   ;       ;   ;   ;      ;          ;   ;   ;       ;   ;    ;  ;;     ;   
-;   ;    ;;;;   ;   ;      ;       ;;;;   ;   ;       ;   ;;;;;;   ;;    ;   
-;   ;   ;   ;   ;   ;      ;      ;   ;   ;   ;       ;   ;          ;   ;   
-;   ;   ;   ;   ;   ;       ;   ; ;   ;   ;   ;       ;    ;         ;   ;   
-;    ;;  ;;;;;  ;   ;        ;;;   ;;;;;  ;   ;        ;;   ;;;;  ;;;     ;; 
-;                                                                            
-;                                                                            
-;                                                                            
-
-     
-     (make-test "(if 1 (+ 1 2) (+ 3 4))" 
-                '(("("  base)
-                  ("if" keyword)
-                  (" "  base)
-                  ("1"  constant)
-                  (" "  base)
-                  ("("  tail-call)
-                  ("+"  bound-variable)
-                  (" "  base)
-                  ("1"  constant)
-                  (" "  base)
-                  ("2"  constant)
-                  (")"  tail-call)
-                  (" "  base)
-                  ("("  tail-call)
-                  ("+"  bound-variable)
-                  (" "  base)
-                  ("3"  constant)
-                  (" "  base)
-                  ("4"  constant)
-                  (")"  tail-call)
-                  (")"  base)))
-     
-     (make-test "(if 1 (+ 1 2))" 
-                '(("("  base)
-                  ("if" keyword)
-                  (" "  base)
-                  ("1"  constant)
-                  (" "  base)
-                  ("("  tail-call)
-                  ("+"  bound-variable)
-                  (" "  base)
-                  ("1"  constant)
-                  (" "  base)
-                  ("2"  constant)
-                  (")"  tail-call)
-                  (")"  base)))
-     
-     (make-test "(lambda (x) (+ 1 2))" 
-                '(("("      base)
-                  ("lambda" keyword)
-                  (" ("     base)
-                  ("x"      bound-variable)
-                  (") "     base)
-                  ("("      tail-call)
-                  ("+"      bound-variable)
-                  (" "      base)
-                  ("1"      constant)
-                  (" "      base)
-                  ("2"      constant)
-                  (")"      tail-call)
-                  (")"      base)))
-     
-     (make-test "(case-lambda [() (+ 1 2)] [(x) (+ 3 4)])" 
-                '(("("           base)
-                  ("case-lambda" keyword)
-                  (" [() "       base)
-                  ("("           tail-call)
-                  ("+"           bound-variable)
-                  (" "           base)
-                  ("1"           constant)
-                  (" "           base)
-                  ("2"           constant)
-                  (")"           tail-call)
-                  ("] [("        base)
-                  ("x"           bound-variable)
-                  (") "          base)
-                  ("("           tail-call)
-                  ("+"           bound-variable)
-                  (" "           base)
-                  ("3"           constant)
-                  (" "           base)
-                  ("4"           constant)
-                  (")"           tail-call)
-                  ("])"          base)))
-     
-     (make-test "(begin (+ 1 2) (+ 3 4))" 
-                '(("("     base)
-                  ("begin" keyword)
-                  (" ("    base)
-                  ("+"     bound-variable)
-                  (" "     base)
-                  ("1"     constant)
-                  (" "     base)
-                  ("2"     constant)
-                  (") "    base)
-                  ("("     tail-call)
-                  ("+"     bound-variable)
-                  (" "     base)
-                  ("3"     constant)
-                  (" "     base)
-                  ("4"     constant)
-                  (")"     tail-call)
-                  (")"     base)))
-     
-     (make-test "(let ([x 1]) (+ x 2))" '())
-     
-     (make-test "(letrec ([x 2]) (+ x 2))" '())
-     
-     (make-test "(with-continuation-mark (+ 1 2) (+ 3 4) (+ 5 6))" 
-                '(("("                      base) 
-                  ("with-continuation-mark" keyword)
-                  (" ("                     base)
-                  ("+"                      bound-variable)
-                  (" "                      base)
-                  ("1"                      constant)
-                  (" "                      base)
-                  ("2"                      constant)
-                  (") ("                    base)
-                  ("+"                      bound-variable)
-                  (" "                      base)
-                  ("3"                      constant)
-                  (" "                      base)
-                  ("4"                      constant)
-                  (") "                     base)
-                  ("("                      tail-call)
-                  ("+"                      bound-variable)
-                  (" "                      base)
-                  ("5"                      constant)
-                  (" "                      base)
-                  ("6"                      constant)
-                  (")"                      tail-call)
-                  (")"                      base)))
-     
-     (make-test "(or (+ 1 2) (+ 3 4))" 
-                '(("("  base)
-                  ("or" keyword)
-                  (" (" base)
-                  ("+"  bound-variable)
-                  (" "  base)
-                  ("1"  constant)
-                  (" "  base)
-                  ("2"  constant)
-                  (") " base)
-                  ("("  tail-call)
-                  ("+"  bound-variable)
-                  (" "  base)
-                  ("3"  constant)
-                  (" "  base)
-                  ("4"  constant)
-                  (")"  tail-call)
-                  (")"  base)))
      
                                                                              
                                           ;;             ;;;                 
