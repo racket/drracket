@@ -1,5 +1,5 @@
 (module bug-report mzscheme
-  (require "bug-report-server-info.ss" 
+  (require (lib "string-constant.ss" "string-constants")
            (lib "head.ss" "net")
            (lib "smtp.ss" "net")
            (lib "mred.ss" "mred")
@@ -284,6 +284,17 @@
        #f
        synthesized-panel))
     
+    (define human-language
+      (build/label 
+       "Human Language"
+       (lambda (panel)            
+         (keymap:call/text-keymap-initializer
+          (lambda ()
+            (make-object text-field% #f panel void ""))))
+       #f
+       #f
+       synthesized-panel))
+    
     (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
     (define synthesized-button (make-object button% "Show Synthesized Info" button-panel (lambda x (toggle-synthesized-info))))
     (define ok-button (make-object button% "Submit" button-panel (lambda x (ok))))
@@ -326,8 +337,9 @@
          (format "~a" (send environment get-value))
          (format "Tools: ~a" (send tools get-value))
          "Docs Installed:" (format "~a" (send docs-installed get-value))
-         "Collections:"
+         "Collections: "
          (format "~a" (send collections get-value))
+         (format "Human Language: ~a" (send human-language get-value))
          ">Fix: ")
         (cons
          ">Description:"
@@ -485,6 +497,8 @@
                                    (directory-list x)
                                    "non-existant path")))
                        (current-library-collection-paths))))
+    
+    (send human-language set-value "(string-constant human-language)")
     
     (align-labels)
     (send button-panel set-alignment 'right 'center)
