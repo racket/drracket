@@ -60,6 +60,49 @@
   (define test-data
     (list
      ;; basic tests
+     (make-test "1"
+                ??
+                ??
+                #f
+                ??
+		'read
+                #f
+                #f
+                void
+                void)
+     (make-test "\"a\""
+                ??
+                ??
+                #f
+                ??
+		'read
+                #f
+                #f
+                void
+                void)
+     
+     (make-test "1 2"
+                ??
+                ??
+                #f
+                ??
+		'read
+                #f
+                #f
+                void
+                void)
+     
+     (make-test "\"a\" \"b\""
+                ??
+                ??
+                #f
+                ??
+		'read
+                #f
+                #f
+                void
+                void)
+     
      (make-test "("
                 "~aread: expected a ')'"
                 "~aread: expected a ')'"
