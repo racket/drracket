@@ -48,7 +48,9 @@
      hyper-no-show-frame%
      
      editor->page
-     page->editor))
+     page->editor
+     
+     (struct faux-url (get-port/headers allows-eval?))))
   
   (define-signature relative-btree^
     (make-btree

@@ -70,23 +70,23 @@ A test case:
       
       (define history-limit 20)
       
-      (define-struct hyperlink (anchor-start 
-                                anchor-end
-                                url-string))
+      (define-struct hyperlink (anchor-start anchor-end url-string))
       
       (define-struct hypertag (name position))
+
+      (define-struct faux-url (get-port/headers allows-eval?))
       
       (define (same-page-url? a b)
-	(or (eq? a b)
-	    (and (url? a) (url? b)
-		 ;; fragment can be different
-		 (equal? (url-scheme a) (url-scheme b))
-		 (equal? (url-host a) (url-host b))
-		 
+        (or (eq? a b)
+            (and (url? a) (url? b)
+                 ;; fragment can be different
+                 (equal? (url-scheme a) (url-scheme b))
+                 (equal? (url-host a) (url-host b))
+                 
                  ;; assume that url-paths are all strings 
                  ;; (other wise the pages are treated as different)
                  (equal? (url-path a) (url-path b))
-		 
+                 
                  (equal? (url-query a) (url-query b)))))
 		 
 
@@ -96,7 +96,6 @@ A test case:
       
       (define hyper-text-mixin
         (mixin ((class->interface text%) editor:keymap<%>) (hyper-text<%>)
-          
           (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                    change-style
                    set-modified auto-wrap
@@ -105,26 +104,32 @@ A test case:
                    get-end-position set-autowrap-bitmap)
           
           (init-field url top-level-window)
-          (init progress 
-                [post-data #f])
+          (init progress)
+          (init-field [post-data #f] [base-url (and (url? url) url)])
           
-          (field [post-string post-data]
-                 [url-allows-evaling?
-                  (cond
-                    [(port? url) #f]
-                    [(and (url? url)
-                          (equal? "file" (url-scheme url)))
-                     (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
-                       (path-below?
-                        (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
-                                                                      'up
-                                                                      'up)))
-                        (normal-case-path (normalize-path (apply build-path (url-path url))))))]
-                    [(and (url? url)
-                          (equal? "http" (url-scheme url)))
-                     (and (string=? (url-host url) "127.0.0.1")
-                          (equal? 8000 (url-port url)))]
-                    [else #f])])
+          (define url-allows-evaling?
+            (cond
+              [(faux-url? url) (faux-url-allows-eval? url)]
+              [(and (url? url)
+                    (equal? "file" (url-scheme url)))
+               (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
+                 (path-below?
+                  (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
+                                                                'up
+                                                                'up)))
+                  (normal-case-path (normalize-path (apply build-path (url-path url))))))]
+              [else #f]))
+          
+          (define doc-notes null)
+          (define title #f)
+          (define htmling? #f)
+          (define redirection #f)
+          (define hypertags-list (list (make-hypertag "top" 0)))
+          (define hyper-delta (make-object style-delta% 'change-underline #t))
+          (let ([mult (send hyper-delta get-foreground-mult)]
+                [add (send hyper-delta get-foreground-add)])
+            (send mult set 0 0 0)
+            (send add set 0 0 255))
           
           (define/override (get-keymaps) (cons hyper-keymap (super get-keymaps)))
           (define/public (get-hyper-keymap) hyper-keymap)
@@ -132,28 +137,18 @@ A test case:
           (define/augment (after-set-position)
             (unless (zero? (get-end-position))
               (hide-caret #f))
-            (inner (void) after-set-position))
-          (field
-           [doc-notes null]
-           [title #f]
-           [htmling? #f]
-           [redirection #f]
-           [hypertags-list (list (make-hypertag "top" 0))])
-          
+            (inner (void) after-set-position))          
+
           ;; get-redirection : -> (union false? url?)
           ;; #f indicates no redirection, url is where it redirects to
           (define/public (get-redirection) redirection)
           
-          [define/public add-document-note
-            (lambda (note)
-              (set! doc-notes (append doc-notes (list note))))]
-          [define/public  get-document-notes
-            (lambda () doc-notes)]
+          (define/public (add-document-note note)
+            (set! doc-notes (append doc-notes (list note))))
+          (define/public (get-document-notes) doc-notes)
           
-          [define/public make-link-style
-            (lambda (start end)
-              (change-style hyper-delta start end))]
-          [define/public get-url (lambda () (and (url? url) url))]
+          (define/public (make-link-style start end) (change-style hyper-delta start end))
+          (define/public (get-url) (and (url? url) url))
           
           (define/public post-url
             (opt-lambda (url-string [post-data #f])
@@ -161,6 +156,7 @@ A test case:
                (lambda (url-string post-data)
                  (with-handlers ([(lambda (x) #t)
                                   (lambda (x)
+                                    (printf "exn.5\n")
                                     (unless (or (exn:break? x)
                                                 (exn:file-saved-instead? x)
                                                 (exn:cancelled? x))
@@ -171,188 +167,83 @@ A test case:
                url-string
                post-data)))
           
-          [define/public on-url-click (lambda (f x post-data) 
-                                        (let ([c (get-canvas)])
-                                          (if c
-                                              (send c on-url-click f x post-data)
-                                              (f x post-data))))]
-          [define/public get-title (lambda () (or title (and (url? url) (url->string url))))]
-          [define/public set-title (lambda (t) (set! title t))]
-          (field [hyper-delta (make-object style-delta% 'change-underline #t)])
-          (let ([mult (send hyper-delta get-foreground-mult)]
-                [add (send hyper-delta get-foreground-add)])
-            (send mult set 0 0 0)
-            (send add set 0 0 255))
+          (define/public (on-url-click f x post-data) 
+            (let ([c (get-canvas)])
+              (if c
+                  (send c on-url-click f x post-data)
+                  (f x post-data))))
+          (define/public (get-title) (or title (and (url? url) (url->string url))))
+          (define/public (set-title t) (set! title t))
           
-          [define/public add-tag 
-            (lambda (name pos)
-              (for-each (lambda (tag) 
-                          (when (string=? name (hypertag-name tag))
-                            (remove-tag  name)))
-                        hypertags-list)
-              (let ([new-tag (make-hypertag name pos)])
-                (set! hypertags-list
-                      (let insert-loop ([tags-left hypertags-list])
-                        (cond [(null? tags-left)(cons new-tag ())]
-                              [(> pos (hypertag-position (car tags-left)))
-                               (cons new-tag tags-left)]
-                              [else (cons (car tags-left)
-                                          (insert-loop (cdr tags-left)))])))))]
-          [define/public find-tag
-            (lambda (name)
-              (if (and (integer? name) (positive? name))
-                  name
-                  (and (string? name)
-                       (ormap (lambda (x) 
-                                (and (string=? name (hypertag-name x)) 
-                                     (hypertag-position x)))
-                              hypertags-list))))]
-          [define/public remove-tag 
-            (lambda (name)
+          (define/public (add-tag name pos)
+            (for-each (lambda (tag) 
+                        (when (string=? name (hypertag-name tag))
+                          (remove-tag  name)))
+                      hypertags-list)
+            (let ([new-tag (make-hypertag name pos)])
               (set! hypertags-list
-                    (filter (lambda (x) (not (string=? name (hypertag-name x))))
-                            hypertags-list)))]
-          [define/public add-link 
-            (lambda (start end url-string)
-              (let* ([new-link (make-hyperlink start end url-string)])
-                (set-clickback start end 
-                               (lambda (x y z)
-                                 (post-url url-string)))))]
+                    (let insert-loop ([tags-left hypertags-list])
+                      (cond [(null? tags-left)(cons new-tag ())]
+                            [(> pos (hypertag-position (car tags-left)))
+                             (cons new-tag tags-left)]
+                            [else (cons (car tags-left)
+                                        (insert-loop (cdr tags-left)))])))))
+          
+          (define/public (find-tag name)
+            (if (and (integer? name) (positive? name))
+                name
+                (and (string? name)
+                     (ormap (lambda (x) 
+                              (and (string=? name (hypertag-name x)) 
+                                   (hypertag-position x)))
+                            hypertags-list))))
+          (define/public (remove-tag name)
+            (set! hypertags-list
+                  (filter (lambda (x) (not (string=? name (hypertag-name x))))
+                          hypertags-list)))
+          (define/public (add-link start end url-string)
+            (let* ([new-link (make-hyperlink start end url-string)])
+              (set-clickback start end 
+                             (lambda (x y z)
+                               (post-url url-string)))))
           
           ;; remember the directory when the callback is added (during parsing)
           ;; and restore it during the evaluation of the callback.
-          [define/public add-scheme-callback
-            (lambda (start end scheme-string)
-              (let ([dir (current-load-relative-directory)])
-                (set-clickback 
-                 start end 
-                 (lambda (edit start end)
-                   (if url-allows-evaling?
-                       (parameterize ([current-load-relative-directory dir])
-                         (eval-scheme-string scheme-string))
-                       (message-box (string-constant help-desk)
-                                    "<A MZSCHEME= ...> disabled"))))))]
-          [define/public add-thunk-callback
-            (lambda (start end thunk)
+          (define/public (add-scheme-callback start end scheme-string)
+            (let ([dir (current-load-relative-directory)])
               (set-clickback 
                start end 
                (lambda (edit start end)
-                 (thunk))))]
+                 (if url-allows-evaling?
+                     (parameterize ([current-load-relative-directory dir])
+                       (eval-scheme-string scheme-string))
+                     (message-box (string-constant help-desk)
+                                  "<A MZSCHEME= ...> disabled"))))))
+          (define/public (add-thunk-callback start end thunk)
+            (set-clickback 
+             start end 
+             (lambda (edit start end)
+               (thunk))))
           
-          [define/public eval-scheme-string
-            (lambda (s)
-              (let ([v 
-                     (dynamic-wind
-                      begin-busy-cursor
-                      (lambda () 
-                        (with-handlers ([exn:fail?
-                                         (lambda (exn)
-                                           (format
-                                            error-evalling-scheme-format
-                                            s
-                                            (if (exn? exn)
-                                                (exn-message exn)
-                                                (format "~s" exn))))])
-                          (eval-string s)))
-                      end-busy-cursor)])
-                (when (string? v)
-                  (send (get-canvas) goto-url
-                        (open-input-string v)
-                        (get-url)))))]
-          
-          ;; thread-with-cancel-dialog
-          ;;  Should be called the a handler thread.
-          ;;  `work' will be called with a status proc
-          ;;   in a different thread with breaks enabled.
-          (define/private (in-thread-with-cancel work init-status)
-            (let* ([progress-dlg #f]
-                   [show-progress void]
-                   [e-text init-status] ; in case show-progress isn't ready yet
-                   [exn #f]
-                   [result (void)]
-                   [done? #f]
-                   ; Semaphores to avoid race conditions:
-                   [wait-to-continue (make-semaphore 0)]
-                   [wait-to-break (make-semaphore 0)]
-                   [wait-to-show (make-semaphore 1)]
-                   [orig-eventspace (current-eventspace)]
-                   [timeout-thread
-                    (parameterize-break 
-                     #f
-                     (thread (lambda () 
-                               (error-display-handler void) 
-                               (break-enabled #t)
-                               (sleep 1))))]
-                   [break-button 
-                    (and (is-a? top-level-window hyper-frame<%>)
-                         (send (send top-level-window get-hyper-panel) get-break-button))]
-                   ; Thread to perform the work (e.g., download):
-                   [t (parameterize-break 
-                       #f
-                       (thread
-                        (lambda ()
-                          (define (finished-work)
-                            (semaphore-wait wait-to-show)
-                            (set! done? #t)
-                            (show-progress "")
-                            (when progress-dlg
-                              (send progress-dlg show #f))
-                            (when break-button
-                              (send break-button enable #f))
-                            (close-browser-status-line top-level-window)
-                            (break-thread timeout-thread)
-                            (semaphore-post wait-to-show))
-                          (with-handlers ([void (lambda (x)
-                                                  (set! exn x))])
-                            (parameterize-break 
-                             #t
-                             (semaphore-post wait-to-break)
-                             (set! result
-                                   (work (lambda (s)
-                                           (set! e-text s)
-                                           (semaphore-wait wait-to-show)
-                                           (show-progress s)
-                                           (semaphore-post wait-to-show))
-                                         (lambda (finisher)
-                                           (finished-work)
-                                           (set! finished-work #f)
-                                           (let ([wait-for-finish (make-semaphore)]
-                                                 [exn #f])
-                                             (parameterize ([current-eventspace orig-eventspace])
-                                               (queue-callback
-                                                (lambda ()
-                                                  (with-handlers ([void (lambda (x)
-                                                                          (set! exn x))])
-                                                    (finisher))
-                                                  (semaphore-post wait-for-finish))))
-                                             (semaphore-wait wait-for-finish)
-                                             (when exn (raise exn))))))))
-                          (when finished-work
-                            (finished-work))
-                          (semaphore-post wait-to-continue))))]
-                   [make-dialog
-                    (lambda ()
-                      (semaphore-wait wait-to-show)
-                      (unless done?
-                        (init-browser-status-line top-level-window)
-                        (update-browser-status-line top-level-window e-text)
-                        (when break-button
-                          (send break-button enable #t)
-                          (send (send top-level-window get-hyper-panel)
-                                set-break-callback
-                                (lambda ()
-                                  (semaphore-wait wait-to-break)
-                                  (semaphore-post wait-to-break)
-                                  (break-thread t))))
-                        (set! show-progress
-                              (lambda (s) (update-browser-status-line top-level-window s))))
-                      (semaphore-post wait-to-show))])
-              (thread-wait timeout-thread)
-              (unless done?
-                (make-dialog))
-              (yield wait-to-continue)
-              (when exn (raise exn))
-              result))
+          (define/public (eval-scheme-string s)
+            (let ([v 
+                   (dynamic-wind
+                    begin-busy-cursor
+                    (lambda () 
+                      (with-handlers ([exn:fail?
+                                       (lambda (exn)
+                                         (format
+                                          error-evalling-scheme-format
+                                          s
+                                          (if (exn? exn)
+                                              (exn-message exn)
+                                              (format "~s" exn))))])
+                        (eval-string s)))
+                    end-busy-cursor)])
+              (when (string? v)
+                (send (get-canvas) goto-url
+                      (open-input-string v)
+                      (get-url)))))
           
           (define/public (init-browser-status-line top-level-window)
             (send top-level-window open-status-line 'browser:hyper.ss))
@@ -361,273 +252,242 @@ A test case:
           (define/public (close-browser-status-line top-level-window)
             (send top-level-window close-status-line 'browser:hyper.ss))
           
-          [define/public reload
+          (define/public reload
             (opt-lambda ([progress void])
-              (define (read-from-port p mime-headers)
-                (let-values ([(wrapping-on?) #t])
-                  (lock #f)
-                  (dynamic-wind
-                   (lambda ()
-                     (begin-busy-cursor)
-                     ; (send progress start)
-                     (begin-edit-sequence #f))
-                   (lambda () 
-                     (set! htmling? #t)
-                     (erase)
-                     (clear-undos)
-                     (let* ([mime-type (extract-field "content-type" mime-headers)]
-                            [html? (and mime-type
-                                        (regexp-match "text/html" mime-type))])
-                       (cond
-                         [(or (and mime-type (regexp-match "application/" mime-type))
-                              (and (url? url)
-                                   (not (null? (url-path url)))
-                                   (regexp-match "[.]plt$" (car (last-pair (url-path url))))
-                                   ; document-not-found produces HTML:
-                                   (not html?)))
-                          ; Save the file
-                          (progress #f)
-                          (end-busy-cursor) ; turn off cursor for a moment...
-                          (let* ([orig-name (and (url? url)
-                                                 (let ([p (url-path url)])
-                                                   (and (not (null? p))
-                                                        (car (last-pair p)))))]
-                                 [size (let ([s (extract-field "content-length" mime-headers)])
-                                         (and s (let ([m (regexp-match
-                                                          "[0-9]+"
-                                                          s)])
-                                                  (and m (string->number (car m))))))]
-                                 [install?
-                                  (and (and orig-name (regexp-match #rx"[.]plt$" orig-name))
-                                       (let ([d (make-object dialog% (string-constant install?))]
-                                             [d? #f]
-                                             [i? #f])
-                                         (make-object message%
-                                           (string-constant you-have-selected-an-installable-package)
-                                           d)
-                                         (make-object message% 
-                                           (string-constant do-you-want-to-install-it?) d)
-                                         (when size
-                                           (make-object message%
-                                             (format (string-constant paren-file-size) size) d))
-                                         (let ([hp (make-object horizontal-panel% d)])
-                                           (send hp set-alignment 'center 'center)
-                                           (send (make-object button% 
-                                                   (string-constant download-and-install)
-                                                   hp
-                                                   (lambda (b e)
-                                                     (set! i? #t)
-                                                     (send d show #f))
-                                                   '(border))
-                                                 focus)
-                                           (make-object button% (string-constant download) hp
-                                             (lambda (b e)
-                                               (set! d? #t)
-                                               (send d show #f)))
-                                           (make-object button% (string-constant cancel) hp
-                                             (lambda (b e)
-                                               (send d show #f))))
-                                         (send d center)
-                                         (send d show #t)
-                                         (unless (or d? i?)
-                                           
-                                           ; turn the cursor back on before escaping
-                                           (begin-busy-cursor)
-                                           
-                                           (raise (make-exn:cancelled
-                                                   "Package Cancelled"
-                                                   (current-continuation-marks))))
-                                         i?))]
-                                 [f (if install?
-                                        (make-temporary-file "tmp~a.plt")
-                                        (put-file 
-                                         (if size
-                                             (format 
-                                              (string-constant save-downloaded-file/size)
-                                              size)
-                                             (string-constant save-downloaded-file))
-                                         #f ; should be calling window!
-                                         #f
-                                         orig-name))])
-                            (begin-busy-cursor) ; turn the cursor back on
-                            (when f
-                              (let* ([d (make-object dialog% (string-constant downloading) top-level-window)]
-                                     [message (make-object message% 
-                                                (string-constant downloading-file...)
-                                                d)]
-                                     [gauge (if size
-                                                (make-object gauge% #f 100 d)
-                                                #f)]
-                                     [exn #f]
-                                     ; Semaphores to avoid race conditions:
-                                     [wait-to-start (make-semaphore 0)]
-                                     [wait-to-break (make-semaphore 0)]
-                                     ; Thread to perform the download:
-                                     [t (thread
-                                         (lambda ()
-                                           (semaphore-wait wait-to-start)
-                                           (with-handlers ([void
-                                                            (lambda (x)
-                                                              (when (not (exn:break? x))
-                                                                (set! exn x)))]
-                                                           [void ; throw away break exceptions
-                                                            void])
-                                             (semaphore-post wait-to-break)
-                                             (with-output-to-file f
-                                               (lambda ()
-                                                 (let loop ([total 0])
-                                                   (when gauge
-                                                     (send gauge set-value 
-                                                           (inexact->exact
-                                                            (floor (* 100 (/ total size))))))
-                                                   (let ([s (read-string 1024 p)])
-                                                     (unless (eof-object? s)
-                                                       (display s)
-                                                       (loop (+ total (string-length s)))))))
-                                               'binary 'truncate))
-                                           (send d show #f)))])
-                                (send d center)
-                                (make-object button% (string-constant &stop)
-                                  d (lambda (b e)
-                                      (semaphore-wait wait-to-break)
-                                      (set! f #f)
-                                      (send d show #f)
-                                      (break-thread t)))
-                                ; Let thread run only after the dialog is shown
-                                (queue-callback (lambda () (semaphore-post wait-to-start)))
-                                (send d show #t)
-                                (when exn (raise exn)))
-                              (let ([sema (make-semaphore 0)])
-                                (when (and f install?)
-                                  (run-installer f
-                                                 (lambda ()
-                                                   (semaphore-post sema)))
-                                  (yield sema))))
-                            (raise
-                             (if f
-                                 (make-exn:file-saved-instead
-                                  (if install?
-                                      (string-constant package-was-installed)
-                                      (string-constant download-was-saved))
-                                  (current-continuation-marks)
-                                  f)
-                                 (make-exn:cancelled "The download was cancelled."
-                                                     (current-continuation-marks)))))]
-                         [(or (port? url)
-                              (and (url? url)
-                                   (not (null? (url-path url)))
-                                   (regexp-match "[.]html?$" (car (last-pair (url-path url)))))
-                              html?)
-                          ; HTML
-                          (progress #t)
-                          (let* ([directory
-                                  (or (if (and (url? url)
-                                               (string=? "file" (url-scheme url)))
-                                          (let ([path (url-path url)])
-                                            (let-values ([(base name dir?) (split-path path)])
-                                              (if (string? base)
-                                                  base
-                                                  #f)))
-                                          #f)
-                                      (current-load-relative-directory))])
-                            (in-thread-with-cancel
-                             (lambda (show-status finish-without-dialog)
-                               (parameterize ([html-status-handler show-status]
-                                              [current-load-relative-directory directory]
-                                              [html-eval-ok url-allows-evaling?])
-                                 (html-convert p this)))
-                             "Converting html..."))]
-                         [else
-                          ; Text
-                          (progress #t)
-                          (in-thread-with-cancel
-                           (lambda (show-status finish-without-dialog)
-                             (begin-edit-sequence)
-                             (let loop ()
-                               (let ([r (read-line p 'any)])
-                                 (unless (eof-object? r)
-                                   (insert r)
-                                   (insert #\newline)
-                                   (loop))))
-                             (change-style (make-object style-delta% 'change-family 'modern)
-                                           0 (last-position))
-                             (set! wrapping-on? #f)
-                             (end-edit-sequence))
-                           "Loading text...")])))
-                   (lambda ()
-                     (end-edit-sequence)
-                     (end-busy-cursor)
-                     ; (send progress stop)
-                     (set! htmling? #f)
-                     (close-input-port p)))
-                  (set-modified #f)
-                  (auto-wrap wrapping-on?)
-                  (set-autowrap-bitmap #f)
-                  (lock #t)))
-              
               (when url
-                (let ([headers 
-                       (if (port? url)
-                           (begin
-                             (read-from-port url empty-header)
-                             empty-header)
-                           (let* ([busy? #t]
-                                  [cust (make-custodian)]
-                                  [stop-busy (lambda ()
-                                               (when busy?
-                                                 (set! busy? #f)
-                                                 (end-busy-cursor)))])
-                             (dynamic-wind
-                              ;; Turn on the busy cursor:
-                              begin-busy-cursor
-                              (lambda ()
-                                (in-thread-with-cancel
-                                 (lambda (show-status finish-without-dialog)
-                                   ;; Try to get mime info, but use get-pure-port if it fails.
-                                   ;; Use a custodian to capture all TCP connections so we
-                                   ;;  can break at any time (in which case a conneciton might
-                                   ;;  have been created but not yet delivered to some dyn-wind-based
-                                   ;;  close).
-                                   (parameterize ([current-custodian cust])
-                                     (with-handlers ([(lambda (x)
-                                                        (and (exn:fail? x)
-                                                             busy?))
-                                                      (lambda (x) 
-                                                        (call/input-url 
-                                                         url
-                                                         (if post-string 
-                                                             (lambda (u s) (post-pure-port u post-string s))
-                                                             get-pure-port)
-                                                         (lambda (p)
-                                                           (stop-busy)
-                                                           (finish-without-dialog
-                                                            (lambda ()
-                                                              (read-from-port p empty-header))))))])
-                                       (call/input-url 
-                                        url 
-                                        (if post-string 
-                                            (lambda (u s) (post-impure-port u post-string s))
-                                            get-impure-port)
-                                        (lambda (p)
-                                          (let ([headers (purify-port p)])
-                                            (stop-busy)
-                                            (finish-without-dialog
-                                             (lambda ()
-                                               (read-from-port p headers)))
-                                            headers))))))
-                                 "Fetching page ..."))
-                              (lambda ()
-                                (stop-busy)
-                                (custodian-shutdown-all cust)))))])
+                (let ([headers (get-headers/read-from-port progress)])
                   ;; Page is a redirection?
                   (let ([m (regexp-match "^HTTP/[^ ]+ 301 " headers)])
                     (when m
                       (let ([loc (extract-field "location" headers)])
                         (when loc
                           (set! redirection 
-                                (if (url? url)
-                                    (combine-url/relative url loc)
-                                    (string->url loc))))))))))]
+                                (cond
+                                  [(url? url)
+                                   (combine-url/relative url loc)]
+                                  [else
+                                   (string->url loc)]))))))))))
+          
+          (define/private (get-headers/read-from-port progress)
+            (cond
+              [(faux-url? url) 
+               (let-values ([(port headers) ((faux-url-get-port/headers url))])
+                 (read-from-port port headers progress)
+                 headers)]
+              [else
+               (let* ([busy? #t]
+                      [stop-busy (lambda ()
+                                   (when busy?
+                                     (set! busy? #f)
+                                     (end-busy-cursor)))])
+                 (with-handlers ([(lambda (x) (and (exn:fail? x) busy?))
+                                  (lambda (x) 
+                                    (printf "exn.4 ~s\n" (and (exn? x)
+                                                              (exn-message x)))
+                                    (call/input-url 
+                                     url
+                                     (if post-data 
+                                         (lambda (u s) (post-pure-port u post-data s))
+                                         get-pure-port)
+                                     (lambda (p)
+                                       (stop-busy)
+                                       (read-from-port p empty-header progress))))])
+                   (call/input-url 
+                    url 
+                    (if post-data 
+                        (lambda (u s) (post-impure-port u post-data s))
+                        get-impure-port)
+                    (lambda (p)
+                      (let ([headers (purify-port p)])
+                        (stop-busy)
+                        (read-from-port p headers progress)
+                        headers)))))]))
+          
+          (define/private (read-from-port p mime-headers progress)
+            (let ([wrapping-on? #t])
+              (dynamic-wind
+               (lambda ()
+                 (lock #f)
+                 (begin-edit-sequence #f)
+                 (set! htmling? #t))
+               (lambda ()
+                 (erase)
+                 (clear-undos)
+                 (let* ([mime-type (extract-field "content-type" mime-headers)]
+                        [html? (and mime-type (regexp-match #rx"text/html" mime-type))])
+                   (cond
+                     [(or (and mime-type (regexp-match #rx"application/" mime-type))
+                          (and (url? url)
+                               (not (null? (url-path url)))
+                               (regexp-match "[.]plt$" (car (last-pair (url-path url))))
+                               ; document-not-found produces HTML:
+                               (not html?)))
+                      ; Save the file
+                      (progress #f)
+                      (let* ([orig-name (and (url? url)
+                                             (let ([p (url-path url)])
+                                               (and (not (null? p))
+                                                    (car (last-pair p)))))]
+                             [size (let ([s (extract-field "content-length" mime-headers)])
+                                     (and s (let ([m (regexp-match #rx"[0-9]+" s)])
+                                              (and m (string->number (car m))))))]
+                             [install?
+                              (and (and orig-name (regexp-match #rx"[.]plt$" orig-name))
+                                   (let ([d (make-object dialog% (string-constant install?))]
+                                         [d? #f]
+                                         [i? #f])
+                                     (make-object message%
+                                       (string-constant you-have-selected-an-installable-package)
+                                       d)
+                                     (make-object message% 
+                                       (string-constant do-you-want-to-install-it?) d)
+                                     (when size
+                                       (make-object message%
+                                         (format (string-constant paren-file-size) size) d))
+                                     (let ([hp (make-object horizontal-panel% d)])
+                                       (send hp set-alignment 'center 'center)
+                                       (send (make-object button% 
+                                               (string-constant download-and-install)
+                                               hp
+                                               (lambda (b e)
+                                                 (set! i? #t)
+                                                 (send d show #f))
+                                               '(border))
+                                             focus)
+                                       (make-object button% (string-constant download) hp
+                                         (lambda (b e)
+                                           (set! d? #t)
+                                           (send d show #f)))
+                                       (make-object button% (string-constant cancel) hp
+                                         (lambda (b e)
+                                           (send d show #f))))
+                                     (send d center)
+                                     (send d show #t)
+                                     (unless (or d? i?)
+                                       (raise (make-exn:cancelled
+                                               "Package Cancelled"
+                                               (current-continuation-marks))))
+                                     i?))]
+                             [f (if install?
+                                    (make-temporary-file "tmp~a.plt")
+                                    (put-file 
+                                     (if size
+                                         (format 
+                                          (string-constant save-downloaded-file/size)
+                                          size)
+                                         (string-constant save-downloaded-file))
+                                     #f ; should be calling window!
+                                     #f
+                                     orig-name))])
+                        (begin-busy-cursor) ; turn the cursor back on
+                        (when f
+                          (let* ([d (make-object dialog% (string-constant downloading) top-level-window)]
+                                 [message (make-object message% 
+                                            (string-constant downloading-file...)
+                                            d)]
+                                 [gauge (if size
+                                            (make-object gauge% #f 100 d)
+                                            #f)]
+                                 [exn #f]
+                                 ; Semaphores to avoid race conditions:
+                                 [wait-to-start (make-semaphore 0)]
+                                 [wait-to-break (make-semaphore 0)]
+                                 ; Thread to perform the download:
+                                 [t (thread
+                                     (lambda ()
+                                       (semaphore-wait wait-to-start)
+                                       (with-handlers ([void
+                                                        (lambda (x)
+                                                          (printf "exn.3 ~s\n" (and (exn? exn)
+                                                                                    (exn-message exn)))
+                                                          (when (not (exn:break? x))
+                                                            (set! exn x)))])
+                                         (semaphore-post wait-to-break)
+                                         (with-output-to-file f
+                                           (lambda ()
+                                             (let loop ([total 0])
+                                               (when gauge
+                                                 (send gauge set-value 
+                                                       (inexact->exact
+                                                        (floor (* 100 (/ total size))))))
+                                               (let ([s (read-string 1024 p)])
+                                                 (unless (eof-object? s)
+                                                   (display s)
+                                                   (loop (+ total (string-length s)))))))
+                                           'binary 'truncate))
+                                       (send d show #f)))])
+                            (send d center)
+                            (make-object button% (string-constant &stop)
+                              d (lambda (b e)
+                                  (semaphore-wait wait-to-break)
+                                  (set! f #f)
+                                  (send d show #f)
+                                  (break-thread t)))
+                            ; Let thread run only after the dialog is shown
+                            (queue-callback (lambda () (semaphore-post wait-to-start)))
+                            (send d show #t)
+                            (when exn (raise exn)))
+                          (let ([sema (make-semaphore 0)])
+                            (when (and f install?)
+                              (run-installer f
+                                             (lambda ()
+                                               (semaphore-post sema)))
+                              (yield sema))))
+                        (raise
+                         (if f
+                             (make-exn:file-saved-instead
+                              (if install?
+                                  (string-constant package-was-installed)
+                                  (string-constant download-was-saved))
+                              (current-continuation-marks)
+                              f)
+                             (make-exn:cancelled "The download was cancelled."
+                                                 (current-continuation-marks)))))]
+                     [(or (and (url? url)
+                               (not (null? (url-path url)))
+                               (regexp-match "[.]html?$" (car (last-pair (url-path url)))))
+                          html?)
+                      ; HTML
+                      (progress #t)
+                      (let* ([directory
+                              (or (if (and (url? url)
+                                           (string=? "file" (url-scheme url)))
+                                      (let ([path (url-path url)])
+                                        (let-values ([(base name dir?) (split-path path)])
+                                          (if (string? base)
+                                              base
+                                              #f)))
+                                      #f)
+                                  (current-load-relative-directory))])
+                        (parameterize ([html-status-handler 
+                                        (lambda (s)
+                                          (update-browser-status-line top-level-window s))]
+                                       [current-load-relative-directory directory]
+                                       [html-eval-ok url-allows-evaling?])
+                          (html-convert p this)))]
+                     [else
+                      ; Text
+                      (progress #t)
+                      (begin-edit-sequence)
+                      (let loop ()
+                        (let ([r (read-line p 'any)])
+                          (unless (eof-object? r)
+                            (insert r)
+                            (insert #\newline)
+                            (loop))))
+                      (change-style (make-object style-delta% 'change-family 'modern)
+                                    0 (last-position))
+                      (set! wrapping-on? #f)
+                      (end-edit-sequence)])))
+               (lambda ()
+                 (end-edit-sequence)
+                 (end-busy-cursor)
+                 (set! htmling? #f)
+                 (set-modified #f)
+                 (auto-wrap wrapping-on?)
+                 (set-autowrap-bitmap #f)
+                 (lock #t)
+                 (close-input-port p)))))
           
           (inherit find-position get-snip-location
                    get-dc get-between-threshold
@@ -674,7 +534,7 @@ A test case:
           
           ;; load url, but the user might break:
           (with-handlers ([exn:break? void])
-            ;(printf "url: ~a\n" (url->string url)) ;; handy for debugging help desk
+            (printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
             (reload progress))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))
@@ -772,8 +632,12 @@ A test case:
           (inherit get-editor set-editor refresh get-parent get-top-level-window)
           
           (define/public (get-editor%) hyper-text%)
-          (define/public (make-editor url progress post-data) 
-            (make-object (get-editor%) url (get-top-level-window) progress post-data))
+          (define/public (make-editor url progress post-data)
+            (new (get-editor%) 
+                 [url url]
+                 [top-level-window (get-top-level-window)]
+                 [progress progress]
+                 [post-data post-data]))
           (define/public (current-page)
             (let ([e (get-editor)])
               (and e 
@@ -785,12 +649,10 @@ A test case:
             (send (get-parent) on-url-click k url post-data))
           (define/public goto-url
             (opt-lambda (in-url relative [progress void] [post-data #f])
-              (let* ([pre-url (if (or (url? in-url) (port? in-url))
+              (let* ([pre-url (if (url? in-url)
                                   in-url
                                   (if relative
-                                      (combine-url/relative 
-                                       relative
-                                       in-url)
+                                      (combine-url/relative relative in-url)
                                       (string->url in-url)))])
                 (let-values ([(e url)
                               (let ([e-now (get-editor)])
@@ -814,7 +676,7 @@ A test case:
                                         url)))
                       (when tag-pos (send e set-position tag-pos))))))))
           
-          ;; remap-url : url? -> (union #f url? string?)
+          ;; remap-url : url? -> (union #f url? faux-url?)
           ;; this method is intended to be overridden so that derived classes can change
           ;; the behavior of the browser.
           (define/public (remap-url url)
@@ -824,16 +686,18 @@ A test case:
           ;; builds an html editor using make-editor and follows any redictions,
           ;; but stops after 10 redirections (just in case there are too many
           ;; of these things, give the user a chance to stop)
-          (define (make-editor/follow-redirections init-url progress post-data)
+          (define/private (make-editor/follow-redirections init-url progress post-data)
             (let loop ([n 10]
                        [unmapped-url init-url])
               (let ([url (if (url? unmapped-url)
                              (let ([rurl (remap-url unmapped-url)])
-                               (cond
-                                 [(string? rurl) (string->url rurl)]
-                                 [(url? rurl) rurl]
-				 [(not rurl) #f]
-                                 [else (error 'remap-url "expected a url struct, a string, or #f, got ~e" rurl)]))
+                               (unless (or (url? rurl)
+                                           (faux-url? rurl)
+                                           (not rurl))
+                                 (error 'remap-url
+                                        "expected a url struct, a string, an input-port, or #f, got ~e"
+                                        rurl))
+                               rurl)
                              unmapped-url)])
                 (if url
                     (let ([html-editor (make-editor url progress post-data)])
@@ -847,29 +711,28 @@ A test case:
                          (values html-editor url)]))
                     (values #f #f)))))
           
-	    [define/public after-set-page (lambda () (void))]
-            [define/public set-page
-             (lambda (page notify?)
-               (let ([e (car page)]
-                     [spos (cadr page)]
-                     [epos (caddr page)]
-                     [curr (get-editor)]
-                     [current (current-page)])
-                 ; Pre-size the editor to avoid visible reflow
-                 (when curr
-                   (let ([wbox (box 0)])
-                     (send curr get-view-size wbox (box 0))
-                     (when (send e auto-wrap)
-                       (send e set-max-width (unbox wbox)))))
-                 (send e begin-edit-sequence)
-                 (when notify?
-                   (send (get-parent) leaving-page current (list e 0 0)))
-                 (set-editor e (and current (zero? (cadr current)) (zero? spos)))
-                 (send e scroll-to-position spos #f epos 'start)
-                 (send e end-edit-sequence)
-		 (after-set-page)
-                 (when (or (positive? spos) (not current) (positive? (cadr current)))
-                   (refresh))))]
+          (define/public (after-set-page) (void))
+          (define/public (set-page page notify?)
+            (let ([e (car page)]
+                  [spos (cadr page)]
+                  [epos (caddr page)]
+                  [curr (get-editor)]
+                  [current (current-page)])
+              ; Pre-size the editor to avoid visible reflow
+              (when curr
+                (let ([wbox (box 0)])
+                  (send curr get-view-size wbox (box 0))
+                  (when (send e auto-wrap)
+                    (send e set-max-width (unbox wbox)))))
+              (send e begin-edit-sequence)
+              (when notify?
+                (send (get-parent) leaving-page current (list e 0 0)))
+              (set-editor e (and current (zero? (cadr current)) (zero? spos)))
+              (send e scroll-to-position spos #f epos 'start)
+              (send e end-edit-sequence)
+              (after-set-page)
+              (when (or (positive? spos) (not current) (positive? (cadr current)))
+                (refresh))))
           (super-new)))
       
       (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
