@@ -40,8 +40,7 @@
 	       [e (make-object wrap-edit%)]
 	       [main-media (make-object wrap-edit%)]
 	       [image-snip 
-		(let ([filename (build-path mred:constants:plt-home-directory
-					    "icons"
+		(let ([filename (build-path (collection-path "icons")
 					    (if (< (wx:display-depth) 8)
 						"pltbw.gif"
 						"plt.gif"))])
@@ -141,4 +140,6 @@
     (define console (make-object (drscheme:parameters:current-frame%) #f #f))
     (send console show #t)
     (mred:debug:printf 'super-init "after console")
-    (define eval-string (lambda args (void))))
+    (define eval-string (lambda args (void)))
+
+    (define startup (lambda args (for-each mred:edit-file args))))

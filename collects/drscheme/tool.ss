@@ -13,8 +13,7 @@
 	   [(null? dirs) null]
 	   [else
 	    (let* ([dir (car dirs)]
-		   [full-dir (build-path plt:home-directory "drscheme" "tools"
-					 dir)])
+		   [full-dir (collection-path "drscheme" "tools" dir)])
 	      (if (and (directory-exists? full-dir)
 		       (not (string=? "RCS" dir)))
 		  (let* ([unit-path (build-path full-dir "unit.ss")]

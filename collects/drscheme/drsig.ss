@@ -1,5 +1,5 @@
-(reference (begin-construction-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
-(reference (begin-construction-time (build-path plt:home-directory "zodiac" "sigs.ss")))
+(reference-library "zsigs.ss" "zodiac")
+(reference-library "sigs.ss" "zodiac")
 (reference-library "sparams.ss" "backward")
 (reference-library "ariess.ss" "cogen")
 (reference-library "gusrspcs.ss" "gusrspce")
@@ -96,18 +96,14 @@
 
 (begin-construction-time
  (define drscheme:tool-directories
-   (quicksort (directory-list (build-path plt:home-directory
-					  "drscheme"
-					  "tools"))
+   (quicksort (directory-list (collection-path "drscheme" "tools"))
 	      string-ci<=?))
  `(begin
     ,@(let loop ([dirs drscheme:tool-directories])
 	(cond
 	  [(null? dirs) `(void)]
 	  [else
-	   (let ([f (build-path plt:home-directory
-				"drscheme" "tools" 
-				(car dirs) "sig.ss")])
-	     (if (file-exists? f)
+	   (let ([f (find-library "sig.ss" "drscheme" "tools" (car dirs))])
+	     (if (and f (file-exists? f))
 		 `((reference ,f) ,@(loop (cdr dirs)))
 		 (loop (cdr dirs))))]))))
