@@ -43,7 +43,8 @@
                     [start (send text get-start-position)])
                (unless (= 0 (send text last-position))
                  (let ([str (if (= end start)
-                                (find-symbol 
+                                (find-symbol
+                                 text
                                  (call-with-values
                                   (lambda ()
                                     (send text dc-location-to-editor-location
