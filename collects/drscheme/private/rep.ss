@@ -1087,7 +1087,7 @@ TODO
           
           (field (shutting-down? #f))
 
-          (define/override (can-close?)
+          (define/augment (can-close?)
             (and (cond
                    [in-evaluation?
                     (equal? (message-box/custom
@@ -1115,7 +1115,7 @@ TODO
                              2)
                             1)]
                    [else #t])
-                 (super can-close?)))
+                 (inner #t can-close?)))
           
           (define/augment (on-close)
             (shutdown)

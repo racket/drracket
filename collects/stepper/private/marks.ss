@@ -14,7 +14,7 @@
   
   (provide/contract 
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
-   [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
+   [expose-mark (-> mark? (list/c any? symbol? (listof (list/c identifier? any?))))]
    [make-top-level-mark (syntax? . -> . syntax?)]
    [lookup-all-bindings ((identifier? . -> . boolean?) mark-list? . -> . (listof any?))]
    [lookup-first-binding ((identifier? . -> . boolean?) mark-list? ( -> any) . -> . any?)]

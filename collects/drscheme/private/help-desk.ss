@@ -49,7 +49,7 @@
       (set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
       
       (define drscheme-help-desk-mixin
-        (mixin (frame:standard-menus<%>) ()
+        (mixin (help-desk-frame<%> frame:standard-menus<%>) ()
           (define/override (file-menu:create-open-recent?) #t)
           
           (define/override (file-menu:new-callback x y)

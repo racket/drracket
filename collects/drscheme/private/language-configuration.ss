@@ -331,7 +331,7 @@
           (define manual-ordering-canvas (new panel-background-editor-canvas% 
                                               (parent manual-ordering-panel)
                                               (editor manual-ordering-text)
-                                              (style '(no-hscroll #;control-border))
+                                              (style '(no-hscroll))
                                               (min-width 300)))
           
           (define one-line-summary-message (instantiate message% ()
@@ -1134,7 +1134,7 @@
                                                   read-syntax/namespace-introduce)])
                                  (contract
                                   (opt-> (any?)
-                                         (port? (list/p (and/c number? integer? exact? (>=/c 0))
+                                         (port? (list/c (and/c number? integer? exact? (>=/c 0))
                                                         (and/c number? integer? exact? (>=/c 0))
                                                         (and/c number? integer? exact? (>=/c 0))))
                                          (union syntax? eof-object?))

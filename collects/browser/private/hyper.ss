@@ -78,6 +78,9 @@ A test case:
 
       (define hyper-text<%>
         (interface ()
+          init-browser-status-line
+          update-browser-status-line
+          close-browser-status-line
           url-allows-evaling?))
       
       (define hyper-text-mixin
@@ -773,7 +776,7 @@ A test case:
                      (cons html-editor url)]))
                 (cons #f #f)))))
       
-      (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
+      (define hyper-canvas% (hyper-canvas-mixin canvas:basic%))
       
       (define info-canvas%
         (class canvas%

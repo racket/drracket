@@ -20,6 +20,8 @@
 
  - tool & framework interface changes:
 
+   . can-close? in editor:basic is now an augmentable method.
+
    . render-value and render-value/format no longer take the
      put-snip argument. Use write-special on the port
      instead.

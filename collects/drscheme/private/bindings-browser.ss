@@ -36,7 +36,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
     (class editor-snip%
       (init-field bindings)
       
-      (unless ((flat-contract-predicate (listof (list/p syntax? any?))) bindings)
+      (unless ((flat-contract-predicate (listof (list/c syntax? any?))) bindings)
         (error 'bindings-snip% "expected bindings association list, given ~v" bindings))
       
       (define/public (get-bindings) bindings)

@@ -972,8 +972,8 @@ tab panels new behavior:
       (define-struct tab (defs ints visible-defs visible-ints))
       
       (define frame-mixin
-        (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%>)
-	       (drscheme:rep:context<%> -frame<%>)
+        (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
+          (drscheme:rep:context<%> -frame<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
                    get-menu%
