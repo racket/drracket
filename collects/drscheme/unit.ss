@@ -444,7 +444,16 @@
       (define (get-defn-indent pos)
 	(let* ([para (send text position-paragraph pos)]
 	       [para-start (send text paragraph-start-position para #t)])
-	  (max 0 (- pos para-start))))
+	  (let loop ([c-pos para-start]
+		     [offset 0])
+	    (if (< c-pos pos)
+		(let ([char (send text get-character c-pos)])
+		  (cond
+		   [(char=? char #\tab)
+		    (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+		   [else
+		    (loop (+ c-pos 1) (+ offset 1))]))
+		offset))))
 
       (define (skip-to-whitespace/paren pos)
 	(let loop ([pos pos])
