@@ -856,7 +856,9 @@ If the namespace does not, they are colored the unbound color.
             (when (member report-error-panel (send report-error-parent-panel get-children))
               (send report-error-parent-panel change-children
                     (lambda (l) (remq report-error-panel l))))
-            (send report-error-text erase))
+            (send report-error-text lock #f)
+            (send report-error-text delete/io 0 (send report-error-text last-position))
+            (send report-error-text lock #t))
           
           (define/private (show-error-report)
             (unless (member report-error-panel (send report-error-parent-panel get-children))
