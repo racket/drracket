@@ -20,6 +20,17 @@
 
  - tool & framework interface changes:
 
+   . The framework still probhits editing of files that are
+     read-only, but rather than using the editor<%>'s lock
+     method, it overrides can-insert? and can-delete? in
+     text%. Accordingly, several and interfaces are now gone
+     and the functionality has moved into existing
+     mixins. These are now gone:
+
+       frame:file<%>
+       frame:file-mixin
+       frame:text-info-file%
+
    . can-close? in editor:basic is now an augmentable method.
 
    . render-value and render-value/format no longer take the
