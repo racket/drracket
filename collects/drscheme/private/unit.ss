@@ -350,7 +350,7 @@
             (apply super-init args))))
       
       (define program-editor-mixin
-	(mixin ((class->iterface text%)) ()
+	(mixin ((class->interface text%)) ()
 	  (init-rest args)
           (override after-insert after-delete)
 	  (inherit get-top-level-window)
@@ -739,7 +739,6 @@
           [define save-button #f]
           [define save-init-shown? #f]
 
-	  (public set-save-init-shown?)
           [define set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
           
           [define canvas-show-mode #f]
