@@ -107,7 +107,7 @@
         (read-curly-brace-as-paren #t)
         (read-square-bracket-as-paren #t)
         (error-print-width 250)
-        (current-load drscheme-load-handler)
+        ;(current-load drscheme-load-handler) ;yes!
         (current-ps-setup (make-object ps-setup%))
 
         (let ([user-custodian (current-custodian)])
@@ -183,7 +183,7 @@
             [(equal? chars (string->list "WXME"))
              (let ([text (make-object text%)])
                (send text load-file filename)
-               (let ([port (drscheme:language:open-input-text text 0 (send text last-position))])
+               (let ([port (open-input-text-editor text)])
                  (port-count-lines! port)
                  (when (and ((send text last-position) . >= . 2)
                             (char=? #\# (send text get-character 0))

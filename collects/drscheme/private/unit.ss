@@ -23,13 +23,13 @@
               [drscheme:rep : drscheme:rep^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:get/extend : drscheme:get/extend^]
-              [drscheme:snip : drscheme:snip^]
+              [drscheme:number-snip : drscheme:number-snip^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-overview : drscheme:module-overview^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
-      
+
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
@@ -291,68 +291,32 @@
         (make-bitmap (string-constant break-button-label) 
                      (build-path (collection-path "icons") "break.bmp")))
       
-      ;; this is the old definition of the interactions canvas.
-      ;; It should be integrated into canvas:wide-snip% 
-      ;; becuase it uses a better algorithm to find the snip
-      ;; wide widths.
-      '(class-asi wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
-         (inherit get-editor)
-         (rename [super-on-size on-size]
-                 [super-set-media set-media])
-         (public)
-         (private
-           [snips null]
-           [autowrap-snips? (preferences:get 'auto-set-wrap?)]
-           [update-snip-size
-            (lambda (s)
-              (if (is-a? s editor-snip%)
-                  (let* ([snip-x-pos&margins
-                          (let loop ([snip s])
-                            (let* ([snip-x-pos (box 0)]
-                                   [containing-media (send (send snip get-admin) get-editor)]
-                                   [containing-admin (send containing-media get-admin)])
-                              (send containing-media get-snip-position-and-location
-                                    snip (box 0) snip-x-pos (box 0))
-                              (+ (let ([lmargin (box 0)]
-                                       [rmargin (box 0)])
-                                   (send snip get-margin lmargin (box 0) rmargin (box 0))
-                                   (+ (unbox lmargin) (unbox rmargin)))
-                                 (if (is-a? containing-admin editor-snip-editor-admin<%>)
-                                     (+ (unbox snip-x-pos)
-                                        (loop (send containing-admin get-snip)))
-                                     (unbox snip-x-pos)))))]
-                         [outer-snip (let loop ([snip s])
-                                       (let ([containing-admin
-                                              (send (send (send snip get-admin)
-                                                          get-editor) get-admin)])
-                                         (if (is-a? containing-admin editor-snip-editor-admin<%>)
-                                             (loop (send containing-admin get-snip))
-                                             snip)))]					
-                         [view-width (let* ([width (box 0)]
-                                            [extra-space 2] ;; this is to allow the edit room
-                                            ;; to show the caret at the end
-                                            ;; of the line
-                                            [media (get-editor)])
-                                       (send (send media get-admin)
-                                             get-view null null width null)
-                                       (- (unbox width)
-                                          extra-space))]
-                         [snip-width (- view-width snip-x-pos&margins)])
-                    (send s set-min-width snip-width)
-                    (send s set-max-width snip-width)
-                    (when (is-a? s editor-snip%)
-                      (let ([snip-media (send s get-this-media)])
-                        (unless (null? snip-media)
-                          (send snip-media set-max-width
-                                (if autowrap-snips?
-                                    snip-width
-                                    0))))))
-                  (send (send s get-admin) resized s #t)))])
-         (public
-           [set-media
-            (lambda (x)
-              (super-set-media x)
-              (send x on-set-media this))]))
+      (define program-editor-mixin 
+        (mixin (editor:basic<%> (class->interface text%)) () 
+          (init-rest args) 
+          (override after-insert after-delete) 
+          (inherit get-top-level-window) 
+          (rename [super-after-insert after-insert] 
+                  [super-after-delete after-delete]) 
+          
+          (define (reset-highlighting) 
+            (let ([f (get-top-level-window)]) 
+              (when (and f 
+                         (is-a? f -frame%)) 
+                (let ([interactions-text (send f get-interactions-text)]) 
+                  (when (object? interactions-text) 
+                    (send interactions-text reset-highlighting)))))) 
+          
+          (define (after-insert x y) 
+            (reset-highlighting) 
+            (super-after-insert x y)) 
+          
+          (define (after-delete x y) 
+            (reset-highlighting) 
+            (super-after-delete x y)) 
+          
+          (apply super-make-object args))) 
+      
       
       ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
@@ -376,32 +340,6 @@
         (class100 (make-searchable-canvas% (canvas:delegate-mixin canvas:info%)) args
           (sequence
             (apply super-init args))))
-      
-      (define program-editor-mixin
-	(mixin (editor:basic<%> (class->interface text%)) ()
-	  (init-rest args)
-          (override after-insert after-delete)
-	  (inherit get-top-level-window)
-	  (rename [super-after-insert after-insert]
-		  [super-after-delete after-delete])
-          
-          (define (reset-highlighting)
-            (let ([f (get-top-level-window)])
-              (when (and f
-			 (is-a? f -frame%))
-                (let ([interactions-text (send f get-interactions-text)])
-                  (when (object? interactions-text)
-                    (send interactions-text reset-highlighting))))))
-          
-          (define (after-insert x y)
-            (reset-highlighting)
-            (super-after-insert x y))
-          
-          (define (after-delete x y)
-            (reset-highlighting)
-            (super-after-delete x y))
-          
-          (apply super-make-object args)))
       
       (define definitions-super%
         (program-editor-mixin
@@ -565,7 +503,8 @@
       (define func-defs-canvas%
         (class canvas%
 	  (init parent)
-	  (init-field text)
+          (init-field frame)
+	  (init-field fallback-text)
           (override on-paint on-event)
 	  (inherit get-client-size get-dc popup-menu min-height min-width
 		   stretchable-width
@@ -594,7 +533,12 @@
               [(send evt button-down?)
                (set! inverted? #t)
                (on-paint)
-               (let* ([menu (make-object popup-menu% #f
+               (let* ([text (let ([active-text (send frame get-edit-target-object)])
+                              (if (and (object? active-text)
+                                       (is-a? active-text definitions-text<%>))
+                                  active-text
+                                  fallback-text))]
+                      [menu (make-object popup-menu% #f
                               (lambda x
                                 (set! inverted? #f)
                                 (on-paint)))]
@@ -637,6 +581,7 @@
                                      (on-paint)
                                      (send text set-position (defn-start-pos defn) (defn-start-pos defn))
                                      (let ([canvas (send text get-canvas)])
+                                       (printf "canvas: ~s\n" canvas)
                                        (when canvas
                                          (send canvas focus)))))])
                            (when checked?
@@ -1564,6 +1509,14 @@
               (lambda (_1 _2) (send interactions-text kill-evaluation))
               #\k
               (string-constant kill-menu-item-help-string))
+            (instantiate menu:can-restore-menu-item% ()
+              (label (string-constant clear-error-highlight-menu-item-label))
+              (parent scheme-menu)
+              (callback (lambda (_1 _2) (drscheme:rep:reset-error-ranges)))
+              (help-string (string-constant clear-error-highlight-item-help-string))
+              (demand-callback
+               (lambda (item)
+                 (send item enable (drscheme:rep:get-error-ranges)))))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant create-executable-menu-item-label)
@@ -1608,7 +1561,7 @@
                        (let ([number (get-fraction-from-user this)])
                          (when number
                            (send edit insert
-                                 (drscheme:snip:make-fraction-snip number #f)))))
+                                 (drscheme:number-snip:make-fraction-snip number #f)))))
                      #t))]
                 [insert-large-semicolon-letters
                  (lambda ()
@@ -1740,7 +1693,7 @@
           [define get-break-button (lambda () break-button)]
           [define get-button-panel (lambda () button-panel)]
           
-          [define func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)]
+          [define func-defs-canvas (make-object func-defs-canvas% name-panel this definitions-text)]
           
           (set! execute-button
                 (make-object button%

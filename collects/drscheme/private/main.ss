@@ -26,12 +26,11 @@
 	      [drscheme:language : drscheme:language^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:module-language : drscheme:module-language^]
-              [drscheme:snip : drscheme:snip^]
               [drscheme:tools : drscheme:tools^]
               [drscheme:debug : drscheme:debug^]
               [drscheme:frame : drscheme:frame^]
               [drscheme:font : drscheme:font^])
-      
+
       (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
       ;(version:add-spec 'd 7)
@@ -173,26 +172,6 @@
       (drscheme:get/extend:get-definitions-text)
       (drscheme:language-configuration:get-languages)
       
-      (scheme:set-sexp-snip-class
-       (class* (scheme:get-sexp-snip-class) (drscheme:snip:special<%>)
-         (inherit-field saved-snips)
-         (define/public (read-special file line col pos)
-           (let ([text (make-object text:basic%)])
-             (for-each
-              (lambda (s) (send text insert (send s copy)
-                                (send text last-position)
-                                (send text last-position)))
-              saved-snips)
-             (values (datum->syntax-object
-                      #f
-                      (read (drscheme:language:open-input-text 
-                             text
-                             0
-                             (send text last-position)))
-                      (list file line col pos 1))
-                     1)))
-         (super-instantiate ())))
-      
       ;; this default can only be set *after* the
       ;; languages have all be registered by tools
       (preferences:set-default
@@ -229,7 +208,6 @@
 			lang
 			(or settings (send lang default-settings)))))))))
       
-
       (handler:set-recent-items-frame-superclass
        (drscheme:frame:basics-mixin
         (frame:standard-menus-mixin

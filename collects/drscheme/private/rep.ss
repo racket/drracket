@@ -30,7 +30,7 @@
   (define rep@
     (unit/sig drscheme:rep^
       (import (drscheme:init : drscheme:init^)
-              (drscheme:snip : drscheme:snip^)
+              (drscheme:number-snip : drscheme:number-snip^)
               (drscheme:language-configuration : drscheme:language-configuration/internal^)
 	      (drscheme:language : drscheme:language^)
               (drscheme:app : drscheme:app^)
@@ -105,93 +105,102 @@
                   (eq? (current-error-port) (send rep get-this-err)))
              (send rep queue-output
                    (lambda ()  ;; =Kernel=, =Handler=
-                     (let ([locked? (send rep is-locked?)]
-                           [insert-file-name/icon
-                            ;; insert-file-name/icon : string number number number number -> void
-                            (lambda (source-name start span row col)
-                              (let* ([range-spec
-                                      (cond
-                                        [(and row col)
-                                         (format ":~a:~a" row col)]
-                                        [start
-                                         (format "::~a" start)]
-                                        [else ""])])
-                                (if (file-exists? source-name)
-                                    (let* ([normalized-name (normalize-path source-name)]
-                                           [short-name
-                                            (find-relative-path user-dir normalized-name)])
-                                      (let-values ([(icon-start icon-end) 
-                                                    (insert/delta rep (send file-icon copy))]
-                                                   [(space-start space-end) (insert/delta rep " ")]
-                                                   [(name-start name-end) (insert/delta rep short-name)]
-                                                   [(range-start range-end) (insert/delta rep range-spec)]
-                                                   [(colon-start colon-ent) (insert/delta rep ": ")])
-                                        (when (number? start)
-                                          (send rep set-clickback icon-start range-end
-                                                (lambda (_1 _2 _3)
-                                                  (open-file-and-highlight normalized-name
-                                                                           (- start 1) 
-                                                                           (if span
-                                                                               (+ start -1 span)
-                                                                               start)))))))
-                                    (begin
-                                      (insert/delta rep source-name)
-                                      (insert/delta rep range-spec)
-                                      (insert/delta rep ": ")
-                                      (void)))))])
-                       (send rep begin-edit-sequence)
-                       (send rep lock #f)
-                       (cond
-                         [(exn:syntax? exn)
-                          (let* ([expr (exn:syntax-expr exn)]
-                                 [src (and expr (syntax-source expr))]
-                                 [pos (and expr (syntax-position expr))]
-                                 [span (and expr (syntax-span expr))]
-                                 [col (and expr (syntax-column expr))]
-                                 [line (and expr (syntax-line expr))])
-                            (when (string? src)
-                              (insert-file-name/icon (syntax-source expr) pos span line col))
-                            (insert/delta rep (exn-message exn) error-delta)
-                            (when (syntax? expr)
-                              (insert/delta rep " in: ")
-                              (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta))
-                            (insert/delta rep "\n")
-                            (when (and (is-a? src text:basic%)
-                                       (number? pos)
-                                       (number? span))
-                              (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
-                         [(exn:read? exn)
-                          (let ([src (exn:read-source exn)]
-                                [pos (exn:read-position exn)]
-                                [span (exn:read-span exn)]
-                                [line (exn:read-line exn)]
-                                [col (exn:read-column exn)])
-                            (when (string? src)
-                              (insert-file-name/icon src pos span line col))
-                            (insert/delta rep (exn-message exn) error-delta)
-                            (insert/delta rep "\n")
-                            (when (and (is-a? src text:basic%)
-                                       (number? pos)
-                                       (number? span))
-                               (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
-                         [(exn:locs? exn)
-                          (let ([locs (exn:locs-locs exn)])
-                            (insert/delta rep (exn-message exn) error-delta)
-                            (insert/delta rep "\n")
-                            (send rep highlight-errors locs))]
-                         [(exn? exn)
-                          (insert/delta rep (exn-message exn) error-delta)
-                          (insert/delta rep "\n")]
-                         [else
-                          (insert/delta rep "uncaught exception: " error-delta)
-                          (insert/delta rep (format "~s" exn) error-delta)
-                          (insert/delta rep "\n")])
-                       (send rep lock locked?)
-                       (send rep end-edit-sequence))))]
+                     (insert-error-in-text rep rep msg exn user-dir)))]
             [else
              (display msg (current-error-port))
              (newline (current-error-port))])))
 
+      ;; insert-error-in-text : (is-a?/c text%)
+      ;;                        (is-a?/c drscheme:rep:text<%>)
+      ;;                        string?
+      ;;                        exn?
+      ;;                        (union false? (and/f string? directory-exists?))
+      ;;                        ->
+      ;;                        void?
+      (define (insert-error-in-text text interactions-text msg exn user-dir)
+        (let ([locked? (send text is-locked?)]
+              [insert-file-name/icon
+               ;; insert-file-name/icon : string number number number number -> void
+               (lambda (source-name start span row col)
+                 (let* ([range-spec
+                         (cond
+                           [(and row col)
+                            (format ":~a:~a" row col)]
+                           [start
+                            (format "::~a" start)]
+                           [else ""])])
+                   (if (file-exists? source-name)
+                       (let* ([normalized-name (normalize-path source-name)]
+                              [short-name (if user-dir
+                                              (find-relative-path user-dir normalized-name)
+                                              source-name)])
+                         (let-values ([(icon-start icon-end) (insert/delta text (send file-icon copy))]
+                                      [(space-start space-end) (insert/delta text " ")]
+                                      [(name-start name-end) (insert/delta text short-name)]
+                                      [(range-start range-end) (insert/delta text range-spec)]
+                                      [(colon-start colon-ent) (insert/delta text ": ")])
+                           (when (number? start)
+                             (send text set-clickback icon-start range-end
+                                   (lambda (_1 _2 _3)
+                                     (open-file-and-highlight normalized-name
+                                                              (- start 1) 
+                                                              (if span
+                                                                  (+ start -1 span)
+                                                                  start)))))))
+                       (begin
+                         (insert/delta text source-name)
+                         (insert/delta text range-spec)
+                         (insert/delta text ": ")))))])
+          (send text begin-edit-sequence)
+          (send text lock #f)
+          (cond
+            [(exn:syntax? exn)
+             (let* ([expr (exn:syntax-expr exn)]
+                    [src (and expr (syntax-source expr))]
+                    [pos (and expr (syntax-position expr))]
+                    [span (and expr (syntax-span expr))]
+                    [col (and expr (syntax-column expr))]
+                    [line (and expr (syntax-line expr))])
+               (when (string? src)
+                 (insert-file-name/icon src pos span line col))
+               (insert/delta text (exn-message exn) error-delta)
+               (when (syntax? expr)
+                 (insert/delta text " in: ")
+                 (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
+               (insert/delta text "\n")
+               (when (and (is-a? src text:basic%)
+                          (number? pos)
+                          (number? span))
+                 (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
+            [(exn:read? exn)
+             (let ([src (exn:read-source exn)]
+                   [pos (exn:read-position exn)]
+                   [span (exn:read-span exn)]
+                   [line (exn:read-line exn)]
+                   [col (exn:read-column exn)])
+               (when (string? src)
+                 (insert-file-name/icon src pos span line col))
+               (insert/delta text (exn-message exn) error-delta)
+               (insert/delta text "\n")
+               (when (and (is-a? src text:basic%)
+                          (number? pos)
+                          (number? span))
+                 (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
+            [(exn:locs? exn)
+             (let ([locs (exn:locs-locs exn)])
+               (insert/delta text (exn-message exn) error-delta)
+               (insert/delta text "\n")
+               (send interactions-text highlight-errors locs))]
+            [(exn? exn)
+             (insert/delta text (exn-message exn) error-delta)
+             (insert/delta text "\n")]
+            [else
+             (insert/delta text "uncaught exception: " error-delta)
+             (insert/delta text (format "~s" exn) error-delta)
+             (insert/delta text "\n")])
+          (send text lock locked?)
+          (send text end-edit-sequence)))
+      
       ;; open-file-and-highlight : string (union number #f) (union number #f)
       ;; =Kernel, =Handler=
       ;; opens the file named by filename. If position is #f,
@@ -510,8 +519,12 @@
           (super-make-object (build-path (collection-path "icons") "eof.gif"))
           (set-flags (cons 'handles-events (get-flags)))))
       
+      ;; error-ranges : (union false? (cons (list file number number) (listof (list file number number))))
       (define error-ranges #f)
-      (define (reset-callback) (void))
+      (define (get-error-ranges) error-ranges)
+      (define internal-reset-callback void)
+      (define (reset-error-ranges) (internal-reset-callback))
+      
       (define error-range/reset-callback-semaphore (make-semaphore 1))
       
       ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%) *-> (values number number)
@@ -682,9 +695,9 @@
                    context))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;;					     ;;;
+          ;;;					       ;;;
           ;;;            User -> Kernel                ;;;
-          ;;;					     ;;;
+          ;;;					       ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           (define protect
@@ -1331,12 +1344,12 @@
                                       (send file highlight-range start finish error-color #f #f 'high)
                                       void)))
                               locs)])
-                    (set! reset-callback
+                    (set! internal-reset-callback
                           (lambda ()
                             (unless (get-inserting-prompt)
                               (semaphore-wait error-range/reset-callback-semaphore)
                               (set! error-ranges #f)
-                              (set! reset-callback void)
+                              (set! internal-reset-callback void)
                               (for-each (lambda (x) (x)) resets)
                               (semaphore-post error-range/reset-callback-semaphore))))))
 
@@ -1353,7 +1366,7 @@
             (semaphore-post error-range/reset-callback-semaphore))
           
           (define (reset-highlighting)
-            (reset-callback))
+            (reset-error-ranges))
           
           (define (on-set-media) (void))
           
@@ -1429,13 +1442,13 @@
                             (let ([number-snip-type ((which-number-snip) x)])
                               (cond
                                 [(eq? number-snip-type 'repeating-decimal)
-                                 (drscheme:snip:make-repeating-decimal-snip x #f)]
+                                 (drscheme:number-snip:make-repeating-decimal-snip x #f)]
                                 [(eq? number-snip-type 'repeating-decimal-e)
-                                 (drscheme:snip:make-repeating-decimal-snip x #t)]
+                                 (drscheme:number-snip:make-repeating-decimal-snip x #t)]
                                 [(eq? number-snip-type 'mixed-fraction)
-                                 (drscheme:snip:make-fraction-snip x #f)]
+                                 (drscheme:number-snip:make-fraction-snip x #f)]
                                 [(eq? number-snip-type 'mixed-fraction-e)
-                                 (drscheme:snip:make-fraction-snip x #t)]
+                                 (drscheme:number-snip:make-fraction-snip x #t)]
                                 [else
                                  (error 'which-number-snip
                                         "expected either 'repeating-decimal, 'repeating-decimal-e, 'mixed-fraction, or 'mixed-fraction-e got : ~e"
@@ -1733,9 +1746,9 @@
                      (set! user-thread-box (make-weak-box (current-thread)))
                      (initialize-parameters snip-classes))))
                 
-                ;; set up break button.
-                (send context set-breakables (get-user-thread) (get-user-custodian))
-
+                ;; disable breaks until an evaluation actually occurs
+                (send context set-breakables #f #f)
+                
                 ;; re-loads any teachpacks that have changed
                 (drscheme:teachpack:load-teachpacks 
                  (get-user-namespace)
@@ -1763,7 +1776,8 @@
                      
                      (set! in-evaluation? #f)
                      (update-running)
-		     
+		     (send context set-breakables #f #f)
+                     
                      ;; let init-thread procedure return,
                      ;; now that parameters are set
                      (semaphore-post init-thread-complete)
@@ -1879,6 +1893,7 @@
                             [(not in-evaluation?)
                              (send context reset-offer-kill)
                              (send context set-breakables (get-user-thread) (get-user-custodian))
+                             
                              (protect-user-evaluation
                               ; Run the dispatch:
                               (lambda () ; =User=, =Handler=, =No-Breaks=
@@ -1888,7 +1903,7 @@
                                  (lambda () 
                                    (break-enabled break-ok?)
                                    (unless ub?
-                                       (set! user-break-enabled 'user)))
+                                     (set! user-break-enabled 'user)))
                                    (lambda ()
                                      (primitive-dispatch-handler eventspace))
                                    (lambda ()
@@ -1896,17 +1911,16 @@
                                        (set! user-break-enabled (break-enabled)))
                                      (break-enabled #f))))
                               ; Cleanup after dispatch
-                              void)
+                              (lambda ()
+                                ;; in principle, the line below might cause
+                                ;; a "race conditions" in the GUI. That is, there might
+                                ;; be many little events that the user won't quite
+                                ;; be able to break.
+                                (send context set-breakables #f #f)))
                              
                              ; Restore break:
                              (when ub?
-                               (break-enabled break-ok?))
-                             ;; in principle, the commented line below should be here,
-                             ;; but this cases "race conditions" in the GUI. So, instead
-                             ;; we just be sure to set the breakables each time an
-                             ;; evaluation might be broken.
-                             ;(send context set-breakables #f #f)
-                             ]
+                               (break-enabled break-ok?))]
                             [else
                              ; Nested dispatch; don't adjust interface, and restore break:
                              (break-enabled break-ok?)
@@ -1973,21 +1987,20 @@
             
             (super-reset-console))
           
-          (define initialize-console
-            (lambda ()
-              (super-initialize-console)
-              
-              (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
-              (let-values ([(before after)
-                            (insert/delta this (string-constant drscheme) click-delta drs-font-delta)])
-                (insert/delta this (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
-                              welcome-delta)
-                (set-clickback before after 
-                               (lambda args (drscheme:app:about-drscheme))
-                               click-delta))
-              (reset-console)
-              (insert-prompt)
-              (clear-undos)))
+          (define (initialize-console)
+            (super-initialize-console)
+            
+            (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
+            (let-values ([(before after)
+                          (insert/delta this (string-constant drscheme) click-delta drs-font-delta)])
+              (insert/delta this (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
+                            welcome-delta)
+              (set-clickback before after 
+                             (lambda args (drscheme:app:about-drscheme))
+                             click-delta))
+            (reset-console)
+            (insert-prompt)
+            (clear-undos))
           
           (super-instantiate ())
           

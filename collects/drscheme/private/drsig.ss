@@ -9,7 +9,7 @@
            drscheme:get-collection^
            drscheme:main^
            drscheme:init^
-           drscheme:snip^
+           drscheme:number-snip^
            drscheme:language-configuration^
            drscheme:language-configuration/internal^
            drscheme:tools^
@@ -70,10 +70,9 @@
      first-dir
      all-toplevel-collections))
   
-  (define-signature drscheme:snip^ 
+  (define-signature drscheme:number-snip^ 
     (make-repeating-decimal-snip
-     make-fraction-snip
-     special<%>))
+     make-fraction-snip))
   
   (define-signature drscheme:language-configuration^
     (add-language
@@ -126,8 +125,8 @@
      definitions-text%
      definitions-text<%>
      interactions-canvas%
-     program-editor-mixin
-     open-drscheme-window))
+     open-drscheme-window
+     program-editor-mixin))
   
   (define-signature drscheme:frame^
     (name-message%
@@ -155,7 +154,10 @@
     (do-setup))
   
   (define-signature drscheme:rep^
-    (use-number-snip
+    (get-error-ranges
+     reset-error-ranges
+     insert-error-in-text
+     use-number-snip
      which-number-snip
      drs-bindings-keymap-mixin
      current-rep
@@ -198,7 +200,6 @@
      create-module-based-launcher
      create-module-based-stand-alone-executable
 
-     open-input-text
      get-post-hash-bang-start
 
      ;(struct loc (source position line column span) -setters)
@@ -244,7 +245,7 @@
   
   (define-signature drscheme:tool^
     ((unit drscheme:debug : drscheme:debug^)
-     (unit drscheme:snip : drscheme:snip^)     
+     (unit drscheme:number-snip : drscheme:number-snip^)     
      (unit drscheme:unit : drscheme:unit^)
      (unit drscheme:rep : drscheme:rep^)
      (unit drscheme:frame : drscheme:frame^)

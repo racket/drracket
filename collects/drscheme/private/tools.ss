@@ -7,6 +7,7 @@
            (lib "list.ss")
            "drsig.ss"
            (lib "framework.ss" "framework")
+	   (lib "contracts.ss")
            (lib "string-constant.ss" "string-constants"))
   
   (provide tools@)
@@ -50,7 +51,7 @@
               [drscheme:language-configuration : drscheme:language-configuration^]
 	      [drscheme:help-desk : drscheme:help-desk^]
               [drscheme:init : drscheme:init^]
-              [drscheme:snip : drscheme:snip^]
+              [drscheme:number-snip : drscheme:number-snip^]
 	      [drscheme:debug : drscheme:debug^]
               [drscheme:eval : drscheme:eval^]
               [drscheme:teachpack : drscheme:teachpack^])

@@ -181,7 +181,7 @@
                  (begin0 (ol fn module)
                          (set! stack (cdr stack))
                          (update-messages))))
-              
+
               (error-print-width 200)))))))
 
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)

@@ -15,7 +15,7 @@
            "text.ss"
            "app.ss"
            "main.ss"
-           "snip.ss"
+           "number-snip.ss"
            "rep.ss"
            "frame.ss"
            "unit.ss"
@@ -30,20 +30,20 @@
             [tools : drscheme:tools^ 
                    (tools@ frame unit rep get/extend language
                          (language-configuration : drscheme:language-configuration^)
-                         help-desk init snip debug eval teachpack)]
+                         help-desk init number-snip debug eval teachpack)]
             [text : drscheme:text^ (text@)]
-            [snip : drscheme:snip^ (snip@)]
+            [number-snip : drscheme:number-snip^ (number-snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@)]
             [eval : drscheme:eval^ (eval@ language-configuration rep init language)]
             [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [rep : drscheme:rep^
-                 (rep@ init snip language-configuration language app 
+                 (rep@ init number-snip language-configuration language app 
                      frame unit text help-desk teachpack debug eval)]
-            [language : drscheme:language^ (language@ rep snip debug teachpack tools)]
+            [language : drscheme:language^ (language@ rep debug teachpack tools)]
             [module-overview : drscheme:module-overview^ (module-overview@ frame)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration 
-                       get/extend snip teachpack module-overview)]
+                       get/extend number-snip teachpack module-overview)]
             [debug : drscheme:debug^
                    (debug@ rep frame unit language language-configuration)]
             [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame)]
@@ -59,7 +59,7 @@
 	    [app : drscheme:app^ (app@ unit frame language-configuration help-desk tools)]
             [main : () (main@ 
                         app unit get/extend language-configuration language teachpack
-                        module-language snip tools debug frame font)])
+                        module-language tools debug frame font)])
       (export
        (unit teachpack drscheme:teachpack)
        (unit language-configuration drscheme:language-configuration)))))

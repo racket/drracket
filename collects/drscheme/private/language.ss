@@ -23,7 +23,6 @@
   (define language@
     (unit/sig drscheme:language^
       (import [drscheme:rep : drscheme:rep^]
-              [drscheme:snip : drscheme:snip^]
               [drscheme:debug : drscheme:debug^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:tools : drscheme:tools^])
@@ -716,7 +715,7 @@
                                 [end (text/pos-end input)]
                                 [start-line (send text position-paragraph start)]
                                 [start-col (- start (send text paragraph-start-position start-line))])
-                           (let ([port (open-input-text text start end)])
+                           (let ([port (open-input-text-editor text start end)])
                              (port-count-lines! port)
                              (values port
                                      text
@@ -788,67 +787,6 @@
         ;                                         ;                                                      
        ;;;                                       ;;;                                                     
 
-      
-      ;; open-input-text : (instanceof text%) num num -> input-port
-      ;; creates a user port whose input is taken from the text%,
-      ;; starting at position `start-in' (taking into account #!)
-      ;; and ending at position `end'.
-      (define (open-input-text text start end)
-        (send text split-snip start)
-        (send text split-snip end)
-        (let* ([snip (send text find-snip start 'after-or-none)]
-               [str #f]
-               [pos 0]
-               [update-str-to-snip
-                (lambda ()
-                  (cond
-                    [(not snip)
-                     (set! str #f)]
-                    [((send text get-snip-position snip) . >= . end)
-                     (set! str #f)]
-                    [(is-a? snip string-snip%)
-                     (set! str (send snip get-text 0 (send snip get-count)))]
-                    [else
-                     (set! str 'snip)]))]
-               [next-snip
-                (lambda ()
-                  (set! snip (send snip next))
-                  (set! pos 0)
-                  (update-str-to-snip))]
-               [read-char (lambda ()
-                            (cond
-                              [(not str) eof]
-                              [(string? str)
-                               (begin0 (string-ref str pos)
-                                       (set! pos (+ pos 1))
-                                       (when ((string-length str) . <= . pos)
-                                         (next-snip)))]
-                              [(eq? str 'snip)
-                               (begin0
-                                 (let ([the-snip snip])
-                                   (lambda (file line col pos)
-                                     (if (is-a? the-snip drscheme:snip:special<%>)
-                                         (send the-snip read-special file line col pos)
-                                         (values (send the-snip copy) 1))))
-                                 (next-snip))]))]
-               [char-ready? (lambda () #t)]
-               [close (lambda () (void))]
-               ;; We create a slow port for now; in the future, try
-               ;; grabbing more characters:
-               [port (make-custom-input-port 
-                      #f
-                      (lambda (s)
-                        (let ([c (read-char)])
-                          (if (char? c)
-                              (begin
-                                (string-set! s 0 c)
-                                1)
-                              c)))
-                      #f ; no peek
-                      close)])
-          (update-str-to-snip)
-          (port-count-lines! port)
-          port))
       
       ;; get-post-hash-bang-start : text -> number
       ;; returns the beginning of the line after #! if there
