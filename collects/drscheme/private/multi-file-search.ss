@@ -9,6 +9,9 @@
            (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
+;  (define (drscheme:frame:basics-mixin x) x)
+;  (define drscheme:unit:frame<%> object%)
+  
   (provide multi-file-search@)
   
   (define multi-file-search@
@@ -224,6 +227,13 @@
                              match-length)))
                 (loop))))))
       
+  (define results-super-text% 
+    (text:hide-caret/selection-mixin
+     (text:basic-mixin 
+      (editor:standard-style-list-mixin 
+       (editor:basic-mixin
+        text%)))))
+  
       ;; results-text% : derived from text%
       ;; init args: zoom-text
       ;;   zoom-text : (instance-of text%)
@@ -236,7 +246,7 @@
       ;;   search-complete : -> void
       ;;      inserts a message saying "no matches found" if none were reported
       (define results-text%
-        (class (editor:standard-style-list-mixin text%)
+        (class results-super-text%
           (init-field zoom-text)
           (inherit insert last-paragraph erase
                    paragraph-start-position paragraph-end-position
@@ -641,10 +651,12 @@
                        (k)]
                       [else 
                        (let ([file/dir (car contents)])
+                         (printf "considering: ~s\n" file/dir)
                          (cond
                            [(and (file-exists? file/dir)
                                  (or (not filter)
                                      (regexp-match filter file/dir)))
+                            (printf "included\n")
                             (set! next-thunk
                                   (lambda ()
                                     (process-dir-contents (cdr contents) k)))
@@ -654,7 +666,9 @@
                              (cdr contents)
                              (lambda ()
                                (process-dir file/dir k)))]
-                           [else (process-dir-contents (cdr contents) k)]))]))])
+                           [else 
+                            (printf "not included\n")
+                            (process-dir-contents (cdr contents) k)]))]))])
           (lambda () (next-thunk))))
       
       ;; build-flat-file-list : string -> (-> (union string #f))
@@ -712,4 +726,5 @@
                                             (car pos)
                                             (- (cdr pos) (car pos))))))
                            (loop (+ line-number 1))]))))
-                  'text))))))))
+                  'text))))))
+))
