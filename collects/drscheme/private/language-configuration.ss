@@ -243,24 +243,25 @@
                 (let ([fst-selected (get-selected)])
                   (when fst-selected
                     (let loop ([item fst-selected])
-                      (let* ([parent (send item get-parent)]
-                             [siblings (list->vector (if parent
-                                                         (send parent get-items)
-                                                         (get-items)))])
-                        (let sibling-loop ([index (inc (find-index item siblings))])
-                          (cond
-                            [(and (<= 0 index)
-                                  (< index (vector-length siblings)))
-                             (let ([sibling (vector-ref siblings index)])
-                               (cond
-                                 [(find-first-leaf sibling inc start)
-                                  =>
-                                  (lambda (child)
-                                    (send fst-selected select #f)
-                                    (send child select #t)
-                                    (open-parents child))]
-                                 [else (sibling-loop (inc index))]))]
-                            [else (loop parent)])))))))
+		      (when item
+			(let* ([parent (send item get-parent)]
+			       [siblings (list->vector (if parent
+							   (send parent get-items)
+							   (get-items)))])
+			  (let sibling-loop ([index (inc (find-index item siblings))])
+			    (cond
+			      [(and (<= 0 index)
+				    (< index (vector-length siblings)))
+			       (let ([sibling (vector-ref siblings index)])
+				 (cond
+				   [(find-first-leaf sibling inc start)
+				    =>
+				    (lambda (child)
+				      (send fst-selected select #f)
+				      (send child select #t)
+				      (open-parents child))]
+				   [else (sibling-loop (inc index))]))]
+			      [else (loop parent)]))))))))
               
               ;; find-first-leaf : item (int -> int) (vec -> int)
               ;; finds the first child, using `inc' and `start' to control
