@@ -204,6 +204,18 @@
 	  [allow-split? #f]
 	  [forced-quit? #f])
 
+	(private
+	  [evaluation-disabled? #t])
+	(public
+	  [disable-evaluation
+	   (lambda ()
+	     '(send execute-button enable #f)
+	     '(send definitions-edit lock #t))]
+	  [enable-evaluation
+	   (lambda ()
+	     '(send execute-button enable #t)
+	     '(send definitions-edit lock #f))])
+
 	(public
 	  [update-save-button
 	   (lambda (mod?)
@@ -490,17 +502,22 @@
 	  
 	  (mred:add-preference-callback
 	   'drscheme:library-file
-	   (lambda (p v)
-	     (set! scheme-only-library-msg
-		   (make-library-name-msg scheme-only-panel v))
-	     (set! library-msg (make-library-name-msg top-panel v))
-	     (send scheme-only-panel change-children
-		   (lambda (l) (list scheme-only-library-msg
-				     scheme-only-space
-				     scheme-only-stop-executing
-				     scheme-only-help)))
-	     (send top-panel change-children 
-		   (lambda (l) (build-top-panel-children))))))
+	   (let ([last-one (mred:get-preference 'drscheme:library-file)])
+	     (lambda (p v)
+	       (unless (or (and (not last-one) (not v))
+			   (and last-one v
+				(string=? v last-one)))
+		 (set! last-one v)
+		 (set! scheme-only-library-msg
+		       (make-library-name-msg scheme-only-panel v))
+		 (set! library-msg (make-library-name-msg top-panel v))
+		 (send scheme-only-panel change-children
+		       (lambda (l) (list scheme-only-library-msg
+					 scheme-only-space
+					 scheme-only-stop-executing
+					 scheme-only-help)))
+		 (send top-panel change-children 
+		       (lambda (l) (build-top-panel-children))))))))
 		     
 	(private
 	  [build-top-panel-children
