@@ -49,6 +49,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
+
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
@@ -92,6 +94,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
+
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
     
@@ -141,6 +145,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
+
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
@@ -191,6 +197,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
+
     (test-expression "(error 'a \"~a\" 1)" "a: 1")
     (test-expression "(error \"a\" \"a\")" "a \"a\"")
 
@@ -234,6 +242,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "reference to undefined identifier: call/cc")
+
     (test-expression "(error 'a \"~a\" 1)"
 		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
     (test-expression "(error \"a\" \"a\")"
@@ -252,8 +262,8 @@
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "quote: misused: '(1) is not a symbol")
-    (test-expression "(define shrd (box 1)) (list shrd shrd)"
-		     "(cons (box 1) (cons (box 1) empty))")
+    (test-expression "(define shrd (list 1)) (list shrd shrd)"
+		     "(cons (cons 1 empty) (cons (cons 1 empty) empty))")
     (test-expression "(local ((define x x)) 1)"
 		     "definition: must be at the top level")
     (test-expression "(letrec ([x x]) 1)"
@@ -284,6 +294,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "reference to undefined identifier: call/cc")
+
     (test-expression "(error 'a \"~a\" 1)"
 		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
     (test-expression "(error \"a\" \"a\")"
@@ -302,8 +314,8 @@
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "(list 1)")
-    (test-expression "(define shrd (box 1)) (list shrd shrd)"
-		     "(list (box 1) (box 1))")
+    (test-expression "(define shrd (list 1)) (list shrd shrd)"
+		     "(list (list 1) (list 1))")
     (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
@@ -332,6 +344,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "call/cc" "reference to undefined identifier: call/cc")
+
     (test-expression "(error 'a \"~a\" 1)"
 		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
     (test-expression "(error \"a\" \"a\")"
@@ -350,8 +364,8 @@
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "(list 1)")
-    (test-expression "(define shrd (box 1)) (list shrd shrd)"
-		     "(shared ((-1- (box 1))) (list -1- -1-))")
+    (test-expression "(define shrd (list 1)) (list shrd shrd)"
+		     "(shared ((-1- (list 1))) (list -1- -1-))")
     (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "1")
@@ -387,7 +401,7 @@
 
 (define (generic-output list? quasi-quote? zodiac?)
   (let* ([drs (wait-for-drscheme-frame)]
-	 [expression (format "(define x (box 4/3))~n(list x x)")]
+	 [expression (format "(define x (list 4/3))~n(list x x)")]
 	 [set-output-choice
 	  (lambda (option show-sharing rationals pretty?)
 	    (set-language #f)
@@ -426,29 +440,29 @@
     (clear-definitions drs)
     (type-in-definitions drs expression)
     
-    (test "write" 'off #f #t "(#&4/3 #&4/3)")    
-    (test "write" 'on #f #t "(#0=#&4/3 #0#)")
+    (test "write" 'off #f #t "((4/3) (4/3))")
+    (test "write" 'on #f #t "(#0=(4/3) #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off 'off #t "`(,(box 4/3) ,(box 4/3))")
-      (test "Quasiquote" 'off 'on #t "`(,(box (+ 1 1/3)) ,(box (+ 1 1/3)))")
-      (test "Quasiquote" 'on 'off #t "(shared ((-1- (box 4/3))) `(,-1- ,-1-))")
-      (test "Quasiquote" 'on 'on #t "(shared ((-1- (box (+ 1 1/3)))) `(,-1- ,-1-))"))
+      (test "Quasiquote" 'off 'off #t "`((4/3) (4/3))")
+      (test "Quasiquote" 'off 'on #t "`((,(+ 1 1/3)) (,(+ 1 1/3)))")
+      (test "Quasiquote" 'on 'off #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on 'on #t "(shared ((-1- `(,(+ 1 1/3)))) `(,-1- ,-1-))"))
     (test "Constructor" 'off 'off #t
 	  (if list?
-	      "(list (box 4/3) (box 4/3))"
-	      "(cons (box 4/3) (cons (box 4/3) empty))"))
+	      "(list (list 4/3) (list 4/3))"
+	      "(cons (cons 4/3 empty) (cons (cons 4/3 empty) empty))"))
     (test "Constructor" 'off 'on #t
 	  (if list?
-	      "(list (box (+ 1 1/3)) (box (+ 1 1/3)))"
-	      "(cons (box (+ 1 1/3)) (cons (box (+ 1 1/3)) empty))"))
+	      "(list (list (+ 1 1/3)) (list (+ 1 1/3)))"
+	      "(cons (cons (+ 1 1/3) empty) (cons (cons (+ 1 1/3) empty) empty))"))
     (test "Constructor" 'on 'off #t
 	  (if list? 
-	      "(shared ((-1- (box 4/3))) (list -1- -1-))"
-	      (format "(shared ((-1- (box 4/3))) (cons -1- (cons -1- empty)))")))
+	      "(shared ((-1- (list 4/3))) (list -1- -1-))"
+	      "(shared ((-1- (cons 4/3 empty))) (cons -1- (cons -1- empty)))"))
     (test "Constructor" 'on 'on #t
 	  (if list?
-	      "(shared ((-1- (box (+ 1 1/3)))) (list -1- -1-))"
-	      (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))
+	      "(shared ((-1- (list (+ 1 1/3)))) (list -1- -1-))"
+	      "(shared ((-1- (cons (+ 1 1/3) empty))) (cons -1- (cons -1- empty)))"))
 
 
     ;; setup comment box
