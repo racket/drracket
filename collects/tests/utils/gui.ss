@@ -1,16 +1,15 @@
 (module gui mzscheme
-  (require (lib "mred.ss" "mred"))
+  (require (lib "mred.ss" "mred")
+           (lib "class.ss")
+           (lib "etc.ss"))
   (provide find-labelled-window)
-
+  
   ;;; find-labelled-window : (union ((union #f string) -> window<%>)
   ;;;                               ((union #f string) (union #f class) -> window<%>)
-  ;;;                               ((union #f string) (union class #f) area-container<%> -> area-container<%>))
+  ;;;                               ((union #f string) (union class #f) area-container<%> -> window<%>))
   ;;;;  may call error, if no control with the label is found
   (define find-labelled-window
-    (case-lambda
-     [(label) (find-labelled-window label #f)]
-     [(label class) (find-labelled-window label class (get-top-level-focus-window))]
-     [(label class window)
+    (opt-lambda (label [class #f] [window (get-top-level-focus-window)])
       (unless (or (not label)
                   (string? label))
 	(error 'find-labelled-window "first argument must be a string or #f, got ~e; other args: ~e ~e"
@@ -39,4 +38,4 @@
 		   window 
 		   (if class
 		       (format " matching class ~e" class)
-		       ""))))]))))
+		       "")))))))

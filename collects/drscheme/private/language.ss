@@ -50,7 +50,7 @@
       (define (add-language language)
 	(unless can-still-add-languages?
 	  (error 'add-language "too late to add a new language: ~e" language))
-	(set! languages (cons language languages)))
+	(set! languages (append languages (list language))))
       
       ;; get-languages : -> (listof languages)
       ;; effect: sets can-still-add-languages? to #f
@@ -112,7 +112,8 @@
                            parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
-	  (define details-panel (make-object panel:single% outermost-panel))
+          (define details-outer-panel (make-object vertical-pane% outermost-panel))
+	  (define details-panel (make-object panel:single% details-outer-panel))
 	  (define button-panel (make-object horizontal-panel% dialog))
 
 	  (define no-details-panel (make-object vertical-panel% details-panel))
@@ -121,34 +122,36 @@
           (define languages (get-languages))
 
 	  ;; selected-language : (union (instanceof language<%>) #f)
-	  ;; invariant: selected-language and get-selected-language-settings
+	  ;; invariant: selected-language and get/set-selected-language-settings
 	  ;;            match the user's selection in the language-hier-list.
 	  ;;            or #f if the user is not selecting a language.
 	  (define selected-language #f)
-	  ;; get-selected-language-settings (union #f (-> settings))
-	  (define get-selected-language-settings #f)
+	  ;; get/set-selected-language-settings (union #f (-> settings))
+	  (define get/set-selected-language-settings #f)
 
 	  ;; language-mixin : (implements language<%>) -> ((implements hierlist<%>) -> (implements hierlist<%>))
 	  ;; a mixin that responds to language selections and updates the details-panel
-	  (define (language-mixin language language-details-panel get-settings)
+	  (define (language-mixin language language-details-panel get/set-settings)
             (lambda (%)
               (class* % (hieritem-language<%>)
                 (init-rest args)
                 (public selected)
                 (define (selected)
                   (send details-panel active-child language-details-panel)
+                  (send revert-to-defaults-button enable #t)
 		  (send ok-button enable #t)
-		  (set! get-selected-language-settings get-settings)
+		  (set! get/set-selected-language-settings get/set-settings)
 		  (set! selected-language language))
                 (apply super-make-object args))))
 
 	  ;; nothing-selected : -> void
-	  ;; updates the GUI and selected-language and get-selected-language-settings
+	  ;; updates the GUI and selected-language and get/set-selected-language-settings
 	  ;; for when no language is selected.
 	  (define (nothing-selected)
 	    (send ok-button enable #f)
+            (send revert-to-defaults-button enable #f)
 	    (send details-panel active-child no-details-panel)
-	    (set! get-selected-language-settings #f)
+	    (set! get/set-selected-language-settings #f)
 	    (set! selected-language #f))
 
 	  ;; add-language : (instanceof language<%>) -> void
@@ -160,11 +163,11 @@
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let-values ([(language-details-panel get-settings)
+		 (let-values ([(language-details-panel get/set-settings)
 			       (make-details-panel language)])
 		   (let ([item
 			  (send hier-list new-item
-				(language-mixin language language-details-panel get-settings))])
+				(language-mixin language language-details-panel get/set-settings))])
 		   (send (send item get-editor) insert (car lng))))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
@@ -182,7 +185,7 @@
                                           (cdr sub-ht/sub-hier-list)
                                           (cdr lng)))])))
           
-	  ;; make-details-panel : ((instanceof language<%>) -> (values panel (-> settings)))
+	  ;; make-details-panel : ((instanceof language<%>) -> (values panel (case-> (-> settings) (settings -> void))))
 	  ;; adds a details panel for `language', using
 	  ;; the language's default settings, unless this is
 	  ;; the to-show language.
@@ -190,11 +193,7 @@
 	    (let ([panel (make-object vertical-panel% details-panel)])
 	      (values
 	       panel
-	       (send language config-panel
-		     panel
-		     (if (eq? language language-to-show)
-			 settings-to-show
-			 (send language default-settings))))))
+	       (send language config-panel panel))))
 
 	  ;; close-all-languages : -> void
 	  ;; closes all of the tabs in the language hier-list.
@@ -230,21 +229,84 @@
 		      (send child open)
 		      (loop child (car position) (cdr position))]))))
 
-	  (define (ok-callback)
+          ;; details-shown? : boolean
+          ;; indicates if the details are currently visible in the dialog
+          (define details-shown? (not (send language-to-show default-settings? settings-to-show)))
+
+          ;; details-callback : -> void
+          ;; flips the details-shown? flag and resets the GUI
+          (define (details-callback)
+            (set! details-shown? (not details-shown?))
+            (update-show/hide-details))
+          
+          ;; show/hide-details : -> void
+          ;; udpates the GUI based on the details-shown? flag
+          (define (update-show/hide-details)
+            (send details-button set-label 
+                  (if details-shown? hide-details-label show-details-label))
+            (send revert-to-defaults-outer-panel change-children
+                  (lambda (l)
+                    (if details-shown? (list revert-to-defaults-button) null)))
+            (send details-outer-panel change-children
+                  (lambda (l)
+                    (if details-shown? (list details-panel) null))))
+
+	  ;; ok-callback : -> void
+          (define (ok-callback)
 	    (preferences:set settings-preferences-symbol
 			     (make-language-settings
 			      selected-language
-			      (get-selected-language-settings)))
+			      (get/set-selected-language-settings)))
 	    (send dialog show #f))
-	  (define (cancel-callback)
-	    (send dialog show #f))
+          
+          ;; cancel-callback : -> void
+	  (define (cancel-callback) (send dialog show #f))
 
-	  (define cancel-button (make-object button% "Cancel" button-panel (lambda (x y) (cancel-callback))))
-	  (define ok-button (make-object button% "OK" button-panel (lambda (x y) (ok-callback)) '(border)))
+          ;; revert-to-defaults-callback : -> void
+          (define (revert-to-defaults-callback)
+            (when selected-language
+              (get/set-selected-language-settings 
+               (send selected-language default-settings))))
+
+          (define show-details-label (string-constant show-details-button-label))
+          (define hide-details-label (string-constant hide-details-button-label))
+          (define details-button (make-object button% 
+                                   (if (show-details-label . system-font-space->= . hide-details-label)
+                                       show-details-label
+                                       hide-details-label)
+                                   button-panel
+                                   (lambda (x y)
+                                     (details-callback))))
+          
+          (define revert-to-defaults-outer-panel (make-object horizontal-pane% button-panel))
+          (define revert-to-defaults-button (make-object button% 
+                                              (string-constant revert-to-language-defaults)
+                                              revert-to-defaults-outer-panel
+                                              (lambda (_1 _2)
+                                                (revert-to-defaults-callback))))
+          (define button-gap (make-object horizontal-panel% button-panel))
+	  (define cancel-button (make-object button% 
+                                  (string-constant cancel)
+                                  button-panel
+                                  (lambda (x y) (cancel-callback))))
+	  (define ok-button (make-object button%
+                              (string-constant ok)
+                              button-panel
+                              (lambda (x y) (ok-callback))
+                              '(border)))
           (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
           
-	  (send button-panel set-alignment 'right 'center)
+          (send details-outer-panel stretchable-width #t)
+          (send details-outer-panel stretchable-width #f)
+          (send revert-to-defaults-outer-panel stretchable-width #f)
+          (send revert-to-defaults-outer-panel stretchable-height #f)
+          (send outermost-panel set-alignment 'center 'center)
 	  (send button-panel stretchable-height #f)
+
+          (send dialog stretchable-width #f)
+          (send dialog stretchable-height #f)
+
+          (update-show/hide-details)
 
           (for-each add-language languages)
 	  (send dialog reflow-container)
@@ -253,8 +315,21 @@
 		(text-width (send languages-hier-list get-editor)))
 	  (close-all-languages)
 	  (open-current-language)
+          (get/set-selected-language-settings 
+           (send selected-language default-settings))
           (send dialog show #t)))
  
+      ;; system-font-space->= : string string -> boolean
+      ;; determines which string is wider, when drawn in the system font
+      (define (x . system-font-space->= . y)
+        (let ([bdc (make-object bitmap-dc%)])
+          (send bdc set-bitmap (make-object bitmap% 1 1 #t))
+          (send bdc set-font (send the-font-list find-or-create-font
+                                   12 'system 'normal 'normal))
+          (let-values ([(wx _1 _2 _3) (send bdc get-text-extent x)]
+                       [(wy _4 _5 _6) (send bdc get-text-extent y)])
+            (wx . >= . wy))))
+
       ;; text-width : (isntanceof text%) -> exact-integer
       ;; calculates the width of widest line in the
       ;; editor. This only makes sense if auto-wrap
@@ -293,7 +368,7 @@
                (parameterize ([finder:dialog-parent-parameter frame])
                  (finder:get-file 
                   teachpack-directory
-                  "Select a Teachpack"
+                  (string-constant select-a-teachpack)
                   ".*\\.(ss|scm)$"))])
           (when lib-file
             (let* ([tp-cache (preferences:get 'drscheme:teachpacks)]
@@ -331,14 +406,14 @@
       
       (define (fill-language-menu frame language-menu)
         (make-object menu:can-restore-menu-item%
-          "Choose Language..."
+          (string-constant choose-language-menu-item-label)
           language-menu
           (lambda (_1 _2)
             (choose-language frame))
           #\l)
         (make-object separator-menu-item% language-menu)
         (make-object menu:can-restore-menu-item%
-          "Add Teachpack..."
+          (string-constant add-teachpack-menu-item-label)
           language-menu
           (lambda (_1 _2)
             (add-new-teachpack frame)))
@@ -352,6 +427,6 @@
                                                  (preferences:get 'drscheme:teachpacks)))))
                             (super-on-demand))])
                        (sequence (apply super-init args)))
-          "Clear All Teachpacks"
+          (string-constant clear-all-teachpacks-menu-item-label)
           language-menu
           (lambda (_1 _2) (clear-all-teachpacks)))))))

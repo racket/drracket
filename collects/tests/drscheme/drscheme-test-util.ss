@@ -4,12 +4,37 @@
 
 ;;; Authors: Robby Findler, Paul Steckler
 
-(unit/sig drscheme:test-util^
+(module drscheme-test-util mzscheme
+  (require (prefix fw: (lib "framework.ss" "framework"))
+           (lib "hierlist.ss" "hierlist")
+           (lib "mred.ss" "mred")
+           (lib "class.ss")
+           (lib "list.ss")
+           (lib "etc.ss")
+           (lib "gui.ss" "tests" "utils"))
   
-  (import mred^
-	  [fw : framework^]
-	  test-utils:gui^
-	  [drscheme:export : drscheme:export^])
+  (provide save-drscheme-window-as
+           use-get/put-dialog
+           do-execute
+           test-util-error
+           poll-until
+           wait-for-computation
+           wait-for-drscheme-frame
+           wait-for-new-frame
+           clear-definitions
+           type-in-definitions
+           type-in-interactions
+           type-string
+           wait
+           wait-pending
+           get-sub-panel
+           get-text-pos
+           wait-for-button
+           push-button-and-wait
+           set-language-level!
+           repl-in-edit-sequence?
+           fetch-output
+           has-error?)
   
   ;; save-drscheme-window-as : string -> void
   ;; use the "save as" dialog in drscheme to save the definitions
@@ -48,11 +73,6 @@
 	  (wait-for-new-frame dlg))
 	(fw:preferences:set 'framework-file-dialogs 'std))))
 
-  ;; -> eventspace
-  ;; returns the eventspace used by the program in the current drscheme window
-  (define (get-user-eventspace)
-    (ivar (wait-for-drscheme-frame) user-eventspace))
-  
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
   
@@ -71,7 +91,7 @@
 		      (loop (- counter step))))))))]))
   
   (define (drscheme-frame? frame)
-    (ivar-in-interface? 'execute-button (object-interface frame)))
+    (method-in-interface? 'get-execute-button (object-interface frame)))
   
   (define wait-for-drscheme-frame
     (case-lambda
@@ -117,7 +137,7 @@
     (let* ([wait-for-computation-pred
 	    (lambda ()
 	      (fw:test:reraise-error)
-	      (send (ivar frame execute-button) is-enabled?))])
+	      (send (send frame get-execute-button) is-enabled?))])
       (poll-until
        wait-for-computation-pred
        60)))
@@ -128,7 +148,7 @@
       (do-execute frame #t)]
      [(frame wait-for-finish?)
       (verify-drscheme-frame-frontmost 'do-execute frame)
-      (let ([button (ivar frame execute-button)])
+      (let ([button (send frame get-execute-button)])
 	(fw:test:button-push button)
 	(when wait-for-finish?
 	  (wait-for-computation frame)))]))
@@ -140,7 +160,7 @@
   
   (define (clear-definitions frame)
     (verify-drscheme-frame-frontmost 'clear-definitions frame)
-    (fw:test:new-window (ivar frame definitions-canvas))
+    (fw:test:new-window (send frame get-definitions-canvas))
     (let ([window (send frame get-focus-window)])
       (let-values ([(cw ch) (send window get-client-size)]
 		   [(w h) (send window get-size)])
@@ -154,11 +174,11 @@
     
   
   (define (type-in-definitions frame str)
-    (type-in-definitions/interactions 'definitions-canvas frame str))
+    (type-in-definitions/interactions (lambda (x) (send x get-definitions-canvas)) frame str))
   (define (type-in-interactions frame str)
-    (type-in-definitions/interactions 'interactions-canvas frame str))
+    (type-in-definitions/interactions (lambda (x) (send x get-interactions-canvas)) frame str))
 
-  (define (type-in-definitions/interactions canvas-ivar frame str/sexp)
+  (define (type-in-definitions/interactions get-canvas frame str/sexp)
     (let ([str (if (string? str/sexp)
 		   str/sexp
 		   (let ([port (open-output-string)])
@@ -166,7 +186,7 @@
 		       (write str/sexp port))
 		     (get-output-string port)))])
       (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
-      (let ([canvas (ivar/proc frame canvas-ivar)])
+      (let ([canvas (get-canvas frame)])
 	(fw:test:new-window canvas)
 	(send (send canvas get-editor) set-caret-owner #f)
 	(type-string str))))
@@ -251,44 +271,79 @@
        button-push-and-wait-pred))
     (wait-for-button button))
   
-  ; set language level in the frontmost DrScheme frame
+  ;; set-language-level! : (cons string (listof string)) boolean -> void
+  ;; set language level in the frontmost DrScheme frame (resets settings to defaults)
+  ;; If `close-dialog?' it #t,
   (define set-language-level! 
-    (case-lambda
-     [(level)
-      (set-language-level! level #t)]
-     [(level close-dialog?)
+    (opt-lambda (in-language-spec [close-dialog? #t])
+      (unless (and (pair? in-language-spec)
+                   (list? in-language-spec)
+                   (andmap string? in-language-spec))
+        (error 'set-language-level! "expected a non-empty list for language, got: ~e" in-language-spec))
       (let ([frame (get-top-level-focus-window)])
         (fw:test:menu-select "Language" "Choose Language...")
-        
         (wait-for-new-frame frame)
-        (let ([language-choice (find-labelled-window "Language" choice%)])
-          (cond
-            [(member level (let loop ([n (send language-choice get-number)])
-                             (cond
-                               [(zero? n) null]
-                               [else (cons (send language-choice get-string (- n 1))
-                                           (loop (- n 1)))])))
-             (fw:test:set-choice! language-choice level)]
-            [else
-             (fw:test:set-choice! language-choice "Full Scheme")
-             (fw:test:set-radio-box!
-              (find-labelled-window "Full Scheme Variant" radio-box%)
-              level)]))
+        (let* ([language-choice (find-labelled-window #f hierarchical-list%)]
+               [b1 (box 0)]
+               [b2 (box 0)]
+               [click-on-snip
+                (lambda (snip)
+                  (let* ([editor (send (send snip get-admin) get-editor)]
+                         [between-threshold (send editor get-between-threshold)])
+                    (send editor get-snip-location snip b1 b2)
+                    (let-values ([(gx gy) (send editor editor-location-to-dc-location (unbox b1) (unbox b2))])
+                      (let ([x (+ gx between-threshold 1)]
+                            [y (+ gy between-threshold 1)])
+                        (fw:test:mouse-click 'left x y)))))])
+          (send language-choice focus)
+          (let loop ([list-item language-choice]
+                     [language-spec in-language-spec])
+            (let* ([name (car language-spec)]
+                   [which (filter (lambda (child)
+                                    (and (string=? (send (send child get-editor) get-text)
+                                                   name)
+                                         child))
+                                  (send list-item get-items))])
+              (when (null? which)
+                (error 'set-language-level! "couldn't find language: ~e, no match at ~e"
+                       in-language-spec name))
+              (unless (= 1 (length which))
+                (error 'set-language-level! "couldn't find language: ~e, double match ~e"
+                       in-language-spec name))
+              (let ([next-item (car which)])
+                (cond
+                  [(null? (rest language-spec))
+                   (when (is-a? next-item hierarchical-list-compound-item<%>)
+                     (error 'set-language-level! "expected no more languages after ~e, but still are, input ~e"
+                            name in-language-spec))
+                   (click-on-snip (send next-item get-clickable-snip))]
+                  [else
+                   (unless (is-a? next-item hierarchical-list-compound-item<%>)
+                     (error 'set-language-level! "expected more languages after ~e, but got to end, input ~e"
+                            name in-language-spec))
+                   (unless (send next-item is-open?)
+                     (click-on-snip (send next-item get-arrow-snip)))
+                   (loop next-item (cdr language-spec))])))))
         
+        (with-handlers ([not-break-exn?
+                         (lambda (x) (void))])
+          (fw:test:button-push "Show Details"))
+        (fw:test:button-push "Revert to Language Defaults")
+
         (when close-dialog?
           (let ([language-dialog (get-top-level-focus-window)])
             (fw:test:button-push "OK")
-            (wait-for-new-frame language-dialog))))]))
+            (wait-for-new-frame language-dialog))))))
   
   (define (repl-in-edit-sequence?)
-    (send (ivar (wait-for-drscheme-frame) interactions-text) refresh-delayed?))
+    (send (send (wait-for-drscheme-frame) get-interactions-text) refresh-delayed?))
  
   ;; has-error? : frame -> (union #f string)
   ;; returns the error text of an error in the interactions window of the frame or #f if there is none.
   ;; ensures that frame is front most.
   (define (has-error? frame)
     (verify-drscheme-frame-frontmost 'had-error? frame)
-    (let* ([interactions-text (ivar frame interactions-text)]
+    (let* ([interactions-text (send frame get-interactions-text)]
 	   [last-para (send interactions-text last-paragraph)])
       (unless (>= last-para 2)
 	(error 'has-error? "expected at least 2 paragraphs in interactions window, found ~a"
@@ -322,7 +377,7 @@
     (case-lambda
      [(frame)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let* ([interactions-text (ivar frame interactions-text)]
+      (let* ([interactions-text (send frame get-interactions-text)]
 	     [last-para (send interactions-text last-paragraph)])
 	(unless (>= last-para 2)
 	  (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
@@ -333,7 +388,7 @@
 			    (- (send interactions-text last-paragraph) 1))))]
      [(frame start end)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let ([interactions-text (ivar frame interactions-text)])
+      (let ([interactions-text (send frame get-interactions-text)])
 	(send interactions-text split-snip start)
 	(send interactions-text split-snip end)
 	(let loop ([snip (send interactions-text find-snip end 'before)]
@@ -362,7 +417,10 @@
 		(loop (send snip previous)
 		      (cons "{image}"
 			    strings))]
-	       [(is-a? snip drscheme:export:snip:whole/part-number-snip%)
+	       [;; this test is an approximation of
+                ;; (is-a? snip drscheme:snip:whole/part-number-snip%)
+                (and (method-in-interface? 'get-number (object-interface snip))
+                     (method-in-interface? 'get-formatted-string (object-interface snip)))
 		(loop (send snip previous)
 		      (cons (format "{number ~s ~s}"
 				    (send snip get-number)

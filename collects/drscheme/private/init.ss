@@ -1,6 +1,7 @@
 
 (module init mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred"))
 
@@ -25,7 +26,10 @@
       (define first-dir (current-directory))
       
       (define original-error-display-handler (error-display-handler))
-            
+      
+      (define error-display-handler-message-box-title
+        (make-parameter (string-constant drscheme-internal-error)))
+      
       ;; override error-display-handler to duplicate the error
       ;; message in both the standard place (as defined by the
       ;; current error-display-handler) and in a message box
@@ -33,15 +37,16 @@
       (error-display-handler
        (lambda (msg exn)
          (original-error-display-handler msg exn)
-         (let ([text (let ([p (open-output-string)])
-                       (parameterize ([current-error-port p]
-                                      [current-output-port p])
-                         (original-error-display-handler msg exn))
-                       (get-output-string p))])
-           (if (eq? (current-eventspace) system-eventspace)
-               (message-box "DrScheme Internal Error" text)
-               (parameterize ([current-eventspace system-eventspace]
-                              [current-custodian system-custodian])
-                 (queue-callback
-                  (lambda ()
-                    (message-box "DrScheme Internal Error" text)))))))))))
+         (let ([title (error-display-handler-message-box-title)])
+           (let ([text (let ([p (open-output-string)])
+                         (parameterize ([current-error-port p]
+                                        [current-output-port p])
+                           (original-error-display-handler msg exn))
+                         (get-output-string p))])
+             (if (eq? (current-eventspace) system-eventspace)
+                 (message-box title text)
+                 (parameterize ([current-eventspace system-eventspace]
+                                [current-custodian system-custodian])
+                   (queue-callback
+                    (lambda ()
+                      (message-box title text))))))))))))

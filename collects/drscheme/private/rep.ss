@@ -90,15 +90,12 @@
                             (read-char p)
                             (read-char p))])
           (close-input-port p)
-          (if (equal? chars (string->list "WXME"))
-              (let ([text (make-object text%)])
-                (send text load-file filename)
-                (make-text/pos text 0 (send text last-position)))
-              filename)))
-      
-      ;; bottom-escape-handler : (parameter ( -> A))
-      ;; must escape. this is called if the user's error-escape-handler doesn't escape
-      (define bottom-escape-handler (make-parameter void))
+          (cond
+            [(equal? chars (string->list "WXME"))
+             (let ([text (make-object text%)])
+               (send text load-file filename)
+               (make-text/pos text 0 (send text last-position)))]
+            [else filename])))
       
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
       ;; the timing is a little tricky here. 
@@ -109,7 +106,7 @@
 	(let-values ([(src position other-position module form)
 		      (if (exn? exn)
 			  (extract-info-from-exn exn)
-			  (values #f #f #f))])
+			  (values #f #f #f #f #f))])
 	  (let ([rep (current-rep)])
 	    
             (let ([locked? (send rep is-locked?)])
@@ -1740,8 +1737,7 @@
 		       (let ([drscheme-error-escape-handler
 			      (lambda ()
 				(error-escape-k))])
-			 (error-escape-handler drscheme-error-escape-handler)
-			 (bottom-escape-handler drscheme-error-escape-handler))
+			 (error-escape-handler drscheme-error-escape-handler))
                        
 		       (set! in-evaluation? #f)
 		       (update-running)

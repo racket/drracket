@@ -1148,13 +1148,15 @@
                   (send interactions-text reset-console)
                   (send interactions-text clear-undos)
                   
-                  (let ([start (if (and (>= (send definitions-text last-position) 2)
+                  (let ([start (if (and ((send definitions-text last-position) . >= . 2)
                                         (char=? (send definitions-text get-character 0) #\#)
                                         (char=? (send definitions-text get-character 1) #\!))
                                    (send definitions-text paragraph-start-position 1)
                                    0)])
+                    (send definitions-text split-snip start)
                     (send interactions-text do-many-text-evals
-                          definitions-text start
+                          definitions-text 
+                          start
                           (send definitions-text last-position)))
                   (send interactions-text clear-undos)]))])
           
@@ -1333,9 +1335,13 @@
           (private-field
             [teachpack-items null])
           (private-field
-            [stop-execute-button (void)]
+            [break-button (void)]
             [execute-button (void)]
             [button-panel (make-object horizontal-panel% top-panel)])
+          (public
+            [get-execute-button (lambda () execute-button)]
+            [get-break-button (lambda () break-button)]
+            [get-button-panel (lambda () button-panel)])
           
           (private-field
             [func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)])
@@ -1346,7 +1352,7 @@
                     (make-execute-bitmap this)
                     button-panel
                     (lambda (button evt) (execute-callback))))
-            (set! stop-execute-button
+            (set! break-button
                   (make-object button%
                     (make-break-bitmap this) 
                     button-panel

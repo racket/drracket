@@ -11,9 +11,11 @@
   (provide app@)
   (define app@
     (unit/sig drscheme:app^
-      (import (drscheme:unit : drscheme:unit^)
-              (drscheme:frame : drscheme:frame^)
-              (help-desk : drscheme:help-interface^))
+      (import [drscheme:unit : drscheme:unit^]
+              [drscheme:frame : drscheme:frame^]
+              [help-desk : drscheme:help-interface^]
+              [drscheme:tools : drscheme:tools^])
+
       (define about-frame%
         (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (_main-text)
           (private-field [main-text _main-text])
@@ -277,6 +279,7 @@
           (send* e
             (insert ".")
             (insert #\newline)
+            (insert #\newline)
             (insert "Based on:")
             (insert #\newline)
             (insert "  ")
@@ -288,6 +291,27 @@
             (send* e
               (insert "  The A List (c) 1997-2000 Kyle Hammond")
               (insert #\newline)))
+          
+          (let ([tools (drscheme:tools:get-successful-tools)])
+            (unless (null? tools)
+              (send* e
+                (insert #\newline)
+                (insert "Installed tools:")
+                (insert #\newline))
+              (for-each
+               (lambda (successful-tool)
+                 (let ([name (or (drscheme:tools:successful-tool-name successful-tool)
+                                 (format "~s" (drscheme:tools:successful-tool-spec successful-tool)))]
+                       [bm (drscheme:tools:successful-tool-bitmap successful-tool)])
+                   (send e insert "  ")
+                   (when bm
+                     (send* e
+                       (insert (make-object image-snip% bm))
+                       (insert #\space)))
+                   (send* e 
+                     (insert name)
+                     (insert #\newline))))
+               tools)))
           
           (send* e
             (auto-wrap #t)

@@ -10,7 +10,8 @@
 	     [messages-panel (make-object vertical-panel% stack-frame)])
 
 
-	(let* ([c (make-object canvas% button-panel)]
+	(let* ([mem (make-object message% "000.000.000" button-panel)]
+               [c (make-object canvas% button-panel)]
 	       [quit-button (make-object button% "Quit" button-panel (lambda (x y) (exit)))]
 	       [onb (make-object bitmap% (build-path (collection-path "icons")
 						     "recycle.gif"))]
@@ -23,6 +24,24 @@
 		  (send bdc clear)
 		  (send bdc set-bitmap #f)
 		  bitmap)])
+
+          (thread
+           (lambda ()
+             (let loop ()
+               (sleep 1)
+               (let* ([mem-usage (current-memory-use)]
+                      [spacer 1000]
+                      [pad (lambda (x)
+                             (cond
+                               [(x . < . 10) (format "00~a" x)]
+                               [(x . < . 100) (format "0~a" x)]
+                               [else (number->string x)]))]
+                      [f1 (pad (modulo mem-usage spacer))]
+                      [f2 (pad (modulo (quotient mem-usage spacer) spacer))]
+                      [f3 (pad (quotient (quotient mem-usage spacer) spacer))])
+                 (send mem set-label (string-append f3 "." f2 "." f1)))
+               (loop))))
+          
 	  (register-collecting-blit c 0 0 (send onb get-width) (send onb get-height) onb offb)
 	  (send c min-width (send onb get-width))
 	  (send c min-height (send onb get-height))
@@ -87,7 +106,7 @@
 
 (require (lib "splash.ss" "framework"))
 
-(define-values (get-dropped-files shutdown-splash close-splash)
+(define-values (splash-bitmap splash-canvas splash-eventspace get-dropped-files shutdown-splash close-splash)
   (splash
    (build-path (collection-path "icons") "plt.gif")
    "DrScheme"

@@ -8,7 +8,7 @@
            drscheme:snip^
            drscheme:language^
            drscheme:language/internal^
-           drscheme:load/link-tool^
+           drscheme:tools^
            drscheme:get/extend^
            drscheme:unit^
            drscheme:frame^
@@ -32,6 +32,7 @@
      original-error-port
      primitive-eval
      primitive-load
+     error-display-handler-message-box-title
      system-custodian
      system-eventspace
      first-dir))
@@ -54,9 +55,10 @@
      settings-preferences-symbol
      language-dialog))
   
-  (define-signature drscheme:load/link-tool^
-    (load/link-tool))
-  
+  (define-signature drscheme:tools^
+    ((struct successful-tool (spec bitmap name))
+     get-successful-tools))
+
   (define-signature drscheme:get/extend^
     (extend-interactions-text
      extend-definitions-text
@@ -125,12 +127,16 @@
      open-users-url))
   
   (define-signature drscheme:language-tower^
-    (language<%>
+    ((struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
+     make-simple-settings/parse
+     simple-settings->vector
+     
+     language<%>
      module-based-language<%>
      simple-module-based-language<%>
      simple-module-based-language%
-     simple-module-based-language->module-based-language%
-     module-based-language->language%))
+     simple-module-based-language->module-based-language-mixin
+     module-based-language->language-mixin))
 
   (define-signature drscheme:teachpack^
     (load-teachpacks
