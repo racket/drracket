@@ -942,6 +942,7 @@ If the namespace does not, they are colored the unbound color.
                               [(old-break-thread old-custodian) (get-breakables)])
                    (let* ([definitions-text (get-definitions-text)]
                           [drs-eventspace (current-eventspace)]
+                          [the-tab (get-current-tab)]
                           [user-namespace #f]
                           [user-directory #f]
                           [user-custodian #f]
@@ -949,7 +950,7 @@ If the namespace does not, they are colored the unbound color.
                           [cleanup
                            (λ () ; =drs=
                              (set-breakables old-break-thread old-custodian)
-                             (enable-evaluation)
+                             (send the-tab enable-evaluation)
                              (send definitions-text end-edit-sequence)
                              (send report-error-text clear-output-ports)
                              (close-status-line 'drscheme:check-syntax))]
@@ -1038,7 +1039,7 @@ If the namespace does not, they are colored the unbound color.
                              (set! user-custodian (current-custodian))
                              (set! user-directory (current-directory)) ;; set by set-directory above
                              (set! user-namespace (current-namespace)))])
-                     (disable-evaluation) ;; this locks the editor, so must be outside.
+                     (send the-tab disable-evaluation) ;; this locks the editor, so must be outside.
                      (send definitions-text begin-edit-sequence #f)
                      (with-lock/edit-sequence
                       definitions-text

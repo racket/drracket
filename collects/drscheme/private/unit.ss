@@ -838,7 +838,8 @@ tab panels new behavior:
 
       (define tab%
         (class object%
-          (init-field defs
+          (init-field frame
+                      defs
                       ints
                       i)
           (field [enabled? #t]
@@ -852,6 +853,14 @@ tab panels new behavior:
           (define/public (set-visible-ints vi) (set! visible-ints vi))
           (define/public (get-i) i)
           (define/public (set-i _i) (set! i _i))
+          (define/public (disable-evaluation)
+            (send visible-defs lock #t)
+            (send visible-ints lock #t)
+            (send frame disable-evaluation-in-tab this))
+          (define/public (enable-evaluation)
+            (send visible-defs lock #f)
+            (send visible-ints lock #f)
+            (send frame enable-evaluation-in-tab this))
           (define/public (get-enabled) enabled?)
           (define/public (set-enabled e?) (set! enabled? e?))
           (super-new)))
@@ -1090,40 +1099,31 @@ tab panels new behavior:
           
           (define was-locked? #f)
           
-          (define/pubment (disable-evaluation tab)
+          (define/public-final (disable-evaluation-in-tab tab)
             (unless (send tab get-enabled)
-              (error 'disable-evaluation "tab already disabled"))
-            (send tab set-enabled #f)
-            (let ([defs (send tab get-defs)]
-                  [ints (send tab get-ints)])
-              (send defs lock #t)
-              (send ints lock #t))
-            (disable-global-controls)
-            (inner (void) disable-evaluation tab))
+              (error 'disable-evaluation-in-tab "tab already disabled"))
+            (when (eq? tab current-tab)
+              (disable-evaluation)))
           
-          (define/private (disable-global-controls)
+          (define/pubment (disable-evaluation)
             (when execute-menu-item
               (send execute-menu-item enable #f))
             (send execute-button enable #f)
-            (send file-menu:create-new-tab-item enable #f))
+            (send file-menu:create-new-tab-item enable #f)
+            (inner (void) disable-evaluation))
           
-          (define/pubment (enable-evaluation tab)
+          (define/public-final (enable-evaluation-in-tab tab)
             (when (send tab get-enabled)
               (error 'enable-evaluation "tab already enabled"))
-            (send tab set-enabled #t)
-            (let ([defs (send tab get-defs)]
-                  [ints (send tab get-ints)])
-              (send defs lock #f)
-              (unless (send ints eval-busy?)
-                (send ints lock #f)))
-            (enable-global-controls)
-            (inner (void) enable-evaluation tab))
+            (when (eq? tab current-tab)
+              (enable-evaluation)))
           
-          (define/private (enable-global-controls)
+          (define/pubment (enable-evaluation)
             (when execute-menu-item
               (send execute-menu-item enable #t))
             (send execute-button enable #t)
-            (send file-menu:create-new-tab-item enable #t))
+            (send file-menu:create-new-tab-item enable #t)
+            (inner (void) enable-evaluation))
           
           (inherit set-label)
           (inherit modified)
@@ -2288,7 +2288,7 @@ tab panels new behavior:
               (send module-browser-button enable #f)
               (send module-browser-lib-path-check-box enable #f)
               (send module-browser-name-length-choice enable #f)
-              (disable-evaluation current-tab)
+              (disable-evaluation-in-tab current-tab)
               (drscheme:module-overview:fill-pasteboard 
                module-browser-pb
                (drscheme:language:make-text/pos
