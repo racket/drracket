@@ -4,6 +4,14 @@
 
 ;;; Authors: Robby Findler, Paul Steckler
 
+;; -> wx:eventspace
+;; returns the eventspace used by the program in the current drscheme window
+(define (get-user-eventspace)
+  ((in-parameterization
+    (ivar (ivar (wait-for-drscheme-frame) interactions-edit)
+	  user-param)
+    wx:current-eventspace)))
+
 (define (test-util-error fmt . args)
   (raise (make-exn (apply fmt args) ((debug-info-handler)))))
 
@@ -25,10 +33,8 @@
 		  (if (and active
 			   (is-a? active drscheme:export:unit:frame%))
 		      active
-		      #f)))]
-	 [result (pred)])
-    (if result
-	result
+		      #f)))])
+    (or (pred)
 	(begin
 	  (printf "Select DrScheme frame~n")
 	  (poll-until pred)))))
@@ -113,10 +119,15 @@
 
 (define (wait-for-button button)
   (poll-until
-   (lambda () (send button is-enabled?))))
+   (lambda ()
+     (send button is-enabled?))))
 
 (define (push-button-and-wait button)
   (mred:test:button-push button)
+  (poll-until
+   (lambda ()
+     (mred:test:reraise-error)
+     (= 0 (mred:test:number-pending-actions))))
   (wait-for-button button))
 
 ; set language level in a given DrScheme frame
@@ -133,6 +144,6 @@
     (mred:test:set-choice! choice level)
     (mred:test:button-push "OK")))
 
-
-
-
+(define (repl-in-edit-sequence?)
+  (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
+	 
