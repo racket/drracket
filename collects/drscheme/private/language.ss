@@ -114,11 +114,11 @@
 	  (super-instantiate ())))
 
       ;; settings for a simple module based language
+      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
       ;;  case-sensitive  : boolean
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
-      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
       (define simple-settings->vector (make-->vector simple-settings))
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))

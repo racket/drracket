@@ -45,11 +45,15 @@
                     (let ([super-result (super-thunk)])
                       (cond
                         [(= iteration-number 1)
-                         (let-values ([(name new-module)
-                                       (transform-module-to-export-everything
-                                        (expand super-result))])
-                           (set! module-name name)
-                           new-module)]
+			 (if (eof-object? super-result)
+			     (raise-syntax-error
+			      'module-language
+			      "the definitions window must contain a module")
+			     (let-values ([(name new-module)
+					   (transform-module-to-export-everything
+					    (expand super-result))])
+			       (set! module-name name)
+			       new-module))]
                         [(= 2 iteration-number)
                          (if (eof-object? super-result)
                              (with-syntax ([name module-name])
@@ -71,80 +75,108 @@
       (define (transform-module-to-export-everything stx)
         (syntax-case stx (module #%plain-module-begin)
           [(module name lang (#%plain-module-begin bodies ...))
-           (with-syntax ([(unprovided-vars ...) (extract-unprovided-vars 
-                                                 (syntax->list
-                                                  (syntax (bodies ...))))])
+           (with-syntax ([(to-provide-specs ...)
+                          (get-provide-specs
+                           (syntax->list
+                            (syntax (bodies ...))))]
+                         [(no-provide-bodies ...)
+                          (filter
+                           not-provide?
+                           (syntax->list
+                            (syntax (bodies ...))))])
              (values
               (syntax name)
               (syntax (module name lang (#%plain-module-begin 
-                                         (provide unprovided-vars ...) 
-                                         bodies ...)))))]
+                                         (provide to-provide-specs ...)
+                                         no-provide-bodies ...)))))]
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
                                stx)]))
       
-      ;; extract-unprovided-vars : (listof syntax) -> (listof syntax)
-      (define (extract-unprovided-vars bodies)
-        (let ([provided-vars (extract-provided-vars bodies)]
-              [defined-vars (extract-defined-vars bodies)]
-              [ht (make-hash-table)])
-          
-          (for-each
-           (lambda (provided-var)
-             (hash-table-put! 
-              ht
-              (syntax-object->datum provided-var)
-              (cons
-               provided-var
-               (hash-table-get ht (syntax-object->datum provided-var)
-                               (lambda () null)))))
-           provided-vars)
-          
-          (let loop ([defined-vars defined-vars])
+      ;; get-provide-spec : syntax -> (union (listof syntax) #f)
+      ;; given a top-level module expression, returns #f if it
+      ;; doesn't indtrouce any identifiers to the top-level scope
+      ;; of the modules, or, if it does, returns a list of syntax
+      ;; corresponding to the argument to `provide' to export those
+      ;; definitions.
+      (define (get-provide-specs bodies)
+        (let loop ([bodies bodies]
+                   [vars null]
+                   [module-specs null]
+                   [module-syms null])
+          (let ([module-loop
+                 (lambda (syntax-module-spec specs)
+                   (let* ([module-spec (syntax-object->datum syntax-module-spec)]
+                          [module-sym 
+                           (if (symbol? module-spec)
+                               module-spec
+                               ((current-module-name-resolver) module-spec #f #f))]
+                          [next-bodies
+                           (cons (with-syntax ([(specs ...) specs])
+                                   (syntax (require specs ...)))
+                                 (cdr bodies))])
+                     (if (memq module-sym module-syms)
+                         (loop next-bodies
+                               vars
+                               module-specs
+                               module-syms)
+                         (loop next-bodies
+                               vars
+                               (cons syntax-module-spec module-specs)
+                               (cons module-sym module-syms)))))])
             (cond
-              [(null? defined-vars) null]
-              [else 
-               (let* ([defined-var (car defined-vars)]
-                      [ht-entry (hash-table-get ht 
-                                                (syntax-object->datum defined-var)
-                                                (lambda () null))])
-                 (if (memf (lambda (x) (module-identifier=? x defined-var))
-                           ht-entry)
-                     (loop (cdr defined-vars))
-                     (cons defined-var (loop (cdr defined-vars)))))]))))
+              [(null? bodies) 
+               (append vars
+                       (map (lambda (x)
+                              (with-syntax ([x x])
+                                (syntax (all-from x))))
+                            module-specs))]
+              [else
+               (let ([body (car bodies)])
+                 (syntax-case body (define-values require prefix all-except rename)
+                   [(define-values (new-vars ...) body)
+                    (loop (cdr bodies)
+                          (append (syntax->list (syntax (new-vars ...)))
+                                  vars)
+                          module-specs
+                          module-syms)]
+                   [(require (prefix identifier module-name) specs ...) 
+                    (module-loop (syntax module-name) (syntax (specs ...)))]
+                   [(require (all-except module-name identifer ...) specs ...) 
+                    (module-loop (syntax module-name) (syntax (specs ...)))]
+                   [(require (rename module-name local-identifer exported-identifer) specs ...)
+                    (module-loop (syntax module-name) (syntax (specs ...)))]
+                   [(require module-name specs ...)
+                    (module-loop (syntax module-name) (syntax (specs ...)))]
+                   [(require)
+                    (loop (cdr bodies)
+                          vars
+                          module-specs
+                          module-syms)]
+                   [else 
+                    (loop (cdr bodies)
+                          vars
+                          module-specs
+                          module-syms)]))]))))
+      
+      ;; maybe-add : syntax (listof module-spec-sym) -> (listof module-spec-sym)
+        (define (maybe-add syntax-module-spec other-specs)
+        (let ([module-spec-sym ((current-module-name-resolver) 
+                                (syntax-object->datum syntax-module-spec)
+                                #f
+                                #f)])
+          (if (memq module-spec-sym other-specs)
+              other-specs
+              (cons module-spec-sym other-specs))))
       
       ;; extract-provided-vars : (listof syntax) -> (listof syntax[identifier])
-      (define (extract-provided-vars bodies)
-        (let loop ([bodies bodies]
-                   [sofar null])
-          (cond
-            [(null? bodies) (apply append sofar)]
-            [else
-             (syntax-case (car bodies) (provide)
-               [(provide vars ...)
-                (loop (cdr bodies)
-                      (cons (syntax->list (syntax (vars ...)))
-                            sofar))]
-               [_ (loop (cdr bodies)
-                        sofar)])])))
+      (define (not-provide? body)
+        (syntax-case body (provide)
+          [(provide vars ...)
+           #f]
+          [_ #t]))
 
-      ;; extract-defined-vars : (listof syntax) -> (listof syntax[identifier])      
-      (define (extract-defined-vars bodies)
-        (let loop ([bodies bodies]
-                   [sofar null])
-          (cond
-            [(null? bodies) (apply append sofar)]
-            [else
-             (syntax-case (car bodies) (define-values)
-               [(define-values (vars ...) xxx)
-                (loop (cdr bodies)
-                      (cons (syntax->list (syntax (vars ...)))
-                            sofar))]
-               [_ (loop (cdr bodies)
-                        sofar)])])))
-      
-      
       ;; module-language : (implements drscheme:language:language<%>)
       (define module-language%
         (module-mixin

@@ -29,62 +29,64 @@
       (rename [-frame% frame%])
 
       (keymap:add-to-right-button-menu
-       (lambda (menu text event)
-         (when (and (is-a? text text%)
-                    (is-a? event mouse-event%))
-           (let* ([end (send text get-end-position)]
-                  [start (send text get-start-position)]
-                  [non-letter? (lambda (x)
-                                 (or (char-whitespace? x)
-                                     (memq x '(#\` #\' #\, #\;
-                                                #\{ #\( #\[ #\] #\) #\}))))])
-             (unless (= 0 (send text last-position))
-               (let ([str
-                      (if (= end start)
-                          (let* ([pos 
-                                  (call-with-values
-                                   (lambda ()
-                                     (send text dc-location-to-editor-location
-                                           (send event get-x)
-                                           (send event get-y)))
-                                   (lambda (x y)
-                                     (send text find-position x y)))]
-                                 [before
-                                  (let loop ([i (- pos 1)]
-                                             [chars null])
-                                    (if (< i 0)
-                                        chars
-                                        (let ([char (send text get-character i)])
-                                          (if (non-letter? char)
-                                              chars
-                                              (loop (- i 1)
-                                                    (cons char chars))))))]
-                                 [after
-                                  (let loop ([i pos])
-                                    (if (< i (send text last-position))
-                                        (let ([char (send text get-character i)])
-                                          (if (non-letter? char)
-                                              null
-                                              (cons char (loop (+ i 1)))))
-                                        null))])
-                            (apply string (append before after)))
-                          (send text get-text start end))])
-                 (unless (string=? str "")
-                   (make-object separator-menu-item% menu)
-                   (make-object menu-item%
-                     (format (string-constant search-help-desk-for) 
-                             (shorten-str 
-                              str 
-                              (- 200 (string-length (string-constant search-help-desk-for)))))
-                     menu
-                     (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
-                   (make-object menu-item%
-                     (format (string-constant exact-lucky-search-help-desk-for) 
-                             (shorten-str 
-                              str 
-                              (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
-                     menu
-                     (lambda x (help-desk:help-desk str #t 'keyword+index 'exact))))))))))
+       (let ([old (keymap:add-to-right-button-menu)])
+         (lambda (menu text event)
+           (old menu text event)
+           (when (and (is-a? text text%)
+                      (is-a? event mouse-event%))
+             (let* ([end (send text get-end-position)]
+                    [start (send text get-start-position)]
+                    [non-letter? (lambda (x)
+                                   (or (char-whitespace? x)
+                                       (memq x '(#\` #\' #\, #\;
+                                                  #\{ #\( #\[ #\] #\) #\}))))])
+               (unless (= 0 (send text last-position))
+                 (let ([str
+                        (if (= end start)
+                            (let* ([pos 
+                                    (call-with-values
+                                     (lambda ()
+                                       (send text dc-location-to-editor-location
+                                             (send event get-x)
+                                             (send event get-y)))
+                                     (lambda (x y)
+                                       (send text find-position x y)))]
+                                   [before
+                                    (let loop ([i (- pos 1)]
+                                               [chars null])
+                                      (if (< i 0)
+                                          chars
+                                          (let ([char (send text get-character i)])
+                                            (if (non-letter? char)
+                                                chars
+                                                (loop (- i 1)
+                                                      (cons char chars))))))]
+                                   [after
+                                    (let loop ([i pos])
+                                      (if (< i (send text last-position))
+                                          (let ([char (send text get-character i)])
+                                            (if (non-letter? char)
+                                                null
+                                                (cons char (loop (+ i 1)))))
+                                          null))])
+                              (apply string (append before after)))
+                            (send text get-text start end))])
+                   (unless (string=? str "")
+                     (make-object separator-menu-item% menu)
+                     (make-object menu-item%
+                       (format (string-constant search-help-desk-for) 
+                               (shorten-str 
+                                str 
+                                (- 200 (string-length (string-constant search-help-desk-for)))))
+                       menu
+                       (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
+                     (make-object menu-item%
+                       (format (string-constant exact-lucky-search-help-desk-for) 
+                               (shorten-str 
+                                str 
+                                (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
+                       menu
+                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact)))))))))))
       
       (define (shorten-str str len)
         (if ((string-length str) . <= . len)

@@ -17,7 +17,7 @@ THINGS STILL MISSING (and promised to be broken :)
 FUNCTIONALITY CHANGES
 
 - TeachPacks are now implemented as modules.
-  They are just loaded when execute is clicked.
+  They are `namespace-require'd when execute is clicked.
 
 - the get-teachpack-names method is gone from
   the language<%> interface.

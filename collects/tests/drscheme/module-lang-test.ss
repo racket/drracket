@@ -13,7 +13,10 @@
                        result))       ;; string
   
   (define tests
-    (list (make-test "1" 
+    (list (make-test "" 
+                     #f
+                     (regexp "module-language: the definitions window must contain a module"))
+	  (make-test "1" 
                      #f
                      (regexp "module-language: only module expressions are allowed"))
           (make-test "(module m mzscheme) 1" 
@@ -22,7 +25,28 @@
           (make-test "(module m mzscheme (provide x) (define x 1))" "x" "1")
           (make-test "(module m mzscheme (define x 1))" "x" "1")
           (make-test "(module m mzscheme (define x 1) (define y 1) (provide y))" "x" "1")
-          (make-test "(module m mzscheme (define x 1) (define y 2) (provide y))" "y" "2")))
+          (make-test "(module m mzscheme (define x 1) (define y 2) (provide y))" "y" "2")
+          (make-test "(module m mzscheme (require (lib \"list.ss\")))" 
+                     "foldl" 
+                     (regexp "foldl"))
+          
+          (make-test "(module m mzscheme (require (rename (lib \"list.ss\") local-foldl foldl)))" 
+                     "local-foldl"
+                     (regexp "foldl>"))
+          
+          (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
+                     "first"
+                     (regexp "first>"))
+          (make-test "(module m mzscheme (require (all-except (lib \"list.ss\") foldl)))" 
+                     "foldl"
+                     "reference to undefined identifier: foldl")
+          
+          (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
+                     "foldl"
+                     (regexp "foldl>"))
+          (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
+                     "x:foldl"
+                     (regexp "foldl>"))))
   
   (define drs (wait-for-drscheme-frame))
   (define interactions-text (send drs get-interactions-text))

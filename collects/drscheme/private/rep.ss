@@ -1669,7 +1669,8 @@
                   (insert s before before #f)
                   (let ([after (last-position)])
                     (for-each (lambda (delta)
-                                (change-style delta before after))
+				(when (is-a? delta style-delta%)
+				  (change-style delta before after)))
                               deltas)
                     (values before after)))))
             
