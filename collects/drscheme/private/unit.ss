@@ -1706,6 +1706,9 @@ tab panels new behavior:
 		   (λ () (file-menu:get-print-item))))
 	    (send file-menu:print-transcript-item enable interactions-shown?))
           
+          (define/augment (can-close?)
+            (and (send interactions-text can-close?)
+                 (inner #t (can-close?))))
           (define/augment (on-close)
             (inner (void) on-close)
             (when (eq? this created-frame)

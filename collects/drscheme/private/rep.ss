@@ -1116,6 +1116,7 @@ TODO
           
           (field (shutting-down? #f))
 
+          (define/override (allow-close-with-no-filename?) #t)
           (define/augment (can-close?)
             (and (cond
                    [in-evaluation?
