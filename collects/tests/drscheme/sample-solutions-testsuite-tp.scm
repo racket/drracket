@@ -22,13 +22,14 @@
              (if (member fn cache)
                  (syntax (void))
                  (with-syntax ([full-fn 
-                                (path->string
-                                 (build-path 
-                                  (with-handlers ([exn:fail:filesystem?
-                                                   (lambda (x)
-                                                     (current-load-relative-directory))])
-                                    (collection-path "solutions"))
-                                  fn))]
+                                (bytes->string/utf-8
+                                 (path->bytes
+                                  (build-path 
+                                   (with-handlers ([exn:fail:filesystem?
+                                                    (lambda (x)
+                                                      (current-load-relative-directory))])
+                                     (collection-path "solutions"))
+                                   fn)))]
                                [orig stx])
                    (set! cache (cons fn cache))
                    (syntax

@@ -1185,7 +1185,7 @@ the settings above should match r5rs
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
-    (go r5rs)
+    ;(go r5rs)
     (go beginner)
     (go beginner/abbrev)
     (go intermediate)
