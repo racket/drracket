@@ -482,7 +482,7 @@
                             [else
                              (unless (= number (send (cadr sub-ht/sub-hier-list) get-number))
                                (error 'add-language "language ~s; expected number for ~e to be ~e, got ~e"
-                                      (send language get-name)
+                                      (send language get-language-name)
                                       position
                                       (send (cadr sub-ht/sub-hier-list) get-number)
                                       number))])
