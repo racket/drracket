@@ -260,7 +260,7 @@
       ;;   not going to be exiting yet.
       (autosave:restore-autosave-files/gui)
       
-      (preferences:start-writing-thread)
+      (preferences:start-writing-timer)
       
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
