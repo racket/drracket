@@ -1,3 +1,17 @@
+#|
+
+tab panels todo:
+  - look into modes
+  - filenames
+  - can-close? needs to account for all tabs
+  - pref for opening in tabs by default (instead of new frames)
+  - module browser
+  - contour
+  - scroll bar position
+  - language settings
+
+|#
+
 
 (module unit mzscheme
   (require (lib "unitsig.ss")
@@ -20,6 +34,7 @@
   
   (provide unit@)
   
+  (define sc-new-tab "New Tab")
   (define module-browser-progress-constant (string-constant module-browser-progress))
   (define status-compiling-definitions (string-constant module-browser-compiling-defns))
   (define show-lib-paths (string-constant module-browser-show-lib-paths/short))
@@ -386,7 +401,7 @@
                        text:info%))))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
-            
+              
             (rename [super-after-save-file after-save-file])
             (define/override (after-save-file success?)
               (when success?
@@ -410,7 +425,7 @@
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
-                     (send f update-save-button (is-modified?)))))))
+                     (send f update-save-button))))))
             (define/override set-filename
               (case-lambda
                 [(fn) (set-filename fn #f)]
@@ -419,7 +434,7 @@
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
-                     (send f update-save-message fn)))]))
+                     (send f update-save-message)))]))
             
             (rename [super-after-insert after-insert]
                     [super-after-delete after-delete])
@@ -461,14 +476,12 @@
             (field
              [tmp-date-string #f])
             
+            (inherit get-filename/untitled-name)
             (define (get-date-string)
               (string-append
                (mzlib:date:date->string (seconds->date (current-seconds)))
                " "
-               (let ([fn (get-filename)])
-                 (if (string? fn)
-                     fn
-                     (string-constant untitled)))))
+               (get-filename/untitled-name)))
             
             (rename [super-on-paint on-paint])
             (define/override (on-paint before dc left top right bottom dx dy draw-caret)
@@ -868,6 +881,8 @@
           execute-callback
           change-mode-to-match))
 
+      (define-struct tab (defs ints))
+      
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%>)
 	       (drscheme:rep:context<%> -frame<%>)
@@ -1132,28 +1147,26 @@
                 (send interactions-text lock #f)))]
           
           (inherit set-label)
-          (public update-save-button update-save-message)
           (inherit modified)
-          [define update-save-button
-            (lambda (mod?)
+          (define/public (update-save-button)
+            (let ([mod? (send definitions-text is-modified?)])
               (modified mod?)
               (if save-button
                   (unless (eq? mod? (send save-button is-shown?))
                     (send save-button show mod?))
-                  (set! save-init-shown? mod?)))]
+                  (set! save-init-shown? mod?))))
 
           ;; update-save-message : (union #f string) -> void
           ;; sets the save message. If input is #f, uses the frame's
           ;; title.
-          [define update-save-message
-            (lambda (name)
-              (when name-message
+          (define/public (update-save-message)
+            (when name-message
+              (let ([filename (send definitions-text get-filename)])
                 (send name-message set-message 
-                      #t
-                      (or name (get-label)))))]
+                      (if filename #t #f)
+                      (send definitions-text get-filename/untitled-name)))))
 
-          (override get-canvas%)
-          [define get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
+          [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           
           (define/public (ensure-defs-shown)
             (unless definitions-shown?
@@ -1211,6 +1224,15 @@
           
           [define file-menu:print-transcript-item #f]
           
+          (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
+          (define/override (file-menu:between-new-and-open file-menu)
+            (new menu-item%
+                 (label sc-new-tab)
+                 (shortcut #\=)
+                 (parent file-menu)
+                 (callback
+                  (lambda (x y)
+                    (create-new-tab)))))
           (rename
            [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define/override file-menu:between-open-and-revert
@@ -1815,9 +1837,51 @@
           
           (define definitions-text (new (drscheme:get/extend:get-definitions-text)))
           (define interactions-text (make-object (drscheme:get/extend:get-interactions-text) this))
-          (public get-definitions-text get-interactions-text)
-          (define get-definitions-text (lambda () definitions-text))
-          (define get-interactions-text (lambda () interactions-text))
+          (define/public (get-definitions-text) definitions-text)
+          (define/public (get-interactions-text) interactions-text)
+
+          ;; tabs : (listof tab)
+          (define tabs (list (make-tab definitions-text interactions-text)))
+          
+          ;; current-tab : tab
+          ;; corresponds to the tabs-panel's active button.
+          (define current-tab (car tabs))
+          
+          ;; create-new-tab : -> void
+          ;; creates a new tab and updates the GUI for that new tab
+          (define (create-new-tab) 
+            (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
+                   [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+                   [new-tab (make-tab defs ints)])
+              (set! tabs (append tabs (list new-tab)))
+              (send tabs-panel append "new name")
+              (when ((send tabs-panel get-number) . > . 1)
+                (send (send tabs-panel get-parent)
+                      change-children
+                      (lambda (l)
+                        (if (memq tabs-panel l)
+                            l
+                            (cons tabs-panel l))))
+                (change-to-tab (- (send tabs-panel get-number) 1))
+                (send ints initialize-console)
+                (send tabs-panel set-selection (- (send tabs-panel get-number) 1)))))
+          
+          ;; change-to-tab : number -> void
+          ;; updates current-tab, definitions-text, and interactactions-text
+          ;; to be the nth tab. Also updates the GUI to show the new tab
+          (define (change-to-tab n)
+            (unless (< n (length tabs))
+              (error 'change-to-tab "number too big ~s" n))
+            (set! current-tab (list-ref tabs n))
+            (set! definitions-text (tab-defs current-tab))
+            (set! interactions-text (tab-ints current-tab))
+            (for-each (lambda (defs-canvas) (send defs-canvas set-editor definitions-text))
+                      definitions-canvases)
+            (for-each (lambda (ints-canvas) (send ints-canvas set-editor interactions-text))
+                      interactions-canvases)
+            (update-save-message)
+            (update-save-button)
+            (send definitions-text update-frame-filename))
           
           (define (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
@@ -2356,9 +2420,20 @@
                                (parent top-panel)
                                (stretchable-width #f)
                                (stretchable-height #f))]
+          (define panel-with-tabs (new vertical-panel%
+                                       (parent (get-definitions/interactions-panel-parent))))
+          (define tabs-panel (new tab-panel% 
+                                  (parent panel-with-tabs)
+                                  (stretchable-height #f)
+                                  (style '(deleted))
+                                  (choices '("first name"))
+                                  (callback (lambda (x y)
+                                              (let ([sel (send tabs-panel get-selection)])
+                                                (when sel
+                                                  (change-to-tab sel)))))))
           [define resizable-panel (new vertical-dragable/def-int%
                                     (unit-frame this)
-                                    (parent (get-definitions/interactions-panel-parent)))]
+                                    (parent panel-with-tabs))]
           
           [define definitions-canvas #f]
           (initialize-definitions-canvas)
@@ -2383,8 +2458,6 @@
           (public get-definitions-canvas get-interactions-canvas)
           [define get-definitions-canvas (lambda () definitions-canvas)]
           [define get-interactions-canvas (lambda () interactions-canvas)]
-          
-          (send interactions-text auto-wrap #t)
           
           (set! save-button
                 (make-object button% 
@@ -2433,13 +2506,8 @@
             (set-save-init-shown?
              (and m (send m is-modified?))))
 	  
-          (let ([ed-filename (send definitions-text get-filename)])
-            (send name-message set-message
-                  (if ed-filename #t #f)
-                  (or ed-filename (get-label) (string-constant untitled))))
-          
-          (update-save-button #f)
-
+          (update-save-message)
+          (update-save-button)
           (send interactions-text initialize-console)
           
           (cond

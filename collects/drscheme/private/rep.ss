@@ -2116,7 +2116,8 @@
             (reset-region (get-prompt-position) 'end))
           
           (super-instantiate ())
-          
+          (inherit auto-wrap)
+          (auto-wrap #t)
           (set-styles-sticky #f)))
       
       (define console-text-mixin
