@@ -57,9 +57,11 @@
     (let ([uncropped-start-x (+ uncropped-pre-start-x dx -0.5)]
           [uncropped-start-y (+ uncropped-pre-start-y dy)]
           [uncropped-end-x (+ uncropped-pre-end-x dx -0.5)]
-          [uncropped-end-y (+ uncropped-pre-end-y dy)])
+          [uncropped-end-y (+ uncropped-pre-end-y dy)]
+          [old-smoothed (send dc get-smoothing)])
       (let*-values ([(start-x start-y) (crop-to uncropped-start-x uncropped-start-y uncropped-end-x uncropped-end-y)]
                     [(end-x end-y) (crop-to uncropped-end-x uncropped-end-y uncropped-start-x uncropped-start-y)])
+        (send dc set-smoothing 'aligned)
         (send dc draw-line start-x start-y end-x end-y)
         (when (and (< smallest start-x largest)
                    (< smallest end-x largest))
@@ -86,7 +88,8 @@
                    [pt3 (make-object point%
                           (+ end-x (- arrow-head-size-cos-arrow-head-angle-cos-alpha) arrow-head-size-sin-arrow-head-angle-sin-alpha)
                           (- end-y arrow-head-size-cos-arrow-head-angle-sin-alpha arrow-head-size-sin-arrow-head-angle-cos-alpha))])
-              (send dc draw-polygon (list pt1 pt2 pt3))))))))
+              (send dc draw-polygon (list pt1 pt2 pt3)))))
+        (send dc set-smoothing old-smoothed))))
   
   ;; crop-to : number number number number -> (values number number)
   ;; returns x,y if they are in the range defined by largest and smallest
