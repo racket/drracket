@@ -287,7 +287,6 @@
 	   (when execute-menu-item
 	     (send execute-menu-item enable #f))
 	   (send execute-button enable #f)
-	   (set! was-locked? (ivar definitions-edit locked?))
 	   (send definitions-edit lock #t)
 	   (send interactions-edit lock #t))]
 	[enable-evaluation
@@ -295,7 +294,7 @@
 	   (when execute-menu-item
 	     (send execute-menu-item enable #t))
 	   (send execute-button enable #t)
-	   (send definitions-edit lock was-locked?)
+	   (send definitions-edit lock #f)
 	   (send interactions-edit lock #f))])
       
       (public

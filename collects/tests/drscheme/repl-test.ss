@@ -29,13 +29,13 @@
 		    "read: illegal use of \".\" at position 1 line 1 in "
 		    #t
 		    #f)
-	    (make-test "(begin)"
-		    "1.1-1.8: Malformed begin"
+	    (make-test "(lambda ())"
+		    "1.1-1.8: Malformed lambda"
 		    #t
-		    "Malformed begin"
-		    (vector 0 7)
-		    "begin: bad syntax (empty form) in: (begin)"
-		    "begin: bad syntax (empty form) in: (begin)"
+		    "Malformed lambda"
+		    (vector 0 11)
+		    "lambda: bad syntax in: (lambda ())"
+		    "lambda: bad syntax in: (lambda ())"
 		    #f
 		    #f)
 	    (make-test "x"
@@ -103,13 +103,13 @@
 		    "(1 2)"
 		    #f
 		    #f)
-	    (make-test "    (eval '(begin))"
+	    (make-test "    (eval '(lambda ()))"
 		    "1.5-1.20: Malformed begin"
 		    #t
 		    "Malformed begin"
 		    (vector 4 19)
-		    "begin: bad syntax (empty form) in: (begin)"
-		    "begin: bad syntax (empty form) in: (begin)"
+		    "begin: bad syntax (empty form) in: (lambda ())"
+		    "begin: bad syntax (empty form) in: (lambda ())"
 		    #f
 		    #f)
 	    (make-test "    (eval 'x)"
@@ -343,10 +343,10 @@
 		   (unless mred?
 		     (cond
 		      [(eq? execute-location 'unlocated-error) 
-		       (unless (send interactions-canvas is-focus-on?)
+		       (unless (send interactions-canvas has-focus?)
 			 (printf "FAILED execute test for ~s~n  expected interactions to have the focus~n"
 				 program))]
-		      [(and execute-location (send definitions-canvas is-focus-on?))
+		      [(and execute-location (send definitions-canvas has-focus?))
 		       (unless (and (= (send definitions-edit get-start-position) (vector-ref execute-location 0))
 				    (= (send definitions-edit get-end-position) (vector-ref execute-location 1)))
 			 (printf "FAILED execute test for ~s~n  start/end position are ~a ~a~n  expected ~a ~a~n"
@@ -358,7 +358,7 @@
 		      [execute-location
 		       (printf "FAILED execute test for ~s~n  expected definitions canvas to have the focus~n"
 			       program)]
-		      [(not (send interactions-canvas is-focus-on?))
+		      [(not (send interactions-canvas has-focus?))
 		       (printf "FAILED execute test for ~s~n  expected interactions to have the focus~n"
 			       program)]
 		      [else (void)]))
@@ -421,17 +421,17 @@
 			 (escape))))))))]
 
 	  [run-test-in-language-level
-	   (lambda (mred?)
-	     (let ([level (if mred? "MrEd" "R4RS+")])
+	   (lambda (raw?)
+	     (let ([level (if raw? "MzScheme" "MzSchemeDebug")])
 	       (printf "running ~a tests~n" level)
 	       (set-language-level! level)
 	       (fw:test:new-window definitions-canvas)
 	       (fw:test:menu-select "Edit" "Select All")
-	       (fw:test:menu-select "Edit" (if (eq? (system-type) 'macintosh)
+	       (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 						 "Clear"
 						 "Delete"))
 	       (do-execute)
-	       (let/ec escape (for-each (run-test (get-int-pos) escape mred?) test-data))))])
+	       (let/ec escape (for-each (run-test (get-int-pos) escape raw?) test-data))))])
 
   (run-test-in-language-level #t)
   (run-test-in-language-level #f)))
