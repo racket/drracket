@@ -818,9 +818,14 @@
           (set! user-thread (current-thread))
           (moddep-current-open-input-file
            (lambda (filename)
-             (let ([t (new text%)])
-               (send t load-file filename)
-               (open-input-text-editor t))))
+             (let* ([p (open-input-file filename)]
+                    [wxme? (regexp-match-peek #rx#"^WXME" p)])
+               (if wxme?
+                   (let ([t (new text%)])
+                     (close-input-port p)
+                     (send t load-file filename)
+                     (open-input-text-editor t))
+                   p))))
           (current-load-relative-directory init-dir)
           (current-directory init-dir)
           (error-display-handler 
