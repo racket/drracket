@@ -144,11 +144,20 @@ profile todo:
       
       
 
+      (define (set-scheme-mode-mixin %)
+        (class %
+          (super-new)
+          (inherit set-surrogate)
+          (set-surrogate (new scheme:text-mode%))))
+      
       ;; simple-scheme-text% : (implements scheme:text<%>)
-      (define simple-scheme-text% (scheme:text-mixin
-                                   (text:hide-caret/selection-mixin
-                                    (editor:keymap-mixin 
-                                     text:basic%))))
+      (define simple-scheme-text% 
+        (set-scheme-mode-mixin
+         (scheme:text-mixin
+          (mode:host-text-mixin
+           (text:hide-caret/selection-mixin
+            (editor:keymap-mixin 
+             text:basic%))))))
       
       ;; make-debug-error-display-handler/text  : (-> (union #f (is-a?/c text%)))
       ;;                                                ((is-a?/c rep:text%) (-> void) -> void)

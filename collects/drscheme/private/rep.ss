@@ -2542,8 +2542,9 @@
       (define transparent-io-super% 
         (console-text-mixin
          (scheme:text-mixin
-          (text:searching-mixin
-           text:autowrap%))))
+          (mode:host-text-mixin
+           (text:searching-mixin
+            text:autowrap%)))))
       
       (define consumed-delta (make-object style-delta% 'change-bold))
 	   
