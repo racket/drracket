@@ -1812,6 +1812,7 @@
                     (lambda ()
                       (send module-browser-button enable #t)
                       (close-status-line 'plt:module-browser))]
+                   [language-settings (send (get-definitions-text) get-next-settings)]
                    [kill-termination (lambda () (shutdown))]
                    [init (lambda () (set-directory defs))]
                    [complete-program? #t]
@@ -1830,7 +1831,7 @@
                          (cont)]))])
               (send module-browser-button enable #f)
               ((drscheme:eval:traverse-program/multiple
-                next-settings init kill-termination)
+                language-settings init kill-termination)
                text-pos iter complete-program?)))
           
           ;; set-directory : text -> void

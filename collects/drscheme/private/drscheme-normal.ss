@@ -9,10 +9,25 @@
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
 
-  ;; this used to be done by mred, but
-  ;; since drscheme uses the -Z flag now,
-  ;; we have to do it explicitly.
-  (current-load text-editor-load-handler)
+  '(let ([addl-load-handler
+         (and (not (getenv "PLTDRDEBUG"))
+              (getenv "PLTDRCM")
+              (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))])
+    (printf "two\n")
+    
+    ;; this used to be done by mred, but
+    ;; since drscheme uses the -Z flag now,
+    ;; we have to do it explicitly.
+    (current-load text-editor-load-handler)
+  
+    (printf "three\n")
+    
+    ;; abstraction breaking -- matthew will change cm
+    ;; so that I don't need this here.
+    (when addl-load-handler
+      (printf "PLTDRCM: reinstalling CM load handler after setting mred load handler\n")
+      (current-load/use-compiled (addl-load-handler)))
+    (printf "four\n"))
   
   (define texas-independence-day?
     (let ([date (seconds->date (current-seconds))])
