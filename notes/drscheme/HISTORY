@@ -52,9 +52,9 @@ General
 
  - DrScheme's languages have changed (again). The langauges are now:
 
-   - Beginner 
-   - Intermediate
-   - Advanced
+   - Beginning Student
+   - Intermediate Student
+   - Advanced Student
    - Full Scheme, which contains:
      - Graphical Full Scheme (with and without debugging), and
      - Textual Full Scheme (with and without debugging)
