@@ -387,17 +387,12 @@
             (define/public (set-next-settings _next-settings) (set! next-settings _next-settings))
             
             (define/public (needs-execution?)
-              (printf "needs-execution? (or ~a ~a)\n"
-                      needs-execution-state
-                      (not (equal? execute-settings next-settings)))
               (or needs-execution-state
                   (not (equal? execute-settings next-settings))))
             
             (define/public (teachpack-changed)
-              (printf "teachpack-changed\n")
               (set! needs-execution-state #t))
             (define/public (just-executed)
-              (printf "just-executed\n")
               (set! execute-settings next-settings)
               (set! needs-execution-state #f)
               (set! already-warned-state #f))
@@ -406,11 +401,9 @@
             (define/public (already-warned)
               (set! already-warned-state #t))
             (define/override (after-insert x y)
-              (printf "insert\n")
               (set! needs-execution-state #t)
               (super-after-insert x y))
             (define/override (after-delete x y)
-              (printf "delete\n")
               (set! needs-execution-state #t)
               (super-after-delete x y))
             
