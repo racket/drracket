@@ -36,8 +36,8 @@
        (let ([default (application-file-handler)])
          (lambda (name)
            (if (null? (get-top-level-windows))
-              (handler:edit-file name)
-              (default name)))))
+               (handler:edit-file name)
+               (default name)))))
       
       (application-quit-handler
        (let ([default (application-quit-handler)])
