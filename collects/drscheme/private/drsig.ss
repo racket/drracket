@@ -62,7 +62,7 @@
   
   (define-signature drscheme:language-configuration^
     (add-language
-     (struct language-settings (language settings))
+     (struct language-settings (language settings) -setters)
      get-settings-preferences-symbol))
   
   (define-signature drscheme:language-configuration/internal^
@@ -168,13 +168,14 @@
 
      open-input-text
 
-     (struct text/pos (text start end))
+     (struct text/pos (text start end) -setters)
      (struct simple-settings (case-sensitive 
                               printing-style 
                               fraction-style
                               show-sharing
                               insert-newlines
-                              debugging))
+                              debugging)
+             -setters)
      simple-settings->vector
 
      language<%>
