@@ -592,7 +592,7 @@
               (escape)))))))
   
   (define (run-test-in-language-level raw?)
-    (let ([level (list "R5RS-like" "Graphical (MrEd)")]
+    (let ([level (list "PLT" "Graphical (MrEd)")]
           [drs (wait-for-drscheme-frame)])
       (printf "running ~s tests\n" level)
 
@@ -638,7 +638,7 @@
       (delete-file tmp-load-filename))
     (save-drscheme-window-as tmp-load-filename)
     
-    ;(set-language-level! (list "R5RS-like" "Graphical (MrEd)")) (kill-tests)
+    ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
     (run-test-in-language-level #f)
     (run-test-in-language-level #t)))
