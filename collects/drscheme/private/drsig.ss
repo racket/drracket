@@ -22,6 +22,7 @@
            drscheme:rep^
            drscheme:app^
            drscheme:draw-arrow^
+	   drscheme:load-handler^
            drscheme:export^
            drscheme^)
   
@@ -123,8 +124,6 @@
   
   (define-signature drscheme:load-handler^
     (provide
-     process-text/zodiac
-     process-text/no-zodiac
      process-text
      drscheme-load-handler))
  

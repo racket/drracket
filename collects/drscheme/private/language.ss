@@ -35,7 +35,7 @@
      [(original-settings parent) 
       (letrec
 	  ([settings (basis:copy-setting original-settings)]
-	   [language-levels (map basis:setting-name basis:settings)]
+	   [language-levels (map basis:setting-name (basis:get-settings))]
 
 	   [dialog%
 	    (class100 dialog% args
@@ -86,7 +86,7 @@
 				p)]
 	   [full-scheme-radio-box-label-map
 	    (let ([re (regexp "Full Scheme ")])
-	      (let loop ([settings (cdr (cdr (cdr basis:settings)))] ;; remove teaching languages
+	      (let loop ([settings (cdr (cdr (cdr (basis:get-settings))))] ;; remove teaching languages
 			 [n 0])
 		(cond
 		 [(null? settings) null]
@@ -376,7 +376,7 @@
 	(send language-choice stretchable-width #f)
 	(send printing stretchable-width #t)
 	(update-to settings)
-	(show-specifics (not (ormap compare-setting-to-gui basis:settings)))
+	(show-specifics (not (ormap compare-setting-to-gui (basis:get-settings))))
 	(for-each (lambda (x) (send x stretchable-height #f))
 		  (list language-panel ok-panel main))
 	(send language-panel set-alignment 'center 'center)

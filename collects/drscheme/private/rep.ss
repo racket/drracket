@@ -1468,9 +1468,7 @@
                       (lambda ()
                         (call-with-values
                          (lambda ()
-                           (if (basis:zodiac-vocabulary? (basis:current-setting))
-                               (basis:syntax-checking-primitive-eval expr)
-			       (basis:primitive-eval expr)))
+                           (basis:primitive-eval expr))
                          (lambda x (display-results x)))))
                      (recur)]))
                 start
