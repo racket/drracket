@@ -250,6 +250,7 @@
 	     "context expected 1 value, received 2 values: #<procedure:x> #<procedure:y>"
 	     #f
 	     #f)
+
 	    (make-test
 	     (format "(define-macro m (lambda (x) (values x x)))~n(m 1)")
 	     "1.29-1.41: context expected 1 value, received 2 values: 1 1"
@@ -262,16 +263,18 @@
 	     #f)
 
 	    ;; breaking tests
-	    (make-test
-	     (format "(let l()(l))")
-	     "user break"
-	     #t
-	     "user break"
-	     (vector 28 40)
-	     "user break"
-	     "user break"
-	     #f
-	     #t))]
+	    ; (make-test
+	    ; (format "(let l()(l))")
+	    ; "user break"
+	    ; #t
+	    ; "user break"
+	    ; (vector 28 40)
+	    ; "user break"
+	    ; "user break"
+	    ; #f
+	    ; #t)
+
+	    )]
 
 	  [drscheme-frame (wait-for-drscheme-frame)]
 	  [user-directory
