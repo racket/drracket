@@ -568,7 +568,6 @@ TODO
           
           run-in-evaluation-thread
           do-many-evals
-          do-many-language-evals
           after-many-evals
           
           shutdown
@@ -642,7 +641,7 @@ TODO
                    position-line
                    position-paragraph
                    release-snip
-                   reset-region
+                   #;reset-region
                    run-after-edit-sequence
                    scroll-to-position
                    set-caret-owner
@@ -650,8 +649,7 @@ TODO
                    set-position
                    set-styles-sticky
                    set-unread-start-point
-                   split-snip
-                   update-region-end)
+                   split-snip)
           
           (unless (is-a? context context<%>)
             (error 'drscheme:rep:text% 
@@ -970,45 +968,45 @@ TODO
             (set! need-interaction-cleanup? #f)
             (begin-edit-sequence)
             (set-caret-owner #f 'display)
-            (when (and (get-user-thread) (thread-running? (get-user-thread)))
-              (let ([c-locked? (is-locked?)])
-                (lock #f)
-                (insert-prompt)
-                (lock c-locked?)))
             (cleanup)
             (end-edit-sequence)
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
           (define/override (on-submit)
-            (do-many-language-evals (get-in-port) this #f))
+            (printf "on-submit start\n")
+            (do-single-language-eval (get-in-port) this))
           
           ; =Kernel, =Handler=
-          (define/public (do-many-language-evals port source complete-program?)
+          (define/public (do-single-language-eval port source)
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
+               (printf "do-many-language-evals.1\n")
                (let* ([settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
-                       (if complete-program?
-                           (send lang front-end/complete-program port source settings user-teachpack-cache)
-                           (send lang front-end/interaction port source settings user-teachpack-cache))])
-                 (let loop () 
-                   (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                     (cond
-                       [(eof-object? sexp/syntax/eof)
-                        (void)]
-                       [else
-                        (single-loop-eval
-                         (lambda ()
-                           (call-with-values
-                            (lambda ()
-                              (eval-syntax sexp/syntax/eof))
-                            (lambda x 
-                              (display-results x)))
-                           (flush-output (get-value-port))))
-                        (loop)])))))))
+                       (send lang front-end/interaction port source settings user-teachpack-cache)])
+                 (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                   (printf "do-many-language-evals.2 ~s\n" sexp/syntax/eof)
+                   (cond
+                     [(eof-object? sexp/syntax/eof)
+                      (printf "do-many-language-evals.7\n")
+                      (void)]
+                     [else
+                      (single-loop-eval
+                       (lambda ()
+                         (printf "do-many-language-evals.3\n")
+                         (call-with-values
+                          (lambda ()
+                            (printf "do-many-language-evals.4\n")
+                            (eval-syntax sexp/syntax/eof))
+                          (lambda x 
+                            (printf "do-many-language-evals.5\n")
+                            (display-results x)))
+                         (fprintf (get-out-port) (get-prompt))
+                         (flush-output (get-value-port))))
+                      (printf "do-many-language-evals.6\n")]))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
           (define/public do-many-evals ; =Kernel=, =Handler=
@@ -1057,8 +1055,10 @@ TODO
                     (queue-system-callback/sync
                      (get-user-thread)
                      (lambda () ; =Kernel=, =Handler= 
+                       (printf "cleanup\n")
                        (after-many-evals)
-                       (cleanup-interaction)))))))))
+                       (cleanup-interaction)
+                       (printf "cleanup done\n")))))))))
           
           (define/public (after-many-evals) (void))
           
@@ -1106,6 +1106,8 @@ TODO
           
           (define protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
             (lambda (thunk cleanup)
+              
+              (printf "protect-user-evaluation.1\n")
               ;; We only run cleanup if thunk finishes normally or tries to
               ;; error-escape. Otherwise, it must be a continuation jump
               ;; into a different call to protect-user-evaluation.
@@ -1119,17 +1121,22 @@ TODO
               (let/ec k
                 (let ([saved-error-escape-k (current-error-escape-k)]
                       [cleanup? #f])
+                  (printf "protect-user-evaluation.2\n")
                   (dynamic-wind
                    (lambda ()
+                     (printf "protect-user-evaluation.3\n")
                      (set! cleanup? #f)
                      (current-error-escape-k (lambda () 
 					       (set! cleanup? #t)
 					       (k (void)))))
 		  (lambda () 
+                    (printf "protect-user-evaluation.4\n")
                      (thunk) 
                      ; Breaks must be off!
-                     (set! cleanup? #t))
+                     (set! cleanup? #t)
+                    (printf "protect-user-evaluation.5\n"))
                    (lambda () 
+                     (printf "protect-user-evaluation.6\n")
                      (current-error-escape-k saved-error-escape-k)
                      (when cleanup?
                        (set! in-evaluation? #f)
@@ -1137,10 +1144,12 @@ TODO
                        (cleanup))))))))
           
           (define/public (run-in-evaluation-thread thunk) ; =Kernel=
+            (printf "run-in-evaluation-thread.1\n")
             (semaphore-wait eval-thread-state-sema)
             (set! eval-thread-thunks (append eval-thread-thunks (list thunk)))
             (semaphore-post eval-thread-state-sema)
-            (semaphore-post eval-thread-queue-sema))
+            (semaphore-post eval-thread-queue-sema)
+            (printf "run-in-evaluation-thread.2\n"))
           
           (define init-evaluation-thread ; =Kernel=
             (lambda ()
@@ -1234,6 +1243,7 @@ TODO
                          (semaphore-post eval-thread-state-sema)
                          ; This thunk evals the user's expressions with appropriate
                          ;   protections.
+                         (printf "running a thunk\n")
                          (thunk))
                        (loop)))))
                 (semaphore-wait init-thread-complete)
@@ -1358,6 +1368,7 @@ TODO
                              (send context reset-offer-kill)
                              (send context set-breakables (get-user-thread) (get-user-custodian))
                              
+                             (printf "dispatching\n")
                              (protect-user-evaluation
                               ; Run the dispatch:
                               (lambda () ; =User=, =Handler=, =No-Breaks=
@@ -1381,6 +1392,7 @@ TODO
                                 ;; be many little events that the user won't quite
                                 ;; be able to break.
                                 (send context set-breakables #f #f)))
+                             (printf "done dispatching\n")
                              
                              ; Restore break:
                              (when ub?
@@ -1451,7 +1463,7 @@ TODO
             (set-unread-start-point (last-position))
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
-            (reset-region 0 'end)
+            #;(reset-region 0 'end)
             (end-edit-sequence))
           
           (define/public (initialize-console)
@@ -1467,7 +1479,6 @@ TODO
             (send context disable-evaluation)
             (reset-console)
             (send context enable-evaluation)
-            (insert-prompt)
             (clear-undos))
           
           (define edit-sequence-count 0)
@@ -1625,7 +1636,8 @@ TODO
                 (lock c-locked?)
                 (end-edit-sequence)
                 (scroll-to-position start-selection #f (last-position) 'start)
-                (reset-region prompt-position 'end))))
+                #;(reset-region prompt-position 'end)
+                )))
           
           (define/public (ready-non-prompt)
             (when prompt-mode?
