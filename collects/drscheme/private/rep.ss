@@ -1839,11 +1839,6 @@
               (setup-display/write-handlers)
               (pretty-print-size-hook drscheme-pretty-print-size-hook)
               (pretty-print-print-hook drscheme-pretty-print-print-hook)
-              (print-convert:current-print-convert-hook
-               (lambda (expr basic-convert sub-convert)
-                 (if (is-a? expr snip%)
-                     expr
-                     (basic-convert expr))))
               
               (drscheme:eval:set-basic-parameters snip-classes)
               (current-rep this)

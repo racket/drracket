@@ -47,6 +47,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression 'xml "(a () (b ()))")
+
       (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
       
       (test-expression "(sqrt -1)" "0+1i")
@@ -956,13 +958,18 @@
       (test "write" #f #t
             (case-lambda
              [(x) (member #\newline (string->list x))]
-             [() "newlines in result (may need to make the window smaller)"]))))
+             [() "newlines in result (may need to make the window smaller)"]))
+      
+      
+      ))
 
   (define re:out-of-sync
     (regexp
      "WARNING: Interactions window is out of sync with the definitions window\\."))
   
-  ;; test-expression : string (union string regexp (string -> boolean)) -> void
+  ;; test-expression : (union string 'xml)
+  ;;                   (union string regexp (string -> boolean)) 
+  ;;                -> void
   ;; types an expression in the REPL and tests the output from the REPL.
   (define (test-expression expression expected)
     (let* ([drs (wait-for-drscheme-frame)]
@@ -988,7 +995,14 @@
       (send interactions-text set-position
             (send interactions-text last-position)
             (send interactions-text last-position))
-      (type-in-interactions drs expression)
+      
+      (cond
+        [(string? expression)
+         (type-in-interactions drs expression)]
+        [(eq? expression 'xml)
+         (fw:test:menu-select "Special" "Insert XML Box")
+         (for-each fw:test:keystroke (string->list "<a><b>"))])
+      
       (type-in-interactions drs (string #\newline))
       (wait-for-computation drs)
       (let ([got
