@@ -1253,7 +1253,7 @@
                         (list (string-constant professional-languages)
                               (string-constant plt)
                               (string-constant mzscheme-w/debug))
-                        (list -10 -10 1)
+                        (list -1000 -10 1)
                         #f
                         (string-constant mzscheme-one-line-summary)
                         (lambda (x) x)))
@@ -1262,7 +1262,7 @@
                         (list (string-constant professional-languages)
                               (string-constant plt)
                               (string-constant mred-w/debug))
-                        (list -10 -10 2)
+                        (list -1000 -10 2)
                         #t
                         (string-constant mred-one-line-summary)
                         (lambda (x) x)))
@@ -1271,7 +1271,7 @@
                         (list (string-constant professional-languages)
                               (string-constant plt)
                               (string-constant pretty-big-scheme))
-                        (list -10 -10 3)
+                        (list -1000 -10 3)
                         #t
                         (string-constant pretty-big-scheme-one-line-summary)
                         (lambda (x) x)))
@@ -1280,7 +1280,7 @@
                         (list (string-constant professional-languages)
                               (string-constant plt)
                               (string-constant expander))
-                        (list -10 -10 4)
+                        (list -1000 -10 4)
                         #t
                         (string-constant expander-one-line-summary)
                         add-expand-to-front-end))
@@ -1288,7 +1288,7 @@
            (make-simple '(lib "r5rs.ss" "lang")
                         (list (string-constant professional-languages)
                               (string-constant r5rs-lang-name))
-                        (list -10 -1000)
+                        (list -1000 -1000)
                         #f
                         (string-constant r5rs-one-line-summary)
                         r5rs-manuals-mixin)))))))
