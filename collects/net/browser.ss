@@ -10,30 +10,19 @@
   (provide send-url
            (rename raw:browser-preference? browser-preference?)
            update-browser-preference
-	   set-plt-browser!
 	   install-help-browser-preference-panel
            tool@)
   
   ; : -> bool
   (define (unix-browser?)
     (and (eq? (system-type) 'unix)
-	 (not (equal? "ppc-macosxonx" (system-library-subpath)))))
+	 ;(not (equal? "ppc-macosxonx" (system-library-subpath)))
+         ))
   
   (fw:preferences:set-default
    'external-browser
    (get-preference 'external-browser (lambda () #f))
    raw:browser-preference?)
-  
-  ; : tst -> bool
-  (define (help-browser-preference? x)
-    (or (eq? x 'plt) (eq? x 'external)))
-
-  (define help-browser-preference 'plt:help-browser)
-  
-  (fw:preferences:set-default
-   help-browser-preference
-   (get-preference help-browser-preference (lambda () 'external))
-   help-browser-preference?)
   
   (define http-proxy-preference 'plt:http-proxy)
 
@@ -76,10 +65,6 @@
 			   (sleep 0.2)
 			   (loop (add1 tries)))))))
 
-  (define (set-plt-browser!)
-    (try-put-preferences (list help-browser-preference) '(plt))
-    (fw:preferences:set help-browser-preference 'plt))
-
   (define unix-browser-names
     (map (lambda (s)
 	   (let ([l (string->list (symbol->string s))])
@@ -97,8 +82,7 @@
            [main-pane (make-object vertical-pane% d)]
 	   [internal-ok? (not url)]
            [ok? #f]
-	   [orig-external (fw:preferences:get 'external-browser)]
-	   [orig-internal (fw:preferences:get help-browser-preference)])
+	   [orig-external (fw:preferences:get 'external-browser)])
       (make-object message% title main-pane)
       (when url
 	(make-object message% (format "URL: ~a" url) main-pane))
@@ -111,26 +95,16 @@
 			(lambda (b e) (set! ok? #t) (send d show #f))
 			(lambda (b e) 
 			  (fw:preferences:set 'external-browser orig-external)
-			  (when internal-ok?
-			    (fw:preferences:set help-browser-preference orig-internal))
 			  (send d show #f)))]
 		      [(enable-button) (lambda (_n _v)
 					 (queue-callback
 					  (lambda ()
-					    (send ok-button enable 
-						  (or (fw:preferences:get 'external-browser)
-						      (and internal-ok?
-							   (eq? 'plt (fw:preferences:get help-browser-preference))))))))])
+					    (send ok-button enable (fw:preferences:get 'external-browser)))))])
 	  (send ok-button enable #f)
 	  (set! callbacks
 		(cons
 		 (fw:preferences:add-callback 'external-browser enable-button)
-		 callbacks))
-	  (when internal-ok?
-	    (set! callbacks
-		(cons
-		 (fw:preferences:add-callback help-browser-preference enable-button)
-		 callbacks))))
+		 callbacks)))
 	(send d show #t)
 	(map (lambda (f) (f)) callbacks)
 	ok?)))
@@ -153,17 +127,6 @@
     (unless synchronized?
       ;; Keep low-level pref in sync. Yes, this is clumsy and bad.
       
-      ;; For internal vs. external browser:
-      ;; At start-up, let low-level preference dominate if it has
-      ;; a value and is different, because Help Desk might have set it.
-      (let ([low-level (get-preference help-browser-preference (lambda () #f))])
-	(when (and low-level
-		   (not (equal? low-level (fw:preferences:get help-browser-preference))))
-	  (fw:preferences:set help-browser-preference low-level)))
-      (fw:preferences:add-callback help-browser-preference
-				   (lambda (name browser)
-				     (try-put-preferences (list help-browser-preference) (list browser))))
-      
       (fw:preferences:add-callback http-proxy-preference
 				   (lambda (name proxy)
 				     (try-put-preferences (list http-proxy-preference) (list proxy)))))
@@ -173,29 +136,6 @@
        (define callbacks null)
        (let ([pref-panel (instantiate vertical-panel% ()
 				       (parent parent) (alignment '(center center)))])
-
-	 ;; -------------------- internal vs. external browser --------------------
-	 (when set-help?
-	   (let* ([help-desk-radio
-		   (instantiate radio-box% ()
-				(label #f)
-				(choices (list (string-constant use-internal-browser-for-help)
-					       (string-constant use-external-browser-for-help)))
-				(parent pref-panel)
-				(callback
-				 (lambda (radio event)
-				   (fw:preferences:set help-browser-preference
-						       (case (send radio get-selection)
-							 [(0) 'plt]
-							 [(1) 'external])))))]
-		  [refresh-control (lambda (name val)
-				     (send help-desk-radio set-selection
-					   (if (eq? val 'plt) 0 1)))])
-	     (set! callbacks
-		   (cons
-		    (fw:preferences:add-callback help-browser-preference refresh-control)
-		    callbacks))
-	     (refresh-control #f (fw:preferences:get help-browser-preference))))
 
 	 ;; -------------------- external browser for Unix --------------------
 	 (when (unix-browser?)
