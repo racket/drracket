@@ -951,13 +951,10 @@ TODO
           ;; the position just after the last prompt
           (field (prompt-position #f))
           (define/public (get-prompt) "> ")
-          (inherit get-insertion-point)
           (define/public (insert-prompt)
             (let* ([pmt (get-prompt)]
                    [prompt-space (string-length pmt)])
               
-              (printf "before prompt usp ~s ip ~s\n" (get-unread-start-point) (get-insertion-point))
-
               ;; insert the prompt, possibly inserting a newline first
               (let* ([usp (get-unread-start-point)]
                      [usp-para (position-paragraph usp)]
@@ -967,18 +964,15 @@ TODO
                   (set! prompt-space (+ prompt-space 1)))
                 (insert-between pmt))
               
-              (printf "after prompt usp ~s ip ~s\n" (get-unread-start-point) (get-insertion-point))
               ;; trim extra space, according to preferences
               (let* ([start (paragraph-start-position 2)]
                      [end (- (get-unread-start-point) prompt-space)]
                      [space (- end start)]
                      [pref (preferences:get 'drscheme:repl-buffer-size)]
                      [max-space (* 1000 (cdr pref))])
-                (printf "max-space ~s\n" max-space)
                 (when (and (car pref)
                            (space . > . max-space))
                   (let ([to-delete-end (+ start (- space max-space))])
-                    (printf "calling delete/io ~s ~s\n" start to-delete-end)
                     (delete/io start to-delete-end))))
               
               (let ([sp (get-unread-start-point)])
