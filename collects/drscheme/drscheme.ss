@@ -218,12 +218,13 @@
   
   (define key-codes null)
   (define (add-key-code new-code)
-    (set! key-codes (let loop ([n (string-length magic-string)]
-                               [l (cons new-code key-codes)])
-                      (cond
-                        [(zero? n) null]
-                        [(null? l) null]
-                        [else (cons (car l) (loop (- n 1) (cdr l)))]))))
+    (when (char? new-code)
+      (set! key-codes (let loop ([n (string-length magic-string)]
+				 [l (cons new-code key-codes)])
+			(cond
+			  [(zero? n) null]
+			  [(null? l) null]
+			  [else (cons (car l) (loop (- n 1) (cdr l)))])))))
   
   (let ([set-splash-bitmap (dynamic-require '(lib "splash.ss" "framework") 'set-splash-bitmap)])
     ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-char-observer)
