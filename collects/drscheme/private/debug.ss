@@ -254,22 +254,10 @@ profile todo:
                    
                    (display msg (current-error-port))
                    (when (exn:fail:syntax? exn)
-                     (let ([error-text-style-delta (make-object style-delta%)])
-                       (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
-                       (write-special (make-object string-snip% " in:") (current-error-port))
-                       (for-each (lambda (expr)
-                                   (let ([snp (make-object string-snip%
-                                                (format "~s" (syntax-object->datum expr)))])
-                                     (display " " (current-error-port))
-                                     (send snp set-style
-                                           (send the-style-list find-or-create-style
-                                                 (send snp get-style)
-                                                 error-text-style-delta))
-                                     (write-special snp (current-error-port))))
-                                 (exn:fail:syntax-exprs exn))))
+                     (show-syntax-error-context (current-error-port) exn))
                    (newline (current-error-port))
                    
-                   ;; need to flush here so that error annotations insrted in next line
+                   ;; need to flush here so that error annotations inserted in next line
                    ;; don't get erased if this output were to happen after the insertion
                    (flush-output (current-error-port))
                    
@@ -292,6 +280,21 @@ profile todo:
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
+      
+      (define (show-syntax-error-context port exn)
+        (let ([error-text-style-delta (make-object style-delta%)])
+          (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
+          (write-special (make-object string-snip% " in:") (current-error-port))
+          (for-each (lambda (expr)
+                      (let ([snp (make-object string-snip%
+                                   (format "~s" (syntax-object->datum expr)))])
+                        (display " " (current-error-port))
+                        (send snp set-style
+                              (send the-style-list find-or-create-style
+                                    (send snp get-style)
+                                    error-text-style-delta))
+                        (write-special snp (current-error-port))))
+                    (exn:fail:syntax-exprs exn))))
       
       ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string (union TST exn) -> void
       ;; adds in the bug icon, if there are contexts to display
