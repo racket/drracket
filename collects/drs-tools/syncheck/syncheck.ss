@@ -1686,12 +1686,12 @@ If the namespace does not, they are colored the unbound color.
                   (send syncheck-text syncheck:add-mouse-over-status
                         source pos-left pos-right str)))))))
       
-      ;; add-jump-to-definition : syntax[original] string[filename] -> void
+      ;; add-jump-to-definition : syntax[original] path -> void
       ;; registers the range in the editor so that a mouse over
       ;; this area shows up in the status line.
       (define (add-jump-to-definition stx filename)
         (let* ([source (syntax-source stx)])
-	  (when (is-a? source text%)
+          (when (is-a? source text%)
             (let ([syncheck-text (find-syncheck-text source)])
               (when (and syncheck-text
                          (syntax-position stx)
@@ -1772,14 +1772,16 @@ If the namespace does not, they are colored the unbound color.
           (and (symbol? sym)
                (module-name-sym->filename sym))))
       
-      ;; make-require-open-menu : string[filename] -> menu -> void
+      ;; make-require-open-menu : path -> menu -> void
       (define (make-require-open-menu file)
         (lambda (menu)
           (let-values ([(base name dir?) (split-path file)])
             (instantiate menu-item% ()
-              (label (format (string-constant cs-open-file) name))
+              (label (format (string-constant cs-open-file) (path->string name)))
               (parent menu)
-              (callback (lambda (x y) (fw:handler:edit-file file))))
+              (callback (lambda (x y)
+                          (printf "calling edit-file ~s\n" file)
+                          (fw:handler:edit-file file))))
             (void))))
       
       ;; possible-suffixes : (listof string)
@@ -1794,7 +1796,7 @@ If the namespace does not, they are colored the unbound color.
                (char=? (string-ref str 0) #\,)
                (let ([fn (substring str 1 (string-length str))])
                  (ormap (lambda (x)
-                          (let ([test (string-append fn x)])
+                          (let ([test (string->path (string-append fn x))])
                             (and (file-exists? test)
                                  test)))
                         possible-suffixes)))))
