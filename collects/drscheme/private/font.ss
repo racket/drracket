@@ -66,18 +66,20 @@
                   [font-name-control
                    (case (system-type)
                      [(windows macos macosx)
-                      (let ([choice
-                             (new choice%
-                                  (label (string-constant font-name))
-                                  (choices (editor:get-fixed-faces))
-                                  (parent choice-panel)
-                                  (stretchable-width #t)
-                                  (callback
-                                   (lambda (font-name evt)
-                                     (preferences:set 
-                                      'framework:standard-style-list:font-name
-                                      (send font-name get-string-selection)))))])
-                        (send choice set-string-selection (preferences:get 'framework:standard-style-list:font-name))
+                      (let* ([choice
+                              (new choice%
+                                   (label (string-constant font-name))
+                                   (choices (editor:get-fixed-faces))
+                                   (parent choice-panel)
+                                   (stretchable-width #t)
+                                   (callback
+                                    (lambda (font-name evt)
+                                      (preferences:set 
+                                       'framework:standard-style-list:font-name
+                                       (send font-name get-string-selection)))))]
+                             [font-name (preferences:get 'framework:standard-style-list:font-name)])
+                        (when (send choice find-string font-name)
+                          (send choice set-string-selection font-name))
                         choice)]
                      [(unix)
                       (make-object button%
