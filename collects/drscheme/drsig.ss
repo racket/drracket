@@ -22,10 +22,8 @@
    original-error-port
    primitive-eval
    primitive-load
-   top-parameterization
-   system-parameterization
-   eval-thread-parameterization
-   system-custodian))
+   system-custodian
+   system-eventspace))
 
 (define-signature drscheme:prefs^ ())
 
