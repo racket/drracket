@@ -117,12 +117,12 @@
             
             (field (label-font-size (preferences:get 'drscheme:module-overview:label-font-size)))
             (define/public (get-label-font-size) label-font-size)
-            (define (get-snip-hspace) (if show-filenames?
-                                          (* 2 label-font-size)
-                                          2))
-            (define (get-snip-vspace) (if vertical?
-                                          30
-                                          2))
+            (define/private (get-snip-hspace) (if show-filenames?
+                                                  (* 2 label-font-size)
+                                                  2))
+            (define/private (get-snip-vspace) (if vertical?
+                                                  30
+                                                  2))
             (define snip-height #f)
             
             (define font-label-size-callback-running? #f)
@@ -219,7 +219,7 @@
             ;; fix-snip-level : snip number -> void
             ;; moves the snip (and any children) to at least `new-level'
             ;; doesn't move them if they are already past that level
-            (define (fix-snip-level snip new-min-level)
+            (define/private (fix-snip-level snip new-min-level)
               (let loop ([snip snip]
                          [new-min-level new-min-level])
                 (let ([current-level (send snip get-level)])
@@ -234,7 +234,7 @@
             ;; finds the snip with this key, or creates a new
             ;; ones. For the same key, always returns the same snip.
             ;; uses snip-table as a cache for this purpose.
-            (define (find/create-snip name is-filename?)
+            (define/private (find/create-snip name is-filename?)
               (hash-table-get
                snip-table
                name
@@ -251,7 +251,7 @@
             
             ;; count-lines : string[filename] -> (union #f number)
             ;; effect: updates max-lines
-            (define (count-lines filename)
+            (define/private (count-lines filename)
               (let ([lines
                      (call-with-input-file filename
                        (lambda (port)
@@ -266,7 +266,7 @@
             
             ;; get-snip-width : snip -> number
             ;; exracts the width of a snip
-            (define (get-snip-width snip)
+            (define/private (get-snip-width snip)
               (let ([lb (box 0)]
                     [rb (box 0)])
                 (get-snip-location snip lb #f #f)
@@ -276,7 +276,7 @@
             
             ;; get-snip-height : snip -> number
             ;; exracts the width of a snip
-            (define (get-snip-height snip)
+            (define/private (get-snip-height snip)
               (let ([tb (box 0)]
                     [bb (box 0)])
                 (get-snip-location snip #f tb #f)
@@ -287,7 +287,7 @@
             ;; name->label : path -> string
             ;; constructs a label for the little boxes in terms
             ;; of the filename.
-            (define (name->label filename)
+            (define/private (name->label filename)
               (if (file-exists? filename)
                   (let-values ([(base name dir?) (split-path filename)])
                     (let ([m (regexp-match #rx#"^(.*)\\.[^.]*$" (path->bytes name))])
@@ -320,7 +320,7 @@
                 (render-snips)
                 (end-edit-sequence)))
             
-            (define (remove-lib-linked)
+            (define/private (remove-lib-linked)
               (remove-currrently-inserted)
               (for-each
                (lambda (snip)
@@ -334,14 +334,14 @@
                     (send snip get-children))))
                (get-top-most-snips)))
                 
-            (define (remove-currrently-inserted)
+            (define/private (remove-currrently-inserted)
               (let loop ()
                 (let ([snip (find-first-snip)])
                   (when snip
                     (send snip release-from-owner)
                     (loop)))))
             
-            (define (add-all)
+            (define/private (add-all)
               (let ([ht (make-hash-table)])
                 (for-each
                  (lambda (snip)
@@ -352,7 +352,7 @@
                        (for-each loop (send snip get-children)))))
                  (get-top-most-snips))))
 
-            (define (get-top-most-snips) (hash-table-get level-ht 0 (lambda () null)))
+            (define/private (get-top-most-snips) (hash-table-get level-ht 0 (lambda () null)))
               
             ;; render-snips : -> void
             (define/public (render-snips)
@@ -366,8 +366,8 @@
                  level-ht
                  (lambda (n v)
                    (set! max-minor (max max-minor (apply + (map (if vertical?
-                                                                    get-snip-width
-                                                                    get-snip-height)
+                                                                    (lambda (x) (get-snip-width x))
+                                                                    (lambda (x) (get-snip-height x)))
                                                                 v))))))
                 
                 (let ([levels (quicksort (hash-table-map level-ht list)
@@ -380,8 +380,14 @@
                        (let* ([level (car levels)]
                               [n (car level)]
                               [this-level-snips (cadr level)]
-                              [this-minor (apply + (map (if vertical? get-snip-width get-snip-height) this-level-snips))]
-                              [this-major (apply max (map (if vertical? get-snip-height get-snip-width) this-level-snips))])
+                              [this-minor (apply + (map (if vertical? 
+                                                            (lambda (x) (get-snip-width x))
+                                                            (lambda (x) (get-snip-height x)))
+                                                        this-level-snips))]
+                              [this-major (apply max (map (if vertical? 
+                                                            (lambda (x) (get-snip-width x))
+                                                            (lambda (x) (get-snip-height x)))
+                                                          this-level-snips))])
                          (let loop ([snips this-level-snips]
                                     [minor-dim (/ (- max-minor this-minor) 2)])
                            (unless (null? snips)

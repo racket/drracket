@@ -479,7 +479,7 @@ tab panels new behavior:
              [tmp-date-string #f])
             
             (inherit get-filename/untitled-name)
-            (define (get-date-string)
+            (define/private (get-date-string)
               (string-append
                (mzlib:date:date->string (seconds->date (current-seconds)))
                " "
@@ -520,7 +520,7 @@ tab panels new behavior:
                 (drscheme:arrow:draw-arrow dc x1 y1 x2 y2 dx dy)))
             
             (inherit dc-location-to-editor-location)
-            (define (find-poss text left-pos right-pos)
+            (define/private (find-poss text left-pos right-pos)
               (let ([xlb (box 0)]
                     [ylb (box 0)]
                     [xrb (box 0)]
