@@ -516,7 +516,7 @@
                             (style '(no-vscroll no-hscroll)))]
                [first-line-style-delta (make-object style-delta% 'change-bold)])
           (send first-line-style-delta set-delta-foreground (make-object color% 150 0 150))
-          (send before-ec min-width 500)
+          (send before-ec min-width 550)
 
           (let-values ([(cw ch) (send before-ec get-client-size)]
                        [(w h) (send before-ec get-size)])
