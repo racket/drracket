@@ -714,9 +714,7 @@
 
 	(send interactions-text initialize-console)
 
-	(when (and (not filename)
-                   (or (ivar interactions-text repl-initially-active?)
-                       (fw:preferences:get 'drscheme:repl-always-active)))
+	(unless filename
 	  (toggle-show/hide interactions-item))
 	
 	(send interactions-text insert-prompt)
@@ -736,10 +734,6 @@
   
   (define created-frame 'nothing-yet)
   
-  (fw:preferences:set-default 'drscheme:open-all-files-in-scheme-mode
-			      #t
-			      boolean?)
-
   (define open-drscheme-window
     (case-lambda
      [() (open-drscheme-window #f)]
@@ -757,11 +751,5 @@
 
   (fw:handler:insert-format-handler 
    "Units"
-   (lambda (filename)
-     (or (fw:preferences:get 'drscheme:open-all-files-in-scheme-mode)
-	 (let ([filename-ext (mzlib:file:filename-extension filename)])
-	   (and filename-ext
-		(ormap (lambda (extension)
-			 (string=? filename-ext extension))
-		       (list "ss" "scm" "sch" "mredrc"))))))
+   (lambda (filename) #t)
    open-drscheme-window))
