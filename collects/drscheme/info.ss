@@ -9,6 +9,8 @@
 	       '(begin
 		  (require-library "refer.ss")
 		  (require-library "drsig.ss" "drscheme"))]
+              [(doc-sub-collections)
+               (list "tools")]
 	      [(compile-omit-files)
 	       (append
 		(drscheme-info 'compile-elaboration-zos failure)

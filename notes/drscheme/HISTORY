@@ -1,3 +1,36 @@
+103d105
+
+PRS FIXED
+
+  1801: graphics help failure
+  1798: help desk build path problems
+  1641: relative paths problem when searching in help desk
+
+FUNCTIONALITY CHANGES
+
+ - Changed the defaults colors in Check Syntax to match
+   what Dorai Sitaram uses for the upcoming web release of 
+   How to Design Programs (excellent choices!)
+
+ - adding splitting of the definitions and interactions
+   canvases, to be able to see two different parts of the
+   buffer simultaneously
+
+MINOR CHANGES AND BUG FIXES
+
+ - when saving or executing, 
+   if the file has been overwritten in the filesystem, 
+   drscheme prompts you to make sure you want to overwrite
+   or execute the file.
+   
+ - added save-file-out-of-date? to editor:basic<%>
+
+ - improved the read/write display in drscheme frames
+   (was "locked" and "unlocked", now is "Read/Write" and "Read only"
+    and the "Read only" variant is yellow on black)
+
+ - Help Desk no longer exits when submitting a bug report.
+
 The exp-tagged source (in CVS) for DrScheme is now version 
 103d104.
 
