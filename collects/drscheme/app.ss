@@ -8,6 +8,8 @@
     
     (mred:debug:printf 'invoke "drscheme:application@")
 
+    (define app-name "DrScheme")
+    
     (define about-drscheme
       (lambda ()
 	(let* ([names (string-append
