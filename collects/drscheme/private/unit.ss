@@ -615,7 +615,7 @@ tab panels new behavior:
 	  (init-field fallback-text)
 	  (inherit get-client-size get-dc popup-menu min-height min-width
 		   stretchable-width
-		   stretchable-height)
+		   stretchable-height refresh)
                     
           (define grabbed? #f)
           (define mouse-over? #f)
@@ -647,7 +647,7 @@ tab panels new behavior:
               (cond
                 [(send evt button-down?)
                  (set! grabbed? #t)
-                 (on-paint)
+                 (refresh)
                  (let* ([text (let ([active-text (send frame get-edit-target-object)])
                                 (if (and (object? active-text)
                                          (is-a? active-text definitions-text<%>))
@@ -656,7 +656,7 @@ tab panels new behavior:
                         [menu (make-object popup-menu% #f
                                 (lambda x
                                   (set! grabbed? #f)
-                                  (on-paint)))]
+                                  (refresh)))]
                         [unsorted-defns (get-definitions (not sort-by-name?) text)]
                         [defns (if sort-by-name?
                                    (quicksort 
@@ -693,7 +693,7 @@ tab panels new behavior:
                                      menu
                                      (lambda x
                                        (set! grabbed? #f)
-                                       (on-paint)
+                                       (refresh)
                                        (send text set-position (defn-start-pos defn) (defn-start-pos defn))
                                        (let ([canvas (send text get-canvas)])
                                          (when canvas
@@ -707,7 +707,7 @@ tab panels new behavior:
                                  height)))]
                 [else 
                  (when needs-update?
-                   (on-paint))
+                   (refresh))
                  (super on-event evt)])))
           
           (super-new (style '(transparent)))
@@ -2539,6 +2539,7 @@ tab panels new behavior:
           [define top-panel (make-object horizontal-panel% top-outer-panel)]
           [define name-panel (new vertical-pane%
                                (parent top-panel)
+			       (alignment '(left center))
                                (stretchable-width #f)
                                (stretchable-height #f))]
           (define panel-with-tabs (new vertical-panel%
