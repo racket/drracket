@@ -8,7 +8,7 @@
 (require-library "sig.ss" "stepper")
 (require-library "params.ss" "userspce")
 (begin-elaboration-time
- (require-library "sig.ss" "userspce"))
+ (require-library "sig.ss" "guserspce"))
 (require-library "turtles.ss" "graphics")
 (require-library "pconvers.ss")
 (require-library "classd.ss")
