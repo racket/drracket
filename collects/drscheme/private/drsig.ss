@@ -131,9 +131,15 @@
      module-based-language->language%))
 
   (define-signature drscheme:teachpack^
-    (new-teachpack-cache
-     load-teachpacks
-     install-teachpacks))
+    (load-teachpacks
+     install-teachpacks
+     marshall-teachpack-cache
+     unmarshall-teachpack-cache
+     
+     new-teachpack-cache
+     teachpack-cache?
+     teachpack-cache-filenames
+     set-teachpack-cache-filenames!))
   
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)

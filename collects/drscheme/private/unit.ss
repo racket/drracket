@@ -3,6 +3,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
+           "string-constant.ss"
 	   "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -22,7 +23,8 @@
               [drscheme:rep : drscheme:rep^]
               [drscheme:language : drscheme:language^]
               [drscheme:get/extend : drscheme:get/extend^]
-              [drscheme:snip : drscheme:snip^])
+              [drscheme:snip : drscheme:snip^]
+              [drscheme:teachpack : drscheme:teachpack^])
       (keymap:add-to-right-button-menu
        (lambda (menu text event)
          (when (and (is-a? text text%)
@@ -67,26 +69,26 @@
                  (unless (string=? str "")
                    (make-object separator-menu-item% menu)
                    (make-object menu-item%
-                     (format "Search in Help Desk for \"~a\"" str)
+                     (format (string-constant search-help-desk-for) str)
                      menu
                      (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
                    (make-object menu-item%
-                     (format "Exact lucky search in Help Desk for \"~a\"" str)
+                     (format (string-constant exact-lucky-search-help-desk-for) str)
                      menu
                      (lambda x (help-desk:help-desk str #t 'keyword+index 'exact))))))))))
       
       (define (get-fraction-from-user)
-        (let* ([dlg (make-object dialog% "Enter Fraction")]
+        (let* ([dlg (make-object dialog% (string-constant enter-fraction))]
                [hp (make-object horizontal-panel% dlg)]
-               [_1 (make-object message% "Whole Part" hp)]
+               [_1 (make-object message% (string-constant whole-part) hp)]
                [whole (make-object text-field% #f hp void)]
                [vp (make-object vertical-panel% hp)]
                [hp2 (make-object horizontal-panel% vp)]
                [num (make-object text-field% #f hp2 void)]
-               [num-m (make-object message% "Numerator" hp2)]
+               [num-m (make-object message% (string-constant numerator) hp2)]
                [hp3 (make-object horizontal-panel% vp)]
                [den (make-object text-field% #f hp3 void)]
-               [den-m (make-object message% "Denominator" hp3)]
+               [den-m (make-object message% (string-constant denominator) hp3)]
                [bp (make-object horizontal-panel% dlg)]
                [ok? #f]
                [validate-number
@@ -104,7 +106,7 @@
                               ans
                               #f))
                         #f)))]
-               [ok (make-object button% "OK" bp 
+               [ok (make-object button% (string-constant ok) bp 
                      (lambda x
                        (cond
                          [(validate-number)
@@ -112,10 +114,10 @@
                           (send dlg show #f)]
                          [else 
                           (message-box
-                           "DrScheme"
-                           "Invalid number: must be an exact, real, non-integral number.")]))
+                           (string-constant drscheme)
+                           (string-constant invalid-number))]))
                      '(border))]
-               [cancel (make-object button% "Cancel" bp (lambda x (send dlg show #f)))])
+               [cancel (make-object button% (string-constant cancel) bp (lambda x (send dlg show #f)))])
           (let ([mw (max (send den-m get-width) (send num-m get-width))])
             (send den-m min-width mw)
             (send num-m min-width mw))
@@ -132,7 +134,7 @@
                                             (string-length ext)
                                             1))
                   file-name))
-            "Untitled"))
+            (string-constant untitled)))
       
       (define (create-launcher frame)
         (error 'create-lanuncher "not yet implemented")
@@ -145,9 +147,9 @@
           
           (cond
             [(not program-filename)
-             (message-box "Create Launcher"
-                               "You must save your program before creating a launcher"
-                               frame)]
+             (message-box (string-constant create-launcher-title)
+                          (string-constant must-save-before-launcher)
+                          frame)]
             
             [else
              (let* ([filename 
@@ -155,9 +157,12 @@
                                     [finder:default-extension "exe"])
                        (finder:put-file
                         executable-filename
-                        #f #f "Save a Launcher"))]
+                        #f #f
+                        (string-constant save-a-launcher)))]
                     [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-                    [teachpacks (preferences:get 'drscheme:teachpack-file)])
+                    [teachpacks 
+                     (drscheme:teachpack:teachpack-cache-filenames
+                      (preferences:get 'drscheme:teachpacks))])
                (when filename
                  (cond
 	     ;; this condition should guarantee that the language
@@ -248,9 +253,15 @@
                    (send bitmap-dc set-bitmap #f)
                    new-bitmap)])))]))
       
-      (define make-execute-bitmap (make-bitmap "execute"))
-      (define make-save-bitmap (make-bitmap "save"))
-      (define make-break-bitmap (make-bitmap "break"))
+      (define make-execute-bitmap 
+        (make-bitmap (string-constant execute-button-label) 
+                     (build-path (collection-path "icons") "execute.bmp")))
+      (define make-save-bitmap 
+        (make-bitmap (string-constant save-button-label) 
+                     (build-path (collection-path "icons") "save.bmp")))
+      (define make-break-bitmap 
+        (make-bitmap (string-constant break-button-label) 
+                     (build-path (collection-path "icons") "break.bmp")))
       
   ;; this is the old definition of the interactions canvas.
   ;; It should be integrated into canvas:wide-snip% 
@@ -466,7 +477,7 @@
                 (let ([fn (get-filename)])
                   (if (string? fn)
                       fn
-                      "Untitled"))))])
+                      (string-constant untitled)))))])
           
           (rename [super-on-paint on-paint])
           (override
@@ -582,7 +593,7 @@
           
           (define (get-defn-name define-pos)
             (if (>= define-pos (send text last-position))
-                "<end of buffer>"
+                (string-constant end-of-buffer-define)
                 (let* ([start-pos (skip-whitespace/paren (skip-to-whitespace/paren define-pos))]
                        [end-pos (skip-to-whitespace/paren start-pos)])
                   (send text get-text start-pos end-pos))))
@@ -597,11 +608,12 @@
                 (drscheme:frame:draw-button-label dc label w h inverted?))))
           
           (define sort-by-name? #f)
-          (define sorting-name "Sort by name")
+          (define sorting-name (string-constant sort-by-name))
           (define (change-sorting-order)
             (set! sort-by-name? (not sort-by-name?))
-            (set! sorting-name (if sort-by-name? "Sort by position in file" "Sort by name"))
-            (void))
+            (set! sorting-name (if sort-by-name?
+                                   (string-constant sort-by-position) 
+                                   (string-constant sort-by-name))))
           
           (define (on-event evt)
             (cond
@@ -620,7 +632,7 @@
                  (make-object separator-menu-item% menu)
                  (if (null? defns)
                      (send (make-object menu:can-restore-menu-item%
-                             "<< no definitions found >>"
+                             (string-constant no-definitions-found)
                              menu
                              void)
                            enable #f)
@@ -817,10 +829,11 @@
 	  (private
             [hidden?
              (lambda (item)
-               (let ([label (send item get-label)])
+               (let ([label (send item get-label)]
+                     [show-prefix (string-constant show-prefix)])
                  (and (string? label)
-                      (>= (string-length label) 4)
-                      (string=? (substring label 0 4) "Show"))))]
+                      (>= (string-length label) (string-length show-prefix))
+                      (string=? (substring label 0 4) show-prefix))))]
             [save-as-text-from-text
              (lambda (text)
                (let ([file (parameterize ([finder:dialog-parent-parameter this])
@@ -833,11 +846,13 @@
              (lambda (item)
                (let ([label (send item get-label)])
                  (when (and (string? label)
-                            (>= (string-length label) 4))
+                            (>= (string-length label) (string-length (string-constant hide-prefix))))
                    (let ([new-front
-                          (if (string=? "Hide" (substring label 0 4))
-                              "Show"
-                              "Hide")]
+                          (if (string=? (string-constant hide-prefix)
+                                        (substring label 0 
+                                                   (string-length (string-constant hide-prefix))))
+                              (string-constant show-prefix)
+                              (string-constant hide-prefix))]
                          [back (substring label 4 (string-length label))])
                      (send item set-label (string-append new-front back))))))])
           
@@ -851,22 +866,22 @@
              (lambda (file-menu)
                (super-file-menu:between-open-and-revert file-menu)
                (make-object separator-menu-item% file-menu))]
-            [file-menu:save-string (lambda () "Definitions")]
-            [file-menu:save-as-string (lambda () "Definitions")]
+            [file-menu:save-string (lambda () (string-constant definitions))]
+            [file-menu:save-as-string (lambda () (string-constant definitions))]
             [file-menu:between-save-as-and-print
              (lambda (file-menu)
-               (let ([sub-menu (make-object menu% "Save Other" file-menu)])
+               (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
                  (make-object menu:can-restore-menu-item%
-                   "Save Definitions As Text..."
+                   (string-constant save-definitions-as-text)
                    sub-menu
                    (lambda (_1 _2)
                      (save-as-text-from-text definitions-text)))
                  (make-object menu:can-restore-menu-item%
-                   "Save Interactions"
+                   (string-constant save-interactions)
                    sub-menu
                    (lambda (_1 _2) (send interactions-text save-file)))
                  (make-object menu:can-restore-menu-item%
-                   "Save Interactions As..."
+                   (string-constant save-interactions-as)
                    sub-menu
                    (lambda (_1 _2) 
                      (let ([file (parameterize ([finder:dialog-parent-parameter this])
@@ -875,7 +890,7 @@
                          (send interactions-text save-file 
                                file 'standard)))))
                  (make-object menu:can-restore-menu-item%
-                   "Save Interactions As Text..."
+                   (string-constant save-interactions-as-text)
                    sub-menu
                    (lambda (_1 _2)
                      (save-as-text-from-text interactions-text)))
@@ -886,12 +901,12 @@
                  ;	     (lambda (_1 _2)
                  ;	       (drscheme:rep:show-interactions-history)))
                  (make-object separator-menu-item% file-menu)))]
-            [file-menu:print-string (lambda () "Definitions")]
+            [file-menu:print-string (lambda () (string-constant definitions))]
             [file-menu:between-print-and-close
              (lambda (file-menu)
                (set! file-menu:print-transcript-item
                      (make-object menu:can-restore-menu-item%
-                       "Print Interactions..."
+                       (string-constant print-interactions)
                        file-menu
                        (lambda (_1 _2)
                          (send interactions-text print
@@ -1018,8 +1033,8 @@
             [edit-menu:between-select-all-and-find
              (lambda (edit-menu)
                (super-edit-menu:between-select-all-and-find edit-menu)
-               (make-object menu-item% "&Split" edit-menu (lambda x (split)))
-               (make-object menu-item% "C&ollapse" edit-menu (lambda x (collapse)))
+               (make-object menu-item% (string-constant split-menu-item-label) edit-menu (lambda x (split)))
+               (make-object menu-item% (string-constant collapse-menu-item-label) edit-menu (lambda x (collapse)))
                (make-object separator-menu-item% edit-menu))])
           
           (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
@@ -1038,7 +1053,7 @@
                                   (enable (and edit (is-a? edit editor<%>)))))])
                            (sequence 
                              (apply super-init args)))])
-                 (make-object c% "Insert Fraction..." edit-menu
+                 (make-object c% (string-constant insert-fraction-menu-item-label) edit-menu
                    (lambda (menu evt)
                      (let ([edit (get-edit-target-object)])
                        (when (and edit
@@ -1110,7 +1125,6 @@
             
             [on-close
              (lambda ()
-               (remove-teachpack-callback)
                (when (eq? this created-frame)
                  (set! created-frame #f))
                (send interactions-text shutdown)
@@ -1125,8 +1139,8 @@
                (cond
                  [(send definitions-text save-file-out-of-date?)
                   (message-box 
-                   "DrScheme"
-                   "The definitions text has been modified in the file-system; please save or revert the definitions text.")]
+                   (string-constant drscheme)
+                   (string-constant definitions-modified))]
                  [else
                   (ensure-rep-shown)
                   (send definitions-text just-executed)
@@ -1172,6 +1186,34 @@
             [get-definitions-text (lambda () definitions-text)]
             [get-interactions-text (lambda () interactions-text)])
           
+          (private
+            [update-teachpack-menu
+             (lambda ()
+               (for-each (lambda (item) (send item delete)) teachpack-items)
+               (set! teachpack-items
+                     (map (lambda (name)
+                            (make-object menu:can-restore-menu-item%
+                              (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
+                              language-menu
+                              (lambda (item evt)
+                                (drscheme:teachpack:set-teachpack-cache-filenames!
+                                 (mzlib:list:remove
+                                  name
+                                  (drscheme:teachpack:teachpack-cache-filenames
+                                   (preferences:get 'drscheme:teachpacks)))))))
+                          (drscheme:teachpack:teachpack-cache-filenames
+                           (preferences:get 'drscheme:teachpacks)))))]
+            [language-menu-mixin
+             (lambda (class%)
+               (class class% 
+                 (init-rest args)
+                 (override on-demand)
+                 (rename [super-on-demand on-demand])
+                 (define (on-demand)
+                   (update-teachpack-menu)
+                   (super-on-demand))
+                 (apply super-make-object args)))])
+          
           (sequence
             (super-init filename
                         #f
@@ -1179,8 +1221,10 @@
                         (preferences:get 'drscheme:unit-window-height))
             
             (let* ([mb (get-menu-bar)]
-                   [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]
-                   [scheme-menu (make-object (get-menu%) "S&cheme" mb)]
+                   [_ (set! language-menu (make-object (language-menu-mixin (get-menu%)) 
+                                            (string-constant language-menu-name)
+                                            mb))]
+                   [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
                    [send-method
                     (lambda (method)
                       (lambda (_1 _2)
@@ -1193,41 +1237,41 @@
               
               (set! execute-menu-item
                     (make-object menu:can-restore-menu-item%
-                      "Execute"
+                      (string-constant execute-menu-item-label)
                       scheme-menu
                       (lambda (_1 _2) (execute-callback))
                       #\t
-                      "Restart the program in the definitions window"))
+                      (string-constant execute-menu-item-help-string)))
               (make-object menu:can-restore-menu-item%
-                "Break"
+                (string-constant break-menu-item-label)
                 scheme-menu
                 (lambda (_1 _2) (send interactions-text break))
                 #\b
-                "Break the current evaluation")
+                (string-constant break-menu-item-help-string))
               (make-object menu:can-restore-menu-item%
-                "Kill"
+                (string-constant kill-menu-item-label)
                 scheme-menu
                 (lambda (_1 _2) (send interactions-text kill-evaluation))
                 #\k
-                "Kill the current evaluation")
+                (string-constant kill-menu-item-help-string))
               (make-object separator-menu-item% scheme-menu)
               (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
               (make-object separator-menu-item% scheme-menu)
               (make-object menu:can-restore-menu-item%
-                "&Reindent"
+                (string-constant reindent-menu-item-label)
                 scheme-menu
                 (send-method (lambda (x) (send x tabify-selection))))
               (make-object menu:can-restore-menu-item%
-                "Reindent &All"
+                (string-constant reindent-all-menu-item-label)
                 scheme-menu
                 (send-method (lambda (x) (send x tabify-all)))
                 #\i)
               (make-object menu:can-restore-menu-item%
-                "&Comment Out"
+                (string-constant comment-out-menu-item-label)
                 scheme-menu
                 (send-method (lambda (x) (send x comment-out-selection))))
               (make-object menu:can-restore-menu-item%
-                "&Uncomment"
+                (string-constant uncomment-menu-item-label)
                 scheme-menu
                 (send-method (lambda (x) (send x uncomment-selection)))))
             
@@ -1235,22 +1279,22 @@
             
             (set! definitions-item
                   (make-object menu:can-restore-menu-item%
-                    "Hide &Definitions"
+                    (string-constant hide-definitions-menu-item-label)
                     (get-show-menu)
                     (lambda (_1 _2) 
                       (toggle-show/hide definitions-item)
                       (update-shown/ensure-one interactions-item))
                     #\d
-                    "Show/Hide the definitions window"))
+                    (string-constant hide-definitions-menu-item-help-string)))
             (set! interactions-item
                   (make-object menu:can-restore-menu-item%
-                    "Show &Interactions"
+                    (string-constant interactions-menu-item-label)
                     (get-show-menu)
                     (lambda (_1 _2) 
                       (toggle-show/hide interactions-item)
                       (update-shown/ensure-one definitions-item))
                     #\e
-                    "Show/Hide the interactions window")))
+                    (string-constant interactions-menu-item-help-string))))
           (private-field
             [top-panel (make-object horizontal-panel% (get-area-container))]
             [name-panel (make-object vertical-panel% top-panel)]
@@ -1288,26 +1332,6 @@
             (set! name-message (make-object drscheme:frame:name-message% name-panel)))
           (private-field
             [teachpack-items null])
-	  (private
-            [update-teachpack-menu
-             (lambda (names)
-               (for-each (lambda (item) (send item delete)) teachpack-items)
-               (set! teachpack-items
-                     (map (lambda (name)
-                            (make-object menu:can-restore-menu-item%
-                              (format "Clear ~a Teachpack" (mzlib:file:file-name-from-path name))
-                              language-menu
-                              (lambda (item evt)
-                                (preferences:set
-                                 'drscheme:teachpack-file
-                                 (mzlib:list:remove
-                                  name
-                                  (preferences:get 'drscheme:teachpack-file))))))
-                          names)))])
-          (sequence
-            (update-teachpack-menu
-             (preferences:get 'drscheme:teachpack-file)))
-          
           (private-field
             [stop-execute-button (void)]
             [execute-button (void)]
@@ -1340,14 +1364,6 @@
                           button-panel)))
             (send top-panel stretchable-height #f))
           
-          (private-field
-            [remove-teachpack-callback
-             (preferences:add-callback
-              'drscheme:teachpack-file
-              (lambda (p v)
-                (update-teachpack-menu v)
-                (send definitions-text teachpack-changed)))])
-          
           (inherit get-label)
           (sequence
             
@@ -1359,7 +1375,7 @@
 	;; (get-label) shouldn't be #f, but I'm not sure....
             (send name-message set-message
                   (if filename #t #f)
-                  (or filename (get-label) "Untitled"))
+                  (or filename (get-label) (string-constant untitled)))
             
             (update-save-button #f)
             
@@ -1374,7 +1390,7 @@
                   (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
                     (list p (- 1 p))))
             
-            (set-label-prefix "DrScheme")
+            (set-label-prefix (string-constant drscheme))
             
             (send definitions-canvas focus)
             (cond

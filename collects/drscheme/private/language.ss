@@ -19,7 +19,8 @@
     (unit/sig drscheme:language^
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:language-tower : drscheme:language-tower^]
-              [drscheme:rep : drscheme:rep^])
+              [drscheme:rep : drscheme:rep^]
+              [drscheme:teachpack : drscheme:teachpack^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.
@@ -288,34 +289,32 @@
       ;; querys the user for the name of a teachpack and adds it to the
       ;; current teachpacks. Uses the argument as the parent to the dialog
       (define (add-new-teachpack frame)
-        (error 'add-new-teachpack "not yet implemented")
-        '(let ([lib-file
-                (parameterize ([finder:dialog-parent-parameter frame])
-                  (finder:get-file 
-                   teachpack-directory
+        (let ([lib-file
+               (parameterize ([finder:dialog-parent-parameter frame])
+                 (finder:get-file 
+                  teachpack-directory
                   "Select a Teachpack"
                   ".*\\.(ss|scm)$"))])
           (when lib-file
-            (parameterize ([basis:teachpack-error-display
-                            (lambda (message)
-                              (message-box "Invalid Teachpack" message))])
-              (let* ([old-pref (preferences:get 'drscheme:teachpack-file)]
-                     [new-item (normalize-path lib-file)])
-                (if (member (normal-case-path new-item) (map normal-case-path old-pref))
-                    (message-box "DrScheme Teachpacks"
-                                 (format "Already added ~a Teachpack"
-                                         new-item)
-                                 frame)
-                    (when (basis:teachpack-ok? lib-file)
-                      (preferences:set
-                       'drscheme:teachpack-file
-                       (append old-pref (list lib-file))))))
-              (set! teachpack-directory (path-only lib-file))))))
+            (let* ([tp-cache (preferences:get 'drscheme:teachpacks)]
+                   [tp-filenames (drscheme:teachpack:teachpack-cache-filenames tp-cache)]
+                   [new-item (normalize-path lib-file)])
+              (if (member (normal-case-path new-item) (map normal-case-path tp-filenames))
+                  (message-box "DrScheme Teachpacks"
+                               (format "Already added ~a Teachpack"
+                                       new-item)
+                               frame)
+                  (drscheme:teachpack:set-teachpack-cache-filenames!
+                   tp-cache
+                   (cons new-item tp-filenames))))
+            (set! teachpack-directory (path-only lib-file)))))
       
       ;; clear-all-teachpacks : -> void
       ;; clears all of the teachpack settings
       (define (clear-all-teachpacks)
-        (preferences:set 'drscheme:teachpack-file null))
+        (drscheme:teachpack:set-teachpack-cache-filenames!
+         (preferences:get 'drscheme:teachpacks)
+         null))
       
       ;; choose-language : (instance frame%) -> void
       ;; queries the user for a new language setting
@@ -349,7 +348,8 @@
                        (override
                          [on-demand
                           (lambda ()
-                            (enable (not (null? (preferences:get 'drscheme:teachpack-file))))
+                            (enable (not (null? (drscheme:teachpack:teachpack-cache-filenames
+                                                 (preferences:get 'drscheme:teachpacks)))))
                             (super-on-demand))])
                        (sequence (apply super-init args)))
           "Clear All Teachpacks"

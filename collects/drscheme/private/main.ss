@@ -39,6 +39,36 @@
        drscheme:language:settings-preferences-symbol
        (drscheme:language:get-default-language-settings)
        drscheme:language:language-settings?)
+
+      ;; if the unmarshaller returns #f, that will fail the
+      ;; test for this preference, reverting back to the default.
+      ;; In that case, the default is specified in the pref.ss file
+      ;; of the default collection and may not be the default
+      ;; specified below.
+      (preferences:set-un/marshall
+       drscheme:language:settings-preferences-symbol
+       (lambda (x)
+	 (let ([lang (drscheme:language:language-settings-language x)]
+	       [settings (drscheme:language:language-settings-settings x)])
+	   (list (send lang get-language-position)
+		 (send lang marshall-settings settings))))
+       (lambda (x)
+	 (and (list? x)
+	      (= 2 (length x))
+	      (let* ([lang-position (first x)]
+		     [marshalled-settings (second x)]
+		     [lang (ormap
+			    (lambda (x)
+			      (and (equal? lang-position
+					   (send x get-language-position))
+				   x))
+			    (drscheme:language:get-languages))])
+		(and lang
+		     (let ([settings (send lang unmarshall-settings marshalled-settings)])
+		       (drscheme:language:make-language-settings
+			lang
+			(or settings (send lang default-settings)))))))))
+      
       
   ;; the initial window doesn't set the 
   ;; unit object's state correctly, yet.
