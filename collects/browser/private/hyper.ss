@@ -1012,7 +1012,9 @@
                  (lambda (p)
                    (send choice append 
                          (let ([s (send (car p) get-title)])
-                           (or s (string-constant untitled)))))
+                           (if s 
+                               (gui-utils:trim-string s 200)
+                               (string-constant untitled)))))
                  (append (reverse future)
                          (if page (list page) null)
                          past))
