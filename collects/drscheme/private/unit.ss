@@ -783,10 +783,10 @@
           (frame:searchable-text-mixin 
            (frame:searchable-mixin
             (frame:file-mixin
-             (frame:status-line-mixin
-              (frame:text-info-mixin 
-               (frame:info-mixin
-                (frame:delegate-mixin
+             (frame:text-info-mixin 
+              (frame:delegate-mixin
+               (frame:status-line-mixin
+                (frame:info-mixin
                  (frame:text-mixin
                   (frame:open-here-mixin
                    (frame:editor-mixin
