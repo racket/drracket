@@ -222,6 +222,16 @@
             (parent natural-language-state-panel)
             (callback (lambda (x y) (void)))))
         
+        (define stupid-internal-define-syntax3
+	  (let loop ([languages (all-languages)]
+                     [n 0])
+            (cond
+              [(null? languages) (void)]
+              [else (let ([language (car languages)])
+		      (if (eq? (this-language) language)
+			  (send nl-radio-box set-selection n)
+                          (loop (cdr languages) (+ n 1))))])))
+
         (define nl-space-below (make-object horizontal-panel% natural-language-state-panel))
         
         ;; okay-to-leave-nl-state? : -> boolean
@@ -230,7 +240,7 @@
           (let loop ([languages (all-languages)]
                      [n 0])
             (cond
-              [(null? languages) (error 'wizard "lost language")]
+              [(null? languages) (error 'wizard "lost language.2")]
               [else (let ([language (car languages)])
                       (if (= n (send nl-radio-box get-selection))
                           (if (eq? (this-language) language)
