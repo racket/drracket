@@ -19,5 +19,7 @@
 	   [(compile-omit-files)
 	    (list "drsig.ss" "toy.ss" ; file should be deleted?
 		  "link.ss" "phooks.ss")]
+	   [(compile-subcollections) (list (list "tools" "syncheck")
+					   (list "tools" "analysis"))]
 	   [else (failure)]))])
   drscheme-info)
