@@ -213,7 +213,7 @@
               (load-status #t "image" url)
               (call-with-output-file* tmp-filename
                                       (lambda (op)
-                                        (with-handlers ([not-break-exn? void])
+                                        (with-handlers ([exn:fail? void])
                                           (call/input-url 
                                            url
                                            get-pure-port
@@ -510,7 +510,7 @@
 	 [(comment? c)
 	  (let ([code (get-mzscheme-arg (comment-text c))])
 	    (if code
-		(let ([s (with-handlers ([not-break-exn?
+		(let ([s (with-handlers ([exn:fail?
 					  (lambda (exn)
 					    (format
 					     "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
@@ -641,7 +641,7 @@
 			(lambda (s)
 			  (let ([src (get-field s 'src)])
 			    (and src
-				 (with-handlers ([not-break-exn? (lambda (x) #f)])
+				 (with-handlers ([exn:fail? (lambda (x) #f)])
 				   (if base-path
 				       (combine-url/relative base-path src)
 				       (string->url src))))))]

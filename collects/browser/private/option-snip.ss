@@ -38,7 +38,7 @@
 	    (send a resized this #t))))
       
       (define/public (get-value)
-        (with-handlers ([not-break-exn? (lambda (x) #f)])
+        (with-handlers ([exn:fail? (lambda (x) #f)])
           (cdr (or current-option
                    (car options)))))
 
