@@ -1173,8 +1173,7 @@ tab panels new behavior:
           (override get-editor%)
           [define get-editor% (λ () (drscheme:get/extend:get-definitions-text))]
           (define/public (still-untouched?)
-            (and (and (pair? tabs) (null? (cdr tabs))) ;; aka only one tab
-                 (= (send definitions-text last-position) 0)
+            (and (= (send definitions-text last-position) 0)
                  (not (send definitions-text is-modified?))
                  (not (send definitions-text get-filename))
                  (let* ([prompt (send interactions-text get-prompt)]
@@ -1697,8 +1696,8 @@ tab panels new behavior:
                           (send (tab-defs tab) on-close)
                           (send (tab-ints tab) on-close)))
                       tabs)
-            (when (eq? this created-frame)
-              (set! created-frame #f))
+            (when (eq? this newest-frame)
+              (set! newest-frame #f))
             (when logging
               (stop-logging))
             (remove-logging-pref-callback)
@@ -1858,6 +1857,8 @@ tab panels new behavior:
               (send ints initialize-console)
               (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
               
+              (set! newest-frame this)
+
               (update-menu-bindings)))
           
           ;; change-to-tab : tab -> void
@@ -2704,16 +2705,9 @@ tab panels new behavior:
                       (list p (- 1 p))))))
           
           (set-label-prefix (string-constant drscheme))
-          
           (update-toolbar-visiblity)
-          
-          (send definitions-canvas focus)
-          (cond
-            [(eq? created-frame 'nothing-yet)
-             (set! created-frame this)]
-            [created-frame
-             (set! created-frame #f)]
-            [else (void)])))
+          (set! newest-frame this)
+          (send definitions-canvas focus)))
 
       (define -frame% (frame-mixin super-frame%))
 
@@ -2750,20 +2744,21 @@ tab panels new behavior:
       (send lambda-snipclass set-classname "drscheme:lambda-snip%")
       (send (get-the-snip-class-list) add lambda-snipclass)
       
-      (define created-frame 'nothing-yet)
+      (define newest-frame 'nothing-yet)
       
       (define open-drscheme-window
         (case-lambda
          [() (open-drscheme-window #f)]
          [(name)
           (cond
-            [(and created-frame
+            [(and newest-frame
                   name
-                  (not (eq? created-frame 'nothing-yet)) 
-                  (send created-frame still-untouched?))
-             (send created-frame change-to-file name)
-             (send created-frame show #t)
-             created-frame]
+                  (not (eq? newest-frame 'nothing-yet)) 
+                  (send newest-frame still-untouched?))
+             (send newest-frame change-to-file name)
+             (send newest-frame show #t)
+             (begin0 newest-frame
+                     (set! newest-frame #f))]
             [(preferences:get 'drscheme:open-in-tabs)
              (let ([fr (send (group:get-the-frame-group) get-active-frame)])
                (if (is-a? fr -frame<%>)
