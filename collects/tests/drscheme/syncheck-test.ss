@@ -6,7 +6,8 @@
            (lib "class.ss")
            (lib "list.ss")
            (lib "mred.ss" "mred")
-           (lib "framework.ss" "framework"))
+           (lib "framework.ss" "framework")
+           (lib "text-string-style-desc.ss" "mrlib"))
   
   (provide run-test)
   
@@ -475,61 +476,5 @@
   
   ;; get-annotate-output : drscheme-frame -> (listof str/ann)
   (define (get-annotated-output drs)
-    (let* ([snips (get-snips (send drs get-definitions-text))]
-           [str/ann (map snip->str/ann snips)]
-           [joined-str/ann (join-like str/ann)])
-      joined-str/ann))
-  
-  ;; get-snips : text -> (listof snip)
-  ;; extracts the snips from a text
-  (define (get-snips text)
-    (let loop ([snip (send text find-first-snip)])
-      (cond
-        [snip (cons snip (loop (send snip next)))]
-        [else null])))
-  
-  ;; snip->str/ann : snip -> str/ann
-  ;; extracts the style type from the snip
-  (define (snip->str/ann snip)
-    (let ([str (cond
-                 [(is-a? snip string-snip%)
-                  (send snip get-text 0 (send snip get-count))]
-                 [(is-a? snip image-snip%)
-                  'image]
-                 [else 'unknown])]
-          [style (translate-name (send (send snip get-style) get-name))])
-      (list str style)))
-  
-  ;; translate-name : (union #f string) -> symbol
-  ;; translates the style name to a symbol
-  (define (translate-name str)
-    (and str
-         (let ([m (regexp-match re:translate-name str)])
-           (and m
-                (string->symbol (cadr m))))))
-  
-  ;; re:translate-name : regexp
-  (define re:translate-name (regexp "^.*:([^:]*)$"))
-  
-  ;; join-like : (listof str/ann) -> (listof str/ann)
-  ;; joins same styles to form largest groups
-  (define (join-like str/anns)
-    (cond
-      [(null? str/anns) null]
-      [else 
-       (let loop ([first (car str/anns)]
-                  [rest (cdr str/anns)])
-         (cond
-           [(null? rest) (list first)]
-           [else
-            (let ([second (car rest)])
-              (if (and (equal? (cadr first) (cadr second))
-                       (string? (car first))
-                       (string? (car second)))
-                  (loop (list (string-append (car first) (car second))
-                              (cadr first))
-                        (cdr rest))
-                  (cons first
-                        (loop second
-                              (cdr rest)))))]))])))
+    (get-string/style-desc (send drs get-definitions-text))))
 
