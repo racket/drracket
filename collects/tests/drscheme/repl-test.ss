@@ -1,6 +1,18 @@
 (define-struct test (program
-		     r4rs-load-answer prepend-filename? r4rs-execute-answer r4rs-execute-location
-		     mred-execute-answer mred-load-answer mred-read-test? breaking-test?))
+		     r4rs-load-answer
+		     prepend-filename?    ;; (union #f #t 2)
+		     ;; #t means name and 1 dot.
+		     ;; 2 means name and 2 dots.
+		     ;; #f means no name and no dots.
+		     ;; this only applies to the load tests
+		     
+		     r4rs-execute-answer
+		     r4rs-execute-location
+		     
+		     mred-execute-answer
+		     mred-load-answer
+		     mred-read-test?
+		     breaking-test?))
 
 (define test-data
   (list
@@ -8,7 +20,7 @@
    ;; basic tests
    (make-test "("
 	      "1.1-1.2: syntax error: missing close paren"
-	      #t
+	      2
 	      "syntax error: missing close paren"
 	      (vector 0 1)
 	      "read: expected a ')'; started at position 1 in "
@@ -17,7 +29,7 @@
 	      #f)
    (make-test "."
 	      "1.1-1.2: syntax error: can't use `.' outside list"
-	      #t
+	      2
 	      "syntax error: can't use `.' outside list"
 	      (vector 0 1)
 	      "read: illegal use of \".\" at position 1 in "
@@ -26,7 +38,7 @@
 	      #f)
    (make-test "(lambda ())"
 	      "1.1-1.12: lambda: malformed expression"
-	      #t
+	      2
 	      "lambda: malformed expression"
 	      (vector 0 11)
 	      "lambda: bad syntax in: (lambda ())"
@@ -35,7 +47,7 @@
 	      #f)
    (make-test "x"
 	      "1.1-1.2: reference to undefined identifier: x"
-	      #t
+	      2
 	      "reference to undefined identifier: x"
 	      (vector 0 1)
 	      "reference to undefined identifier: x"
@@ -100,7 +112,7 @@
 	      #f)
    (make-test "    (eval '(lambda ()))"
 	      "1.5-1.24: lambda: malformed expression"
-	      #t
+	      2
 	      "lambda: malformed expression"
 	      (vector 4 23)
 	      "lambda: bad syntax in: (lambda ())"
@@ -109,7 +121,7 @@
 	      #f)
    (make-test "    (eval 'x)"
 	      "1.5-1.14: reference to undefined identifier: x"
-	      #t
+	      2
 	      "reference to undefined identifier: x"
 	      (vector 4 13)
 	      "reference to undefined identifier: x"
@@ -120,7 +132,7 @@
    ;; printer setup test
    (make-test "(car (void))"
 	      "1.1-1.13: car: expects argument of type <pair>; given #<void>"
-	      #t
+	      2
 	      "car: expects argument of type <pair>; given #<void>"
 	      (vector 0 12)
 	      "car: expects argument of type <pair>; given #<void>"
@@ -132,7 +144,7 @@
    ;; error in the middle
    (make-test "1 2 ( 3 4"
 	      "1.5-1.6: syntax error: missing close paren"
-	      #t
+	      2
 	      (format "1~n2~nsyntax error: missing close paren")
 	      (vector 4 5)
 	      (format "1~n2~nread: expected a ')'; started at position 5 in ")
@@ -141,7 +153,7 @@
 	      #f)
    (make-test "1 2 . 3 4"
 	      "1.5-1.6: syntax error: can't use `.' outside list"
-	      #t
+	      2
 	      (format "1~n2~nsyntax error: can't use `.' outside list")
 	      (vector 4 5)
 	      (format "1~n2~nread: illegal use of \".\" at position 5 in ")
@@ -150,7 +162,7 @@
 	      #f)
    (make-test "1 2 x 3 4"
 	      "1.5-1.6: reference to undefined identifier: x"
-	      #t
+	      2
 	      (format "1~n2~nreference to undefined identifier: x")
 	      (vector 4 5)
 	      (format "1~n2~nreference to undefined identifier: x")
@@ -159,7 +171,7 @@
 	      #f)
    (make-test "1 2 (raise 1) 3 4"
 	      "uncaught exception: 1"
-	      #f
+	      2
 	      (format "1~n2~nuncaught exception: 1")
 	      'unlocated-error
 	      (format "1~n2~nuncaught exception: 1")
@@ -363,9 +375,10 @@
       (let* ([program (test-program in-vector)]
 	     [pre-answer-load (test-r4rs-load-answer in-vector)]
 	     [prepend-filename? (test-prepend-filename? in-vector)]
-	     [answer-load (if prepend-filename?
-			      (string-append "." tmp-load-filename ": " pre-answer-load)
-			      pre-answer-load)]
+	     [answer-load (case prepend-filename?
+			    [(2) (string-append ". . " tmp-load-filename ": " pre-answer-load)]
+			    [(#t) (string-append ". " tmp-load-filename ": " pre-answer-load)]
+			    [(#f) pre-answer-load])]
 	     [answer-execute (test-r4rs-execute-answer in-vector)]
 	     [execute-location (test-r4rs-execute-location in-vector)]
 	     [mred-execute-answer (test-mred-execute-answer in-vector)]
