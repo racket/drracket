@@ -93,16 +93,16 @@
       (define (change-from-black a-text delta pos end-pos)
 	(let loop ([p pos])
 	  (unless (>= p end-pos)
-	    (send a-text split-snip pos)
-	    (let* ([snip (send a-text find-snip pos 'after)]
+	    (send a-text split-snip p)
+	    (let* ([snip (send a-text find-snip p 'after)]
 		   [color (send (send snip get-style) get-foreground)]
 		   [size (send snip get-count)])
 	      (when (= 0 
 		       (send color red)
 		       (send color blue)
 		       (send color green))
-		(send a-text change-style delta p (min (+ p size) end-pos))
-		(loop (+ p size)))))))
+		(send a-text change-style delta p (min (+ p size) end-pos)))
+	      (loop (+ p size))))))
       
       (define (call-with-output-file* file proc flag)
         ; Closes on escape
