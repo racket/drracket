@@ -743,7 +743,7 @@
 				       (para-aligner 'center #f rest)
 				       (insert-newlines 2 para-base))]
 				     [(div)
-				      (insert-newlines 2 para-base)
+				      (insert-newlines 1 para-base)
 				      (let* ([align (get-field e 'align)]
 					     [class (get-field e 'class)]
 					     [delta (and class (lookup-class-delta class))])
@@ -761,7 +761,7 @@
 					      (para-aligner 'right delta rest)]
 					     [else
 					      (rest)])
-					    (insert-newlines 2 para-base)))))]
+					    (insert-newlines 1 para-base)))))]
 				     [(br)
 				      (insert-newlines 1 para-base)
 				      (rest)]
