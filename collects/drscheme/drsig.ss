@@ -90,7 +90,9 @@
   (do-setup))
 
 (define-signature drscheme:rep^
-  (edit%))
+  (edit%
+   process-edit/zodiac
+   process-edit/no-zodiac))
 
 (define-signature drscheme:app^
   (about-drscheme))
