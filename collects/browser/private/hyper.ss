@@ -381,7 +381,7 @@
                              ; HTML
                              (progress #t)
                              (let* ([d #f]
-                                    [e #f]
+                                    [show-progress void]
                                     [e-text ""]
                                     [exn #f]
                                     [done? #f]
@@ -410,9 +410,7 @@
                                                                 (lambda (s) 
                                                                   (set! e-text s)
                                                                   (semaphore-wait wait-to-show)
-                                                                  (when e
-                                                                    (send e erase)
-                                                                    (send e insert s))
+                                                                  (show-progress s)
                                                                   (semaphore-post wait-to-show))]
                                                                [current-load-relative-directory directory]
                                                                [html-eval-ok url-allows-evaling?])
@@ -427,25 +425,35 @@
                                      (lambda ()
                                        (semaphore-wait wait-to-show)
                                        (unless done?
-                                         (set! d (make-object dialog% (string-constant getting-page)
-                                                   top-level-window 400))
-                                         (let ([c (make-object editor-canvas% d #f
-                                                    '(no-hscroll no-vscroll))])
-                                           (set! e (make-object text%))
-                                           (send e insert e-text)
-                                           (send e auto-wrap #t)
-                                           (send c set-editor e)
-                                           (send c set-line-count 3)
-                                           (send c enable #f))
-                                         (send (make-object button% (string-constant &stop) d
-                                                 (lambda (b e)
-                                                   (semaphore-wait wait-to-break)
-                                                   (semaphore-post wait-to-break)
-                                                   (break-thread t)))
-                                               focus)
-                                         (send d center)
-                                         (thread (lambda () (send d show #t)))
-                                         (let loop () (sleep) (unless (send d is-shown?) (loop)))
+                                         (cond
+                                           [(send top-level-window has-status-line?)
+                                            (set! show-progress
+                                                  (lambda (s)
+                                                    (send top-level-window set-status-text s)))]
+                                           [else
+                                            (set! d (make-object dialog% (string-constant getting-page)
+                                                      top-level-window 400))
+                                            (let* ([c (make-object editor-canvas% d #f
+                                                        '(no-hscroll no-vscroll))]
+                                                   [progress-text (make-object text%)])
+                                              (set! show-progress
+                                                    (lambda (s)
+                                                      (send progress-text erase)
+                                                      (send progress-text insert s)))
+                                              (send progress-text insert e-text)
+                                              (send progress-text auto-wrap #t)
+                                              (send c set-editor progress-text)
+                                              (send c set-line-count 3)
+                                              (send c enable #f))
+                                            (send (make-object button% (string-constant &stop) d
+                                                    (lambda (b e)
+                                                      (semaphore-wait wait-to-break)
+                                                      (semaphore-post wait-to-break)
+                                                      (break-thread t)))
+                                                  focus)
+                                            (send d center)
+                                            (thread (lambda () (send d show #t)))
+                                            (let loop () (sleep) (unless (send d is-shown?) (loop)))])
                                          (semaphore-post wait-to-show)))])
                                (thread (lambda ()
                                          (sleep 1)
