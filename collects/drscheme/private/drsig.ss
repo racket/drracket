@@ -149,7 +149,9 @@
      module-based-language->language%))
 
   (define-signature drscheme:teachpack^
-    ())
+    (new-teachpack-cache
+     load-teachpacks
+     install-teachpacks))
   
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)
