@@ -206,53 +206,6 @@
       
       (define basics<%> (interface (frame:standard-menus<%>)))
       
-      (define keybindings-dialog%
-        (class dialog%
-          (rename [super-on-size on-size])
-          (override on-size)
-          [define on-size
-            (lambda (w h)
-              (preferences:set 'drscheme:keybindings-window-size (cons w h))
-              (super-on-size w h))]
-          (super-instantiate ())))
-      
-      (define (show-keybindings-to-user bindings frame)
-        (letrec ([f (instantiate keybindings-dialog% ()
-		      (label "Keybindings")
-		      (parent frame)
-                      (width (car (preferences:get 'drscheme:keybindings-window-size)))
-                      (height (cdr (preferences:get 'drscheme:keybindings-window-size)))
-                      (style '(resize-border)))]
-                 [bp (make-object horizontal-panel% f)]
-                 [b-name (make-object button% "Sort by Name" bp (lambda x (update-bindings #f)))]
-                 [b-key (make-object button% "Sort by Key" bp (lambda x (update-bindings #t)))]
-                 [lb
-                  (make-object list-box% #f null f void)]
-                 [bp2 (make-object horizontal-panel% f)]
-                 [cancel (make-object button% "Close" bp2 (lambda x (send f show #f)))]
-                 [space (make-object grow-box-spacer-pane% bp2)]
-                 [update-bindings
-                  (lambda (by-key?)
-                    (let ([format-binding/name
-                           (lambda (b) (format "~a (~a)" (cadr b) (car b)))]
-                          [format-binding/key
-                           (lambda (b) (format "~a (~a)" (car b) (cadr b)))]
-                          [predicate/key
-                           (lambda (a b) (string-ci<=? (format "~a" (car a))
-                                                       (format "~a" (car b))))]
-                          [predicate/name
-                           (lambda (a b) (string-ci<=? (cadr a) (cadr b)))])
-                      (send lb set
-                            (if by-key?
-                                (map format-binding/key (mzlib:list:quicksort bindings predicate/key))
-                                (map format-binding/name (mzlib:list:quicksort bindings predicate/name))))))])
-          (send bp stretchable-height #f)
-          (send bp set-alignment 'center 'center)
-          (send bp2 stretchable-height #f)
-          (send bp2 set-alignment 'right 'center)
-          (update-bindings #f)
-          (send f show #t)))
-      
       (define basics-mixin
         (mixin (frame:standard-menus<%>) (basics<%>)
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
@@ -321,10 +274,11 @@
                          (show-keybindings-to-user structured-list this)))))
                  (bell)))]
           
-          (override help-menu:before-about help-menu:about-callback help-menu:about-string help-menu:create-about?
-                    file-menu:new-string file-menu:new-callback file-menu:create-new?
-                    file-menu:open-callback file-menu:open-string file-menu:create-open?
-                    file-menu:between-open-and-revert edit-menu:between-find-and-preferences)
+          (override file-menu:new-callback
+		    help-menu:about-callback help-menu:about-string help-menu:create-about?
+                    help-menu:before-about
+		    file-menu:between-open-and-revert
+		    edit-menu:between-find-and-preferences)
           [define help-menu:before-about
             (lambda (help-menu)
               (make-object menu-item%
@@ -343,15 +297,9 @@
             [define help-menu:create-about? (lambda () #t)]
             
             
-            [define file-menu:new-string (lambda () "")]
             [define file-menu:new-callback
              (lambda (item evt)
                (drscheme:unit:open-drscheme-window))]
-            [define file-menu:create-new? (lambda () #t)]
-            
-            [define file-menu:open-callback (lambda (item evt) (handler:open-file) #t)]
-            [define file-menu:open-string (lambda () "")]
-            [define file-menu:create-open? (lambda () #t)]
             
             [define file-menu:between-open-and-revert
              (lambda (file-menu) 
@@ -378,33 +326,65 @@
 
           (super-instantiate ())))
       
-      (define <%> (interface (frame:editor<%> basics<%> frame:text-info<%>)))
+      (define keybindings-dialog%
+        (class dialog%
+          (rename [super-on-size on-size])
+          (override on-size)
+          [define on-size
+            (lambda (w h)
+              (preferences:set 'drscheme:keybindings-window-size (cons w h))
+              (super-on-size w h))]
+          (super-instantiate ())))
+      
+      (define (show-keybindings-to-user bindings frame)
+        (letrec ([f (instantiate keybindings-dialog% ()
+		      (label "Keybindings")
+		      (parent frame)
+                      (width (car (preferences:get 'drscheme:keybindings-window-size)))
+                      (height (cdr (preferences:get 'drscheme:keybindings-window-size)))
+                      (style '(resize-border)))]
+                 [bp (make-object horizontal-panel% f)]
+                 [b-name (make-object button% "Sort by Name" bp (lambda x (update-bindings #f)))]
+                 [b-key (make-object button% "Sort by Key" bp (lambda x (update-bindings #t)))]
+                 [lb
+                  (make-object list-box% #f null f void)]
+                 [bp2 (make-object horizontal-panel% f)]
+                 [cancel (make-object button% "Close" bp2 (lambda x (send f show #f)))]
+                 [space (make-object grow-box-spacer-pane% bp2)]
+                 [update-bindings
+                  (lambda (by-key?)
+                    (let ([format-binding/name
+                           (lambda (b) (format "~a (~a)" (cadr b) (car b)))]
+                          [format-binding/key
+                           (lambda (b) (format "~a (~a)" (car b) (cadr b)))]
+                          [predicate/key
+                           (lambda (a b) (string-ci<=? (format "~a" (car a))
+                                                       (format "~a" (car b))))]
+                          [predicate/name
+                           (lambda (a b) (string-ci<=? (cadr a) (cadr b)))])
+                      (send lb set
+                            (if by-key?
+                                (map format-binding/key (mzlib:list:quicksort bindings predicate/key))
+                                (map format-binding/name (mzlib:list:quicksort bindings predicate/name))))))])
+          (send bp stretchable-height #f)
+          (send bp set-alignment 'center 'center)
+          (send bp2 stretchable-height #f)
+          (send bp2 set-alignment 'right 'center)
+          (update-bindings #f)
+          (send f show #t)))
+      
+      (define <%>
+	(interface (frame:editor<%> basics<%> frame:text-info<%>)
+	  running
+	  not-running
+	  get-show-menu
+	  update-shown))
       
       (define -mixin
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
           (inherit get-editor)
           (rename [super-file-menu:print-callback file-menu:print-callback])
-          (override file-menu:create-print? file-menu:print-callback)
-          [define file-menu:create-print? (lambda () #t)]
-          [define file-menu:print-callback
-            (lambda (item control)
-              (let ([ps-setup (make-object ps-setup%)])
-                (send ps-setup copy-from (current-ps-setup))
-                (parameterize ([current-ps-setup ps-setup])
-                  (send (get-editor) print))))]
-          
-          (rename [super-make-root-area-container make-root-area-container])
           (inherit get-info-panel)
-          (field
-            [root-panel #f])
-          (override make-root-area-container)
-          [define make-root-area-container
-            (lambda (% parent)
-              (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
-                     [root (make-object % s-root)])
-                (set! root-panel s-root)
-                root))]
-          
           (field
            [show-menu #f])
           (public get-show-menu update-shown)

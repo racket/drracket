@@ -349,8 +349,8 @@
           (sequence
             (apply super-init args))))
       
-      (define (program-editor-mixin text%)
-        (class text%
+      (define program-editor-mixin
+	(mixin ((class->iterface text%)) ()
 	  (init-rest args)
           (override after-insert after-delete)
 	  (inherit get-top-level-window)

@@ -82,13 +82,13 @@
      open-drscheme-window))
   
   (define-signature drscheme:frame^
-    (name-message%       ;; documented
-     draw-button-label   ;; documented
-     calc-button-min-sizes ;; documented
+    (name-message%
+     draw-button-label
+     calc-button-min-sizes
      <%>
      mixin
-     basics-mixin      ;; documented
-     basics<%>))        ;; documented
+     basics-mixin
+     basics<%>))
   
   (define-signature drscheme:program^
     (frame%))
@@ -152,7 +152,7 @@
      set-teachpack-cache-filenames!))
   
   (define-signature drscheme:tool^
-    ((unit drscheme:frame : drscheme:frame^)
+    ((unit drscheme:frame : drscheme:frame^)   ;; done
      (unit drscheme:unit : drscheme:unit^)
      (unit drscheme:rep : drscheme:rep^)
      (unit drscheme:get/extend : drscheme:get/extend^)
