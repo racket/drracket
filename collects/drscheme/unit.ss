@@ -171,7 +171,26 @@
 
   (define definitions-edit%
     (class definitions-super% ()
+
       (inherit get-top-level-window)
+      (private
+        [reset-highlighting
+         (lambda ()
+           (let ([f (get-top-level-window)])
+             (when f
+               (send (ivar f interactions-edit) reset-highlighting))))])
+      (rename [super-on-insert on-insert]
+              [super-on-delete on-delete])
+      (override
+        [on-insert
+         (lambda (x y)
+           (reset-highlighting)
+           (super-on-insert x y))]
+        [on-delete
+         (lambda (x y)
+           (reset-highlighting)
+           (super-on-delete x y))])
+
       (rename
        [super-set-modified set-modified]
        [super-set-filename set-filename])
