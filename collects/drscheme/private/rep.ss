@@ -25,7 +25,6 @@ TODO
            (lib "etc.ss")
            (lib "list.ss")
            "drsig.ss"
-           "syntax-browser.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")

@@ -16,7 +16,8 @@
            (lib "embed.ss" "compiler")
            (lib "launcher.ss" "launcher")
 	   (lib "mred.ss" "mred")
-	   (lib "framework.ss" "framework"))
+	   (lib "framework.ss" "framework")
+           "syntax-browser.ss")
 
   (provide language@)
 
@@ -328,6 +329,7 @@
                                 (cond
                                   [(is-a? value snip%) 1]
                                   [(use-number-snip? value) 1]
+                                  [(syntax? value) 1]
                                   [else #f]))]
                              [pretty-print-print-hook
                               (lambda (value display? port)
@@ -347,7 +349,9 @@
                                       [(repeating-decimal-e)
                                        (number-snip:make-repeating-decimal-snip value #t)])
                                     port)
-                                   1]))]
+                                   1]
+                                  [(syntax? value)
+                                   (write-special (render-syntax/snip value))]))]
                              [print-graph
                               ;; only turn on print-graph when using `write' printing 
                               ;; style because the sharing is being taken care of
