@@ -2447,7 +2447,8 @@
                   [(and (prompt-position . <= . start)
                         (not (eval-busy?)))
                    (if (and (balance-required)
-                            (not (send key get-alt-down)))
+                            (not (or (send key get-alt-down)
+				     (send key get-meta-down))))
                        (let ([at-end-of-expression? 
                               (and (only-spaces-after start)
                                    (submit-predicate this prompt-position))])
