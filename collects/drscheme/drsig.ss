@@ -35,7 +35,8 @@
   (prompt-snip% equal-snip% separator-snip%))
 
 (define-signature drscheme:language^
-  (fill-language-menu))
+  (fill-language-menu
+   language-dialog))
 
 (define-signature drscheme:tool^
   ((struct tool (name file callback))
@@ -113,6 +114,7 @@
    (unit program : drscheme:program^)
    (unit get/extend : drscheme:get/extend^)
    (unit rep : drscheme:rep^)
+   (unit language : drscheme:language^)
    (unit help-desk : help:drscheme-interface^)))
 
 (begin-elaboration-time
