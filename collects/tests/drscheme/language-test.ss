@@ -210,7 +210,7 @@
 	 [set-output-choice
 	  (lambda (option show-sharing rationals)    
 	    (set-language #f)
-	    (fw:test:set-choice! "Output Style" option)
+	    (fw:test:set-radio-box! "Output Style" option)
 	    (when show-sharing
 	      (fw:test:set-check-box!
 	       "Show sharing in values"

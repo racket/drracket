@@ -141,19 +141,7 @@
        [set-media
 	(lambda (x)
 	  (super-set-media x)
-	  (send x on-set-media this))]
-       [NO-GOOD-wrap-snips
-	(lambda (x)
-	  (set! autowrap-snips? x)
-	  (for-each update-snip-size snips))]
-       [NOGOOD-add-wide-snip
-	(lambda (snip)
-	  (set! snips (cons snip snips))
-	  (update-snip-size snip))]
-       [NOGOOD-on-size
-	(lambda (width height)
-	  (super-on-size width height)
-	  (for-each update-snip-size snips))]))
+	  (send x on-set-media this))]))
   
   ;; this sends a message to it's frame when it gets the focus
   (define make-searchable-canvas%
@@ -234,7 +222,7 @@
   (define super-frame% (drscheme:frame:mixin fw:frame:text-info-file%))
   
   (define frame%
-    (class* super-frame% (drscheme:face:unit-frameI) (unit)
+    (class* super-frame% (drscheme:face:unit-frame<%>) (unit)
       (inherit get-canvas
 	       set-label-prefix show-menu
 	       show get-menu%
@@ -730,7 +718,7 @@
 	  [else (void)]))))
   
   (define snip%
-    (class* drscheme:graph:node-snip% (drscheme:face:unit-snipI) (unit)
+    (class* drscheme:graph:node-snip% (drscheme:face:unit-snip<%>) (unit)
       (inherit get-admin set-snipclass invalidate-to)
       (rename [super-get-flags get-flags])
       (public
@@ -790,7 +778,7 @@
     
   (define unit%
     (let ([s% snip%])
-      (class* object% (drscheme:face:unitI) (filename-arg . collections-arg)
+      (class* object% (drscheme:face:unit<%>) (filename-arg . collections-arg)
 	(private
 	  [filename filename-arg]
 	  [collections collections-arg])

@@ -13,10 +13,7 @@
   ;; -> eventspace
   ;; returns the eventspace used by the program in the current drscheme window
   (define (get-user-eventspace)
-    ((in-parameterization
-      (ivar (ivar (wait-for-drscheme-frame) interactions-edit)
-	    user-param)
-      current-eventspace)))
+    (ivar (wait-for-drscheme-frame) user-eventspace))
   
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) ((debug-info-handler)))))

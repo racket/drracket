@@ -34,10 +34,12 @@
   (prompt-snip% equal-snip% separator-snip%))
 
 (define-signature drscheme:face^
-  (unitI compound-unitI 
-	 unit-displayI 
-	 unit-frameI compound-unit-frameI
-	 unit-snipI compound-unit-snipI))
+  (unit<%> compound-unit<%> 
+	 unit-display<%>
+	 unit-frame<%>
+	 compound-unit-frame<%>
+	 unit-snip<%> 
+	 compound-unit-snip<%>))
 
 (define-signature drscheme:language^
   (fill-language-menu))
