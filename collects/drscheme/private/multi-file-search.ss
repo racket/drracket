@@ -377,8 +377,9 @@
         (class panel:vertical-dragable%
           (inherit get-percentages)
           (define/augment (after-percentage-change)
-            (preferences:set 'drscheme:multi-file-search:percentages
-                             (get-percentages))
+            (let ([ps (get-percentages)])
+              (when (= (length ps) 2)
+                (preferences:set 'drscheme:multi-file-search:percentages ps)))
             (inner (void) after-percentage-change))
           (super-instantiate ())))
       
