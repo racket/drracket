@@ -13,7 +13,6 @@
 	  [drscheme:rep : drscheme:rep^]
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
-	  [drscheme:graph : drscheme:graph^]
 	  [drscheme:snip : drscheme:snip^])
   
   (fw:keymap:add-to-right-button-menu

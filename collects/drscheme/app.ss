@@ -1,12 +1,17 @@
+(module app mzscheme
+  (require "mred-wrap.ss"
+           "framework-wrap.ss"
+           (lib "file.ss")
+           (prefix drscheme:unit: "unit.ss")
+           (prefix drscheme:frame: "frame.ss")
 
-(unit/sig drscheme:app^
-  (import mred^
-          [mzlib : mzlib:core^]
-          framework^
-          [drscheme:unit : drscheme:unit^]
-          [drscheme:frame : drscheme:frame^]
-	  [help-desk : help:drscheme-interface^])
-  
+ ;; should be moved from help:drscheme-interface^ to this collection.
+           (prefix help-desk: "help-wrap.ss"))
+
+  (provide check-new-version
+           invite-tour
+           about-drscheme)
+           
   (define about-frame%
     (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) (main-text)
       (private
@@ -257,7 +262,7 @@
 	     (insert "For licensing information see "))
 
       (let ([copying.lib
-	     (mzlib:file:normalize-path
+	     (normalize-path
 	      (build-path (collection-path "mzlib")
 			  'up
 			  'up

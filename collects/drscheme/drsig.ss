@@ -28,13 +28,7 @@
 (define-signature drscheme:main^ ())
 
 (define-signature drscheme:init^
-  (original-output-port
-   original-error-port
-   primitive-eval
-   primitive-load
-   system-custodian
-   system-eventspace
-   first-dir))
+  )
 
 (define-signature drscheme:snip^ 
   (prompt-snip%
@@ -91,8 +85,7 @@
   (frame%))
 
 (define-signature drscheme:text^
-  (text<%>
-   text%))
+  )
 
 (define-signature drscheme:project^
   (scheme-project-frame%))
@@ -111,9 +104,7 @@
    show-interactions-history))
 
 (define-signature drscheme:app^
-  (check-new-version
-   invite-tour
-   about-drscheme))
+  )
 
 (define-signature drscheme:draw-arrow^
   (draw-arrow))

@@ -1,8 +1,10 @@
-
-(unit/sig drscheme:text^
-  (import [mzlib:date : mzlib:date^]
-	  [fw : framework^]
-	  [zodiac : zodiac:system^])
+(module mzscheme text
+  (require "date.ss"
+           "framework-wrap.ss"
+           (lib "zodiac.ss" "syntax"))
+  
+  (provide text<%>
+           text%)
   
   (define text<%>
     (interface (fw:scheme:text<%>)
