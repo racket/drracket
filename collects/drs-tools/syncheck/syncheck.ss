@@ -867,7 +867,7 @@ If the namespace does not, they are colored the unbound color.
               (lock #f)
               (erase))
             
-            (drscheme:rep:insert-error-in-text report-error-text (get-interactions-text) message exn #f)
+            (send report-error-text insert message)
             
             (send* report-error-text
               (set-position 0 0)
