@@ -764,7 +764,6 @@ profile todo:
                         (clear-test-coverage?))))))
             
           (define/augment (can-insert? x y)
-            (printf "debug.can-insert?.2\n")
             (and (inner #t can-insert? x y)
                  (can-clear-coverage?)))
           
@@ -1060,7 +1059,6 @@ profile todo:
       ;; =user=
       ;; imported into errortrace
       (define (register-profile-done key start)
-        #;
         (when start
 	  (let ([info (hash-table-get (thread-cell-ref current-profile-info) key)])
 	    (set-prof-info-nest! info #f)
@@ -1127,12 +1125,10 @@ profile todo:
                  'yes))
 
           (define/augment (can-insert? x y)
-            (printf "can-insert.debug ~s\n" (get-canvas))
             (and (inner #t can-insert? x y)
                  (let ([canvas (get-canvas)])
                    (or (not canvas)
                        (let ([frame (send canvas get-top-level-window)])
-                         (printf "can-insert.debug.2\n")
                          (or (not (send frame get-profile-info-visible?))
                              (clear-profiling?)))))))
           
