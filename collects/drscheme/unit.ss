@@ -366,22 +366,31 @@
 	       (drscheme:language:fill-language-menu language-menu)
 
 	       (send* scheme-menu
-		      (append-item "&Indent" 
-				   (lambda () 
-				     (send (ivar (active-edit) mode) 
-					   tabify-selection (active-edit))))
-		      (append-item "Indent &All"
-				   (lambda ()
-				     (send (ivar (active-edit) mode) tabify-all (active-edit)))
-				   "" #f "i")
-		      (append-item "&Comment Out"
-				   (lambda ()
-				     (send (ivar (active-edit) mode) 
-					   comment-out-selection (active-edit))))
-		      (append-item "&Uncomment"
-				   (lambda ()
-				     (send (ivar (active-edit) mode)
-					   uncomment-selection (active-edit)))))
+		 (append-item "Execute"
+			      (lambda ()
+				(execute-callback))
+			      "Execute the definitions window" #f "t")
+		 (append-item "Break"
+			      (lambda ()
+				(send interactions-edit break))
+			      "Break the current evaluation" #f "b")
+		 (append-separator)
+		 (append-item "&Indent" 
+			      (lambda () 
+				(send (ivar (active-edit) mode) 
+				      tabify-selection (active-edit))))
+		 (append-item "Indent &All"
+			      (lambda ()
+				(send (ivar (active-edit) mode) tabify-all (active-edit)))
+			      "" #f "i")
+		 (append-item "&Comment Out"
+			      (lambda ()
+				(send (ivar (active-edit) mode) 
+				      comment-out-selection (active-edit))))
+		 (append-item "&Uncomment"
+			      (lambda ()
+				(send (ivar (active-edit) mode)
+				      uncomment-selection (active-edit)))))
 	       (when (mred:get-preference 'drscheme:use-setup?)
 		 (send* scheme-menu
 			(append-separator)
@@ -426,7 +435,7 @@
 	     (if (on-close)
 		 (show #f)))]
 	  [execute-callback
-	   (lambda (button evt)
+	   (lambda ()
 	     (let* ([definitions-edit definitions-edit]
 		    [interactions-edit interactions-edit])
 	       (ensure-interactions-shown)
@@ -529,7 +538,7 @@
 	 (sequence
 	  (set! execute-button
 	    (make-object mred:button% button-panel
-			 execute-callback
+			 (lambda (button evt) (execute-callback))
 			 execute-bitmap))
 	  (set! stop-execute-button
 		(make-object mred:button% button-panel 
