@@ -34,7 +34,7 @@
 	   (apply super-init args))))
 
      (define bug-frame%
-       (class/d (frame-mixin frame:standard-menus%) (title)
+       (class/d (frame-mixin (frame:standard-menus-mixin frame:basic%)) (title)
 
 	 ((inherit get-area-container close))
 		    
