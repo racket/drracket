@@ -43,7 +43,7 @@
       
       ;; check-new-version : -> void
       (define (check-new-version)
-        (let ([this-version (version:version)]
+        (let ([this-version (version)]
               [last-version (preferences:get 'drscheme:last-version)]
               [last-language (preferences:get 'drscheme:last-language)])
           (when (or (not last-version)
@@ -176,7 +176,7 @@
                                  (send f close)))]
                [messages-panel (make-object vertical-panel% left-vp)]
                
-               [this-version (version:version)]
+               [this-version (version)]
                [last-version (preferences:get 'drscheme:last-version)]
                [last-language (preferences:get 'drscheme:last-language)]
                [welcome-to-drs-msg (make-object message% (string-constant welcome-to-drscheme) messages-panel)]
@@ -309,8 +309,6 @@
                [d-dr (make-object style-delta%)]
                [d-http (make-object style-delta%)]
                
-               [this-version (version:version)]
-               
                [insert-url/external-browser
                 (lambda (str url)
                   (send e change-style d-http)
@@ -359,7 +357,7 @@
           (send* e 
             (change-style d-dr)
             (insert (format (string-constant welcome-to-drscheme-version/language) 
-                            this-version
+                            (version:version)
                             (this-language)))
             (change-style d-usual))
           
