@@ -284,10 +284,10 @@
                    (list? in-language-spec)
                    (andmap (lambda (x) (or string? regexp?)) in-language-spec))
         (error 'set-language-level! "expected a non-empty list of regexps and strings for language, got: ~e" in-language-spec))
-      (let ([frame (get-top-level-focus-window)])
+      (let ([drs-frame (get-top-level-focus-window)])
         (fw:test:menu-select "Language" "Choose Language...")
-        (wait-for-new-frame frame)
-        (let* ([language-choice (find-labelled-window #f hierarchical-list%)]
+        (let* ([language-dialog (wait-for-new-frame drs-frame)]
+               [language-choice (find-labelled-window #f hierarchical-list%)]
                [b1 (box 0)]
                [b2 (box 0)]
                [click-on-snip
@@ -334,18 +334,21 @@
                             name in-language-spec))
                    (unless (send next-item is-open?)
                      (click-on-snip (send next-item get-arrow-snip)))
-                   (loop next-item (cdr language-spec))])))))
-        
-        (with-handlers ([not-break-exn?
-                         (lambda (x) (void))])
-          (fw:test:button-push "Show Details"))
-        (fw:test:button-push "Revert to Language Defaults")
-
-        (when close-dialog?
-          (let ([language-dialog (get-top-level-focus-window)])
+                   (loop next-item (cdr language-spec))]))))
+          
+          (with-handlers ([not-break-exn?
+                           (lambda (x) (void))])
+            (fw:test:button-push "Show Details"))
+          
+          (fw:test:button-push "Revert to Language Defaults")
+          
+          (when close-dialog?
             (fw:test:button-push "OK")
-            (wait-for-new-frame language-dialog))))))
-  
+            (let ([new-frame (wait-for-new-frame language-dialog)])
+              (unless (eq? new-frame drs-frame)
+                (error 'set-language-level! "didn't get drscheme frame back, got: ~s\n" new-frame)))))))) 
+
+
   (define (repl-in-edit-sequence?)
     (send (send (wait-for-drscheme-frame) get-interactions-text) refresh-delayed?))
  
