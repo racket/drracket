@@ -28,7 +28,6 @@
 	      [(compile-subcollections) (list (list "drscheme" "tools" "syncheck"))]
 	      [(compile-elaboration-zos-prefix)
 	       '(begin
-		  (read-case-sensitive #t)
 		  (require-library "refer.ss")
 		  (require-library "wxs.ss" "system")
 		  (require-library "invsig.ss" "system")
