@@ -381,6 +381,23 @@
                   ("provide"       imported-syntax)
                   ("))"            #f)))
      
+     (make-test "(module m mzscheme (define-struct s (a)) s-a make-s s? set-s-a!)"
+                '(("("             #f)
+                  ("module"        imported-syntax)
+                  (" m mzscheme (" #f)
+                  ("define-struct" imported-syntax)
+                  (" "             #f)
+                  ("s"             lexically-bound-syntax)
+                  (" (a)) "        #f)
+                  ("s-a"           lexically-bound-identifier)
+                  (" "             #f)
+                  ("make-s"        lexically-bound-identifier)
+                  (" "             #f)
+                  ("s?"            lexically-bound-identifier)
+                  (" "             #f)
+                  ("set-s-a!"      lexically-bound-identifier)
+                  (")"             #f)))
+     
      (make-test "(define tordu3 '(a . #0=(b c d . #0#)))"
                 '(("("        #f)
                   ("define"   imported-syntax)
@@ -391,6 +408,7 @@
                   ("(a . #0=(b c d . #0#))" constant)
                   (")"        #f)))
 
+                  
 
                                                                              
                                           ;;             ;;;                 
