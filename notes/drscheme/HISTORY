@@ -1,8 +1,16 @@
-Version %2:
+Version 52:
 
 General
 -------
 - the turtles window does not survive across executions anymore
+
+DrScheme Tools/Libraries
+------------------------
+
+- the drscheme:tool^ signature has changed. A new subunit, "basis" has
+  been aded and the process-finish struct is now in that subunit. So,
+  drscheme:language:process-finish? becomes
+  drscheme:basis:process-finish?, etc.
 
 Version 51:
 

@@ -4,6 +4,7 @@
 (require-library "sigs.ss" "zodiac")
 (require-library "sparams.ss" "backward")
 (require-library "ariess.ss" "cogen")
+(require-library "sig.ss" "userspce")
 (require-library "gusrspcs.ss" "gusrspce")
 (require-library "pconvers.ss")
 
@@ -32,40 +33,13 @@
 	 unit-frameI compound-unit-frameI
 	 unit-snipI compound-unit-snipI))
 
-(define-signature drscheme:interface^ 
-  ((open zodiac:interface^)
-   (struct zodiac-exn (message start-location end-location type))))
-
 (define-signature drscheme:language^
-  ((struct setting (use-zodiac?
-		    vocabulary-symbol
-		    case-sensitive?
-		    allow-set!-on-undefined?
-		    unmatched-cond/case-is-error?
-		    allow-improper-lists?
-		    sharing-printing?
-		    abbreviate-cons-as-list?
-		    signal-undefined
-		    signal-not-boolean
-		    eq?-only-compares-symbols?
-		    printing))
-   set-use-zodiac
-   use-zodiac
-   setting-name
-   install-language
-   eq?-only-compares-symbols
-   r4rs-style-printing
+  (level-symbols
    fill-language-menu))
 
 (define-signature drscheme:tool^
   ((struct tool (name file callback))
    tools))
-
-(define-signature drscheme:basis^
-  (level->number
-   level-symbols
-   level-strings
-   add-basis))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
@@ -117,20 +91,14 @@
   (do-setup))
 
 (define-signature drscheme:rep^
-  (edit%
-   (struct process-finish (error?))))
-
-(define-signature drscheme:exported-zodiac^ zodiac:system^)
-
-(define-signature drscheme:zodiac^
-  ((open drscheme:exported-zodiac^)
-   current-vocabulary))
+  (edit%))
 
 (define-signature drscheme:app^
   (about-drscheme))
 
 (define-signature drscheme:export^
-  ((unit frame : drscheme:frame^)
+  ((unit basis : userspace:basis^)
+   (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit compound-unit : drscheme:compound-unit^)
    (unit signature : drscheme:signature^)
