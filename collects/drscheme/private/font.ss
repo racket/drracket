@@ -25,12 +25,9 @@
 		  [min-size 1]
 		  [max-size 72]
                   [options-panel (make-object horizontal-panel% main)]
-		  [size-panel (new vertical-panel%
+		  [size-panel (new group-box-panel%
 				   (parent options-panel)
-				   (style '(border)))]
-		  [size-msg (new message%
-				 (label (string-constant font-size))
-				 (parent size-panel))]
+				   (label (string-constant font-size)))]
                   [adjust-font-size
                    (lambda (f)
                      (preferences:set
