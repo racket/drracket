@@ -14,29 +14,31 @@
 	  [drscheme:graph : drscheme:graph^])
   
   (define (create-launcher frame)
-    (let ([program-filename (send (ivar frame definitions-text) get-filename)])
-      (cond
-       [(not program-filename)
-	(mred:message-box "Create Launcher"
-			  "You must save your program before creating a launcher"
-			  frame)]
-       [else
-	(let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
-	       [v-settings (struct->vector settings)]
-	       [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
-	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-	       [filename 
-		(parameterize ([fw:finder:dialog-parent-parameter frame])
-		  (fw:finder:put-file"Untitled" #f #f "Save a Launcher"))])
-	  (when filename
-	    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
-				     "-e" (format "(define settings ~s)" v-settings)
-				     "-e" (format "(define teachpacks '~s)" teachpacks))])
-	      ((if (and in-mz? (null? teachpacks))
-		   launcher:make-mzscheme-launcher
-		   launcher:make-mred-launcher)
-	       (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-	       filename))))])))
+    (if (eq? (system-type) 'macos)
+        (mred:message-box "DrScheme Launcher" "Launchers are not yet supported under MacOS." frame)
+        (let ([program-filename (send (ivar frame definitions-text) get-filename)])
+          (cond
+            [(not program-filename)
+             (mred:message-box "Create Launcher"
+                               "You must save your program before creating a launcher"
+                               frame)]
+            [else
+             (let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
+                    [v-settings (struct->vector settings)]
+                    [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
+                    [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
+                    [filename 
+                     (parameterize ([fw:finder:dialog-parent-parameter frame])
+                       (fw:finder:put-file"Untitled" #f #f "Save a Launcher"))])
+               (when filename
+                 (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
+                                          "-e" (format "(define settings ~s)" v-settings)
+                                          "-e" (format "(define teachpacks '~s)" teachpacks))])
+                   ((if (and in-mz? (null? teachpacks))
+                        launcher:make-mzscheme-launcher
+                        launcher:make-mred-launcher)
+                    (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+                    filename))))]))))
   
   (define make-bitmap 
     (case-lambda 
@@ -508,15 +510,20 @@
 			       (cons (make-defn indent name defn-pos)
 				     (loop (+ defn-pos (string-length tag-string)))))
 			     null)))])
-	  (for-each (lambda (defn)
-		      (set-defn-name! defn
-				      (string-append
-				       (apply string
-					      (vector->list
-					       (make-vector (- (defn-indent defn) min-indent) #\space)))
-				       (defn-name defn))))
-		    defs)
-	  defs))
+          (unless sort-by-name?
+            (for-each (lambda (defn)
+                        (set-defn-name! defn
+                                        (string-append
+                                         (apply string
+                                                (vector->list
+                                                 (make-vector (- (defn-indent defn) min-indent) #\space)))
+                                         (defn-name defn))))
+                      defs))
+          (if sort-by-name?
+              (mzlib:function:quicksort 
+               defs
+               (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
+              defs)))
 
       (define (get-defn-indent pos)
 	(let* ([para (send text position-paragraph pos)]
@@ -576,7 +583,12 @@
 	  (let-values ([(w h) (get-client-size)])
 	    (draw-button-label dc label w h inverted?))))
 
-      (define sorted? #f)
+      (define sort-by-name? #f)
+      (define sorting-name "Sort by name")
+      (define (change-sorting-order)
+        (set! sort-by-name? (not sort-by-name?))
+        (set! sorting-name (if sort-by-name? "Sort by position in file" "Sort by name"))
+        (void))
 
       (define (on-event evt)
 	(cond
@@ -588,6 +600,11 @@
 				     (set! inverted? #f)
 				     (on-paint)))]
 		[defns (get-definitions)])
+            (make-object mred:menu-item% sorting-name
+              menu
+              (lambda x
+                (change-sorting-order)))
+            (make-object mred:separator-menu-item% menu)
 	    (if (null? defns)
 		(send (make-object mred:menu-item%
 			"<< no definitions found >>"

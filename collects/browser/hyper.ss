@@ -308,12 +308,12 @@
 	  (apply super-init args)
 	  (add-h-link-style)
 	  (when url
-	    (let-values ([(p mime-headers)
+	    (let-values ([(wrapping-on?) #t]
+                         [(p mime-headers)
 			  (if (port? url)
 			      (values url null)
 			      ; Try to get mime info, but use get-pure-port if that fails:
 			      (with-handlers ([void (lambda (x) 
-                                                      (printf "url: ~s~n" (url->string url))
                                                       (values (get-pure-port url) null))])
 				(let ([p (get-impure-port url)])
 				  (let ([headers (purify-port p)])
@@ -321,7 +321,7 @@
 	      (dynamic-wind
 		  (lambda ()
 		    (begin-busy-cursor)
-					; (send progress start)
+                    ; (send progress start)
 		    (begin-edit-sequence #f))
 		  (lambda () 
 		    (set! htmling? #t)
@@ -533,6 +533,7 @@
 			      (loop))))
 			(change-style (make-object style-delta% 'change-family 'modern)
 				      0 (last-position))
+                        (set! wrapping-on? #f)
 			(end-edit-sequence)])))
 		  (lambda ()
 		    (end-edit-sequence)
@@ -541,7 +542,7 @@
 		    (set! htmling? #f)
 		    (close-input-port p)))
 	      (set-modified #f)
-	      (auto-wrap #t)
+	      (auto-wrap wrapping-on?)
 	      (lock #t)))))))
 
   (define hyper-text% (hyper-text-mixin text%))
