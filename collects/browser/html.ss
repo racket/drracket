@@ -200,6 +200,25 @@
 			     (regexp-match re:type args))])
 		  (and m (cadr m)))))]
 
+	   [parse-font
+	    (let ([re:quote-size (regexp "[sS][iI][zZ][eE][ ]*=[ ]*\"([^\"]*)\"")]
+		  [re:size (regexp "[sS][iI][zZ][eE][ ]*=[ ]*([^ ]*)")])
+	      (lambda (args)
+		(let ([m (or (regexp-match re:quote-size args)
+			     (regexp-match re:size args))])
+		  (and m (let* ([spec (cadr m)]
+				[n (string->number spec)])
+			   (and n
+				(integer? n)
+				(<= -127 n 127)
+				(cond
+				 [(char=? #\+ (string-ref spec 0))
+				  (make-object style-delta% 'change-bigger n)]
+				 [(negative? n)
+				  (make-object style-delta% 'change-smaller (- n))]
+				 [else
+				  (make-object style-delta% 'change-size n)])))))))]
+
 	   [make-unsupported
 	    (lambda (tag args)
 	      (let ([name (parse-name args)]
@@ -533,6 +552,11 @@
 			[(pre)
 			 (change-style delta:fixed pos end-pos)
 			 (result (+ end-pos (try-newline end-pos 2 #t)) #t)]
+			[(font)
+			 (let ([delta (parse-font args)])
+			   (when delta
+			     (change-style delta pos end-pos)))
+			 (normal)]
 			[(h1) (heading delta:h1)]
 			[(h2) (heading delta:h2)]
 			[(h3) (heading delta:h3)]
