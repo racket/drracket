@@ -4,24 +4,26 @@
   (define install-cm? (and (not debugging?)
                            (getenv "PLTDRCM")))
   
-  (define cm-trace? (and install-cm?
-                         (equal? (getenv "PLTDRCM") "trace")))
+  (define cm-trace? (or (equal? (getenv "PLTDRCM") "trace")
+                        (equal? (getenv "PLTDRDEBUG") "trace")))
   
   (when debugging?
     (printf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
-    (use-compiled-file-paths (list (build-path "compiled" "errortrace")))
-    (error-display-handler (dynamic-require '(lib "errortrace-lib.ss" "errortrace")
-                                            'errortrace-error-display-handler))
-    (let-values ([(make-compilation-manager-load/use-compiled-handler
+    (let-values ([(zo-compile
+                   make-compilation-manager-load/use-compiled-handler
                    manager-trace-handler)
                   (parameterize ([current-namespace (make-namespace)])
                     (values
+                     (dynamic-require '(lib "zo-compile.ss" "errortrace") 'zo-compile)
                      (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)
                      (dynamic-require '(lib "cm.ss") 'manager-trace-handler)))])
-      (current-compile
-       (dynamic-require '(lib "zo-compile.ss" "errortrace") 'zo-compile))
+      (current-compile zo-compile)
+      (use-compiled-file-paths (list (build-path "compiled" "errortrace")))
       (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
+      (error-display-handler (dynamic-require '(lib "errortrace-lib.ss" "errortrace")
+                                              'errortrace-error-display-handler))
       (when cm-trace?
+        (printf "PLTDRDEBUG: enabling CM tracing\n")
         (manager-trace-handler
          (lambda (x) (display x) (newline))))))
   
@@ -35,6 +37,7 @@
                      (dynamic-require '(lib "cm.ss") 'manager-trace-handler)))])
       (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
       (when cm-trace?
+        (printf "PLTDRCM: enabling CM tracing\n")
         (manager-trace-handler
          (lambda (x) (display x) (newline))))))
 

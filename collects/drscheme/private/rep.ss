@@ -928,19 +928,22 @@ TODO
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
+          (inherit backward-containing-sexp)
           (define/augment (on-submit)
-            (inner (void) on-submit)
-            ;; put two eofs in the port; one to terminate a potentially incomplete sexp
-            ;; (or a non-self-terminating one, like a number) and the other to ensure that
-            ;; an eof really does come thru the calls to `read'. 
-            ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
-            (send-eof-to-in-port)
-            (send-eof-to-in-port)
-            (evaluate-from-port 
-             (get-in-port) 
-             #f
-             (lambda ()
-               (clear-input-port))))
+            (let ([start-pos (backward-containing-sexp (get-start-position) 0)])
+              (printf "start-pos ~s\n" start-pos)
+              (inner (void) on-submit)
+              ;; put two eofs in the port; one to terminate a potentially incomplete sexp
+              ;; (or a non-self-terminating one, like a number) and the other to ensure that
+              ;; an eof really does come thru the calls to `read'. 
+              ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
+              (send-eof-to-in-port)
+              (send-eof-to-in-port)
+              (evaluate-from-port 
+               (get-in-port) 
+               #f
+               (lambda ()
+                 (clear-input-port)))))
           
           (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
             (send context disable-evaluation)
