@@ -10,7 +10,7 @@
   (define sc-smoothing-none (string-constant font-smoothing-none))
   (define sc-smoothing-some (string-constant font-smoothing-some))
   (define sc-smoothing-all (string-constant font-smoothing-all))
-  (define sc-smoothing-default "Use system-wide default")
+  (define sc-smoothing-default (string-constant font-smoothing-default))
   
   (provide font@)
   
