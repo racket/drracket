@@ -48,7 +48,8 @@
      whole/part-number-snip%))
   
   (define-signature drscheme:language^
-    (fill-language-menu
+    ((struct language-setting (language setting))
+     fill-language-menu
      settings-preferences-symbol
      language-dialog))
   
@@ -124,7 +125,11 @@
     (draw-arrow))
   
   (define-signature drscheme:load-handler^
-    (process-text
+    ((struct process-finish ())
+     process
+     process-file
+     process-sexp
+     process-text
      drscheme-load-handler))
  
   (define-signature drscheme:help-interface^

@@ -5,6 +5,7 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
+           "string-constant.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "list.ss")
@@ -73,7 +74,8 @@
                   (send i show-details)))
               (super-instantiate (parent))))
 
-          (define dialog (make-object dialog% (string-constant language-dialog-title) parent #f #f #f #f '(resize-border)))
+          (define dialog (make-object dialog% (string-constant language-dialog-title)
+                           parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
 	  (define details-panel (make-object panel:single% outermost-panel))

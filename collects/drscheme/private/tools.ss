@@ -31,9 +31,10 @@
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
       (define (load/invoke-tools coll)
-        (let ([table (get-info (list coll))])
+        (let ([table (with-handlers ([not-break-exn? (lambda (x) #f)])
+                       (get-info (list coll)))])
           (when table
-            (let ([tools (get-info 'tools null)])
+            (let ([tools (table 'tools null)])
               (for-each (load/invoke-tool coll) tools)))))
       
       ;; load/invoke-tool : string[collection-name] -> (listof string[sub-collection-names]) -> void

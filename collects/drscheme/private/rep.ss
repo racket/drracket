@@ -11,6 +11,7 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
+           "string-constant.ss"
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -31,6 +32,65 @@
               (drscheme:load-handler : drscheme:load-handler^)
               (drscheme:help : drscheme:help-interface^))
       
+      (define (format-source-loc x) (format "~s" x))
+      
+      (define primitive-eval (current-eval))
+      
+      ;; current-language-setting : (parameter language-setting)
+      ;; set to the current language and its setting on the user's thread.
+      (define current-language-setting (make-parameter #f))
+      
+      ;; a port that accepts values for printing in the repl
+      (define current-value-port (make-parameter 'uninitialized-value-port))
+            
+      ;; bottom-escape-handler : (parameter ( -> A))
+      ;; must escape. this is called if the user's error-escape-handler doesn't escape
+      (define bottom-escape-handler (make-parameter void))
+
+      ;; (parameter (string (union #f syntax) exn -> void))
+      (define error-display/debug-handler
+        (make-parameter
+         (lambda (msg debug exn)
+           ((error-display-handler) msg)
+           (if (syntax? debug)
+               (string-append (format-source-loc debug debug)
+                              msg)
+               msg))))
+      
+      ;; drscheme-error-value->string-handler : TST number -> string
+      (define (drscheme-error-value->string-handler x n)
+        (let ([port (open-output-string)])
+          
+          ;; passing this port here means no snips allowed,
+          ;; even though this string may eventually end up
+          ;; displayed in a place where snips are allowed.
+          (print x port)
+          
+          (let* ([long-string (get-output-string port)])
+            (close-output-port port)
+            (if (<= (string-length long-string) n)
+                long-string
+                (let ([short-string (substring long-string 0 n)]
+                      [trim 3])
+                  (unless (n . <= . trim)
+                    (let loop ([i trim])
+                      (unless (i . <= . 0)
+                        (string-set! short-string (- n i) #\.)
+                        (loop (sub1 i)))))
+                  short-string)))))
+
+      ;; drscheme-exception-handler : exn -> A
+      ;; effect: displays the exn-message and escapes
+      (define (drscheme-exception-handler exn)
+        (let ([dh (error-display/debug-handler)])
+          (if (exn? exn)
+              (let* ([marks (exn-continuation-marks exn)])
+                (dh (format "~a" (exn-message exn)) #f exn))
+              (dh (format "uncaught exception: ~e" exn) #f #f)))
+        ((error-escape-handler))
+        ((error-display-handler) "Exception handler did not escape")
+        ((bottom-escape-handler)))
+      
       (define raw-symbol-chars "a-z/!>:%\\+\\*\\?-")
       (define symbol-chars (format "[~a]" raw-symbol-chars))
       (define not-symbol-chars (format "[^~a]" raw-symbol-chars))
@@ -42,25 +102,6 @@
                                "^(ivar: instance variable not found: )(~a*)"
                                symbol-chars))
       (define ivar-regexp (regexp ivar-regexp-str))
-      
-      (define (use-number-snip? x)
-        (and (number? x)
-             (exact? x)
-             (real? x)
-             (not (integer? x))))
-      
-      (define (drscheme-pretty-print-size-hook x _ port)
-        (cond
-          [(is-a? x snip%) 1]
-          [(and (use-number-snip? x))
-           (+ (string-length (number->string (floor x)))
-              (max (string-length
-                    (number->string 
-                     (numerator (- x (floor x)))))
-                   (string-length
-                    (number->string 
-                     (numerator (- x (floor x)))))))]
-          [else #f]))
       
       (define drs-bindings-keymap (make-object keymap%))
       (send drs-bindings-keymap add-function
@@ -159,12 +200,7 @@
                                   (lambda (x) 
                                     (and (list? x)
                                          (andmap string? x))))
-      
-      (preferences:add-callback
-       'drscheme:teachpack-file
-       (lambda (p v)
-         '(basis:teachpack-changed v)))
-      
+
       (define current-rep-text (make-parameter #f))
       
       (define-struct sexp (left right prompt))
@@ -275,10 +311,8 @@
       
       (define (no-user-evaluation-message frame)
         (message-box
-         "Evaluation Terminated"
-         (format "The evaluation thread is no longer running, ~
-         so no evaluation can take place until ~
-         the next execution.")
+         (string-constant evaluation-terminated)
+         (format (string-constant evaluation-terminated-explanation))
          frame))
       
       (define busy-cursor (make-object cursor% 'watch))
@@ -349,8 +383,8 @@
                                           (min how-many-at-once
                                                num-left)])
                                     (if (= num-left 1)
-                                        "show last stack frame"
-                                        (format "show the ~a ~a stack frames" 
+                                        (string-constant last-stack-frame)
+                                        (format (string-constant more-stack-frames) 
                                                 (if (<= num-left num-to-show)
                                                     'last
                                                     'next)
@@ -634,7 +668,7 @@
               get-this-out
               get-this-in
               get-this-result
-              set-display/write-handlers
+              setup-display/write-handlers
               display-results
               
               reset-highlighting
@@ -666,7 +700,8 @@
               hide-eof-icon)
             
             (unless (is-a? context context<%>)
-              (error 'drscheme:rep:text% "expected an object that implements drscheme:rep:context<%> as initialization argument, got: ~e"
+              (error 'drscheme:rep:text% 
+                     "expected an object that implements drscheme:rep:context<%> as initialization argument, got: ~e"
                      context))
             
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -987,8 +1022,6 @@
                   (let ([to-be-inserted
                          (cond
                            [(is-a? s snip%) (send s copy)]
-                           [(use-number-snip? s)
-                            (make-object drscheme:snip:whole/part-number-snip% s)]
                            [else s])])
                     (send text insert to-be-inserted start start #t)
                     (let ([end (+ start (cond
@@ -1113,60 +1146,76 @@
             (define (get-this-out) this-out)
             (define (get-this-in) this-in)
             (define (get-this-result) this-result)
+
+            ;; setup-display/write-handlers : -> void
+            ;; sets the port-display-handler and the port-write-handler
+            ;; for the initial output port, initial error port and the
+            ;; value port.
+            (define (setup-display/write-handlers)
+              (let* ([use-number-snip?
+                      (lambda (x)
+                        (and (number? x)
+                             (exact? x)
+                             (real? x)
+                             (not (integer? x))))]
+                     [pretty-print-size-hook
+                      (lambda (x _ port)
+                        (cond
+                          ;; is get-count the right thing?
+                          [(is-a? x snip%) (send x get-count)]
+                          [(use-number-snip? x)
+                           (+ (string-length (number->string (floor x)))
+                              (max (string-length
+                                    (number->string 
+                                     (numerator (- x (floor x)))))
+                                   (string-length
+                                    (number->string 
+                                     (numerator (- x (floor x)))))))]
+                          [else #f]))]
+                     [make-setup-handler
+                      (lambda (port port-out-write)
+                        (lambda (port-handler pretty)
+                          (let ([original-handler (port-handler port)])
+                            (port-handler
+                             port
+                             (rec console-pp-handler
+                               (lambda (v p)
+                                 ;; avoid infinite recursion by calling original-handler
+                                 ;; for strings, since `pretty' calls write/display with
+                                 ;; strings
+                                 (if (string? v)
+                                     (original-handler v p)
+                                     (parameterize ([mzlib:pretty-print:pretty-print-size-hook
+                                                     pretty-print-size-hook]
+                                                    [mzlib:pretty-print:pretty-print-print-hook
+                                                     (lambda (x _ port)
+                                                       (port-out-write x))]
+                                                    [mzlib:pretty-print:pretty-print-columns
+                                                     'infinity])
+                                       (pretty v p)))))))))]
+                     
+                     [setup-handlers
+                      (lambda (setup-handler)
+                        (setup-handler port-display-handler 
+                                       mzlib:pretty-print:pretty-display)
+                        (setup-handler port-write-handler
+                                       mzlib:pretty-print:pretty-print))]
+                     
+                     [setup-out-handler (make-setup-handler this-out (lambda (x) (this-out-write x)))]
+                     [setup-err-handler (make-setup-handler this-err (lambda (x) (this-err-write x)))]
+                     [setup-value-handler (make-setup-handler this-result (lambda (x) (this-result-write x)))])
+                (setup-handlers setup-out-handler)
+                (setup-handlers setup-err-handler)
+                (setup-handlers setup-value-handler)))
             
-            (define (set-display/write-handlers)
-              (let ([setup-handlers
-                     (lambda (port port-out-write)
-                       (let ([original-write-handler (port-write-handler port)]
-                             [original-display-handler (port-display-handler port)]
-                             [handler-maker
-                              (lambda (port-handler pretty original)
-                                (port-handler
-                                 port
-                                 (rec console-pp-handler
-                                   (lambda (v p)
-                                     (if (or (string? v) 
-                                             (char? v)
-                                             (number? v)
-                                             (symbol? v))
-                                         (original v p)
-                                         (parameterize ([mzlib:pretty-print:pretty-print-size-hook
-                                                         drscheme-pretty-print-size-hook]
-                                                        [mzlib:pretty-print:pretty-print-print-hook
-                                                         (lambda (x _ port)
-                                                           (port-out-write x))]
-                                                        [mzlib:pretty-print:pretty-print-columns
-                                                         'infinity])
-                                           (pretty v p)))))))])
-                         (handler-maker port-display-handler 
-                                        mzlib:pretty-print:pretty-display 
-                                        original-display-handler)
-                         (handler-maker port-write-handler
-                                        mzlib:pretty-print:pretty-print
-                                        original-write-handler)))])
-                (setup-handlers this-out (lambda (x) (this-out-write x)))
-                (setup-handlers this-err (lambda (x) (this-err-write x)))
-                (setup-handlers this-result (lambda (x) (this-result-write x)))))
-            
-            (define display-results ; =User=, =Handler=, =Breaks=
-              (lambda (anss)
-                (for-each 
-                 (lambda (v)
-                   (unless (void? v)
-                     (let* ([v (print-convert:print-convert v)])
-                       (parameterize ([mzlib:pretty-print:pretty-print-size-hook
-                                       drscheme-pretty-print-size-hook]
-                                      [mzlib:pretty-print:pretty-print-print-hook
-                                       (lambda (x _ port) (this-result-write x))])
-                         (mzlib:pretty-print:pretty-print v this-result)))))
+            ;; display-results : (listof TST) -> void
+            ;; prints each element of anss that is not void as values in the REPL.
+            (define (display-results anss) ; =User=, =Handler=, =Breaks=
+              (for-each 
+               (lambda (v)
+                 (unless (void? v)
+                   (print v this-result))
                  anss)))
-            
-            
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;;                                            ;;;
-      ;;;             Zodiac Interface               ;;;
-      ;;;                                            ;;;
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
             (define (reset-highlighting) (void))
             
@@ -1185,6 +1234,26 @@
               (lambda (x y)
                 (reset-highlighting)
                 (super-on-delete x y)))
+            
+            
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;                                            ;;;
+      ;;;                Parameters                  ;;;
+      ;;;                                            ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+            ;; drscheme-port-print-handler : TST port -> void
+            ;; effect: prints the value on the port
+            ;; default setting for the behavior of the `print' primitive.
+            (define (drscheme-port-print-handler value port)
+              (let ([language (drscheme:language:language-setting-language (current-language-setting))])
+                (send language render-value value 
+                      port 
+                      (cond
+                        [(eq? port this-out) (lambda (x) (this-out-write x))]
+                        [(eq? port this-result) (lambda (x) (this-result-write x))]
+                        [(eq? port this-err) (lambda (x) (this-err-write x))]
+                        [else #f]))))
             
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;                                            ;;;
@@ -1277,14 +1346,14 @@
                   text
                   (lambda (expr recur) ; =User=, =Handler=, =No-Breaks=
                     (cond
-                      [(basis:process-finish? expr)
+                      [(drscheme:load-handler:process-finish? expr)
                        (void)]
                       [else
                        (single-loop-eval
                         (lambda ()
                           (call-with-values
                            (lambda ()
-                             (basis:primitive-eval expr))
+                             (primitive-eval expr))
                            (lambda x (display-results x)))))
                        (recur)]))
                   start
@@ -1364,10 +1433,10 @@
                    (bell)]
                   [ask-about-kill? 
                    (if (gui-utils:get-choice
-                        "Do you want to kill the evaluation?"
-                        "Just Break"
-                        "Kill"
-                        "Kill?"
+                        (string-constant kill-evaluation?)
+                        (string-constant just-break)
+                        (string-constant kill)
+                        (string-constant kill?)
                         'diallow-close
                         (let ([canvas (get-active-canvas)])
                           (and canvas
@@ -1469,7 +1538,7 @@
                               (lambda ()
                                 (error-escape-k))])
                          (error-escape-handler drscheme-error-escape-handler)
-                         (basis:bottom-escape-handler drscheme-error-escape-handler))
+                         (bottom-escape-handler drscheme-error-escape-handler))
                        
                        (set! in-evaluation? #f)
                        (update-running)
@@ -1549,31 +1618,24 @@
             (define initialize-parameters ; =User=
               (lambda (setting)
                 
-                (basis:initialize-parameters
-                 user-custodian
-                 setting)
+                (error-value->string-handler drscheme-error-value->string-handler)
+                (current-exception-handler drscheme-exception-handler)
+                (current-load-relative-directory #f)
+                (initial-exception-handler drscheme-exception-handler)
+                (current-custodian user-custodian)
+                (global-port-print-handler drscheme-port-print-handler)
+                
+                (break-enabled #t)
+                (read-curly-brace-as-paren #t)
+                (read-square-bracket-as-paren #t)
+    
+                (error-print-width 250)
                 
                 (current-rep-text this)
                 (current-output-port this-out)
                 (current-error-port this-err)
+                (current-value-port this-result)
                 (current-input-port this-in)
-                
-                (global-port-print-handler
-                 (let ([old (global-port-print-handler)])
-                   (lambda (value port)
-                     (if (or (eq? port this-result)
-                             (eq? port this-out)
-                             (eq? port this-err))
-                         (parameterize ([mzlib:pretty-print:pretty-print-size-hook
-                                         drscheme-pretty-print-size-hook]
-                                        [mzlib:pretty-print:pretty-print-print-hook
-                                         (lambda (x _ port)
-                                           (evcase port
-                                                   [this-result (this-result-write x)]
-                                                   [this-out (this-out-write x)]
-                                                   [this-err (this-err-write x)]))])
-                           (old value port))
-                         (old value port)))))
                 
                 (print-convert:current-print-convert-hook
                  (lambda (expr basic-convert sub-convert)
@@ -1690,19 +1752,18 @@
                 (set-resetting #f)
                 (set-position (last-position) (last-position))
                 
-                (insert-delta "Language: " welcome-delta)
-                (insert-delta (basis:setting-name user-setting) dark-green-delta)
-                (unless (equal? (basis:find-setting-named (basis:setting-name user-setting))
-                                user-setting)
-                  (insert-delta " Custom" dark-green-delta))
+                (insert-delta (string-append (string-constant language) ": ") welcome-delta)
+                (insert-delta "<<language name goes here>>" dark-green-delta)
+                (unless 'default?
+                  (insert-delta (string-append " " (string-constant custom)) dark-green-delta))
                 (insert-delta (format ".~n") welcome-delta)
                 
                 (for-each
                  (lambda (fn)
-                   (insert-delta "Teachpack: " welcome-delta)
+                   (insert-delta (string-append (string-constant teachpack) ": ") welcome-delta)
                    (insert-delta fn dark-green-delta)
                    (insert-delta (format ".~n") welcome-delta))
-                 (preferences:get 'drscheme:teachpack-file))
+                 (list "<<teachpacks go here>>"))
                 
                 (set! repl-initially-active? #t)
                 (end-edit-sequence)
@@ -1715,10 +1776,10 @@
               (lambda ()
                 (super-initialize-console)
                 
-                (insert-delta "Welcome to " welcome-delta)
+                (insert-delta (string-append (string-constant welcome-to) " ") welcome-delta)
                 (let-values ([(before after)
                               (insert-delta "DrScheme" click-delta drs-font-delta)])
-                  (insert-delta (format ", version ~a.~n" (version:version))
+                  (insert-delta (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
                                 welcome-delta)
                   (set-clickback before after 
                                  (lambda args (drscheme:app:about-drscheme))
@@ -1727,7 +1788,7 @@
                 (insert-prompt)
                 (clear-undos)))
             
-            (set-display/write-handlers)
+            (setup-display/write-handlers)
             
             (super-instantiate ())
             

@@ -13,8 +13,7 @@
            (lib "framework-sig.ss" "framework")
            (lib "startup-url.ss" "help")
 	   (lib "help-sig.ss" "help")
-	   "drsig.ss"
-	   (prefix basis: (lib "basis.ss" "userspce")))
+	   "drsig.ss")
   
   (provide help-interface@)
   
@@ -42,31 +41,11 @@
       
       (define (user-defined-doc-position doc)
         (let ([lang (preferences:get drscheme:language:settings-preferences-symbol)])
-          (cond
-            [(basis:beginner-language? lang)
-             (case (string->symbol doc)
-               [(advanced) -100]
-               [(intermediate) -101]
-               [(beginning) -102]
-               [else #f])]
-            [(basis:intermediate-language? lang)
-             (case (string->symbol doc)
-               [(advanced) -101]
-               [(intermediate) -102]
-               [(beginning) -100]
-               [else #f])]
-            [(basis:advanced-language? lang)
-             (case (string->symbol doc)
-               [(advanced) -102]
-               [(intermediate) -101]
-               [(beginning) -100]
-               [else #f])]
-            [else
-             (case (string->symbol doc)
-               [(advanced) 100]
-               [(intermediate) 101]
-               [(beginning) 102]
-               [else #f])])))
+          (case (string->symbol doc)
+            [(advanced) 100]
+            [(intermediate) 101]
+            [(beginning) 102]
+            [else #f])))
       
       (define (load-help-desk)
         (define frame-mixin drscheme:frame:basics-mixin)
