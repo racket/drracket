@@ -8,7 +8,7 @@
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "startup-url.ss" "help")
-           (lib "basis.ss" "userspce"))
+	   (prefix basis: (lib "basis.ss" "userspce")))
   
   (provide help-interface@)
   

@@ -609,7 +609,6 @@
                      get-admin
                      set-prompt-position
                      get-canvases find-snip
-                     inserting-prompt
                      release-snip)
             (rename [super-on-insert on-insert]
                     [super-on-delete on-delete]
@@ -828,7 +827,7 @@
             (define (make-fetcher)
               (make-object
                   (class100 object% ()
-                    (public-field
+                    (private-field
                      [fetch-char-sema (make-semaphore 1)]
                      [fetcher-spawned? #f]
                      [char-fetched-sema (make-semaphore)]
@@ -1257,7 +1256,7 @@
             (field (eval-count 0))
             (define (do-eval start end)
               (set! eval-count (add1 eval-count))
-              (when (5 . <= . count)
+              (when (5 . <= . eval-count)
                 (collect-garbage)
                 (set! eval-count 0))
               (let* ([needs-execution? (send context needs-execution?)])
@@ -1321,12 +1320,12 @@
                   end))))
             
             
-	;; do-many-evals : ((((-> void) -> void) -> void) -> void)
+	    ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
             (define do-many-evals ; =Kernel=, =Handler=
               
-	  ;; run-loop has the loop. It expects one argument, a procedure that
-	  ;; can be called with a thunk. The argument to run-loop maintains the right
-	  ;; breaking state and calls the thunk it was called with.
+	      ;; run-loop has the loop. It expects one argument, a procedure that
+	      ;; can be called with a thunk. The argument to run-loop maintains the right
+	      ;; breaking state and calls the thunk it was called with.
               (lambda (run-loop)  ;; (((-> void) -> void) -> void)
                 (send context disable-evaluation)
                 (cleanup-transparent-io)
@@ -1368,7 +1367,9 @@
                     
                     ; Cleanup after evaluation:
                     (lambda () ; =User=, =Handler=, =No-Breaks=
-                      (queue-system-callback/sync user-thread cleanup-interaction)))))))
+                      (queue-system-callback/sync
+		       user-thread
+		       (lambda () (cleanup-interaction)))))))))
             
             (define shutdown-user-custodian ; =Kernel=, =Handler=
               ; Use this procedure to shutdown when in the middle of other cleanup
@@ -1492,14 +1493,7 @@
                        (break-enabled #f)
                        (set! user-thread (current-thread))
                        
-                       (parameterize ([basis:teachpack-error-display
-                                       (lambda (message)
-                                         (parameterize ([current-eventspace 
-                                                         drscheme:init:system-eventspace])
-                                           (queue-callback
-                                            (lambda ()
-                                              (message-box "Invalid Teachpack" message)))))])
-                         (initialize-parameters user-setting))
+		       (initialize-parameters user-setting)
                        
                        (set! user-namespace (current-namespace))
                        
@@ -1628,9 +1622,11 @@
                      (message-box
                       "Uncaught Error"
                       msg
-                      (let ([canvas (send rep get-active-canvas)])
-                        (and canvas
-                             (send canvas get-top-level-window)))))))
+		      (let ([rep (current-rep-text)])
+			(and rep
+			     (let ([canvas (send rep get-active-canvas)])
+			       (and canvas
+				    (send canvas get-top-level-window)))))))))
                 
                 (let ([dir (or (send context get-directory)
                                drscheme:init:first-dir)])
@@ -1765,8 +1761,7 @@
             
             (set-display/write-handlers)
             
-	;; (apply super-init args)
-            (super-init)
+            (super-instantiate ())
             
             (set-styles-sticky #f))))
       
@@ -1821,32 +1816,26 @@
                         on-local-char)
               
               (public set-resetting
-                      resetting?
+		      get-resetting
                       
                       copy-prev-previous-expr
                       copy-next-previous-expr
                       copy-previous-expr
                       clear-previous-expr-positions
+                      set-prompt-mode
+                      get-prompt-mode
+                      ready-non-prompt
                       
                       balance-required
                       
                       initialize-console
-                      
-                      clear-previous-expr-positions
-                      copy-previous-expr
-                      previous-expr-pos
-                      previous-expr-positions
-                      set-prompt-mode
-                      get-prompt-mode?
-                      ready-non-prompt
-                      inserting-prompt
                       
                       reset-pretty-print-width
                       
                       get-prompt
                       insert-prompt
                       set-prompt-position
-                      prompt-position
+                      get-prompt-position
                       reset-console
                       
                       do-pre-eval
@@ -1896,18 +1885,19 @@
                             (and prompt-mode? (< start prompt-position)))
                     (set! prompt-position (combine prompt-position len)))))
               
-              (define resetting? #f)
-              (define set-resetting (lambda (v) (set! resetting? v)))
+              (field (resetting? #f))
+	      (define (get-resetting) resetting?)
+              (define (set-resetting v) (set! resetting? v))
               
               (define can-insert?
                 (lambda (start len)
-                  (can-something super-can-insert? start len)))
+                  (can-something (lambda (x y) (super-can-insert? x y)) start len)))
               (define can-delete?
                 (lambda (start len)
-                  (can-something super-can-delete? start len)))
+                  (can-something (lambda (x y) (super-can-delete? x y)) start len)))
               (define can-change-style?
                 (lambda (start len)
-                  (can-something super-can-change-style? start len)))
+                  (can-something (lambda (x y) (super-can-change-style? x y)) start len)))
               (define after-insert
                 (lambda (start len)
                   (after-something + start len)
@@ -1935,26 +1925,28 @@
                                      (car l)
                                      (last-str (cdr l)))))
               
-              (field (prompt-mode? #f))
+              (field (prompt-mode? #f)
+		     (prompt-position 0))
               (define (get-prompt-mode) prompt-mode?)
               (define (set-prompt-mode x) (set! prompt-mode? x))
               (define get-prompt (lambda () "> "))
-              (define prompt-position 0)
               (define set-prompt-position (lambda (v) (set! prompt-position v)))
+	      (define (get-prompt-position) prompt-position)
               (define find-prompt 
                 (lambda (pos) 
                   (if (> pos prompt-position)
                       prompt-position
                       0)))
-              (define auto-save? #f)
+
+	      (field (balance-required-cell #t))
               (define balance-required
-                (let ([v #t])
-                  (case-lambda
-                   [() v]
-                   [(x) (set! v x)])))
+		(case-lambda
+		 [() balance-required-cell]
+		 [(x) (set! balance-required-cell x)]))
               
-              (define previous-expr-pos -1)
-              (define previous-expr-positions null)
+              (field (previous-expr-pos -1)
+		     (previous-expr-positions null))
+
               (define clear-previous-expr-positions
                 (lambda ()
                   (set! previous-expr-positions null)))
@@ -1989,7 +1981,7 @@
                   (let ([previous-exprs (preferences:get 'console-previous-exprs)])
                     (unless (null? previous-exprs)
                       (set! previous-expr-pos
-                            (if (<= previous-expr-pos 0)
+                            (if (previous-expr-pos . <= . 0)
                                 (sub1 (length previous-exprs))
                                 (sub1 previous-expr-pos)))
                       (copy-previous-expr)))))
@@ -2003,7 +1995,7 @@
                                     [snips null])
                            (cond
                              [(not snip) snips]
-                             [(<= (get-snip-position snip) end)
+                             [((get-snip-position snip) . <= . end)
                               (loop (send snip next)
                                     (cons (send snip copy) snips))]
                              [else snips]))])
@@ -2098,7 +2090,7 @@
                             (not prompt-mode?)
                             (not (eval-busy?)))
                        (insert-prompt)]
-                      [(and (<= prompt-position start)
+                      [(and (prompt-position . <= . start)
                             (only-spaces-after start)
                             (not (eval-busy?)))
                        (if (balance-required)
@@ -2126,7 +2118,7 @@
                       [else
                        (super-on-local-char key)]))))
               
-              (define inserting-prompt #f)
+              (field (inserting-prompt #f))
               (define (insert-prompt)
                 (set! prompt-mode? #t)
                 (fluid-let ([inserting-prompt #t])
@@ -2166,7 +2158,7 @@
               (define initialize-console
                 (lambda ()
                   #t))
-              (apply super-init args)))))
+              (super-make-object)))))
       
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
@@ -2180,28 +2172,28 @@
          (scheme:text-mixin
           text:searching%)))
       
+      (define consumed-delta (make-object style-delta% 'change-bold))
+	   
       (define transparent-io-text%
-        (class100* transparent-io-super% (transparent-io-text<%>) (rep-text)
+        (class100* transparent-io-super% (transparent-io-text<%>) (_rep-text)
           (inherit change-style
                    prompt-position set-prompt-position
-                   resetting? set-resetting lock get-text
+                   get-resetting set-resetting lock get-text
                    set-position last-position get-character
                    clear-undos set-cursor
                    do-pre-eval do-post-eval balance-required)
           (rename [super-after-insert after-insert]
                   [super-on-local-char on-local-char])
           (private-field
+	   [rep-text _rep-text]
            [data null]
            [stream-start 0]
            [stream-end 0]
            [shutdown? #f])
           
-          (public-field
+          (private-field
            [stream-start/end-protect (make-semaphore 1)]
            [wait-for-sexp (make-semaphore 0)]
-           [consumed-delta 
-            (make-object style-delta% 'change-bold)]
-           [ibeam-cursor (make-object cursor% 'ibeam)]
            [eof-submitted? #f])
           (public
             [get-insertion-point
@@ -2214,7 +2206,7 @@
                (lock #t))]
             [mark-consumed
              (lambda (start end)
-               (let ([old-resetting resetting?])
+               (let ([old-resetting (get-resetting)])
                  (set-resetting #t)
                  (change-style consumed-delta start end)
                  (set-resetting old-resetting)))]
@@ -2267,10 +2259,10 @@
              (lambda (start len)
                (super-after-insert start len)
                (when program-output?
-                 (when (<= start stream-start)
+                 (when (start . <= . stream-start)
                    (set! stream-start (+ stream-start len))))
                (unless program-output?
-                 (let ([old-r resetting?])
+                 (let ([old-r (get-resetting)])
                    (set-resetting #t)
                    (change-style input-delta start (+ start len))
                    (set-resetting old-r))))])

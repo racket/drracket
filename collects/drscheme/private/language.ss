@@ -10,7 +10,7 @@
            (lib "list.ss")
            (lib "file.ss")
            (lib "pconvert.ss")
-           (lib "basis.ss" "userspce"))
+           (prefix basis: (lib "basis.ss" "userspce")))
   
   (provide language@)
   

@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-           (lib "basis.ss" "userspce")
+	   (prefix basis: (lib "basis.ss" "userspce"))
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
