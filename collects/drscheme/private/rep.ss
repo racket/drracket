@@ -2121,6 +2121,7 @@
       
       (define console-text-mixin
         (mixin ((class->interface text%)
+                color:text<%>
                 editor:basic<%>
                 editor:keymap<%>) (console-text<%>)
           (inherit position-line position-location
@@ -2414,7 +2415,8 @@
                     #t)])
           (define/public (set-submit-predicate p)
             (set! submit-predicate p))
-          
+
+          (inherit backward-match)
           (define on-local-char
             (lambda (key)
               (let ([start (get-start-position)]
@@ -2475,7 +2477,7 @@
 
 ;; need to change this case to bring down entire interaction always.
                   [(start . < . prompt-position)
-                   (let ([match (scheme-paren:backward-match this start 0)])
+                   (let ([match (backward-match start 0)])
                      (if match
                          (begin
                            (begin-edit-sequence)
