@@ -100,8 +100,6 @@
 	       [definitions-edit (send frame get-interactions-text)]
 	       [filename (send definitions-edit get-filename)])
 	  (unless filename
-	    (send interactions-edit reset-console)
-	    (send interactions-edit insert-prompt)
 	    (send frame update-shown)
 	    (send (send frame get-interactions-canvas) focus))
           (send frame show #t)))
