@@ -1,0 +1,448 @@
+<html><head><!-- This document was created from RTF source by rtftohtml version
+2.7.5 --><title>wxMac Status</title></head><body><h3>
+<a name="RTFToC1">Known
+Bugs and Problems
+</a></h3>
+4. Merged Tomaso's wb_ps.cc with 16.1 distribution wb_ps.cc. MW's DebugNew
+crashes to MacsBug because it found a overwritten block when doing the
+hello/file/print eps. This doesn't happen in all combinations of PPC, 68K, and
+Debugging!<p>
+11.  Things that 16.1 does that wxMac doesn't like (some of these may be new
+functionality since the base 15.x version) :
+<ul>
+<li>	The Get/SetLabel compiler warnings are very annoying.  wx_menu.h seems to
+be a major offender.
+<li>	In wx_text the following methods may have not been fully debugged:<ul>
+<li>	SetSelection
+<li>	Copy
+<li>	Paste
+<li>	Cut</ul></ul>12.  Why can't an app declare a variable called 'frame' like
+most of the distributed sample/test apps do.  - Because frame is declared in an
+apple header, Quickdraw.h<p>
+14. Need a better  scheme for preprocessor symbols Beware: Apple's
+&lt;Windows.h&gt; defines __WINDOWS__<p>
+18. Need real code for these classes: group, toolbar, mf.<p>
+20. Need additional Cursors<p>
+21. Hello.cc creates a popupmenu - how/where does this show up on a real
+wxWindows system and how should the mac do it?<p>
+23. Resources - how to implement ?<p>
+24. Dig into dynamically tracking the thumb in wx_slider.cc. There's code in
+there to try it but it doesn't work. <p>
+25. There is a problem with hello.cc - MyTextWindow can cover parts of the last
+control. Hello should be rewritten so that the TextWindow is not 1/2 of the
+root frame but instead start after the last control. The same problem shows up
+in animate.cc where the sliders panel covers part of the frames statusline.
+This is not a Mac bug per-se - its a consequence of the size of Mac controls,
+Mac screen size and application programming that assumes every thing will fit
+in 1/2 the window.<p>
+26. Maybe StatusLine widget should go on the bottom of a frame with room for a
+GrowIcon and a small horizontal scroll if needed<p>
+28. What I implemented for wxChoice is really a wxWindows PopUpMenu(). This may
+be a problem. Is a wxChoice a keyboard enterable control or are the selections
+fixed (by the program)?<p>
+40. For 'ipc' samples compiled and run on a PowerPC - the 'client's PPC Browser
+windows shows that "server" and "server PPC" are available targets. If you
+select just plain  "server" everything works ok. Usually. May have to compile
+client and server and library with wxDebugHeadersPPC (...68K) to get these to
+work.<p>
+43. Scan for #if 0 , #if 1 code , #ifndef CJC  and other bracketed out code -
+should be removed. <p>
+44. Multiline text doesn't work for me (Cecil)
+<h3>
+<a name="RTFToC2">Completed
+(plus notes)
+</a></h3>
+<h4>
+<a name="RTFToC3">7/9/95</a></h4>
+Have a wxListBox (wx_lbox.h, wx_lbox.cc) see the top of the file for hints on
+writing controls in wxMac. Still to do
+<ul>
+<li>How to set the font for the Lbox?
+<li>Make the cell size a multiple of the font height</ul><h4>
+<a name="RTFToC4">7/22/95
+</a></h4>
+Have a wxChoice - may not respond to OnAreaDSize in the best way. Built w/o
+areas, just Mac ToolBox calls.<p>
+Added wxMultiText::GetValue(void) hack<p>
+Added wxRemoveFile and wxGetTempFileName - these are hacks in :mac:wx_utils.c<p>
+wxPython (v01) Links,  but fails on init with a python error. WxPython sources
+must have the same Code Warrior Language Prefs as the PythonLib, i.e.  Apple
+C++ <i>and</i> don't check prototypes.
+<h4>
+<a name="RTFToC5">7/29/95</a></h4>
+Have a wxSlider - works with the following caveats:
+<ul>
+<li>The usable range is the Mac Control Managers (short int 32k?)
+<li>Does not dynamically track the thumb value - see comments in wxSlider.cc
+<li>#define USE_ACTIONPROC  1 -  can crash the Mac</ul><h4>
+<a name="RTFToC6">7/30/95</a></h4>
+Fixed wx_frame.cc (SetMenuBar)and wx_app.cc (doInMacMenu) to create and handle
+the Apple menu (and desk accessories)
+<h4>
+<a name="RTFToC7">8/6/95</a></h4>
+Fixed wx_menu.cc so that the Title of a Mac Menu can be changed. This involves
+rebuilding the entire Mac Menu and all its items but does allow
+menu_bar-&gt;Append(menu,"Real Title for menu"); which is how most wxWindows
+Programs create menus and menubars. This is also done for wxMenu::SetTitle.<p>
+If a menubar-&gt;Append(menu, "Help") is done and one of the Items in the menu
+is "About", then I save the wxMenu* and the MacItemNum in the menu_bar object.
+When the menu_bar is created (see the applemenu hack) I insert an "About"
+string into the apple menu. If chosen by the user, wx_app.cc notes that its
+applemenu/item 1 and pretends its the Help/About choice. Definately a Hack and
+probably not robust. The wxMenu destructor should deactivate this if the Help
+menu is deleted.
+<h4>
+<a name="RTFToC8">8/7/95</a></h4>
+Added code to wx_buttn.cc and wx_gdi.cc for Bitmap buttons. This is good enough
+for Hello.cc but there is more to be done so that my scheme is usable in
+wxMemoryDC (including fixing/adding code to various DC's). <p>
+With wxMac you can load either named PICT resources or PICT files (pict in the
+data fork), into a wxBitmap. The internal Mac object for a wxBitmap is
+"Picture". Given the wxWindows definition of a bitmap, this *seems* like an ok
+choice because Pictures are relatively independent of bit depth (I believe).
+They might be larger than PixMaps for some images, but they are easy to deal
+with. There are comments in wx_gdi.cc, but its pretty straight-forward. (I said
+they were easy).
+<h4>
+<a name="RTFToC9">8/8/95</a></h4>
+19. with PPCC compiler, linking hello gets a c2pstr undefined - because there
+doesn't seem to be an MPW library with that function. However there is a
+C2PStr, so all the files that need it now call for the mixed case.<p>
+20. PPCC gets very annoying, spitting out warnings about inherited virtual
+functions that is not over-ridden. Fixed the major offenders, not by deep
+thought which what is really required. Instead I just tried a few things.
+CodeWariour  seems to like them as well. This may have some part in the Hello
+(MPW PPPC) bug though.<p>
+21. Hello.cc works with both 68K and PPC Code Warrior compilers. Hello,
+minimal, fractal, and ipc(client &amp; server) have PPC projects. Only Hello
+has a 68k project, but its pretty simple to make 68K projects (4i/8d) out of
+the existing PPC projects.<p>
+
+<h4>
+<a name="RTFToC10">8/9/95</a></h4>
+Released alpha-1 (wxmac161d-a1) to limited group.<p>
+
+<h4>
+<a name="RTFToC11">8/10/95</a></h4>
+31. MPW PPCC version of hello doesn't have working push buttons ! (it used to).
+- left out an<p>
+assignment from ::TrackControl. Depending on stack contents, this might have
+worked (or not) with the other compilers.<p>
+This time, with thought, I got rid of the GetLabel and SetLabel warnings.
+Should not change functionality.<p>
+Re-released 'a1'.  <p>
+Starting the alpha-2 modifications which are directed towards getting the
+source cleaned up and documenting (if not fixing) missing canvas, and DC
+functions.
+<h4>
+<a name="RTFToC12">8/12/95</a></h4>
+13. Scan files for "CJC", "wx_mac", "OLD_HEADERS" - and review modifcations. <p>
+I have made serious cuts and restructuring of the :include:base: files (and
+:src:base:, :src:mac: as needed) to remove most of the passing of 'objectType'
+to<i> wxb* </i>constructors . This was done to bring the wxMac modifications to
+the wb_xxx.* files down to something more reasonable.  More can still be done,
+but this isn't too bad. This also involved moving some lines around to keep the
+style of the wb_xxx files more like the style of the original wxWindows files.
+This does involve code changes to constructors, so beware: It works for me
+(hello.cc, minimal.cc, fractal.cc,animate.cc (CodeWarrior)).<p>
+You can scan for "CJC' and only pickup a few (3) comments. I removed the
+OLD_HEADERS conditionals. You can scan for "wx_mac" as a "word" and (generally
+) only pick up modifications to wb_xxx files.
+<h4>
+<a name="RTFToC13">8/25/95</a></h4>
+In Summary, we now have wxMemoryDC and wxTimer classes working. It is probably
+time to release Alpha-2 Note that PPCC from ETO #17 works, and the new (ETO
+#18) MrCpp fails.<p>
+27. There are functions that appear to do nothing in wx_dccan*, wx_dcmem -
+Started on Blit(). Seems to work with the animate.cc sample, but I need a
+wxTimer that works before we can scratch animate off of the list of todo's. <p>
+2. Now have a somwhat kludgy timer class (good enough for hello.cc and
+animate.cc). It can only "fire" when the event loop is dequeueing events and
+accuracy is in CLOCKS_PER_SEC (ie Ticks) instead of milliseconds (probable
+rounding errors too!) Latency can be highly variable. <p>
+Reworked wxBitmaps to be offscreen GWorlds (wx_gdi.cc, and wx_dcmem.cc) I'm not
+overly confident in the destructor code though.  <p>
+34. Canvas's can not be placed on a frame with (abs) co-ordinates. I've
+implemented a "cure" for this in wx_dccan1.cc(wxCanvasDC::SetMacDC() ). It
+seems to work for animate and hello demos but I believe this could break other
+things (canvas's place in subframes of frames, or canvas's in panels in
+frames).<p>
+Released Alpha-2.
+<h4>
+<a name="RTFToC14">9/10/95</a></h4>
+Started playing again with wxpython (v1), wxMac161d, and python-1.2. Works
+better if the System Folder has a PythonStartup file (I didn't install python
+properly)<p>
+22. With wxPython/wxide.cc, wxTheApp does not get init'd before the call to
+main()  but Hello, Minimal, IPC, Animate do ? - Moved wxide.cc to be the first
+of the cc files in the wxPython project. No clue why there should be this kind
+of dependcy, but there it is.<p>
+Modified wxTextWindow::SaveFile to actually save a file. This also has to
+convert line endings from TextEdits '\015', CR  to '\n'. This should be
+expected to need MPW conditionalization if I ever bother to try MPW again.<p>
+Modified wxText::CreateText (wx_txt.cc) to handle a default (-1) value for the
+height argument. 
+<h4>
+<a name="RTFToC15">9/15/95
+</a></h4>
+Added the wxextend files to the project (from wxPython v2). Lots of things
+missing (toolbar, image classes), missing dialog functions,  and most
+significantly wxextend assumes that wxPanel inheirits from wxCanvas and in
+wxMac,  wxPanel inheirits from wxWindow. I somewhat arbitrarily coded around
+and/or through them, so you should expect some python calls to fail because
+wxMac doesn't <b>really</b> support them.<p>
+Added wb_dialog.cc back into the project but conditionalized most parts out
+since wx_mac handles dialogs in wx_dialg.cc <b>not</b> in <b>wb</b>_dialg.cc<p>
+5.	wb_ps.cc - when should the dialog be called ? When getting the DC. Calling
+it at StartDoc() time does not allow for a cancel in the file dialog.<p>
+Added three stubbed functions to wx_gdi.h so wxExtend can go on.  Also added
+Get/SetColourMap methods to wxBitmap (wx_gdi.h and wx_gdi.cc), also stubbed.
+<h4>
+<a name="RTFToC16">9/30/95</a></h4>
+Added Louis Birk's mods to wx_dccan3.cc(drawtext) to set font, size, and
+colours.<p>
+Louis also supplied imagif.cc and .h. IMHO the best way to incorporate these is
+to meld them into the utils/image/src files, i.e. Implement the wxImage class.
+<p>
+By default, you will need GUSI (CWGUSI), to compile wx_util.cc and a few other
+files too.<p>
+3. Add wxFileSelector* functions in the "proper" place. Modified to return the
+full path name.<b></b>
+<h4>
+<a name="RTFToC17">10/3/95</a></h4>
+Released Alpha-3
+<h4>
+<a name="RTFToC18">10/7/95</a></h4>
+I'm back to getting wxExtend/wxPython(v2) to link. - Added many functions to
+wx_util.cc (which should be renamed to wx_util<b>s</b>.cc). Some of them depend
+on GUSI and the rest are stubbed out! Its likely that Scott Maxwell's mods to
+this file are better than mine, so I'll wait.<p>
+Added conditionalisation (USE_HELP) to wxPython(wxp_module.cc).
+<h4>
+<a name="RTFToC19">10/29/95</a></h4>
+Created a new wxpy project - this is a version of wxMac that must be linked
+with Mac python-1.3. There is also a new prefix file that defines PYLIB instead
+of GUSI. GUSI and Python don't mix.<p>
+Change the defaults on wxTextWindows to add scroll bars and borders. Change the
+defaults in wxExtend to add borders to single and multiline texts.
+<h4>
+<a name="RTFToC20">11/4/95</a></h4>
+Added xpm support via the wxWindows distributed wxxpm - modified for Mac. Test
+program and project in utils/xpmshow folder.<p>
+Fixed more wx_util.cc functions for path handling.<p>
+Added bitmap support wxMessage<p>
+Fixed bug(s) in wx_lbox.cc - was not deleting clientdata.<p>
+38. Tried adding wxPython  wxextend modules to the wxMac Lib. <p>
+Should modify wxExtend to pay attention to common.h/wx_setup.h idioms like
+USE_TOOLBAR<p>
+wxPython Assumes that wxPanels inherit from wxCanvas which is not true for
+wx_mac<p>
+
+<h5>
+<a name="RTFToC21">Added
+these contributions from Louis Birk:
+</a></h5>
+A fix to wx_dcmem that sets the gworld to null after deleting it in
+SelectObject. 	   <p>
+wximgfil.cc has fixes related to code that creates the rectangle for the gif.
+<p>
+In wx_frame.cc I added a Paint() call to the resize because scroll bars would
+come out strange after resizing the window.<p>
+ wx_dccan1.cc I changed the SetCurrentDC() code back to the previous rev
+because the logical window positions were about 30-40 pixels different than
+physical ones. NOTE (from Cecil), these break the animate.cc sample. They can
+be turned on by #defining LkB at the top of wx_dccan1.cc<p>
+The save file routine (wx_utils) needs to initialize a defPath, otherwise it
+gets all garbled data.<p>
+Implement a simple write/read resource file like windows. There is one problem:
+all entry names must have unique names. <p>
+Added wxGetUserHome to wx_utils (wx_util.cc) - returns current dir;<p>
+Added several print related files that make up a partial implementation for
+printing. It does not include the Print preview stuff as I have been unable to
+complete this. Printing appears to work on my QUME ps printer. I am unable to
+test through GX . Note that there is an extra allocation of a THPrint record
+due to the structure of the wx_print classes. I will work on this later.
+<h4>
+<a name="RTFToC22">11/11/95</a></h4>
+Added support for wxBitmaps that can load xbm and bmp (and the previous xpm,
+pict and pict resource). The default is wxBITMAP_TYPE_PICT_RESOURCE. Minimal
+can be compiled to test the various bitmap formats. Additionally utils/xmpshow
+can be compiled and used to browse the bmp's and xpm's. Note that xpmshow has
+some bugs (crashes), in different ways depending on 68K or PowerPC.<p>
+39. It would be nice to implement bmp, xbm, and ico support. - This would make
+porting easier.
+<h4>
+<a name="RTFToC23">11/23/95
+- Start integrating Matt's fixes
+</a></h4>
+wxCanvasDC:SetBackground (wx_dccan1.cc) - some wxCanvas method calls this with
+current_background_brush,  which is initially NULL. This crashes. I added a
+line to return if the parameter is NULL. (I don't know if that's the right
+solution.)<p>
+wxMemoryDC constructor -  If MacCreateGWorld() returns an error, then do not
+attempt to draw a bitmap.<p>
+wxBitmap: If NewGWorld() returns  an error, then set ok to FALSE, set x_pixmap
+to NULL, and don't SetGWorld() - occurs in wx_gdi.cc (wxBitmap::Create).<p>
+wxMemoryDC::SelectObject: After deleting gworldH and cMacDC, set them to NULL.
+(The gworldH problem was already reported.)<p>
+wxCanvasDC: SetCurrentDC() needs to set the logical function, (wx_dccan1.cc)<p>
+wxFont::GetTextExtent: The hack that adds 5 to the width is very bad for MrEd.
+I removed it.<p>
+wx_frame.h - OnChar() , Paint(), and OnCommandEvent() made public.<p>
+wx_panel - AdvanceCursor() made public.
+<h4>
+<a name="RTFToC24">11/26/95
+- Added more of Matt's code
+</a></h4>
+Fixed a problem with wximgfil.cc for 68K (CJC).<p>
+In wx_messg.cc OnPaint() add 1 to clientHeight and clientWidth<p>
+Moved the kludge that adds 5 to the width in wxFont::GetTextExtent(...) to
+wxMessage::CreateWxMessage when the font sytle or weight is not wxNORMAL.<p>
+wxChoice::Create now defaults to a label width of 50 pixels and a value width
+of 60 pixels (when no strings are provided).<p>
+Added enhancements to handle wxMedia and scrolling. (wx_canvs.*). Should not
+change any previous non wxMedia code.<p>
+Added Cut(), Copy(),Paste()... to wx_txt and wx_text - may not be working
+correctly at least for the hello sample.<p>
+9.	wb_utils.cc - lots of places where we need to handle Mac pathnames. Some of
+this sould be moved to :mac:wx_utils.cc <p>
+
+<h4>
+<a name="RTFToC25">11/27/95</a></h4>
+Attempted to add Matts code so that wxDialogBox inherits from wxPanel instead
+of wxFrame. This turned out to be non trivial (unless you have lots of stack
+space for nested event loops). Pressing the button in hello failed to bring up
+the next dialog and started a new event loop - simple dialogs would *appear* to
+be ok. Matts code can be conditionalized in (wx_setup.h - USE_MAC_DIALOG_PANEL)
+but needs to be debugged. The default wx_setup continues for dialogbox to
+inherit from frame.
+<h4>
+<a name="RTFToC26">11/28/95</a></h4>
+Released alpha 4 snapshot.
+<h4>
+<a name="RTFToC27">12/9/95</a></h4>
+1. IPC code doesn't work for PowerPC (15.x) or for either processor (16.1)
+Appears to be server side - try compiling with the Debug logging May be
+registering in the system twice ? (PPC) Also, can't run them twice - not
+deregistering (ppc and 68k)   - This bug is fixed.<p>
+Hacked the wxWindow destructor to NULL out wxPanel-&gt;last_created (if the
+windows parent is a Panel)<p>
+When USE_PANEL_CANVAS_IN_MAC and USE_MAC_DIALOG_PANEL are both defined as '1'
+in wx_setup.h, then wxDialogBox inherits from wxPanel which inherits from
+wxCanvas, just like the MSW and Motif versions of wxWindows. This is the
+default in wx_setup.h. USE_MAC_DIALOG_PANEL will goway in a future release (a5
+or a6).
+<h4>
+<a name="RTFToC28">12/27/95
+Adding Greg's (GRW) fixes:
+</a></h4>
+In the spirit of making wxWin adapt to "the Mac look" I switched the order of
+OK and Cancel in wxMessageBox and wxGetTextFromUser, and added wxSYSTEM to the
+list of fonts. Files modified - common.h, wxGetTxt.cc, wx_dialg.cc,wx_gdi.cc<p>
+In wx_canvs.h and wx_canvs.cc, added two additional constructors needed for
+USE_PANEL_CANVAS_IN_MAC.<p>
+Incomplete, but functional - Improved the visual appearance of controls and
+scrollbars in particular when the "frame" becomes (in)active. Much more Mac
+like. - wb_frame.cc,wx_buttn.cc,wx_buttn.h, wx_check.cc, wx_rbut.cc,wx_sbar.cc
+and wx_win.cc. This introduces a new method of wxButton - Highlight() which is
+used instead of ShowAsActive(). In some controls, ShowAsActive() is now stubbed
+out.<p>
+Initialized variable 'ret' before usage in wximgfil.cc wxGIF::decoder().<p>
+Add additional mouse handling code for wxFrames and remove call to SystemTask()
+- wx_app.cc.<p>
+in wx_gdi.cc wxBitmap::~wxBitmap() - use the short form of Disposing of the
+GWorld - Louis's code can be switched in with a #define LkB<p>
+in wx_txt.cc wxText::CreateWxText,  make a single call to wxScrollArea() not
+two.<p>
+Do a better job of postioning Scrollbars on a frame - wxScrollArea.cc<p>
+Support for the built-in cursors (arrow, ibeam, cross, watch) and adjusting the
+cursor as the mouse moves - wx_app.cc, wx_gdi.h, wx_gdi.cc, wx_main.cc,
+wx_win.h, wx_win.cc<p>
+Support for more window styles, drawing the grow icon, and resizing -
+wx_frame.cc, wx_frame.h add a MacDrawGrowIcon(void) method and new update code
+and drawing code.  Also mods in wx_panel.cc Paint() and wx_win.cc<p>
+Incomplete fixes related to keyboard focus in panels.  Support for enter/return
+triggering the default action, and tab/shift-tab cycling through the items that
+want focus.  Currently, only wxText and wxMultiText accept focus.  Also, while
+making these changes, I noticed that wxText doesn't really implement a single
+line input like it is supposed to (this was a problem when I wanted to steal
+enter/return from it).  To avoid duplicating code between wxText and
+wxMultiText/wxTextWindow, I just introduced a flag to wxText that turns on the
+multiple line behaviour (wxMULTIPLE).   The single line behaviour, on by
+default, still isn't complete though: word wrap hasn't been disabled. Lots of
+files modified - wxGetTxt.cc, wx_dialg.cc, wx_item.cc wx_mtxt.cc, wx_panel.cc,
+wx_panel.h line 123, wx_txt.cc, wx_txt.h, wx_win.cc, wx_win.h.
+<h4>
+<a name="RTFToC29">1/12/96</a></h4>
+Replaced my 'a5p2' (which should have been a4p2) with Matt's (mflatt)
+distribution which includes everything in a5p2(a4p2) plus fixs and changes.
+Uploaded to ftp.aiai.
+<h4>
+<a name="RTFToC30">1/13/96</a></h4>
+Fixed and distributed these errors to a4p3: - (Porting:cjcfixes.txt)<p>
+Added a new function wxDirectorySelector() to wb_utils.h and wx_utils.cc and
+also added to new constants to wb_utils.h - wxDIR_ONLY and wxFILES_ONLY (the
+later is probably not needed). If wxDIR_ONLY is passed to wxFileSelector(), it
+will be handed off to wxDirectorySelector() which takes the same arg list as
+wxFileSelector (most are unused on the Mac). Modified xpmshow to use
+wxDirectorySelector() for testing. wxDirectorySelector() requires a special
+DLOG,DITL resource (see main.[[pi]].rsrc and wx_utils.cc) E-mail with Julian
+concurs that wxDirectorySelector() is a function that should be added to
+wxMotif, wxMSW...
+<h4>
+<a name="RTFToC31">1/21/96</a></h4>
+Eradicated memory leaks - Hello sample has 12 leaks which appear to come from
+startup - see README:Leaks-Repair. Also, these methods now copy to wxBuffer
+instead of copystring():
+<ul>
+<li>wxMessage::GetLabel </ul>
+<h4>
+<a name="RTFToC32">1/27/96</a></h4>
+Cleaned up a confusion with OnSize() which appears to be only a method of
+wxFrame. I adjusted code so that OnSize is only called when the frame is
+maximized(minimized), it is  growzone dragged, or when the app calls
+frame::SetSize().  Then I called OnSize() in wxEntry so that the startup frame
+gets the OnSize when created. Now that I think of it, this behaviour should be
+"delayed" until any frame is given a "Show(TRUE)" although the first wxTheApp
+frame should still be done (ie two calls to OnSize on the first (app) frame).
+<h4>
+<a name="RTFToC33">2/17/96</a></h4>
+Replaced call to Paint() in wx_win.cc with a call to OnPaint(). Applications
+can now defined their canvas painting method as  standard OnPaint(). THIS WILL
+REQUIRE THAT wxMac applications will need to changed.  This fix is
+conditionalized #ifdef CJC_FIXES_PAINT and required modifications in many of
+the internal files wx_buttn, wc_check..... This introduced a bug where canvas
+scrollbars are not drawn when the canvas is positioned with the scrollbar off
+screen, activated and positioned back on screen. Introducded yet more code to
+wxWindow::OnPaint to check for a canvas and make an additional call to paint
+the scroll bars. NOTE This looks like a kludge!<p>
+Repaired wxButton::GetLabel and wxCheckBox::GetLabel , wxMessage::SetLabel ,
+wxScrollBar::GetLabel leaks. Also  wxRadioButton::GetLabel()<p>
+
+<h4>
+<a name="RTFToC34">2/19/96
+- Thomas Fettig's Fixes
+</a></h4>
+Define USE_MAC_GRAY_LABEL_BACKGROUND in wx_setup.h if you like Grey backgrounds
+for your labels. Not defined by default. wxLabelArea.cc<p>
+Define some additional function keys and added some internationalization.
+Modfications to wx_app.cc, wx_txt.cc - Note that Tom points out a
+incompatiblity in wx_txt OnChar() with Matts code.<p>
+Tom doesn't lke the +5 hack in wxMessage::CreateWxMessage - but hello.cc needs
+it? What to do?<p>
+Add code to enable and disable multiline text mode in wx_text.cc,  wx_mtxt.cc -
+Doesn't work for me (Cecil)<p>
+Conditionally, add code to place StatusLines at the bottom of a frame. Visually
+I like it. Note that it resizes improperly in hello.c so its not compiled in by
+default. See wx_setup.h<p>
+Added code to wx_panel.cc to help manage children (windows)
+deletion/destruction.<p>
+Improved AreaSize'ing code in wx_win.  Worked fine for me before and after so
+I'm not sure what the problem or symptom is being fixed.<p>
+Did not add all of Tom's modifications to the wx_win destructor since some of
+them interfered with the plugging of memory leaks that I did. More study is
+needed here.<p>
+Restore lost line in wb_item.cc and a lost patch to wx_util.cc (oops - I know I
+had it once).<p>
+Released wxMac161d-a5 as soon as ftp.aiai cooperates.<p>
+</body></html>

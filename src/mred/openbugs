@@ -1,0 +1,73 @@
+
+* skill-focus
+
+* command-event: string for text events
+
+* when an overridden function returns the wrong type,
+   bad error message (says "expects")
+
+* MacOS needs way to control the 0-window menu bar
+
+* X Windows and drawing into b & w bitmaps: black and white
+  are reversed when using certain kinds of displays
+
+* wx:dc%'s draw-arc is undefined when input isn't
+  consistent with a circle
+
+* Windows: set-user-scale with wx:memory-dc% doesn't work right
+
+* MacOS: busy-cursor state is wrong for new windows when the
+   busy cursor is active
+
+* pasteboards: printing not yet implemented
+
+* need to penalize the current thread more for certain primitive
+   operations that can take a long time (e.g., loading a bitmap
+   or saving a file)
+
+* need directory-selection dialog
+
+* Keys like KP_end, etc. are not currently accessible
+
+* doc: [Mr] clarify "owning the caret" with respect to ownership by the parent, etc.
+
+* Motif: get-file dialog modality is wrong for eventspaces
+
+* Windows and MacOS: "primitive" dialogs don't get closed by
+   custodian-shutdown-all
+
+* MacOS: std file dialog and print dialogs block MzScheme threads
+
+* how does wx:dc% get-size interact with the user scale?
+
+* the full width for non-wrapped lines need not include the autowrap bitmap
+
+* should use a guranteed offset for stippling in buffer redraws
+
+* Xt: out-of-colours - widgets use too much black
+
+* signature include: unbalanced parens => diverge?
+
+* drag outisde view => should keep going even if mouse is still
+
+* hidden files - add a MzScheme predicate?
+
+* dragging selection shouldn't keep changing the auto-X-selection
+
+* Xt: busy cursor not shown in the menu bar
+
+* editor buffers should show a blinking caret
+
+* Motif: menus don't work with multiple displays
+
+* Motif: wxDialogBox doesn't obey current display for multiple displays
+
+* add background colour for buffers?
+
+* updating bug?: long flash, not on same line, update on focus-in
+
+* add paragraph styles?
+
+* need better de-fragmentation of text snips
+
+* need to show a mystery snip icon when unknown data is loaded from a file

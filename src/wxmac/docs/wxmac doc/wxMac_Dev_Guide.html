@@ -1,0 +1,560 @@
+<html><head><!-- This document was created from RTF source by rtftohtml version
+2.7.5 --><title>WxMac Development Guide</title></head><body><blockquote><i>This
+file is the start of a wxMac Developers Guide.</i>
+<i>Written by Cecil Coupe (ccoupe@simplot.com) with additions from Bill Hale
+and Tomaso Paoletti, and Matthew Flatt</i></blockquote><h2>
+<a name="RTFToC1">I.
+Introduction
+</a></h2>
+<h3>
+<a name="RTFToC2">What
+is wxWindows and wxMac
+</a></h3>
+wxWindows is a cross platform GUI development library with supporting
+applications and demos. wxMac is a port of wxWindows for the Macintosh.
+<h3>
+<a name="RTFToC3">Who
+is this document for?
+</a></h3>
+Part II of this document will help you install and *use* wxWindows for the
+Macintosh. Part III and beyond are intended for alpha and beta testers and for
+those who want to add  to or fix the wxMac code
+<h2>
+<a name="RTFToC4">II.
+Installation
+</a></h2>
+<h3>
+<a name="RTFToC5">Hardware
+and Software requirements
+</a></h3>
+MacOS - System 7 or greater<p>
+Color QuickDraw<p>
+32 bit addressing - so you require a 68030/68040 or PowerPC.<p>
+Floating point hardware will help (probably a lot).<p>
+Enough memory for your C++ compiler to handle large programs.<p>
+You will want 20MB of free space in order to run the sample applications, 40MB
+free would be easier to deal with.
+<h3>
+<a name="RTFToC6">Archives
+and compression
+</a></h3>
+There are several methods for bundling up a directory tree into a single file
+and compressing that file to reduce its size. Depending on how and which
+distribution you got you may need additional helper programs to create a real
+Macintosh folder(s).<p>
+1. If you are lucky, you downloaded a self extracting stuffit archive. Simply
+double click on the icon and StuffIt will ask where to put the Folders and
+files.<p>
+2. If you don't have the .sea or .sit versions of the distribution, but instead
+have a file ending in .tar.Z, .tar.gz, or .ZIP (or .zip), you need to acquire
+the following programs for your Macintosh:
+<ul>
+<li>MacGzip from ....
+<li>Suntar(2.0.2) from ....</ul>Also note, that tar may not preserve some of
+the Mac special characters, in particular the 'pi' character is the Option-p
+keys, and needs to be placed in project files. Parentheses are replaced with
+'+', which is only really a problem for Symantec.<p>
+3. If you don't understand both steps 1 and 2, (and even if you don't need #2)
+you will have a extremely steep learning curve ahead of you. I'm sorry,  but
+that is how it is in the cross platform world.
+<h3>
+<a name="RTFToC7">Chose
+your compiler/environment
+</a></h3>
+<b>Note</b>: Symantec Projects and MPW makefiles are out of date. CodeWarrior
+is the only supported compilers.<p>
+By now you've untarred/unzipped/unstuffed the archive, you might have read the
+README files, and you've already tried to build the system with CodeWarrior or
+Think-C++. MPW aficionados just modified the Makefile and tried it. You
+probably wouldn't be reading this unless you had a problem. Lets try it again,
+from the archive/zip/tar file (you did make a copy, right).<p>
+You should decide whether you want to use MPW, CodeWarrior, or ThinkC++. They
+can all coexist in the same set of folders, but life will be so much better and
+easier if you chose one now and stick with it throughout your wxWindows
+exploration.
+<h3>
+<a name="RTFToC8">Structure
+of distribution directories
+</a></h3>
+There will be a lot of directories/folders and files. The ones you want to deal
+with  are "samples", "src" and "include" in the top-level directory, plus the
+project files and/or Makefile and hopefully the README's and Documentation.
+IGNORE the others. You'll have plenty of time later after you get a decent
+install.
+<h3>
+<a name="RTFToC9">Compiling
+a wxWindows program with Metrowerks C++ (v7)
+</a></h3>
+The wxWindows library (used by all samples and any programs you write) has to
+be built first. In the top level directory, along with the 'src' and "include"
+directories should be a wxMac161-PPC.[[pi]] or wxMac161-68K[[pi]] project.
+Double click, select Make from the "Project" menu and cross your fingers.
+CodeWarrior may complain that some path's are not available, typically this is
+the path to wherever you installed Codewarrior. This error message is corrected
+by setting the project preferences (Edit-&gt;Preferences-&gt;Paths) to your CW
+installation Folder.<p>
+For 68k compilation, you must make sure that the library and all applications
+are compiled with the same prefs settings. As distributed, the projects build
+for 4 byte ints, 8 byte doubles, and no floating pt HW (that is 4i/8d). If you
+wish to change this you will also have to add the appropriate libraries into
+the project in place of the 4i/8d's that are there.<p>
+If all works well (no fatal compile errors) you can try the sample programs
+located in the "samples" directories. Drill down into samples:hello. Loaded it
+- I happen to like using the Finder to open the :samples:hello: folder and
+double clicking on the hello.ppc.[[pi]]. <p>
+Although, the 'minimal' program is even simpler than 'hello', if hello doesn't
+run for you, well its a long and winding road...
+<h3>
+<a name="RTFToC10">Compiling
+a wxWindows program with Symantec C++  or MPW
+</a></h3>
+Symantec and MPW is no longer supported with the alpha-4 snapshot. I'm not
+saying that you couldn't make it work, only that I no longer care to spend the
+copious amounts of time watching MPW compile. Its large enough under
+CodeWarrior as it is!
+<h2>
+<a name="RTFToC11">III.
+WxMac Internals
+</a></h2>
+Aside from curiosity, there are only three reasons to be reading this section
+of the document:<ul>
+<li>Your compiler coughed, rolled over and died on something. 
+<li>The test programs died, probably taking the MacOS with it. 
+<li>You like what you see and want to help it grow.</ul>
+<h3>
+<a name="RTFToC12">A.
+Philosophy and Goals of the wxMac Project [and participants]
+</a></h3>
+The first developer and instigator of the Macintosh port was Bill Hale who
+wanted to learn C++ by porting a "major" piece of code. The second to join was
+Tomaso Paoletti  who wanted (?) The third was Cecil Coupe who just wanted a
+cross-platform GUI for the python language and got sucked into the effort. Bill
+created the Mac specific part of Julian Smarts (jacs@aiai.ed.ac.uk)
+wxWindows.<p>
+Louis Birk, Matthew Flatt, Scott Maxwell and Greg Whitehead joined the project,
+each with real applications that they wanted to port. Each contributed serious
+development effort for wxMac.<p>
+Given the different perspectives it should be no  surprise that there are
+different stylistic tactics taken in various wxMac modules. So be it, We offer
+no apologies.
+<h3>
+<a name="RTFToC13">B.
+Necessary [useful] skills and reference material
+</a></h3>
+See the wxMac_Status document. The bug you found may be known. Also, sometimes
+the wxWindows documentation differs from the actual implementation.
+<h3>
+<a name="RTFToC14">C.
+How the classes are laid out (file/project point of view)
+</a></h3>
+Here is the list of .c and .cc files needed. This could be used to determine
+which files to load into another development environment.
+<dl>
+<dt>Project Name: "Prog:wxmac161d-a4:wxMac161-PPC."
+<dt>Precompiled Headers
+<dt>	wxGWin.pch
+<dt>Base
+<dt>	DebugNew.cp
+<dt>	wb_dc.cc
+<dt>	wb_data.cc
+<dt>	wb_canvs.cc
+<dt>	wb_dialg.cc
+<dt>	wb_gdi.cc
+<dt>	wb_frame.cc
+<dt>	wb_hash.cc
+<dt>	wb_help.cc
+<dt>	wb_ipc.cc
+<dt>	wb_item.cc
+<dt>	wb_list.cc
+<dt>	wb_main.cc
+<dt>	wb_mgstr.cc
+<dt>	wb_obj.cc
+<dt>	wb_panel.cc
+<dt>	wb_ps.cc
+<dt>	wb_mf.cc
+<dt>	wb_stdev.cc
+<dt>	wb_sysev.cc
+<dt>	wb_text.cc
+<dt>	wb_timer.cc
+<dt>	wb_types.cc
+<dt>	wb_utils.cc
+<dt>	wb_win.cc
+<dt>	wxstring.cc
+<dt>	xfspline.cc
+<dt>Mac Core
+<dt>	wx_app.cc
+<dt>	wx_area.cc
+<dt>	wx_buttn.cc
+<dt>	wx_canvs.cc
+<dt>	wx_check.cc
+<dt>	wx_choic.cc
+<dt>	wx_clipb.cc
+<dt>	wx_dc.cc
+<dt>	wx_dccan1.cc
+<dt>	wx_dccan2.cc
+<dt>	wx_dccan3.cc
+<dt>	wx_dcmem.cc
+<dt>	wx_dialg.cc
+<dt>	wx_frame.cc
+<dt>	wx_gdi.cc
+<dt>	wx_ipc.cc
+<dt>	wx_item.cc
+<dt>	wx_main.cc
+<dt>	wx_lbox.cc
+<dt>	wx_menu.cc
+<dt>	wx_messg.cc
+<dt>	wx_mnuit.cc
+<dt>	wx_mtxt.cc
+<dt>	wx_panel.cc
+<dt>	wx_rbox.cc
+<dt>	wx_rbut.cc
+<dt>	wx_sbar.cc
+<dt>	wx_screen.cc
+<dt>	wx_slidr.cc
+<dt>	wx_text.cc
+<dt>	wx_timer.cc
+<dt>	wx_txt.cc
+<dt>	wx_util.cc
+<dt>	wx_win.cc
+<dt>Mac Helpers
+<dt>	wxBorder.cc
+<dt>	wx_comparestrings.c
+<dt>	wx_mac_utils.cc
+<dt>	wxBorderArea.cc
+<dt>	wxGetTxt.cc
+<dt>	wxLabelArea.cc
+<dt>	wxMacDC.cc
+<dt>	wxMacObj.cc
+<dt>	wxMacPPC.c
+<dt>	wxMargin.cc
+<dt>	wxButtonBorder.cc
+<dt>	wxRectBorder.cc
+<dt>	wxScroll.cc
+<dt>	wxScrollArea.cc
+<dt>	wxScrollData.cc
+<dt>Unfinished Core
+<dt>	wx_group.cc
+<dt>	wx_mf.cc
+<dt>Printing
+<dt>	wx_print.cc
+<dt>	wx_dcpr1.cc
+<dt>	wx_dcpr2.cc
+<dt>	wx_dcpr3.cc
+<dt>wxExtend
+<dt>	exdc.cc
+<dt>	exdde.cc
+<dt>	extbar.cc
+<dt>	exutils.cc
+<dt>	exitems.cc
+<dt>	exmisc.cc
+<dt>	exgdi.cc
+<dt>	exwin.cc
+<dt>wxImage
+<dt>	wximgfil.cc
+<dt>	wx_image.cc
+<dt>	wx_xbm.cc
+<dt>	wx_bmp.cc
+<dt>libxpm
+<dt>	crbuffri.c
+<dt>	crdatfri.c
+<dt>	create.c
+<dt>	crifrbuf.c
+<dt>	crifrdat.c
+<dt>	data.c
+<dt>	hashtab.c
+<dt>	misc.c
+<dt>	parse.c
+<dt>	rdftodat.c
+<dt>	rdftoi.c
+<dt>	rgb.c
+<dt>	scan.c
+<dt>	simx.c
+<dt>	wrffrdat.c
+<dt>	wrffri.c</dl>Note: you don't really need the wxExtend unless you want to
+compile a Mac version of WxPython in which case you should contact me
+(ccoupe@simplot.com) to get the "latest" wxPython known to work with the Mac
+(version 3, FYI)
+<h3>
+<a name="RTFToC15">D.
+How the classes really interact (debugging point of view)
+</a></h3>
+The Macintosh platform derives dialogs from wxFrame class, while the other
+platforms derive dialogs from wxPanel class (however, the usage for dialogs
+should be the same). This is no long true since  release 'a4p2'.
+<h3>
+<a name="RTFToC16">E.
+Mac-specific classes, methods, techniques and constraints
+</a></h3>
+<h4>
+<a name="RTFToC17">1.
+Internally generated Mac Menu Id's start at 129
+</a></h4>
+128 is used for the Apple Menu, and that value is hard coded in some places
+(wx_menu.cc, wx_app.cc)
+<h4>
+<a name="RTFToC18">2.
+wxApp, CreateApp(), wx_main.cc, and your program. 
+</a></h4>
+There is a bug, exhibited in some wxWindows applications, that causes the the
+wxTheApp global to not get set.  This problem started with Symantec C++(6.x)
+and <i>shows</i> up in some applications compiled with Code Warrior 6.  There
+is a work-around (from Bill Hale) that involves changing your application code
+slightly:<p>
+You must define a class that is publicly derived from wxApp. You can name this
+derived class whatever you want. For the following, I will name it "MyApp". In
+this class, you must declare a public method which will override the pure
+virtual method "OnInit" that is declared in the  class wxApp. Then, at the
+minimum, we will have the following in a header file called "MyApp.h":
+
+<pre>
+	#include "wx_main.h"   // should really be called "wx_app.h"
+	class MyApp: public wxApp
+	{
+		public:
+			wxFrame* OnInit(void);
+	};
+</pre>
+
+<p>
+You must implement the publicly derived class of wxApp that you have just
+defined. At the minimum, we will have the following in a  source file called
+"MyApp.cc":
+
+<pre>
+	#include "MyApp.h"
+	wxFrame* MyApp::OnInit(void)
+	{
+		...
+		...
+		...
+	}
+
+</pre>
+You
+must finally declare and define a procedure "CreateApp" which the main program
+will call to create the object that you have derived from the class wxApp. You
+must use the name "CreateApp". It should be placed into the source file created
+in step B) above. The code that you need is as follows (where you should
+replace "MyApp" with the name of your derived class):
+
+<pre>
+	void CreateApp(void);
+	void CreateApp(void)
+	{
+		new MyApp;
+	}
+</pre>
+<p>
+As distributed, this workaround is not enabled. If you need it, in wx_main.cc,
+in the main() function is a line
+
+<pre>
+	// CreateApp();	// This procedure initializes the whole application
+</pre>
+Simply
+uncomment this, and apply the work around above to your application.
+<h4>
+<a name="RTFToC19">3.
+How do these "Areas" work? What are Margins?
+</a></h4>
+From: Bill Hale &lt;hale@mailhost.tcs.tulane.edu&gt;<p>
+The purpose of the wxArea objects is to allow a parent wxWindow object to have
+different origins for its children wxWindow objects.<p>
+A wxWindow object contains wxArea objects. These wxArea objects are nested.
+Each wxArea object has margin values (left, top, right, and bottom) which
+specify where the next wxArea object is situated. Each wxArea object contains
+wxWindow objects. These wxWindow objects are positioned within the wxArea by an
+offset value (X, Y). The wxArea object is clipped by the inner sibling wxArea
+objects (not coded yet). The child wxWindow objects are clipped by the parent
+wxArea object.<p>
+The width and height of a wxArea object is calculated from the width and height
+of its parent wxWindow and from the margins of the outer sibling wxAreas.<p>
+Example:
+
+<pre>
+                        width 200
+    ----------------------------------------------
+    |           area A             2              | wxWindow parent
+    |  |---------------------------------------|  |
+    |  |          area B          20           |  |
+    |  |                                       |  |
+    |2 |  |--------------------------------|   | 2|
+    |  |10|           area C               |16 |  | height 100
+    |  |  |                                |   |  |
+    |  |  |--------------------------------|   |  |
+    |  |                           5           |  |
+    |  |---------------------------------------|  |
+    |                              2              |
+    |---------------------------------------------|
+</pre>
+<p>
+Suppose the wxWindow parent has width 200 and height 100.<p>
+Suppose the area A has (l, t, r, b) = (2, 2, 2, 2).<p>
+Suppose the area B has (l, t, r, b) = (10, 20, 16, 5).<p>
+Let area C be the automatically generated client area, with (l, t, r, b) = (0,
+0, 0, 0).<p>
+Then, the width and height of area A is 200 and 100. The width and height of
+area B is 196 and 96. The width and height of area C is 170 and 71.<p>
+Children wxWindow objects of area A are positioned with respect to area A
+origin; children wxWindow objects of area B objects are positioned with respect
+to area B origin; and, likewise, for area C. In effect, these children wxWindow
+objects of the parent wxWindow have different origins within the wxWindow
+parent.<p>
+You can look at the code for wxText (best) and wxFrame for examples of creating
+areas for a wxWindow object in addition to the automatic client area.<p>
+So, wxWindows contain areas and pointers to areas. Some Areas contain pointers
+to wxWindows. Be aware that the order of destructors is somewhat confusing and
+problematical. 
+<h4>
+<a name="RTFToC20">4.
+The Magic 32k Limit
+</a></h4>
+<ul>
+<li>TextEdit
+<li>ListBoxes
+<li>MenuID's
+<li>Anything that scrolls (?)</ul>Matthew Flatt provided the wxMac changes
+neccesary to implement wxMedia which handles the scrolling limits at the
+wxWindows level:<p>
+Up until wxMedia, wxCanvas always managed the scrollbars for you. If your
+drawing extended far enough, the scroll bars kicked in, and scroll bar actions
+were automatically excuted on the drawing area.<p>
+Unfortunately, this doesn't work well enough for editing text documents. The
+first reason is that scroll steps need to be correlated with lines of text. The
+second reaosn is that the size of a text document can easily exceed the
+short-integer-based drawing areas of many platforms. <p>
+SetScrollbars is supposed to configure properties of the scrollbar that are
+used for automatic scrolling. It is also the way to turn scrollbars on or off.
+So, we added the extra Bool flag to SetScrollbars to turn the scrollbars on
+without turning on automatic management.<p>
+The new methods - SetScrollPos, SetScrollRange, etc. - were added to give
+direct control over the scrollbars. Why wasn't SetScrollbars sufficient? I
+don't remember.<p>
+Finally, OnScroll was added to allow manual handling of scrollbar events.<p>
+
+<h4>
+<a name="RTFToC21">5.
+The Apple Menu Hack.
+</a></h4>
+In wx_frame.cc, the Mac menubar is cleared and recreated through the wxWindows
+menu objects. <b>The wxWindows for Macintosh Apple Menu Extension</b> (AKA
+Apple Menu hack) is to:
+<ul>
+<li>Modify the global gMenuLdCnt to start at 129.
+<li>When (re)creating a menu bar, see if we have a menu 128. If not, create one
+with the special characteristics of an Apple menu (ie add 'DRVR' resources).
+<li>If possible, insert the "About" menu item. (See the "About Menu Hack")
+<li>In, wx_app.cc, doMacInMenuBar(), we check to see if Mac MenuID is 128 (i.e.
+the secret reseverved number that ResEdit defaults to when creating a new
+resource which is the only reason I chose 128). Anyway, if it's 128, item != 1,
+then we call OpenDeskACC(), and everything is right with the world. Of course,
+the "incoming" Mac Window--wxWindows Frame, has to have a menubar, otherwise
+there is no menubar shown (at all, for example the graphics canvas in
+hello.cc).</ul><h4>
+<a name="RTFToC22">6.
+The About Menu Item hack.
+</a></h4>
+This is a<b> true </b>hack. It is fragile. It has very specific requirements
+before it kicks in. If you do something close enought to trigger it,  you must
+provide the code it calls. <p>
+In simple terms, this hack detects that your program creates a "Help" menu with
+a wxMenuItem of "About" and that you added this menu to the menubar with
+something like: menubar-&gt;Append(help_menu, "Help"); Yes, this is not
+inter-nationalized, just English. <p>
+When wxMenuBar::Append sees this, it saves away the wxMenu ptr and the Mac Item
+Number. These are used in the wxApp::doMacInMenuBar() [wx_app.cc] to trigger
+whatever callback function you set up to handle Help/About.  I'm actually proud
+of this, but I know that <b>it is weak</b>. You can disable a couple of lines
+in wx_app.cc to remove its effects, although the additional memory lingers.
+<h4>
+<a name="RTFToC23">7.
+wxBitmap implementation
+</a></h4>
+The internal Mac object for a wxBitmap is  a Mac GWorld (and pixmap)"Picture".
+This makes for  easy and quick execution during Update events and for handling
+offscreen bitmaps (wxDCMEM). It is not the clearest of code however. Several
+people have helped me debug this. I also depend on implementing parts of the
+wxImage class (to handle GIF, XPM, XBM, and BMP). USE_XPM_IN_MAC can be toggled
+off in wx_setup.h if you do not need some of these formats. Most of the code is
+in wx_gdi.cc and wxImage.cc.
+<h4>
+<a name="RTFToC24">8.
+Mac Resources.
+</a></h4>
+In each of the sample directories, you should find a resource file to include
+into the project. There is an ALRT and DITL which are required for error
+messages. The 'MENU' resource is no longer used, but it doesn't hurt to keep
+it. There may be PICT resources which are used for bitmapped buttons. Anything
+else is left over from other tests and maybe deleted.
+<h4>
+<a name="RTFToC25">9.
+Memory Managment and PowerPC oddities
+</a></h4>
+The memory manager on PowerMacs is a little more sensitive to some errors. I
+compile and link with Code Warriors DebugNew routines because it helps track
+down some of these errors.  <p>
+If you really want to find leaks (and they are there), and if you have access
+to MPW's canon tool, you can replace calls to 'new' with calls to DebugNew's
+'NEW', set the appropropriate #define and recompile. You should do this on a
+copy of the project, because your doing a global search and replace and they
+can be troublesome to undo. See the CodeWarrior Doc for DebugNew (probably on
+the CD).<p>
+There is a library project, wxMac161 PPC (debug) that can be used for leak
+testing. It uses a different .pch file, 'wxDebugHeaders.pch) which builds the
+library and one of two precompiled headers, either 'wxDebugHeadersPPC' or
+'wxDebugHeaders68K'. Then in the project for  the application set
+preferences/C++ Language/prefix file: to be wxDebugHeadersPPC (or 68K). 12
+leaks is normal for minimal.cc and 25 leaks for hello.cc To help track drown
+other leaks I've included a file of patches to make to Metroworks DebugNew. See
+file DebugNew.patch and Hello.cc which has lots of code that trys force and or
+find leaks. Ugly but effective.
+<h4>
+<a name="RTFToC26">10.
+SetSize,  OnSize - OnClientAreaDSize.
+</a></h4>
+First off, OnSize() is only defined for wxFrame's and wxbWindow (in regular
+16.3 its also defined for wb_item). Since release 'a4p3',  you do not need a
+OnClientAreaDSize() in your <b>application</b>. Myframe::OnSize works fine. You
+app's OnSize will be called when wxApp::OnInit returns to the system. From then
+on it will only be called when the window is maximized/minimized, the growicon
+is dragged or your app calls SetSize() on the app's frame. In fact you do not
+want both OnSize() and OnClientAreaDSize() defined for your app's frames (if so
+they may both be called).<p>
+SetSize() for wxWindows and its subclasses is a little mysterious and has
+significant implications if you want to write or understand the controls
+(wxButtons, wxListBoxs ...) The only SetSize() you need is in wx_win.cc (for
+class wxWindow). wxItems (buttons, etc.) should <b>not</b> define this
+function!!! Instead a window or item needs to define an OnClientAreaDSize()
+method. It works like this - When an application like hello.cc calls SetSize(),
+the method in wxWindow is used (because no one overrides it).
+wxWindow::SetSize() ventures off into the wxArea's code and eventually the
+Window's or Item's OnClientAreaDSize() method is called. This is where the
+control (ie wxItem) needs to modify its position and size according to the
+semantics of wxMac and OnClientAreaDSize(). 
+<h4>
+<a name="RTFToC27">11.
+OnPaint and Paint - when to use
+</a></h4>
+OnPaint is defined for wxbWindow, wxWindow and wxPreviewCanvas (sort of) and is
+overridden as needed by your applications classes for canvas's. OnPaint() is
+called when wxMac wants your app to redraw the contents (ex.  in repsonse to
+the Mac's  Update event).<p>
+Paint() is a method of many classes. By default (wb_win.h,) Paint() calls
+OnPaint() so for the application developer, Paint() is just a way to trigger
+OnPaint().  Starting with the 'a5' release, there should not be any methods
+named Paint() either inside wxMac or your app either. Inside wxmac the various
+wxItems' OnPaint() methods depend upon being able to call wx_win.cc/OnPaint()
+and they do so with an explicit scope operation.
+<h4>
+<a name="RTFToC28">12.
+wxDirectorySelector() - New 
+</a></h4>
+This function is called like wxFileSelector, but instead of selecting files it
+allows the user to select a Directory (not unlike CodeWarriors
+Preferences-&gt;Path dialog). This function is also called from
+wxFileSelector() is the proper flag values are passed in (by default they are
+not). If I remember this is in wx_utils.cc. The code is not mine - proper
+accredidation is in the source code. This function also requires a DLOG and
+appropriate DITL's resources which had better be there when this is called. See
+xpmshow for and example of how this is used.<p>
+</body></html>

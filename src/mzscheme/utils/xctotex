@@ -1,0 +1,154 @@
+#!/usr/local/bin/perl
+
+# Copyright (c) 1995 Matthew Flatt
+
+# Create some latex documentation from .xc files
+
+# Get the directory where this file is, and add to include path:
+{$0 =~ /^(.*)\/.*$/;  $my_dir = $1; 
+ if ($my_dir !~ ?^/?) {
+     open(DIRNAME, "pwd | ");
+     $pwd = <DIRNAME>;
+     close(DIRNAME);
+     chop($pwd);
+     $my_dir = $pwd . "/" . $my_dir;}
+ if ($my_dir =~ ?/$?) {chop ($my_dir);}}
+push(@INC, $my_dir);
+
+require "parse.pl";
+
+@allfuncs = @allconstants = @allclasses = ();
+
+while (($file = shift(@ARGV)) ne undef) {
+
+    if ($file =~ s/.xc$//) {
+    } else {
+	print STDERR "Bad extension \"$file\".\n";
+	exit 1;
+    }
+    
+    if (!open(IN, "$file.xc")) {
+	print STDERR "Couldn't open \"${file}.xc\"\n";
+	exit 1;
+    }
+
+    $thisfile = "$file.xc";
+    &ReadFile();
+
+    close(IN);
+}
+
+@allclasses = sort(@allclasses);
+@allfuncs = sort(@allfuncs);
+@allconstants = sort(@allconstants);
+
+print '\index{translation from C++!names!classes}' . "\n";
+print "\\schemetransclasses\n";
+
+$last = '';
+foreach $class (@allclasses)
+{
+    print $class;
+    print "\n";
+}
+
+print "\\schemetransclassesend\n";
+print '\index{translation from C++!names!class members}' . "\n";
+print "\\schemetransmembers\n";
+ 
+$last = '';
+foreach $func(@allfuncs)
+{
+    if ($func ne $last) {
+	$last = $func;
+	print substr($func, index($func, "=>") + 2);
+	print "\n";
+    }
+}
+
+print "\\schemetransmembersend\n";
+print '\index{translation from C++!names!constants}' . "\n";
+print "\\schemetransconstants\n";
+
+foreach $const (@allconstants)
+{
+    print $const;
+    print "\n";
+}
+
+print "\\schemetransconstantsend\n";
+
+sub DoPrintClass 
+{
+    return if ($testfile || $common);
+
+    if ($global) {
+	$oldclass = "";
+    } else {
+	$oldclass = &Texify($oldclass);
+	$classstring = &StripQuotes($classstring);
+	@allclasses = (@allclasses, 
+		       "\\schemetransclass{$oldclass}{$classstring}");
+    }
+
+    foreach $function (@functions) {
+	&ReadFields($function);
+	$fname = &StripQuotes($fname);
+	$func = &Texify($func);
+	$str = "${oldclass}::$func=>\\schemetransfunc{${oldclass}::$func}{$fname}";
+	if ($virtualonly) {
+	    $str = $str . "{pure}";
+	} elsif ($virtual) {
+	    $str = $str . "{virtual}";
+	} else {
+	    $str = $str . "{}";
+	}
+	push(@allfuncs, $str);
+    }
+
+    foreach $ivar (@ivars) {
+	&ReadIvarFields($ivar);
+	$iname = &StripQuotes($iname);
+	$ivarname = &Texify($ivarname);
+	$str = "${oldclass}::$ivarname=>" .
+	    "\\schemetransvar{${oldclass}::$ivarname}{get-${iname}";
+	if (!$readonly) {
+	    $str = $str . "/set-${iname}";
+	}
+	$str = $str . "}";
+	push(@allfuncs, $str);
+    }
+
+    foreach $constant (@constants) {
+	&ReadConstFields($constant);
+	$const = &StripQuotes($const);
+	$cname = &Texify($cname);
+	push(@allconstants, "\\schemetransconst{$cname}{$const}");
+    }
+}
+
+sub StripQuotes
+{
+    return &Texify(substr($_[0], 1, length($_[0]) - 2));
+}
+
+sub Texify
+{
+    $_[0] =~ s/_/\\_/g;
+    $_[0] =~ s/%/\\%/g;
+    $_[0] =~ s/>/\$>\$/g;
+    $_[0] =~ s/</\$<\$/g;
+    return $_[0];
+}
+
+sub IgnoreLine
+{
+}
+
+sub PrintHeader
+{
+}
+
+sub PrintDefine
+{
+}

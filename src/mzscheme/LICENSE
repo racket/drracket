@@ -1,0 +1,16 @@
+MzScheme
+Copyright (c) 1995-97 PLT, Rice University (Matthew Flatt)
+
+MzScheme is distributed under the GNU Library General Public License
+(LGPL).  This means you can link MzScheme into proprietary applications,
+provided you follow the specific rules stated in the LGPL.  You can
+also modify MzScheme; if you distribute a modified version, you must
+distribute it under the terms of the LGPL, which in particular means
+that you must release the source code for the modified MzScheme. See
+COPYING.LIB for more information.
+
+MzScheme is derived from libscheme 0.5:
+
+  libscheme
+  Copyright (c) 1994 Brent Benson
+  All rights reserved.

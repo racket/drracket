@@ -1,0 +1,40 @@
+When MzScheme is installed as part of the standard Unix PLT
+distribution, the executable ${PLTHOME}/bin/mzscheme is actually a
+script that selects an executable based on the current platform. This
+is done to support multiple platforms in a single PLT installation.
+
+Unfortunately, this causes problems for writing scripts that use
+MzScheme, because the shell's #! convention requires that a binary is
+specified.
+
+Fortunately, there is a sneaky workaround. To write a MzScheme script,
+use the following at the top of your script:
+
+  #!/bin/sh
+  string=? ; exec ${PLTHOME}/bin/mzscheme -r $0 $0 ${1+"$@"}
+
+  ... <scheme program> ...
+
+(It may be better to hardwire the path to mzscheme instead of using
+${PLTHOME}.)
+
+Within <scheme program>, (vector-ref argv 0) is the name of the
+script; arguments passed to the script start at (vector-ref argv 1).
+
+How does this work? "#!/bin/sh" causes the shell to run /bin/sh on the
+file. The first command, "string=?" is a harmless assignment, and ";"
+separates this assignment from the "exec" command. The "exec" command
+replaces /bin/sh with mzscheme (so /bin/sh does not see the actual
+Scheme program). The "-r" flag tells mzscheme to load the next
+argument as a script and forces the remaining arguments into
+`argv'. (For information on ${1+"$@"}, consult your `sh' man page.)
+Thus, mzscheme will start up and load this file. As always, mzscheme
+ignores "#!" in the first line of a loaded file as a comment. And
+"string=?" is again a harmless expression (since it's a built-in
+variable). The ";" starts a Scheme comment, so the "exec" expression
+is ignored. Finally, mzscheme continues to load the file and evaluates
+the real Scheme program.
+
+Thanks to J. P. Lewis <zilla@interval.com> for the basic idea behind
+this trick. Many others have suggested alternatives to `string=?'
+for shells other than /bin/sh.

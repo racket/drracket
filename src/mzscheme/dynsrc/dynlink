@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# This script picks the right binary for a mutli-platform
+#  configuration
+
+if [ "$PLTHOME" = '' ] ; then
+  PLTHOME=/usr/local/lib/plt
+  export PLTHOME
+fi
+
+exec ${PLTHOME}/bin/mzscheme -qemv '(require-library "dolink.ss" "mzscheme" "dynext")' -- ${1+"$@"}
+

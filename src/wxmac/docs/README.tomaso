@@ -1,0 +1,34 @@
+For a "quick" try of the changes,
+there's an alternate wxMac library project
+(with its own precompiled headers and paths to :modif folder).
+
+Here are the changes to alpha4:
+
+wx_app.cc	: added a missing (and critical) DoIPCIdle call in the event loop 
+wx_ipc.cc	: cleaned up things
+wxMacPPC.c	: removed DEBUGLOG #defines
+wb_utils.cc	: again modified wxLogClass
+				(it looks like some changes to 1.50 have never migrated up to 1.61 )
+				
+--- some notes -----------------------------------------------------------
+In all projects, it would be better to use relative instead of absolute paths
+(some contain paths as "Prog:etc:etc" that simply has no sense on other Macs).
+
+If the close box of the last (and only) frame is clicked, 
+a "simulated" Quit event should be necessary to clean-up things
+(for example, client/server apps clean up connections only when
+ a Quit menu command is received , so clicking the go away
+ does not cause a "gentle" disconnect and the session remains open).
+  
+I still don't understand why menus are not shown if
+the "Failed to make connection to server" error is reported !
+(could be the NULL frame pointer returned as the top frame ?
+are we checking for NULL frames before accessing them? )
+				
+BTW, there's no apparent reason for the PowerPC code not to work.
+Your UPP changes look like the correct solution. Any hint ???
+
+Actually I'm trying to "feed" the Warrior with wxWindows1.63/MSW .
+It seems not so hard... I'll let you know if we really get cross-platform :)
+
+-----------------------------------------------------------------------

@@ -1,0 +1,205 @@
+
+This directory contains source for the wxMedia class library for
+wxWindows. To compile the library libwxme.a (in UNIX), you will need
+to set the environment variable WXDIR.
+
+This code should work with wxWindows 1.62(e) and later versions.
+
+If your platform stores the least-significant byte of an integer or
+floating-point first, then add -DWXME_LSB_FIRST=1 to the flags in
+`make.env'. All Intel machines need this flag, so it's done
+automatically for Windows. The wxMedia classes will work fine if you
+get this wrong, but files saved to disk will not be readable on other
+platforms.
+
+If you are using 1.62(e) or an earlier version, you will need to add
+-DOLD_WXWINDOWS=1 to the list of compiler flags, and you will need to
+edit the Makefile to add wx_gclip.o to the list of object files.
+
+If you are using 1.63 or an earlier version, you will need to
+add -DNO_GENERAL_FONTS to the list of compiler flags.
+
+If use are using 1.66 or an earlier version (in which the method
+wxDC::GetClippingRegion is not defined), you will need to add
+-DNO_GET_CLIPPING_REGION to the list of compiler flags. You may
+need to add -DEACH_BUFFER_OWN_OFFSCREEN to get correct drawing.
+
+If use are using 1.66 or an earlier version (in which the method
+wxDC::GetTextExtent does not use the font argument), you will need to
+add -DBROKEN_GET_TEXT_EXTENT to the list of compiler flags. 
+
+If you are using wxxt 1.64, you may have to comment out the call to
+XClearArea() in wxWindow::Refresh() in wxxt/src/Windows/Window.cc.
+
+The Makefile provided here creates a library file
+objects/sys/libwxme.a. 'make edjr' creates the demo executeable 'edjr'
+(Ed Jr.).
+
+-Matthew
+ mflatt@cs.rice.edu
+
+-------------------------------------------------------------------------
+
+License:
+--------
+
+wxMedia is distributed under the GNU Library General Public License
+(LGPL).  This means you can link wxMedia into proprietary
+applications, provided you follow the specific rules stated in the
+LGPL.  You can also modify wxMedia; if you distribute a modified
+version, you must distribute it under the terms of the LGPL, which in
+particular means that you must release the source code for the
+modified wxMedia. See COPYING.LIB for more information.
+
+-------------------------------------------------------------------------
+
+History:
+--------
+
+Version 51: ??, 1997
+Added wxMediaAdmin::GetMaxWidth()
+
+Version 50: August 26, 1997
+Added argument to wxMediaBuffer::Print()
+
+Version 49: May 31, 1997
+Adjusted wxSnipAdmin methods: GetView and GetViewSize
+
+Version 48: Skipped to avoid confusion with Scheme48
+
+Version 47: January 11, 1997
+Made wxCanvasMediaAdmin and wxMediaSnipMediaAdmin explicit
+Changed how LoadFile deals with the current style list (replaces
+  named styles instead of erasing all first)
+Fixed bug in wxImageSnip copy/free
+
+Version 46: December 5, 1996
+Incremented version number
+
+Version 45: November 12, 1996
+Added transparent text backing
+WXME file format incremented to version 3 (for trans text backing)
+ When reading version 1 & 2 files, style deltas with non-zero
+ background addition also turn off transparent text backing.
+Added overwrite mode to the editor
+Fixed text-wrapping (even yet again)
+
+Version 44: September 9, 1996
+Fixed file saving - was especially broken for Windows
+Image snips can be saved as inlined in a wxMedia file
+wxMediaBuffer::OnInsertImage added arg for inlining image
+Fixed text-wrapping (yet again)
+Fixed biased scrolling (yet again)
+Smaller wxTextSnip instances
+
+Version 43: Re-released August 12, 1996
+Under GNU LGPL license
+
+Version 43: August 9, 1996
+MacOS/Windows printing through wxPrinter/wxPrinterDC
+Added wxMediaEdit OnLoadFile, AfterSaveFile, AfterLoadFile, AfterSetPosition
+Added lazy-refresh mode for canvases
+Flattened newlines are platform-dependent
+Added inactive focus display
+wxSnip::Draw and wxMediaBuffer::OnPaint's last arg changed to int
+Complicated Makefile: binaries go to ./objects/sys
+Patched for wxWindows 1.66 and wxxt 1.64
+
+Version 42: June 8, 1996
+Copy ring added (like an Emacs kill-ring)
+Keymap extensions: key & mouse grabs
+Give unknown snip class warning only when class is used for loading
+Fixed bug in mapping saved snip classes to active classes
+Added wxMediaEdit::OnStyleChange (and ...After...)
+Fixed wxSnip::ReleaseFromOwner when owning buffer lies
+
+Version 0.41: April 16, 1996
+Pasteboards fixed (not completed, though)
+
+Version 0.40: March 24, 1996
+Added callOnDown arg to SetClickback()
+Shared offscreen buffer properly freed after last buffer is released.
+Text color bug fixed when using nested buffers
+
+Version 0.39: March 6, 1996
+Made file format indepedent of wxWindows port values for wxDEFAULT, etc.
+  (Xt port reads & writes corerctly now)
+New flags for wx:MedaiEdit::Insert and wxMediaEdit::Delete for scrolling
+Improved wordbreak algorithm to handle really long lines
+Keymaps much more lightweight, espcecially empty ones
+Buffer/editor keymap no longer initialized with buffer/editor functions
+
+Version 0.38: February 22, 1996
+Xt version ready
+Fixed number i/o for some compilers that treat char as unsigned char
+Fixed hiding one custom scrollbar (XView and Xt only)
+Fixed file reading bug for numbers on AIX machines
+Improved OnSize handling in canvas to avoid redundancy
+
+Version 0.37: unreleased
+
+Version 0.36: January 18, 1996
+Incremented version number
+
+Version 0.35: January 17, 1996
+X selection machanism supported (X-Windows only); enable/disable with:
+    void wxMediaSetXSelectionMode(Bool on);
+ See also wxMediaEdit::SetPosition() in the manual.
+Uses a single offscreen bitmap for all buffers
+Fixed bug in line spacing when using different alignments
+Fixed bug in vertical scroll bias and use of bias by vertical selection
+wxMediaEdit::HideCaret
+wxMediaEdit::SetBetweenThreshold
+Page up & down more Emacs-like
+PutFile & GetFile use of wxFileSelector fixed (fixes crash)
+
+Version 0.34: December 30, 1995
+wxMediaBuffer::GetFile() and wxMediaBuffer::PutFile() added
+
+Version 0.33: December 21, 1995
+wxMediaEdit::SetAutowrapBitmap() added
+
+Version 0.32: December 4, 1995
+Fixed several MS Windows problems
+wxMEDIA_FF_COPY added
+wxMediaBuffer::OnSaveFile() added
+wxKeymap chaining changed
+
+Version 0.31: November 14, 1995
+Fixed memory bug related to cut-n-paste and saving
+wxMedia::PositionParagraph, etc. added
+wxMedia::OnNewTextSnip, etc. added
+Tabs fixed (they adjust themselves when you insert more text)
+wxReadMediaGlobalHeader, etc. for read/writing buffers
+
+Version 0.30: October 25, 1995
+wxMediaPasteboard implemented more
+
+Version 0.29: October 18, 1995
+Editor can save text preserving automatic CR
+Bug fixes in automatic line-wrapping
+`int' in some internal line procedures changed to `long'
+Uses new wxWindows font systems to access more fonts
+
+Version 0.28: October 3, 1995
+Fixed word-brekaing on characters with ASCII values > 127
+
+Version 0.27: September 30, 1995
+Minor changes
+
+Version 0.26: September 8, 1995
+Very minor changes
+
+Version 0.25: September 7, 1995
+Upgraded to wxWindows 1.63
+
+Version 0.24: September 1, 1995
+Printing support improved
+
+Version 0.23: August 23, 1995
+Added wxImageSnip class for displaying images
+
+Version 0.22: August 17, 1995
+Fixed stream functions GetFixed, PutFixed, and Get/Put on
+  doubles to store/read in a machine-independent manner.
+  To make files created earlier portable, open and re-save them.

@@ -1,0 +1,10 @@
+
+@ A "get-dc" : wxDC^ GetDC(float?=NULL,float?=NULL); : : : rNULL
+@ A "get-view" : void GetView(float?,float?,float?,float?,bool=FALSE);
+@ A "get-max-view" : void GetMaxView(float?,float?,float?,float?,bool=FALSE);
+@ A "scroll-to" : bool ScrollTo(float,float,float,float,bool=TRUE,int=0); : : : rFALSE
+@ A "grab-caret" : void GrabCaret(int=wxFOCUS_GLOBAL);
+@ A "resized" : void Resized(bool);
+@ A "needs-update" : void NeedsUpdate(float,float,float,float);
+@ A "update-cursor" : void UpdateCursor();
+@ A "refresh-delayed?" : bool DelayRefresh(); : : : rFALSE

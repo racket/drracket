@@ -1,0 +1,141 @@
+
+MzScheme should compile and execute with little or no modification if
+you have an ANSI C compiler on any platform supported by the
+conservative garbage collector. Some flags may need adjustment in the
+Makefile and "sconfig.h".  Special per-platform instructions are
+below, followed by some general notes on compilation.
+
+========================================================================
+ Unix
+========================================================================
+
+To compile the `mzscheme' executable for these platforms:
+  Alpha OSF1
+  DEC Ultrix
+  HP/UX
+  i386 FreeBSD
+  i386 Linux
+  RS6000 AIX
+  SGI IRIX
+  Sparc Solaris [see note below]
+  Sparc SunOS4    
+run the `mzmake' script.
+
+[Solaris Note: To ensure that dynamic extensions work right, use the
+ native Solaris `ld' rather than GNU's `ld'.]
+
+Or, to compile the `mzscheme' executable for other Unix platforms:
+
+        1) Edit the Makefile if necessary. Common changes include the 
+           C compiler, compiler flags, ranlib processor (if your
+           machine does not have `ranlib', set RANLIB to ':'), and
+           libraries
+
+        2) Edit "sconfig.h" to set platform-specific flags if necessary
+
+        3) Execute `make bin' (or just `make')
+
+To compile parts of MzScheme for embedding or extending:
+
+        * `[mz]make mzschemelib' (or `mzmake mzschemelib') compiles 
+           libmzscheme.a and libgc.a and puts them in lib/sys
+
+        * `[mz]make mzschemelib++' is like `make lib', but the GC C++
+           tools are included in libgc.a
+
+        * `[mz]make libguile' creates lib/sys/libguile.a; this is
+           libmzscheme.a + libgc.a + compatibility routines to support
+           GNU's emerging GUILE high-level interface specification
+           (still experimental)
+
+        * `[mz]make dynlib' compiles mzdyn.o (for writing
+           dynamically-loaded extensions to MzScheme) and puts
+           it in lib/sys
+
+        * `[mz]make g-c' just compiles /lib/sys/libgc.a
+
+        * `[mz]make dynexample' compiles the example dynamic
+           extension objects/sys/dynexmpl.so; when this is loaded into
+           MzScheme, (by using load-extension), it defines a "date" 
+           procedure
+
+        * `[mz]make oe' compiles a larger example dynamic
+           extension objects/sys/oe.so; when this is loaded into
+           MzScheme, (by using load-extension), it defines "odd",
+           "even", "fib", and "fib2" procedures, and returns
+           two values (#t and #f) when loaded
+
+------------------------------------------------------------------------
+ Compiling for Multiple Unix Platforms
+------------------------------------------------------------------------
+
+MzScheme's Unix makefiles are set up to support compilation for
+multiple platforms in the same filesystem. To differentiate platforms
+for the makefiles, set the MZPLTFORMSUFFIX environment
+variable. Object files (.o files) are placed in the subdirectory
+  objects/sys${MZPLTFORMSUFFIX} 
+and library files (.a files) are placed in the subdirectory 
+  objects/lib${MZPLTFORMSUFFIX}
+
+MZPLTFORMSUFFIX does not need to be defined if you are only compiling
+for a single platform. In this case, object files are put in
+  objects/sys
+and library files are put in
+  lib/sys
+
+The destination for the `mzscheme' binary does not use the
+MZPLTFORMSUFFIX enrionment variable. (That would be too easy.)
+Instead, the MZBUILDDIR envionrment variable designates a destination
+directory for the binary. If MZBUILDDIR is not defined, the binary is
+placed in the same directory as the main "Makefile".
+
+========================================================================
+ Windows
+========================================================================
+
+The `windows' directory contains additional files and information for
+Windows users.
+
+========================================================================
+ MacOS
+========================================================================
+
+The file `mac.sit.hqx' contains additional files and information for
+MacOS users.
+
+========================================================================
+ General Compilation Notes
+========================================================================
+
+By default, MzScheme is compiled:
+
+ * without image dumps (since the application will probably be linked
+   dynamically);
+
+ * without using any OS-specific threads; and
+
+ * without support for simple-precision floating point numbers.
+
+This can be changed by modifying sconfig.h or specifying -D compiler
+flags for the macros described in sconfig.h. (In the latter case, you
+may find it conveneient to edit `mzmake'.)
+
+------------------------------------------------------------------------
+
+The conservative garbage collector distributed with MzScheme has been
+modified slightly from Boehm's standard distribution.
+
+------------------------------------------------------------------------
+
+If you modify MzScheme and change any primitive syntax or the
+collection of built-in identifers, be sure to turn of
+USE_COMPILED_MACROS in schminc.h. Otherwise, MzScheme won't start up.
+
+========================================================================
+ Bug Reports
+========================================================================
+
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Bugs/
+or (as a last resort) send mail to
+  plt-bugs@cs.rice.edu

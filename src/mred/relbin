@@ -1,0 +1,27 @@
+#!/bin/sh
+
+RDIST=rdist
+
+if [ "-r" = "$1" ] ; then
+  shift
+  RDIST=$1
+  shift
+fi
+
+if [ "-self" = "$1" ] ; then
+  shift
+  FARHOST=`hostname`
+else
+  FARHOST=asia
+fi
+
+MRSYS=`/home/scheme/plt/bin/archsys -`$1
+
+MRDEST=/home/scheme/plt/.bin/${MRSYS}/mred
+
+echo ${MRBUILDDIR}mred to ${MRDEST}
+
+strip ${MRBUILDDIR}mred
+
+echo Installing MrEd
+echo "${MRBUILDDIR}mred -> ${FARHOST} install $MRDEST ;" | $RDIST -f -

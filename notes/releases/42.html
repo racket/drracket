@@ -1,0 +1,133 @@
+<html>
+
+<head>
+<title> DrScheme Release Notes </title>
+</head>
+
+<body>
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>:<tt> </tt> 42. <br>
+<b>Release Date</b>:<tt> </tt> June 8, 1996.
+
+<p>
+The following is a summary of the changes in this release
+from the previous one.
+
+<p>
+A reminder that bug reports should be sent to:<tt>  
+plt-bugs@cs.rice.edu</tt>.
+
+
+<h4> DrScheme </h4>
+
+<ul>
+<li>
+Added a facility for single-stepping through small programs.<tt> </tt>
+See the 
+<a href="http://www.cs.rice.edu/CS/PLT/packages/doc/donkey/donkey.html"> 
+documentation for the stepper</a>.
+
+<li>
+Major restructuring in the online documentation for the builtin
+gui-making classes.<tt> </tt>
+See the
+<a href="http://www.cs.rice.edu/CS/PLT/packages/doc/toolbox">
+MrEd ToolBox</a>.
+
+<li>
+Added a copy ring similar to emacs's "kill ring".<tt> </tt>
+For example, you can copy, cut or kill selection A, 
+then copy B, then paste B, and then use Meta-Y to replace
+the pasted B with A.
+
+<li>
+Disabled editing before the prompt in the console (lower) window.
+
+<li>
+MacOS memory use greatly improved.
+
+<li>
+DrScheme's support for the <tt>do</tt> form currently requires 
+the <tt>&lt;step&gt;</tt> part.<tt> </tt>
+This will be fixed in future versions.
+
+<li>
+DrScheme's support for <tt>(import ...)</tt> requires that the
+<tt>module</tt> specification be an identifier bound to
+a module value.
+
+<li>
+Added support for 16-bit color in XFree86 (unix only).
+
+<li>
+Dropped the decimal point in the version number.
+
+</ul>
+
+
+<h4> Underlying MzScheme Language </h4>
+
+<ul>
+<li>
+<tt>null</tt> is bound to the empty list.
+
+<li>
+Falling through a <tt>cond</tt> expression without matching any case
+is now an error.
+
+<li>
+The primitives <tt>binary-and</tt>, etc., are renamed to <tt>bitwise-and</tt>,
+<tt>bitwise-ior</tt>, <tt>bitwise-xor</tt>, and <tt>bitwise-not</tt>.
+
+<li>
+<tt>string=?</tt>, <tt>char=?</tt>, etc., are now multi-arity 
+like numerical <tt>=</tt>, etc.
+
+<li>
+The braces { and } are treated as a matching set of parentheses,
+along with ( ) and [ ].
+</ul>
+
+For a more complete description of the mzscheme changes, see the 
+<a href="http://www.cs.rice.edu/CS/PLT/packages/mzscheme/HISTORY">
+MzScheme release notes</a>.
+
+<h4> Analysis </h4>
+
+<ul>
+<li>
+The analysis now understands the types of most mzlib primitives.
+
+<li>
+Added an option to view parameterized types for functions.
+
+<li>
+Minor changes in the layout of some options and menus,
+and some minor options deleted.
+</ul>
+
+
+<h4> Bug Fixes </h4>
+
+<ul>
+<li>
+Fixed bugs in <tt>module</tt>, <tt>import</tt> and <tt>do</tt>.
+
+<li>
+Fixed <tt>dynamic-wind</tt> and <tt>call/ec</tt> for values.
+
+<li>
+Fixed <tt>read</tt> for strings containing #\nul.
+
+<li>
+Fixed annoying non-standard Windows beep.
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+
+@INCLUDE wxs.xci
+
+// #include "wx.h"
+// #include "wx_media.h"
+@HEADER

@@ -1,0 +1,112 @@
+//
+// Heres some code to add to DebugNew.cp to for it to print out the first 16 bytes of each 
+// leak in hex and ascii.
+// The preprocessor symbol FOR_MAC is used - not the best but it was available.
+// I put this file in :src: along with the precompiled header files.
+// 
+// Cecil Coupe - ccoupe@simplot.com
+//
+#ifdef FOR_MAC
+void DebugNewP16(FILE* f, unsigned char *blk);
+
+void DebugNewP16(FILE* f, unsigned char *blk) 
+{
+	int i;
+	for (i = 0; i < 16; i++)
+		fprintf(f, "%02x ", blk[i]);
+	fprintf(f, " ");
+	for (i = 0; i < 16; i++) {
+		int c = blk[i];
+		if (c > 0x7f)
+			c = c & 0x7f;
+		if (c < ' ' || c == 0x7f)
+			c = ' ';
+		fprintf(f, "%c", c);
+	}
+	fprintf(f, "\n");
+}
+
+#endif
+
+void DebugNewReportLeaks()
+{
+	ProcessSerialNumber psn;
+	OSErr err = GetCurrentProcess(&psn);
+	if (err != noErr) return;
+	
+	ProcessInfoRec info;
+	FSSpec spec;
+	
+	info.processInfoLength = sizeof(info);
+	info.processName = 0;
+	info.processAppSpec = &spec;
+	err = GetProcessInformation(&psn, &info);
+	if (err != noErr) return;
+	
+	StringPtr s = "\pleaks.log";
+	BlockMoveData(s, spec.name, s[0]+1);
+	FILE* f = FSSpecOpen(spec, "w");	
+	if (!f) return;
+
+	long count = 0;
+	long leakCount = 0;
+	unsigned long bytesLeaked = 0;
+	BlockHeader* curr = gBlockList;
+	while (curr)
+	{
+		++count;
+		if (curr->tag == BLOCK_PREFIX_ALLOC)
+		{
+			bytesLeaked += curr->size;
+			++leakCount;
+		}
+		curr = curr->next;
+	}
+	
+	if(count != gDebugNewAllocCount)
+		fprintf(f, "Warning: length of block list different from count of allocated blocks (internal error).\n");
+		
+	fprintf(f, "Maximum #bytes allocated at any point via operator new: %ld\n", gDebugNewAllocMax);
+	
+	if (!leakCount)
+	{
+		fprintf(f, "No memory leaks.\n");
+		fclose(f);
+		return;
+	}
+	if (leakCount == 1)
+		fprintf(f,"There is 1 memory leak of %lu bytes:\n", bytesLeaked);
+	else
+		fprintf(f,"There are %ld memory leaks, totaling %lu bytes:\n", leakCount, bytesLeaked);
+	
+	unsigned long totalAlloc = 0;
+	
+	curr = gBlockList;
+	while (curr)
+	{
+		if (curr->tag == BLOCK_PREFIX_ALLOC)
+		{
+#ifdef FOR_MAC
+			if (curr->file)
+				fprintf(f,"  %12s line: %4d, size: %4lu ", curr->file, curr->line, curr->size);
+			else
+				fprintf(f,"  %12s line: %4d, size: %4lu ", "<unknown>",  0, curr->size);
+			// print first 16 bytes of the block plus newline
+			DebugNewP16(f,  (unsigned char *) curr+BLOCK_HEADER_SIZE);
+#else
+			if (curr->file)
+				fprintf(f,"  %s line: %d, size: %lu\n", curr->file, curr->line, curr->size);
+			else
+				fprintf(f,"  <unknown>, size: %lu\n", curr->size);
+#endif
+		}
+		totalAlloc += curr->size; // count freed blocks, since gDebugNewAllocCurr does
+		curr = curr->next;
+	}
+	if (totalAlloc != gDebugNewAllocCurr)
+		fprintf(f, "Warning: total allocations in block list different from gDebugNewAllocCurr.\n");
+
+	fclose(f);
+}
+#else
+	// leak checking disabled, does nothing

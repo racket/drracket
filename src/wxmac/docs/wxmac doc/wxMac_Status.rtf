@@ -1,0 +1,243 @@
+{\rtf1\mac\deff2 {\fonttbl{\f0\fswiss Chicago;}{\f2\froman New York;}{\f3\fswiss Geneva;}{\f4\fmodern Monaco;}{\f13\fnil Zapf Dingbats;}{\f15\fnil Helvetica Narrow;}{\f16\fnil Palatino;}{\f18\fnil Zapf Chancery;}{\f20\froman Times;}{\f21\fswiss Helvetica;}
+{\f22\fmodern Courier;}{\f23\ftech Symbol;}{\f34\fnil New Century Schoolbook;}{\f128\fnil Bold Monaco;}{\f129\fnil West Monaco;}{\f256\fnil N Helvetica Narrow;}{\f2488\fnil AppleIconTwo;}{\f4788\fnil NewZurica;}{\f5466\fnil NewZuricaBold;}
+{\f5735\fnil MPW;}{\f8516\fnil NewZuricaOblique;}{\f12761\fnil Torino Outline;}{\f32525\fnil VT100;}}{\colortbl\red0\green0\blue0;\red0\green0\blue255;\red0\green255\blue255;\red0\green255\blue0;\red255\green0\blue255;\red255\green0\blue0;
+\red255\green255\blue0;\red255\green255\blue255;}{\stylesheet{\s245\li360\sa120 \f20\fs18\up6 \sbasedon0\snext0 footnote reference;}{\s246\li360\sa120 \f20\fs20 \sbasedon0\snext246 footnote text;}{\s250\li360\sb120\sa120\keepn \b\f20\fs28 
+\sbasedon251\snext0 heading 6;}{\s251\li360\sb120\sa120\keepn \b\f20\fs28 \sbasedon252\snext0 heading 5;}{\s252\li360\sb120\sa120\keepn \b\f20\fs28 \sbasedon253\snext0 heading 4;}{\s253\li360\sb120\sa120\keepn \b\f20\fs28 \sbasedon254\snext0 heading 3;}{
+\s254\li180\sb120\sa120\keepn\brdrb\brdrs \b\f20\fs36 \sbasedon255\snext0 heading 2;}{\s255\li360\sb240\sa240\keepn\brdrb\brdrs \b\f20\fs48 \sbasedon0\snext0 heading 1;}{\li360\sa120 \f20 \sbasedon222\snext0 Normal;}{\s1\fi-540\li900\sa120\tx900 \f20 
+\sbasedon0\snext1 numbered list;}{\s2\fi-540\li1440\sa120\tx1440 \f20 \sbasedon0\snext2 numbered list 1;}{\s3\fi-540\li1980\sa120\tx1980 \f20 \sbasedon0\snext3 numbered list 2;}{\s4\fi-280\li900\sa120\tx900 \f20 \sbasedon1\snext4 bullet list;}{
+\s5\fi-280\li1440\sa120\tx1440 \f20 \sbasedon2\snext5 bullet list 1;}{\s6\fi-280\li1980\sa120\tx1980 \f20 \sbasedon3\snext6 bullet list 2;}{\s7\fi-3960\li4320\sa120\tx4320 \f20 \sbasedon0\snext7 glossary;}{\s8\fi-3960\li4860\sa120\tx4860 \f20 
+\sbasedon7\snext8 glossary 1;}{\s9\keep\tx880\tx1740\tx2620\tx3480\tx4320\tx5220\tx6060\tx6940\tx7780 \f22\fs20 \sbasedon0\snext9 pre;}{\s10\li360\sa120 \i\f20 \sbasedon0\snext10 address;}{\s11\li1440\ri1440\sa120 \i\f20 \sbasedon0\snext11 blockquote;}{
+\s12\sb120\sa120\brdrb\brdrth \f20 \sbasedon0\snext0 hr;}{\s13\fi360\tx360\tx3600\tx4320\tx7200\tx10700 \f20 \sbasedon0\snext13 dir;}{\s14\fi360\li360\tx720\tx3960\tx4320\tx7560\tx10700 \f20 \sbasedon0\snext14 dir 1;}{
+\s15\fi360\li720\tx1080\tx4320\tx7920\tx10700 \f20 \sbasedon0\snext15 dir 2;}{\s16\fi-720\li1440\tx1440 \f20 \sbasedon10\snext16 menu 1;}{\s17\fi-720\li1080\tx1080 \f20 \sbasedon16\snext17 menu;}{\s18\fi-720\li1800\tx1800 \f20 \sbasedon0\snext18 menu 2;}{
+\s19\fi-3960\li5400\sa120\tx5400 \f20 \sbasedon8\snext19 glossary 2;}{\s20\li360 \f22 \sbasedon0\snext20 HTML;}{\s21\li360\sa120 \f20 \sbasedon7\snext21 TERM;}{\s22\li900\sa120 \f20 \sbasedon7\snext22 DEF;}{\s23\fi-3960\li4860\sa120\tx4860 \f20 
+\sbasedon8\snext23 TERM 1;}{\s24\li1440\sa120 \f20 \sbasedon8\snext24 DEF 1;}{\s25\li1440\sa120 \f20 \sbasedon19\snext25 TERM 2;}{\s26\li1980\sa120 \f20 \sbasedon25\snext26 DEF 2;}}{\info{\title wxMac Status}{\author Cecil Coupe}}
+\margl720\margr720\widowctrl\ftnbj\fracwidth \sectd \sbknone\linemod0\linex0\cols1\endnhere \pard\plain \s253\li360\sb120\sa120\keepn \b\f20\fs28 Known Bugs and Problems\par 
+\pard\plain \li360\sa120 \f20 
+4. Merged Tomaso's wb_ps.cc with 16.1 distribution wb_ps.cc. MW's DebugNew crashes to MacsBug because it found a overwritten block when doing the hello/file/print eps. This doesn't happen in all combinations of PPC, 68K, and Debugging!\par 
+11.  Things that 16.1 does that wxMac doesn't like (some of these may be new functionality since the base 15.x version) :\par 
+\pard\plain \s4\fi-280\li900\sa120\tx900 \f20 \tab The Get/SetLabel compiler warnings are very annoying.  wx_menu.h seems to be a major offender.\par 
+\tab In wx_text the following methods may have not been fully debugged:\par 
+\pard\plain \s5\fi-280\li1440\sa120\tx1440 \f20 \tab SetSelection\par 
+\tab Copy\par 
+\tab Paste\par 
+\tab Cut\par 
+\pard\plain \li360\sa120 \f20 12.  Why can't an app declare a variable called 'frame' like most of the distributed sample/test apps do.  - Because frame is declared in an apple header, Quickdraw.h\par 
+14. Need a better  scheme for preprocessor symbols Beware: Apple's <Windows.h> defines __WINDOWS__\par 
+\pard \li360\sa120 18. Need real code for these classes: group, toolbar, mf.\par 
+20. Need additional Cursors\par 
+\pard \li360\sa120 21. Hello.cc creates a popupmenu - how/where does this show up on a real wxWindows system and how should the mac do it?\par 
+\pard \li360\sa120 23. Resources - how to implement ?\par 
+24. Dig into dynamically tracking the thumb in wx_slider.cc. There's code in there to try it but it doesn't work. \par 
+\pard \li360\sa120 25. There is a problem with hello.cc - MyTextWindow can cover parts of the last 
+control. Hello should be rewritten so that the TextWindow is not 1/2 of the root frame but instead start after the last control. The same problem shows up in animate.cc where the sliders panel covers part of the frames statusline. This is not a Mac bug per
+-se - its a consequence of the size of Mac controls, Mac screen size and application programming that assumes every thing will fit in 1/2 the window.\par 
+\pard \li360\sa120 26. Maybe StatusLine widget should go on the bottom of a frame with room for a GrowIcon and a small horizontal scroll if needed\par 
+28. What I implemented for wxChoice is really a wxWindows PopUpMenu(). This may be a problem. Is a wxChoice a keyboard enterable control or are the selections fixed (by the program)?\par 
+\pard \li360\sa120 
+40. For 'ipc' samples compiled and run on a PowerPC - the 'client's PPC Browser windows shows that "server" and "server PPC" are available targets. If you select just plain  "server" everything works ok. Usually. May have to compile client and server and l
+ibrary with wxDebugHeadersPPC (...68K) to get these to work.\par 
+\pard \li360\sa120 43. Scan for #if 0 , #if 1 code , #ifndef CJC  and other bracketed out code - should be removed. \par 
+44. Multiline text doesn't work for me (Cecil)\par 
+\pard\plain \s253\li360\sb120\sa120\keepn \b\f20\fs28 Completed (plus notes)\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 7/9/95\par 
+\pard\plain \li360\sa120 \f20 Have a wxListBox (wx_lbox.h, wx_lbox.cc) see the top of the file for hints on writing controls in wxMac. Still to do\par 
+\pard\plain \s4\fi-280\li900\sa120\tx900 \f20 How to set the font for the Lbox?\par 
+Make the cell size a multiple of the font height\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 7/22/95 \par 
+\pard\plain \li360\sa120 \f20 Have a wxChoice - may not respond to OnAreaDSize in the best way. Built w/o areas, just Mac ToolBox calls.\par 
+\pard \li360\sa120 Added wxMultiText::GetValue(void) hack\par 
+Added wxRemoveFile and wxGetTempFileName - these are hacks in :mac:wx_utils.c\par 
+\pard \li360\sa120 wxPython (v01) Links,  but fails on init with a python error. WxPython sources must have the same Code Warrior Language Prefs as the PythonLib, i.e.  Apple C++ {\i and} don't check prototypes.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 7/29/95\par 
+\pard\plain \li360\sa120 \f20 Have a wxSlider - works with the following caveats:\par 
+\pard\plain \s4\fi-280\li900\sa120\tx900 \f20 The usable range is the Mac Control Managers (short int 32k?)\par 
+Does not dynamically track the thumb value - see comments in wxSlider.cc\par 
+#define USE_ACTIONPROC  1 -  can crash the Mac\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 7/30/95\par 
+\pard\plain \li360\sa120 \f20 Fixed wx_frame.cc (SetMenuBar)and wx_app.cc (doInMacMenu) to create and handle the Apple menu (and desk accessories)\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/6/95\par 
+\pard\plain \li360\sa120 \f20 
+Fixed wx_menu.cc so that the Title of a Mac Menu can be changed. This involves rebuilding the entire Mac Menu and all its items but does allow menu_bar->Append(menu,"Real Title for menu"); which is how most wxWindows Programs create menus and menubars. Thi
+s is also done for wxMenu::SetTitle.\par 
+\pard \li360\sa120 If a menubar->Append(menu, "Help") is done and one of the Items in the menu is "About", then I save the wxMenu
+* and the MacItemNum in the menu_bar object. When the menu_bar is created (see the applemenu hack) I insert an "About" string into the apple menu. If chosen by the user, wx_app.cc notes that its applemenu/item 1 and pretends its the Help/About choice. Defi
+nately a Hack and probably not robust. The wxMenu destructor should deactivate this if the Help menu is deleted.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/7/95\par 
+\pard\plain \li360\sa120 \f20 Added code to wx_buttn.cc and wx_gdi.cc for Bitmap buttons. This is good enough for Hello.cc but there is more to be done so that my scheme is usable in wxMemoryDC (including fixing/adding code to various DC's). \par 
+\pard \li360\sa120 
+With wxMac you can load either named PICT resources or PICT files (pict in the data fork), into a wxBitmap. The internal Mac object for a wxBitmap is "Picture". Given the wxWindows definition of a bitmap, this *seems* like an ok choice because Pictures are
+ relatively independent of bit depth (I believe). They might be larger than PixMaps for some images, but they are easy to deal with. There are comments in wx_gdi.cc, but its pretty straight-forward. (I said they were easy).\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/8/95\par 
+\pard\plain \li360\sa120 \f20 19. with PPCC compiler, linking hello gets a c2pstr undefined - because there doesn't seem to be an MPW library with that function. However there is a C2PStr, so all the files that need it now call for the mixed case.\par 
+\pard \li360\sa120 
+20. PPCC gets very annoying, spitting out warnings about inherited virtual functions that is not over-ridden. Fixed the major offenders, not by deep thought which what is really required. Instead I just tried a few things. CodeWariour  seems 
+to like them as well. This may have some part in the Hello (MPW PPPC) bug though.\par 
+\pard \li360\sa120 
+21. Hello.cc works with both 68K and PPC Code Warrior compilers. Hello, minimal, fractal, and ipc(client & server) have PPC projects. Only Hello has a 68k project, but its pretty simple to make 68K projects (4i/8d) out of the existing PPC projects.\par 
+\pard \li360 \par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/9/95\par 
+\pard\plain \li360 \f20 Released alpha-1 (wxmac161d-a1) to limited group.\par 
+\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/10/95\par 
+\pard\plain \li360 \f20 31. MPW PPCC version of hello doesn't have working push buttons ! (it used to). - left out an\par 
+\pard \li360 assignment from ::TrackControl. Depending on stack contents, this might have worked (or not) with the other compilers.\par 
+\pard \li360 This time, with thought, I got rid of the GetLabel and SetLabel warnings. Should not change functionality.\par 
+Re-released 'a1'.  \par 
+\pard \li360 Starting the alpha-2 modifications which are directed towards getting the source cleaned up and documenting (if not fixing) missing canvas, and DC functions.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/12/95\par 
+\pard\plain \li360\sa120 \f20 13. Scan files for "CJC", "wx_mac", "OLD_HEADERS" - and review modifcations. \par 
+\pard \li360\sa120 I have made serious cuts and restructuring of the :include:base: files (and :src:base:, :src:mac: as needed) to remove most of the passing of 'objectType'  to{\i  wxb* }
+constructors . This was done to bring the wxMac modifications to the wb_xxx.* files down to something more reasonable.  More can still be done, but this isn't too bad. This also involved moving some lines around to keep the style of the wb_xxx files more l
+ike the style of the original wxWindows files.  This does involve code changes to constructors, so beware: It works for me (hello.cc, minimal.cc, fractal.cc,animate.cc (CodeWarrior)).\par 
+\pard \li360\sa120 You can scan for "CJC' and only pickup a few (3) comments. I removed the OLD_HEADERS conditionals. You can scan for "wx_mac" as a "word" and (generally ) only pick up modifications to wb_xxx files.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 8/25/95\par 
+\pard\plain \li360\sa120 \f20 In Summary, we now have wxMemoryDC and wxTimer classes working. It is probably time to release Alpha-2 Note that PPCC from ETO #17 works, and the new (ETO #18) MrCpp fails.\par 
+\pard \li360\sa120 27. There are functions that appear to do nothing in wx_dccan*, wx_dcmem - Started on Blit(). Seems to work with the animate.cc sample, but I need a wxTimer that works before we can scratch animate off of the list of todo's. \par 
+
+2. Now have a somwhat kludgy timer class (good enough for hello.cc and animate.cc). It can only "fire" when the event loop is dequeueing events and accuracy is in CLOCKS_PER_SEC (ie Ticks) instead of milliseconds (probable rounding errors too!) Latency can
+ be highly variable. \par 
+\pard \li360\sa120 Reworked wxBitmaps to be offscreen GWorlds (wx_gdi.cc, and wx_dcmem.cc) I'm not overly confident in the destructor code though.  \par 
+\pard \li360\sa120 
+34. Canvas's can not be placed on a frame with (abs) co-ordinates. I've implemented a "cure" for this in wx_dccan1.cc(wxCanvasDC::SetMacDC() ). It seems to work for animate and hello demos but I believe this could break other things (canvas's place in subf
+rames of frames, or canvas's in panels in frames).\par 
+\pard \li360\sa120 Released Alpha-2.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 9/10/95\par 
+\pard\plain \li360\sa120 \f20 Started playing again with wxpython (v1), wxMac161d, and python-1.2. Works better if the System Folder has a PythonStartup file (I didn't install python properly)\par 
+\pard \li360\sa120 
+22. With wxPython/wxide.cc, wxTheApp does not get init'd before the call to main()  but Hello, Minimal, IPC, Animate do ? - Moved wxide.cc to be the first of the cc files in the wxPython project. No clue why there should be this kind of dependcy, but there
+ it is.\par 
+Modified wxTextWindow::SaveFile to actually save a file. This also has to convert line endings from TextEdits '\\015', CR  to '\\n'. This should be expected to need MPW conditionalization if I ever bother to try MPW again.\par 
+\pard \li360\sa120 Modified wxText::CreateText (wx_txt.cc) to handle a default (-1) value for the height argument. \par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 9/15/95 \par 
+\pard\plain \li360\sa120 \f20 
+Added the wxextend files to the project (from wxPython v2). Lots of things missing (toolbar, image classes), missing dialog functions,  and most significantly wxextend assumes that wxPanel inheirits from wxCanvas and in wxMac,  wxPanel inheirits from wxWin
+dow. I somewhat arbitrarily coded around and/or through them, so you should expect some python calls to fail because wxMac doesn't {\b really} support them.\par 
+\pard \li360\sa120 Added wb_dialog.cc back into the project but conditionalized most parts out since wx_mac handles dialogs in wx_dialg.cc {\b not} in {\b wb}_dialg.cc\par 
+5.\tab wb_ps.cc - when should the dialog be called ? When getting the DC. Calling it at StartDoc() time does not allow for a cancel in the file dialog.\par 
+Added three stubbed functions to wx_gdi.h so wxExtend can go on.  Also added Get/SetColourMap methods to wxBitmap (wx_gdi.h and wx_gdi.cc), also stubbed.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 9/30/95\par 
+\pard\plain \li360\sa120 \f20 Added Louis Birk's mods to wx_dccan3.cc(drawtext) to set font, size, and colours.\par 
+\pard \li360\sa120 Louis also supplied imagif.cc and .h. IMHO the best way to incorporate these is to meld them into the utils/image/src files, i.e. Implement the wxImage class. \par 
+\pard \li360\sa120 By default, you will need GUSI (CWGUSI), to compile wx_util.cc and a few other files too.\par 
+3. Add wxFileSelector* functions in the "proper" place. Modified to return the full path name.{\b \par 
+}\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 10/3/95\par 
+\pard\plain \li360\sa120 \f20 Released Alpha-3\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 10/7/95\par 
+\pard\plain \li360\sa120 \f20 I'm back to getting wxExtend/wxPython(v2) to link. - Added many functions to wx_util.cc (which should be renamed to wx_util{\b s}
+.cc). Some of them depend on GUSI and the rest are stubbed out! Its likely that Scott Maxwell's mods to this file are better than mine, so I'll wait.\par 
+\pard \li360\sa120 Added conditionalisation (USE_HELP) to wxPython(wxp_module.cc).\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 10/29/95\par 
+\pard\plain \li360\sa120 \f20 Created a new wxpy project - this is a version of wxMac that must be linked with Mac python-1.3. There is also a new prefix file that defines PYLIB instead of GUSI. GUSI and Python don't mix.\par 
+Change the defaults on wxTextWindows to add scroll bars and borders. Change the defaults in wxExtend to add borders to single and multiline texts.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/4/95\par 
+\pard\plain \li360\sa120 \f20 Added xpm support via the wxWindows distributed wxxpm - modified for Mac. Test program and project in utils/xpmshow folder.\par 
+\pard \li360\sa120 Fixed more wx_util.cc functions for path handling.\par 
+Added bitmap support wxMessage\par 
+Fixed bug(s) in wx_lbox.cc - was not deleting clientdata.\par 
+38. Tried adding wxPython  wxextend modules to the wxMac Lib. \par 
+Should modify wxExtend to pay attention to common.h/wx_setup.h idioms like USE_TOOLBAR\par 
+wxPython Assumes that wxPanels inherit from wxCanvas which is not true for wx_mac\par 
+\par 
+\pard\plain \s251\li360\sb120\sa120\keepn \b\f20\fs28 Added these contributions from Louis Birk:\par 
+\pard\plain \li360\sa120 \f20 A fix to wx_dcmem that sets the gworld to null after deleting it in SelectObject. \tab    \par 
+wximgfil.cc has fixes related to code that creates the rectangle for the gif. \par 
+\pard \li360\sa120 In wx_frame.cc I added a Paint() call to the resize because scroll bars would come out strange after resizing the window.\par 
+\pard \li360\sa120  wx_dccan1.cc I changed the SetCurrentDC() code back to the previous rev because the logical window positions were about 30-40 pixe
+ls different than physical ones. NOTE (from Cecil), these break the animate.cc sample. They can be turned on by #defining LkB at the top of wx_dccan1.cc\par 
+\pard \li360\sa120 The save file routine (wx_utils) needs to initialize a defPath, otherwise it gets all garbled data.\par 
+\pard \li360\sa120 Implement a simple write/read resource file like windows. There is one problem: all entry names must have unique names. \par 
+\pard \li360\sa120 Added wxGetUserHome to wx_utils (wx_util.cc) - returns current dir;\par 
+\pard \li360\sa120 Added several print related files that make up a partial implementatio
+n for printing. It does not include the Print preview stuff as I have been unable to complete this. Printing appears to work on my QUME ps printer. I am unable to test through GX . Note that there is an extra allocation of a THPrint record due to the struc
+ture of the wx_print classes. I will work on this later.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/11/95\par 
+\pard\plain \li360\sa120 \f20 Added support for wxBitmaps that can load xbm and bmp (and the previous xpm, pict and pict resource). The default is wxBITMAP_TYPE_PICT_RESOURCE. Minimal can be compiled to test the various 
+bitmap formats. Additionally utils/xmpshow can be compiled and used to browse the bmp's and xpm's. Note that xpmshow has some bugs (crashes), in different ways depending on 68K or PowerPC.\par 
+\pard \li360\sa120 39. It would be nice to implement bmp, xbm, and ico support. - This would make porting easier.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/23/95 - Start integrating Matt's fixes\par 
+\pard\plain \li360\sa120 \f20 wxCanvasDC:SetBackground (wx_dccan1.cc) - some wxCanvas method calls this with current_background_brush,  which is initially NULL. This crashes. I added a line to return if the parameter
+ is NULL. (I don't know if that's the right solution.)\par 
+\pard \li360\sa120\tx11520 wxMemoryDC constructor -  If MacCreateGWorld() returns an error, then do not attempt to draw a bitmap.\par 
+\pard \li360\sa120 wxBitmap: If NewGWorld() returns  an error, then set ok to FALSE, set x_pixmap to NULL, and don't SetGWorld() - occurs in wx_gdi.cc (wxBitmap::Create).\par 
+wxMemoryDC::SelectObject: After deleting gworldH and cMacDC, set them to NULL. (The gworldH problem was already reported.)\par 
+\pard \li360\sa120 wxCanvasDC: SetCurrentDC() needs to set the logical function, (wx_dccan1.cc)\par 
+wxFont::GetTextExtent: The hack that adds 5 to the width is very bad for MrEd. I removed it.\par 
+wx_frame.h - OnChar() , Paint(), and OnCommandEvent() made public.\par 
+wx_panel - AdvanceCursor() made public.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/26/95 - Added more of Matt's code\par 
+\pard\plain \li360\sa120 \f20 Fixed a problem with wximgfil.cc for 68K (CJC).\par 
+In wx_messg.cc OnPaint() add 1 to clientHeight and clientWidth\par 
+\pard \li360\sa120 Moved the kludge that adds 5 to the width in wxFont::GetTextExtent(...) to  wxMessage::CreateWxMessage when the font sytle or weight is not wxNORMAL.\par 
+wxChoice::Create now defaults to a label width of 50 pixels and a value width of 60 pixels (when no strings are provided).\par 
+Added enhancements to handle wxMedia and scrolling. (wx_canvs.*). Should not change any previous non wxMedia code.\par 
+Added Cut(), Copy(),Paste()... to wx_txt and wx_text - may not be working correctly at least for the hello sample.\par 
+9.\tab wb_utils.cc - lots of places where we need to handle Mac pathnames. Some of this sould be moved to :mac:wx_utils.cc \par 
+\pard \li360\sa120 \par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/27/95\par 
+\pard\plain \li360\sa120 \f20 Attempted to add Matts code so that wxDialogB
+ox inherits from wxPanel instead of wxFrame. This turned out to be non trivial (unless you have lots of stack space for nested event loops). Pressing the button in hello failed to bring up the next dialog and started a new event loop - simple dialogs would
+ *appear* to be ok. Matts code can be conditionalized in (wx_setup.h - USE_MAC_DIALOG_PANEL) but needs to be debugged. The default wx_setup continues for dialogbox to inherit from frame.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 11/28/95\par 
+\pard\plain \li360\sa120 \f20 Released alpha 4 snapshot.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 12/9/95\par 
+\pard\plain \li360\sa120 \f20 1. IPC code doesn't work 
+for PowerPC (15.x) or for either processor (16.1) Appears to be server side - try compiling with the Debug logging May be registering in the system twice ? (PPC) Also, can't run them twice - not deregistering (ppc and 68k)   - This bug is fixed.\par 
+\pard \li360\sa120 Hacked the wxWindow destructor to NULL out wxPanel->last_created (if the windows parent is a Panel)\par 
+\pard \li360\sa120 When USE_PANEL_CANVAS_IN_MAC and USE_MAC_DIALOG_PANEL are both defined as '1' in wx_setup.h, then wxDialogBox inherits from wxPanel which inherits from wxCanvas, just
+ like the MSW and Motif versions of wxWindows. This is the default in wx_setup.h. USE_MAC_DIALOG_PANEL will goway in a future release (a5 or a6).\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 12/27/95 Adding Greg's (GRW) fixes:\par 
+\pard\plain \li360\sa120 \f20 
+In the spirit of making wxWin adapt to "the Mac look" I switched the order of OK and Cancel in wxMessageBox and wxGetTextFromUser, and added wxSYSTEM to the list of fonts. Files modified - common.h, wxGetTxt.cc, wx_dialg.cc,wx_gdi.cc\par 
+\pard \li360\sa120 In wx_canvs.h and wx_canvs.cc, added two additional constructors needed for USE_PANEL_CANVAS_IN_MAC.\par 
+\pard \li360\sa120 
+Incomplete, but functional - Improved the visual appearance of controls and scrollbars in particular when the "frame" becomes (in)active. Much more Mac like. - wb_frame.cc,wx_buttn.cc,wx_buttn.h, wx_check.cc, wx_rbut.cc,wx_sbar.cc and wx_win.cc. This intro
+duces a new method of wxButton - Highlight() which is used instead of ShowAsActive(). In some controls, ShowAsActive() is now stubbed out.\par 
+\pard \li360\sa120 Initialized variable 'ret' before usage in wximgfil.cc wxGIF::decoder().\par 
+Add additional mouse handling code for wxFrames and remove call to SystemTask() - wx_app.cc.\par 
+\pard \li360\sa120 in wx_gdi.cc wxBitmap::~wxBitmap() - use the short form of Disposing of the GWorld - Louis's code can be switched in with a #define LkB\par 
+\pard \li360\sa120 in wx_txt.cc wxText::CreateWxText,  make a single call to wxScrollArea() not two.\par 
+Do a better job of postioning Scrollbars on a frame - wxScrollArea.cc\par 
+\pard \li360\sa120 Support for the built-in cursors (arrow, ibeam, cross, watch) and adjusting the cursor as the mouse moves - wx_app.cc, wx_gdi.h, wx_gdi.cc, wx_main.cc, wx_win.h, wx_win.cc\par 
+\pard \li360\sa120 Support for more window styles, drawing the grow icon, and resizing - wx_frame.cc, wx_frame.h add a MacDrawGrowIcon(void) method and new update code and drawing code.  Also mods in wx_panel.cc Paint() and wx_win.cc\par 
+\pard \li360\sa120 
+Incomplete fixes related to keyboard focus in panels.  Support for enter/return triggering the default action, and tab/shift-tab cycling through the items that want focus.  Currently, only wxText and wxMultiText accept focus.  Also, while making these chan
+ges, I noticed that wxText doesn't real
+ly implement a single line input like it is supposed to (this was a problem when I wanted to steal enter/return from it).  To avoid duplicating code between wxText and wxMultiText/wxTextWindow, I just introduced a flag to wxText that turns on the multiple 
+line behaviour (wxMULTIPLE).   The single line behaviour, on by default, still isn't complete though: word wrap hasn't been disabled. Lots of files modified - wxGetTxt.cc, wx_dialg.cc, wx_item.cc wx_mtxt.cc, wx_panel.cc, wx_panel.h line 123, wx_txt.cc, wx_
+txt.h, wx_win.cc, wx_win.h.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 1/12/96\par 
+\pard\plain \li360\sa120 \f20 Replaced my 'a5p2' (which should have been a4p2) with Matt's (mflatt) distribution which includes everything in a5p2(a4p2) plus fixs and changes. Uploaded to ftp.aiai.\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 1/13/96\par 
+\pard\plain \li360\sa120 \f20 Fixed and distributed these errors to a4p3: - (Porting:cjcfixes.txt)\par 
+\pard \li360\sa120 Added a new function wxDirectorySelector() to wb_utils.h and wx_utils.cc and also added to new constants to wb_utils.h - wxDIR_ONLY and wxFILES_ONLY (the later is probably not needed). If wxDIR_ONLY is passed to wxFileSelector(), i
+t will be handed off to wxDirectorySelector() which takes the same arg list as wxFileSelector (most are unused on the Mac). Modified xpmshow to use wxDirectorySelector() for testing. wxDirectorySelector() requires a special DLOG,DITL resource (see main.
+\'b9.rsrc and wx_utils.cc) E-mail with Julian concurs that wxDirectorySelector() is a function that should be added to wxMotif, wxMSW...\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 1/21/96\par 
+\pard\plain \li360\sa120 \f20 Eradicated memory leaks - Hello sample has 12 leaks which appear to come from startup - see README:Leaks-Repair. Also, these methods now copy to wxBuffer instead of copystring():\par 
+\pard\plain \s4\fi-280\li900\sa120\tx900 \f20 wxMessage::GetLabel \par 
+\pard\plain \li360\sa120 \f20 \par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 1/27/96\par 
+\pard\plain \li360\sa120 \f20 
+Cleaned up a confusion with OnSize() which appears to be only a method of wxFrame. I adjusted code so that OnSize is only called when the frame is maximized(minimized), it is  growzone dragged, or when the app calls frame::SetSize().  Then I called OnSize(
+) in wxEntry so that the startup frame gets the OnSize when created. Now that I think of it, this behaviour should be "delayed" until any frame is given a "Show(TRU
+E)" although the first wxTheApp frame should still be done (ie two calls to OnSize on the first (app) frame).\par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 2/17/96\par 
+\pard\plain \li360\sa120 \f20 
+Replaced call to Paint() in wx_win.cc with a call to OnPaint(). Applications can now defined their canvas painting method as  standard OnPaint(). THIS WILL REQUIRE THAT wxMac applications will need to changed.  This fix is conditionalized #ifdef CJC_FIXES_
+PAINT and required modifications in many of the internal files wx_buttn, wc_check..... This introduced a bug where canvas scrollbars are n
+ot drawn when the canvas is positioned with the scrollbar off screen, activated and positioned back on screen. Introducded yet more code to wxWindow::OnPaint to check for a canvas and make an additional call to paint the scroll bars. NOTE This looks like a
+ kludge!\par 
+\pard \li360\sa120 Repaired wxButton::GetLabel and wxCheckBox::GetLabel , wxMessage::SetLabel , wxScrollBar::GetLabel leaks. Also  wxRadioButton::GetLabel()\par 
+\pard \li360\sa120 \par 
+\pard\plain \s252\li360\sb120\sa120\keepn \b\f20\fs28 2/19/96 - Thomas Fettig's Fixes\par 
+\pard\plain \li360\sa120 \f20 Define USE_MAC_GRAY_LABEL_BACKGROUND in wx_setup.h if you like Grey backgrounds for your labels. Not defined by default. wxLabelArea.cc\par 
+Define some additional function keys and added some internationalization. Modfications to wx_app.cc, wx_txt.cc - Note that Tom points out a incompatiblity in wx_txt OnChar() with Matts code.\par 
+\pard \li360\sa120 Tom doesn't lke the +5 hack in wxMessage::CreateWxMessage - but hello.cc needs it? What to do?\par 
+\pard \li360\sa120 Add code to enable and disable multiline text mode in wx_text.cc,  wx_mtxt.cc - Doesn't work for me (Cecil)\par 
+Conditionally, add code to place StatusLines at the bottom of a frame. Visually I like it. Note that it resizes improperly in hello.c so its not compiled in by default. See wx_setup.h\par 
+\pard \li360\sa120 Added code to wx_panel.cc to help manage children (windows) deletion/destruction.\par 
+\pard \li360\sa120 Improved AreaSize'ing code in wx_win.  Worked fine for me before and after so I'm not sure what the problem or symptom is being fixed.\par 
+\pard \li360\sa120 Did not add all of Tom's modifications to the wx_win destructor since some of them interfered with the plugging of memory leaks that I did. More study is needed here.\par 
+Restore lost line in wb_item.cc and a lost patch to wx_util.cc (oops - I know I had it once).\par 
+\pard \li360\sa120 Released wxMac161d-a5 as soon as ftp.aiai cooperates.\par 
+}

@@ -1,0 +1,38 @@
+Here's a few things I need to add to the wxMac161d-a4p4 release
+
+1. in wx_gdi.cc, make sure cMacCursor is null:
+
+wxCursor::wxCursor(int cursor_type)
+{
+  __type = wxTYPE_CURSOR;
+  cMacCursor = NULL;
+
+2. in wx_app, doMacKeyDown(), Matt says to HNoPurge the resource:
+    default:
+      if (!transH) {
+		transH = GetIndResource('KCHR', 1);
+		HNoPurge(transH);
+      }
+
+3. in wx_xbm.cc, GETLINE(), we need to return a value (compiler warning):
+	if (pos < size)
+		b[pos] = 0;
+	return pos;
+
+4. in wx_menu.cc ~wxMenu, I would get crashes on hello sample but not others.
+   comment out the if (title) delete[] title; since wxbMenu now gets these.
+   
+	::DisposeMenu(cMacMenu); // WCH: does this dispose of submenus? I hope not.
+                             // mflatt: it does not dispose of submenus
+
+	// if (title) delete[] title; // WCH: ~wxbMenu should do this - (cjc - it does)
+	wxNode* node = menuItems.First();
+
+5. in wxLabelArea.cc , constructor, I add 5 to the width of a horizontal Label so that
+   labels do not butt up against the control. This hack *used* to be in GetTextExtent.
+   This is a more appropriate place.
+
+	else
+	{
+		SetMargin(labelWidth+5, Direction::wxLeft);
+	}

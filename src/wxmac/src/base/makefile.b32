@@ -1,0 +1,131 @@
+#
+# File:		makefile.bcc
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds wxWindows library wx.lib for Windows 3.1
+# and Borlandc C++ 3.1/4.0
+
+$(WXDIR) = $(WXWIN)
+THISDIR = $(WXDIR)\src\base
+WXLIB = $(WXDIR)\lib
+WXINC = $(WXDIR)\include\msw
+WXBASEINC = $(WXDIR)\include\base
+
+!if "$(FINAL)" == "0"
+OPT = -Od
+DEBUG_FLAGS= -v
+!else
+OPT = -O2
+DEBUG_FLAGS =
+!endif
+CPPFLAGS=$(DEBUG_FLAGS) $(OPT) @$(CFG)
+
+LIBTARGET= $(WXLIB)\wx.lib
+
+.cc.obj:
+        bcc32 $(CPPFLAGS) -c {$< }
+
+ITEMS =  $(WXBASEINC)\wb_item.h $(WXBASEINC)\wb_buttn.h $(WXBASEINC)\wb_check.h\
+ $(WXBASEINC)\wb_choic.h $(WXBASEINC)\wb_menu.h $(WXBASEINC)\wb_messg.h\
+ $(WXBASEINC)\wb_txt.h $(WXBASEINC)\wb_mtxt.h $(WXBASEINC)\wb_lbox.h\
+ $(WXBASEINC)\wb_slidr.h
+OBJECTS1 = wb_data.obj wb_win.obj wb_frame.obj wb_panel.obj wb_utils.obj wb_main.obj\
+  wb_item.obj wb_list.obj wb_obj.obj
+
+OBJECTS2 = wb_text.obj wb_gdi.obj wb_dialg.obj wb_canvs.obj wb_dc.obj wb_mf.obj\
+  wb_ps.obj
+
+OBJECTS3 = wb_hash.obj wb_ipc.obj wb_form.obj wb_timer.obj wb_help.obj\
+  wb_sysev.obj wb_stdev.obj wb_types.obj wb_mgstr.obj wxstring.obj
+
+OBJECTS = $(OBJECTS1) $(OBJECTS2) $(OBJECTS3)
+
+all: $(CFG) $(OBJECTS)
+
+wb_obj.obj:     $(WXBASEINC)\wx_obj.h
+
+wb_data.obj:     wb_data.cc
+
+wb_win.obj:     $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h\
+  $(WXBASEINC)\wx_list.h $(WXBASEINC)\wx_utils.h wb_win.cc $(WXBASEINC)\wb_gdi.h
+
+wb_main.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wx_utils.h\
+  $(WXBASEINC)\wb_main.h wb_main.cc
+
+wb_frame.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h wb_frame.cc\
+                $(WXBASEINC)\wx_stdev.h
+
+wb_panel.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wb_panel.h\
+                wb_panel.cc $(WXBASEINC)\wx_stdev.h
+
+wb_text.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wb_text.h\
+                wb_text.cc $(WXBASEINC)\wx_stdev.h
+
+wb_canvs.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h\
+                 $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h\
+                 $(WXBASEINC)\wb_canvs.h\
+                 wb_canvs.cc $(WXBASEINC)\wx_stdev.h $(WXBASEINC)\wb_gdi.h\
+                 $(WXBASEINC)\wb_dc.h
+
+wb_dc.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h\
+              $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wb_canvs.h\
+                 wb_dc.cc $(WXBASEINC)\wx_stdev.h $(WXBASEINC)\wb_gdi.h $(WXBASEINC)\wb_dc.h
+
+wb_ps.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h\
+              $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wb_canvs.h\
+                 wb_ps.cc $(WXBASEINC)\wx_stdev.h $(WXBASEINC)\wb_gdi.h $(WXBASEINC)\wb_dc.h
+
+wb_mf.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h $(WXBASEINC)\wb_canvs.h\
+                 wb_mf.cc $(WXBASEINC)\wx_stdev.h $(WXBASEINC)\wb_gdi.h $(WXBASEINC)\wb_mf.h
+
+wb_item.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wb_win.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_frame.h\
+                $(ITEMS) wb_item.cc $(WXBASEINC)\wx_stdev.h
+
+wb_utils.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h wb_utils.cc
+
+wb_ipc.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_ipc.h wb_ipc.cc
+
+wb_list.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_list.h $(WXBASEINC)\wx_utils.h wb_list.cc
+
+wxstring.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wxstring.h wxstring.cc
+
+wb_hash.obj:    $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_hash.h wb_hash.cc $(WXBASEINC)\wx_list.h $(WXBASEINC)\wx_utils.h
+
+wb_event.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wx_obj.h $(WXBASEINC)\wx_stdev.h $(WXBASEINC)\wx_utils.h wb_event.cc
+
+wb_gdi.obj:   $(WXBASEINC)\common.h $(WXBASEINC)\wb_gdi.h $(WXBASEINC)\wx_utils.h wb_gdi.cc
+
+wb_dialg.obj:   $(WXBASEINC)\common.h wb_dialg.cc $(WXBASEINC)\wb_dialg.h $(WXBASEINC)\wb_win.h\
+  $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_panel.h $(ITEMS)
+
+wb_form.obj:   $(WXBASEINC)\common.h wb_form.cc $(WXBASEINC)\wx_form.h $(WXBASEINC)\wb_win.h\
+  $(WXBASEINC)\wx_utils.h $(WXBASEINC)\wb_panel.h
+
+wb_timer.obj:   $(WXBASEINC)\common.h wb_timer.cc $(WXBASEINC)\wb_timer.h
+
+wb_help.obj:   $(WXBASEINC)\common.h wb_help.cc $(WXBASEINC)\wx_help.h $(WXINC)\wx_ipc.h
+
+wb_types.obj:   $(WXBASEINC)\common.h wb_types.cc $(WXBASEINC)\wx_types.h
+
+wb_mgstr.obj:   $(WXBASEINC)\common.h wb_mgstr.cc $(WXBASEINC)\wx_mgstr.h
+
+wb_sysev.obj:   $(WXBASEINC)\common.h wb_sysev.cc $(WXBASEINC)\wx_sysev.h\
+        $(WXBASEINC)\wx_types.h
+
+wb_stdev.obj:   $(WXBASEINC)\common.h wb_stdev.cc $(WXBASEINC)\wx_stdev.h\
+        $(WXBASEINC)\wx_types.h $(WXBASEINC)\wx_sysev.h
+
+clean:
+        -rm $(OBJECTS1)
+        -rm $(OBJECTS2)
+        -rm $(OBJECTS3)
+        -rm $(LIBTARGET)
+
+cleanall: clean
+        -rm *.obj ..\lib\*.lib
+

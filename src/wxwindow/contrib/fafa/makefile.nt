@@ -1,0 +1,73 @@
+#
+# File:		makefile.nt
+# Author:	Ulrich Leodolter <ulrich@lab1.psy.univie.ac.at>
+# Created:	Wed May 17 09:18:02 1995
+#
+#	Builds FAFA library on Windows NT
+#
+!include <..\..\src\ntwxwin.mak>
+
+FAFADIR = $(WXDIR)\contrib\fafa
+FAFALIB = $(FAFADIR)\fafa.lib
+INC=-I$(WXBASEINC) -I$(WXINC)
+
+OBJECTS = button.obj check.obj cont.obj dialog.obj draw.obj fafa.obj static.obj
+
+all:    $(FAFALIB)
+
+wx:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.nt
+        cd $(FAFADIR)
+
+wxclean:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.nt clean
+        cd $(FAFADIR)
+
+$(FAFALIB):      $(OBJECTS)
+	-erase $(FAFALIB)
+	$(implib) @<<
+-out:$(FAFALIB)
+-machine:$(CPU)
+$(OBJECTS)
+<<
+
+button.obj:      fafapriv.h button.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+check.obj:      fafapriv.h check.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+cont.obj:      fafapriv.h cont.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+dialog.obj:      fafapriv.h dialog.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+draw.obj:      fafapriv.h draw.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+fafa.obj:      fafapriv.h fafa.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+static.obj:      fafapriv.h static.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+clean:
+        -erase *.obj $(FAFALIB) *.exe *.res *.map *.rws
+

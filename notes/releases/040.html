@@ -1,0 +1,82 @@
+<title>Release Notes for DrScheme</title>
+
+<body>
+
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>: 0.40.<br>
+<b>Release Date</b>: March 22, 1996.
+
+<p>
+
+The following is a list of differences between this release and the
+previous one.
+
+<p>
+
+<h4>Editor</h4>
+
+<p>
+
+The long-known instability in the Windows 95/NT version has finally
+been corrected. Also, a major instability in the 68k Macintosh version
+has been fixed. The Win32s version remains unstable.
+
+<p>
+
+<h4>Type-Analysis</h4>
+
+<p>
+
+The number in parentheses indicates the section in the reference
+manual that describes the feature.
+
+<ul>
+
+<li>Improved, faster type compression.
+<li>Accurate description of numeric values (4.3).
+<li>Constants (number, character or symbol) in the input type
+    language.
+<li>Type assertions, <code>(: exp type)</code>, have been added (5.4).
+<li><code>define-type</code> changed to
+    <code>define-constructor</code> (5.2).
+<li><code>st:deftype</code> changed to <code>st:defconstructor</code> (6.2).
+<li>Added <code>define-type</code>, <code>st:deftype</code> (5.3 and 6.2).
+<li>Changed <code>(list T)</code> to <code>(listof T)</code> (4.2).
+<li>Added list type with the same same semantics as in Scheme (4.2).
+<li><code>(+ T1 ... Tn)</code> changed to <code>(union T1
+    ... Tn)</code> (4.1).
+
+</ul>
+
+<h4>Debugger</h4>
+
+<p>
+
+A completely new debugger has been incorporated.  This debugger has
+been measured to be twenty times or more faster than the previous
+version.  In particular, the debugger does not do worse than double
+the execution time.  In return, the debugger currently reports both
+incorrect-arity errors and non-procedural application errors as
+``application errors''.
+
+<p>
+
+<img align=center
+     src="http://www.cs.rice.edu/CS/PLT/lambdahead.gif"
+     alt="[PLT logo]">
+
+<p>
+
+<address>
+<a href="http://www.cs.rice.edu/~shriram/">Shriram
+Krishnamurthi</a> /
+<a href="mailto:shriram@cs.rice.edu">shriram@cs.rice.edu</a>
+</address>
+
+</body>

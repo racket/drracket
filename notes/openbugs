@@ -1,0 +1,174 @@
+======================================================================
+DrScheme
+======================================================================
+- in the language dialog box, "allow set! on undefined" is ignored
+
+- check syntax doesn't traverse unit or class expressions
+
+- check syntax: identifiers with newlines in them have their arrows
+  start from funny places.
+
+- eval'ing images in drscheme is broken
+
+- backup files don't preserve file permissions
+
+
+
+======================================================================
+MrEd System
+======================================================================
+
+- replace can't replace with an empty string (ie, deleting
+  a word by finding it and replacing it with empty doesn't work)
+
+- bad url's are not handled smoothly
+
+- mred:console%'s initialization argument: `close-item?' is being ignored
+
+- backup files don't preserve permissions
+
+- the directory line in the common-file-dialogs is confusing
+
+- embedded snips should be reset on the styles-fixed? ivar
+
+- "scale" in open-viewport does effect the size
+  of the viewport, but is ignored by at least
+  draw-line into that viewport.
+	
+- you cannot break (read)
+
+- pathnames should be normalized to early and can cause automouter problems
+
+- control-l doesn't get the horizontal direction right.
+
+- editor frames aren't gc'd when modified and search is open
+
+
+======================================================================
+MrEd
+======================================================================
+
+* Windows: place windows neatly for "default" position instead of
+   always placing them at 0, 0
+
+* X Windows: modal dialogs can still be closed with the Window
+   Manager
+
+* X Windows and drawing into b & w bitmaps: black and white
+  are reversed when using certain kinds of displays
+
+* wx:dc%'s draw-arc is undefined when input isn't
+  consistent with a circle
+
+* wx:key-event% needs a set-position method
+
+* Windows: set-user-scale with wx:memory-dc% doesn't work right
+
+* MacOS: busy-cursor state is wrong for new windows when the
+   busy cursor is active
+
+* pasteboards: printing not yet implemented
+
+* need to penalize the current thread more for certain primitive
+   operations that can take a long time (e.g., loading a bitmap
+   or saving a file)
+
+* need range check for dc transfer modes
+
+* need directory-selection dialog
+
+* cursor changes to arrow over clickback after hitting it
+
+* cursor does not change over clickbacks in embedded buffers
+
+* Keys like KP_end, etc. are not currently accessible
+
+* doc: [Mr] clarify "owning the caret" with respect to ownership by the parent, etc.
+
+* doc: [Mr] "only valid when displayed": hyper-link to explanation.
+
+* Motif: get-file dialog modality is wrong for eventspaces
+
+* Windows and MacOS: "primitive" dialogs don't get closed by
+   custodian-shutdown-all
+
+* MacOS: std file dialog and print dialogs block MzScheme threads
+
+* maliciously overriding set-admin can crash merge-snip and split-snip
+
+* cut-n-paste within mred but across eventspaces breaks security and
+  filesaving because snip class list is eventspace-specific
+
+* how does wx:dc% get-size interact with the user scale?
+
+* the full width for non-wrapped lines need not include the autowrap bitmap
+
+* should use a guranteed offset for stippling in buffer redraws
+
+* Xt: out-of-colours - widgets use too much black
+
+* signature include: unbalanced parens => diverge?
+
+* drag outisde view => should keep going even if mouse is still
+
+* hidden files - add a MzScheme predicate?
+
+* dragging selection shouldn't keep changing the auto-X-selection
+
+* Xt: busy cursor not shown in the menu bar
+
+* editor buffers should show a blinking caret
+
+* Motif: menus don't work with multiple displays
+
+* Motif: wxDialogBox doesn't obey current display for multiple displays
+
+* add background colour for buffers?
+
+* updating bug?: long flash, not on same line, update on focus-in
+
+* add paragraph styles?
+
+* need better de-fragmentation of text snips
+
+* need to show a mystery snip icon when unknown data is loaded from a file
+
+
+======================================================================
+MzScheme
+======================================================================
+
+"synrule.ss" is missing `let-syntax' and `letrec-syntax'
+
+`unit/sig' incorrectly handles syntax where defintions in the unit
+ shadow syntactic forms
+
+Under HP/UX, image --restore doesn't work
+
+On Alpha machines, floating-point overflow is not handled properly
+ (so +inf.0, -inf.0, and +nan.0 are messed up)
+
+Under MacOS, `tcp-listen' does not work reliably
+
+Under MacOS, in the standalone MzScheme application, a blocking read 
+ from stdin blocks all MzScheme threads
+
+Under Unix, (execute s) is just (exit (if (system s) 0 -1)), while
+ execute* replaces the current process like it is supposed to
+
+Under Windows, the `system' procedure blocks all MzScheme threads
+ (`system*' works correctly)
+
+Under AIX, write to tcp output port blocks when the low-level
+  buffer is full
+
+Under FreeBSD, if the descripters limit is greater than 256, then
+  it is automatically reduced to 256 within MzScheme/MrEd/DrScheme
+
+Still to be added to support R5RS:
+  (scheme-report-environment n)
+  (null-environment n)
+  (interaction-environment)
+  (port? v)
+
+

@@ -1,0 +1,373 @@
+Version 51: ??, 1997
+X Windows: window manager close-frame request is ignored
+ when a modal dialog is in control
+Added security so that wx:snip% methods cannot be overridden 
+ to crash MrEd
+
+Version 50: August 26, 1997
+Changed wx:dc%'s get-size method to return size of
+ destination area; old [documented] functionality
+ is available via max-x and max-y
+Made button-click state visible for Xt on b&w displays
+Fixed and normalized PostScript drawing
+Removed wx:dc% methods: device-to-logical-x, etc.
+Windows wx:display-size changed to return the size of the
+ screen not including the task bar
+Windows: finally fixed scale for [non-PostScript] printing
+Added wx:[un]register-collecting-blit
+X Windows: Fixed use of colormap by loaded bitmap images
+Added an optional argument to wx:media-buffer's print method
+ to supporting fitting to the destination page
+X Windows: Saving as xbm works for bitmaps of any depth
+MzScheme pathname expansion performed by all wx: toolbox
+ procedures that take a pathname
+X Windows Xt: removed excessive borders on wx:canvas% objects
+X Windows Xt: removed 2 pixel offset for a single auto-sized
+ child in a wx:frame% or wx:dialog-box%
+Windows: Fixed scrollbars on editor buffers; they're always
+ shown now, but the editor never gets confused about the size
+Fixed on-size, pre-on-char, and pre-on-event for wx:item% 
+ subclasses
+Fixed confusing argument type and number error messages
+ for overloaded methods of primitive classes
+
+Version 49: May 31, 1997
+Object system changes: see mzscheme/HISTORY for details
+Fixed Mac event-handling and many other Mac things
+Fixed garbage collection of hidden frames under Windows (!)
+Panels, canvases, and controls that are both hidden and
+  inaccessible are now garbage-collected
+Disabled controls are reliably grayed-out, including items 
+  within a disabled panel 
+Instances of wx:pen%, wx:brush%, or wx:pen% that are
+  selected into a drawing context cannot be mutated
+Immutability of objects obtained via wx:the-XXX-list is
+  enforced
+Controls for Windows, Xt are created with the "System" family
+  rather than the "Default" family (using resources)
+Single wx:bitmap% object can be used by multiple controls
+  and/or pens and/or brushes
+Fixed Motif image-label radio button
+wx:find-directory replaced with wx:find-path
+All wx:dc% instances have a default font for drawing
+wx:const-copy blit never uses the pen/background color;
+  new blit mode wx:const-colour uses current pen
+X Windows: removed mapping of Mod3 to Alt (too confusing on
+  keyboards where NumLock is Mod3)
+Fixed wx:timer% bug that caused autosaving to not work
+Fixed eventspace bugs
+Fixed .bmp reading when smaller-than-max colormap is provided
+Fixed interlaced .gif reading for Windows and MacOS
+Xt: fixed default height of wx:text% items
+Xt: In a wx:mouse-event% instance, type wx:const-type-XXX-down
+  implies get-XXX-down => #t (formerly #f)
+Removed wx:group-box% class; use a panel with a border, instead
+Removed wx:tool-bar% class
+wx:choice% get-columns and set-columns no longer supported
+Added wx:gauge% methods: get-value and get-range
+wx:media-pasteboard% bug fixes and improvements: raise, lower, 
+  set-before, and set-after methods now work
+wx:list-box% set-client-data and get-client-data work with
+  any Scheme data type
+Windows and X Windows: Break key changed back to shift-ctl-c 
+  instead of ctl-c (to avoid conflicts with Emacs-std keyboard
+  mappings)
+
+Version 48: Skipped to avoid confusion with Scheme48
+
+Version 47: January 11, 1997
+WARNING: multiple inhertance is going away in 48
+Added overwrite-styles? arg to wx:media-buffer%'s read-from-file,
+  and added get-/set-load-overwrites-styles methods
+Modified wx:media-buffer%'s set-caret-owner to provide more
+  levels of focus control
+Controls with bitmap labels work correctly, fixed crashing bugs,
+  some Mac controls do not display yet
+wx:bitmap%'s load-file only allowed when the bitmap is not selected
+  into a wx:memory-dc% object or used by a control
+
+Version 46: December 5, 1996
+Fixed misc. Motif control-sizing problems
+Mac & Xt: "&" stripped from control labels correctly
+wx:yield takes an optional semaphore argument
+
+Version 45: November 12, 1996
+IMPORTANT: let-values is now analogous to let; the old 
+  let-values is now let*-values
+Added thread-savy parameterization system; namespace system changed
+Added eventspaces
+wx:server%, wx:client%, and wx:connection% are no longer supported
+  (Better TCP support is now built into MzScheme)
+wx:the-snip-class-list was replaced by (wx:get-the-snip-class-list)
+wx:the-buffer-data-class-list was replaced by (wx:get-the-buffer-data-class-list)
+Added transparent text backing for editor text
+Added wx:dc% try-colour method
+wx:window% capture-mode, release-mouse, and make-modal no longer supported
+  Modal dialogs can be used instead of make-modal (modal is
+  specified through the constructor). There is currently no
+  replacement for capture-mouse and release-mouse, but a replacement is
+  likely to be in 46.
+Xt and Mac: "&" stripped from control labels (matches Windows/Motif), sortof
+
+Version 44: September 9, 1996
+wx:play-sound added
+Saving bitmaps fixed on all platforms; editor can now save 
+  "inlined" images instead of only references to images
+Hyper-text browser handles HTML files (w/o networking)
+Fixed Mac control drawing and hiding
+Fixed Xt menus (finally!)
+Fixed menu item auto-check for popup menus
+Fixed Motif canvas click event reporting (spurious drags)
+See also mzscheme/HISTORY, wxme/README, and system/HISTORY
+Upgraded to gc 11alpha3
+
+Version 43: Re-released August 12, 1996
+Under GNU LGPL license
+
+Version 43: August 9, 1996
+Major system overhaul (Robby Findler); see system/HISTORY
+Windows stability greatly advanced
+Windows and MacOS versions much more "Windows-like" and "Mac-like"
+  with standard menu shortcuts and better icons
+MacOS and Windows use native print facilities
+GIF images supported under Windows
+wx:window set-client-size removed
+wx:panel%'s get-cursor renamed to get-item-cursor; added set-item-cursor
+Fixed cut-n-paste newlines under MacOS and Windows
+Xt: panel with one item no longer auto-sizes the child
+See also mzscheme/HISTORY
+
+Version 42: June 8, 1996
+Documentation translated to Scheme notation, corrected
+Windows update bug fixed for embedded buffers
+MacOS memory use greatly improved
+Fixed annoying non-standard Windows beep
+Non-matching cond or case expression raises and error
+mred:platform and mred:window-system changed to wx:...
+standard system uses functors (see MzScheme)
+wx:canvas%::int-draw-line and wx:int-point% removed
+wx:list%, wx:hash-table%, wx:string-list%, wx:path-list removed
+wx:media-stream-in%::get removed for strings; use get-string
+Redundant wx: functions removed:
+  wx:dir-exists?  (use directory-exists?)
+  wx:file-exists? (use file-exists?)
+  wx:file-name-from-path (use file-name-from-path or split-path)
+  wx:path-only (use path-only or split-path)
+  wx:is-absolute-path? (use reletaive-path?)
+  wx:expand-path (use expand-path)
+  wx:get-working-directory (use current-directory)
+  wx:set-working-directory (use current-directory)
+  wx:mkdir (use make-directory)
+  wx:remove-file (use delete-file)
+  wx:rename-file (use rename-file)
+  wx:get-user-home and wx:get-home-dir (use expand-path with "~")
+  wx:execute and wx:shell (use system or process)
+  wx:find-first-file and wx:find-next-file (use get-directory-list)
+  wx:sleep (use sleep)
+  wx:sub-type? (use subclass?)
+  wx:to-lower (use char-upcase)
+  wx:to-upper (use char-downcase)
+  wx:is-wild? (use reg exps)
+  wx:match-wild? (use reg exps)
+
+Version 0.41: April 15, 1996
+Important language changes; see mzscheme/HISTORY
+Fixed bug in wxCanvas drawing methods
+Fixed wxCanvasDC and wxMemoryDC bugs in Xt version
+Pasteboards fixed
+AIX: two consecutive SIGDANGERs => exit(-1)
+wxGetMultipleChoice supported
+
+Version 0.40: March 24, 1996
+Possible improvements to memory system
+Some redundant event methods removed
+Finally fixed Windows NT/95 Scheme threads
+Stdout/stderr messages to a window instead of file for Windows/Mac+
+Fixed misc. Xt problems, including show-n-hide on frame
+
+Version 0.39: March 6, 1996
+Fixed safety from Scheme on invalidated C++ objects (stack objs, too)
+Fixed many bugs in Xt version
+Upgraded to gc version 4.10
+Reduced memory usage of buffer objects
+
+Version 0.38: February 22, 1996
+Xt port released
+Part of standard system moved to DrScheme
+See also mzscheme HISTORY and wxmedia README
+
+Version 0.37: Not released
+
+Version 0.36: January 18, 1996
+Fixed bug in MzScheme's bignum multiplication
+
+Version 0.35: January 17, 1996
+X selection protocol supported. To get the old clipboard-style
+  mechanism, add this to your .mredrc:
+     (wx:media-set-x-selection-mode #f)
+ See also wxMediaEdit::SetPosition() in the wxMedia manual.
+
+Version 0.34: December 30, 1995
+Minor improvements to MzScheme and the standard system
+
+Version 0.33: December 21, 1995
+MzScheme language changes; see mzscheme/HISTORY
+Old standard system no longer compatible
+Project system improved
+Many bugs fixed in the new standard system
+
+Version 0.32: December 4, 1995
+New standard system:
+  * The console I/O is completely different. It works more
+     like an Emacs shell. Use M-p and M-n to access previously
+     entered expressions. (read) will now read from the console.
+  * All mred:std-<x> variables have been eliminated. For each
+     mred:<x>%, there is now a procedure mred:make-<x>% that takes a
+     superclass and returns a new class.
+  * The frame and buffer hierarchies have changed a little.
+  * From a mred:edit% object, you can get to its canvas or frame.
+  * The menubar/menu system is completely revised. You don't have to
+     deal with menu ids much anymore. Menus and menu items can now be 
+     dynamically added and removed.
+  * Keymap chaining works differently.
+  * The new Scheme project system is roughly in place. This will let you
+     develop Scheme programs by organizing Scheme files within a project.
+     Projects help manage loading program files into the
+     evaluator and uses Shriram's Zodiac/Aries packages to
+     provide debugging facilities. This will be improved in the near 
+     future.
+ The old standard system is available in the "oldsys" directory.
+Pretty printer handles loops and graphs
+Very limited support for wxYield under XView - will be extended
+Fixed some wxMedia bugs (see wxme/README)
+Fixed some MzScheme bugs (see mzscheme/HISTORY)
+
+Version 0.31: November 14, 1995
+Fixed some wxMedia bugs (see wxme/README)
+Fixed some MzScheme bugs (see mzscheme/HISTORY)
+Parameterization for Macintosh
+
+Verion 0.30: October 25, 1995
+Added call-with-values and regexp to MzScheme
+Unix stack-checking setup code fixed in MzScheme
+wxMediaPasteboard implemented more
+Scheme-C++ object link changed; use ptr in all C++ objects
+Added tutorial section to "User Manual"
+
+Version 0.29: October 18, 1995
+Editor can save text preserving automatic CR
+Bug fix in automatic line-wrapping
+New font system can access arbitrary fonts
+Multiple displays in Motif: wx:set-display and wx:get-display-name
+MzScheme fix for forms such as (let ([x (let ...)]) ...)
+
+Version 0.28: October 3, 1995
+MzScheme bug fix: stack-checking on Unix
+wxMedia fix: Insert(unsigned char, ...) instead of Insert(char, ...)
+ and proper use of `unsigned' in word-breaking array access
+
+Version 0.27: September 29, 1995
+Major MzScheme upgrade, including multiple inheritance
+ (See MzScheme HISTORY for details)
+Win32: Allow deeper recursion by copying the stack
+Win32: Allow breaking with Shift-Ctl-C
+New font configuration system
+
+Version 0.26: September 8, 1995
+Very minor changes
+Bug fix to MzScheme for Win32s
+
+Version 0.25: September 7, 1995
+Upgraded to wxWindows 1.63
+Minor bug fixes
+
+Version 0.24: September 1, 1995
+Minor bug fixes
+
+Version 0.23: August 23, 1995
+Minor bug fixes
+Editor can display images (types depend on wxWindow compile flags)
+MzScheme correction: expand & expand-once
+
+Version 0.22: August 17, 1995
+Mostly MzScheme improvements
+File-format bug fixed related to portability; To make files created 
+  earlier portable, open and re-save them.
+
+Version 0.21: August 8, 1995
+Bug fixes
+triggers, hash tables, and case-lambda added to MzScheme
+MzScheme "sleeps" properly
+Connected MrEd to wxWindow's layout constraint system
+
+Version 0.20: July 26, 1995
+MzScheme Bug fixes
+
+Version 0.19: July 25, 1995
+All "!"s removed from method names!!!!!
+Full continuations and bignums added to MzScheme
+Bug Fixes
+
+Version 0.18: July 20, 1995
+Win32s kinda supported
+Bug fixes
+Added (compile ...) to MzScheme
+Added internal processes & threads to MzScheme
+wxSnipData -> wxBufferData
+Old process and system changed to process* and system*
+
+Version 0.17: July 11, 1995
+Bug fixes, especially Motif and memory bugs
+Rewrote editor line-maintenance
+Faster caret updating
+Upgraded garbage collector
+File format changed to accomodate nested buffers with
+  separate style lists
+Standard system standardized
+Code changes for compiling on MSWindows (almost works...)
+Scheme mode
+
+Version 0.16: June 16, 1995
+Fixed define-struct bug
+
+Version 0.15: June 15, 1995
+Bug fixes, especially XView
+make-input-port takes only 3 args; "unget" param dropped
+on-local-char & on-local-event renamed to on-default-char 
+  and on-default-event
+name changes: to have "!" or not to have "!". See doc/names.diff
+  for a list of changed names
+fonts configuarble through .Xdefaults; see MrEd.ad
+
+Version 0.14: June 9, 1995
+Bug fixes, including wxWindows widget table clash
+Scheme mode works
+error-handler changed to parameterizing function
+
+Version 0.13: June 5, 1995
+MzScheme replaced libscheme
+ctl-c breaks Scheme evaluation in MrEd
+libscheme/ changed to mzscheme/ - change your make.env!
+
+Version 0.12: June 1, 1995
+Bug fixes
+Revised object system: requires (inherit ...) declarations
+(pretty-print ...) installed
+
+Version 0.11: May 19, 1995
+Bug Fixes
+
+Version 0.10: May 19, 1995
+Bug fixes
+(match ...) installed
+
+Version 0.9: May 18, 1995
+wxMediaPasteboard
+
+Version 0.8: May 11, 1995
+Bug fixes
+
+Version 0.7: May 10, 1995
+mred:default-<x> changed to mred:<x> in system
+README in demo directory
+Lots of bug fixes

@@ -1,0 +1,45 @@
+
+To run all of the tests, run:
+ > (load "PATHTOHEREall.ss")
+where PATHTOHERE is the path to this directory.  
+
+Test failures may cause the test to stop before finishing, but most
+test failures will let the test continue, and a summary message at the
+end will enummerate the failures that occurred.
+
+Some files are directories are created (in the current directory)
+during the run. The files are named "tmp<N>" where <N> is a number.
+The directory is named "deep". If the test suite passes, the directory
+should be removed, but some "tmp<N>" files will remain. (The "tmp<N>"
+files are automatically replaced if the test suite is run again.)
+
+Unless your machine clock is always exactly in sync with your disk,
+don't worry about failures that look like this:
+  ((path) (#f #t (#<|primitive:<=|> 11 39 11)))
+  ((path) (#f #t (#<|primitive:<=|> 11 39 11)))
+  ((path) (#f #t (#<|primitive:<=|> 11 39 11)))
+
+Additionally, test expand-defmacro by running:
+ > (load "PATHTOHEREexpand.ss")
+
+Test compilation and writing/reading compiled code with:
+ > (load "PATHTOHEREcompile.ss")
+
+Run the tests with no output except for the results with:
+ > (load "PATHTOHEREquiet.ss")
+
+Run 3 copies of the test suite concurrently in separate threads:
+ > (load "PATHTOHEREparallel.ss")
+
+MzLib tests are run with:
+ > (load "PATHTOHEREmzlib.ss")
+
+
+To run the test suite in MzRice, use these flags:
+  --case-insens --auto-else --no-set-undef --no-sig-undef
+
+
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Gnats/
+or (as a last resort) send mail to
+  plt-bugs@rice.edu

@@ -1,0 +1,60 @@
+How to Setup and Use DebugNew.cp's Leak Detection with wxMac:
+
+Requirements
+    Read all instructions first.
+	CW 7+
+	MPW Shell and the 'Canon' tool
+	MPW Script 'change_new' and file interface.dict - distributed with wxMac in the
+	top level directory.
+	
+1. It is a good idea to create a duplicate of the entire wxMac tree.
+
+2. Run the change_new script 4 times. For each run, modify
+   the script to affect :src:mac, :src:base:, :include:mac:, include:base:
+   (if you have nothing better to do you could modify the script to them all
+   at once). The script changes "new" to "NEW" for all 'TEXT' files
+   
+   NOTE: the script fails for me if a '-' (hyphen) is in any of the path names.
+
+3. Optionally, run change_new across the application to be tested,
+   i.e., Hello.cc or Minimal.cc or your own. Try Hello.cc first before your own -
+   it gives you a baseline of what to expect, and a few hints on what can be done.
+   
+4. Starting with the wxMac161 Debug project, ensure that the preferences, C/C++ Language,
+   precompiled headers field points to a prefix file wxDebugHeadersPPC (or wxDebugHeaders68K).
+
+5. Ensure that the project has a precompiled headers file - either wxDebugHeadersPPC.pch
+   (or wxDebugHeaders78k.pch). The xxx.pch distributed has the proper #defines and #includes
+   to build DebugNew.cp for leak detection. 
+   
+6. A modified DebugNew.cp is included in the :src: folder. Include this in your wxMac library
+   build project. This version of DebugNew dumps the first 16 bytes of the undeleted
+   block in Hex and Ascii. Its not critcal, you can use the regular DebugNew.cp found in
+   {Compiler Ä}...Libraries:DebugNew:, but its handy to have the ascii dump.
+   
+7. Build the library. All should go OK.
+
+8. In the App you want to debug - (Hello.cc for this example), make sure that the
+   preferences, C/C++, precompiled headers point to the same as the Library was build with
+   (wxDebugHeadersPPC or wxDebugHeaders68k). 
+   
+   Ensure that the 'debug' enabled library from step 7 is included in the hello project
+   in place of any other wxMac library.
+   
+9. Compile. If everything links OK, try running the app. Even better, run under the
+   Debugger.
+   
+10. Run the App (hello), and once its windows are up, immediately quit the app.
+    This should produce a 'leaks.log' file in the application's folder. You can
+    open this baseline. You should have no more than 12 leaks (for Hello) or 25 if
+    the DELIBERATE_LEAKS macro is effective in Hello.cc. If so,
+    save the file as leaks.log.base. You'll compare future debugging runs against
+    this file.
+    
+ 11. Run the App again. This time, manipulate the controls or otherwise as the app
+     to do something. Quit. This produces a new 'leaks.log' file. If it differs from
+     the leaks.log.base file, you can use the information to find the 'new' that doesn't
+     have a delete.
+   
+
+   

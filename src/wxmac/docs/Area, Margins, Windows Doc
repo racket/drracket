@@ -1,0 +1,74 @@
+
+wxBorderArea ISA wxArea
+	HAS:
+	wxBorder* cBorder; <-- NEW wxRectBorder(this, margin, direction, whitespace)
+						?? why isn't this member of class wxRectBorder ?? it is
+						as of a4p4
+
+wxArea ISA wxObject
+	HAS:
+	wxMargin	cMargin;
+	wxWindow*	cParentWindow; 
+	wxList		cWindows;
+
+wxMargin - is root
+	HAS:
+	int left;
+	int top;
+	int right;
+	int bottom;
+
+wxBorder ISA wxWindow
+
+wxRectBorder ISA wxBorder;
+	HAS:
+	int cWhitespace
+	
+wxScrollArea ISA wxArea
+	HAS:
+	wxScrollBar*	cVScrollBar; 
+	wxScrollBar*	cHScrollBar;
+	long			cStyle;
+	
+wxLabelArea ISA wxArea
+	HAS:
+	wxMessage*	cLabelText; 
+	Direction	cDirection;
+
+wxMessage ISA wxbMessage
+	HAS:
+	char* 	cMessage;
+	wxBitmap*	sBitmap;
+
+wxbMessage ISA wxItem
+
+wxItem ISA wxbItem
+
+wxbItem ISA wxWindow
+
+------
+wxWindow ISA wxbWindow
+	HAS:
+	static wxWindow* gMouseWindow; // mac platform only (window that has captured mouse)
+	Bool 		cColour; 		// use colour for this window?
+	Bool		cActive;		// active window is "highlighted" (mac platform only)
+	Bool		cEnable;		// enabled window accepts mouse/keyboard events
+	long		cStyle;			// mac platform only
+	Direction	cGravitate;		// mac platform only
+	Direction	cJustify;		// mac platform only
+	wxWindow* 	window_parent; 	// Each window always knows its parent
+	wxList* 	children; 		// Window's children
+	wxScroll* 	cScroll; 		// for scroll data and scroll synchronization
+	wxMacDC*	cMacDC;			// mac platform only
+	wxBrush* 	cBrush; 		// foreground brush
+	wxBrush* 	cEraser; 		// background brush
+	Pattern 	cMacPattern; 	// mac platform only (temp work pattern)
+	 // For window rectangle
+ 	int 		cWindowX;
+ 	int 		cWindowY;
+ 	int 		cWindowHeight;
+ 	int 		cWindowWidth;
+	// For window area
+  	wxArea* 	cParentArea; 	// mac platform only
+  	wxList 		cAreas; 		// mac platform only
+  	wxArea* 	cClientArea; 	// mac platform only

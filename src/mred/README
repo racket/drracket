@@ -1,0 +1,35 @@
+
+This is MrEd for X Windows, Microsoft Windows, and MacOS. MrEd is
+described for new users in `mred.txt'. Old users should consult the
+HISTORY file for information about changes in this version.
+
+Please see the file LICENSE for license information.
+
+Documentation and up-to-date information about MrEd are at
+  http://www.cs.rice.edu/CS/PLT/packages/mred/
+
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Bugs/
+or (as a last resort) send mail to
+  plt-bugs@cs.rice.edu
+
+For more details on compiling and/or running MrEd, read `mred.txt' in
+this directory. For Win32 compilation, you will also need to consult
+the directory `windows'. Additional files for MacOS compilation are
+bundled with the MacOS version of MrEd's wxWindows.
+
+The following are miscellaneous files in this directory:
+   FONTS - Describes low-level font configuration
+   MrEd.ad - Some X resources
+   mred.ini - Some Windows resources
+   mred.fnt - Some MacOS "resources"
+   fonts12.mre - A MrEd-readable file showing 12-point fonts
+   fontsall.mre  - A MrEd-readable file showing lots of fonts
+   openbugs - known mred bugs
+
+-Matthew Flatt and Robby Findler
+ Rice University PLT
+ mflatt@cs.rice.edu
+ http://www.cs.rice.edu/~mflatt/
+ robby@cs.rice.edu
+ http://www.cs.rice.edu/~robby/

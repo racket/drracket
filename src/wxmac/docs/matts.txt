@@ -1,0 +1,223 @@
+From mflatt@cs.rice.edu Sat Jan 13 16:16:08 1996
+Date: Thu, 11 Jan 1996 17:27:22 -0600 (CST)
+From: Matthew Flatt <mflatt@cs.rice.edu>
+To: hale@mailhost.tcs.tulane.edu, jonto@aiai.ed.ac.uk, ccoupe@simplot.com,
+    birk@moonface.com, maxwell@natasha.jpl.nasa.gov, sarago@dei.unipd.it
+Subject: wxMac changes
+
+
+Below is a description of changes I made to wxMac. I couldn't find a
+good Mac diff program --- and I changed a lot --- so my final code is
+available as:
+  ftp://cs.rice.edu/public/mflatt/wxmac/wxMacAfter.sit.bin
+To make diffs as easy as possible (for someone with a program), my
+starting point is:
+  ftp://cs.rice.edu/public/mflatt/wxmac/wxMacBefore.sit.bin
+
+I tested my changes by compiling the Hello demo. wxMedia works very
+well with this wxMac. Enjoy.
+
+Want to see why I made all these changes? A Macintosh MrEd executable
+is available as
+  ftp://cs.rice.edu/public/mflatt/mred.mac.68k.sit.hqx
+and
+  ftp://cs.rice.edu/public/mflatt/mred.mac.ppc.sit.hqx
+
+Matthew
+
+------------------------------------------------------------------
+
+* Menu System
+
+The menu system has been debugged and improved.
+
+Menu items in a menu and menus in a menu bar can be dynamically added
+and removed. Some constraints are enforced: a menu bar can be inserted
+into only one frame, a menu can be inserted into only one menu bar or
+other menu.
+
+The "Help"/"About" hack remains, but if no such menu item is inserted,
+an "About..." label is obtained from wxApp::GetAboutMenuItem() and
+wxApp::DoAboutMenuItem() is called to handle the "About..." menu item.
+(I think "About..." is usually an application-wide menu item, not
+frame-specific.)
+
+~wxFrame() now calls ~wxMenuBar().
+
+If a menu item ends with "\tAlt+K", then K is used as the command key
+for the menu item. "&" is still recognized. Anything else in a menu
+item name is taken literally (i.e., the item name is installed with
+SetItemText() so that no special Mac characters get in the way).
+
+  !! Is "&&" changed to "&"? I forgot to check this.
+     What about other "\t"-based things? Forgot to check this, too.
+
+* Fonts
+
+The latest font system from Windows/XWindows has been installed. This
+provides access to fonts by name, instead of by a predefined set of
+family ids. Also, this system provides a way to configure the mapping
+from predefined family ids to real font names. (In practice, the
+mapping isn't configurable in wxMac because wxGetResource doesn't have
+a default source for resource values.)
+
+Unlike Windows and X-Windows, wxMac has the wxSYSTEM family.  I set
+wxNORMAL_FONT to use wxSYSTEM instead of wxDEFAULT. Perhaps wxDEFAULT
+should simply mean wxSYSTEM.  The control font would be configurable
+through wxWindows resources if there were a default resource file.
+
+* Activation, Keyboard Focus, and Enable
+
+There was a little bit of confusion between keyboard focus and
+activation, and window enabling was essentially unimplemented.
+These three work together, so I tried to get them all right. All
+of the foundation was in place; the details were just unimplemented.
+
+Activation indicates which window is in the foreground. Only one frame
+can be active, but all windows in an active frame are active. This
+was pretty much done.
+
+Keyboard focus indicates which window within a frame receives keyboard
+commands when the frame is active. Only one window can have the focus
+as a time. Disabled windows cannot have the focus. When a window receives
+a mouse click, it also gets the focus if it wants it (i.e., if it
+returnes TRUE from WantsFocus()). Text items, panels, canvases, and
+list boxes currently accept the keyboard focus.
+
+If a window is disabled, neither the window nor any of its children
+can receieve keyboard and mouse events and disabled frames cannot be
+resized. Windows can be enabled directly by Enable(). When a frame is
+disabled, its menu bar is disabled.  Enabling, SetModal(), and
+CaptureMouse() were previously implemented. Calling a frame's
+SetModal() method means that no other frame can be activated.  Also
+SetModal() causes all other frames to be disabled (this is
+redundant). CaptureMouse() works on any window: only that window and
+its decendents can receive mouse and keyboard events; all other
+windows are disabled.
+
+ !! There is not currently a capture stack. There should be.
+
+(Hiliting --- e.g. a button being pressed --- was already properly
+distinguished from activation.)
+
+* Garbage Collection
+
+Of course, since the goal of my changes was to get MrEd running,
+basic garbage collection support has been installed. None of these
+changes has any effect if WXGARBAGE_COLLECTION_ON is #defined as 0.
+
+wx_obj.h was modified to derive wxObjects from the garbage-collectable
+class. A few WXGC_IGNOREs were thrown in the constructors of various
+class to break finalizatyion cycles.
+
+wxTheXXXList is never used implicitly by a wxXXX constructor. Frames
+are not inserted into the global list of frames until they are shown,
+and they are removed when hidden. Clicking on the close box hides a
+frame instead of deleting it.
+
+* Events
+
+All wxEvent objects now contain a `timeStamp' value. wxMouseEvent and
+wxKeyEvent objects contain a `metaDown' value, which is TRUE when the
+command key is pressed. (It is always FALSE in wxMouseEvent on the Mac
+because command is used to generate a right button click.)
+
+* List Boxes
+
+wxListBox now uses buttonFont, shows keyboard focus with a bold
+border, accepts simple keyboard movement commands, responds to a
+double-click or a carriage return by invoking the panel's
+OnDefaultAction method, and updates properly when the list contents
+are changed.
+
+ !! The keyboard focus display implementation is clumsy.
+
+* Text Items
+
+wxText items should always have a border. This border is outset from
+the text by two pixels. A horizontally-placed label lines up with the
+content of the text box rather than the top of the
+border. wxPROCESS_ENTER works. The default size is based on the label,
+buttonFont, and labelFont.
+
+  !! The border seems clumsily implemented. I just don't understand 
+     wxArea, wxMargin, etc.
+
+* Canvases
+
+wxBORDER implemented.
+
+* Memory DC
+
+The bitmap passed to wxMemoryDC::SelectObject() is now used as the
+destination for all drawing into the DC. A wxBitmap object can be
+installed into at most one wxMemoryDC().
+
+* Image utilities
+
+Error handling was corrected to account for NewGWorld failure.
+(This is hard to test.) The xbm-reading routine now works for
+files using Unix-style newlines.
+
+* Clipboard
+
+The platform-independent wxClipboard and wxClipboardClient
+classes were installed.
+
+* DC Additions
+
+wxDC::GetClippingRegion() was added. When there is no clipping region,
+-1 is returned for the clipping height/width.
+
+GetTextExtent() and DrawText() take a new last optional argument. The
+intent for this argument is to enable drawing in 16-bit fonts, but it
+isn't yet implemented.
+
+* PostScript printing
+
+The latest wb_ps.cc was installed. It works with the new font
+directory to map font names to PostScript names and AFM files.
+
+* SetSize
+
+In Windows and X-Windows, passing -1 as the x or y position to SetSize
+means "don't change the size". This is now true for wxMac. To set the
+position to -1, use the wxPOS_USE_MINUS_ONE flag as the new optional
+last argument.
+
+* Utilities
+
+Added wxBell(), wxGetOsVersion(). Uncommented some code in wb_utils.cc
+that seems to work fine.
+
+The GUSI implementation of wxGetFirstFile() and wxGetNextFile() did not
+work at all for me. I tried upgrading them using the latest unix code,
+but I soon gave up and made minor patches to the Mac Toolbox version.
+
+* Miscellaneous
+
+wxChoice works without a label
+
+wxMessageBox takes wxWindow, not wxFrame
+
+wxScroll: page down doesn't overrun specified maximum
+
+wxGetResource doesn't try to open a file when given NULL for a filename
+
+Many other small things I forgot about
+
+
+!! Other Bugs
+
+I've received reports of crashing in wxDoMacKeyDown. Perhaps the
+handle to the 'KCHR' resource is getting purged?
+
+wxMessage doesn't size correctly
+
+CodeWarrior bug?: When I enable Exceptions, embedded objects are not
+destroyed properly. For example, ~wxWindow calls ~wxList to destroy
+the areas list, but the body of ~wxList is skipped. So is the body of
+~wxObject. It's not just ~wxWindows - it happens anywhere with
+embedded objects. But I can't reproduce this in a small setting! Has
+anyone else seen this? Turing of Exceptions (I don't need them) makes
+things work fine. I saw this for PowerPC; I don't know about 68k.

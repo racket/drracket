@@ -1,0 +1,23 @@
+/*
+	Define a target and include all the includes and predefines
+	except the CW complains about iostream if you include "wx.h"
+*/
+/*
+ *	Support for automatically naming the precompiled header file ...
+ */
+
+#ifdef powerc
+  #pragma precompile_target "wxDebugHeadersPPC"
+#else
+  #pragma precompile_target "wxDebugHeaders68K"
+#endif
+#define macintosh
+#define GUSI
+#include <GUSI_p.h>
+#include <GUSI.h>
+#define FOR_MAC	// needed for wxxpm
+
+#define DEBUGLOG
+// #define DEBUG	2
+#define DEBUG_NEW 2
+#include <DebugNew.h>

@@ -1,0 +1,63 @@
+Dec 21, 1995
+
+This is a dump of the changes I've made to wxmac161d-a4 (+ Cecil's DialogPanel).
+Some of the work is complete and some isn't... where more work is needed, I've
+tried to include useful notes below.  Each set of changes can be turned on/off with
+the following #define's in wx_setup.h (these should obviously be removed when/if
+they are integrated into the source base): 
+
+// A few random fixes that didn't warrant their own flag.
+#define GRW_FIXES 1
+
+// Support for more window styles, drawing the grow icon, and resizing.
+#define GRW_FIXES_FRAME 1
+
+// Support for the built-in cursors (arrow, ibeam, cross, watch) and adjusting the
+// cursor as the mouse moves.
+#define GRW_FIXES_CURSOR 1
+
+// Incomplete fixes related to getting frames and the elements they contain to
+// respond "in the Mac way" to activate/deactivate events.  There seemed to be some
+// confusion between activation and focus.   Also, in some cases elements were
+// switching to their disabled state when deactivated.  The Frame's grow icon and
+// scrollbars should become outlines, but everything else should stay the same.
+//  Making this work is tricky because of the way scrollbars are implemented: I
+// believe that only the scrollbars placed against the edge the frame (controlling
+//the main content region) should become outlines, but currently they all do.
+#define GRW_FIXES_ACTIVATION 1
+
+// Incomplete fixes related to keyboard focus in panels.  Support for enter/return
+// triggering the default action, and tab/shift-tab cycling through the items that
+// want focus.  Currently, only wxText and wxMultiText accept focus.  wxListBox
+// should be made to (and it should draw a border around itself when it acquires
+// focus).   It would also be nice to introduce the notion of a cancel action (like the
+// default action), so that escape could be mapped to cancel in dialogs.  One open
+// issue is how to handle focus among nested panels (see wxGetTextFromUser).
+// Also, while making these changes, I noticed that wxText doesn't really implement
+// a single line input like it is supposed to (this was a problem when I wanted to
+// steal enter/return from it).  To avoid duplicating code between wxText and
+// wxMultiText/wxTextWindow, I just introduced a flag to wxText that turns on
+// the multiple line behaviour (wxMULTIPLE).   The single line behaviour, on by
+// default, still isn't complete though: word wrap hasn't been disabled.
+#define GRW_FIXES_FOCUS 1
+
+// Incomplete fixes to position scrollbars correctly within a frame.  Scrollbars that
+// are against the edges of a frame should actually overlap the frame by one pixel.
+// Incidentally, these are the same scrollbars that should become outlines when the
+// frame becomes inactive.  Currently all scrollbars are made to overlap their
+// surroundings, which doesn't work well for the text window in the hello sample.
+#define GRW_FIXES_SCROLLBARS 1
+
+// In the spirit of making wxWin adapt to "the Mac look" I switched the order of
+// OK and Cancel in wxMessageBox and wxGetTextFromUser, and added wxSYSTEM
+// to the list of fonts.
+#define GRW_FIXES_OK 1
+#define GRW_FIXES_SYSFONT 1
+
+// Some changes I had to make to get USE_PANEL_CANVAS_IN_MAC working.
+#define GRW_FIXES_PANELCANVAS 1
+
+
+Happy Holidays,
+
+-Greg

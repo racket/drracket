@@ -1,0 +1,65 @@
+#!/bin/sh -f
+string=? ; if [ "$PLTHOME" = "" ] ; then
+string=? ;  echo Please define PLTHOME 
+string=? ;  exit -1
+string=? ; fi
+string=? ; exec ${PLTHOME}/bin/mzscheme -qr $0 "$@"
+
+(require-library "make.ss" "make")
+(require-library "link.ss" "mzscheme" "dynext")
+(require-library "compile.ss" "mzscheme" "dynext")
+(require-library "file.ss" "mzscheme" "dynext")
+
+(require-library "functio.ss")
+
+(define header (build-path (collection-path "mzscheme" "include") "scheme.h"))
+
+(define dir (build-path "compiled" "native" (system-library-subpath)))
+(define mzrl.so (build-path dir "mzrl.so"))
+(define mzrl.o (build-path dir "mzrl.o"))
+
+(define (add-flags fp flags)
+  (fp (append (fp) flags)))
+
+(define (files dir regexp)
+  (let loop ([l (directory-list dir)])
+    (cond
+     [(null? l) null]
+     [(regexp-match regexp (car l)) (cons (build-path dir (car l))
+					  (loop (cdr l)))]
+     [else (cdr l)])))
+
+; Compiler flags
+(case (string->symbol (system-library-subpath))
+  [(sparc-solaris i386-linux)
+   (add-flags current-extension-compiler-flags
+	      (list "-I/home/mflatt/proj/readline-2.1"))]
+  [(rs6k-aix)
+   (add-flags current-extension-compiler-flags
+	      (list "-DNEEDS_SELECT_H"))]
+  [else (void)])
+
+; Linker flags
+(case (string->symbol (system-library-subpath))
+  [(sparc-solaris)
+   (add-flags current-extension-linker-flags
+	      (list* "-ltermcap"
+		     (files "/home/mflatt/proj/readline-2.1/solaris/" ".*\\.o")))]
+  [(i386-linux)
+   (add-flags current-extension-linker-flags
+	      (files "/home/mflatt/proj/readline-2.1/linux/" ".*\\.o"))]
+  [else (add-flags current-extension-linker-flags (list "-L/usr/local/lib" "-lreadline"))])
+
+(add-flags current-extension-linker-flags (list "-lcurses"))
+
+(make 
+ ((mzrl.so (mzrl.o dir)
+	   (link-extension #f (list mzrl.o) mzrl.so))
+  
+  (mzrl.o ("mzrl.c" header dir)
+	  (compile-extension #f "mzrl.c" mzrl.o ()))
+  
+  (dir ()
+       (make-directory* dir)))
+
+ argv)

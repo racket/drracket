@@ -1,0 +1,74 @@
+compile.ss
+----------
+
+`compile-extension' takes
+   quiet? - Boolean indicating whether command should be echoed to stdout
+   input-file - A .c file
+   output-file - A .o/.obj file
+   includes - A list of include directories; MzScheme's include is
+              added automatically.
+
+Compilation is controlled by a number of parameters:
+
+   current-extension-compiler - compiler executable or #f. Under 
+     Windows, #f looks for cl.exe using the PATH env. variable.
+     Under Unix, #f looks for gcc and then cc.
+
+   current-extension-compiler-flags - list of strings. Under Windows,
+    the default is (list "/c" "/O2"); (list "-c" "-O2") for Unix
+
+   current-make-compile-include-strings - procedure that takes an
+    include dir and returns a list of strings for the command line.
+    Windows: "dir" -> (list "\Idir"); Unix: "dir" -> (list "-Idir")
+
+   current-make-compile-input-strings - procedure that takes an
+    input file and returns a list of strings for the command line.
+    The default is `list'.
+
+   current-make-compile-output-strings - procedure that takes an
+    output file and returns a list of strings for the command line.
+    Windows: "file"->(list "\Fofile"); Unix: "file"->(list "-o" "file")
+
+link.ss
+-------
+
+`link-extension' takes:
+   quiet? - Boolean indicating whether command should be echoed to stdout
+   input-files - A list of .o files
+   output-file - A .so/.dll file
+
+Linking parameters:
+
+   current-extension-linker - linker executable or #f. Under 
+     Windows, #f looks for cl.exe using the PATH env. variable.
+     Under Unix except AIX, #f looks for ld. Under AIX, #f looks
+     for cc.
+
+   current-extension-linker-flags - list of strings. Under Windows,
+     default is (list "/LD"). Unix default varies greatly per-platform.
+
+   current-make-link-input-strings - procedure that takes an
+     input file and returns a list of strings for the command line.
+     The default is `list'.
+
+   current-make-link-output-strings - procedure that takes an
+    output file and returns a list of strings for the command line.
+    Windows: "file"->(list "\Fefile"); Unix: "file"->(list "-o" "file")
+
+   current-standard-link-libraries - list of file paths; For
+    most platforms, the default is 
+     (list (build-path (collection-path "mzscheme" "lib") 
+                       (system-library-subpath)
+                       "mzdyn.o"))
+
+file.ss
+-------
+
+ (make-directory* dir) - makes dir, creating intermediate directoies
+   if necessary. If there is an error, and exception is raised.
+
+ (append-object-suffix s) - appends the platform-standard object
+   file suffix to s
+
+ (append-extension-suffix s) - appends the platform-standard dynamic
+   extension file suffix to s

@@ -1,0 +1,50 @@
+#
+# File:		makefile.nt
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	Ulrich Leodolter <ulrich@lab1.psy.univie.ac.at>, 1995
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds Microsoft Gauge library for Windows NT
+
+!include <..\..\src\ntwxwin.mak>
+
+GAUGEDIR = $(WXDIR)\contrib\gauge
+GAUGEINC = $(GAUGEDIR)
+GAUGELIB = $(GAUGEDIR)\gauge.lib
+
+INC =
+
+OBJECTS = zyzgauge.obj zyz3d.obj
+
+all:    $(GAUGELIB)
+
+wx:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.nt
+	cd $(GAUGEDIR)
+
+$(GAUGELIB):      $(OBJECTS)
+        -erase $(GAUGELIB)
+        $(implib) @<<
+-out:$(GAUGELIB)
+-machine:$(CPU)
+$(OBJECTS)
+<<
+
+zyzgauge.obj: zyzgauge.c zyzgauge.h zyz3d.h
+        cl @<<
+$(CPPFLAGS) /Od /c $*.c
+<<
+
+zyz3d.obj: zyz3d.c zyz3d.h
+        cl @<<
+$(CPPFLAGS) /Od /c $*.c
+<<
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

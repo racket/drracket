@@ -1,0 +1,89 @@
+<html>
+
+<head>
+<title> DrScheme Release Notes </title>
+</head>
+
+<body>
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>:<tt> </tt> 50 <br>
+<b>Release Date</b>:<tt> </tt> August 26, 1997.
+
+<p>
+Submit bugs using the <A HREF="http://www.cs.rice.edu/CS/PLT/Gnats/">web interface</A>
+(encouraged) or send mail to
+<A HREF="mailto:plt-bugs@cs.rice.edu">plt-bugs@cs.rice.edu</A>
+(discouraged).
+
+<p>
+The following is a summary of the major changes in this release
+from the previous one.
+
+<h4> DrScheme </h4>
+
+<ul>
+<li>
+DrScheme's fonts can now be configured through the Preferences dialog.
+
+<li>
+DrScheme's Beginner and Intermediate languages are more strict. This
+provides better error messages for expressions like <TT>(1 2)</TT>
+or <TT>(cond (null? l))</TT>.
+
+<li>
+A quasiquote bug has been fixed for forms like <TT>`(1 . ,3)</TT>.
+
+<li>
+The <TT>turn</TT> turtle command now turns counter-clockwise in degrees
+(instead of clockwise in radians). The The <TT>turn/radians</TT> command
+turns counter-clockwise in radians.
+
+<li>
+Printing has been fixed.
+
+<li>
+Output in the interactions window is much faster.
+
+</ul>
+
+<h4> Donkey </h4>
+
+<ul>
+<li>
+The Stepper tool (Donkey) is temporarily unavailable in 
+release 50 and will reappear in a future release.
+</ul>
+
+<h4> MrEd </h4>
+
+<ul>
+<li>The look and speed of the non-Motif X Windows version has improved.
+<li>See <tt>plt/mred/HISTORY</tt> and <tt>plt/mred/system/history</tt>
+in the distribution for other changes.
+</ul>
+
+<h4> MzScheme </h4>
+
+<ul>
+<li>Added compile-time inference of procedure names for
+better error reporting.
+<li>Added a mechanism for saving and restoring heap dumps under Unix.
+<li>See <tt>plt/mzscheme/HISTORY</tt> in the distribution for
+other changes.
+</ul>
+
+<h4> Known Problems </h4>
+
+<ul>
+<li>
+See <tt>plt/openbugs</tt> in the distribution.
+</ul>
+
+</body>
+</html>

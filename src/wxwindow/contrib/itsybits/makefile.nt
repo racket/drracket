@@ -1,0 +1,47 @@
+#
+# File:		makefile.nt
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	Ulrich Leodolter <ulrich@lab1.psy.univie.ac.at>, 1995
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds ItsyBitsy small frame library for Windows NT
+
+!include <..\..\src\ntwxwin.mak>
+
+ITSYDIR = $(WXDIR)\contrib\itsybits
+ITSYINC = $(ITSYDIR)
+ITSYLIB = $(ITSYDIR)\itsy.lib
+
+INC =
+
+SOURCES = itsybits.c
+HEADERS = itsybits.h
+OBJECTS = itsybits.obj
+
+all:    $(ITSYLIB)
+
+wx:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.nt
+	cd $(ITSYDIR)
+
+$(ITSYLIB):      $(OBJECTS)
+	-erase $(ITSYLIB)
+        $(implib) @<<
+-out:$(ITSYLIB)
+-machine:$(CPU)
+$(OBJECTS)
+<<
+
+itsybits.obj: itsybits.cc itsybits.h
+        cl @<<
+$(CPPFLAGS) /Od /c /Tp $*.cc
+<<
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

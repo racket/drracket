@@ -1,0 +1,32 @@
+#
+# File:		makefile.w32
+# Author:	
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# Makefile : Builds wxWindows library wx.lib for Windows 3.1
+# and Watcom 32
+
+WXDIR = ..\..
+THISDIR = $(WXDIR)\src\msw
+WXLIB = $(WXDIR)\lib
+WXINC = $(WXDIR)\include\msw
+WXBASESRC = $(WXDIR)\src\base
+WXBASEINC = $(WXDIR)\include\base
+OPT= /ox
+
+CPPFLAGS= /Dwx_msw=1 $(DEBUG_FLAGS) -I$(WXINC) -I$(WXBASEINC) $(OPT)
+
+.cc.obj:
+	wcl386 $(CPPFLAGS) bt=windows $<
+
+BASE1 = wb_win.obj wb_frame.obj  wb_panel.obj wb_utils.obj wb_main.obj 
+BASE2 = wb_item.obj wb_list.obj wb_obj.obj wb_ps.obj wb_text.obj wb_gdi.obj 
+BASE3 =	wb_dialg.obj wb_canvs.obj wb_dc.obj wb_mf.obj wb_hash.obj wb_ipc.obj 
+BASE4 =	wb_form.obj wb_timer.obj wb_help.obj wb_sysev.obj wb_stdev.obj 
+BASE5 =	wb_types.obj  wb_mgstr.obj wxstring.obj wb_data.obj
+
+all:	$(BASE1) $(BASE2) $(BASE3) $(BASE4) $(BASE5)
+
+

@@ -1,0 +1,9 @@
+
+@MACRO returnFALSE = return FALSE;
+
+@ w "on-kill-focus" : void OnKillFocus();
+@ w "on-set-focus" : void OnSetFocus();
+@ w "on-size" : void OnSize(int,int);
+
+@ w "pre-on-char" : bool PreOnChar(wxWindow!,wxKeyEvent!);  : : : returnFALSE : returnFALSE : wxWindow
+@ w "pre-on-event" : bool PreOnEvent(wxWindow!,wxMouseEvent!);  : : : returnFALSE : returnFALSE : wxWindow

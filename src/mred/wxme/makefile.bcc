@@ -1,0 +1,105 @@
+#
+# File:        makefile.bcc
+# Purpose:     Makefile for wxMedia classes for Borland C++ 4.5.1
+# Author:      Lewis Tanzos
+# Created:     1996
+# Copyright:   (c) 1996, Lewis Tanzos
+# Notice:      This file was modified from the UNIX makefile provided 
+#               by the wxMedia libraries by Matthew Flatt
+#
+# INCLUDES "NO_GENERAL_FONTS" THAT REMOVES SOME wxMedia CAPABILITIES!
+#
+
+!if "$(BCCDIR)" == ""
+!error You must define the BCCDIR variable in autoexec.bat, e.g. BCCDIR=d:\bc4
+!endif
+
+# You may need to change WXWIN to WXDIR, depending on your version of
+# wxWindows:
+
+!if "$(WXWIN)" == ""
+!error You must define the WXWIN variable in autoexec.bat, e.g. WXWIN=c:\wx
+!endif
+
+CC = $(BCCDIR)\bin\bcc -P
+
+LIBDIR = -I$(WXWIN)\include\base -I$(WXWIN)\include\msw
+
+OBJECTS = wx_style.obj $(CLIPOBJ) wx_keym.obj wx_mbuf.obj \
+          wx_media.obj wx_mpriv.obj wx_msnip.obj wx_mline.obj wx_mpbrd.obj \
+          wx_medad.obj wx_snip.obj wx_cgrec.obj wx_medio.obj
+
+ALLHEADERS = wx_ptreq.h
+HEADERS = wx_media.h wx_medad.h wx_cgrec.h wx_keym.h wx_medio.h wx_style.h \
+          $(ALLHEADERS)
+
+libwxme.lib: $(OBJECTS)
+	del libwxme.lib
+	tlib /C libwxme.lib /P64 @&&!
++$(OBJECTS:.obj =.obj +)
+!
+
+LDLIBS = $(WXWIN)\lib\wx.lib
+CFG = $(WXWIN)\src\wxwin.cfg
+CPPFLAGS = @$(CFG)
+
+edjr:	edjr.exe
+
+edjr.exe: libwxme.lib edjr.obj edjrmain.obj
+	$(CC) $(CPPFLAGS) $(LDFLAGS) edjr.obj edjrmain.obj libwxme.lib $(LDLIBS)
+
+MCC = $(CC) $(CPPFLAGS) $(LOCALFLAGS) -c $(LIBDIR) -DNO_GENERAL_FONTS -ml 
+
+wx_media.obj : wx_media.cc $(HEADERS) wx_snip.h wx_gclip.h wx_mpriv.h wx_mline.h
+	$(MCC) wx_media.cc 
+
+wx_mpriv.obj : wx_mpriv.cc $(HEADERS) wx_snip.h wx_gclip.h wx_mpriv.h \
+             wx_mline.h wx_gcrct.h
+	$(MCC) wx_mpriv.cc 
+
+wx_msnip.obj : wx_msnip.cc $(HEADERS) wx_snip.h wx_gclip.h wx_mpriv.h wx_gcrct.h
+	$(MCC) wx_msnip.cc 
+
+wx_mline.obj : wx_mline.cc wx_mline.h wx_snip.h $(HEADERS)
+	$(MCC) wx_mline.cc 
+
+wx_mpbrd.obj : wx_mpbrd.cc $(HEADERS) wx_snip.h wx_medpb.h
+	$(MCC) wx_mpbrd.cc 
+
+wx_medad.obj : wx_medad.cc $(HEADERS) wx_snip.h
+	$(MCC) wx_medad.cc 
+
+wx_mbuf.obj : wx_mbuf.cc $(HEADERS) wx_snip.h
+	$(MCC) wx_mbuf.cc
+
+wx_snip.obj : wx_snip.cc $(HEADERS) wx_gcrct.h
+	$(MCC) wx_snip.cc
+
+wx_cgrec.obj : wx_cgrec.cc $(HEADERS)
+	$(MCC) wx_cgrec.cc
+
+wx_keym.obj : wx_keym.cc wx_keym.h $(ALLHEADERS)
+	$(MCC) wx_keym.cc 
+
+wx_medio.obj : wx_medio.cc wx_medio.h $(ALLHEADERS)
+	$(MCC) wx_medio.cc
+
+wx_gclip.obj : wx_gclip.cc wx_gclip.h $(ALLHEADERS)
+	$(MCC) wx_gclip.cc
+
+wx_style.obj : wx_style.cc wx_style.h wx_medio.h $(ALLHEADERS)
+	$(MCC) wx_style.cc
+
+edjr.obj : edjr.cc edjr.h
+	$(MCC) edjr.cc
+
+edjrmain.obj : edjrmain.cc edjr.h
+	$(MCC) edjrmain.cc
+
+clean:
+	del *.obj
+	del *.lib
+	del *.bak
+	del *.csm
+	del *.exe
+

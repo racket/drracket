@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ `uname -s` != "AIX" ] ; then
+  exec "$@"
+else
+  exit 0
+fi

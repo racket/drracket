@@ -1,0 +1,47 @@
+
+#if 0
+
+static Scheme_Object *CB_TOC(wxFunction f, int n, Scheme_Object **p)
+{
+  CB_REALCLASS *b;
+  wxCommandEvent *c;
+
+  if (n != 2)
+    scheme_signal_error("need two arguments for callback for %s", CB_USER);
+
+  if (f) {
+    b = CB_UNBUNDLE(p[0], "callback for " CB_USER, 0);  
+    c = objscheme_unbundle_wxCommandEvent(p[1], "callback for " CB_USER, 0);
+
+    f(*b, *c);
+  }
+
+  return scheme_void;
+}
+
+#endif
+
+static void CB_TOSCHEME(CB_REALCLASS *realobj, wxCommandEvent &event)
+{
+  Scheme_Object *p[2];
+  Scheme_Class_Object *obj;
+  jmp_buf savebuf;
+
+  obj = (Scheme_Class_Object *)realobj->__gc_external;
+
+  if (!obj) {
+    // scheme_signal_error("bad callback object");
+    return;
+  }
+
+  p[0] = (Scheme_Object *)obj;
+  p[1] = objscheme_bundle_wxCommandEvent(&event);
+
+  COPY_JMPBUF(savebuf, scheme_error_buf);
+
+  if (!scheme_setjmp(scheme_error_buf)) {
+    scheme_apply(((CALLBACKCLASS *)obj->primdata)->callback_closure, 2, p);
+  }
+
+  COPY_JMPBUF(scheme_error_buf, savebuf);
+}

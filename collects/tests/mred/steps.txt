@@ -1,0 +1,130 @@
+Instructions:
+ Initial Setup:
+  - Second menu is enabled "Apple"
+  Delete Apple
+
+ Menu Inserting & Deleting:
+  Add Apple - apple menu appears
+  Add Banana - banana menu appears
+  Delete Apple (from apple menu) - apple menu goes, banana menu still there
+  Delete Banana - back to starting point
+  Add Apple
+  Add Banana
+  Delete Banana - apple still there
+  Delete Apple
+  Add Apple
+  Add Coconut - coconut submenu appears
+  Delete Coconut (from sub-menu) - coconut submenu gone
+  Delete Apple
+  Add Coconut
+  Add Apple - apple menu appears with coconut already
+  Delete Apple
+  Delete Coconut
+  Add Apple - apple menu appears without coconut
+
+ Menu Enabling:
+  Disable Second - apple menu gray & unselectable
+  Enable Second - back to normal
+  Disable Second
+  Delete Apple (from tester menu)
+  Add Apple - NOT gray anymore
+
+ Item Enabling:
+  Disable Apple Once Item -> once item grayed & unselectable
+  Un-Disable Apple Once Item -> once item normal
+  Disable Apple Once Item
+  Delete Apple
+  Add Apple -> once item still gray
+  Un-Disable Apple Once Item
+  Delete Apple
+  Disable Apple Once Item
+  Add Apple -> once item gray again
+  Un-Disable Apple Once Item
+  
+ Item Inserting & Deleting:
+  Append Donut - donut item added
+  Delete Once - once item disappears
+  Delete Apple
+  Add Apple - once item still gone
+  Append Donut - another donut
+  Delete Apple
+  Append Donut
+  Add Apple - three donuts total
+
+ Checkable Items & Insertions:
+  Test Apple Item -> "no"
+  Apple Checkable
+  Test Apple Item -> "yes"
+  Delete Apple
+  Test Apple Item -> "yes"
+  Apple Checkable
+  Test Apple Item -> "no"
+  Delete Apple
+  Test Apple Item -> "no"
+
+ More Checkable (Apple & Banana currently deleted):
+  Test Aeros -> "yes"
+  Test Bruin -> "no"
+  Test Capitols -> "no"
+
+  Check Astros -> nothing
+  Check Braves -> "Braves checked", braves checked, astros unchecked
+  Check Cardianls -> "Cardinals checked", cardinals checked, braves unchecked
+
+  Check Bruins -> "Boston checked", aeros unchecked, bruins checked
+
+  Test Aeros -> "no"
+  Test Bruin -> "yes"
+  Test Capitols -> "no"
+
+ Checkable via Menubar (Apple & Banana currently deleted):
+  Via Menubar
+  Test Aeros -> "no"
+  Test Bruin -> "yes"
+  Test Apple Item -> "no"
+  Check in Apple (Button)
+  Add Apple - checkable item *not* checked
+  Check in Apple (Button) - item checked
+  Test Apple Item -> "yes"
+  Delete Apple
+  Test Apple Item -> "no"
+  Add Apple
+  Apple | Checkable
+  Delete Apple
+  Via Menubar
+
+ Labels (Apple & Banana currently deleted):
+  Add Coconut - (coconut item needed for the rest)
+  Test Labels - "ok" in console
+  Find Labels - "ok" in console
+  Toggle Labels - "Tester" -> "Hi", "Add Apple" -> "Apple Adder", "Astros" -> "'Stros"
+  Add Apple - check that "Delete Apple" -> "Apple Deleter"
+  Delete Apple
+  Test Labels - "ok" in console
+  Find Labels - "ok" in console
+  Toggle Labels - original labels
+  Add Apple - check for original labels
+  Toggle Labels - "Delete Apple" -> "Apple Deleter"
+  Toggle Labels
+  Delete Apple
+  Via Menubar 
+  Test Labels - "ok" in console
+  Find Labels - "ok" in console
+  Toggle Labels - "Add Apple" -> "Apple Adder", "Astros" -> "'Stros"
+  Test Labels - "ok" in console
+  Find Labels - "ok" in console
+  Toggle Labels - original labels
+  Add Apple
+  Test Labels - "ok" in console
+  Find Labels - "ok" in console
+  Via Menubar - off
+
+ Handling Bad Requests:
+  Test Bad Item -> #f
+  Test Other Bad Item -> #f
+  Bad Item Labels - "ok" in console
+  Via Menubar 
+  Bad Item Labels - "ok" in console
+  Via Menubar 
+  Bad Check - nothing
+  Bad Enable - nothing

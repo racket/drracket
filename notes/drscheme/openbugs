@@ -1,0 +1,11 @@
+- in the language dialog box, "allow set! on undefined" is ignored
+
+- check syntax doesn't traverse unit or class expressions
+
+- check syntax: identifiers with newlines in them have their arrows
+  start from funny places.
+
+- eval'ing images in drscheme is broken
+
+- backup files don't preserve file permissions
+

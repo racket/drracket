@@ -1,0 +1,68 @@
+#
+# File:		makefile.dos
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds Gauge library for Windows 3.1
+
+!if "$(WXWIN)" == ""
+!error You must define the WXWIN variable in autoexec.bat, e.g. WXWIN=c:\wx
+!endif
+
+# Change WXDIR or WXWIN to wherever wxWindows is found
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib\wx.lib
+WXINC = $(WXDIR)\include
+
+GAUGEDIR = $(WXDIR)\contrib\gauge
+GAUGEINC = $(GAUGEDIR)
+GAUGELIB = $(GAUGEDIR)\gauge.lib
+CFG = $(WXDIR)\src\wxwin.cfg
+
+INC =
+
+LIBS=$(WXLIB) $(GAUGELIB) libw llibcew commdlg ddeml shell # ctl3d
+
+!ifndef FINAL
+FINAL=0
+!endif
+
+!if "$(FINAL)" == "0"
+OPT = -Od
+DEBUG_FLAGS= -v
+!else
+OPT = -O2
+DEBUG_FLAGS =
+!endif
+CPPFLAGS=$(DEBUG_FLAGS) $(OPT) /I$(WXDIR)\contrib\gauge @$(CFG)
+
+.cc.obj:
+        bcc $(CPPFLAGS) -c {$< }
+
+OBJECTS = zyzgauge.obj zyz3d.obj
+
+all:    $(GAUGELIB)
+
+wx:
+        cd $(WXDIR)\src
+        make -f makefile.bcc $(WXLIB) FINAL=$(FINAL)
+
+$(GAUGELIB):      $(OBJECTS)
+        erase $(GAUGELIB)
+        tlib /P128 @&&!
+$(GAUGELIB) &
++$(OBJECTS:.obj =.obj +)
+!
+
+zyzgauge.obj: zyzgauge.c zyzgauge.h zyz3d.h
+
+zyz3d.obj: zyz3d.c zyz3d.h
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

@@ -1,0 +1,42 @@
+/** testzyzg.rc                                                          **/
+
+
+/* the includes required */
+#include <windows.h>
+#include "zyzgauge.h"
+#include "testzyzg.h"
+
+
+/* misc. resources */
+/* ICON_TESTZYZG   ICON    testzyzg.ICO */
+
+
+/* the menu */
+MENU_TESTZYZG MENU
+BEGIN
+    POPUP "&Test"
+    BEGIN
+        MENUITEM "&Test it...",         IDM_TEST_TEST
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",               IDM_TEST_EXIT
+    END
+END
+
+
+/* the test dialog box */
+DLG_TESTZYZG DIALOG 10, 10, 203, 123
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "zYzGauge Tester..."
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL "- z&Yz -" IDOK, "BUTTON", WS_CHILD | WS_VISIBLE | WS_TABSTOP | 0x1L, 81, 99, 43, 14
+    CONTROL "" IDD_ZYZGAUGE1, "zYzGauge", ZYZGS_3D | WS_CHILD | WS_VISIBLE | 0x7L, 17, 10, 32, 103
+    CONTROL "" IDD_ZYZGAUGE2, "zYzGauge", ZYZGS_3D | WS_CHILD | WS_VISIBLE | 0x7L, 57, 10, 132, 20
+    CONTROL "" IDD_ZYZGAUGE3, "zYzGauge", WS_CHILD | WS_VISIBLE | 0x7L, 148, 37, 41, 37
+    CONTROL "" IDD_ZYZGAUGE4, "zYzGauge", ZYZGS_3D | WS_CHILD | WS_VISIBLE | 0x7L, 59, 64, 80, 26
+    CONTROL "" IDD_ZYZGAUGE5, "zYzGauge", ZYZGS_3D | WS_CHILD | WS_VISIBLE | 0x7L, 59, 39, 80, 19
+    CONTROL "" IDD_ZYZGAUGE6, "zYzGauge", ZYZGS_3D | WS_CHILD | WS_VISIBLE | 0x7L, 148, 83, 41, 29
+END
+
+
+/** testzyzg.rc **/

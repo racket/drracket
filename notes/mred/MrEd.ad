@@ -1,0 +1,29 @@
+! MrEd resources:
+
+!  Font names
+mred.ScreenDefaultBase: *-courier
+mred.ScreenModernBase: misc-fixed
+mred.ScreenDecorativeBase: *-helvetica
+mred.ScreenScriptBase: *-charter
+mred.ScreenSwissBase: *-lucida
+mred.ScreenRomanBase: *-times
+
+!  Font size
+mred.defaultFontSize: 12
+
+!  Time between clicks for a double-click
+mred.doubleClickTime:   500
+
+!  Standard system's console (uncomment it to use)
+! *MrEdConsole.geometry: +40+40
+
+
+!  Indigo Magic look & feel
+! MrEd*useSchemes: all
+! MrEd*sgiMode: true
+! MrEd*schemeFileList: SgiSpec
+! MrEd*paletteFileList: FontPalette
+! MrEd*SgNuseEnhancedFSB: true
+
+!  SGI Style guide specifies pointer focus for applications
+! MrEd*keyboardFocusPolicy: pointer

@@ -1,0 +1,38 @@
+
+@MACRO ZeroReturn[p] = if (x<p> <= 0) return scheme_void;
+@MACRO ZeroBoundary[p] = if (x<p> < 0) x<p> = 0;
+
+@ q "begin-drawing" : void BeginDrawing(); : : /CheckOk
+@ q "end-drawing" : void EndDrawing(); : : /CheckOk
+
+@ Q "clear" : void Clear(); : : /CheckOk
+
+@ Q "draw-line" : void DrawLine(float,float,float,float); : : /CheckOk
+// @ Q "int-draw-line" : void IntDrawLine(int,int,int,int); : : /CheckOk
+@ Q "draw-point" : void DrawPoint(float,float); : : /CheckOk
+@ Q "draw-rectangle" : void DrawRectangle(float,float,nnfloat,nnfloat); : : /ZeroReturn[2]|ZeroReturn[3]|CheckOk
+@ Q "draw-rounded-rectangle" : void DrawRoundedRectangle(float,float,nnfloat,nnfloat,float=20); : : /ZeroReturn[2]|ZeroReturn[3]|CheckOk
+// @ q "draw-spline" : void DrawSpline(wxList!); : : /CheckOk
+@ q "draw-spline" : void DrawSpline(float,float,float,float,float,float); : : /CheckOk
+@ Q "draw-text" : void DrawText(string,float,float,bool=FALSE); : : /CheckOk
+
+@ Q "draw-arc" : void DrawArc(float,float,float,float,float,float); : : /CheckOk
+@ Q "draw-ellipse" : void DrawEllipse(float,float,nnfloat,nnfloat); : : /ZeroReturn[2]|ZeroReturn[3]|CheckOk
+
+@ Q "draw-lines" : void DrawLines(-int,wxPoint!/bList/ubList/cList,float=0,float=0); : /methListSet[wxPoint.0.1.0]// : / CheckOk|glueListSet[wxPoint.0.1.0."wx:dc%::draw-lines"]//
+@ Q "draw-polygon" : void DrawPolygon(-int,wxPoint!/bList/ubList/cList,float=0,float=0,int=wxODDEVEN_RULE); : / methListSet[wxPoint.0.1.0]// : /CheckOk|glueListSet[wxPoint.0.1.0."wx:dc%::draw-polygon"]//
+
+// Undefined?
+//@ "int-draw-lines" : void IntDrawLines(-int,wxIntPoint!/bList/ubList/cList,float=0,float=0); : / methListSet[wxIntPoint.0.1.0]// : /CheckOk|glueListSet[wxIntPoint.0.1.0]//
+
+@ Q "destroy-clipping-region" : void DestroyClippingRegion(); : : /CheckOk
+@ Q "set-clipping-region" : void SetClippingRegion(float,float,nnfloat,nnfloat); : : /CheckOk|ZeroBoundary[2]|ZeroBoundary[3]
+@ Q "get-clipping-region" : void GetClippingRegion(float*,float*,float*,float*);
+
+@ Q "set-background" : void SetBackground(wxBrush!); : : /CheckOk
+@ Q "set-brush" : void SetBrush(wxBrush!); : : /CheckOk
+@ Q "set-font" : void SetFont(wxFont!); : : /CheckOk
+@ Q "set-logical-function" : void SetLogicalFunction(int); : : /CheckLogicalFunc[0.wxCOPY."wx:dc::set-logical-function"]|CheckOk
+@ Q "set-pen" : void SetPen(wxPen!); : : /CheckOk
+@ q "set-text-background" : void SetTextBackground(wxColour!); : : /CheckOk
+@ q "set-text-foreground" : void SetTextForeground(wxColour!); : : /CheckOk

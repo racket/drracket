@@ -1,0 +1,738 @@
+///////////////////////////////////////////////////////////////////////////////
+// File:	wx_gdi.cc (Macintosh version)
+// Purpose:	GDI (Graphics Device Interface) objects and functions
+// Author:	Bill Hale
+// Created:	1994
+// Updated:	
+// Copyright:  (c) 1993-94, AIAI, University of Edinburgh. All Rights Reserved.
+///////////////////////////////////////////////////////////////////////////////
+
+static const char sccsid[] = "%W% %G%";
+#include "common.h"
+#include "wx_list.h"
+#include "wx_utils.h"
+#include "wx_gdi.h"
+#include <Strings.h>
+#include <Resources.h>
+
+CGrafPtr wxFont::gMacFontGrafPort = NULL; // mac platform only
+
+wxGDIList   *wxTheIconList = NULL;
+wxGDIList   *wxTheCursorList = NULL;
+wxGDIList   *wxTheColourList = NULL;
+
+#ifdef wx_xview
+
+/* These cursors courtesy of xfig
+ */
+
+static unsigned short    bull_cursor_array[16] = {
+    0x0F00, 0x30C0, 0x4020, 0x4020, 0x8010, 0x8610, 0x8610, 0x8010,
+    0x4020, 0x4020, 0x30C0, 0x0F00, 0x0000, 0x0000, 0x0000, 0x0000
+};
+
+static unsigned short    char_cursor_data[16] = {
+    0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00,
+    0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00, 0xFF00,
+};
+
+static unsigned short    crosshair_cursor_data[16] = {
+    0x1000, 0x1000, 0x1000, 0xFE00, 0x1000, 0x1000, 0x1000, 0x0000,
+    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+};
+
+static unsigned short    magnifier_cursor_array[16] = {
+    0x0F80, 0x3060, 0x4010, 0x4010, 0x8008, 0x8008, 0x8008, 0x8008,
+    0x8008, 0x4010, 0x4010, 0x3078, 0x0F9C, 0x000E, 0x0007, 0x0003,
+};
+
+static unsigned short    pencil_cursor_array[16] = {
+    0x0000, 0x0018, 0x0024, 0x0075, 0x009B, 0x0117, 0x022E, 0x045C,
+    0x08B8, 0x1170, 0x22E0, 0x25C0, 0x7B80, 0x6700, 0x8600, 0x0800,
+};
+
+static unsigned short    vbar_cursor_array[16] = {
+    0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000,
+    0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000,
+};
+
+static unsigned short hand_cursor_array[] =
+{
+  0x0C00,0x1200,0x1200,0x1380,0x1240,0x7270,0x9248,0x924E,
+  0x9249,0x9249,0x9009,0x8001,0x4002,0x4002,0x2004,0x2004
+};
+#endif
+
+//-----------------------------------------------------------------------------
+wxFont::wxFont(void)
+{
+	point_size = 0;
+	temporary = TRUE;
+
+	wxTheFontList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+// Constructor for a font. Note that the real construction is done
+// in wxDC::SetFont, when information is available about scaling etc.
+//-----------------------------------------------------------------------------
+wxFont::wxFont(int PointSize, int Family, int Style, int Weight, Bool Underlined):
+  wxbFont(PointSize, Family, Style, Weight, Underlined)
+{
+	family = Family;
+	style = Style;
+	weight = Weight;
+	point_size = PointSize;
+	underlined = Underlined;
+
+	wxTheFontList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxFont::~wxFont()
+{
+  wxTheFontList->DeleteObject(this);
+}
+
+//-----------------------------------------------------------------------------
+float wxFont::GetCharHeight(void)
+{
+	GrafPtr oldPort;
+	::GetPort(&oldPort);
+	::SetPort((GrafPtr)gMacFontGrafPort);
+	::TextFont(GetMacFontNum());
+	::TextSize(point_size);
+	::TextFace(GetMacFontStyle());
+	FontInfo fontInfo;
+	::GetFontInfo(&fontInfo);
+	::SetPort(oldPort);
+	return fontInfo.ascent + fontInfo.descent + fontInfo.leading;
+}
+
+//-----------------------------------------------------------------------------
+float wxFont::GetCharWidth(void)
+{
+	GrafPtr oldPort;
+	::GetPort(&oldPort);
+	::SetPort((GrafPtr)gMacFontGrafPort);
+	::TextFont(GetMacFontNum());
+	::TextSize(point_size);
+	::TextFace(GetMacFontStyle());
+	FontInfo fontInfo;
+	::GetFontInfo(&fontInfo);
+	::SetPort(oldPort);
+	return fontInfo.widMax;
+}
+
+//-----------------------------------------------------------------------------
+void wxFont::GetTextExtent(char* string, float* x, float* y,
+							float* descent, float* externalLeading)
+{
+	GrafPtr oldPort;
+	::GetPort(&oldPort);
+	::SetPort((GrafPtr)gMacFontGrafPort);
+	::TextFont(GetMacFontNum());
+	::TextSize(point_size);
+	::TextFace(GetMacFontStyle());
+	FontInfo fontInfo;
+	::GetFontInfo(&fontInfo);
+	*x = TextWidth(string, 0, strlen(string)); // width
+	*x += 5; // WCH: kludge, to handle italic font and word wrapping at end of line
+	*y = fontInfo.ascent + fontInfo.descent + fontInfo.leading; // height
+	if (descent) *descent = fontInfo.descent;
+	if (externalLeading) *externalLeading = fontInfo.leading;
+	::SetPort(oldPort);
+}
+
+//-----------------------------------------------------------------------------
+int wxFont::GetMacFontNum(void) // mac platform only
+{
+	int result;
+
+    switch (family)
+	{
+		case wxDECORATIVE:
+			result = 2; // mac new york font
+			break;
+		case wxROMAN:
+			result = 20; // mac times font
+			break;
+		case wxMODERN:
+			result = 22; // mac courier font
+			break;
+		case wxSWISS:
+			result = 2; // mac new york font
+			break;
+		case wxDEFAULT:
+		default: 
+			result = 1; // mac application font
+			break;
+	}
+
+	return result;
+}
+
+//-----------------------------------------------------------------------------
+Style wxFont::GetMacFontStyle(void) // mac platform only
+{
+	Style result = 0;
+	if (weight == wxBOLD) result |= bold;
+	if (style == wxITALIC) result |= italic;
+	if (underlined) result |= underline;
+	return result;
+}
+
+
+
+/*
+ * Colour map
+ *
+ */
+
+//-----------------------------------------------------------------------------
+wxColourMap::wxColourMap(void)
+{
+#ifdef wx_x
+  cmap = 0;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+wxColourMap::~wxColourMap(void)
+{
+}
+
+
+// Pens
+
+//-----------------------------------------------------------------------------
+wxPen::wxPen(void)
+{
+  colour = NULL;
+  stipple = NULL ;
+  style = wxSOLID;
+  join = wxJOIN_ROUND ;
+  cap = wxCAP_ROUND ;
+  nb_dash = 0 ;
+  dash = NULL ;
+  width = 1;
+
+  wxThePenList->AddPen(this);
+}
+
+//-----------------------------------------------------------------------------
+wxPen::~wxPen()
+{
+  wxThePenList->RemovePen(this);
+}
+
+//-----------------------------------------------------------------------------
+wxPen::wxPen(wxColour& col, int Width, int Style):
+  wxbPen(col, Width, Style)
+{
+  colour = col;
+  stipple = NULL ;
+  width = Width;
+  style = Style;
+  join = wxJOIN_ROUND ;
+  cap = wxCAP_ROUND ;
+  nb_dash = 0 ;
+  dash = NULL ;
+  wxThePenList->AddPen(this);
+}
+
+//-----------------------------------------------------------------------------
+wxPen::wxPen(char *col, int Width, int Style):
+  wxbPen(col, Width, Style)
+{
+  SetColour(col);
+  stipple = NULL ;
+  width = Width;
+  style = Style;
+  join = wxJOIN_ROUND ;
+  cap = wxCAP_ROUND ;
+  nb_dash = 0 ;
+  dash = NULL ;
+
+  wxThePenList->AddPen(this);
+}
+
+// Brushes
+
+//-----------------------------------------------------------------------------
+wxBrush::wxBrush(void)
+{
+  colour = NULL;
+  style = wxSOLID;
+  stipple = NULL ;
+  wxTheBrushList->AddBrush(this);
+}
+
+//-----------------------------------------------------------------------------
+wxBrush::~wxBrush()
+{
+  wxTheBrushList->RemoveBrush(this);
+}
+
+//-----------------------------------------------------------------------------
+wxBrush::wxBrush(wxColour& col, int Style):
+  wxbBrush(col, Style)
+{
+  SetColour(col);
+  style = Style;
+  stipple = NULL ;
+  wxTheBrushList->AddBrush(this);
+}
+
+//-----------------------------------------------------------------------------
+wxBrush::wxBrush(char *col, int Style):
+  wxbBrush(col, Style)
+{
+  SetColour(col);
+  style = Style;
+  stipple = NULL ;
+  wxTheBrushList->AddBrush(this);
+}
+
+// Icons - Remember a wxIcon is for minimized windows which the
+// Mac can't do.
+
+//-----------------------------------------------------------------------------
+wxIcon::wxIcon(char bits[], int Width, int Height)
+{
+  __type = wxTYPE_ICON;
+  width = Width;
+  height = Height;
+  wxTheIconList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxIcon::wxIcon(void)
+{
+  width = 0;
+  height = 0;
+  wxTheIconList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxIcon::wxIcon(char *icon_file)
+{
+  __type = wxTYPE_ICON;
+  wxTheIconList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxIcon::~wxIcon(void)
+{
+  wxTheIconList->DeleteObject(this);
+}
+
+// Cursors
+
+//-----------------------------------------------------------------------------
+wxCursor::wxCursor(void)
+{
+  __type = wxTYPE_CURSOR;
+  wxTheCursorList->Append(this) ;
+}
+
+//-----------------------------------------------------------------------------
+wxCursor::wxCursor(char bits[], int width, int height)
+{
+  __type = wxTYPE_CURSOR;
+  wxTheCursorList->Append(this) ;
+}
+
+//-----------------------------------------------------------------------------
+wxCursor::wxCursor(char *cursor_file)
+{
+  __type = wxTYPE_CURSOR;
+  wxTheCursorList->Append(this) ;
+}
+
+//-----------------------------------------------------------------------------
+// Cursors by stock number
+//-----------------------------------------------------------------------------
+wxCursor::wxCursor(int cursor_type)
+{
+  __type = wxTYPE_CURSOR;
+
+  switch (cursor_type)
+  {
+    case wxCURSOR_WAIT:
+    {
+      break;
+    }
+    case wxCURSOR_CROSS:
+    {
+      break;
+    }
+    case wxCURSOR_CHAR:
+    {
+      break;
+    }
+    case wxCURSOR_HAND:
+    {
+      break;
+    }
+    case wxCURSOR_BULLSEYE:
+    {
+      break;
+    }
+    case wxCURSOR_PENCIL:
+    {
+      break;
+    }
+    case wxCURSOR_MAGNIFIER:
+    {
+     break;
+    }
+    case wxCURSOR_IBEAM:
+    {
+      break;
+    }
+    case wxCURSOR_NO_ENTRY:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_pirate);
+      break;
+    }
+
+    case wxCURSOR_LEFT_BUTTON:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_leftbutton);
+      break;
+    }
+    case wxCURSOR_RIGHT_BUTTON:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_rightbutton);
+      break;
+    }
+    case wxCURSOR_MIDDLE_BUTTON:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_middlebutton);
+      break;
+    }
+    case wxCURSOR_QUESTION_ARROW:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_question_arrow);
+      break;
+    }
+    case wxCURSOR_SIZING:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_sizing);
+      break;
+    }
+    case wxCURSOR_WATCH:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_watch);
+      break;
+    }
+    case wxCURSOR_SPRAYCAN:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_spraycan);
+      break;
+    }
+    case wxCURSOR_PAINT_BRUSH:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_spraycan);
+      break;
+    }
+    case wxCURSOR_SIZENWSE:
+    case wxCURSOR_SIZENESW:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_circle);
+      break;
+    }
+    case wxCURSOR_SIZEWE:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_sb_h_double_arrow);
+      break;
+    }
+    case wxCURSOR_SIZENS:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_sb_v_double_arrow);
+      break;
+    }
+    case wxCURSOR_POINT_LEFT:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_sb_left_arrow);
+      break;
+    }
+    case wxCURSOR_POINT_RIGHT:
+    {
+      use_raw_x_cursor = TRUE;
+      //wch: x_cursor = XCreateFontCursor(dpy, XC_sb_right_arrow);
+      break;
+    }
+    default:
+    case wxCURSOR_ARROW:
+    {
+      break;
+    }
+    case wxCURSOR_BLANK:
+    {
+      break ;
+    }
+  }
+  wxTheCursorList->Append(this) ;
+}
+
+//-----------------------------------------------------------------------------
+wxCursor::~wxCursor(void)
+{
+  wxTheCursorList->DeleteObject(this) ;
+}
+
+//-----------------------------------------------------------------------------
+// Global cursor setting
+//-----------------------------------------------------------------------------
+void wxSetCursor(wxCursor *cursor)
+{
+
+  wxFlushEvents();
+}
+
+// Misc. functions
+
+//-----------------------------------------------------------------------------
+// Return TRUE if we have a colour display
+//-----------------------------------------------------------------------------
+Bool wxColourDisplay(void)
+{
+	return TRUE;
+}
+
+//-----------------------------------------------------------------------------
+// Returns depth of screen
+//-----------------------------------------------------------------------------
+int wxDisplayDepth(void)
+{
+	return 1;
+}
+
+//-----------------------------------------------------------------------------
+// Get size of display
+//-----------------------------------------------------------------------------
+void wxDisplaySize(int *width, int *height)
+{
+	*width = qd.screenBits.bounds.right - qd.screenBits.bounds.left;
+	*height = qd.screenBits.bounds.bottom - qd.screenBits.bounds.top;
+}
+
+//------------------ BitMaps ------------------------------------------
+/*
+	on the Mac, the wxBitMap needs to be a structure that will allow
+	us to redraw. On the Mac, it could be a "picture" or it could be
+	a mac PixMap;
+	Pictures - easy to implement. May be slower. *May* be larger (it
+		depends)
+	PixMap -  fast. Confusing - are PixMaps tied to a GWorld?
+
+	For the first implementation use the Picture. A second implementation
+	could try PixMap or even both. 
+
+	We will have to extend the API so that parts of wxWindow (like
+	wx_buttn.cc) can draw a wxBitMap.
+
+	Also note that wx_dcmem.cc needs to know how to convert a Pict
+	into a wxMemoryDC (which should probably be implemented as an
+	offscreen GWorld). Also wxDC::DrawIcon might want to use this code.
+*/
+wxBitmap::wxBitmap(void)
+{
+  __type = wxTYPE_BITMAP;
+  ok = FALSE;
+  width = 0;
+  height = 0;
+  depth = 0;
+  x_pixmap = NULL;
+  rez_based = FALSE;
+  wxTheBitmapList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxBitmap::wxBitmap(char bits[], int the_width, int the_height, int no_bits)
+{
+  __type = wxTYPE_BITMAP;
+  depth = no_bits;
+  width = the_width;
+  height = the_height;
+  rez_based = FALSE;
+  Rect bounds = {0, 0, the_height, the_width};
+  x_pixmap = ::OpenPicture(&bounds);
+  int i, j;
+  char byte;
+  int bit1;
+  RGBColor	cpix;
+  switch (no_bits) {
+	case 0:
+	case 1:
+		GetForeColor(&cpix);
+		for (i = 0; i < the_height; i++) {
+			for (j = 0; j < the_width; i++) {
+				byte = bits[j,i];
+				for (int k = 0; k < 8; k++) {
+					if (byte & 1) {			
+						::SetCPixel(j, i, &cpix);
+					}
+					byte = byte >> 1;
+				}
+			}
+		}
+		break;
+	case 8:
+		for (i = 0; i < the_height; i++) {
+			for (j = 0; j < the_width; i++) {
+				// convert byte to RGB - how ? FIXME				
+				::SetCPixel(j, i, &cpix);
+			}
+		}
+		break;
+	case 16:
+	case 24:
+	case 32:
+		break;
+  } // end switch
+  ::ClosePicture();
+  ok = TRUE;
+  wxTheBitmapList->Append(this);
+}
+
+//-----------------------------------------------------------------------------
+wxBitmap::wxBitmap(char *bitmap_file, long flags)
+{
+	__type = wxTYPE_BITMAP;
+	rez_based = FALSE;
+	if (flags & wxBITMAP_TYPE_BMP_RESOURCE)	{ 
+		// look for a 'PICT' resource with the given name
+		Str255 resname;
+		PicHandle	h;
+		ResType	thetype;
+		strcpy((char *)resname, bitmap_file);
+		C2PStr((char *)resname);
+		h = (PicHandle)::GetNamedResource('PICT', resname);
+		if (h) {
+			x_pixmap = h;
+			depth =  wxDisplayDepth();
+			width = (*h)->picFrame.right;
+			height = (*h)->picFrame.bottom;
+			wxTheBitmapList->Append(this);
+			rez_based = TRUE;
+			return;
+		}
+	}
+	// we also get here if we asked for a resource but it wasn't found
+	x_pixmap = NULL;
+	if (LoadFile(bitmap_file, flags) == FALSE) {
+		char t[200];
+		sprintf(t, "Could not find Bitmap: %s", bitmap_file);
+		wxFatalError(t);
+	}
+	
+}
+
+//-----------------------------------------------------------------------------
+// Create a new bitmap of a given size and depth
+//-----------------------------------------------------------------------------
+wxBitmap::wxBitmap(int w, int h, int d)
+{
+	Create(w, h, d);
+}
+
+//-----------------------------------------------------------------------------
+wxBitmap::~wxBitmap(void)
+{
+	if (rez_based) {
+  		::ReleaseResource((Handle)x_pixmap);
+	} else {
+		::KillPicture(x_pixmap);
+	}
+}
+
+Bool wxBitmap::Create(int width, int height, int deep)
+{
+  __type = wxTYPE_BITMAP;
+  rez_based = FALSE;
+  width = width;
+  height = height;
+  depth = deep;
+  Rect bounds = {0, 0, height, width};
+  x_pixmap = ::OpenPicture(&bounds);
+  if (depth < 1)
+    depth = wxDisplayDepth();
+  ::EraseRect(&bounds);
+  ::ClosePicture();
+  ok = TRUE;
+  wxTheBitmapList->Append(this);  
+
+  return ok;
+}
+
+// This will only read a PICT in the data fork. For other formats
+// Like BMP, GIF,... Well, you can add the code.
+Bool wxBitmap::LoadFile(char *name, long flags)
+{
+	// Dump preview picture, if any
+	if (x_pixmap) {
+		if (rez_based) {
+	  		::ReleaseResource((Handle)x_pixmap);
+		} else {
+			::KillPicture(x_pixmap);
+		}
+	}
+	FILE *fp = fopen(name,"rb");
+	if (fp) {
+		// I don't know why we skip 512 bytes. I would have
+		// thought fopen only processes the data fork. I suppose
+		// it could be the "Mac Draw" header block (IM-V, pg 88)
+		fseek(fp, 0, SEEK_END);
+		int fsize = ftell(fp) - 512;
+		fseek(fp, 512, SEEK_SET);	// 0 didn't work
+		PicHandle ph = (PicHandle)NewHandle(fsize);
+		int rsize = fread((char *)*ph, 1, fsize, fp);
+		width = (*ph)->picFrame.right;
+		height = (*ph)->picFrame.bottom;
+		depth = wxDisplayDepth();
+		x_pixmap = ph;
+		rez_based = FALSE;
+		ok = TRUE;
+	} else
+		ok = FALSE;
+	return ok;
+}
+
+Bool wxBitmap::SaveFile(char *name, int type, wxColourMap *cmap)
+{
+	return FALSE;
+}
+
+//  --------------- Some Mac extensions ---- should only be used inside
+//		wxwindows, like from wx_button, wxDC, wxMemoryDC, etc.
+void wxBitmap::DrawMac(void)
+{
+	if (x_pixmap) {
+		Rect bounds = {0, 0, height, width};
+		::DrawPicture(x_pixmap, &bounds);
+	}
+}
+
+void wxBitmap::DrawMac(int x, int y)
+{
+	if (x_pixmap) {
+		Rect bounds = {x, y, height+y, width+x};
+		::DrawPicture(x_pixmap, &bounds);
+	}
+}

@@ -1,0 +1,68 @@
+#
+# File:		makefile.dos
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds ItsyBitsy small frame library for Windows 3.1
+
+!if "$(WXWIN)" == ""
+!error You must define the WXWIN variable in autoexec.bat, e.g. WXWIN=c:\wx
+!endif
+
+# Change WXDIR or WXWIN to wherever wxWindows is found
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib\wx.lib
+WXINC = $(WXDIR)\include
+
+ITSYDIR = $(WXDIR)\contrib\itsybits
+ITSYINC = $(ITSYDIR)
+ITSYLIB = $(ITSYDIR)\itsy.lib
+CFG = $(WXDIR)\src\wxwin.cfg
+
+INC =
+
+LIBS=$(WXLIB) $(ITSYLIB) libw llibcew commdlg ddeml shell # ctl3d
+
+!ifndef FINAL
+FINAL=0
+!endif
+
+!if "$(FINAL)" == "0"
+OPT = -Od
+DEBUG_FLAGS= -v
+!else
+OPT = -O2
+DEBUG_FLAGS =
+!endif
+CPPFLAGS=$(DEBUG_FLAGS) $(OPT) /I$(WXDIR)\contrib\itsybits @$(CFG)
+
+.cc.obj:
+        bcc $(CPPFLAGS) -c {$< }
+
+SOURCES = itsybits.c
+HEADERS = itsybits.h
+OBJECTS = itsybits.obj
+
+all:    $(ITSYLIB)
+
+wx:
+        cd $(WXDIR)\src
+        make -f makefile.bcc $(WXLIB) FINAL=$(FINAL)
+
+$(ITSYLIB):      $(OBJECTS)
+        erase $(ITSYLIB)
+        tlib /P128 @&&!
+$(ITSYLIB) &
++$(OBJECTS:.obj =.obj +)
+!
+
+itsybits.obj: itsybits.cc itsybits.h
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

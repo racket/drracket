@@ -1,0 +1,62 @@
+Leak Repair for a4p3+, Minimal Sample with a statusline and a panel with a message.
+
+1. in wx_app destructor
+   add the call to report leaks. 
+
+2. wb_main.cc in wxCommonCleanup(), add 
+
+#ifdef wx_mac
+  delete wxTheCursorList;
+  delete wxTheIconList;
+#endif
+  delete wxThePrintPaperDatabase;
+
+3. wx_frame.cc at the end of the destructor, add
+	if (cControlArea)
+		delete cControlArea;
+	if (cContentArea)
+		delete cContentArea;
+	if (cPlatformArea)
+		delete cPlatformArea;
+
+4. At the end of the destructor in wx_win.cc, add
+	delete cClientArea; - SEE ITEM 6 below - delete cClientArea is not required.
+
+5. Numerous places in wb_gdi:
+	Added a SuffixMap::Cleanup method that deletes the the 'map' array of strings.
+	Add a ~wxFontItemName destructor that calls Cleanup for its three suffix maps.
+	In ~wxFontNameDirectory, add a call to deletecontents() to trigger the above
+
+	SuffixMap::Initialize leaks all over because the return string from SearchResource()
+	is rarely deleted.
+	  
+	These are mostly cosmetic - ie reduces the leaks log from 600+ to 20. 
+	
+6. wxBorderArea leaks (wx_panel, wx_txt for minimal, plus most wxItems in hello):
+   The ~wxBorderArea is never called BUT it's contained wxBorder/wxRectBorder destructor is 
+   called!
+   
+   I think a compiler bug or C++ undefined behaviour is also contributing. The
+   wxWindow.cAreas member (wxList) sometimes does not destroy all wxNodes (the BorderArea)
+   when the destructor is done. It should be automatic.
+   Explicitly forcing the cAreas destruction in ~wxWindow() now causes the ~wxLabelArea 
+   bug to reappear:
+   
+   I think the order of the various Area creations is contributing (acutally it confuses
+   more than anything). What's happening is that the wxMessage contained in a wxLabelArea 
+   object is also a wxItem that gets destructed before the wxLabelArea. I introduced some
+   new wxTYPE_xxxx codes to wx_types.h for the various wxAreas and wxBorder
+   
+7. ~wxRadioBox leaks the buttons. Similar to the wxWindow.cArea problem.
+	Added a cRadioButtons.Clear to the destructor. Also modified wx_list.h, wb_list.cc
+	to not inline a function to make debugging easier.
+	
+8. Hello.cc has lots of changes to help debug leaks in it - including the ability to
+   introduce leaks so that the 'leaks.log' includes readable "brackets". Also I 
+   modified DebugNew to print out the first 16 bytes in hex and ascii for each leak.
+   Makes it easier to see where the leaks come from. This version of DebugNew should be
+   distributed.
+   
+9. After all of the above Hello leaks the same as minimal (12 leaks) and most of those
+   are related to the new font stuff in wb_gdi.cc
+   Still look into xxx::GetValue and xxx::GetLabel though!

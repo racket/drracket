@@ -1,0 +1,102 @@
+<html>
+
+<head>
+<title> DrScheme Release Notes </title>
+</head>
+
+<body>
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>:<tt> </tt> 45 <br>
+<b>Release Date</b>:<tt> </tt> November 12, 1996.
+
+<p>
+Send bug reports to:<tt>
+<a href="mailto:plt-bugs@cs.rice.edu">
+plt-bugs@cs.rice.edu</a></tt>
+
+<p>
+The following is a summary of the major changes in this release
+from the previous one.
+
+<h4> DrScheme </h4>
+
+<ul>
+<li>
+Scheme I/O through <tt>read</tt>, <tt>read-char</tt>, and
+<tt>read-line</tt> is now supported. All I/O is specially boxed in the
+interactive console to distinguish it from evaluator I/O.
+
+<li> 
+Two syntactic forms are not yet supported:<tt> </tt>
+<tt>do</tt> without the step form and 
+<tt>define-structure</tt> (use <tt>define-struct</tt> instead).
+
+</ul>
+
+<h4> Analysis </h4>
+
+<ul>
+<li>
+The Analysis tool (MrSpidey) is temporarily unavailable in 
+release 45 and will reappear in a future release.
+</ul>
+
+<h4> MrEd </h4>
+
+<ul>
+<li> A new construct has been added: eventspaces. An eventspace
+encapsulates an independent event loop. A single running MrEd can
+contain multiple eventspaces, each owning a collection of top-level
+windows that are connected through the event loop, but indepedent of
+event-handling for other eventspaces. This supports a better
+integration of asynchonous threads and synchnous eventspaces.
+
+<li> A prototype Web browser is available through the standard "Open
+URL..."  menu item in the "File" menu.
+
+<li>See <tt>plt/mred/HISTORY</tt> and <tt>plt/mred/system/history</tt>
+in the distribution for more information and other changes.
+</ul>
+
+<h4> MzScheme </h4>
+
+<ul>
+<li>Multiple return values are now agressively supported,
+and new forms <tt>define-values</tt>, <tt>letrec-values</tt>,
+<tt>set!-values</tt>, etc. have been added.
+<br>
+IMPORTANT: The <tt>let-values</tt> of previous versions is
+now <tt>let*-values</tt>. The new <tt>let-values</tt> binds
+a sequence of identifier sets all with the same enviornment.
+
+<li>See <tt>plt/mzscheme/HISTORY</tt> in the distribution for more
+information and other changes.
+</ul>
+
+<h4> Known Problems </h4>
+
+<ul>
+<li>
+DrScheme internally normalizes pathnames, resolving all links
+to absolute paths. This causes problems with systems that use
+automounting.
+
+<li>
+Even in the R4RS language level, DrScheme does not support 
+case-insensitive identifiers.
+
+<li>
+The <tt>eval</tt> procedure is not supported.
+
+<li>
+See also <tt>plt/openbugs</tt> in the distribution.
+</ul>
+
+</body>
+</html>

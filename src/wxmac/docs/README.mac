@@ -1,0 +1,73 @@
+README.mac 
+11/28/95 - Alpha 4 snapshop
+	New with wxMac161d-a4
+	1. Better support for wxBitmaps - now allowed in wxMessage. Bitmaps
+	can be loaded from PICT, GIF, XBM, XPM, and BMP files.
+	2. Print architecture
+	3. Includes 68K and PPC projects (CW 7 though)
+	4. GUSI or Mac Python can supply the unix emulation functions - a new project
+	is provided for building a mac(PPC) wxWindows library for wxPython.
+	5. Bug fixes and attempted bug fixes - please see the wxMac Status files.
+	
+10/3/95 - Alpha 3 snapshot
+    New with wxMac161d-a3
+	1. added wb_dialg.cc back to the project - mostly #if'd out.
+	2. added USE_IMAGE_LOADING_IN_MAC to wx_setup.cc. Restructured
+	   wxBitmap code in wx_gdi.cc to use wx_image.cc.
+	3. Begin conversion of wxImage - much remains to be done.
+	   Can load bitmaps with PICTs or GIFs. (Thanks birk@moonface.com)
+	4. Converted most projects to CodeWarrior 7.
+	5. Added code to actually do wxTextWindow::SaveFile()
+	6. "Fix" for default (-1) height arg for wxText constructor
+	7. CWGUSI 1.60 required by default.
+	8. wxFileSelector returns pathnames and filename (requires GUSI)
+	9. Changes in distribution format:
+	   Binary archives will be self extracting Stuffit archives in binhex.
+	   Removed (msw) and (x) directories from include and src directories and most
+	   deleted non-MPW Makefiles.
+	   Added utils/image and utils/extend - selected files only.
+	10. Has not been tested with MPW - probably won't be for some time.
+	11. New distribution method - diff/patch files plus 68K apps for
+	    GNU-diff and patch. Named wxMac161d-a2-to-a3.sit.hqx. DOES NOT update
+	    CW projects however.
+		
+8/27/95 - Alpha 2 snapshot
+	New with wxMac161d-a2:
+	1. Added wxTimer.
+	
+	2. Cleaned up wb_*.cc and wb_*.h for fewer wx_mac conditionals.
+	
+	3. A "Fix" for placing canvas's on frames positioning (Beware).
+	
+	4. Added code for wxMemoryDC, changed internal handling of wxBitMap.
+	
+	5. Animate demo seems to work.
+
+8/9/95 - Alpha 1 snapshot
+
+This is a snapshot of the wxWindows Macintosh porting effort. It
+*is not* a complete port. There is a large list of bugs still to
+be fixed. This snapshot is a curious mixture of WxWindows 15.0 
+and 16.1 and not everything is implemented properly. 
+
+You will have the best results using the CodeWarrior 6 development 
+tools. MPW makefiles are provided, and some of them work. A 
+Think-C++(7) project is included but is not up to date. You will
+need a 68030/040 or PowerPC Mac running System 7.x and at least
+20MB of free disk.
+
+Please read the wxMac_Status and wxMac_Dev_Guide documents to
+understand what you are getting into. They are provided in
+both text and HTML formats.
+
+The files can found at ftp.aiai.ed.ac.uk, in the 
+/pub/packages/wxwin/incoming  initially, and later in the 
+/pub/packages/wxwin/ports area. There are two files which
+differ only in the archiving mechanism:
+	wxmac161d-a2.tar.gz	(suntar mac to mac format)
+	wxmac161d-a2.sit
+Pick either one, and be sure to enable binary mode in ftp.
+
+Good Luck.
+	Cecil Coupe
+	ccoupe@simplot.com

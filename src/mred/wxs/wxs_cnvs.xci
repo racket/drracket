@@ -1,0 +1,5 @@
+
+@ c "on-paint" : void OnPaint();
+@ c "on-event" : void OnEvent(wxMouseEvent%);
+
+@INCLUDE wxs_char.xci

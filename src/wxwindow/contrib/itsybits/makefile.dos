@@ -1,0 +1,75 @@
+#
+# File:		makefile.dos
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds ItsyBitsy small frame library for Windows 3.1
+
+# Change WXDIR or WXWIN to wherever wxWindows is found
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib\wx.lib
+WXINC = $(WXDIR)\include
+
+ITSYDIR = $(WXDIR)\contrib\itsybits
+ITSYINC = $(ITSYDIR)
+ITSYLIB = $(ITSYDIR)\itsy.lib
+
+INC =
+
+LIBS=$(WXLIB) $(ITSYLIB) libw llibcew commdlg ddeml shell # ctl3d
+
+# Set this to nothing if your compiler is MS C++ 7
+ZOPTION=/Z7
+
+!ifndef FINAL
+FINAL=0
+!endif
+
+PRECOMP=/YuWX.H 
+
+!if "$(FINAL)" == "0"
+OPT = /Od
+CPPFLAGS= /AL /W3 /Zi $(ZOPTION) /G2sw $(OPT) /Dwx_msw $(INC)
+CFLAGS= /AL /W3 /Zi /G2sw /Od /Dwx_msw
+LINKFLAGS=/NOD /CO /ONERROR:NOEXE
+!else
+# /Ox for real FINAL version
+OPT = /Ox
+CPPFLAGS= /AL /W3 /Zi /Os /G2sw $(OPT) /Dwx_msw $(INC)
+CFLAGS= /AL /W3 /Zi /Os /G2sw /Dwx_msw
+LINKFLAGS=/NOD /ONERROR:NOEXE
+!endif
+
+SOURCES = itsybits.c
+HEADERS = itsybits.h
+OBJECTS = itsybits.obj
+
+all:    $(ITSYLIB)
+
+wx:
+        cd $(WXDIR)\src
+        nmake -f makefile.dos $(WXLIB) FINAL=$(FINAL)
+
+$(ITSYLIB):      $(OBJECTS)
+        erase $(ITSYLIB)
+        lib /PAGESIZE:128 @<<
+$(ITSYLIB)
+y
+$(OBJECTS)
+nul
+;
+<<
+
+itsybits.obj: itsybits.cc itsybits.h
+        cl @<<
+$(CPPFLAGS) /Od /c /Tp $*.cc
+<<
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

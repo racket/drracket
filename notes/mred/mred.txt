@@ -1,0 +1,408 @@
+
+
+About PLT MrEd
+
+
+
+Matthew Flatt
+mflatt@cs.rice.edu
+Rice University
+
+
+
+Version 50
+August 1997
+
+
+
+
+
+Copyright notice
+
+
+
+Copyright (c)1995-97 Matthew Flatt
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose is hereby granted without fee, provided
+that the above copyright notice, author statement and this permission
+notice appear in all copies of this software and related documentation.
+
+THE SOFTWARE IS PROVIDED ``AS-IS'' AND WITHOUT WARRANTY OF ANY KIND,
+EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+IN NO EVENT SHALL MATTHEW FLATT OR RICE UNIVERITY BE LIABLE FOR ANY
+SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND, OR
+ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY
+OF LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+wxWindows: Copyright (c)1994 Artificial Intelligence Applications
+Institute, The University of Edinburgh. All rights reserved.
+
+libscheme: Copyright (c)1994 Brent Benson. All rights reserved.
+
+Conservative garbage collector: Copyright (c)1988, 1989 Hans-J.
+Boehm, Alan J. Demers. Copyright (c)1991-1994 by Xerox Corporation.
+All rights reserved.
+
+Collector C++ extension by Jesse Hull and John Ellis: Copyright
+(c)1994 by Xerox Corporation. All rights reserved.
+
+
+
+
+
+Contents
+
+   * This Manual
+        * Thanks
+   * About MrEd
+        * What is MrEd?
+        * What is MrEd Used For?
+        * How was MrEd Developed?
+        * Comparisons to Other Systems
+        * Distribution
+        * More Information
+   * Compiling MrEd
+   * Running MrEd
+   * Index
+
+
+
+This Manual
+
+
+
+This manual explains what MrEd is and why MrEd might be useful. Complete
+information for MrEd is in PLT MrEd: Graphical Toolbox Manual
+../toolbox/index.htm.
+
+
+
+Thanks
+
+
+
+  Many thanks to Julian Smart for wxWindows and his help.
+Thanks also to Brent Benson for libscheme , and to Hans Boehm and John
+Ellis for the conservative garbage collector and their help. MrEd would
+not be possible without these fine packages.
+
+Thanks also to Robby Findler, Shriram Krishnamurthi, Cormac Flanagan,
+Matthias Felleisen, Gann Bierner, Richard Cobbe, Dan Grossman, Stephanie
+Weirich, Sebastian Good, Johnathan Franklin, Mark Krentel, Corky
+Cartwright, Michael Ernst, Kennis Koldewyn, Bruce Duba, and many others
+for feedback and help.
+
+Some basic typesetting sources for this manual are taken from Julian
+Smart's Reference Manual for wxWindows 1.60: a portable C++ GUI toolkit
+.
+
+
+
+About MrEd
+
+
+
+
+
+What is MrEd?
+
+
+
+ MrEd is a new architecture for developing portable graphical user
+interface (GUI) applications. MrEd provides the developer with a modern,
+high-level language supporting classes and objects, compilation units,
+execptions, pre-emptive threads, run-time safety, and automatic memory
+management. The language is integrated with an extensive, class-based
+GUI toolbox including frames, menus, controls, multimedia text editors,
+click-and-drag pasteboards, mulitple event spaces ("event loops"), and
+automatic geometry management.
+
+MrEd is based on Scheme (specifically,
+MzSchemehttp://www.cs.rice.edu/CS/PLT/packages /mzscheme) with a GUI
+toolbox that runs under X Windows, Microsoft Windows, and MacOS.
+Applications written using MrEd run on all three platforms without
+modification.
+
+MrEd is the graphical and compuational engine behind DrScheme, a new
+environment for developing and debugging Scheme applications. DrScheme
+will eventually provide a complete integrated evironment for developing
+MrEd applications.
+
+
+
+What is MrEd Used For?
+
+
+
+ MrEd is appropriate for developing any Scheme-based application
+which needs a graphic interface. MrEd is particularly useful when the
+graphic interface needs to be portable, when it needs sophisticated text
+or graphics manipulation, or when it needs threads or eventspaces
+(mulitple ``event loops''). MrEd is probably not appropriate for
+applications with tight memory constraints.
+
+MrEd can also be used as an editor. The system that MrEd uses to start
+up provides an Emacs-like editing environment. However, the vast body of
+Emacs packages has not been ported to MrEd; only Scheme mode and a
+hyper-text mode have been fully implemented. As code is written to
+extend the standard editor, new features can be inherited by all
+applications written in MrEd.
+
+
+
+How was MrEd Developed?
+
+
+
+ MrEd's core Scheme implementation is
+MzSchemehttp://www.cs.rice.edu/CS/PLT/packages /mzscheme, which was
+derived from Brent Benson's libscheme . MzScheme uses the conservative
+garbage collectorhttp://reality.sgi.com/employees/boehm_mti/gc.html from
+Hans Boehm et al.
+
+The GUI toolbox is derived from wxWindows
+http://web.ukonline.co.uk/julian.smart/wxwin/, version 1.66 (or so).
+MrEd's wxWindows has been debugged and developed along a largely
+divergent path since early 1996. While this is unfortunate in that MrEd
+and the wxWindows community can no longer collaborate on continued
+development, the divergence also means that MrEd's branch of wxWindows
+has stabilized.
+
+
+
+Comparisons to Other Systems
+
+
+
+    The GUI aspect of MrEd is much like Tcl/Tk
+or STk: both provide a toolbox of graphic objects with an interactive
+development language. MrEd's graphic object toolbox contains essentially
+the same elements as Tk. The basic difference is that MrEd provides a
+much richer ``operating system'' for developing large applications.
+
+ There are several all GUI development system that are comparable
+to MrEd in that they connect LISP or Scheme to an external GUI toolbox.
+These tools are typically not portable, and the GUI toolbox tends to be
+smaller or lower-level.
+
+A list of other GUI development systems is available at:
+http://www.cs.cmu.edu/afs/cs/user/bam/www/toolnames.html
+http://www.cs.cmu.edu/afs/cs/user/bam/www/toolnames.html
+
+ MrEd's editing system follows the Emacs model of extensibility:
+the editor is written in its own extension language. However, there are
+fundamental differences:
+   * In Emacs, the extension language is a dynamically-scoped dialect of
+     Lisp. Packages work in a global namespace. A single core editor is
+     extended through a standard set of functions and variables.
+   * In MrEd, the extension language is Scheme extended with an object
+     system, and the core editor is represented by a set of classes. The
+     editor can be extended Emacs-style by deriving new classes from the
+     editor class, but a package is not necessarily just an extension of
+     the editor. Rather, the core editor is available for use as a
+     submodule within a package's larger architecture. MrEd's editor
+system has the same potential for expansion as Emacs. Certainly, MrEd
+would be an ideal platform for a new full-functioned editor based on the
+Emacs model.
+
+
+
+Distribution
+
+
+
+  MrEd's source code can be freely distributed. Please read
+the license agreement, as well as the license agreements for wxWindows,
+libscheme, and the conservative garbage collector.
+
+The latest distribution for MrEd can be obtained from the MrEd Home
+Page: http://www.cs.rice.edu/CS/PLT/packages/mred/
+http://www.cs.rice.edu/CS/PLT/packages/mred/
+
+
+
+More Information
+
+
+
+   Up-to-date information about MrEd can be found at
+the MrEd Home Page: http://www.cs.rice.edu/CS/PLT/packages/mred/
+http://www.cs.rice.edu/CS/PLT/packages/mred/
+
+
+
+Compiling MrEd
+
+
+
+Compiled versions of MrEd are available from the MrEd Home Page (see
+section 2.6 , above). Some X Windows users will need to compile the code
+from scratch (because it is impossible for us to provide compiled
+executables for all platforms). Unfortunately, compiling MrEd is not a
+trivial task.
+
+  This section will describe how to compile MrEd for X
+Windows under Unix, which requires around 20-30 MB of disk space. First,
+download the following packages:
+   * wxWindows  -- Information about wxWindows is available from
+     http://web.ukonline.co.uk/julian.smart/wxwin/
+     http://web.ukonline.co.uk/julian.smart/wxwin/ but to compile MrEd,
+     special patched versions of wxWindows must be obtained from
+     http://www.cs.rice.edu/CS/PLT/packages/mred/
+     http://www.cs.rice.edu/CS/PLT/packages/mred/ MrEd works with two
+     flavors of wxWindows: Motif and ``Xt''. MrEd works with these
+     flavors about equally well. Most every X Windows installation can
+     support the ``Xt'' version, while Motif must be purchased.
+   * MrEd -- MrEd can be found at
+     http://www.cs.rice.edu/CS/PLT/packages/mred/
+     http://www.cs.rice.edu/CS/PLT/packages/mred/ This distribution
+     includes MzScheme and the conservative garbage collector.
+
+Set the WXDIR environment variable to the path of the wxWindows
+installation. All the directories from the wxWindows installation should
+be in the WXDIR directory.
+
+In wxWindows's src/make.env , some of the variables may need to be
+changed:
+   * Set OPTIONS:
+        * Add -DWXME_FOR_MRED=1.
+        * Add -DWX_NORMALIZED_PS_FONTS=1 (Motif only)
+        * Add -DWXME_LSB_FIRST=1 if the target machine represents
+          integers with the least-significant byte in the lowest memory
+          address. For example, this flag is needed for Intel machines,
+          but not Sparc machines. MrEd will display a warning at startup
+          if the flag value is incorrectly chosen.
+        * Add -DOPERATOR_NEW_ARRAY if the C++ compiler uses separate new
+          and new[] operators. For example, this flag is needed for gcc
+          version 2.6.3, but not for version 2.5.8.
+        * Add -DWXS_CANT_ASSIGN_STRUCTURES if the C++ compiler does not
+          allow an assignment to copy structures. A compile-time error
+          will occur if the flag is needed but not provided.
+   * Add three paths to COMPPATHS in make.env: -I gc-directory , -I
+     wxme-directory , and -I mzscheme-include-directory .
+        * The gc-directory path lets the wxWindows compilation find the
+          garbage collector header files. This directory is in the MrEd
+          distribution as mred/mzscheme/gc .
+        * The wxme-directory path lets MrEd find the wxme header files.
+          This directory in the MrEd distribution as mred/wxme .
+        * The mzscheme-include-directory lets MrEd find the MzScheme
+          headers. This directory in the MrEd distribution as
+          mred/mzscheme/include .
+   * Probably, XLIB and/or XINCLUDE must be adjusted.
+   * Possibly, other flags must be changed for your local configuration.
+
+If you're unlucky, you'll also have to adjust the flags for compiling
+MzScheme. These are in mred/mzscheme/Makefile and in
+mred/mzscheme/sconfig.h . (A description for each flag is included
+there.) Try compiling with the default flags unless there is a problem.
+
+Once all of the setup files are ready, go to the main MrEd distribution
+directory. Execute gnumake wx to compile wxWindows. After wxWindows has
+compiled, use gnumake to compile MrEd. (You must use gnumake to compile
+MrEd; the standard make will not work. Note, however, that make may
+actually be gnumake on your system, as on Linux.)
+
+Here are a few compiling hints:
+   * Turn off the debugging flags in ``make.env''. This will make the
+     object files and executable much smaller.
+   * There may be a lot of `void * operator new (...)' defined but not
+     used warnings from the compiler. Ignore them.
+
+
+
+Running MrEd
+
+
+
+Complete information about running MrEd is in PLT MrEd: Graphical
+Toolbox Manual ../toolbox/index.htm, but this chapter provides a quick
+overview of how to run MrEd.
+
+At run-time, MrEd needs to find three directories: the system directory,
+the MrEd system library collection directory, and the MzLib collection
+directory. The system directory is named system ; it should be in the
+same directory as the MrEd executable. The system library directory is
+named mred , inside a collects sub-directory in the same directory as
+the executable. Finally, the MzLib directory is named standard ; this
+directory must be in a collects sub-directory that can be in either of
+two places:
+   * in a mzscheme directory that is in the same directory as MrEd's
+     executeable (this is what you get after compiling MrEd)
+   * in a mzscheme directory that is in the same directory as MrEd's
+     directory (this is how the PLT distribution is configured)
+
+The search path for MzLib is actually defined in terms of the location
+of system . See PLT MrEd: Graphical Toolbox Manual ../toolbox/index.htm
+for more information.
+
+When you run MrEd, the window that appears is a console that provides a
+Scheme read-eval-print loop. To evaluate an expression, type it after
+the prompt and hit return. You can re-evaluate old expressions by moving
+the caret to the end of the expression and hitting return (or by using
+Meta-P from the current prompt). Evaluate a subexpression by hiliting it
+and hitting return. To stop evaluation, type Ctl-C (Unix and Windows) or
+Cmd-. (MacOS). 
+
+To open a standard text-editing window from the console, use the ``New''
+or ``Open...'' items in the ``File'' menu.
+
+To run a few simple demo programs, use the ``Load Scheme File'' menu
+item and select ``demo.ss'' in the distribution's ``demo'' directory
+(with MrEd).
+
+When MrEd starts up, it looks for a ``.mredrc'' file in the user's home
+directory (``mredrc.ss'' under Windows). If such a file exists, it is
+loaded (as a Scheme file) before the console is opened. Preferences
+about the appearance and behaviour of MrEd can be set using the
+``Preferences...'' menu item in the console's ``Edit'' menu.
+
+
+
+
+
+Index
+
+
+
+breaking
+     Running MrEd
+comparisons to other systems
+     Comparisons to Other Systems
+compiling
+     Compiling MrEd
+distribution
+     Distribution
+EmacsComparisons to Other Systems
+how? How was MrEd Developed?
+information
+     More Information
+pain and agony
+     Compiling MrEd
+STk  Comparisons to Other Systems
+Tcl  Comparisons to Other Systems
+thanks
+     Thanks
+Tk   Comparisons to Other Systems
+what?What is MrEd?
+when?What is MrEd Used
+where?
+     More Information
+who? Thanks
+why? 
+     
+     because we like you
+          Distribution
+     
+Winterp
+     Comparisons to Other Systems
+WWW  More Information
+wxWindows
+     Compiling MrEd
+-----------------------------------------------------------------------
+
+x

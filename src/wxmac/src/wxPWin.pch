@@ -1,0 +1,19 @@
+#ifdef powerc
+  #pragma precompile_target "wxPHeadersPPC"
+#else
+  #pragma precompile_target "wxPHeaders68K"
+#endif
+#define HAVE_CONFIG_H
+#ifdef USE_STDWIN
+#undef USE_STDWIN
+#endif
+#define macintosh
+#define PYLIB
+#define FOR_MAC	// needed for wxxpm
+#include <MacHeaders.c>
+
+#define DEBUG_NEW 2
+#include <DebugNew.h>
+
+#include "wx_setup.h"           // Which features to include - user editable
+#include "common.h"

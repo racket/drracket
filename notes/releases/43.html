@@ -1,0 +1,125 @@
+<html>
+
+<head>
+<title> DrScheme Release Notes </title>
+</head>
+
+<body>
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>:<tt> </tt> 43. <br>
+<b>Release Date</b>:<tt> </tt> August 9, 1996.
+
+<p>
+<b>Note:</b><tt> </tt>
+Release 44 is planned for August 28 and will include bug fixes 
+and better documentation for the new tools.<tt> </tt>
+We encourage our users to try release 43 and submit bug 
+reports.<tt> </tt>
+If at all possible, fixes for bugs in release 43 will be 
+incorporated into release 44.
+
+<p>
+Send bug reports to:<tt>
+<a href="mailto:plt-bugs@cs.rice.edu">
+plt-bugs@cs.rice.edu</a></tt>
+
+<p>
+The following is a summary of the changes in this release
+from the previous one.
+
+<h4> DrScheme </h4>
+
+<ul>
+<li>
+Added a "Preferences" item on the "Edit" menu.<tt> </tt>
+The "DrScheme" category allows selection of the subset of Scheme
+from purely functional Scheme (no set!, etc) to (almost)
+fully R4RS Scheme.
+
+<li>
+The Scheme primitives can now be redefined, and there is no longer
+a restriction on using names that begin with "zodiac:".
+
+<li> 
+These syntactic forms not yet supported:<tt> </tt>
+do without the step form, vector constants inside quasiquote, local,
+and define-structure (use define-struct instead).
+
+<li>
+Significant internal restructuring of the GUI tools DrScheme uses
+to make windows, panels, buttons, etc.
+</ul>
+
+<h4> Syntax Checker </h4>
+
+<ul>
+<li>
+Added a Syntax Checker and Colorizer.
+
+<li>
+Go to the "Tools" menu and click on "Syntax Checker."<tt> </tt>
+Then, clicking on the "Check Syntax" button will highlight
+syntax errors and (on some platforms) color the program according 
+to free and bound identifiers, syntactic forms, constants, etc.
+</ul>
+
+<h4> Debugger </h4>
+
+<ul>
+<li>
+Added early support for a Debugger.
+
+<li> 
+After loading a file, click on "Debug."<tt> </tt>
+Then, clicking on the beginning of an expression (a "Hotspot")
+will enable setting breakpoints and recording history 
+information.<tt> </tt>
+Better documentation is planned for release 44.
+
+<li>
+<i>Note:</i><tt> </tt>
+The Debugger currently doesn't handle syntax errors very well.<tt> </tt>
+So, first make sure that the program passes "Check Syntax" before
+running the Debugger.
+</ul>
+
+<h4> Stepper </h4>
+
+<ul>
+<li>
+Added support for let, let*, letrec, call/cc and improper arguments
+in lambda.
+
+<li>
+Added Cut, Copy, Paste and Delete to the Edit menu.<tt> </tt>
+Copy and Paste also work between the Stepper and DrScheme.
+</ul>
+
+<h4> Analysis </h4>
+
+<ul>
+<li>
+The Analysis tool (MrSpidey) is temporarily unavailable in 
+releases 43 and 44 and will reappear in a future release.
+</ul>
+
+<h4> Known Problems </h4>
+
+<ul>
+<li>
+On some platforms (Macintosh and Microsoft Windows), the Syntax Checker
+and the Debugger do not display the program in color.
+
+<li>
+On the Macintosh, the Debugger window is too small, and the Hotspot
+window does not pop up correctly.
+</ul>
+
+</body>
+</html>

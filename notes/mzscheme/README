@@ -1,0 +1,37 @@
+MzScheme (pronounced "Ms. Scheme") is an implementation of R4RS Scheme
+extended with an object system and time-preempted threads.  It uses
+libscheme 0.5's interface for embedding and/or extending the core
+interpreter with other C/C++ programs. MzScheme's virtual machine,
+implemented in C, is easily ported to any platform with 32-bit or
+64-bit addresses. MzScheme is used in MrEd, an engine for portable GUI
+applications.
+
+Please see the file LICENSE for license information.
+
+Documentation and up-to-date information about MzScheme are at
+ http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
+
+If you are compiling MzScheme, see the INSTALL file for compilation
+instructions. 
+
+If you have a compiled MzScheme, then the `mzlib' directory should be
+in a `collects' directory that is in the same directory as the
+`mzscheme' executable. If you use the PLT directory configuration,
+then `plt/.bin/PLATFORM/' (where PLATFORM is a tag indicating your
+platform, as returned by `plt/bin/archsys') should contain the binary
+and `plt/collects' should contain `mzlib'.
+
+See SCRIPTS for information about writing MzScheme scripts for Unix
+platforms.
+
+Comments and bug reports are welcome. 
+Please report bugs using
+  http://www.cs.rice.edu/CS/PLT/Bugs/
+or (as a last resort) send mail to
+  plt-bugs@cs.rice.edu
+
+-Matthew Flatt
+ Rice University PLT
+ mflatt@cs.rice.edu
+ http://www.cs.rice.edu/~mflatt/
+

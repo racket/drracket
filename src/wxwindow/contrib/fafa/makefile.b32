@@ -1,0 +1,60 @@
+#
+# File:		makefile.b32
+# Author:	Patrick Halke
+# Created:	1995
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds 32bit fafa library for Windows 3.1
+# and Borland C++ 4.x
+
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib
+WXINC = $(WXDIR)\include\msw
+WXBASESRC = $(WXDIR)\src\base
+WXBASEINC = $(WXDIR)\include\base
+
+!ifndef DEBUG
+DEBUG=0
+!endif
+
+!if "$(FINAL)" == "0"
+OPT = -Od
+DEBUG_FLAGS= -v -DDEBUG=$(DEBUG)
+!else
+OPT = -O2
+DEBUG_FLAGS = -DDEBUG=$(DEBUG)
+!endif
+
+CPPFLAGS=$(DEBUG_FLAGS) $(OPT) @$(CFG)
+
+LIBTARGET= $(WXLIB)\fafa.lib
+
+.cc.obj:
+	bcc32 $(CPPFLAGS) -c {$< }
+
+.c.obj:
+	bcc32 $(CPPFLAGS) -P- -c {$< }
+
+OBJECTS = button.obj check.obj cont.obj dialog.obj draw.obj fafa.obj static.obj
+
+all:    $(LIBTARGET)
+
+$(LIBTARGET):	$(OBJECTS)
+	erase $(LIBTARGET)
+	tlib $(LIBTARGET) /P32 @&&!
++$(OBJECTS:.obj =.obj +)
+!
+
+button.obj:      fafapriv.h button.c
+check.obj:      fafapriv.h check.c
+cont.obj:      fafapriv.h cont.c
+dialog.obj:      fafapriv.h dialog.c
+draw.obj:      fafapriv.h draw.c
+fafa.obj:      fafapriv.h fafa.c
+static.obj:      fafapriv.h static.c
+
+clean:
+        -erase *.obj $(LIBTARGET) *.exe *.res *.map *.rws

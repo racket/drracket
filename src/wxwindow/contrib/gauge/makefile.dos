@@ -1,0 +1,99 @@
+#
+# File:		makefile.dos
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile : Builds Microsoft Gauge library for Windows 3.1
+
+# Change WXDIR or WXWIN to wherever wxWindows is found
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib\wx.lib
+WXINC = $(WXDIR)\include
+
+GAUGEDIR = $(WXDIR)\contrib\gauge
+GAUGEINC = $(GAUGEDIR)
+GAUGELIB = $(GAUGEDIR)\gauge.lib
+
+INC =
+
+LIBS=$(GAUGELIB) libw llibcew commdlg ddeml shell
+
+# Set this to nothing if your compiler is MS C++ 7
+ZOPTION=/Z7
+
+!ifndef FINAL
+FINAL=0
+!endif
+
+PRECOMP=/YuWX.H 
+
+!if "$(FINAL)" == "0"
+OPT = /Od
+CPPFLAGS= /AL /W3 /Zi $(ZOPTION) /G2sw $(OPT) /Dwx_msw $(INC)
+CFLAGS= /AL /W3 /Zi /G2sw /Od /Dwx_msw
+LINKFLAGS=/NOD /CO /ONERROR:NOEXE
+!else
+# /Ox for real FINAL version
+OPT = /Ox
+CPPFLAGS= /AL /W3 /Zi /Os /G2sw $(OPT) /Dwx_msw $(INC)
+CFLAGS= /AL /W3 /Zi /Os /G2sw /Dwx_msw
+LINKFLAGS=/NOD /ONERROR:NOEXE
+!endif
+
+OBJECTS = zyzgauge.obj zyz3d.obj
+
+all:    $(GAUGELIB)
+
+test:   testzyzg.exe
+
+wx:
+        cd $(WXDIR)\src
+        nmake -f makefile.dos $(WXLIB) FINAL=$(FINAL)
+
+$(GAUGELIB):      $(OBJECTS)
+        erase $(GAUGELIB)
+        lib /PAGESIZE:128 @<<
+$(GAUGELIB)
+y
+$(OBJECTS)
+nul
+;
+<<
+
+zyzgauge.obj: zyzgauge.c zyzgauge.h zyz3d.h
+        cl @<<
+$(CFLAGS) /Od /c $*.c
+<<
+
+zyz3d.obj: zyz3d.c zyz3d.h
+        cl @<<
+$(CFLAGS) /Od /c $*.c
+<<
+
+testzyzg.obj: zyz3d.c zyz3d.h testzyzg.c
+        cl @<<
+$(CFLAGS) /Od /c $*.c
+<<
+
+testzyzg.exe:      testzyzg.obj testzyzg.res $(OBJECTS)
+        link $(LINKFLAGS) @<<
+testzyzg.obj $(OBJECTS),
+testzyzg,
+NUL,
+$(LIBS),
+testzyzg.def
+;
+<<
+        rc -31 -K testzyzg.res
+
+testzyzg.res :      testzyzg.rc
+    rc -r testzyzg
+
+clean:
+        erase *.obj *.exe *.lib
+
+cleanall:	clean

@@ -1,0 +1,85 @@
+# Makefile : Builds FAFA library
+# Use FINAL=1 argument to nmake to build final version with no debugging
+# info
+
+# Set WXDIR for your system
+WXDIR = $(WXWIN)
+WXLIB = $(WXDIR)\lib\wx.lib
+FAFADIR = $(WXDIR)\contrib\fafa
+FAFALIB = $(FAFADIR)\fafa.lib
+INC=-I$(WXDIR)\include\base -I$(WXDIR)\include\msw
+
+!ifndef FINAL
+FINAL=0
+!endif
+
+!if "$(FINAL)" == "0"
+CPPFLAGS=/AL /W3 /Zi /G2sw /Od $(INC) /Dwx_msw
+LINKFLAGS=/NOD /CO /ONERROR:NOEXE
+!else
+CPPFLAGS=/AL /W3 /G2sw $(INC) /Od /Dwx_msw
+LINKFLAGS=/NOD /ONERROR:NOEXE
+!endif
+
+OBJECTS = button.obj check.obj cont.obj dialog.obj draw.obj fafa.obj static.obj
+
+all:    $(FAFALIB)
+
+wx:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.dos FINAL=$(FINAL)
+        cd $(TREEDIR)\src
+
+wxclean:
+        cd $(WXDIR)\src\msw
+        nmake -f makefile.dos clean
+        cd $(TREEDIR)\src
+
+$(FAFALIB):      $(OBJECTS)
+        erase $(FAFALIB)
+        lib /PAGESIZE:128 @<<
+$(FAFALIB)
+y
+$(OBJECTS)
+nul
+;
+<<
+
+button.obj:      fafapriv.h button.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+check.obj:      fafapriv.h check.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+cont.obj:      fafapriv.h cont.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+dialog.obj:      fafapriv.h dialog.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+draw.obj:      fafapriv.h draw.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+fafa.obj:      fafapriv.h fafa.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+static.obj:      fafapriv.h static.c
+        cl @<<
+$(CPPFLAGS) /c $*.c
+<<
+
+clean:
+        -erase *.obj $(FAFALIB) *.exe *.res *.map *.rws
+

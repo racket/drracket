@@ -1,0 +1,71 @@
+<html>
+
+<head>
+<title> DrScheme Release Notes </title>
+</head>
+
+<body>
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>:<tt> </tt> 44 <br>
+<b>Release Date</b>:<tt> </tt> September 9, 1996.
+
+<p>
+Send bug reports to:<tt>
+<a href="mailto:plt-bugs@cs.rice.edu">
+plt-bugs@cs.rice.edu</a></tt>
+
+<p>
+The following is a summary of the changes in this release
+from the previous one.
+
+<h4> DrScheme </h4>
+
+<ul>
+<li>
+Non-text items (e.g. a picture) can be used in a program as a contant
+value. The interaction window handles non-text for both input and
+output. When non-text is used in a program saved to disk, the file is
+automatically saved to disk in DrScheme's binary format.
+
+<li> 
+Syntax checking has been improved, and the colors are
+now parameterized through preferences.
+
+<li> 
+These syntactic forms not yet supported:<tt> </tt>
+do without the step form and define-structure (use define-struct instead).
+
+</ul>
+
+<h4> Analysis </h4>
+
+<ul>
+<li>
+The Analysis tool (MrSpidey) is temporarily unavailable in 
+release 44 and will reappear in a future release.
+</ul>
+
+<h4> Known Problems </h4>
+
+<ul>
+<li>
+DrScheme internally normalizes pathnames, resolving all links
+to absolute paths. This causes problems with systems that use
+automounting.
+
+<li>
+Even in the R4RS language level, DrSchemd does not support 
+case-insensitive identifiers.
+
+<li>
+The <tt>eval</tt> procedure is not supported.
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+NAME        TESTZYZG WINDOWAPI
+
+DESCRIPTION 'Windows 3.1 zYzGauge test application'
+
+EXETYPE     WINDOWS
+
+PROTMODE
+
+STUB        'WINSTUB.EXE'
+
+CODE        MOVEABLE            PRELOAD
+DATA        MOVEABLE MULTIPLE   PRELOAD
+
+HEAPSIZE    4196
+STACKSIZE   5120
+
+EXPORTS     tzyzgWndProc
+            tzyzgTestControlDlgProc
+
+            gaugeWndProc

@@ -1,0 +1,31 @@
+
+wxWindows Contrib directory
+---------------------------
+
+These files are contributed.
+
+misc/borproj.zip    Borland project files: out of date.
+
+misc/fixmake.sh     Fixes makefiles.
+
+misc/linuxshr.zip   Linux shared library notes.
+
+ctl3d               CTL3DV2.DLL and header.
+
+fafa                FAFA extensions for Windows controls (compiled as
+                    standard).
+
+gauge               Microsoft gauge code, compiled as standard.
+
+itsybits            Microsoft small title bar code, compiled as standard.
+
+wxxpm               wxXPM: an XPM library for Windows and UNIX. XPM is
+                    the standard X colour pixmap format. The code was
+                    originally written by Bull and modified for wxWindows
+                    by Hermann Dunkel. Compiled as standard.
+
+wxstring            Stefan Hammes' port of GNU String and Regex classes.
+                    Optional in wxWindows (see wx_setup.h) but this wxString
+                    is a superset of the standard wxWindows version.
+
+xmgauge             Free Motif gauge implementation, compiled as standard.

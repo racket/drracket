@@ -1,0 +1,235 @@
+#
+# File:		makefile.unx
+# Author:	Julian Smart
+# Created:	1993
+# Updated:	
+# Copyright:	(c) 1993, AIAI, University of Edinburgh
+#
+# "%W% %G%"
+#
+# Makefile for wxWindows: generates libwx_ol.a/libwx_motif.a
+
+CC = gcc
+GUISUFFIX=_ol
+
+# Replace X include/lib directories with your own, e.g. -I/usr/openwin/include ...
+#XINCLUDE=-I/aiai/packages/prokappa2.0/X/usr/include -I/aiai/packages/X.V11R5/include
+#XLIB=-L/aiai/packages/X.V11R5/lib -L/aiai/packages/prokappa2.0/X/usr/lib
+XINCLUDE=-I/usr/openwin/include
+XLIB=-L/usr/openwin/lib
+
+# Replace this with your own path
+WXDIR = ../..
+
+# From here on down we should be generic
+WXINC = $(WXDIR)/include/x
+WXBASEINC = $(WXDIR)/include/base
+WXLIB = $(WXDIR)/lib/libwx.a
+OBJDIR = objects$(GUISUFFIX)
+DOCUTILSDIR = $(WXDIR)/utils/tex2rtf/src
+
+INC = -I$(WXDIR)/include -I$(WXINC) -I$(WXBASEINC)
+
+# Compiler flags.
+#DEBUG = -ggdb
+WARN = -Wall
+GUI = -Dwx_xview
+OPTIONS = -O2 
+# OPT =
+
+# May need to add -D_HPUX_SOURCE_ for HPUX
+CPPFLAGS = $(XINCLUDE) $(INC) $(OPTIONS) $(GUI) $(DEBUG) $(WARN)
+CFLAGS =
+LDFLAGS =  $(XLIB) -L$(WXDIR)/lib
+
+OBJECTS = $(OBJDIR)/wb_main.o $(OBJDIR)/wb_win.o $(OBJDIR)/wb_frame.o \
+$(OBJDIR)/wb_canvs.o $(OBJDIR)/wb_panel.o $(OBJDIR)/wb_item.o \
+$(OBJDIR)/wb_text.o $(OBJDIR)/wb_list.o $(OBJDIR)/wb_utils.o \
+$(OBJDIR)/wb_obj.o $(OBJDIR)/wb_help.o $(OBJDIR)/wb_gdi.o \
+$(OBJDIR)/wb_dialg.o $(OBJDIR)/wb_dc.o $(OBJDIR)/wb_mf.o $(OBJDIR)/wb_ipc.o \
+$(OBJDIR)/wb_timer.o $(OBJDIR)/wb_types.o $(OBJDIR)/wb_sysev.o \
+$(OBJDIR)/wb_form.o $(OBJDIR)/wb_hash.o $(OBJDIR)/wb_ps.o \
+$(OBJDIR)/wb_stdev.o $(OBJDIR)/wb_sysev.o $(OBJDIR)/wb_mgstr.o \
+$(OBJDIR)/wx_enhdg.o $(OBJDIR)/wxstring.o \
+$(OBJDIR)/wb_data.o
+
+all:    $(OBJDIR) $(OBJECTS)
+
+# Clear the default suffix list
+.SUFFIXES:
+
+motif:
+	make -f makefile.unx GUI=-Dwx_motif GUISUFFIX=_motif
+
+xview:
+	make -f makefile.unx GUI=-Dwx_xview GUISUFFIX=_ol
+
+hp:
+	make -f makefile.unx GUI=-Dwx_motif DEBUG='-g' GUISUFFIX=_hp CC=CC WARN='-w' \
+           XINCLUDE='-I/usr/include/Motif1.2 -I/usr/include/X11R5' \
+           XLIB='-L/usr/lib/Motif1.2 -L/usr/lib/X11R5'
+
+$(OBJDIR):
+	mkdir $(OBJDIR)
+
+$(OBJECTS):	$(WXBASEINC)/common.h $(WXBASEINC)/wx_obj.h
+$(OBJDIR)/wb_win.o:	wb_win.cc $(WXINC)/wx_win.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_win.cc
+
+$(OBJDIR)/wb_frame.o:	wb_frame.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXBASEINC)/wx_stdev.h $(WXINC)/wx_main.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_frame.cc
+
+$(OBJDIR)/wb_panel.o:	wb_panel.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h \
+                $(WXINC)/wx_panel.h $(WXBASEINC)/wx_stdev.h $(WXBASEINC)/wx_list.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_panel.cc
+
+$(OBJDIR)/wb_canvs.o:	wb_canvs.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXINC)/wx_canvs.h $(WXBASEINC)/wx_stdev.h $(WXINC)/wx_gdi.h\
+                $(WXBASEINC)/wx_list.h $(WXINC)/wx_dc.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_canvs.cc
+
+$(OBJDIR)/wb_dc.o:        wb_dc.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXINC)/wx_canvs.h $(WXBASEINC)/wx_stdev.h $(WXINC)/wx_gdi.h\
+                $(WXBASEINC)/wx_list.h $(WXINC)/wx_dc.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_dc.cc
+
+$(OBJDIR)/wb_ps.o:        wb_ps.cc $(WXINC)/wx_win.h $(WXBASEINC)/wx_list.h $(WXINC)/wx_dc.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_ps.cc
+
+$(OBJDIR)/wb_mf.o:        wb_mf.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXINC)/wx_canvs.h $(WXBASEINC)/wx_stdev.h $(WXINC)/wx_gdi.h\
+                $(WXINC)/wx_mf.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_mf.cc
+
+$(OBJDIR)/wb_text.o:	wb_text.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXINC)/wx_text.h $(WXBASEINC)/wx_stdev.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_text.cc
+
+$(OBJDIR)/wb_item.o:	wb_item.cc $(WXINC)/wx_win.h $(WXINC)/wx_frame.h\
+                $(WXINC)/wx_panel.h $(WXINC)/wx_item.h $(WXBASEINC)/wx_stdev.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_item.cc
+
+$(OBJDIR)/wb_main.o:	wb_main.cc $(WXINC)/wx_main.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_main.cc
+
+$(OBJDIR)/wb_obj.o:	wb_obj.cc $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_obj.cc
+
+# $(OBJDIR)/wb_event.o:     wb_event.cc $(WXBASEINC)/wx_stdev.h
+# 	$(CC) -c $(CPPFLAGS) -o $@ wb_event.cc
+
+$(OBJDIR)/wb_list.o:	wb_list.cc $(WXBASEINC)/wx_list.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_list.cc
+
+$(OBJDIR)/wxstring.o:	wxstring.cc $(WXBASEINC)/wxstring.h
+	$(CC) -c $(CPPFLAGS) -o $@ wxstring.cc
+
+$(OBJDIR)/wb_hash.o:      wb_hash.cc $(WXBASEINC)/wx_list.h $(WXBASEINC)/wx_hash.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_hash.cc
+
+$(OBJDIR)/wb_gdi.o:	wb_gdi.cc $(WXINC)/wx_gdi.h $(WXBASEINC)/wx_list.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_gdi.cc
+
+$(OBJDIR)/wb_ipc.o:	wb_ipc.cc $(WXINC)/wx_ipc.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_ipc.cc
+
+$(OBJDIR)/wb_dialg.o:	wb_dialg.cc $(WXINC)/wx_dialg.h $(WXINC)/wx_panel.h $(WXINC)/wx_win.h $(WXINC)/wx_item.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_dialg.cc
+
+$(OBJDIR)/wb_form.o:      wb_form.cc $(WXBASEINC)/wx_form.h $(WXINC)/wx_panel.h $(WXINC)/wx_win.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_form.cc
+
+$(OBJDIR)/wb_timer.o:     wb_timer.cc $(WXINC)/wx_timer.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_timer.cc
+
+$(OBJDIR)/wb_help.o:	wb_help.cc $(WXBASEINC)/wx_help.h $(WXINC)/wx_ipc.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_help.cc
+
+$(OBJDIR)/wb_types.o:	wb_types.cc $(WXBASEINC)/wx_types.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_types.cc
+
+$(OBJDIR)/wb_mgstr.o:	wb_mgstr.cc $(WXBASEINC)/wx_mgstr.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_mgstr.cc
+
+$(OBJDIR)/wb_sysev.o:	wb_sysev.cc $(WXBASEINC)/wx_sysev.h $(WXBASEINC)/wx_types.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_sysev.cc
+
+$(OBJDIR)/wb_stdev.o:	wb_stdev.cc $(WXBASEINC)/wx_sysev.h $(WXBASEINC)/wx_stdev.h $(WXBASEINC)/wx_types.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_stdev.cc
+
+$(OBJDIR)/wb_utils.o:     wb_utils.cc $(WXBASEINC)/wx_utils.h $(WXBASEINC)/wx_obj.h
+	$(CC) -c $(CPPFLAGS) -o $@ wb_utils.cc
+
+$(OBJDIR)/wx_enhdg.o:     wx_enhdg.cc $(WXBASEINC)/wx_enhdg.h $(WXBASEINC)/wx_obj.h $(WXINC)/wx_dialg.h
+	$(CC) -c $(CPPFLAGS) -o $@ wx_enhdg.cc
+
+$(OBJDIR)/wb_data.o: wb_data.cc
+	$(CC) -c $(CPPFLAGS) -o $@ wb_data.cc
+
+$(WXINC)/wx_win.h:  $(WXBASEINC)/wb_win.h
+$(WXINC)/wx_main.h:  $(WXBASEINC)/wb_main.h
+$(WXINC)/wx_frame.h:  $(WXBASEINC)/wb_frame.h
+$(WXINC)/wx_panel.h:  $(WXBASEINC)/wb_panel.h
+$(WXINC)/wx_text.h:  $(WXBASEINC)/wb_text.h
+$(WXINC)/wx_dialg.h:  $(WXBASEINC)/wb_dialg.h
+$(WXINC)/wx_ipc.h:  $(WXBASEINC)/wb_ipc.h
+$(WXINC)/wx_gdi.h:  $(WXBASEINC)/wb_gdi.h
+$(WXINC)/wx_canvs.h:  $(WXBASEINC)/wb_canvs.h
+$(WXINC)/wx_mf.h:  $(WXBASEINC)/wb_mf.h
+$(WXINC)/wx_item.h:  $(WXBASEINC)/wb_item.h
+$(WXINC)/wx_buttn.h:  $(WXBASEINC)/wb_buttn.h
+$(WXINC)/wx_messg.h:  $(WXBASEINC)/wb_messg.h
+$(WXINC)/wx_choic.h:  $(WXBASEINC)/wb_choic.h
+$(WXINC)/wx_check.h:  $(WXBASEINC)/wb_check.h
+$(WXINC)/wx_lbox.h:  $(WXBASEINC)/wb_lbox.h
+$(WXINC)/wx_txt.h:  $(WXBASEINC)/wb_txt.h
+$(WXINC)/wx_mtxt.h:  $(WXBASEINC)/wb_mtxt.h
+$(WXINC)/wx_slidr.h:  $(WXBASEINC)/wb_slidr.h
+$(WXINC)/wx_menu.h:  $(WXBASEINC)/wb_menu.h
+$(WXBASEINC)/wx_enhdg.h:	$(WXINC)/wx_dialg.h
+
+$(OBJECTS):	$(WXBASEINC)/wx_setup.h
+
+docs:	ps xlp # html
+
+ps:	$(WXDIR)/docs/manual.ps $(WXDIR)/docs/referenc.ps
+xlp:	$(WXDIR)/docs/wx.xlp
+html:	$(WXDIR)/docs/wx_contents.html
+
+$(WXDIR)/docs/manual.dvi:	$(WXDIR)/docs/manual.tex $(WXDIR)/docs/body.tex
+	cd $(WXDIR)/docs; latex manual; latex manual; makeindex manual; latex manual
+
+$(WXDIR)/docs/manual.ps:	$(WXDIR)/docs/manual.dvi
+	cd $(WXDIR)/docs; dvips -f -r < manual.dvi > manual.ps
+
+$(WXDIR)/docs/referenc.dvi:	$(WXDIR)/docs/referenc.tex $(WXDIR)/docs/classes.tex
+	cd $(WXDIR)/docs; latex referenc; latex referenc; makeindex referenc; latex referenc
+
+$(WXDIR)/docs/referenc.ps:	$(WXDIR)/docs/referenc.dvi
+	cd $(WXDIR)/docs; dvips -f -r < referenc.dvi > referenc.ps
+
+$(WXDIR)/docs/wx.xlp:	$(WXDIR)/docs/classes.tex $(WXDIR)/docs/manual.tex
+	cd ../../docs; tex2rtf manual.tex tmp.xlp -xlp -twice
+	sed -e "s/WXHELPCONTENTS/wxWindows Manual/g" < $(WXDIR)/docs/tmp.xlp > $(WXDIR)/docs/wx.xlp
+	/bin/rm -f $(WXDIR)/docs/tmp.xlp
+
+$(WXDIR)/docs/wx_contents.html:	$(WXDIR)/docs/classes.tex $(WXDIR)/docs/manual.tex
+	cd ../../docs; tex2rtf manual.tex wx.html -html -twice
+	/bin/cp ../../docs/*.html /user/11/jacs/html/wx
+	/bin/rm ../../docs/*.html
+
+alldocs:	docs
+	cd $(WXDIR)/utils/hytext/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/prologio/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/toolbar/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/wxclips/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/wxhelp/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/tex2rtf/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/wxtree/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/wxgraph/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/wxbuild/src; make -f makefile.unx docs
+	cd $(WXDIR)/utils/clips2c/src; make -f makefile.unx docs
+
+clean:
+	rm -f $(OBJECTS) core $(WXLIB)

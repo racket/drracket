@@ -1,0 +1,52 @@
+MrEd
+Copyright (c) 1995-96 PLT, Rice University
+
+MrEd is distributed under the GNU Library General Public License
+(LGPL).  This means you can link MrEd into proprietary applications,
+provided you follow the specific rules stated in the LGPL.  You can
+also modify MrEd; if you distribute a modified version, you must
+distribute it under the terms of the LGPL, which in particular means
+that you must release the source code for the modified MrEd. See
+COPYING.LIB for more information.
+
+MrEd is based on:
+
+  wxWindows
+  Copyright (c) 1994 Artificial Intelligence Applications Institute,
+                     The University of Edinburgh
+  All rights reserved.
+
+and/or
+
+  wxWindows Xt
+  Copyright (c) 1994 Artificial Intelligence Applications Institute,
+                     The University of Edinburgh
+  Copyright (c) 1995 GNU (Markus Holzem)
+  All rights reserved.
+
+  Therefore, the "Xt" version of MrEd is under the GNU General Public 
+  License.
+
+and
+
+  MzScheme
+  Copyright (c) 1995-97 PLT (Matthew Flatt)
+  All rights reserved.
+
+and
+
+  libscheme
+  Copyright (c) 1994 Brent Benson
+  All rights reserved.
+
+and
+
+  Conservative garbage collector
+  Copyright 1988, 1989 Hans-J. Boehm, Alan J. Demers
+  Copyright (c) 1991-1994 by Xerox Corporation.  
+  All rights reserved.
+
+  C++ extension by Jesse Hull and John Ellis
+  Copyright (c) 1994 by Xerox Corporation.  
+  All rights reserved.
+

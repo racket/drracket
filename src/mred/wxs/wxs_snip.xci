@@ -1,0 +1,27 @@
+
+@MACRO makeNoCopyString[len] = scheme_make_sized_string(r, <len>, 0)
+
+@ s "get-extent" : void GetExtent(wxDC!,float,float,float?=NULL,float?=NULL,float?=NULL,float?=NULL,float?=NULL,float?=NULL); : : /CHECKOK[0."wx:snip%::get-extent"]
+@ s "partial-offset" : float PartialOffset(wxDC!,float,float,long); : : /CHECKOK[0."wx:snip%::partial-offset"]
+@ s "draw" : void Draw(wxDC!,float,float,float,float,float,float,float,float,int); : : /CHECKOK[0."wx:snip%::draw"]
+@ s "split" : void Split(long,wxSnip!*,wxSnip!*);
+@ s "merge-with" : wxSnip! MergeWith(wxSnip!);
+@ s "get-text" : string/makeNoCopyString[_x3] GetText(long,long,bool=FALSE,-long*=NULL);
+@ s "copy" : wxSnip! Copy();
+@ s "size-cache-invalid" : void SizeCacheInvalid();
+
+@ s "on-event" : void OnEvent(wxDC!,float,float,float,float,wxMouseEvent%); : : /CHECKOK[0."wx:snip%::on-event"]
+@ s "on-char" : void OnChar(wxDC!,float,float,float,float,wxKeyEvent%); : : /CHECKOK[0."wx:snip%::on-char"]
+@ s "adjust-cursor" : wxCursor^ AdjustCursor(wxDC!,float,float,float,float,wxMouseEvent%); : : /CHECKOK[0."wx:snip%::adjust-cursor"]
+@ s "own-caret" : void OwnCaret(bool); 
+
+@ s "do-edit" : void DoEdit(int,bool=TRUE,long=0);
+@ s "do-font" : void DoFont(int,bool=TRUE);
+@ s "match?" : bool Match(wxSnip!);
+
+@ s "write" : void Write(wxMediaStreamOut%);
+
+@ s "resize" : bool Resize(float, float);
+
+@ s "set-admin" : void SetAdmin(wxSnipAdmin^);
+

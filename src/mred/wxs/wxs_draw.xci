@@ -1,0 +1,34 @@
+
+#undef DO_OK_CHECK
+#ifdef DrawsForCanvas
+#define DO_OK_CHECK(v)
+#else
+#define DO_OK_CHECK(v) if (!((wxDC *)((Scheme_Class_Object *)obj)->primdata)->Ok()) return v;
+#endif
+
+@MACRO CheckLogicalFunc[p.v.n] = switch (x<p>) { case wxAND: case wxAND_INVERT: case wxAND_REVERSE: case wxCLEAR: case wxCOPY: case wxEQUIV: case wxINVERT: case wxNAND: case wxNOR: case wxNO_OP: case wxOR: case wxOR_INVERT: case wxOR_REVERSE: case wxSET: case wxSRC_INVERT: case wxXOR: break; case wxCOLOR: if (x<p> == <v>) break; default: scheme_wrong_type(<n>, "logicalfunction integer", <p>, n, p); }
+
+@MACRO CheckOkGen[ret] = DO_OK_CHECK(<ret>)
+@MACRO CheckGen[p.ret] = if (!x<p>->Ok()) return <ret>;
+@MACRO CheckOk = $$CheckOkGen[scheme_void]
+@MACRO Check[p] = $$CheckGen[<p>.scheme_void]
+@MACRO CheckOkFalse = $$CheckOkGen[scheme_false]
+@MACRO CheckFalse[p] = $$CheckGen[<p>.scheme_false]
+
+extern Scheme_Object *objscheme_bundle_wxPoint(wxPoint *);
+extern wxPoint *objscheme_unbundle_wxPoint(Scheme_Object *, const char *, int);
+extern Scheme_Object *objscheme_bundle_wxIntPoint(wxIntPoint *);
+extern wxIntPoint *objscheme_unbundle_wxIntPoint(Scheme_Object *, const char *, int);
+
+@SET TYPE = wxPoint
+@SET INDIRECT = 1
+@SET POINTWISE = 1
+@INCLUDE list.xci
+
+@SET TYPE = wxIntPoint
+@SET INDIRECT = 1
+@SET POINTWISE = 1
+@INCLUDE list.xci
+
+/* The methods are here: */
+@INCLUDE wxs_drwf.xci

@@ -1,0 +1,101 @@
+
+The "item.ss" test (use load/cd) creates a frame to select
+among several types of control-testing frames:
+
+ * Big - Tests basic controls; try everything
+
+ * Medium - Tests sliders & gauges; keep a new Big or
+         Medium frame open while getting a new Medium
+         frame to use the "Enable Previous Frame" test
+
+ * Menu - contains its own test instructions
+
+ * Button, Checkbox, etc. - Test everything, watching for
+         messages in the console
+
+For Big & Medium, verify that hide & disbale work (via the checkboxes
+on the right). Hiding or disabling a panel should hde or disable all
+its contained controls. Disbaling a frame (a "Previous" frame) should
+also disbale all of the contained controls.  When "Null label" is
+used, there should *not* be extra space left where a label might have
+gone.
+
+---------------------------------------------------------------------------
+
+The "draw.ss" test (use load/cd) tests drawing commands. There
+is a checkbox for testing drawing into an intermediate offscreen
+bitmap as well. The drawing area should have the following
+features:
+
+  At the top, "Pen 0 x 0" in a consistent font (i.e., re-painting
+    should not change the font)
+  "Pen 1 x 1" in a possibly different font
+  "Pen 2 x 2" in a bold font (bold version of 1x1 font)
+  
+  the drawings under 0x0 and 1x1 should look the same:
+    TopLeft: h-line should be left-aligned with box below it,
+             but extend 1 extra pixel. v-line similarly should be
+             top-aligned and 1 pixel longer. The lines should not 
+             touch the box - there should be 2 pixels of space.
+    Top: Lines for the rotated L's should join in a sharp corner
+    Second from Top: like top-left, but lines should touch the box
+    Four shape lines: First and second should be exactly the same
+             shape, with the first hollow and the second filled.
+             Third shape and 2x2 shapes are ill-defined.
+    Octagons: two hollow octagons exactly the same shape.
+    Line: actually two lines, but they should form a single
+             unbroken line
+    Images: MrEd logo (b & w)
+            BB logo (color)
+            Down-left arrow (b & w)
+            Down-left arrow - B & W, *not* red
+            Down-left arrow - red with white background
+            BB logo, possibly reddened
+            Down-left arrow - red with *white* background
+
+---------------------------------------------------------------------------
+
+The "imred.ss" test is used to check for memory leaks in a loop
+invoking the mred system. Call the `go' procedure with a list
+of symbol flags:
+  'force not included:
+     Use the current eventspaces; expects mred:run-exit-callbacks
+     to terminate everything properly
+  'force included:
+     Use a new eventspace; don't run mred:run-exit-callbacks and
+     call wx:kill-eventspace instead.
+  'console included:
+     Open a MrEd console
+  'thread included:
+     Spawn a sleeping-and-looping thread during each invocation.
+     Also tests semaphore-callback (because it has to)
+  'eventspace included:
+     Create a new sub-eventspace during each invocation with
+     a wx:frame% shown
+
+---------------------------------------------------------------------------
+
+The "mem.ss" test should be loaded at startup:
+  mred -nu -f tests/mem.ss
+It will create a lot of frames and instance of other objects, 
+reporting memory information along the way. At the end,
+before the last memory dump, objects that are still allocated
+are displayed like this:
+  (frame (1 . 5))
+This means that the frame allocated by thread #1 at cycle 5
+(counting down from some number) hasn't been garbage-collected.
+If there's a few of these lines (less than 10), that's ok.
+A large number of lines indicates a GC problem.
+
+---------------------------------------------------------------------------
+
+The "setup.ss" test is a randomized test of the MrEd classes that tests
+MrEd's stability. Load/cd setup.ss, and then run
+  (init)
+This attempts to create instances of classes using random
+intialization arguments. (init) can be run any number of times. Then
+run
+  (call-all-random) 
+This calls every method of every class (skipping some "dangerous" ones
+that modify the file system) with a random instance and with random
+arguments.

@@ -1,0 +1,5 @@
+for i in *.c
+do
+echo "\$(OBJECTDIR)/$i: libxpm.34b/lib/$i"
+echo "	 \$(CC) -c \$(CPPFLAGS) -o \$@ libxpm.34b/lib/$i"
+done

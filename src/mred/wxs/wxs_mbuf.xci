@@ -1,0 +1,77 @@
+
+/* 
+   X = Not meant for virtual, defined in wxMediaEdit/wxMediaPasteboard
+       and overloaded there
+   Y = Virtual, defined in wxMediaEdit/wxMediaPasteboard
+   Z = Virtual, defined in wxMediaBuffer 
+*/
+
+@MACRO XrZERO = return 0;
+@MACRO XrNULL = return NULL;
+
+@ X "change-style" : void ChangeStyle(wxStyleDelta^); <> wx:style-delta% without position or wx:snip%
+@ X "insert" : void Insert(wxSnip!); <> wx:snip% without position
+
+@ X "cut" :  void Cut(bool=FALSE,long=0); <> without position
+@ X "copy" : void Copy(bool=FALSE,long=0); <> without position
+@ X "paste" : void Paste(long=0); <> without position
+@ X "kill" : void Kill(long=0); <> without position
+
+@ Y "on-event" : void OnEvent(wxMouseEvent%);
+@ Y "on-char" : void OnChar(wxKeyEvent%);
+@ Y "adjust-cursor" : wxCursor^ AdjustCursor(wxMouseEvent%); : : : : XrNULL
+@ Y "refresh" : void Refresh(float,float,float,float,bool);
+@ Y "own-caret" : void OwnCaret(bool);
+@ Y "size-cache-invalid" : void SizeCacheInvalid();
+
+@ Z "on-local-event" : void OnLocalEvent(wxMouseEvent%);
+@ Z "on-local-char" : void OnLocalChar(wxKeyEvent%);
+@ Y "on-default-event" : void OnDefaultEvent(wxMouseEvent%);
+@ Y "on-default-char" : void OnDefaultChar(wxKeyEvent%);
+
+@ Z "on-focus" : void OnFocus(bool);
+
+@ Y "on-change" : void OnChange();
+
+@ Y "scroll-to" : bool ScrollTo(wxSnip!,float,float,float,float,bool); : : : : XrZERO
+@ Y "set-caret-owner" : void SetCaretOwner(wxSnip^,int=wxFOCUS_IMMEDIATE);
+@ Y "resized" : void Resized(wxSnip!,bool);
+@ Y "needs-update" : void NeedsUpdate(wxSnip!,float,float,float,float);
+
+@ Y "get-snip-data" : wxBufferData^ GetSnipData(wxSnip!); : : : : XrZERO
+@ Y "set-snip-data" : void SetSnipData(wxSnip!, wxBufferData^);
+
+@ Z "set-modified" : void SetModified(bool);
+
+@ Y "release-snip" : bool ReleaseSnip(wxSnip!); : : : : XrZERO
+
+@ Y "set-filename" : void SetFilename(string,bool=FALSE);
+
+@ X "read-from-file" : bool ReadFromFile(wxMediaStreamIn%,bool=FALSE); <> without position
+@ X "write-to-file" : bool WriteToFile(wxMediaStreamOut%); <> without position
+
+@ Z "read-header-from-file" : bool ReadHeaderFromFile(wxMediaStreamIn%,string);
+@ Z "read-footer-from-file" : bool ReadFooterFromFile(wxMediaStreamIn%,string);
+@ Z "write-headers-to-file" : bool WriteHeadersToFile(wxMediaStreamOut%);
+@ Z "write-footers-to-file" : bool WriteFootersToFile(wxMediaStreamOut%);
+
+@ Z "on-paint" : void OnPaint(bool,wxDC!,float,float,float,float,float,float,int);  : : /CHECKOK[1."wx:media-buffer%::on-paint"]
+@ Y "invalidate-bitmap-cache" : void InvalidateBitmapCache(float=0.0,float=0.0,float=-1.0,float=-1.0);
+
+@ Z "on-new-image-snip" : wxImageSnip! OnNewImageSnip(nstring,long,bool,bool);
+@ Z "on-new-box" : wxSnip! OnNewBox(int);
+
+@ Z "on-save-file" : bool OnSaveFile(string,int);
+@ Z "after-save-file" : void AfterSaveFile(bool);
+@ Z "on-load-file" : bool OnLoadFile(string,int);
+@ Z "after-load-file" : void AfterLoadFile(bool);
+
+@ Z "on-edit-sequence" : void OnEditSequence();
+@ Z "after-edit-sequence" : void AfterEditSequence();
+
+@ Z "get-file" : nstring GetFile(nstring);
+@ Z "put-file" : nstring PutFile(nstring, nstring);
+
+@MACRO makeNoCopyFlatString[len] = scheme_make_sized_string(r, <len>, 0)
+
+@ X "get-flattened-text" : string/makeNoCopyFlatString[_x0] GetFlattenedText(-long*);

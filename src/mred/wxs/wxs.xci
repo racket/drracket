@@ -1,0 +1,9 @@
+
+@BOOLEAN Bool
+@CLASSSUFFIX "%"
+@IDFIELD __type
+
+@MACRO NOZERO[p] = if (!x<p>) x<p> = -1;
+@MACRO CHECKOK[p.who] = if (x<p> && !x<p>->Ok()) scheme_signal_error("%s: bad bitmap", <who>);
+@MACRO CHECKVOIDABLEOK[p] = if (x<p> && !x<p>->Ok()) return scheme_void;
+

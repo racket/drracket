@@ -1,0 +1,178 @@
+<title>Release Notes for DrScheme</title>
+
+<body>
+
+<h2><img align=center
+         src="http://www.cs.rice.edu/CS/PLT/packages/drscheme/logo.gif"
+         alt="[DrScheme logo]">
+DrScheme Release Notes</h2>
+
+<p>
+
+<b>Current Release</b>: 0.41.<br>
+<b>Release Date</b>: April 16, 1996.
+
+<p>
+
+The following is a list of differences between this release and the
+previous one.
+
+
+<h3>Highlights</h3>
+
+A mail alias has been created for reporting bugs.
+Bug reports for DrScheme (and other PLT software) should be sent to:
+
+<pre>    plt-bugs@cs.rice.edu
+</pre>
+
+<p>
+The error messages in DrScheme have been improved and should now
+be more descriptive of the problem.
+
+<p>
+Several changes to the MzScheme language affecting the class system,
+exceptions and macros have been made in release 0.41.
+Many of the new features are incompatible with the old system.
+
+
+<h4>Classes</h4>
+
+`make-class' and `make-class*' have been replaced with `class' 
+and `class*'. 
+`class' looks a lot like `make-class', but there are
+some important differences:
+
+<ol>
+<li>
+The initialization procedure of `make-class' is gone.
+Instead, in `class', there is always an implicit `lambda'
+(really something like an `opt-lambda').  As a result,
+the arguments to `make-object' can be used in the ivar
+initialization expressions.
+
+<li>
+All ivars are intialized in order, even across clauses.
+
+<li>
+A new kind of clause is available: `sequence' clauses
+evaluate expressions without assigning them to ivars.
+
+<li>
+The scope of `super-init' includes all of the clauses now. 
+(It used to be only the initialization procedure.)
+
+<li>
+apply-super-init is gone. Use (apply super-init ...) instead.
+</ol>
+
+<p>
+For example, this expression:
+
+<pre>  (make-class c%
+    (private y)
+    (public [x (lambda () y)])
+    (lambda (v)
+      (set! y v)
+      (super-init)))
+</pre>
+
+can now be written:
+
+<pre>  (class c% (v) ; (v) is the arg list for the implicit lambda
+    (private [y v])
+    (public [x (lambda () y)])
+    (sequence
+      (super-init)))
+</pre>
+
+or even better:
+
+<pre>  (class c% (y)
+    (public [x (lambda () y)])
+    (sequence
+      (super-init)))
+</pre>
+
+This expression:
+
+<pre>  (make-class d%
+    (public [x 5]))
+</pre>
+
+translates to:
+
+<pre>  (class d% args
+    (public [x 5])
+    (sequence
+      (apply super-init args)))
+</pre>
+
+Since this happens a lot, mzlib's `macros.ss' defines `class-asi'
+(auto super init):
+
+<pre>  (class-asi d%
+    (public [x 5]))
+</pre>
+
+(Here, `make-class' was simply changed to `class-asi'.)
+
+<p>
+Default expressions can be provided for `make-object' arguments
+(`opt-lambda' style):
+
+<pre>  (class x% (a [b (add1 a)] [c (lambda (x) b)])
+    ...)
+</pre>
+
+Each default value expression is not evaluated when an argument is
+supplied. The scope of all argument variables includes all default
+value expressions (i.e., like `letrec', while `opt-lambda' is like
+`let*').
+
+
+<h4>Exceptions</h4>
+
+Errors are now always signaled using exceptions. The `raise' procedure
+takes any value and invokes the current exception handler with that
+value. All primitive errors invoke `raise' with an instance of the
+struct type `exn'. There is always a current exception handler, just
+as there has previously been a current error handler in MzScheme.
+(The current error display and escape handlers are still used by the
+default eception handler). A `with-handlers' form provides ML-like
+syntax for handling exceptions in a subexpression.
+
+<h4>Macros</h4>
+
+`defmacro' and `letmacro' have been replaced with `define-macro' and
+`let-macro'. The only difference is that the implicit `lambda' must
+now be explicit:
+
+(defmacro when (test . body)
+  `(if ,test
+       (begin
+	 ,@body)))
+
+becomes
+
+(define-macro when 
+  (lambda (test . body)
+    `(if ,test
+	 (begin
+	   ,@body))))
+
+mzlib's `compat.ss' defines macros for `defmacro' and `letmacro'.
+
+<h4>Package Macro</h4>
+
+
+The `package' macro in mzlib's "macros.ss" has been renamed to
+`define-some' to avoid confusion with DrScheme's `make-package' form.
+
+<h4>Error Messages</h4>
+
+The error messages from MzScheme have been revised. 
+Hopefully, the syntax error messages will now be more helpful.
+
+
+</body>

@@ -1,0 +1,29 @@
+
+(let loop ([x 0]) (call/cc loop)) accumulates memory
+
+"synrule.ss" is missing `let-syntax' and `letrec-syntax'
+
+On Alpha machines, floating-point overflow is not handled properly
+ (so +inf.0, -inf.0, and +nan.0 are messed up)
+
+Under MacOS, `tcp-listen' does not work reliably
+
+Under MacOS, in the standalone MzScheme application, a blocking read 
+ from stdin blocks all MzScheme threads
+
+Under Unix, (execute s) is just (exit (if (system s) 0 -1)), while
+ execute* replaces the current process like it is supposed to
+
+Under Windows, the `system' procedure blocks all MzScheme threads
+ (`system*' works correctly)
+
+Under AIX, write to tcp output port blocks when the low-level
+  buffer is full
+
+Under FreeBSD, if the descripters limit is greater than 256, then
+  it is automatically reduced to 256 within MzScheme/MrEd/DrScheme
+
+Still to be added to support R5RS:
+  (scheme-report-environment n)
+  (null-environment)
+  (interaction-environment)
