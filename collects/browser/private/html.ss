@@ -230,6 +230,7 @@
 	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
 
+      (define re:quot (regexp "[&][qQ][uU][oO][tT][;]"))
       (define re:amp (regexp "[&][aA][mM][pP][;]"))
 
       (define re:empty (regexp (format "^[ ~c]*$" (latin-1-integer->char 160))))
@@ -873,18 +874,20 @@
 								  #f
                                                                   (lambda () 
 								    (send select get-value))))]
-						       [(and (eq? tag 'input)
-                                                             (eq? type 'text))
+						       [(or (and (eq? tag 'input)
+                                                            	 (eq? type 'text))
+							    (eq? tag 'textarea))
                                                         (let* ([text (make-object text%)]
                                                                [snip (make-object editor-snip% text)]
                                                                [size (get-field e 'size)]
                                                                [val (get-field e 'value)])
 							  (let ([km (send text get-keymap)])
 							    ((current-text-keymap-initializer) km)
-							    (send km add-function "send-form"
-								  (lambda (t e)
-								    (send-form #f)))
-							    (send km map-function "enter" "send-form"))
+							    (unless (eq? tag 'textarea)
+								    (send km add-function "send-form"
+									  (lambda (t e)
+									    (send-form #f)))
+								    (send km map-function "enter" "send-form")))
                                                           (let ([width (* 10 (or (and size (string->number size))
                                                                                  25))])
                                                             (send text set-min-width width)
@@ -914,6 +917,12 @@
                                                            (lambda () (if (send cb get-value)
                                                                           "true"
                                                                           "false"))))]
+						       [(and (eq? tag 'input)
+                                                             (eq? type 'hidden))
+							(values
+							 (get-field e 'name)
+							 #f
+							 (lambda () (regexp-replace* re:quot (get-field e 'value) "\"")))]
 						       [else
 							(insert unsupported)
 							(values #f #f #f)])])

@@ -493,42 +493,55 @@
                      (lock #t)))
 
                  (when url
-                   (if (port? url)
-                       (read-from-port url empty-header)
-                       (let* ([busy? #t]
-                              [stop-busy (lambda ()
-                                           (when busy?
-                                             (set! busy? #f)
-                                             (end-busy-cursor)))])
-                         (dynamic-wind
-                          ;; Turn on the busy cursor:
-                          begin-busy-cursor
-                          (lambda ()
-                            ;; Try to get mime info, but use get-pure-port if it fails.
-                            (with-handlers ([(lambda (x)
-                                               (and (not-break-exn? x)
-                                                    busy?))
-                                             (lambda (x) 
-                                               (call/input-url 
-                                                url
-                                                (if post-string 
-						    (lambda (u s) (post-pure-port u post-string s))
-						    get-pure-port)
-                                                (lambda (p)
-                                                  (stop-busy)
-                                                  (read-from-port p empty-header))
-                                                null))])
-                              (call/input-url 
-                               url 
-			       (if post-string 
-				   (lambda (u s) (post-impure-port u post-string s))
-				   get-impure-port)
-                               (lambda (p)
-                                 (let ([headers (purify-port p)])
-                                   (stop-busy)
-                                   (read-from-port p headers)))
-                               null)))
-                          stop-busy)))))])
+		   (let ([headers 
+			  (if (port? url)
+			      (begin
+				(read-from-port url empty-header)
+				empty-header)
+			      (let* ([busy? #t]
+				     [stop-busy (lambda ()
+						  (when busy?
+							(set! busy? #f)
+							(end-busy-cursor)))])
+				(dynamic-wind
+				 ;; Turn on the busy cursor:
+				 begin-busy-cursor
+				 (lambda ()
+				   ;; Try to get mime info, but use get-pure-port if it fails.
+				   (with-handlers ([(lambda (x)
+						      (and (not-break-exn? x)
+							   busy?))
+						    (lambda (x) 
+						      (call/input-url 
+						       url
+						       (if post-string 
+							   (lambda (u s) (post-pure-port u post-string s))
+							   get-pure-port)
+						       (lambda (p)
+							 (stop-busy)
+							 (read-from-port p empty-header)
+							 empty-header)
+						       null))])
+				       (call/input-url 
+					url 
+					(if post-string 
+					    (lambda (u s) (post-impure-port u post-string s))
+					    get-impure-port)
+					(lambda (p)
+					  (let ([headers (purify-port p)])
+					    (stop-busy)
+					    (read-from-port p headers)
+					    headers))
+					null)))
+				 stop-busy)))])
+		     ;; Page is a redirection?
+		     (let ([m (regexp-match "^HTTP/[^ ]+ 301 " headers)])
+		       (when m
+			 (let ([loc (extract-field "location" headers)])
+			   (when loc
+			    (queue-callback
+			     (lambda ()
+			       ((make-clickback-funct loc #f) this 0 1))))))))))])
             (sequence
               (apply super-init args)
               (add-h-link-style)
