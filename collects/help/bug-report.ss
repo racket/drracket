@@ -1,3 +1,4 @@
+(require-library "framework.ss" "framework")
 (require-library "head.ss" "net")
 (require-library "smtp.ss" "net")
 
@@ -376,7 +377,8 @@
 	 ;; send-bug-report : (-> boolean)
 	 ;; returns true if uncancelled
 	 (define (send-bug-report)
-	   (letrec ([f (make-object dialog% "Sending Bug Report" this)]
+           (message-box "bug report sent" "would have sent bug report")
+	   '(letrec ([f (make-object dialog% "Sending Bug Report" this)]
 		    [sema (make-semaphore 0)]
 		    [msg (make-object message% "Sending Bug Report" f)]
 		    [button (make-object button% "Cancel" f
@@ -418,11 +420,35 @@
 	 
 	 (toggle-synthesized-info)
 
+         (define (sanity-checking)
+           (let ([no-value?
+                  (lambda (f)
+                    (cond
+                      [(is-a? f editor-canvas%)
+                       (= 0 (send (send f get-editor) last-position))]
+                      [else (string=? "" (send f get-value))]))])
+             (let/ec done-checking
+               (for-each
+                (lambda (field field-name)
+                  (when (no-value? field)
+                    (message-box "Illegal Bug Report"
+                                 (format "Please fill in the \"~a\" field" field-name))
+                    (done-checking #f)))
+                (list name summary description reproduce)
+                (list "Name" "Summary" "Description" "Steps to Reproduce"))
+               
+               
+               (unless (member #\@ (string->list (or (preferences:get 'drscheme:email) "")))
+                 (message-box "Illegal Bug Report" "Malformed email address")
+                 (done-checking #f))
+               (done-checking #t))))
+
 	 (define (ok)
-	   (let ([submitted? (send-bug-report)])
-	     (when submitted?
-	       (set! ok-to-close? #t)
-	       (cleanup-frame))))
+           (when (sanity-checking)
+             (let ([submitted? (send-bug-report)])
+               (when submitted?
+                 (set! ok-to-close? #t)
+                 (cleanup-frame)))))
 	 
 	 (define (cancel)
 	   (cleanup-frame))

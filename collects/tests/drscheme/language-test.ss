@@ -537,7 +537,7 @@
 	     "Print rationals in whole/part notation"
 	     rationals)
 	    (fw:test:set-check-box!
-	     "Use pretty printer to format values"
+	     "Insert newlines in printed values"
 	     pretty?)
 	    (let ([f (get-top-level-focus-window)])
 	      (fw:test:button-push "OK")
@@ -604,7 +604,8 @@
     (clear-definitions drs)
     (for-each fw:test:keystroke
 	      (string->list
-	       "(define(f n)(cond((zero? n)null)[else(cons n(f(- n 1)))]))(f 40)"))
+	       (format
+                "(define (f n)~n(cond [(zero? n) null]~n[else (cons n (f (- n 1)))]))~n(f 200)")))
     (test "Constructor" 'on #t #f
 	  (case-lambda
 	   [(x) (not (member #\newline (string->list x)))]

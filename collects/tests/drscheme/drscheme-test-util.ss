@@ -30,11 +30,10 @@
     (unless (string? filename)
       (error 'use-open/close-dialog "expected string as second argument, got: ~e, other arg: ~e"
 	     filename open-dialog))
-    (let ([drs (wait-for-drscheme-frame)]
-	  [old-pref (fw:preferences:get 'framework:file-dialogs)])
+    (let ([drs (wait-for-drscheme-frame)])
       (with-handlers ([(lambda (x) #t)
 		       (lambda (x)
-			 (fw:preferences:set 'framework:file-dialogs old-pref)
+			 (fw:preferences:set 'framework:file-dialogs 'std)
 			 (raise x))])
 	(fw:preferences:set 'framework:file-dialogs 'common)
 	(open-dialog)
@@ -47,7 +46,7 @@
 	  (for-each fw:test:keystroke (string->list filename))
 	  (fw:test:button-push "OK")
 	  (wait-for-new-frame dlg))
-	(fw:preferences:set 'framework-file-dialogs old-pref))))
+	(fw:preferences:set 'framework-file-dialogs 'std))))
 
   ;; -> eventspace
   ;; returns the eventspace used by the program in the current drscheme window
