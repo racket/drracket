@@ -656,22 +656,18 @@
       
       (define (set-box/f! b v) (when (box? b) (set-box! b v)))
       
-      (define vertical-resizable/pref%
-        (class100 panel:vertical-resizable% (_unit-frame . args)
-	  (private-field
-	    [unit-frame _unit-frame])
+      (define vertical-dragable/pref%
+        (class panel:vertical-dragable%
+          (init-field unit-frame)
           (inherit get-percentages)
-          (override
-            [on-percentage-change
-             (lambda ()
-               (let ([percentages (get-percentages)])
-                 (when (and (= 1
-                               (length (send unit-frame get-definitions-canvases))
-                               (length (send unit-frame get-interactions-canvases)))
-                            (= 2 (length percentages)))
-                   (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
-          (sequence 
-            (apply super-init args))))
+          (define/override (after-percentage-change)
+            (let ([percentages (get-percentages)])
+              (when (and (= 1
+                            (length (send unit-frame get-definitions-canvases))
+                            (length (send unit-frame get-interactions-canvases)))
+                         (= 2 (length percentages)))
+                (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))
+          (super-instantiate ())))
       
       (define super-frame%
         (drscheme:frame:mixin
@@ -891,64 +887,60 @@
               (make-object separator-menu-item% edit-menu))]
           
           (inherit get-edit-target-window)
-          [define split
-            (lambda ()
-              (let* ([target (get-edit-target-window)]
-                     [update
-                      (lambda (set-canvases! canvases canvas% text)
-                        (let ([orig-percentages (send resizable-panel get-percentages)]
-                              [new-canvas (make-object canvas% resizable-panel text)])
-                          
-                          (send new-canvas focus)
-                          
-                          (send resizable-panel set-percentages
-                                (let loop ([canvases (append definitions-canvases
-                                                             interactions-canvases)]
-                                           [percentages orig-percentages])
-                                  (cond
-                                    [(null? canvases)
-                                     (error 'split "couldn't split; didn't find canvas")]
-                                    [(null? percentages)
-                                     (error 'split "wrong number of percentages: ~s ~s"
-                                            orig-percentages
-                                            (append definitions-canvases interactions-canvases))]
-                                    [else (let ([canvas (car canvases)])
-                                            (if (eq? target canvas)
-                                                (list* (/ (car percentages) 2)
-                                                       (/ (car percentages) 2)
-                                                       (cdr percentages))
-                                                (cons
-                                                 (car percentages)
-                                                 (loop (cdr canvases)
-                                                       (cdr percentages)))))])))
-                          
-                          (set-canvases!
-                           (let loop ([canvases canvases])
-                             (cond
-                               [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
-                               [else
-                                (let ([canvas (car canvases)])
-                                  (if (eq? canvas target)
-                                      (list* new-canvas
-                                             canvas
-                                             (cdr canvases))
-                                      (cons canvas (loop (cdr canvases)))))])))
-                          
-                          (send resizable-panel change-children
-                                (lambda (l)
-                                  (append definitions-canvases interactions-canvases)))))])
-                (cond
-                  [(memq target definitions-canvases)
-                   (update (lambda (x) (set! definitions-canvases x))
-                           definitions-canvases
-                           definitions-canvas%
-                           definitions-text)]
-                  [(memq target interactions-canvases)
-                   (update (lambda (x) (set! interactions-canvases x))
-                           interactions-canvases
-                           interactions-canvas%
-                           interactions-text)]
-                  [else (bell)])))]
+          [define (split)
+            (let* ([target (get-edit-target-window)]
+                   [update
+                    (lambda (set-canvases! canvases canvas% text)
+                      (let ([orig-percentages (send resizable-panel get-percentages)]
+                            [orig-canvases (send resizable-panel get-children)]
+                            [new-canvas (make-object canvas% resizable-panel text)])
+                        
+                        (set-canvases!
+                         (let loop ([canvases canvases])
+                           (cond
+                             [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
+                             [else
+                              (let ([canvas (car canvases)])
+                                (if (eq? canvas target)
+                                    (list* new-canvas
+                                           canvas
+                                           (cdr canvases))
+                                    (cons canvas (loop (cdr canvases)))))])))
+                        
+                        (update-shown)
+                        
+                        (send resizable-panel set-percentages
+                              (let loop ([canvases orig-canvases]
+                                         [percentages orig-percentages])
+                                (cond
+                                  [(null? canvases)
+                                   (error 'split "couldn't split; didn't find canvas")]
+                                  [(null? percentages)
+                                   (error 'split "wrong number of percentages: ~s ~s"
+                                          orig-percentages
+                                          (send resizable-panel get-children))]
+                                  [else (let ([canvas (car canvases)])
+                                          (if (eq? target canvas)
+                                              (list* (/ (car percentages) 2)
+                                                     (/ (car percentages) 2)
+                                                     (cdr percentages))
+                                              (cons
+                                               (car percentages)
+                                               (loop (cdr canvases)
+                                                     (cdr percentages)))))])))
+                        (send new-canvas focus)))])
+              (cond
+                [(memq target definitions-canvases)
+                 (update (lambda (x) (set! definitions-canvases x))
+                         definitions-canvases
+                         definitions-canvas%
+                         definitions-text)]
+                [(memq target interactions-canvases)
+                 (update (lambda (x) (set! interactions-canvases x))
+                         interactions-canvases
+                         interactions-canvas%
+                         interactions-text)]
+                [else (bell)]))]
           [define (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
@@ -985,10 +977,7 @@
                                                            (cdr percentages))))])))])
                             (set-canvases!
                              (mzlib:list:remq target (get-canvases)))
-                            (send resizable-panel change-children
-                                  (lambda (l)
-                                    (append definitions-canvases
-                                            interactions-canvases)))
+                            (update-shown)
                             (send resizable-panel set-percentages percentages)
                             (send (car (get-canvases)) focus))))])
               (cond
@@ -1047,16 +1036,29 @@
           [define update-shown
             (lambda ()
               (super-update-shown)
-              (send resizable-panel change-children
-                    (lambda (l)
-                      top-panel
-                      (mzlib:list:foldl
-                       (lambda (item sofar)
-                         (if (hidden? item)
-                             sofar
-                             (append (item->children item) sofar)))
-                       null
-                       (get-sub-items))))
+              
+              (let ([new-children
+                     (mzlib:list:foldl
+                      (lambda (item sofar)
+                        (if (hidden? item)
+                            sofar
+                            (append (item->children item) sofar)))
+                      null
+                      (get-sub-items))]
+                    [p (preferences:get 'drscheme:unit-window-size-percentage)])
+                
+                ;; this might change the unit-window-size-percentage, so save/restore it
+                (send resizable-panel change-children (lambda (l) new-children))
+                
+                (preferences:set 'drscheme:unit-window-size-percentage p)
+                
+                ;; restore preferred interactions/definitions sizes
+                (when (and (= 1 (length definitions-canvases))
+                           (= 1 (length interactions-canvases))
+                           (= 2 (length new-children)))
+                  (send resizable-panel set-percentages
+                        (list p (- 1 p)))))
+                  
               (when (ormap (lambda (child)
                              (and (is-a? child editor-canvas%)
                                   (not (send child has-focus?))))
@@ -1248,10 +1250,12 @@
                     (string-constant interactions-menu-item-help-string)))
           [define top-panel (make-object horizontal-panel% (get-area-container))]
           [define name-panel (make-object vertical-panel% top-panel)]
-          [define resizable-panel (make-object vertical-resizable/pref% this (get-area-container))]
-
-            (send name-panel stretchable-width #f)
-            (send name-panel stretchable-height #f)
+          [define resizable-panel (instantiate vertical-dragable/pref% ()
+                                    (unit-frame this)
+                                    (parent (get-area-container)))]
+          
+          (send name-panel stretchable-width #f)
+          (send name-panel stretchable-height #f)
           
           [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
                                        resizable-panel)]
@@ -1260,8 +1264,16 @@
                                    resizable-panel)]
           [define interactions-canvases (list interactions-canvas)]
           
-          (define/public (get-definitions-canvases) definitions-canvases)
-          (define/public (get-interactions-canvases) interactions-canvases)
+          (define/public (get-definitions-canvases) 
+            ;; before definition, just return null
+            (if (pair? definitions-canvases)
+                definitions-canvases
+                null))
+          (define/public (get-interactions-canvases)
+            ;; before definition, just return null
+            (if (pair? interactions-canvases)
+                interactions-canvases
+                null))
           
           (public get-definitions-canvas get-interactions-canvas)
           [define get-definitions-canvas (lambda () definitions-canvas)]
@@ -1333,9 +1345,10 @@
             
           (update-shown)
             
-          (send resizable-panel set-percentages
-                (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
-                  (list p (- 1 p))))
+          (when (= 2 (length (send resizable-panel get-children)))
+            (send resizable-panel set-percentages
+                  (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
+                    (list p (- 1 p)))))
             
           (set-label-prefix (string-constant drscheme))
             
