@@ -323,7 +323,11 @@
        (public set-message) ;; set-message : (union #f string) string -> void
        (override on-event on-paint))
 
-      (define font (send mred:the-font-list find-or-create-font 10 'decorative 'normal 'normal #f))
+      (define font (send mred:the-font-list find-or-create-font
+			 (case (system-type)
+			   [(windows) 8]
+			   [else 10])
+			 'decorative 'normal 'normal #f))
       ;(define font (send parent get-label-font))
       
       (define label #f)
@@ -382,7 +386,6 @@
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
             ;(send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
-
 	    (cond
 	     [inverted?
 	      (send dc set-text-foreground (mred:get-panel-background))
@@ -495,7 +498,11 @@
 
       (define inverted? #f)
 
-      (define font (send mred:the-font-list find-or-create-font 10 'decorative 'normal 'normal #f))
+      (define font (send mred:the-font-list find-or-create-font
+			 (case (system-type)
+			   [(windows) 8]
+			   [else 10])
+			 'decorative 'normal 'normal #f))
       (define label "(define")
       (define black (make-object mred:color% "BLACK"))
       (define white (make-object mred:color% "WHITE"))
