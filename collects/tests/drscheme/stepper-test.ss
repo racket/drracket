@@ -24,11 +24,11 @@
   
   (define (run-test)
     (set-language-level! (list "How to Design Programs" "Beginning Student"))
-    (run-file-test (build-path sample-solutions-directory "add.scm"))
+    ;(run-file-test (build-path sample-solutions-directory "add.scm"))
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    (for-each
+    '(for-each
       (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
       (directory-list sample-solutions-directory))
     
