@@ -1,21 +1,10 @@
-;;; repl-test.ss
-
 (define language (make-parameter #f))
 
-(define (open-language-dialog)
-  (let ([f (get-top-level-focus-window)])
-    (fw:test:menu-select "Language" "Configure Language...")
-    (wait-for-new-frame f)
+(define (set-language close-dialog?)
+  (set-language-level! (language) close-dialog?)
+  (unless close-dialog?
     (with-handlers ([exn:user? (lambda (x) (void))])
       (fw:test:button-push "Show Details"))))
-
-(define (set-language close-dialog?)
-  (open-language-dialog)
-  (fw:test:set-choice! "Language" (language))
-  (when close-dialog?
-    (let ([f (get-top-level-focus-window)])
-      (fw:test:button-push "OK")
-      (wait-for-new-frame f))))
 
 (define (test-setting setting-name value expression result)
   (fw:test:set-check-box! setting-name value)
@@ -33,7 +22,7 @@
     '(dump-memory-stats)))
 
 (define (mred)
-  (parameterize ([language "MrEd"])
+  (parameterize ([language "MrEd (no debugging)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -63,7 +52,7 @@
     (test-expression "argv" "#0()")))
 
 (define (mzscheme)
-  (parameterize ([language "MzScheme"])
+  (parameterize ([language "MzScheme (no debugging)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -94,7 +83,7 @@
 
 
 (define (mred-debug)
-  (parameterize ([language "MrEd Debug"])
+  (parameterize ([language "Graphical Scheme"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -130,7 +119,7 @@
     (test-expression "argv" "#0()")))
 
 (define (mzscheme-debug)
-  (parameterize ([language "MzScheme Debug"])
+  (parameterize ([language "Textual Scheme"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -166,8 +155,8 @@
     (test-expression "argv" "#0()")))
 
 (define (zodiac-beginner)
-  (parameterize ([language "Beginner"])
-    (zodiac "Beginner")
+  (parameterize ([language "Beginning Student"])
+    (zodiac)
     (generic-output #f #f)
     
     (let ([drs (wait-for-drscheme-frame)])
@@ -195,8 +184,8 @@
     (test-expression "argv" "reference to undefined identifier: argv")))
 
 (define (zodiac-intermediate)
-  (parameterize ([language "Intermediate"])
-    (zodiac "Intermediate")
+  (parameterize ([language "Intermediate Student"])
+    (zodiac)
     (generic-output #t #f)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
@@ -229,8 +218,8 @@
     (test-expression "argv" "reference to undefined identifier: argv")))
 
 (define (zodiac-advanced)
-  (parameterize ([language "Advanced"])
-    (zodiac "Advanced")
+  (parameterize ([language "Advanced Student"])
+    (zodiac)
     (generic-output #t #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
@@ -262,7 +251,7 @@
     (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
-(define (zodiac language)
+(define (zodiac)
   (generic-settings #t)
   
   (set-language #f)

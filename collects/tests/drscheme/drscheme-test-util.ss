@@ -169,12 +169,33 @@
     (wait-for-button button))
   
   ; set language level in the frontmost DrScheme frame
-  (define (set-language-level! level)
-    (let ([frame (get-top-level-focus-window)])
-      (fw:test:menu-select "Language" "Configure Language...")
-      (wait-for-new-frame frame)
-      (fw:test:set-choice! (find-labelled-window "Language" choice%) level)
-      (fw:test:button-push "OK")))
+  (define set-language-level! 
+    (case-lambda
+     [(level)
+      (set-language-level! level #t)]
+     [(level close-dialog?)
+      (let ([frame (get-top-level-focus-window)])
+        (fw:test:menu-select "Language" "Choose Language...")
+        
+        (wait-for-new-frame frame)
+        (let ([language-choice (find-labelled-window "Language" choice%)])
+          (cond
+            [(member level (let loop ([n (send language-choice get-number)])
+                             (cond
+                               [(zero? n) null]
+                               [else (cons (send language-choice get-string (- n 1))
+                                           (loop (- n 1)))])))
+             (fw:test:set-choice! language-choice level)]
+            [else
+             (fw:test:set-choice! language-choice "Full Scheme")
+             (fw:test:set-radio-box!
+              (find-labelled-window #f radio-box% (send language-choice get-parent))
+              level)]))
+        
+        (when close-dialog?
+          (let ([language-dialog (get-top-level-focus-window)])
+            (fw:test:button-push "OK")
+            (wait-for-new-frame language-dialog))))]))
   
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-text) refresh-delayed?))
