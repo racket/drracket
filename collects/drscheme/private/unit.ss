@@ -995,7 +995,7 @@ tab panels new behavior:
                 (send logging-parent-panel change-children (lambda (l) null)))
               root))
 
-          (inherit show-info hide-info)
+          (inherit show-info hide-info is-info-hidden?)
           (field [toolbar-shown? (preferences:get 'drscheme:toolbar-shown)]
                  [toolbar-menu-item #f])
           
@@ -1019,25 +1019,35 @@ tab panels new behavior:
                (send toolbar-menu-item set-label (string-constant show-toolbar))])
             (update-defs/ints-resize-corner))
           
+          (field [remove-show-status-line-callback
+                  (preferences:add-callback
+                   'framework:show-status-line
+                   (lambda (p v)
+                     (update-defs/ints-resize-corner/pref v)))])
+          
           (define/private (update-defs/ints-resize-corner)
-            (let loop ([cs definitions-canvases])
-              (cond
-                [(null? cs) (void)]
-                [(null? (cdr cs))
-                 (send (car cs) set-resize-corner (and (not toolbar-shown?)
-                                                       (not interactions-shown?)))]
-                [else
-                 (send (car cs) set-resize-corner #f)
-                 (loop (cdr cs))]))
-            (let loop ([cs interactions-canvases])
-              (cond
-                [(null? cs) (void)]
-                [(null? (cdr cs))
-                 (send (car cs) set-resize-corner (and (not toolbar-shown?) 
-                                                       interactions-shown?))]
-                [else
-                 (send (car cs) set-resize-corner #f)
-                 (loop (cdr cs))])))
+            (update-defs/ints-resize-corner/pref (preferences:get 'framework:show-status-line)))
+          
+          (define/private (update-defs/ints-resize-corner/pref si-pref)
+            (let ([bottom-material? (and toolbar-shown? si-pref)])
+              (let loop ([cs definitions-canvases])
+                (cond
+                  [(null? cs) (void)]
+                  [(null? (cdr cs))
+                   (send (car cs) set-resize-corner (and (not bottom-material?)
+                                                         (not interactions-shown?)))]
+                  [else
+                   (send (car cs) set-resize-corner #f)
+                   (loop (cdr cs))]))
+              (let loop ([cs interactions-canvases])
+                (cond
+                  [(null? cs) (void)]
+                  [(null? (cdr cs))
+                   (send (car cs) set-resize-corner (and (not bottom-material?) 
+                                                         interactions-shown?))]
+                  [else
+                   (send (car cs) set-resize-corner #f)
+                   (loop (cdr cs))]))))
             
           (public clear-annotations)
           [define clear-annotations
@@ -1679,6 +1689,7 @@ tab panels new behavior:
             (when logging
               (stop-logging))
             (remove-logging-pref-callback)
+            (remove-show-status-line-callback)
             (send interactions-text on-close))
           
           (field [thread-to-break-box (make-weak-box #f)]
