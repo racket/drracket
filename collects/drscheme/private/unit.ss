@@ -852,8 +852,9 @@
                   (frame:open-here-mixin
                    (frame:editor-mixin
                     (frame:standard-menus-mixin
-                     (frame:basic-mixin
-		      frame%)))))))))))))))
+                     (frame:register-group-mixin
+                      (frame:basic-mixin
+                       frame%))))))))))))))))
       
       (define -frame<%>
         (interface ()
