@@ -20,7 +20,7 @@
   ; : -> bool
   (define (unix-browser?)
     (and (eq? (system-type) 'unix)
-	 (not (equal? "ppc-macosxonx" (system-library-subpath)))))
+	 (not (equal? "ppc-darwin" (system-library-subpath)))))
   
   (fw:preferences:set-default
    'external-browser
