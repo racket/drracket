@@ -649,22 +649,22 @@ profile todo:
       
       (define test-coverage-enabled (make-parameter #f))
 
-      (define current-test-coverage-info (make-parameter #f))
+      (define current-test-coverage-info (make-thread-cell #f))
 
       (define (initialize-test-coverage-point key expr)
-        (unless (current-test-coverage-info)
+        (unless (thread-cell-ref current-test-coverage-info)
           (let ([rep (drscheme:rep:current-rep)])
             (when rep
               (let ([ht (make-hash-table)])
-                (current-test-coverage-info ht)
+                (thread-cell-set! current-test-coverage-info ht)
                 (send rep set-test-coverage-info ht)))))
-        (let ([ht (current-test-coverage-info)])
+        (let ([ht (thread-cell-ref current-test-coverage-info)])
           (when ht ;; if rep isn't around, we don't do test coverage...
                    ;; this can happen when check syntax expands, for example
             (hash-table-put! ht key (list #f expr)))))
   
       (define (test-covered key)
-        (let ([ht (current-test-coverage-info)])
+        (let ([ht (thread-cell-ref current-test-coverage-info)])
           (when ht ;; as in the `when' test in `initialize-test-coverage-point'
             (let ([v (hash-table-get ht key)])
               (set-car! v #t)))))
@@ -1008,10 +1008,8 @@ profile todo:
       ;; imported into errortrace
       (define profiling-enabled (make-parameter #f))
 
-      ;; parameter
       ;; holds a hash-table for the profiling information
-      (define current-profile-info (make-parameter #f))
-
+      (define current-profile-info (make-thread-cell #f))
       
       
       ;; initialize-profile-point : sym syntax syntax -> void
@@ -1020,39 +1018,42 @@ profile todo:
       ;; =user=
       ;; imported into errortrace
       (define (initialize-profile-point key name expr)
-	(unless (current-profile-info)
+	(unless (thread-cell-ref current-profile-info)
           (let ([rep (drscheme:rep:current-rep)])
             (when rep
               (let ([ht (make-hash-table)])
-                (current-profile-info ht)
+                (thread-cell-set! current-profile-info ht)
                 (send rep set-profile-info ht)))))
-        (let ([profile-info (current-profile-info)])
+        (let ([profile-info (thread-cell-ref current-profile-info)])
           (hash-table-put! profile-info
                            key 
-                           (make-prof-info #f 0 0 (and (syntax? name) (syntax-e name)) expr))))
+                           (make-prof-info #f 0 0 (and (syntax? name) (syntax-e name)) expr)))
+        (void))
   
       ;; register-profile-start : sym -> (union #f number)
       ;; =user=
       ;; imported into errortrace
       (define (register-profile-start key)
-	(let ([info (hash-table-get (current-profile-info) key)])
-	  (set-prof-info-num! info (+ (prof-info-num info) 1))
-	  (if (prof-info-nest info)
-	      #f
-	      (begin
-		(set-prof-info-nest! info #t)
-		(current-process-milliseconds)))))
+	(let ([info (hash-table-get (thread-cell-ref current-profile-info) key)])
+          (set-prof-info-num! info (+ (prof-info-num info) 1))
+          (if (prof-info-nest info)
+              #f
+              (begin
+                (set-prof-info-nest! info #t)
+                (current-process-milliseconds)))))
       
       ;; register-profile-done : sym (union #f number) -> void
       ;; =user=
       ;; imported into errortrace
       (define (register-profile-done key start)
+        #;
         (when start
-	  (let ([info (hash-table-get (current-profile-info) key)])
+	  (let ([info (hash-table-get (thread-cell-ref current-profile-info) key)])
 	    (set-prof-info-nest! info #f)
 	    (set-prof-info-time! info
                                  (+ (- (current-process-milliseconds) start)
-                                    (prof-info-time info))))))
+                                    (prof-info-time info)))))
+        (void))
 
       ;; get-color-value : number number -> (is-a?/c color%)
       ;; returns the profiling color
