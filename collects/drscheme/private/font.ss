@@ -6,6 +6,11 @@
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants"))
   
+  (define sc-smoothing-label "Font smoothing")
+  (define sc-smoothing-none "None")
+  (define sc-smoothing-some "Some")
+  (define sc-smoothing-all "All")
+  
   (provide font@)
   
   (define font@
@@ -56,11 +61,20 @@
           (send scheme-delta set-family 'modern)
           (send scheme-standard set-delta scheme-delta)))
       
+      (define (set-font-smoothing sym)
+        (let* ([scheme-standard (send (scheme:get-style-list)
+                                      find-named-style "Standard")]
+               [scheme-delta (make-object style-delta%)])
+          (send scheme-standard get-delta scheme-delta)
+          (send scheme-delta set-smoothing-on sym)
+          (send scheme-standard set-delta scheme-delta)))
+      
       (define (setup-preferences)
         (set-font-size (preferences:get 'drscheme:font-size))
         (set-font-name (preferences:get 'drscheme:font-name))
         (preferences:add-callback 'drscheme:font-size (lambda (p v) (set-font-size v)))
         (preferences:add-callback 'drscheme:font-name (lambda (p v) (set-font-name v)))
+        (preferences:add-callback 'drscheme:font-smoothing (lambda (p v) (set-font-smoothing v)))
         
         (unless (member (preferences:get 'drscheme:font-name)
                         (get-fixed-faces))
@@ -77,23 +91,27 @@
                             (preferences:set 'drscheme:font-size (send size get-value)))
                           (preferences:get 'drscheme:font-size))]
                   
+                  [choice-panel (new vertical-panel% (parent options-panel))]
                   [font-name-control
                    (case (system-type)
                      [(windows macos macosx)
                       (let ([choice
-                             (make-object choice% (string-constant font-name)
-                               (get-fixed-faces)
-                               options-panel
-                               (lambda (font-name evt)
-                                 (preferences:set 
-                                  'drscheme:font-name
-                                  (send font-name get-string-selection))))])
+                             (new choice%
+                                  (label (string-constant font-name))
+                                  (choices (get-fixed-faces))
+                                  (parent choice-panel)
+                                  (stretchable-width #t)
+                                  (callback
+                                   (lambda (font-name evt)
+                                     (preferences:set 
+                                      'drscheme:font-name
+                                      (send font-name get-string-selection)))))])
                         (send choice set-string-selection (preferences:get 'drscheme:font-name))
                         choice)]
                      [(unix)
                       (make-object button%
                         (string-constant set-font)
-                        options-panel
+                        choice-panel
                         (lambda xxx
                           (let* ([faces (get-fixed-faces)]
                                  [init-choices
@@ -119,6 +137,25 @@
                                'drscheme:font-name 
                                (list-ref (get-fixed-faces) (car choice)))))))]
                      [else (error 'font-name-control "unknown system type: ~s~n" (system-type))])]
+                  [smoothing-contol
+                   (new choice%
+                        (label sc-smoothing-label)
+                        (choices (list sc-smoothing-none
+                                       sc-smoothing-some
+                                       sc-smoothing-all))
+                        (parent choice-panel)
+                        (stretchable-width #t)
+                        (selection (case (preferences:get 'drscheme:font-smoothing)
+                                     [(unsmoothed) 0]
+                                     [(partly-smoothed) 1]
+                                     [(smoothed) 2]))
+                        (callback (lambda (x y) 
+                                    (preferences:set 
+                                     'drscheme:font-smoothing
+                                     (case (send x get-selection)
+                                       [(0) 'unsmoothed]
+                                       [(1) 'partly-smoothed]
+                                       [(2) 'smoothed])))))]
                   
                   [text (make-object text%)]
                   [ex-panel (make-object horizontal-panel% main)]
@@ -132,20 +169,20 @@
                      (send text insert 
                            (format
                             ";; howmany : list-of-numbers -> number~
-                     \n;; to determine how many numbers are in `a-lon'~
-                     \n(define (howmany a-lon)~
-                         \n  (cond~
-                              \n    [(empty? a-lon) 0]~
-                              \n    [else (+ 1 (howmany (rest a-lon)))]))~
-                              \n~
-                              \n;; examples as tests~
-                              \n(howmany empty)~
-                              \n=~
-                              \n0~
-                              \n~
-                              \n(howmany (cons 1 (cons 2 (cons 3 empty))))~
-                              \n=~
-                              \n3"))
+                           \n;; to determine how many numbers are in `a-lon'~
+                           \n(define (howmany a-lon)~
+                           \n  (cond~
+                           \n    [(empty? a-lon) 0]~
+                           \n    [else (+ 1 (howmany (rest a-lon)))]))~
+                           \n~
+                           \n;; examples as tests~
+                           \n(howmany empty)~
+                           \n=~
+                           \n0~
+                           \n~
+                           \n(howmany (cons 1 (cons 2 (cons 3 empty))))
+                           \n\"should be\"~
+                           \n3"))
                      (send text set-position 0 0)
                      (send text lock #t)
                      (send text end-edit-sequence))])

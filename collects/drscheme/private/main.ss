@@ -128,6 +128,14 @@
              get-size)
        (lambda (x) (and (number? x) (exact? x) (= x (floor x)))))
       
+      (preferences:set-default
+       'drscheme:font-smoothing
+       (case (system-type)
+         [(macosx) 'partly-smoothed]
+         [else 'unsmoothed])
+       (lambda (x) 
+         (memq x '(unsmoothed partly-smoothed smoothed))))
+      
       (drscheme:font:setup-preferences)
       
       (scheme:add-preferences-panel)
