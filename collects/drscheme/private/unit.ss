@@ -700,7 +700,8 @@
             (apply super-init args))))
       
       (define frame%
-        (class100* super-frame% (drscheme:rep:context<%>) (filename)
+        (class super-frame% (drscheme:rep:context<%>)
+          (init filename)
           (inherit set-label-prefix get-show-menu
                    show get-menu%
                    get-area-container
@@ -715,563 +716,549 @@
           
           (rename [super-update-shown update-shown]
                   [super-on-close on-close])
-          (public
-            [get-directory
-             (lambda ()
-               (let ([filename (send definitions-text get-filename)])
-                 (if (string? filename)
-                     (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
-                       base)
-                     #f)))]
-            [needs-execution?
-             (lambda ()
-               (send definitions-text needs-execution?))])
+          (public get-directory needs-execution? clear-annotations)
+          [define get-directory
+            (lambda ()
+              (let ([filename (send definitions-text get-filename)])
+                (if (string? filename)
+                    (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
+                      base)
+                    #f)))]
+          [define needs-execution?
+           (lambda ()
+             (send definitions-text needs-execution?))]
           
-          (public
-            [clear-annotations
-             (lambda ()
-               (send definitions-text clear-annotations))])
+          [define clear-annotations
+            (lambda ()
+              (send definitions-text clear-annotations))]
           
-          (private-field
-            [definitions-item #f]
-            [interactions-item #f]
-            ;[imports-id #f]
-            
-            [name-message #f]
-            [save-button #f]
-            [save-init-shown? #f])
-	  (public
-            [set-save-init-shown? (lambda (x) (set! save-init-shown? x))])
+          [define definitions-item #f]
+          [define interactions-item #f]
+          [define name-message #f]
+          [define save-button #f]
+          [define save-init-shown? #f]
+
+	  (public set-save-init-shown?)
+          [define set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
           
-          (private-field
-            [canvas-show-mode #f]
-            [allow-split? #f]
-            [forced-quit? #f])
+          [define canvas-show-mode #f]
+          [define allow-split? #f]
+          [define forced-quit? #f]
+          [define search-canvas #f]
+
+          (public make-searchable)
+          [define make-searchable
+            (lambda (canvas)
+              (update-info)
+              (set! search-canvas canvas))]
+          (override get-text-to-search)
+          [define get-text-to-search
+            (lambda ()
+              (if search-canvas
+                  (send search-canvas get-editor)
+                  (get-editor)))]
           
-          (private-field
-            [search-canvas #f])
-          (public
-            [make-searchable
-             (lambda (canvas)
-               (update-info)
-               (set! search-canvas canvas))])
-          (override
-            [get-text-to-search
-             (lambda ()
-               (if search-canvas
-                   (send search-canvas get-editor)
-                   (get-editor)))])
-          
-          (private-field
-	    [was-locked? #f]
-	    [execute-menu-item #f])
-          (public
-            [disable-evaluation
-             (lambda ()
-               (when execute-menu-item
-                 (send execute-menu-item enable #f))
-               (send execute-button enable #f)
-               (send definitions-text lock #t)
-               (send interactions-text lock #t))]
-            [enable-evaluation
-             (lambda ()
-               (when execute-menu-item
-                 (send execute-menu-item enable #t))
-               (send execute-button enable #t)
-               (send definitions-text lock #f)
-               (unless (send interactions-text eval-busy?)
-                 (send interactions-text lock #f)))])
+          [define was-locked? #f]
+          [define execute-menu-item #f]
+
+          (public disable-evaluation enable-evaluation)
+          [define disable-evaluation
+           (lambda ()
+             (when execute-menu-item
+               (send execute-menu-item enable #f))
+             (send execute-button enable #f)
+             (send definitions-text lock #t)
+             (send interactions-text lock #t))]
+          [define enable-evaluation
+           (lambda ()
+             (when execute-menu-item
+               (send execute-menu-item enable #t))
+             (send execute-button enable #t)
+             (send definitions-text lock #f)
+             (unless (send interactions-text eval-busy?)
+               (send interactions-text lock #f)))]
           
           (inherit set-label)
-          (public
-            [update-save-button
-             (lambda (mod?)
-               (if save-button
-                   (unless (eq? mod? (send save-button is-shown?))
-                     (send save-button show mod?))
-                   (set! save-init-shown? mod?)))]
-            [update-save-message
-             (lambda (name)
-               (when name-message
-                 (send name-message set-message #t name)))])
-          (override
-            [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
-          (public
-            [ensure-defs-shown
-             (lambda ()
-               (when (hidden? definitions-item)
-                 (toggle-show/hide definitions-item)
-                 (update-shown)))]
-            [ensure-rep-shown
-             (lambda ()
-               (when (hidden? interactions-item)
-                 (toggle-show/hide interactions-item)
-                 (update-shown)))])
+          (public update-save-button update-save-message)
+          [define update-save-button
+            (lambda (mod?)
+              (if save-button
+                  (unless (eq? mod? (send save-button is-shown?))
+                    (send save-button show mod?))
+                  (set! save-init-shown? mod?)))]
+          [define update-save-message
+            (lambda (name)
+              (when name-message
+                (send name-message set-message #t name)))]
+          (override get-canvas%)
+          [define get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))]
+          (public ensure-defs-shown ensure-rep-shown)
+          [define ensure-defs-shown
+            (lambda ()
+              (when (hidden? definitions-item)
+                (toggle-show/hide definitions-item)
+                (update-shown)))]
+          [define ensure-rep-shown
+           (lambda ()
+             (when (hidden? interactions-item)
+               (toggle-show/hide interactions-item)
+               (update-shown)))]
           
-          (override
-            [get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))])
-          (public
-            [still-untouched?
-             (lambda ()
-               (and (= (send definitions-text last-position) 0)
-                    (not (send definitions-text is-modified?))
-                    (not (send definitions-text get-filename))))]
-            [change-to-file
-             (lambda (name)
-               (cond
-                 [(and name (file-exists? name))
-                  (send definitions-text load-file name)]
-                 [name
-                  (send definitions-text set-filename name)]
-                 [else (send definitions-text clear)])
-               (send definitions-canvas focus))])
+          (override get-editor%)
+          [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))]
+          (public still-untouched? change-to-file)
+          [define still-untouched?
+            (lambda ()
+              (and (= (send definitions-text last-position) 0)
+                   (not (send definitions-text is-modified?))
+                   (not (send definitions-text get-filename))))]
+          [define change-to-file
+           (lambda (name)
+             (cond
+               [(and name (file-exists? name))
+                (send definitions-text load-file name)]
+               [name
+                (send definitions-text set-filename name)]
+               [else (send definitions-text clear)])
+             (send definitions-canvas focus))]
           
-	  (private
-            [hidden?
-             (lambda (item)
-               (let ([label (send item get-label)]
-                     [show-prefix (string-constant show-prefix)])
-                 (and (string? label)
-                      (>= (string-length label) (string-length show-prefix))
-                      (string=? (substring label 0 4) show-prefix))))]
-            [save-as-text-from-text
-             (lambda (text)
-               (let ([file (parameterize ([finder:dialog-parent-parameter this])
-                             (finder:put-file))])
-                 (when file
-                   (send text save-file file 'text))))])
+          [define hidden?
+            (lambda (item)
+              (let ([label (send item get-label)]
+                    [show-prefix (string-constant show-prefix)])
+                (and (string? label)
+                     (>= (string-length label) (string-length show-prefix))
+                     (string=? (substring label 0 4) show-prefix))))]
+          [define save-as-text-from-text
+           (lambda (text)
+             (let ([file (parameterize ([finder:dialog-parent-parameter this])
+                           (finder:put-file))])
+               (when file
+                 (send text save-file file 'text))))]
           
-          (public
-            [toggle-show/hide
-             (lambda (item)
-               (let ([label (send item get-label)])
-                 (when (and (string? label)
-                            (>= (string-length label) (string-length (string-constant hide-prefix))))
-                   (let ([new-front
-                          (if (string=? (string-constant hide-prefix)
-                                        (substring label 0 
-                                                   (string-length (string-constant hide-prefix))))
-                              (string-constant show-prefix)
-                              (string-constant hide-prefix))]
-                         [back (substring label 4 (string-length label))])
-                     (send item set-label (string-append new-front back))))))])
+          (public toggle-show/hide)
+          [define toggle-show/hide
+            (lambda (item)
+              (let ([label (send item get-label)])
+                (when (and (string? label)
+                           (>= (string-length label) (string-length (string-constant hide-prefix))))
+                  (let ([new-front
+                         (if (string=? (string-constant hide-prefix)
+                                       (substring label 0 
+                                                  (string-length (string-constant hide-prefix))))
+                             (string-constant show-prefix)
+                             (string-constant hide-prefix))]
+                        [back (substring label 4 (string-length label))])
+                    (send item set-label (string-append new-front back))))))]
           
-          (private-field
-            [file-menu:print-transcript-item #f])
+          [define file-menu:print-transcript-item #f]
           
           (rename
-           [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
-          (override
-            [file-menu:between-open-and-revert
-             (lambda (file-menu)
-               (super-file-menu:between-open-and-revert file-menu)
-               (make-object separator-menu-item% file-menu))]
-            [file-menu:save-string (lambda () (string-constant definitions))]
-            [file-menu:save-as-string (lambda () (string-constant definitions))]
-            [file-menu:between-save-as-and-print
-             (lambda (file-menu)
-               (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
-                 (make-object menu:can-restore-menu-item%
-                   (string-constant save-definitions-as-text)
-                   sub-menu
-                   (lambda (_1 _2)
-                     (save-as-text-from-text definitions-text)))
-                 (make-object menu:can-restore-menu-item%
-                   (string-constant save-interactions)
-                   sub-menu
-                   (lambda (_1 _2) (send interactions-text save-file)))
-                 (make-object menu:can-restore-menu-item%
-                   (string-constant save-interactions-as)
-                   sub-menu
-                   (lambda (_1 _2) 
-                     (let ([file (parameterize ([finder:dialog-parent-parameter this])
-                                   (finder:put-file))])
-                       (when file
-                         (send interactions-text save-file 
-                               file 'standard)))))
-                 (make-object menu:can-restore-menu-item%
-                   (string-constant save-interactions-as-text)
-                   sub-menu
-                   (lambda (_1 _2)
-                     (save-as-text-from-text interactions-text)))
-                 ;	   (make-object separator-menu-item% file-menu)
-                 ;	   (make-object menu:can-restore-menu-item%
-                 ;	     "Show Interactions History"
-                 ;	     file-menu
-                 ;	     (lambda (_1 _2)
-                 ;	       (drscheme:rep:show-interactions-history)))
-                 (make-object separator-menu-item% file-menu)))]
-            [file-menu:print-string (lambda () (string-constant definitions))]
-            [file-menu:between-print-and-close
-             (lambda (file-menu)
-               (set! file-menu:print-transcript-item
-                     (make-object menu:can-restore-menu-item%
-                       (string-constant print-interactions)
-                       file-menu
-                       (lambda (_1 _2)
-                         (send interactions-text print
-                               #t 
-                               #t
-                               (preferences:get 'framework:print-output-mode)))))
-               (make-object separator-menu-item% file-menu))])
+           [super-file-menu:between-open-and-revert file-menu:between-open-and-revert]
+           [super-edit-menu:between-select-all-and-find edit-menu:between-select-all-and-find])
+          (override file-menu:between-open-and-revert file-menu:save-string file-menu:save-as-string
+                    file-menu:between-save-as-and-print file-menu:print-string file-menu:between-print-and-close
+                    edit-menu:between-select-all-and-find)
+          [define file-menu:between-open-and-revert
+            (lambda (file-menu)
+              (super-file-menu:between-open-and-revert file-menu)
+              (make-object separator-menu-item% file-menu))]
+          [define file-menu:save-string (lambda () (string-constant definitions))]
+          [define file-menu:save-as-string (lambda () (string-constant definitions))]
+          [define file-menu:between-save-as-and-print
+            (lambda (file-menu)
+              (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
+                (make-object menu:can-restore-menu-item%
+                  (string-constant save-definitions-as-text)
+                  sub-menu
+                  (lambda (_1 _2)
+                    (save-as-text-from-text definitions-text)))
+                (make-object menu:can-restore-menu-item%
+                  (string-constant save-interactions)
+                  sub-menu
+                  (lambda (_1 _2) (send interactions-text save-file)))
+                (make-object menu:can-restore-menu-item%
+                  (string-constant save-interactions-as)
+                  sub-menu
+                  (lambda (_1 _2) 
+                    (let ([file (parameterize ([finder:dialog-parent-parameter this])
+                                  (finder:put-file))])
+                      (when file
+                        (send interactions-text save-file 
+                              file 'standard)))))
+                (make-object menu:can-restore-menu-item%
+                  (string-constant save-interactions-as-text)
+                  sub-menu
+                  (lambda (_1 _2)
+                    (save-as-text-from-text interactions-text)))
+                ;	   (make-object separator-menu-item% file-menu)
+                ;	   (make-object menu:can-restore-menu-item%
+                ;	     "Show Interactions History"
+                ;	     file-menu
+                ;	     (lambda (_1 _2)
+                ;	       (drscheme:rep:show-interactions-history)))
+                (make-object separator-menu-item% file-menu)))]
+          [define file-menu:print-string (lambda () (string-constant definitions))]
+          [define file-menu:between-print-and-close
+            (lambda (file-menu)
+              (set! file-menu:print-transcript-item
+                    (make-object menu:can-restore-menu-item%
+                      (string-constant print-interactions)
+                      file-menu
+                      (lambda (_1 _2)
+                        (send interactions-text print
+                              #t 
+                              #t
+                              (preferences:get 'framework:print-output-mode)))))
+              (make-object separator-menu-item% file-menu))]
+          [define edit-menu:between-select-all-and-find
+            (lambda (edit-menu)
+              (super-edit-menu:between-select-all-and-find edit-menu)
+              (make-object menu-item% (string-constant split-menu-item-label) edit-menu (lambda x (split)))
+              (make-object menu-item% (string-constant collapse-menu-item-label) edit-menu (lambda x (collapse)))
+              (make-object separator-menu-item% edit-menu))]
           
           (inherit get-edit-target-window)
-          (private
-            [split
-             (lambda ()
-               (let* ([target (get-edit-target-window)]
-                      [update
-                       (lambda (set-canvases! canvases canvas% text)
-                         (let ([orig-percentages (send resizable-panel get-percentages)]
-                               [new-canvas (make-object canvas% resizable-panel text)])
-                           
-                           (send new-canvas focus)
-                           
-                           (send resizable-panel set-percentages
-                                 (let loop ([canvases (append definitions-canvases
-                                                              interactions-canvases)]
-                                            [percentages orig-percentages])
-                                   (cond
-                                     [(null? canvases)
-                                      (error 'split "couldn't split; didn't find canvas")]
-                                     [(null? percentages)
-                                      (error 'split "wrong number of percentages: ~s ~s"
-                                             orig-percentages
-                                             (append definitions-canvases interactions-canvases))]
-                                     [else (let ([canvas (car canvases)])
-                                             (if (eq? target canvas)
-                                                 (list* (/ (car percentages) 2)
-                                                        (/ (car percentages) 2)
-                                                        (cdr percentages))
-                                                 (cons
-                                                  (car percentages)
-                                                  (loop (cdr canvases)
-                                                        (cdr percentages)))))])))
-                           
-                           (set-canvases!
-                            (let loop ([canvases canvases])
-                              (cond
-                                [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
-                                [else
-                                 (let ([canvas (car canvases)])
-                                   (if (eq? canvas target)
-                                       (list* new-canvas
-                                              canvas
-                                              (cdr canvases))
-                                       (cons canvas (loop (cdr canvases)))))])))
-                           
-                           (send resizable-panel change-children
-                                 (lambda (l)
-                                   (append definitions-canvases interactions-canvases)))))])
-                 (cond
-                   [(memq target definitions-canvases)
-                    (update (lambda (x) (set! definitions-canvases x))
-                            definitions-canvases
-                            definitions-canvas%
-                            definitions-text)]
-                   [(memq target interactions-canvases)
-                    (update (lambda (x) (set! interactions-canvases x))
-                            interactions-canvases
-                            interactions-canvas%
-                            interactions-text)]
-                   [else (bell)])))]
-            [collapse (lambda ()
-                        (let* ([target (get-edit-target-window)]
-                               [handle-collapse
-                                (lambda (get-canvases set-canvases!)
-                                  (if (= 1 (length (get-canvases)))
-                                      (bell)
-                                      (let* ([old-percentages (send resizable-panel get-percentages)]
-                                             [percentages
-                                              (if (eq? (car (get-canvases)) target)
-                                                  (cons (+ (car old-percentages)
-                                                           (cadr old-percentages))
-                                                        (cddr old-percentages))
-                                                  (let loop ([canvases (get-canvases)]
-                                                             [prev-percentage
-                                                              (car old-percentages)]
-                                                             [percentages (cdr old-percentages)])
-                                                    (cond
-                                                      [(null? canvases)
-                                                       (error 'collapse "internal error.1")]
-                                                      [(null? percentages)
-                                                       (error 'collapse "internal error.2")]
-                                                      [else
-                                                       (if (eq? (car canvases) target)
-                                                           (if prev-percentage
-                                                               (cons (+ (car percentages)
-                                                                        prev-percentage)
-                                                                     (cdr percentages))
-                                                               (cons (+ (car percentages)
-                                                                        (cadr percentages))
-                                                                     (cddr percentages)))
-                                                           (cons prev-percentage
-                                                                 (loop (cdr canvases)
-                                                                       (car percentages)
-                                                                       (cdr percentages))))])))])
-                                        (set-canvases!
-                                         (mzlib:list:remq target (get-canvases)))
-                                        (send resizable-panel change-children
-                                              (lambda (l)
-                                                (append definitions-canvases
-                                                        interactions-canvases)))
-                                        (send resizable-panel set-percentages percentages)
-                                        (send (car (get-canvases)) focus))))])
-                          (cond
-                            [(memq target definitions-canvases)
-                             (handle-collapse
-                              (lambda () definitions-canvases)
-                              (lambda (c) (set! definitions-canvases c)))]
-                            [(memq target interactions-canvases)
-                             (handle-collapse
-                              (lambda () interactions-canvases)
-                              (lambda (c) (set! interactions-canvases c)))]
-                            [else (bell)])))])
-          (rename [super-edit-menu:between-select-all-and-find
-                   edit-menu:between-select-all-and-find])
-          (override
-            [edit-menu:between-select-all-and-find
-             (lambda (edit-menu)
-               (super-edit-menu:between-select-all-and-find edit-menu)
-               (make-object menu-item% (string-constant split-menu-item-label) edit-menu (lambda x (split)))
-               (make-object menu-item% (string-constant collapse-menu-item-label) edit-menu (lambda x (collapse)))
-               (make-object separator-menu-item% edit-menu))])
+          [define split
+            (lambda ()
+              (let* ([target (get-edit-target-window)]
+                     [update
+                      (lambda (set-canvases! canvases canvas% text)
+                        (let ([orig-percentages (send resizable-panel get-percentages)]
+                              [new-canvas (make-object canvas% resizable-panel text)])
+                          
+                          (send new-canvas focus)
+                          
+                          (send resizable-panel set-percentages
+                                (let loop ([canvases (append definitions-canvases
+                                                             interactions-canvases)]
+                                           [percentages orig-percentages])
+                                  (cond
+                                    [(null? canvases)
+                                     (error 'split "couldn't split; didn't find canvas")]
+                                    [(null? percentages)
+                                     (error 'split "wrong number of percentages: ~s ~s"
+                                            orig-percentages
+                                            (append definitions-canvases interactions-canvases))]
+                                    [else (let ([canvas (car canvases)])
+                                            (if (eq? target canvas)
+                                                (list* (/ (car percentages) 2)
+                                                       (/ (car percentages) 2)
+                                                       (cdr percentages))
+                                                (cons
+                                                 (car percentages)
+                                                 (loop (cdr canvases)
+                                                       (cdr percentages)))))])))
+                          
+                          (set-canvases!
+                           (let loop ([canvases canvases])
+                             (cond
+                               [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
+                               [else
+                                (let ([canvas (car canvases)])
+                                  (if (eq? canvas target)
+                                      (list* new-canvas
+                                             canvas
+                                             (cdr canvases))
+                                      (cons canvas (loop (cdr canvases)))))])))
+                          
+                          (send resizable-panel change-children
+                                (lambda (l)
+                                  (append definitions-canvases interactions-canvases)))))])
+                (cond
+                  [(memq target definitions-canvases)
+                   (update (lambda (x) (set! definitions-canvases x))
+                           definitions-canvases
+                           definitions-canvas%
+                           definitions-text)]
+                  [(memq target interactions-canvases)
+                   (update (lambda (x) (set! interactions-canvases x))
+                           interactions-canvases
+                           interactions-canvas%
+                           interactions-text)]
+                  [else (bell)])))]
+          [define (collapse)
+            (let* ([target (get-edit-target-window)]
+                   [handle-collapse
+                    (lambda (get-canvases set-canvases!)
+                      (if (= 1 (length (get-canvases)))
+                          (bell)
+                          (let* ([old-percentages (send resizable-panel get-percentages)]
+                                 [percentages
+                                  (if (eq? (car (get-canvases)) target)
+                                      (cons (+ (car old-percentages)
+                                               (cadr old-percentages))
+                                            (cddr old-percentages))
+                                      (let loop ([canvases (get-canvases)]
+                                                 [prev-percentage
+                                                  (car old-percentages)]
+                                                 [percentages (cdr old-percentages)])
+                                        (cond
+                                          [(null? canvases)
+                                           (error 'collapse "internal error.1")]
+                                          [(null? percentages)
+                                           (error 'collapse "internal error.2")]
+                                          [else
+                                           (if (eq? (car canvases) target)
+                                               (if prev-percentage
+                                                   (cons (+ (car percentages)
+                                                            prev-percentage)
+                                                         (cdr percentages))
+                                                   (cons (+ (car percentages)
+                                                            (cadr percentages))
+                                                         (cddr percentages)))
+                                               (cons prev-percentage
+                                                     (loop (cdr canvases)
+                                                           (car percentages)
+                                                           (cdr percentages))))])))])
+                            (set-canvases!
+                             (mzlib:list:remq target (get-canvases)))
+                            (send resizable-panel change-children
+                                  (lambda (l)
+                                    (append definitions-canvases
+                                            interactions-canvases)))
+                            (send resizable-panel set-percentages percentages)
+                            (send (car (get-canvases)) focus))))])
+              (cond
+                [(memq target definitions-canvases)
+                 (handle-collapse
+                  (lambda () definitions-canvases)
+                  (lambda (c) (set! definitions-canvases c)))]
+                [(memq target interactions-canvases)
+                 (handle-collapse
+                  (lambda () interactions-canvases)
+                  (lambda (c) (set! interactions-canvases c)))]
+                [else (bell)]))]
           
           (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
           (inherit get-menu-item%)
-          (override
-            [add-edit-menu-snip-items
-             (lambda (edit-menu)
-               (super-add-edit-menu-snip-items edit-menu)
-               (let ([on-demand
-                      (lambda (menu-item)
-                        (let ([edit (get-edit-target-object)])
-                          (send menu-item enable (and edit (is-a? edit editor<%>)))))]
-                     [callback
-                      (lambda (menu evt)
-                        (let ([edit (get-edit-target-object)])
-                          (when (and edit
-                                     (is-a? edit editor<%>))
-                            (let ([number (get-fraction-from-user)])
-                              (when number
-                                (send edit insert
-                                      (make-object drscheme:snip:whole/part-number-snip%
-                                        number)))))
-                          #t))]
-                     [c% (get-menu-item%)])
-                 (make-object c% (string-constant insert-fraction-menu-item-label)
-                   edit-menu callback #f #f on-demand)))])
-          (private
-            [item->children
-             (lambda (item)
-               (cond
-                 [(eq? item interactions-item) interactions-canvases]
-                 [(eq? item definitions-item) definitions-canvases]
-                 [else (error 'item->children "unknown item: ~a" item)]))])
-          (private
-            [get-sub-items
-             (lambda ()
-               (list interactions-item definitions-item
-                     ;imports-item
-                     ))]
-            [update-shown/ensure-one
-             (lambda (last-one)
-               (when (andmap (lambda (x) (hidden? x)) (get-sub-items))
-                 (toggle-show/hide last-one))
-               (update-shown))])
-          (override
-            [update-shown
-             (lambda ()
-               (super-update-shown)
-               (send resizable-panel change-children
-                     (lambda (l)
-                       top-panel
-                       (mzlib:list:foldl
-                        (lambda (item sofar)
-                          (if (hidden? item)
-                              sofar
-                              (append (item->children item) sofar)))
-                        null
-                        (get-sub-items))))
-               (when (ormap (lambda (child)
-                              (and (is-a? child editor-canvas%)
-                                   (not (send child has-focus?))))
-                            (send resizable-panel get-children))
-                 (let loop ([children (send resizable-panel get-children)])
-                   (cond
-                     [(null? children) (void)]
-                     [else (let ([child (car children)])
-                             (if (is-a? child editor-canvas%)
-                                 (send child focus)
-                                 (loop (cdr children))))])))
-               
-               
-               (let ([defs-show? (not (hidden? definitions-item))])
-                 (for-each
-                  (lambda (get-item)
-		    (let ([item (get-item)])
-		      (when item
-			(send item enable defs-show?))))
-                  (list (lambda () (file-menu:get-revert-item))
-                        (lambda () (file-menu:get-save-item))
-                        (lambda () (file-menu:get-save-as-item))
-                        ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
-                        (lambda () (file-menu:get-print-item)))))
-               (send file-menu:print-transcript-item enable
-                     (not (hidden? interactions-item))))]
-            
-            [on-close
-             (lambda ()
-               (when (eq? this created-frame)
-                 (set! created-frame #f))
-               (send interactions-text shutdown)
-               (send interactions-text on-close)
-               (super-on-close))])
+          (override add-edit-menu-snip-items)
+          [define add-edit-menu-snip-items
+            (lambda (edit-menu)
+              (super-add-edit-menu-snip-items edit-menu)
+              (let ([on-demand
+                     (lambda (menu-item)
+                       (let ([edit (get-edit-target-object)])
+                         (send menu-item enable (and edit (is-a? edit editor<%>)))))]
+                    [callback
+                     (lambda (menu evt)
+                       (let ([edit (get-edit-target-object)])
+                         (when (and edit
+                                    (is-a? edit editor<%>))
+                           (let ([number (get-fraction-from-user)])
+                             (when number
+                               (send edit insert
+                                     (make-object drscheme:snip:whole/part-number-snip%
+                                       number)))))
+                         #t))]
+                    [c% (get-menu-item%)])
+                (make-object c% (string-constant insert-fraction-menu-item-label)
+                  edit-menu callback #f #f on-demand)))]
+          [define item->children
+            (lambda (item)
+              (cond
+                [(eq? item interactions-item) interactions-canvases]
+                [(eq? item definitions-item) definitions-canvases]
+                [else (error 'item->children "unknown item: ~a" item)]))]
+
+          [define get-sub-items
+            (lambda ()
+              (list interactions-item definitions-item
+                    ;imports-item
+                    ))]
+          [define update-shown/ensure-one
+            (lambda (last-one)
+              (when (andmap (lambda (x) (hidden? x)) (get-sub-items))
+                (toggle-show/hide last-one))
+              (update-shown))]
+          (override update-shown on-close)
+          [define update-shown
+            (lambda ()
+              (super-update-shown)
+              (send resizable-panel change-children
+                    (lambda (l)
+                      top-panel
+                      (mzlib:list:foldl
+                       (lambda (item sofar)
+                         (if (hidden? item)
+                             sofar
+                             (append (item->children item) sofar)))
+                       null
+                       (get-sub-items))))
+              (when (ormap (lambda (child)
+                             (and (is-a? child editor-canvas%)
+                                  (not (send child has-focus?))))
+                           (send resizable-panel get-children))
+                (let loop ([children (send resizable-panel get-children)])
+                  (cond
+                    [(null? children) (void)]
+                    [else (let ([child (car children)])
+                            (if (is-a? child editor-canvas%)
+                                (send child focus)
+                                (loop (cdr children))))])))
+              
+              
+              (let ([defs-show? (not (hidden? definitions-item))])
+                (for-each
+                 (lambda (get-item)
+                   (let ([item (get-item)])
+                     (when item
+                       (send item enable defs-show?))))
+                 (list (lambda () (file-menu:get-revert-item))
+                       (lambda () (file-menu:get-save-item))
+                       (lambda () (file-menu:get-save-as-item))
+                       ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
+                       (lambda () (file-menu:get-print-item)))))
+              (send file-menu:print-transcript-item enable
+                    (not (hidden? interactions-item))))]
           
-          (private-field
-            [running? #t])
-	  (public
-            [execute-callback
-             (lambda ()
-               (cond
-                 [(send definitions-text save-file-out-of-date?)
-                  (message-box 
-                   (string-constant drscheme)
-                   (string-constant definitions-modified))]
-                 [else
-                  (ensure-rep-shown)
-                  (send definitions-text just-executed)
-                  (send interactions-canvas focus)
-                  (send interactions-text reset-console)
-                  (send interactions-text clear-undos)
-                  
-                  (let ([start (if (and ((send definitions-text last-position) . >= . 2)
-                                        (char=? (send definitions-text get-character 0) #\#)
-                                        (char=? (send definitions-text get-character 1) #\!))
-                                   (send definitions-text paragraph-start-position 1)
-                                   0)])
-                    (send definitions-text split-snip start)
-                    (send interactions-text do-many-text-evals
-                          definitions-text 
-                          start
-                          (send definitions-text last-position)))
-                  (send interactions-text clear-undos)]))])
+          [define on-close
+           (lambda ()
+             (when (eq? this created-frame)
+               (set! created-frame #f))
+             (send interactions-text shutdown)
+             (send interactions-text on-close)
+             (super-on-close))]
           
-          (public
-            [after-change-name (lambda () (void))])
+          [define running? #t]
+	  (public execute-callback)
+          [define execute-callback
+            (lambda ()
+              (cond
+                [(send definitions-text save-file-out-of-date?)
+                 (message-box 
+                  (string-constant drscheme)
+                  (string-constant definitions-modified))]
+                [else
+                 (ensure-rep-shown)
+                 (send definitions-text just-executed)
+                 (send interactions-canvas focus)
+                 (send interactions-text reset-console)
+                 (send interactions-text clear-undos)
+                 
+                 (let ([start (if (and ((send definitions-text last-position) . >= . 2)
+                                       (char=? (send definitions-text get-character 0) #\#)
+                                       (char=? (send definitions-text get-character 1) #\!))
+                                  (send definitions-text paragraph-start-position 1)
+                                  0)])
+                   (send definitions-text split-snip start)
+                   (send interactions-text do-many-text-evals
+                         definitions-text 
+                         start
+                         (send definitions-text last-position)))
+                 (send interactions-text clear-undos)]))]
+          
+          (public after-change-name)
+          [define after-change-name (lambda () (void))]
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
-          (private-field
-            [language-menu 'uninited-language-menu])
+          [define language-menu 'uninited-language-menu]
           
           (rename [super-on-size on-size])
-          (override
-            [on-size
-             (lambda (w h)
-               (preferences:set 'drscheme:unit-window-width w)
-               (preferences:set 'drscheme:unit-window-height h)
-               (super-on-size w h))])
+          (override on-size)
+          [define on-size
+            (lambda (w h)
+              (preferences:set 'drscheme:unit-window-width w)
+              (preferences:set 'drscheme:unit-window-height h)
+              (super-on-size w h))]
           
-          (override
-            [get-editor (lambda () definitions-text)]
-            [get-canvas (lambda () definitions-canvas)])
+          (override get-editor get-canvas)
+          [define get-editor (lambda () definitions-text)]
+          [define get-canvas (lambda () definitions-canvas)]
           
-          (private-field
-            [definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
-            [interactions-text (make-object 
-                                   (drscheme:get/extend:get-interactions-text%)
-                                 this)])
-          (public
-            [get-definitions-text (lambda () definitions-text)]
-            [get-interactions-text (lambda () interactions-text)])
+          [define definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
+          [define interactions-text (make-object 
+                                        (drscheme:get/extend:get-interactions-text%)
+                                      this)]
+          (public get-definitions-text get-interactions-text)
+          [define get-definitions-text (lambda () definitions-text)]
+          [define get-interactions-text (lambda () interactions-text)]
           
-          (private
-            [update-teachpack-menu
-             (lambda ()
-               (for-each (lambda (item) (send item delete)) teachpack-items)
-               (set! teachpack-items
-                     (map (lambda (name)
-                            (make-object menu:can-restore-menu-item%
-                              (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
-                              language-menu
-                              (lambda (item evt)
-                                (drscheme:teachpack:set-teachpack-cache-filenames!
-                                 (mzlib:list:remove
-                                  name
-                                  (drscheme:teachpack:teachpack-cache-filenames
-                                   (preferences:get 'drscheme:teachpacks)))))))
-                          (drscheme:teachpack:teachpack-cache-filenames
-                           (preferences:get 'drscheme:teachpacks)))))])
+          [define update-teachpack-menu
+            (lambda ()
+              (for-each (lambda (item) (send item delete)) teachpack-items)
+              (set! teachpack-items
+                    (map (lambda (name)
+                           (make-object menu:can-restore-menu-item%
+                             (format (string-constant clear-teachpack) (mzlib:file:file-name-from-path name))
+                             language-menu
+                             (lambda (item evt)
+                               (drscheme:teachpack:set-teachpack-cache-filenames!
+                                (mzlib:list:remove
+                                 name
+                                 (drscheme:teachpack:teachpack-cache-filenames
+                                  (preferences:get 'drscheme:teachpacks)))))))
+                         (drscheme:teachpack:teachpack-cache-filenames
+                          (preferences:get 'drscheme:teachpacks)))))]
           
-          (sequence
-            (super-init filename
-                        #f
-                        (preferences:get 'drscheme:unit-window-width)
-                        (preferences:get 'drscheme:unit-window-height))
+          (super-instantiate ()
+                             (filename filename)
+                             (width (preferences:get 'drscheme:unit-window-width))
+                             (height (preferences:get 'drscheme:unit-window-height)))
             
-            (let* ([mb (get-menu-bar)]
-                   [language-menu-on-demand
-                    (lambda (menu-item)
-                      (update-teachpack-menu))]
-                   [_ (set! language-menu (make-object (get-menu%) 
-                                            (string-constant language-menu-name)
-                                            mb
-                                            #f
-                                            language-menu-on-demand))]
-                   [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
-                   [send-method
-                    (lambda (method)
-                      (lambda (_1 _2)
-                        (let ([text (get-focus-object)])
-                          (when (or (eq? text definitions-text)
-                                    (eq? text interactions-text))
-                            (method text)))))])
-              
-              (drscheme:language:fill-language-menu this language-menu)
-              
-              (set! execute-menu-item
-                    (make-object menu:can-restore-menu-item%
-                      (string-constant execute-menu-item-label)
-                      scheme-menu
-                      (lambda (_1 _2) (execute-callback))
-                      #\t
-                      (string-constant execute-menu-item-help-string)))
-              (make-object menu:can-restore-menu-item%
-                (string-constant break-menu-item-label)
-                scheme-menu
-                (lambda (_1 _2) (send interactions-text break))
-                #\b
-                (string-constant break-menu-item-help-string))
-              (make-object menu:can-restore-menu-item%
-                (string-constant kill-menu-item-label)
-                scheme-menu
-                (lambda (_1 _2) (send interactions-text kill-evaluation))
-                #\k
-                (string-constant kill-menu-item-help-string))
-              (make-object separator-menu-item% scheme-menu)
-              (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
-              (make-object separator-menu-item% scheme-menu)
-              (make-object menu:can-restore-menu-item%
-                (string-constant reindent-menu-item-label)
-                scheme-menu
-                (send-method (lambda (x) (send x tabify-selection))))
-              (make-object menu:can-restore-menu-item%
-                (string-constant reindent-all-menu-item-label)
-                scheme-menu
-                (send-method (lambda (x) (send x tabify-all)))
-                #\i)
-              (make-object menu:can-restore-menu-item%
-                (string-constant comment-out-menu-item-label)
-                scheme-menu
-                (send-method (lambda (x) (send x comment-out-selection))))
-              (make-object menu:can-restore-menu-item%
-                (string-constant uncomment-menu-item-label)
-                scheme-menu
-                (send-method (lambda (x) (send x uncomment-selection)))))
+          (let* ([mb (get-menu-bar)]
+                 [language-menu-on-demand
+                  (lambda (menu-item)
+                    (update-teachpack-menu))]
+                 [_ (set! language-menu (make-object (get-menu%) 
+                                          (string-constant language-menu-name)
+                                          mb
+                                          #f
+                                          language-menu-on-demand))]
+                 [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
+                 [send-method
+                  (lambda (method)
+                    (lambda (_1 _2)
+                      (let ([text (get-focus-object)])
+                        (when (or (eq? text definitions-text)
+                                  (eq? text interactions-text))
+                          (method text)))))])
+            
+            (drscheme:language:fill-language-menu this language-menu)
+            
+            (set! execute-menu-item
+                  (make-object menu:can-restore-menu-item%
+                    (string-constant execute-menu-item-label)
+                    scheme-menu
+                    (lambda (_1 _2) (execute-callback))
+                    #\t
+                    (string-constant execute-menu-item-help-string)))
+            (make-object menu:can-restore-menu-item%
+              (string-constant break-menu-item-label)
+              scheme-menu
+              (lambda (_1 _2) (send interactions-text break))
+              #\b
+              (string-constant break-menu-item-help-string))
+            (make-object menu:can-restore-menu-item%
+              (string-constant kill-menu-item-label)
+              scheme-menu
+              (lambda (_1 _2) (send interactions-text kill-evaluation))
+              #\k
+              (string-constant kill-menu-item-help-string))
+            (make-object separator-menu-item% scheme-menu)
+            (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
+            (make-object separator-menu-item% scheme-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant reindent-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x tabify-selection))))
+            (make-object menu:can-restore-menu-item%
+              (string-constant reindent-all-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x tabify-all)))
+              #\i)
+            (make-object menu:can-restore-menu-item%
+              (string-constant comment-out-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x comment-out-selection))))
+            (make-object menu:can-restore-menu-item%
+              (string-constant uncomment-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x uncomment-selection)))))
             
             (frame:reorder-menus this)
             
-            (set! definitions-item
+          (set! definitions-item
                   (make-object menu:can-restore-menu-item%
                     (string-constant hide-definitions-menu-item-label)
                     (get-show-menu)
@@ -1288,115 +1275,105 @@
                       (toggle-show/hide interactions-item)
                       (update-shown/ensure-one definitions-item))
                     #\e
-                    (string-constant interactions-menu-item-help-string))))
-          (private-field
-            [top-panel (make-object horizontal-panel% (get-area-container))]
-            [name-panel (make-object vertical-panel% top-panel)]
-            [resizable-panel (make-object vertical-resizable/pref% this (get-area-container))])
-          (sequence
+                    (string-constant interactions-menu-item-help-string)))
+          [define top-panel (make-object horizontal-panel% (get-area-container))]
+          [define name-panel (make-object vertical-panel% top-panel)]
+          [define resizable-panel (make-object vertical-resizable/pref% this (get-area-container))]
+
             (send name-panel stretchable-width #f)
-            (send name-panel stretchable-height #f))
+            (send name-panel stretchable-height #f)
           
-          (private-field
-            [definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
-                                  resizable-panel)]
-            [definitions-canvases (list definitions-canvas)]
-            [interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
+          [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
+                                       resizable-panel)]
+          [define definitions-canvases (list definitions-canvas)]
+          [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
                                    resizable-panel)]
-            [interactions-canvases (list interactions-canvas)])
-          (public
-            [get-definitions-canvas (lambda () definitions-canvas)]
-            [get-interactions-canvas (lambda () interactions-canvas)])
+          [define interactions-canvases (list interactions-canvas)]
+          (public get-definitions-canvas get-interactions-canvas)
+          [define get-definitions-canvas (lambda () definitions-canvas)]
+          [define get-interactions-canvas (lambda () interactions-canvas)]
           
-          (sequence
-            (send interactions-text auto-wrap #t)
-            (send interactions-canvas set-editor interactions-text)
-            (send definitions-canvas set-editor definitions-text)
-            
-            (set! save-button
-                  (make-object button% 
-                    (make-save-bitmap this)
-                    top-panel
-                    (lambda args
-                      (let* ([text definitions-text])
-                        (when text
-                          (send text save-file)
-                          (send definitions-canvas focus))))))
-            
-            (set! name-message (make-object drscheme:frame:name-message% name-panel)))
-          (private-field
-            [teachpack-items null])
-          (private-field
-            [break-button (void)]
-            [execute-button (void)]
-            [button-panel (make-object horizontal-panel% top-panel)])
-          (public
-            [get-execute-button (lambda () execute-button)]
-            [get-break-button (lambda () break-button)]
-            [get-button-panel (lambda () button-panel)])
+          (send interactions-text auto-wrap #t)
+          (send interactions-canvas set-editor interactions-text)
+          (send definitions-canvas set-editor definitions-text)
           
-          (private-field
-            [func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)])
-          
-          (sequence
-            (set! execute-button
-                  (make-object button%
-                    (make-execute-bitmap this)
-                    button-panel
-                    (lambda (button evt) (execute-callback))))
-            (set! break-button
-                  (make-object button%
-                    (make-break-bitmap this) 
-                    button-panel
-                    (lambda args
-                      (send interactions-text break)
-                      (ensure-rep-shown)
-                      (send (send interactions-text get-canvas) focus))))
-            (send button-panel stretchable-height #f)
-            (send button-panel stretchable-width #f) 
+          (set! save-button
+                (make-object button% 
+                  (make-save-bitmap this)
+                  top-panel
+                  (lambda args
+                    (let* ([text definitions-text])
+                      (when text
+                        (send text save-file)
+                        (send definitions-canvas focus))))))
             
-            (send top-panel change-children
-                  (lambda (l)
-                    (list name-panel save-button
-                          (make-object vertical-panel% top-panel) ;; spacer
-                          button-panel)))
-            (send top-panel stretchable-height #f))
+          (set! name-message (make-object drscheme:frame:name-message% name-panel))
+          [define teachpack-items null]
+          [define break-button (void)]
+          [define execute-button (void)]
+          [define button-panel (make-object horizontal-panel% top-panel)]
+          (public get-execute-button get-break-button get-button-panel)
+          [define get-execute-button (lambda () execute-button)]
+          [define get-break-button (lambda () break-button)]
+          [define get-button-panel (lambda () button-panel)]
+          
+          [define func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)]
+          
+          (set! execute-button
+                (make-object button%
+                  (make-execute-bitmap this)
+                  button-panel
+                  (lambda (button evt) (execute-callback))))
+          (set! break-button
+                (make-object button%
+                  (make-break-bitmap this) 
+                  button-panel
+                  (lambda args
+                    (send interactions-text break)
+                    (ensure-rep-shown)
+                    (send (send interactions-text get-canvas) focus))))
+          (send button-panel stretchable-height #f)
+          (send button-panel stretchable-width #f) 
+            
+          (send top-panel change-children
+                (lambda (l)
+                  (list name-panel save-button
+                        (make-object vertical-panel% top-panel) ;; spacer
+                        button-panel)))
+          (send top-panel stretchable-height #f)
           
           (inherit get-label)
-          (sequence
             
+          (let ([m (send definitions-canvas get-editor)])
+            (set-save-init-shown?
+             (and m (send m is-modified?))))
+          
+	  (send name-message set-message
+                (if filename #t #f)
+                (or filename (get-label) (string-constant untitled)))
             
-            (let ([m (send definitions-canvas get-editor)])
-              (set-save-init-shown?
-               (and m (send m is-modified?))))
+          (update-save-button #f)
             
-	;; (get-label) shouldn't be #f, but I'm not sure....
-            (send name-message set-message
-                  (if filename #t #f)
-                  (or filename (get-label) (string-constant untitled)))
+          (send interactions-text initialize-console)
             
-            (update-save-button #f)
+          (unless filename
+            (toggle-show/hide interactions-item))
             
-            (send interactions-text initialize-console)
+          (update-shown)
             
-            (unless filename
-              (toggle-show/hide interactions-item))
+          (send resizable-panel set-percentages
+                (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
+                  (list p (- 1 p))))
             
-            (update-shown)
+          (set-label-prefix (string-constant drscheme))
             
-            (send resizable-panel set-percentages
-                  (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
-                    (list p (- 1 p))))
-            
-            (set-label-prefix (string-constant drscheme))
-            
-            (send definitions-canvas focus)
-            (cond
-              [(eq? created-frame 'nothing-yet)
-               (set! created-frame this)]
-              [created-frame
-               (set! created-frame #f)]
-              [else (void)]))))
+          (send definitions-canvas focus)
+          (cond
+            [(eq? created-frame 'nothing-yet)
+             (set! created-frame this)]
+            [created-frame
+             (set! created-frame #f)]
+            [else (void)])))
       
       (define created-frame 'nothing-yet)
       
@@ -1412,7 +1389,7 @@
                      (send created-frame show #t)
                      created-frame)
               (let* ([frame% (drscheme:get/extend:get-unit-frame%)]
-                     [frame (make-object frame% name)])
+                     [frame (instantiate frame% () (filename name))])
                 (send frame show #t)
                 frame))]))
       
