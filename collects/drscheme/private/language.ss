@@ -4,7 +4,7 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
-           "mred-wrap.ss"
+	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix drscheme:unit: "unit.ss")
            (prefix zodiac: (lib "zodiac.ss" "syntax"))
@@ -38,7 +38,7 @@
 	   [language-levels (map basis:setting-name basis:settings)]
 
 	   [dialog%
-	    (class100 mred:dialog% args
+	    (class100 dialog% args
 	      (override
 	       [on-close
 		(lambda ()
@@ -47,20 +47,20 @@
 		(apply super-init args)))]
 	   
 	   [f (make-object dialog% "Language" parent)]
-	   [main (make-object mred:vertical-pane% f)]
-	   [language-panel (make-object mred:horizontal-panel% main '(border))]
-           [language-choice-panel (make-object mred:vertical-pane% language-panel)]
-	   [customization-panel (make-object mred:horizontal-panel% main)]
-	   [customization-left-panel (make-object mred:vertical-pane% customization-panel)]
-	   [customization-right-panel (make-object mred:vertical-pane% customization-panel)]
-	   [when-message (make-object mred:message%
+	   [main (make-object vertical-pane% f)]
+	   [language-panel (make-object horizontal-panel% main '(border))]
+           [language-choice-panel (make-object vertical-pane% language-panel)]
+	   [customization-panel (make-object horizontal-panel% main)]
+	   [customization-left-panel (make-object vertical-pane% customization-panel)]
+	   [customization-right-panel (make-object vertical-pane% customization-panel)]
+	   [when-message (make-object message%
 			   "Language changes effective after click on Execute"
 			   main)]
 	   [make-sub-panel
 	    (lambda (name panel)
-	      (let* ([p (make-object mred:vertical-pane% panel)]
-		     [message (make-object mred:message% name p)])
-		(make-object mred:vertical-panel% p '(border))))]
+	      (let* ([p (make-object vertical-pane% panel)]
+		     [message (make-object message% name p)])
+		(make-object vertical-panel% p '(border))))]
 	   [input-syntax-panel (make-sub-panel "Input Syntax" customization-left-panel)]
 	   [dynamic-panel (make-sub-panel "Dynamic Properties" customization-left-panel)]
 	   [output-syntax-panel (make-sub-panel "Output Syntax" customization-right-panel)]
@@ -79,7 +79,7 @@
 		      (if bool
 			  (list language-panel customization-panel when-message ok-panel)
 			  (list language-panel when-message ok-panel)))))]
-	   [full-scheme-panel (let ([p (make-object mred:panel% language-panel)])
+	   [full-scheme-panel (let ([p (make-object panel% language-panel)])
 				(send p set-label-position 'vertical)
                                 (send p stretchable-width #f)
 				(send p stretchable-height #t)
@@ -118,7 +118,7 @@
 		      (lambda (x) (list full-scheme-radio-box)))]
 	       [else
 		(set! full-scheme-radio-box
-		      (make-object mred:radio-box% 
+		      (make-object radio-box% 
 			"Full Scheme Variant"
 			(map car full-scheme-radio-box-label-map)
 			full-scheme-panel
@@ -132,9 +132,9 @@
 					  (second language-levels)
 					  (third language-levels)
 					  full-scheme)]
-	   [compatible-space1 (make-object mred:vertical-panel% language-choice-panel)]
+	   [compatible-space1 (make-object vertical-panel% language-choice-panel)]
 	   [language-choice
-	    (make-object mred:choice%
+	    (make-object choice%
 	      "Language"
 	      language-choice-choices
 	      language-choice-panel
@@ -150,9 +150,9 @@
 			 (basis:number->setting
 			  (send choice get-selection))))
 		  (update-to settings)])))]
-	   [compatible-space2 (make-object mred:vertical-panel% language-choice-panel)]
+	   [compatible-space2 (make-object vertical-panel% language-choice-panel)]
            [compatible-with-student-languages
-	    (make-object mred:check-box%
+	    (make-object check-box%
 	      "Compatible with student languages" language-choice-panel
 	      (lambda xxx
 		(let ([v (send compatible-with-student-languages get-value)])
@@ -161,20 +161,20 @@
 		  (basis:set-setting-unmatched-cond/case-is-error?! settings v)
 		  (basis:set-setting-signal-undefined! settings v)
 		  (update-to settings))))]
-	   [compatible-space3 (make-object mred:vertical-panel% language-choice-panel)]
+	   [compatible-space3 (make-object vertical-panel% language-choice-panel)]
 
-	   [custom-message (make-object mred:message% "Custom" language-panel)]
+	   [custom-message (make-object message% "Custom" language-panel)]
 	   [right-align
 	    (opt-lambda (mo panel)
-	      (let* ([hp (make-object mred:horizontal-pane% panel)])
+	      (let* ([hp (make-object horizontal-pane% panel)])
 		(begin0
 		 (mo hp)
-		 (make-object mred:horizontal-pane% hp))))]
+		 (make-object horizontal-pane% hp))))]
 	   [make-check-box
 	    (lambda (set-setting! setting name panel)
 	      (right-align
 	       (lambda (hp)
-		 (let ([cb (make-object mred:check-box%
+		 (let ([cb (make-object check-box%
 			     name
 			     hp
 			     (lambda (check-box evt)
@@ -214,7 +214,7 @@
 	   [printing
 	    (right-align
 	     (lambda (main)
-	       (make-object mred:radio-box%
+	       (make-object radio-box%
 		 "Output Style"
 		 (list "Constructor"
 		       "Quasiquote"
@@ -246,23 +246,23 @@
 			    basis:setting-use-pretty-printer?
 			    "Insert newlines in printed values"
 			    output-syntax-panel)]
-	   [ok-panel (make-object mred:horizontal-pane% main)]
-	   [hide-button (make-object mred:button%
+	   [ok-panel (make-object horizontal-pane% main)]
+	   [hide-button (make-object button%
 			  "Hide Details"
 			  ok-panel
 			  (lambda (button evt) (show-specifics #f)))]
-	   [show-button (make-object mred:button%
+	   [show-button (make-object button%
 			  "Show Details"
 			  ok-panel
 			  (lambda (button evt) (show-specifics #t)))]
-	   [_3 (make-object mred:horizontal-pane% ok-panel)]
-	   [cancel-button (make-object mred:button%
+	   [_3 (make-object horizontal-pane% ok-panel)]
+	   [cancel-button (make-object button%
 			    "Cancel"
 			    ok-panel
 			    (lambda (button evt) 
 			      (set! settings #f)
 			      (send f show #f)))]
-	   [ok-button (make-object mred:button%
+	   [ok-button (make-object button%
 			"OK"
 			ok-panel
 			(lambda (button evt) 
@@ -406,7 +406,7 @@
 	     settings-preferences-symbol
 	     new-settings))))
       #\l)
-    (make-object mred:separator-menu-item% language-menu)
+    (make-object separator-menu-item% language-menu)
     (make-object menu:can-restore-menu-item%
       "Add Teachpack..."
       language-menu
@@ -420,11 +420,11 @@
 	  (when lib-file
             (parameterize ([basis:teachpack-error-display
                             (lambda (message)
-                              (mred:message-box "Invalid Teachpack" message))])
+                              (message-box "Invalid Teachpack" message))])
               (let* ([old-pref (preferences:get 'drscheme:teachpack-file)]
                      [new-item (normalize-path lib-file)])
                 (if (member (normal-case-path new-item) (map normal-case-path old-pref))
-                    (mred:message-box "DrScheme Teachpacks"
+                    (message-box "DrScheme Teachpacks"
                                       (format "Already added ~a Teachpack"
                                               new-item)
                                       frame)

@@ -1,8 +1,10 @@
 
 (module unit mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
+	   (lib "class100.ss")
            "drsig.ss"
-           "mred-wrap.ss"
+	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
@@ -14,8 +16,8 @@
     (unit/sig drscheme:unit^
       (keymap:add-to-right-button-menu
        (lambda (menu text event)
-         (when (and (is-a? text mred:text%)
-                    (is-a? event mred:mouse-event%))
+         (when (and (is-a? text text%)
+                    (is-a? event mouse-event%))
            (let* ([end (send text get-end-position)]
                   [start (send text get-start-position)]
                   [non-letter? (lambda (x)
@@ -54,29 +56,29 @@
                             (apply string (append before after)))
                           (send text get-text start end))])
                  (unless (string=? str "")
-                   (make-object mred:separator-menu-item% menu)
-                   (make-object mred:menu-item%
+                   (make-object separator-menu-item% menu)
+                   (make-object menu-item%
                      (format "Search in Help Desk for \"~a\"" str)
                      menu
                      (lambda x (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))
-                   (make-object mred:menu-item%
+                   (make-object menu-item%
                      (format "Exact lucky search in Help Desk for \"~a\"" str)
                      menu
                      (lambda x (drscheme:help-desk:help-desk str #t 'keyword+index 'exact))))))))))
       
       (define (get-fraction-from-user)
-        (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
-               [hp (make-object mred:horizontal-panel% dlg)]
-               [_1 (make-object mred:message% "Whole Part" hp)]
-               [whole (make-object mred:text-field% #f hp void)]
-               [vp (make-object mred:vertical-panel% hp)]
-               [hp2 (make-object mred:horizontal-panel% vp)]
-               [num (make-object mred:text-field% #f hp2 void)]
-               [num-m (make-object mred:message% "Numerator" hp2)]
-               [hp3 (make-object mred:horizontal-panel% vp)]
-               [den (make-object mred:text-field% #f hp3 void)]
-               [den-m (make-object mred:message% "Denominator" hp3)]
-               [bp (make-object mred:horizontal-panel% dlg)]
+        (let* ([dlg (make-object dialog% "Enter Fraction")]
+               [hp (make-object horizontal-panel% dlg)]
+               [_1 (make-object message% "Whole Part" hp)]
+               [whole (make-object text-field% #f hp void)]
+               [vp (make-object vertical-panel% hp)]
+               [hp2 (make-object horizontal-panel% vp)]
+               [num (make-object text-field% #f hp2 void)]
+               [num-m (make-object message% "Numerator" hp2)]
+               [hp3 (make-object horizontal-panel% vp)]
+               [den (make-object text-field% #f hp3 void)]
+               [den-m (make-object message% "Denominator" hp3)]
+               [bp (make-object horizontal-panel% dlg)]
                [ok? #f]
                [validate-number
                 (lambda ()
@@ -91,18 +93,18 @@
                               ans
                               #f))
                         #f)))]
-               [ok (make-object mred:button% "OK" bp 
+               [ok (make-object button% "OK" bp 
                      (lambda x
                        (cond
                          [(validate-number)
                           (set! ok? #t)
                           (send dlg show #f)]
                          [else 
-                          (mred:message-box
+                          (message-box
                            "DrScheme"
                            "Invalid number: must be an exact, real, non-integral number.")]))
                      '(border))]
-               [cancel (make-object mred:button% "Cancel" bp (lambda x (send dlg show #f)))])
+               [cancel (make-object button% "Cancel" bp (lambda x (send dlg show #f)))])
           (let ([mw (max (send den-m get-width) (send num-m get-width))])
             (send den-m min-width mw)
             (send num-m min-width mw))
@@ -131,7 +133,7 @@
           
           (cond
             [(not program-filename)
-             (mred:message-box "Create Launcher"
+             (message-box "Create Launcher"
                                "You must save your program before creating a launcher"
                                frame)]
             
@@ -188,14 +190,14 @@
                           [(middle-margin) 3]
                           [(font) (send area-container-window get-control-font)]
                           [(img-bitmap-dc img-width img-height)
-                           (let ([mdc (make-object mred:bitmap-dc%)]
-                                 [q (make-object mred:bitmap% filename)])
+                           (let ([mdc (make-object bitmap-dc%)]
+                                 [q (make-object bitmap% filename)])
                              (if (send q ok?)
                                  (begin (send mdc set-bitmap q)
                                         (values mdc
                                                 (send q get-width)
                                                 (send q get-height)))
-                                 (let ([b (make-object mred:bitmap% 1 1)])
+                                 (let ([b (make-object bitmap% 1 1)])
                                    (send mdc set-bitmap b)
                                    (send mdc clear)
                                    (values mdc 0 0))))]
@@ -213,8 +215,8 @@
                                          (floor (+ outside-margin
                                                    (max img-height height)
                                                    outside-margin)))]
-                          [(bitmap-dc) (make-object mred:bitmap-dc%)]
-                          [(new-bitmap) (make-object mred:bitmap% new-width new-height)])
+                          [(bitmap-dc) (make-object bitmap-dc%)]
+                          [(new-bitmap) (make-object bitmap% new-width new-height)])
               (cond
                 [(or (= img-width 0)
                      (= img-height 0))
@@ -244,17 +246,17 @@
   ;; It should be integrated into canvas:wide-snip% 
   ;; becuase it uses a better algorithm to find the snip
   ;; wide widths.
-      '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
+      '(class-asi wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
          (inherit get-editor)
          (rename [super-on-size on-size]
                  [super-set-media set-media])
          (public)
          (private
            [snips null]
-           [autowrap-snips? (preferences:get 'mred:auto-set-wrap?)]
+           [autowrap-snips? (preferences:get 'auto-set-wrap?)]
            [update-snip-size
             (lambda (s)
-              (if (is-a? s mred:editor-snip%)
+              (if (is-a? s editor-snip%)
                   (let* ([snip-x-pos&margins
                           (let loop ([snip s])
                             (let* ([snip-x-pos (box 0)]
@@ -266,7 +268,7 @@
                                        [rmargin (box 0)])
                                    (send snip get-margin lmargin (box 0) rmargin (box 0))
                                    (+ (unbox lmargin) (unbox rmargin)))
-                                 (if (is-a? containing-admin mred:editor-snip-editor-admin<%>)
+                                 (if (is-a? containing-admin editor-snip-editor-admin<%>)
                                      (+ (unbox snip-x-pos)
                                         (loop (send containing-admin get-snip)))
                                      (unbox snip-x-pos)))))]
@@ -274,7 +276,7 @@
                                        (let ([containing-admin
                                               (send (send (send snip get-admin)
                                                           get-editor) get-admin)])
-                                         (if (is-a? containing-admin mred:editor-snip-editor-admin<%>)
+                                         (if (is-a? containing-admin editor-snip-editor-admin<%>)
                                              (loop (send containing-admin get-snip))
                                              snip)))]					
                          [view-width (let* ([width (box 0)]
@@ -289,7 +291,7 @@
                          [snip-width (- view-width snip-x-pos&margins)])
                     (send s set-min-width snip-width)
                     (send s set-max-width snip-width)
-                    (when (is-a? s mred:editor-snip%)
+                    (when (is-a? s editor-snip%)
                       (let ([snip-media (send s get-this-media)])
                         (unless (null? snip-media)
                           (send snip-media set-max-width
@@ -306,7 +308,7 @@
   ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
         (lambda (%)
-          (class-asi %
+          (class100-asi %
             (inherit get-top-level-window)
             (rename [super-on-focus on-focus])
             (override
@@ -321,16 +323,17 @@
                                      canvas:wide-snip%)))
       
       (define definitions-canvas%
-        (class (make-searchable-canvas% canvas:info%) args
+        (class100 (make-searchable-canvas% canvas:info%) args
           (sequence
             (apply super-init args))))
       
       (define (program-editor-mixin text%)
-        (class/d text% args
-          ((override after-insert after-delete)
-           (inherit get-top-level-window)
-           (rename [super-after-insert after-insert]
-                   [super-after-delete after-delete]))
+        (class text%
+	  (init-rest args)
+          (override after-insert after-delete)
+	  (inherit get-top-level-window)
+	  (rename [super-after-insert after-insert]
+		  [super-after-delete after-delete])
           
           (define (reset-highlighting)
             (let ([f (get-top-level-window)])
@@ -358,7 +361,7 @@
            text:info%))))
       
       (define definitions-text%
-        (class definitions-super% ()
+        (class100 definitions-super% args
           
           (public
             [clear-annotations
@@ -445,8 +448,9 @@
                (apply super-after-delete x))])
           
           (inherit get-filename)
-          (private
-            [tmp-date-string #f]
+          (private-field
+            [tmp-date-string #f])
+	  (private
             [get-date-string
              (lambda ()
                (string-append
@@ -462,27 +466,29 @@
             [on-paint
              (lambda (before dc left top right bottom dx dy draw-caret)
                (when (and before
-                          (or (is-a? dc mred:post-script-dc%)
-                              (is-a? dc mred:printer-dc%)))
+                          (or (is-a? dc post-script-dc%)
+                              (is-a? dc printer-dc%)))
                  (set! tmp-date-string (get-date-string))
                  (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
-                   (send (mred:current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
+                   (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
                (super-on-paint before dc left top right bottom dx dy draw-caret)
                (when (and (not before)
-                          (or (is-a? dc mred:post-script-dc%)
-                              (is-a? dc mred:printer-dc%)))
+                          (or (is-a? dc post-script-dc%)
+                              (is-a? dc printer-dc%)))
                  (send dc draw-text (get-date-string) 0 0)
                  (void)))])
           (sequence
-            (super-init))))
+            (apply super-init args))))
       
       (define func-defs-canvas%
-        (class/d mred:canvas% (parent text)
-          ((override on-paint on-event)
-           (inherit get-client-size get-dc popup-menu min-height min-width
-                    stretchable-width
-                    stretchable-height)
-           (rename [super-on-event on-event]))
+        (class canvas%
+	  (init parent)
+	  (init-field text)
+          (override on-paint on-event)
+	  (inherit get-client-size get-dc popup-menu min-height min-width
+		   stretchable-width
+		   stretchable-height)
+	  (rename [super-on-event on-event])
           
           (define-struct defn (indent name start-pos end-pos))
           
@@ -595,7 +601,7 @@
               [(send evt button-down?)
                (set! inverted? #t)
                (on-paint)
-               (let ([menu (make-object mred:popup-menu% #f
+               (let ([menu (make-object popup-menu% #f
                              (lambda x
                                (set! inverted? #f)
                                (on-paint)))]
@@ -604,7 +610,7 @@
                    menu
                    (lambda x
                      (change-sorting-order)))
-                 (make-object mred:separator-menu-item% menu)
+                 (make-object separator-menu-item% menu)
                  (if (null? defns)
                      (send (make-object menu:can-restore-menu-item%
                              "<< no definitions found >>"
@@ -658,7 +664,9 @@
          (drscheme:frame:basics-mixin frame:searchable%)))
       
       (define vertical-resizable/pref%
-        (class panel:vertical-resizable% (unit-frame . args)
+        (class100 panel:vertical-resizable% (_unit-frame . args)
+	  (private-field
+	    [unit-frame _unit-frame])
           (inherit get-percentages)
           (override
             [on-percentage-change
@@ -672,7 +680,7 @@
           (sequence (apply super-init args))))
       
       (define frame%
-        (class* super-frame% (drscheme:rep:context<%>) (filename)
+        (class100* super-frame% (drscheme:rep:context<%>) (filename)
           (inherit set-label-prefix show-menu
                    show get-menu%
                    get-area-container
@@ -704,22 +712,23 @@
              (lambda ()
                (send definitions-text clear-annotations))])
           
-          (public
+          (public-field
             [definitions-item #f]
             [interactions-item #f]
             ;[imports-id #f]
             
             [name-message #f]
             [save-button #f]
-            [save-init-shown? #f]
+            [save-init-shown? #f])
+	  (public
             [set-save-init-shown? (lambda (x) (set! save-init-shown? x))])
           
-          (public
+          (public-field
             [canvas-show-mode #f]
             [allow-split? #f]
             [forced-quit? #f])
           
-          (private
+          (private-field
             [search-canvas #f])
           (public
             [make-searchable
@@ -733,8 +742,9 @@
                    (send search-canvas get-editor)
                    (get-editor)))])
           
-          (private [was-locked? #f]
-                   [execute-menu-item #f])
+          (private-field
+	    [was-locked? #f]
+	    [execute-menu-item #f])
           (public
             [disable-evaluation
              (lambda ()
@@ -796,9 +806,7 @@
                  [else (send definitions-text clear)])
                (send definitions-canvas focus))])
           
-          (private
-            [drscheme-manual 
-             "PLT DrScheme: Programming Environment Manual"]
+	  (private
             [hidden?
              (lambda (item)
                (let ([label (send item get-label)])
@@ -834,12 +842,12 @@
             [file-menu:between-open-and-revert
              (lambda (file-menu)
                (super-file-menu:between-open-and-revert file-menu)
-               (make-object mred:separator-menu-item% file-menu))]
+               (make-object separator-menu-item% file-menu))]
             [file-menu:save-string (lambda () "Definitions")]
             [file-menu:save-as-string (lambda () "Definitions")]
             [file-menu:between-save-as-and-print
              (lambda (file-menu)
-               (let ([sub-menu (make-object mred:menu% "Save Other" file-menu)])
+               (let ([sub-menu (make-object menu% "Save Other" file-menu)])
                  (make-object menu:can-restore-menu-item%
                    "Save Definitions As Text..."
                    sub-menu
@@ -863,13 +871,13 @@
                    sub-menu
                    (lambda (_1 _2)
                      (save-as-text-from-text interactions-text)))
-                 ;	   (make-object mred:separator-menu-item% file-menu)
+                 ;	   (make-object separator-menu-item% file-menu)
                  ;	   (make-object menu:can-restore-menu-item%
                  ;	     "Show Interactions History"
                  ;	     file-menu
                  ;	     (lambda (_1 _2)
                  ;	       (drscheme:rep:show-interactions-history)))
-                 (make-object mred:separator-menu-item% file-menu)))]
+                 (make-object separator-menu-item% file-menu)))]
             [file-menu:print-string (lambda () "Definitions")]
             [file-menu:between-print-and-close
              (lambda (file-menu)
@@ -882,7 +890,7 @@
                                #t 
                                #t
                                (preferences:get 'framework:print-output-mode)))))
-               (make-object mred:separator-menu-item% file-menu))])
+               (make-object separator-menu-item% file-menu))])
           
           (inherit get-edit-target-window)
           (private
@@ -943,13 +951,13 @@
                             interactions-canvases
                             interactions-canvas%
                             interactions-text)]
-                   [else (mred:bell)])))]
+                   [else (bell)])))]
             [collapse (lambda ()
                         (let* ([target (get-edit-target-window)]
                                [handle-collapse
                                 (lambda (get-canvases set-canvases!)
                                   (if (= 1 (length (get-canvases)))
-                                      (mred:bell)
+                                      (bell)
                                       (let* ([old-percentages (send resizable-panel get-percentages)]
                                              [percentages
                                               (if (eq? (car (get-canvases)) target)
@@ -995,16 +1003,16 @@
                              (handle-collapse
                               (lambda () interactions-canvases)
                               (lambda (c) (set! interactions-canvases c)))]
-                            [else (mred:bell)])))])
+                            [else (bell)])))])
           (rename [super-edit-menu:between-select-all-and-find
                    edit-menu:between-select-all-and-find])
           (override
             [edit-menu:between-select-all-and-find
              (lambda (edit-menu)
                (super-edit-menu:between-select-all-and-find edit-menu)
-               (make-object mred:menu-item% "&Split" edit-menu (lambda x (split)))
-               (make-object mred:menu-item% "C&ollapse" edit-menu (lambda x (collapse)))
-               (make-object mred:separator-menu-item% edit-menu))])
+               (make-object menu-item% "&Split" edit-menu (lambda x (split)))
+               (make-object menu-item% "C&ollapse" edit-menu (lambda x (collapse)))
+               (make-object separator-menu-item% edit-menu))])
           
           (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
           (inherit get-menu-item%)
@@ -1012,20 +1020,20 @@
             [add-edit-menu-snip-items
              (lambda (edit-menu)
                (super-add-edit-menu-snip-items edit-menu)
-               (let ([c% (class (get-menu-item%) args
+               (let ([c% (class100 (get-menu-item%) args
                            (inherit enable)
                            (rename [super-on-demand on-demand])
                            (override
                              [on-demand
                               (lambda ()
                                 (let ([edit (get-edit-target-object)])
-                                  (enable (and edit (is-a? edit mred:editor<%>)))))])
+                                  (enable (and edit (is-a? edit editor<%>)))))])
                            (sequence (apply super-init args)))])
                  (make-object c% "Insert Fraction..." edit-menu
                    (lambda (menu evt)
                      (let ([edit (get-edit-target-object)])
                        (when (and edit
-                                  (is-a? edit mred:editor<%>))
+                                  (is-a? edit editor<%>))
                          (let ([number (get-fraction-from-user)])
                            (when number
                              (send edit insert
@@ -1065,14 +1073,14 @@
                         null
                         (get-sub-items))))
                (when (ormap (lambda (child)
-                              (and (is-a? child mred:editor-canvas%)
+                              (and (is-a? child editor-canvas%)
                                    (not (send child has-focus?))))
                             (send resizable-panel get-children))
                  (let loop ([children (send resizable-panel get-children)])
                    (cond
                      [(null? children) (void)]
                      [else (let ([child (car children)])
-                             (if (is-a? child mred:editor-canvas%)
+                             (if (is-a? child editor-canvas%)
                                  (send child focus)
                                  (loop (cdr children))))])))
                
@@ -1098,13 +1106,14 @@
                (send interactions-text on-close)
                (super-on-close))])
           
-          (public
-            [running? #t]; is this necessary?
+          (public-field
+            [running? #t])
+	  (public
             [execute-callback
              (lambda ()
                (cond
                  [(send definitions-text save-file-out-of-date?)
-                  (mred:message-box 
+                  (message-box 
                    "DrScheme"
                    "The definitions text has been modified in the file-system; please save or revert the definitions text.")]
                  [else
@@ -1125,10 +1134,10 @@
                   (send interactions-text clear-undos)]))])
           
           (public
-            [after-change-name void])
+            [after-change-name (lambda () (void))])
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
-          (private
+          (private-field
             [language-menu 'uninited-language-menu])
           
           (rename [super-on-size on-size])
@@ -1143,7 +1152,7 @@
             [get-editor (lambda () definitions-text)]
             [get-canvas (lambda () definitions-canvas)])
           
-          (public
+          (public-field
             [definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
             [interactions-text (make-object 
                                    (drscheme:get/extend:get-interactions-text%)
@@ -1187,9 +1196,9 @@
                 (lambda (_1 _2) (send interactions-text kill-evaluation))
                 #\k
                 "Kill the current evaluation")
-              (make-object mred:separator-menu-item% scheme-menu)
+              (make-object separator-menu-item% scheme-menu)
               (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
-              (make-object mred:separator-menu-item% scheme-menu)
+              (make-object separator-menu-item% scheme-menu)
               (make-object menu:can-restore-menu-item%
                 "&Reindent"
                 scheme-menu
@@ -1228,15 +1237,15 @@
                       (update-shown/ensure-one definitions-item))
                     #\e
                     "Show/Hide the interactions window")))
-          (private
-            [top-panel (make-object mred:horizontal-panel% (get-area-container))]
-            [name-panel (make-object mred:vertical-panel% top-panel)]
+          (private-field
+            [top-panel (make-object horizontal-panel% (get-area-container))]
+            [name-panel (make-object vertical-panel% top-panel)]
             [resizable-panel (make-object vertical-resizable/pref% this (get-area-container))])
           (sequence
             (send name-panel stretchable-width #f)
             (send name-panel stretchable-height #f))
           
-          (public
+          (public-field
             [definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
                                   resizable-panel)]
             [definitions-canvases (list definitions-canvas)]
@@ -1250,7 +1259,7 @@
             (send definitions-canvas set-editor definitions-text)
             
             (set! save-button
-                  (make-object mred:button% 
+                  (make-object button% 
                     (make-save-bitmap this)
                     top-panel
                     (lambda args
@@ -1260,8 +1269,9 @@
                           (send definitions-canvas focus))))))
             
             (set! name-message (make-object drscheme:frame:name-message% name-panel)))
-          (private 
-            [teachpack-items null]
+          (private-field
+            [teachpack-items null])
+	  (private
             [update-teachpack-menu
              (lambda (names)
                (for-each (lambda (item) (send item delete)) teachpack-items)
@@ -1281,22 +1291,22 @@
             (update-teachpack-menu
              (preferences:get 'drscheme:teachpack-file)))
           
-          (public
+          (public-field
             [stop-execute-button (void)]
             [execute-button (void)]
-            [button-panel (make-object mred:horizontal-panel% top-panel)])
+            [button-panel (make-object horizontal-panel% top-panel)])
           
-          (private
+          (private-field
             [func-defs-canvas (make-object func-defs-canvas% name-panel definitions-text)])
           
           (sequence
             (set! execute-button
-                  (make-object mred:button%
+                  (make-object button%
                     (make-execute-bitmap this)
                     button-panel
                     (lambda (button evt) (execute-callback))))
             (set! stop-execute-button
-                  (make-object mred:button%
+                  (make-object button%
                     (make-break-bitmap this) 
                     button-panel
                     (lambda args
@@ -1309,11 +1319,11 @@
             (send top-panel change-children
                   (lambda (l)
                     (list name-panel save-button
-                          (make-object mred:vertical-panel% top-panel) ;; spacer
+                          (make-object vertical-panel% top-panel) ;; spacer
                           button-panel)))
             (send top-panel stretchable-height #f))
           
-          (private
+          (private-field
             [remove-teachpack-callback
              (preferences:add-callback
               'drscheme:teachpack-file
@@ -1384,7 +1394,7 @@
 ;; old lambda snipclass
 ;; nixed becuase of poor support from reader
 
-(make-object mred:separator-menu-item% scheme-menu)
+(make-object separator-menu-item% scheme-menu)
 (make-object menu:can-restore-menu-item%
   "Insert &Lambda"
   scheme-menu
@@ -1395,7 +1405,7 @@
 
 
 (define lambda-snipclass
-  (make-object (class mred:snip-class% ()
+  (make-object (class snip-class% ()
                  (override
                    [read
                     (lambda (p)
@@ -1403,20 +1413,20 @@
                  (sequence
                    (super-init)))))
 (send lambda-snipclass set-version 1)
-(send lambda-snipclass set-classname "mred:lambda-snip%")
-(send (mred:get-the-snip-class-list) add lambda-snipclass)
+(send lambda-snipclass set-classname "lambda-snip%")
+(send (get-the-snip-class-list) add lambda-snipclass)
 
 (define lambda-snip% 
-  (class* mred:snip% (gui-utils:text-snip<%>) ()
+  (class* snip% (gui-utils:text-snip<%>) ()
     (private
       [get-normal-font
        (lambda ()
-         (send mred:the-font-list find-or-create-font
+         (send the-font-list find-or-create-font
                (preferences:get 'drscheme:font-size)
                'modern 'normal 'normal #f))]
       [get-lambda-font
        (lambda ()
-         (send mred:the-font-list find-or-create-font 
+         (send the-font-list find-or-create-font 
                (preferences:get 'drscheme:font-size)
                'symbol 'normal 'normal #f))])
     (public

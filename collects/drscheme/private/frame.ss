@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            (lib "class.ss")
            "drsig.ss"
-           "mred-wrap.ss"
+	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
@@ -17,7 +17,7 @@
               (help : drscheme:help-interface^))
       
       (define button-label-font
-        (send mred:the-font-list find-or-create-font
+        (send the-font-list find-or-create-font
               (case (system-type)
                 [(windows) 8]
                 [else 10])
@@ -26,7 +26,7 @@
       (define button-label-inset 1)
       (define drop-shadow-size 2)
       
-      (define black-color (make-object mred:color% "BLACK"))
+      (define black-color (make-object color% "BLACK"))
       
       (define (calc-button-min-sizes dc label)
         (send dc set-font button-label-font)
@@ -46,30 +46,30 @@
             (values ans-w ans-h))))
       
       (define (offset-color color offset-one)
-        (make-object mred:color%
+        (make-object color%
           (offset-one (send color red))
           (offset-one (send color green))
           (offset-one (send color blue))))
       
-      (define light-button-color (offset-color (mred:get-panel-background)
+      (define light-button-color (offset-color (get-panel-background)
                                                (lambda (v) (floor (+ v (/ (- 255 v) 2))))))
-      (define dark-button-color (offset-color (mred:get-panel-background)
+      (define dark-button-color (offset-color (get-panel-background)
                                               (lambda (v) (floor (- v (/ v 2))))))
       
       (define (draw-button-label dc label w h inverted?)
         (send dc set-text-foreground black-color)
-        (send dc set-text-background (mred:get-panel-background))
-        (send dc set-pen (send mred:the-pen-list find-or-create-pen
-                               (mred:get-panel-background) 1 'solid))
-        (send dc set-brush (send mred:the-brush-list find-or-create-brush
-                                 (mred:get-panel-background) 'solid))
+        (send dc set-text-background (get-panel-background))
+        (send dc set-pen (send the-pen-list find-or-create-pen
+                               (get-panel-background) 1 'solid))
+        (send dc set-brush (send the-brush-list find-or-create-brush
+                                 (get-panel-background) 'solid))
         
         (send dc draw-rectangle 0 0 w h)
         
-        (send dc set-pen (send mred:the-pen-list find-or-create-pen
+        (send dc set-pen (send the-pen-list find-or-create-pen
                                "BLACK" 1 'solid))
         (send dc set-brush
-              (send mred:the-brush-list find-or-create-brush
+              (send the-brush-list find-or-create-brush
                     (if inverted? dark-button-color light-button-color) 'solid))
         
         (let ([border
@@ -104,7 +104,7 @@
                      (if inverted? drop-shadow-size 1))))))
       
       (define name-message%
-        (class mred:canvas% (parent)
+        (class canvas% (parent)
           (inherit popup-menu get-dc get-size get-client-size min-width min-height
 		   stretchable-width stretchable-height
 		   get-top-level-window)
@@ -137,7 +137,7 @@
                     
                     (set! inverted? #t)
                     (on-paint)
-                    (let ([menu (make-object mred:popup-menu% #f
+                    (let ([menu (make-object popup-menu% #f
                                   (lambda x
                                     (set! inverted? #f)
                                     (on-paint)))])
@@ -145,7 +145,7 @@
                         (cond
                           [(null? paths) (void)]
                           [else 
-                           (make-object mred:menu-item% (car paths) menu
+                           (make-object menu-item% (car paths) menu
                              (lambda (evt item)
                                (parameterize ([finder:dialog-parent-parameter
                                                (get-top-level-window)])
@@ -174,7 +174,7 @@
                     [inverted?
                      (set! inverted? #f)
                      (on-paint)
-                     (mred:message-box "DrScheme" "The file does not have a full name because it has not yet been saved.")]
+                     (message-box "DrScheme" "The file does not have a full name because it has not yet been saved.")]
                     [else
                      (void)])]
                  [(send evt button-down? 'left)
@@ -205,7 +205,7 @@
       (define basics<%> (interface (frame:standard-menus<%>)))
       
       (define keybindings-dialog%
-        (class100 mred:dialog% args
+        (class100 dialog% args
           (rename [super-on-size on-size])
           (override
             [on-size
@@ -219,14 +219,14 @@
                       (car (preferences:get 'drscheme:keybindings-window-size))
                       (cdr (preferences:get 'drscheme:keybindings-window-size))
                       #f #f '(resize-border))]
-                 [bp (make-object mred:horizontal-panel% f)]
-                 [b-name (make-object mred:button% "Sort by Name" bp (lambda x (update-bindings #f)))]
-                 [b-key (make-object mred:button% "Sort by Key" bp (lambda x (update-bindings #t)))]
+                 [bp (make-object horizontal-panel% f)]
+                 [b-name (make-object button% "Sort by Name" bp (lambda x (update-bindings #f)))]
+                 [b-key (make-object button% "Sort by Key" bp (lambda x (update-bindings #t)))]
                  [lb
-                  (make-object mred:list-box% #f null f void)]
-                 [bp2 (make-object mred:horizontal-panel% f)]
-                 [cancel (make-object mred:button% "Close" bp2 (lambda x (send f show #f)))]
-                 [space (make-object mred:grow-box-spacer-pane% bp2)]
+                  (make-object list-box% #f null f void)]
+                 [bp2 (make-object horizontal-panel% f)]
+                 [cancel (make-object button% "Close" bp2 (lambda x (send f show #f)))]
+                 [space (make-object grow-box-spacer-pane% bp2)]
                  [update-bindings
                   (lambda (by-key?)
                     (let ([format-binding/name
@@ -260,7 +260,7 @@
                  (let loop ([menu-container (get-menu-bar)])
                    (for-each
                     (lambda (item)
-                      (when (is-a? item mred:selectable-menu-item<%>)
+                      (when (is-a? item selectable-menu-item<%>)
                         (let ([short-cut (send item get-shortcut)])
                           (when short-cut
                             (let ([keyname
@@ -280,10 +280,10 @@
                               (hash-table-put! name-ht keyname (send item get-plain-label))
                               (hash-table-put! fun-ht keyname
                                                (lambda ()
-                                                 (let ([evt (make-object mred:control-event% 'menu)])
+                                                 (let ([evt (make-object control-event% 'menu)])
                                                    (send evt set-time-stamp (current-milliseconds))
                                                    (send item command evt))))))))
-                      (when (is-a? item mred:menu-item-container<%>)
+                      (when (is-a? item menu-item-container<%>)
                         (loop item)))
                     (send menu-container get-items)))
                  (values name-ht fun-ht)))]
@@ -299,7 +299,7 @@
              (lambda ()
                (let ([edit-object (get-edit-target-object)])
                  (and edit-object
-                      (is-a? edit-object mred:editor<%>)
+                      (is-a? edit-object editor<%>)
                       (let ([keymap (send edit-object get-keymap)])
                         (is-a? keymap keymap:aug-keymap<%>)))))]
             
@@ -316,17 +316,17 @@
                                   (hash-table-map table list)
                                   (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
                            (show-keybindings-to-user structured-list this)))))
-                   (mred:bell)))])
+                   (bell)))])
           
           (override
             [help-menu:before-about
              (lambda (help-menu)
-               (make-object mred:menu-item%
+               (make-object menu-item%
                  "Help Desk"
                  help-menu
                  (lambda (item evt)
                    (help:help-desk)))
-               (make-object mred:menu-item%
+               (make-object menu-item%
                  "Welcome to DrScheme"
                  help-menu
                  (lambda (item evt)
@@ -344,7 +344,7 @@
             [file-menu:open-string (lambda () "")]
             [file-menu:between-open-and-revert
              (lambda (file-menu) 
-               (make-object mred:menu-item% 
+               (make-object menu-item% 
                  "Open URL..."
                  file-menu
                  (lambda (item evt)
@@ -352,9 +352,9 @@
             
             [edit-menu:between-find-and-preferences
              (lambda (menu)
-               (make-object mred:separator-menu-item% menu)
+               (make-object separator-menu-item% menu)
                (let ([keybindings-menu-item%
-                      (class100 mred:menu-item% args
+                      (class100 menu-item% args
                         (inherit enable)
                         (override
                           [on-demand
@@ -367,7 +367,7 @@
                    (lambda x (show-keybindings))
                    #f
                    "Show the currently active keybindings"))
-               (make-object mred:separator-menu-item% menu))])
+               (make-object separator-menu-item% menu))])
           
           (sequence 
             (apply super-init args))))
@@ -383,9 +383,9 @@
           (override
             [file-menu:print
              (lambda (item control)
-               (let ([ps-setup (make-object mred:ps-setup%)])
-                 (send ps-setup copy-from (mred:current-ps-setup))
-                 (parameterize ([mred:current-ps-setup ps-setup])
+               (let ([ps-setup (make-object ps-setup%)])
+                 (send ps-setup copy-from (current-ps-setup))
+                 (parameterize ([current-ps-setup ps-setup])
                    (send (get-editor) print))))])
           
           (rename [super-make-root-area-container make-root-area-container])
@@ -395,7 +395,7 @@
           (override
             [make-root-area-container
              (lambda (% parent)
-               (let* ([s-root (super-make-root-area-container mred:vertical-panel% parent)]
+               (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
                       [root (make-object % s-root)])
                  (set! root-panel s-root)
                  root))])
@@ -410,7 +410,7 @@
              (lambda (icon string)
                (let ([p (build-path (collection-path "icons") icon)])
                  (if (file-exists? p)
-                     (make-object mred:bitmap% p 'gif)
+                     (make-object bitmap% p 'gif)
                      string)))])
           (private-field
             [currently-running? #f]
@@ -435,4 +435,4 @@
           
           (private-field
            [running-message
-            (make-object mred:message% sleepy-bitmap (get-info-panel))]))))))
+            (make-object message% sleepy-bitmap (get-info-panel))]))))))

@@ -3,8 +3,8 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
+	   (lib "mred.ss" "mred")
            "drsig.ss"
-           "mred-wrap.ss"
            (lib "framework.ss" "framework")
            (lib "file.ss"))
   

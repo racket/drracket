@@ -5,7 +5,7 @@
            (lib "url.ss")
            (lib "plt-installer.ss" "setup")
            (lib "info-thingy.ss" "setup.ss")
-           (lib "mred-wrap.ss")
+	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "startup-url.ss" "help"))
   

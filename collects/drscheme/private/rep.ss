@@ -9,7 +9,7 @@
 (module rep mzscheme
   (require (lib "unitsig.ss")
            "drsig.ss"
-           (lib "mred-wrap.ss")
+	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:pretty-print: (lib "pretty.ss"))
            (prefix print-convert: (lib "pconvert.ss"))
@@ -39,7 +39,7 @@
   
   (define (drscheme-pretty-print-size-hook x _ port)
     (cond
-     [(is-a? x mred:snip%) 1]
+     [(is-a? x snip%) 1]
      [(and
        (basis:setting-whole/fractional-exact-numbers (basis:current-setting))
        (use-number-snip? x))
@@ -52,11 +52,11 @@
 		(numerator (- x (floor x)))))))]
      [else #f]))
   
-  (define drs-bindings-keymap (make-object mred:keymap%))
+  (define drs-bindings-keymap (make-object keymap%))
   (send drs-bindings-keymap add-function
         "execute"
         (lambda (obj evt)
-          (when (is-a? obj mred:editor<%>)
+          (when (is-a? obj editor<%>)
             (let ([canvas (send obj get-canvas)])
               (when canvas
                 (let ([frame (send canvas get-top-level-window)])
@@ -65,7 +65,7 @@
   (send drs-bindings-keymap add-function
         "toggle-focus-between-definitions-and-interactions"
         (lambda (obj evt)
-          (when (is-a? obj mred:editor<%>)
+          (when (is-a? obj editor<%>)
             (let ([canvas (send obj get-canvas)])
               (when canvas
                 (let ([frame (send canvas get-top-level-window)])
@@ -116,36 +116,36 @@
       (fw:keymap:send-map-function-meta keymap "p" "put-previous-sexp")
       (fw:keymap:send-map-function-meta keymap "n" "put-next-sexp")))
   
-  (define scheme-interaction-mode-keymap (make-object mred:keymap%))
+  (define scheme-interaction-mode-keymap (make-object keymap%))
   (setup-scheme-interaction-mode-keymap scheme-interaction-mode-keymap)
   
-  (define drs-font-delta (make-object mred:style-delta% 'change-family 'decorative))
+  (define drs-font-delta (make-object style-delta% 'change-family 'decorative))
 
-  (define modern-style-delta (make-object mred:style-delta% 'change-family 'modern))
-  (define output-delta (make-object mred:style-delta%
+  (define modern-style-delta (make-object style-delta% 'change-family 'modern))
+  (define output-delta (make-object style-delta%
                          'change-weight
                          'bold))
-  (define result-delta (make-object mred:style-delta%
+  (define result-delta (make-object style-delta%
                          'change-weight
                          'bold))
-  (define error-delta (make-object mred:style-delta%
+  (define error-delta (make-object style-delta%
                         'change-style
                         'slant))
-  (send error-delta set-delta-foreground (make-object mred:color% 255 0 0))
-  (send result-delta set-delta-foreground (make-object mred:color% 0 0 175))
-  (send output-delta set-delta-foreground (make-object mred:color% 150 0 150))
+  (send error-delta set-delta-foreground (make-object color% 255 0 0))
+  (send result-delta set-delta-foreground (make-object color% 0 0 175))
+  (send output-delta set-delta-foreground (make-object color% 150 0 150))
 
-  (define welcome-delta (make-object mred:style-delta% 'change-family 'decorative))
+  (define welcome-delta (make-object style-delta% 'change-family 'decorative))
   (define click-delta (fw:gui-utils:get-clickback-delta))
-  (define red-delta (make-object mred:style-delta%))
-  (define dark-green-delta (make-object mred:style-delta%))
+  (define red-delta (make-object style-delta%))
+  (define dark-green-delta (make-object style-delta%))
   (send* red-delta
 	 (copy welcome-delta)
 	 (set-delta-foreground "RED"))  
   (send* dark-green-delta
 	 (copy welcome-delta)
 	 (set-delta-foreground "dark green"))
-  (define warning-style-delta (make-object mred:style-delta% 'change-bold))
+  (define warning-style-delta (make-object style-delta% 'change-bold))
   (send* warning-style-delta
     (set-delta-foreground "BLACK")
     (set-delta-background "YELLOW"))
@@ -174,7 +174,7 @@
 	   (map (lambda (ls)
 		  (map (lambda (s)
 			 (cond
-			   [(is-a? s mred:string-snip%)
+			   [(is-a? s string-snip%)
 			    (send s get-text 0 (send s get-count))]
 			   [(string? s) s]
 			   [else "'non-string-snip"]))
@@ -182,17 +182,17 @@
 		lls))]
 	[unmarshall (lambda (x) x)])
     (fw:preferences:set-un/marshall
-     'mred:console-previous-exprs
+     'console-previous-exprs
      marshall unmarshall))
   (let* ([list-of? (lambda (p?)
 		     (lambda (l)
 		       (and (list? l)
 			    (andmap p? l))))]
-	 [snip/string? (lambda (s) (or (is-a? s mred:snip%) (string? s)))]
+	 [snip/string? (lambda (s) (or (is-a? s snip%) (string? s)))]
 	 [list-of-snip/strings? (list-of? snip/string?)]
 	 [list-of-lists-of-snip/strings? (list-of? list-of-snip/strings?)])
     (fw:preferences:set-default
-     'mred:console-previous-exprs
+     'console-previous-exprs
      null
      list-of-lists-of-snip/strings?))
   (define (show-interactions-history)
@@ -202,12 +202,12 @@
                 300
                 400)]
            [panel (send f get-panel)]
-           [text (make-object mred:text%)]
-           [canvas (make-object mred:editor-canvas% panel text)])
+           [text (make-object text%)]
+           [canvas (make-object editor-canvas% panel text)])
       (send f show #t)))
   
-  (define error-color (make-object mred:color% "PINK"))
-  (define color? (< 8 (mred:get-display-depth)))
+  (define error-color (make-object color% "PINK"))
+  (define color? (< 8 (get-display-depth)))
   
   (define (quote-regexp-specials s)
     (list->string
@@ -223,12 +223,12 @@
   (define (in-canvas? text)
     (let ([editor-admin (send text get-admin)])
       (cond
-        [(is-a? editor-admin mred:editor-snip-editor-admin<%>)
+        [(is-a? editor-admin editor-snip-editor-admin<%>)
          (let* ([snip (send editor-admin get-snip)]
                 [snip-admin (send snip get-admin)])
            (and snip-admin
                 (in-canvas? (send snip-admin get-editor))))]
-        [(is-a? editor-admin mred:editor-admin%)
+        [(is-a? editor-admin editor-admin%)
          (send text get-canvas)]
         [else #f])))
   
@@ -250,35 +250,35 @@
   
   (define file-icon
     (let ([bitmap
-           (make-object mred:bitmap%
+           (make-object bitmap%
              (build-path (collection-path "icons") "file.gif"))])
       (if (send bitmap ok?)
-          (make-object mred:image-snip% bitmap)
-          (make-object mred:string-snip% "[open file]"))))
+          (make-object image-snip% bitmap)
+          (make-object string-snip% "[open file]"))))
   (define mf-icon 
    (let ([bitmap
-           (make-object mred:bitmap%
+           (make-object bitmap%
              (build-path (collection-path "icons") "mf.gif"))])
       (if (send bitmap ok?)
-          (make-object mred:image-snip% bitmap)
-          (make-object mred:string-snip% "[show history]"))))
+          (make-object image-snip% bitmap)
+          (make-object string-snip% "[show history]"))))
   (define bug-icon 
     (let ([bitmap
-           (make-object mred:bitmap%
+           (make-object bitmap%
              (build-path (collection-path "icons") "bug09.gif"))])
       (if (send bitmap ok?)
-          (make-object mred:image-snip% bitmap)
-          (make-object mred:string-snip% "[show history]"))))
+          (make-object image-snip% bitmap)
+          (make-object string-snip% "[show history]"))))
   
   (define (no-user-evaluation-message frame)
-    (mred:message-box
+    (message-box
      "Evaluation Terminated"
      (format "The evaluation thread is no longer running, ~
               so no evaluation can take place until ~
               the next execution.")
      frame))
 
-  (define busy-cursor (make-object mred:cursor% 'watch))
+  (define busy-cursor (make-object cursor% 'watch))
   (unless (send busy-cursor ok?)
     (printf "WARNING: could not make busy cursor~n")
     (set! busy-cursor #f))
@@ -408,7 +408,7 @@
                               (format "~a's interactions" def-filename)
                               "interactions"))
                         untitled))]
-                 [(is-a? file mred:editor<%>)
+                 [(is-a? file editor<%>)
                   (or (send file get-filename)
                       (let ([canvas (send file get-canvas)])
                         (if canvas
@@ -438,7 +438,7 @@
       ; show context
       (when (or (and (string? file)
                      (file-exists? file))
-                (is-a? file mred:text%))
+                (is-a? file text%))
         (let ([context-text (make-object fw:text:basic%)])
           (let-values ([(from-text close-text)
                         (cond
@@ -448,7 +448,7 @@
                              (values text
                                      (lambda ()
                                        (send text on-close))))]
-                          [(is-a? file mred:text%) (values file void)])])
+                          [(is-a? file text%) (values file void)])])
             (let* ([start-pos (send from-text paragraph-start-position 
                                     (send from-text position-paragraph (zodiac:location-offset start)))]
                    [from-start (- (zodiac:location-offset start) start-pos)]
@@ -474,7 +474,7 @@
                                           (format "~a's interactions" def-filename)
                                           "interactions"))
                                     untitled))]
-                             [(is-a? file mred:editor<%>)
+                             [(is-a? file editor<%>)
                               (or (send file get-filename)
                                   (let ([canvas (send file get-canvas)])
                                     (if canvas
@@ -504,7 +504,7 @@
                     ;; show context
                   (when (or (and (string? file)
                                  (file-exists? file))
-                            (is-a? file mred:text%))
+                            (is-a? file text%))
                     (let ([context-text (make-object fw:text:basic%)])
                       (let-values ([(from-text close-text)
                                     (cond
@@ -514,7 +514,7 @@
                                          (values text
                                                  (lambda ()
                                                    (send text on-close))))]
-                                      [(is-a? file mred:text%) (values file void)])])
+                                      [(is-a? file text%) (values file void)])])
                         (let* ([start-pos (send from-text paragraph-start-position 
                                                 (send from-text position-paragraph (zodiac:location-offset start)))]
                                [from-start (- (zodiac:location-offset start) start-pos)]
@@ -531,7 +531,7 @@
                           (send context-text change-style modern-style-delta 0 (send context-text last-position))
                           (send context-text highlight-range from-start from-end error-color #f #f 'high)
                           (send text insert "  ")
-                          (let ([snip (make-object mred:editor-snip% context-text)])
+                          (let ([snip (make-object editor-snip% context-text)])
                             (send ec add-wide-snip snip)
                             (send text insert snip))
                           (send text insert #\newline))
@@ -545,7 +545,7 @@
               (send context-text change-style modern-style-delta 0 (send context-text last-position))
               (send context-text highlight-range from-start from-end error-color #f #f 'high)
               (send text insert "  ")
-              (let ([snip (make-object mred:editor-snip% context-text)])
+              (let ([snip (make-object editor-snip% context-text)])
                 (send ec add-wide-snip snip)
                 (send text insert snip))
               (send text insert #\newline))
@@ -564,7 +564,7 @@
                      (zodiac:location-offset (zodiac:zodiac-start di))
                      (+ 1 (zodiac:location-offset (zodiac:zodiac-finish di)))))
              (send fr show #t)))]
-        [(is-a? filename mred:editor<%>)
+        [(is-a? filename editor<%>)
          (let ([canvas (send filename get-active-canvas)])
            (and canvas
                 (let ([fr (send canvas get-top-level-window)])
@@ -574,11 +574,11 @@
                             (zodiac:location-offset (zodiac:zodiac-start di))
                             (+ 1 (zodiac:location-offset (zodiac:zodiac-finish di)))))
                     (send fr show #t)))))]
-        [else (mred:bell)])))
+        [else (bell)])))
 
-  (define arrow-cursor (make-object mred:cursor% 'arrow))
+  (define arrow-cursor (make-object cursor% 'arrow))
   (define eof-icon-snip%
-    (class100 mred:image-snip% (rep)
+    (class100 image-snip% (rep)
       (rename [super-on-event on-event])
       (override
         [on-event
@@ -720,8 +720,8 @@
           (case-lambda
            [(ut thunk) (queue-system-callback ut thunk #f)]
            [(ut thunk always?)
-            (parameterize ([mred:current-eventspace drscheme:init:system-eventspace])
-              (mred:queue-callback 
+            (parameterize ([current-eventspace drscheme:init:system-eventspace])
+              (queue-callback 
                (lambda ()
                  (when (or always? (eq? ut user-thread))
                    (thunk)))
@@ -773,10 +773,10 @@
         (define init-transparent-input ; =Kernel=, =Handler=
           (lambda ()
             (let ([text (init-transparent-io #t)])
-              (mred:yield) ; to flush output and set `saved-newline?'
+              (yield) ; to flush output and set `saved-newline?'
               (when saved-newline?
                 (this-out-write "")
-                (mred:yield)) ; flush output again
+                (yield)) ; flush output again
               text)))
         
 	(define eof-received? #f)
@@ -830,7 +830,7 @@
                 (when starting-at-prompt-mode?
                   (set-prompt-mode #f))
                 
-                (let ([snip (make-object mred:editor-snip% transparent-text)])
+                (let ([snip (make-object editor-snip% transparent-text)])
                   (set! transparent-snip snip)
                   (insert snip (last-position) (last-position) #f)
                   (insert (string #\newline) (last-position) (last-position) #f)
@@ -958,12 +958,12 @@
         (define (wait-for-io-to-complete) ; =Kernel=, =Handler=
 	  (unless (null? io-collected-thunks)
 	    (let ([semaphore (make-semaphore 0)])
-	      (mred:queue-callback
+	      (queue-callback
 	       (lambda () ; =Kernel=, =Handler=
 		 (run-io-collected-thunks)
 		 (semaphore-post semaphore))
 	       #f)
-	      (mred:yield semaphore))))
+	      (yield semaphore))))
         (define queue-output ; =User=
           (lambda (thunk)
             (protect
@@ -1015,7 +1015,7 @@
                 (send text set-program-output #t))
 	      (let ([to-be-inserted
 		     (cond
-                      [(is-a? s mred:snip%) (send s copy)]
+                      [(is-a? s snip%) (send s copy)]
                       [(and (use-number-snip? s)
 			    (basis:setting-whole/fractional-exact-numbers user-setting))
                        (make-object drscheme:snip:whole/part-number-snip% s)]
@@ -1024,7 +1024,7 @@
 		(let ([end (+ start (cond
 				     [(string? to-be-inserted)
 				      (string-length to-be-inserted)]
-				     [(is-a? to-be-inserted mred:snip%)
+				     [(is-a? to-be-inserted snip%)
 				      (send to-be-inserted get-count)]))])
 		  (style-func start end)
 		  (send text set-prompt-position end)))
@@ -1265,7 +1265,7 @@
                       (set-clickback last-pos (last-position)
                                      (lambda (text start end)
 				       (if (send context needs-execution?)
-					   (mred:message-box
+					   (message-box
 					    "DrScheme"
 					    "The program or the language have changed; please re-execute the program")
 					   (show-backtrace-window dis message)))
@@ -1314,7 +1314,7 @@
                        (zodiac:make-location (zodiac:location-line loc)
                                              (zodiac:location-column loc)
                                              (zodiac:location-offset loc)
-                                             (if (is-a? loc-name mred:editor<%>)
+                                             (if (is-a? loc-name editor<%>)
                                                  (or (send loc-name get-filename)
                                                      loc-name)
                                                  loc-name))))])
@@ -1351,7 +1351,7 @@
                    [finish (add1 (zodiac:location-offset end-location))]
                    [file (zodiac:location-file start-location)]
                    [message
-                    (if (is-a? file mred:text%)
+                    (if (is-a? file text%)
                         input-string
                         (string-append (format-source-loc start-location end-location)
                                        input-string))])
@@ -1547,7 +1547,7 @@
           (lambda () ; =Kernel=, =Handler=
             (cond
               [(not in-evaluation?)
-               (mred:bell)]
+               (bell)]
               [ask-about-kill? 
                (if (fw:gui-utils:get-choice
 		    "Do you want to kill the evaluation?"
@@ -1587,7 +1587,7 @@
                  (lambda () ; =Other=
                    (let ([ut user-thread])
                      (thread-wait ut)
-                     (mred:queue-callback
+                     (queue-callback
                       (lambda ()
                         (when (eq? user-thread ut)
                           (if need-interaction-cleanup?
@@ -1635,7 +1635,7 @@
           (lambda ()
             (set! user-custodian (make-custodian))
             (set! user-eventspace (parameterize ([current-custodian user-custodian])
-                                    (mred:make-eventspace)))
+                                    (make-eventspace)))
             (set! user-break-enabled #t)
             (set! eval-thread-thunks null)
             (set! eval-thread-state-sema (make-semaphore 1))
@@ -1644,8 +1644,8 @@
             (let ([init-thread-complete (make-semaphore 0)]
                   [goahead (make-semaphore)]
                   [o (current-output-port)])
-              (parameterize ([mred:current-eventspace user-eventspace])
-                (mred:queue-callback
+              (parameterize ([current-eventspace user-eventspace])
+                (queue-callback
                  (lambda () ; =User=, =No-Breaks=
                    ; No user code has been evaluated yet, so we're in the clear...
                    (break-enabled #f)
@@ -1653,11 +1653,11 @@
                    
                    (parameterize ([basis:teachpack-error-display
                                    (lambda (message)
-                                     (parameterize ([mred:current-eventspace 
+                                     (parameterize ([current-eventspace 
                                                      drscheme:init:system-eventspace])
-                                       (mred:queue-callback
+                                       (queue-callback
                                         (lambda ()
-                                          (mred:message-box "Invalid Teachpack" message)))))])
+                                          (message-box "Invalid Teachpack" message)))))])
                      (initialize-parameters user-setting))
                    
                    (set! user-namespace (current-namespace))
@@ -1685,7 +1685,7 @@
                      (unless (semaphore-try-wait? eval-thread-queue-sema)
                        ; User event callbacks run here; we turn on
                        ;  breaks in the dispatch handler.
-                       (mred:yield eval-thread-queue-sema))
+                       (yield eval-thread-queue-sema))
                      ; About to eval something
                      (semaphore-wait eval-thread-state-sema)
                      (let ([thunk (car eval-thread-thunks)])
@@ -1774,7 +1774,7 @@
 	    
 	    (print-convert:current-print-convert-hook
 	     (lambda (expr basic-convert sub-convert)
-	       (let ([ans (if (is-a? expr mred:snip%)
+	       (let ([ans (if (is-a? expr snip%)
 			      expr
 			      (basic-convert expr))])
 		 ans)))
@@ -1794,7 +1794,7 @@
 		    (let ([rep (current-rep-text)])
 		      (if rep
 			  (send rep report-unlocated-error msg #f)
-			  (mred:message-box
+			  (message-box
 			   "Uncaught Error"
 			   msg
 			   (let ([canvas (send rep get-active-canvas)])
@@ -1812,9 +1812,9 @@
 	    ;; set all parameters before constructing eventspace
 	    ;; so that the parameters are set in the eventspace's
 	    ;; parameterization
-	    (let* ([primitive-dispatch-handler (mred:event-dispatch-handler)])
+	    (let* ([primitive-dispatch-handler (event-dispatch-handler)])
 	      
-	      (mred:event-dispatch-handler
+	      (event-dispatch-handler
 	       (rec drscheme-event-dispatch-handler ; <= a name for #<...> printout
 		    (lambda (eventspace) ; =User=, =Handler=
 					; Breaking is enabled if the user turned on breaks and
@@ -1933,7 +1933,10 @@
 	    (clear-undos)))
         
         (set-display/write-handlers)
+
+	;; (apply super-init args)
         (super-init)
+
         (set-styles-sticky #f))))
   
   (define make-console-text%
@@ -2126,14 +2129,14 @@
           (define copy-previous-expr
             (lambda ()
               (let ([snip/strings (list-ref (fw:preferences:get
-                                             'mred:console-previous-exprs) 
+                                             'console-previous-exprs) 
                                             previous-expr-pos)])
                 (begin-edit-sequence)
                 (unless prompt-mode?
                   (insert-prompt))
                 (delete prompt-position (last-position) #f)
                 (for-each (lambda (snip/string)
-                            (insert (if (is-a? snip/string mred:snip%)
+                            (insert (if (is-a? snip/string snip%)
                                         (send snip/string copy)
                                         snip/string)
                                     prompt-position))
@@ -2142,7 +2145,7 @@
                 (end-edit-sequence))))
           (define copy-next-previous-expr
             (lambda ()
-              (let ([previous-exprs (fw:preferences:get 'mred:console-previous-exprs)])
+              (let ([previous-exprs (fw:preferences:get 'console-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
                         (if (< (add1 previous-expr-pos) (length previous-exprs))
@@ -2151,7 +2154,7 @@
                   (copy-previous-expr)))))
           (define copy-prev-previous-expr
             (lambda ()
-              (let ([previous-exprs (fw:preferences:get 'mred:console-previous-exprs)])
+              (let ([previous-exprs (fw:preferences:get 'console-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
                         (if (<= previous-expr-pos 0)
@@ -2174,7 +2177,7 @@
                          [else snips]))])
                 (set! previous-expr-positions (cons (cons start end) previous-expr-positions))
                 (set! previous-expr-pos -1)
-                (let* ([previous-exprs (fw:preferences:get 'mred:console-previous-exprs)]
+                (let* ([previous-exprs (fw:preferences:get 'console-previous-exprs)]
                        [new-previous-exprs 
                         (let* ([trimmed-previous-exprs
                                 (if (>= (length previous-exprs) console-max-save-previous-exprs)
@@ -2184,7 +2187,7 @@
                             (if (null? l)
                                 (list snips)
                                 (cons (car l) (loop (cdr l))))))])
-                  (fw:preferences:set 'mred:console-previous-exprs new-previous-exprs))
+                  (fw:preferences:set 'console-previous-exprs new-previous-exprs))
                 (do-eval start end))))
           
           (define reset-pretty-print-width
@@ -2333,8 +2336,8 @@
               #t))
           (apply super-init args)))))
   
-  (define input-delta (make-object mred:style-delta%))
-  (send input-delta set-delta-foreground (make-object mred:color% 0 150 0))
+  (define input-delta (make-object style-delta%))
+  (send input-delta set-delta-foreground (make-object color% 0 150 0))
   (define transparent-io-text<%> 
     (interface ()
       set-program-output
@@ -2365,8 +2368,8 @@
        [stream-start/end-protect (make-semaphore 1)]
        [wait-for-sexp (make-semaphore 0)]
        [consumed-delta 
-        (make-object mred:style-delta% 'change-bold)]
-       [ibeam-cursor (make-object mred:cursor% 'ibeam)]
+        (make-object style-delta% 'change-bold)]
+       [ibeam-cursor (make-object cursor% 'ibeam)]
        [eof-submitted? #f])
       (public
         [get-insertion-point
@@ -2415,13 +2418,13 @@
 	       (semaphore-post stream-start/end-protect)
 	       (or ready-char
 		   (begin
-		     (mred:yield wait-for-sexp)
+		     (yield wait-for-sexp)
 		     (if shutdown? 
 			 eof
 			 (loop)))))))])
       (override
        [get-prompt (lambda () "")])
-      (private 
+      (private-field
 	[program-output? #f])
       (public
 	[set-program-output

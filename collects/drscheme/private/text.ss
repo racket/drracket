@@ -2,6 +2,7 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
            "drsig.ss"
            (lib "framework.ss" "framework")
            (lib "zodiac.ss" "syntax"))
@@ -12,14 +13,14 @@
     (unit/sig drscheme:text^
       (import)
       (define text<%>
-        (interface (fw:scheme:text<%>)
+        (interface (scheme:text<%>)
           printing-on
           printing-off
           is-printing?))
       
       (define text%
-        (class100* fw:scheme:text% (text<%>) args
-          (private
+        (class100* scheme:text% (text<%>) args
+          (private-field
             [printing? #f])
           (public
             [is-printing?
@@ -44,23 +45,5 @@
           ;			    (get-filename)
           ;			    "Untitled"))])
           ;	      (send dc draw-text str dx dy)))])
-          (public
-            [get-zodiac-sexp
-             (lambda ()
-               (let* ([loc (zodiac:make-location 0 0 0 this)]
-                      [port (fw:gui-utils:read-snips/chars-from-text this)]
-                      [reader (zodiac:read port loc)]
-                      [bodies (let read-loop ()
-                                (let ([expr (reader)])
-                                  (if (zodiac:eof? expr)
-                                      null
-                                      (cons expr (read-loop)))))]
-                      [built (if (null? bodies)
-                                 '(void)
-                                 `(begin ,@bodies))]
-                      [structured (zodiac:structurize-syntax
-                                   built
-                                   (zodiac:make-zodiac 'drscheme loc loc))])
-                 structured))])
           (sequence
             (apply super-init args)))))))
