@@ -524,14 +524,13 @@
 	      (unless (null? defns)
 		(let* ([defn (car defns)]
 		       [next-start (if (null? (cdr defns))
-				       #f
+				       (send text last-position)
 				       (defn-pos (car (cdr defns))))]
 					      
-		       [checked? (and next-start
-				      (and (<= (defn-pos defn)
-					       (send text get-start-position))
-					   (<  (send text get-end-position)
-					       next-start)))]
+		       [checked? (and (<= (defn-pos defn)
+                                          (send text get-start-position))
+                                      (<  (send text get-end-position)
+                                          next-start))]
 		       [item
 			(make-object (if checked?
 					 mred:checkable-menu-item%
@@ -1054,7 +1053,7 @@
 	(send name-message set-message
 	      (if filename
 		  (mzlib:file:normalize-path filename)
-		  (or (get-label) "Untitled"))
+		  #f)
 	      (or (get-label) "Untitled"))
 	'(send name-message set-message
 	      filename
