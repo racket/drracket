@@ -32,6 +32,36 @@
 	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n" (language) expression result got)))
     '(dump-memory-stats)))
 
+(define (mred)
+  (parameterize ([language "MrEd"])
+    (generic-settings)
+    (generic-output #t #t)
+    (set-language #f)
+    (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
+    
+    (let ([drs (wait-for-drscheme-frame)])
+      (clear-definitions drs)
+      (set-language #t)
+      (do-execute drs))
+    
+    (test-expression "mred^" "compile: illegal use of an expansion-time value name in: mred^")
+    (test-expression "(eq? 'a 'A)" "#t")
+    (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+    (test-expression "(cond [(= 1 2) 3])" "")
+    (test-expression "(cons 1 2)" "(1 . 2)")
+    (test-expression "'(1)" "(1)")
+    (test-expression "(define shrd (box 1)) (list shrd shrd)"
+		     "(#&1 #&1)")
+    (test-expression "(local ((define x x)) 1)" "define-values: illegal use (not at top-level) in: (#%define-values (x) x)")
+    (test-expression "(if 1 1 1)" "1")
+    (test-expression "(eq? 1 1)" "#t")
+    (test-expression "(+ 1)" "1")
+    (test-expression "1.0" "1.0")
+    (test-expression "#i1.0" "1.0")
+    (test-expression "3/2" "3/2")
+    (test-expression "(list 1)" "(1)")
+    (test-expression "argv" "#0()")))
+
 (define (mzscheme)
   (parameterize ([language "MzScheme"])
     (generic-settings)
@@ -44,6 +74,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "")
@@ -62,6 +93,42 @@
     (test-expression "argv" "#0()")))
 
 
+(define (mred-debug)
+  (parameterize ([language "MrEd Debug"])
+    (generic-settings)
+    (generic-output #t #t)
+    (set-language #f)
+    (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "no matching cond clause")
+    (set-language #f)
+    (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
+		  "Variable x referenced before definition or initialization")
+    (set-language #f)
+    (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
+    
+    (let ([drs (wait-for-drscheme-frame)])
+      (clear-definitions drs)
+      (set-language #t)
+      (do-execute drs))
+    
+    (test-expression "mred^" "Invalid use of signature name mred^")
+    (test-expression "(eq? 'a 'A)" "#t")
+    (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+    (test-expression "(cond [(= 1 2) 3])" "")
+    (test-expression "(cons 1 2)" "(1 . 2)")
+    (test-expression "'(1)" "(1)")
+    (test-expression "(define shrd (box 1)) (list shrd shrd)"
+		     "(#&1 #&1)")
+    (test-expression "(local ((define x x)) 1)" "Invalid position for internal definition")
+    (test-expression "(letrec ([x x]) 1)" "1")
+    (test-expression "(if 1 1 1)" "1")
+    (test-expression "(eq? 1 1)" "#t")
+    (test-expression "(+ 1)" "1")
+    (test-expression "1.0" "1.0")
+    (test-expression "#i1.0" "1.0")
+    (test-expression "3/2" "3/2")
+    (test-expression "(list 1)" "(1)")
+    (test-expression "argv" "#0()")))
+
 (define (mzscheme-debug)
   (parameterize ([language "MzScheme Debug"])
     (generic-settings)
@@ -79,6 +146,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "")
@@ -107,6 +175,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#f")
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
@@ -140,6 +209,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#f")
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
@@ -173,6 +243,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#f")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
@@ -230,10 +301,10 @@
 	      (unless (whitespace-string=? answer got)
 		(printf "FAILED ~a ~a, sharing ~a, rationals ~a, got ~s expected ~s~n"
 			(language) option show-sharing rationals got answer))))])
-
+    
     (clear-definitions drs)
     (type-in-definitions drs expression)
-
+    
     (test "write" 'off #f "(#&3/2 #&3/2)")    
     (test "write" 'on #f "(#0=#&3/2 #0#)")
     (when quasi-quote?
@@ -342,5 +413,7 @@
 (zodiac-beginner)
 (zodiac-intermediate)
 (zodiac-advanced)
-(mzscheme)
 (mzscheme-debug)
+(mred-debug)
+(mzscheme)
+(mred)
