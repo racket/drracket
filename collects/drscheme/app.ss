@@ -146,7 +146,7 @@
 		(let ([f (mred:edit-file x)])
 		  (unless console
 		    (set! console f))))
-	      (vector->list I:argv))
+	      (reverse (vector->list I:argv)))
     
     (unless console
       (set! console (make-object (drscheme:parameters:current-frame%) #f #f))
