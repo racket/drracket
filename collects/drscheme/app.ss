@@ -2,8 +2,31 @@
   (unit/sig drscheme:app^
     (import [mred : mred-interfaces^]
 	    [mzlib : mzlib:core^]
-	    [fw : framework^])
+	    [fw : framework^]
+	    [drscheme:unit : drscheme:unit^]
+	    [drscheme:frame : drscheme:frame^])
     
+    (define about-frame%
+      (class (drscheme:frame:basics-mixin fw:frame:standard-menus%) (main-media)
+	(private
+	  [edit-menu:do 
+	   (lambda (const)
+	     (lambda (_1 _2)
+	       (send main-media do-edit-operation const)))])
+	(override
+	 [file-menu:revert #f]
+	 [file-menu:save #f]
+	 [file-menu:save-as #f]
+	 [file-menu:between-close-and-quit (lambda (x) (void))]
+	 [file-menu:between-print-and-close (lambda (x) (void))]
+	 [edit-menu:between-redo-and-cut (lambda (x) (void))]
+	 [edit-menu:between-select-all-and-find (lambda (x) (void))]
+	 [edit-menu:copy (edit-menu:do 'copy)]
+	 [edit-menu:select-all (edit-menu:do 'select-all)]
+	 [edit-menu:find #f])
+	(sequence
+	  (super-init "About DrScheme"))))
+
     (define about-drscheme
       (lambda ()
 	(let* ([names (string-append
@@ -36,7 +59,7 @@
 				 (send snip resize new-width
 				       17) ; smallest random number
 				 (send snip set-max-height 'none))))
-			   (send (send snip get-editor) begin-edit-sequence)))
+			   (send (send snip get-editor) end-edit-sequence)))
 		       (end-edit-sequence))]))]
 	       [e (make-object wrap-edit%)]
 	       [main-media (make-object wrap-edit%)]
@@ -53,27 +76,7 @@
 			(send i insert "[lambda]")
 			i)))]
 	       [media-snip (make-object mred:editor-snip% e #f)]
-	       [f (make-object (class-asi fw:frame:standard-menus%
-				 (private
-				   [edit-menu:do 
-				    (lambda (const)
-				      (lambda (_1 _2)
-					(send main-media do-edit-operation const)))])
-				 (override
-				  [file-menu:new #f]
-				  [file-menu:revert #f]
-				  [file-menu:save #f]
-				  [file-menu:save-as #f]
-				  [file-menu:between-close-and-quit (lambda (x) (void))]
-				  [file-menu:between-print-and-close (lambda (x) (void))]
-				  [edit-menu:between-redo-and-cut (lambda (x) (void))]
-				  [edit-menu:between-select-all-and-find (lambda (x) (void))]
-				  [edit-menu:copy (edit-menu:do 'copy)]
-				  [edit-menu:select-all (edit-menu:do 'select-all)]
-				  [edit-menu:find #f]
-				  [help-menu:about (lambda (_1 _2) (about-drscheme))]
-				  [help-menu:about-string (lambda () "DrScheme")]))
-		    "About DrScheme")]
+	       [f (make-object about-frame% main-media)]
 	       [c (make-object mred:editor-canvas% (send f get-area-container))]
 	       [top (make-object mred:style-delta% 'change-alignment 'top)]
 	       [d-usual (make-object mred:style-delta% 'change-family 'decorative)]

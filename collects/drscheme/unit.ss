@@ -223,7 +223,9 @@
       (sequence
 	(super-init))))
   
-  (define super-frame% (drscheme:frame:mixin fw:frame:text-info-file%))
+  (define super-frame%
+    (drscheme:frame:mixin
+     (drscheme:frame:basics-mixin fw:frame:text-info-file%)))
   
   (define frame%
     (class* super-frame% (drscheme:face:unit-frame<%>) (unit)

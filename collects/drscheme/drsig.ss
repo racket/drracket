@@ -79,7 +79,11 @@
    make-unit))
 
 (define-signature drscheme:frame^
-  (<%> mixin))
+  (<%>
+   mixin
+   basics-mixin
+   basics<%>
+   help-desk))
 
 (define-signature drscheme:compound-unit^
   (frame% snip% compound-unit% make-compound-unit))
