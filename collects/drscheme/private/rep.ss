@@ -600,7 +600,6 @@
           set-prompt-position
           get-prompt-position
           
-          
           do-pre-eval
           do-eval
           do-post-eval

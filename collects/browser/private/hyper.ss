@@ -140,16 +140,13 @@
                                       (unless (or (exn:break? x)
                                                   (exn:file-saved-instead? x)
                                                   (exn:cancelled? x))
-                                        (message-box
-                                         (string-constant error)
-                                         (format (string-constant cannot-display-url) 
-                                                 url-string
-                                                 (if (exn? x)
-                                                     (exn-message x)
-                                                     x)))))])
+                                        ((error-display-handler)
+                                         (if (exn? x) (exn-message x) (format "~s" x))
+                                         x)))])
                      (send (get-canvas) goto-url url-string (get-url) void post-data)))
                  url-string
                  post-data)))
+            
             [define/public on-url-click (lambda (f x post-data) 
                                           (let ([c (get-canvas)])
                                             (if c

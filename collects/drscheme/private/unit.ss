@@ -4,20 +4,16 @@ startup failure is because of overridden enable-evaluations are
 doing bad things.
 
 tab panels bug fixes:
-  - mode menu initially right, but interactions not in the right mode
   - can-close? needs to account for all tabs
-  - module browser
+  - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
-  - scroll bar position
-  - breaking & disable/enable should be global
-  - running/not running message at bottom of screen should be global
   - ensure-rep-shown message must manipulate the tabs
-  - disable evaluation must disable all tabs, not just the current one
+  - bringing files to the front when in other tabs (handler:???-file?)
 
 tab panels new behavior:
   - closing a single tab
   - open files in new tabs (not new windows)
-  - save all tabs (pr 6689)
+  - save all tabs (pr 6689?)
 |#
 
 (module unit mzscheme
@@ -385,6 +381,24 @@ tab panels new behavior:
         (class (make-searchable-canvas% (canvas:delegate-mixin canvas:info%))
           (super-new)))
       
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+;       ;           ;;;            ;        ;                                                      
+;       ;          ;    ;                                                                          
+;       ;          ;                   ;                                   ;                   ;   
+;    ;; ;    ;;;  ;;;;;;;  ; ;;    ;  ;;;;  ;    ;;;    ; ;;     ;;;      ;;;;   ;;;  ;     ; ;;;; 
+;   ;  ;;   ;   ;  ;    ;  ;;  ;   ;   ;    ;   ;   ;   ;;  ;   ;          ;    ;   ;  ;   ;   ;   
+;  ;    ;  ;    ;  ;    ;  ;   ;   ;   ;    ;  ;     ;  ;   ;   ;;         ;   ;    ;   ; ;    ;   
+;  ;    ;  ;;;;;;  ;    ;  ;   ;   ;   ;    ;  ;     ;  ;   ;    ;;        ;   ;;;;;;    ;     ;   
+;  ;    ;  ;       ;    ;  ;   ;   ;   ;    ;  ;     ;  ;   ;      ;       ;   ;        ; ;    ;   
+;   ;  ;;   ;      ;    ;  ;   ;   ;   ;    ;   ;   ;   ;   ;      ;       ;    ;      ;   ;   ;   
+;    ;; ;    ;;;;  ;    ;  ;   ;   ;    ;;  ;    ;;;    ;   ;   ;;;         ;;   ;;;; ;     ;   ;; 
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+
+
       (define definitions-text<%> 
         (interface ()
           change-mode-to-match))
@@ -410,17 +424,19 @@ tab panels new behavior:
                        text:info%))))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
+            
+            (define interactions-text #f)
+            (define/public (set-interactions-text it)
+              (set! interactions-text it))
               
             (inherit get-surrogate set-surrogate)
             (define/public (set-current-mode mode)
               (let ([surrogate (drscheme:modes:mode-surrogate mode)])
                 (set-surrogate surrogate)
-                (let ([fr (get-top-level-window)])
-                  (when fr
-                    (let ([interactions-text (send fr get-interactions-text)])
-                      (send interactions-text set-surrogate surrogate)
-                      (send interactions-text set-submit-predicate
-                            (drscheme:modes:mode-repl-submit mode)))))))
+                (when interactions-text
+                  (send interactions-text set-surrogate surrogate)
+                  (send interactions-text set-submit-predicate
+                        (drscheme:modes:mode-repl-submit mode)))))
 
             (define/public (is-current-mode? mode)
               (let ([surrogate (drscheme:modes:mode-surrogate mode)])
@@ -441,10 +457,6 @@ tab panels new behavior:
                                 (unless (is-current-mode? mode)
                                   (set-current-mode mode))
                                 (loop (cdr modes))))]))))
-            
-            (define/private (set-initial-mode)
-              (set-current-mode (car (last-pair (drscheme:modes:get-modes))))
-              (change-mode-to-match))
             
             (rename [super-after-save-file after-save-file])
             (define/override (after-save-file success?)
@@ -582,8 +594,7 @@ tab panels new behavior:
             
             (field [error-arrows #f])
             
-            (super-new)
-            (set-initial-mode))))
+            (super-new))))
       
       
                                                        
@@ -923,7 +934,11 @@ tab panels new behavior:
           get-definitions-canvas
           execute-callback))
 
-      (define-struct tab (defs ints))
+      ;; defs : definitions-text
+      ;; ints : interactions-text
+      ;; visible-defs : (listof (list number number number number))
+      ;; visible-ints : (listof (list number number number number))
+      (define-struct tab (defs ints visible-defs visible-ints))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%>)
@@ -1172,7 +1187,6 @@ tab panels new behavior:
           
           (define evaluation-enabled? #t)
           (define/public (disable-evaluation)
-            (printf "disable evaluation\n")
             (set! evaluation-enabled? #f)
             (when execute-menu-item
               (send execute-menu-item enable #f))
@@ -1181,7 +1195,6 @@ tab panels new behavior:
             (send interactions-text lock #t)
             (send file-menu:create-new-tab-item enable #f))
           (define/public (enable-evaluation)
-            (printf "enable evaluation\n")
             (set! evaluation-enabled? #t)
             (when execute-menu-item
               (send execute-menu-item enable #t))
@@ -1875,9 +1888,14 @@ tab panels new behavior:
           (define interactions-text (make-object (drscheme:get/extend:get-interactions-text) this))
           (define/public (get-definitions-text) definitions-text)
           (define/public (get-interactions-text) interactions-text)
-
+          
+          ;; wire the definitions text to the interactions text and initialize it.
+          (define/private (init-definitions-text)
+            (send definitions-text set-interactions-text interactions-text)
+            (send definitions-text change-mode-to-match))
+          
           ;; tabs : (listof tab)
-          (define tabs (list (make-tab definitions-text interactions-text)))
+          (define tabs (list (make-tab definitions-text interactions-text #f #f)))
           
           ;; current-tab : tab
           ;; corresponds to the tabs-panel's active button.
@@ -1887,21 +1905,21 @@ tab panels new behavior:
           ;; creates a new tab and updates the GUI for that new tab
           (define (create-new-tab) 
             (when evaluation-enabled?
-              (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
-                     [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
-                     [new-tab (make-tab defs ints)])
+              (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+                     [defs (new (drscheme:get/extend:get-definitions-text))]
+                     [new-tab (make-tab defs ints #f #f)])
                 (set! tabs (append tabs (list new-tab)))
                 (send tabs-panel append "new name")
-                (when ((send tabs-panel get-number) . > . 1)
-                  (send (send tabs-panel get-parent)
-                        change-children
-                        (lambda (l)
-                          (if (memq tabs-panel l)
-                              l
-                              (cons tabs-panel l))))
-                  (change-to-tab (- (send tabs-panel get-number) 1))
-                  (send ints initialize-console)
-                  (send tabs-panel set-selection (- (send tabs-panel get-number) 1))))))
+                (send (send tabs-panel get-parent)
+                      change-children
+                      (lambda (l)
+                        (if (memq tabs-panel l)
+                            l
+                            (cons tabs-panel l))))
+                (change-to-tab (- (send tabs-panel get-number) 1))
+                (init-definitions-text)
+                (send ints initialize-console)
+                (send tabs-panel set-selection (- (send tabs-panel get-number) 1)))))
           
           ;; change-to-tab : number -> void
           ;; updates current-tab, definitions-text, and interactactions-text
@@ -1909,6 +1927,7 @@ tab panels new behavior:
           (define (change-to-tab n)
             (unless (< n (length tabs))
               (error 'change-to-tab "number too big ~s" n))
+            (save-visible-tab-regions)
             (set! current-tab (list-ref tabs n))
             (set! definitions-text (tab-defs current-tab))
             (set! interactions-text (tab-ints current-tab))
@@ -1916,10 +1935,45 @@ tab panels new behavior:
                       definitions-canvases)
             (for-each (lambda (ints-canvas) (send ints-canvas set-editor interactions-text))
                       interactions-canvases)
+            (restore-visible-tab-regions)
             (update-save-message)
             (update-save-button)
             (send definitions-text update-frame-filename))
           
+          (define/private (save-visible-tab-regions)
+            (define (get-visible-regions txt)
+              (map (lambda (canvas) (get-visible-region txt canvas))
+                   (send txt get-canvases)))
+            (define (get-visible-region txt canvas)
+              (let ([xb (box 0)]
+                    [yb (box 0)]
+                    [wb (box 0)]
+                    [hb (box 0)])
+                (send canvas call-as-primary-owner
+                      (lambda ()
+                        (let ([admin (send txt get-admin)])
+                          (when admin
+                            (send admin get-view xb yb wb hb)))))
+                (list (unbox xb) (unbox yb) (unbox wb) (unbox hb))))
+            (set-tab-visible-ints! current-tab (get-visible-regions interactions-text))
+            (set-tab-visible-defs! current-tab (get-visible-regions definitions-text)))
+                
+          (define/private (restore-visible-tab-regions)
+            (define (set-visible-regions txt regions)
+              (when regions
+                (let ([canvases (send txt get-canvases)])
+                  (when (= (length canvases) (length regions))
+                    (for-each (lambda (c r) (set-visible-region txt c r)) canvases regions)))))
+            (define (set-visible-region txt canvas region)
+              (send canvas scroll-to 
+                    (first region)
+                    (second region)
+                    (third region)
+                    (fourth region)
+                    #t))
+            (set-visible-regions interactions-text (tab-visible-ints current-tab))
+            (set-visible-regions definitions-text (tab-visible-defs current-tab)))
+              
           (define (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
             (for-each (lambda (item) (send item delete)) teachpack-items)
@@ -2160,6 +2214,8 @@ tab panels new behavior:
             (style '(toolbar-button))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
+
+          (init-definitions-text)
 
           
 ;                                            
