@@ -1039,10 +1039,10 @@
 	[execute-callback
 	 (lambda ()
            (cond
-             [#f 
-              (message-box 
+             [(send definitions-text save-file-out-of-date?)
+              (mred:message-box 
                "DrScheme"
-               "The definitions text has been modified in the file-system; please save or revert the definitions text")]
+               "The definitions text has been modified in the file-system; please save or revert the definitions text.")]
              [else
               (ensure-rep-shown)
               (send definitions-text just-executed)
