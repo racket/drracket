@@ -109,7 +109,7 @@
 ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
  (build-path (collection-path "icons") "plt.gif")
  "DrScheme"
- 81)
+ 99)
 
 (module drscheme mzscheme
   (require "private/link.ss"

@@ -262,12 +262,18 @@
                   (lambda (l)
                     (if details-shown? (list details-panel) null))))
 
+          ;; cancelled? : boolean
+          ;; flag that indicates if the dialog was cancelled.
+          (define cancelled? #t)
+          
 	  ;; ok-callback : -> void
           (define (ok-callback)
+            (set! cancelled? #f)
 	    (send dialog show #f))
           
           ;; cancel-callback : -> void
-	  (define (cancel-callback) (send dialog show #f))
+	  (define (cancel-callback)
+            (send dialog show #f))
 
           ;; revert-to-defaults-callback : -> void
           (define (revert-to-defaults-callback)
@@ -322,12 +328,13 @@
 		(text-width (send languages-hier-list get-editor)))
 	  (close-all-languages)
 	  (open-current-language)
-          (get/set-selected-language-settings 
-           (send selected-language default-settings))
+          (get/set-selected-language-settings settings-to-show)
           (send dialog show #t)
-          (make-language-settings
-	   selected-language
-	   (get/set-selected-language-settings))))
+          (if cancelled?
+              language-settings-to-show
+              (make-language-settings
+               selected-language
+               (get/set-selected-language-settings)))))
  
       ;; system-font-space->= : string string -> boolean
       ;; determines which string is wider, when drawn in the system font
