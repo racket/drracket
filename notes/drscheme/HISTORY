@@ -6,6 +6,9 @@ Version 102:
 
  FUNCTIONALITY CHANGES
 
+ - the framework's gui-utils:get-snips/chars-from-buffer is now
+   gui-utils:get-snips/chars-from-text
+
  - zodiac now supports graphical expressions. If a snip implements
    zodiac's expand<%> interface, zodiac calls a method of the snip to
    expand it. Docs updated but not built.
