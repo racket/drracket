@@ -1145,17 +1145,28 @@ tab panels new behavior:
           (define/private (update-tabs-labels)
             (for-each
              (λ (tab)
-               (let* ([defs (tab-defs tab)]
-                      [fn (send defs get-filename)]
-                      [label
-                       (if fn
-                           (let-values ([(base name dir?) (split-path fn)])
-                             (path->string name))
-                           (send defs get-filename/untitled-name))])
+               (let* ([label (get-defs-tab-label (tab-defs tab))])
                  (unless (equal? label (send tabs-panel get-item-label (tab-i tab)))
                    (send tabs-panel set-item-label (tab-i tab) label))))
              tabs)
-            (send tabs-panel set-selection (tab-i current-tab)))
+            (send tabs-panel set-selection (tab-i current-tab))
+            (send (send tabs-panel get-parent)
+                  change-children
+                  (λ (l)
+                    (cond
+                      [(= (send tabs-panel get-number) 1)
+                       (remq tabs-panel l)]
+                      [else
+                       (if (memq tabs-panel l)
+                           l
+                           (cons tabs-panel l))]))))
+          
+          (define/private (get-defs-tab-label defs)
+            (let ([fn (send defs get-filename)])
+              (if fn
+                  (let-values ([(base name dir?) (split-path fn)])
+                    (path->string name))
+                  (send defs get-filename/untitled-name))))
 
           [define/override get-canvas% (λ () (drscheme:get/extend:get-definitions-canvas))]
           
@@ -1246,6 +1257,9 @@ tab panels new behavior:
                  (label (string-constant close-tab))
                  (shortcut #\-)
                  (parent file-menu)
+                 (demand-callback
+                  (lambda (item)
+                    (send item enable (1 . < . (send tabs-panel get-number)))))
                  (callback
                   (λ (x y)
                     (close-current-tab))))
@@ -1841,7 +1855,6 @@ tab panels new behavior:
           ;; corresponds to the tabs-panel's active button.
           (define current-tab (car tabs))
           
-          (define tab-count 1)
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab) 
@@ -1849,16 +1862,10 @@ tab panels new behavior:
             (when evaluation-enabled?
               (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                      [defs (new (drscheme:get/extend:get-definitions-text))]
+                     [tab-count (length tabs)]
                      [new-tab (make-tab defs ints #f #f tab-count)])
                 (set! tabs (append tabs (list new-tab)))
-                (send tabs-panel append (format "tab ~a" tab-count))
-                (set! tab-count (+ tab-count 1))
-                (send (send tabs-panel get-parent)
-                      change-children
-                      (λ (l)
-                        (if (memq tabs-panel l)
-                            l
-                            (cons tabs-panel l))))
+                (send tabs-panel append (get-defs-tab-label defs))
                 (change-to-nth-tab (- (send tabs-panel get-number) 1))
                 (init-definitions-text)
                 (send ints initialize-console)
@@ -1908,8 +1915,9 @@ tab panels new behavior:
                                                   (cdr l-tabs)))])
                               (send tabs-panel delete (tab-i tab))
                               (set! tabs new-tabs)
+                              (print "change-to-tab ~s ~s\n" l-tabs acc)
                               (change-to-tab (if (null? acc)
-                                                 (cadr l-tabs)
+                                                 (car l-tabs)
                                                  (car acc)))))
                           (loop (cdr l-tabs)
                                 (cons tab acc))))]))]))
@@ -1925,7 +1933,6 @@ tab panels new behavior:
                         #f]))])
               (and (close-editor (tab-defs tab))
                    (close-editor (tab-ints tab)))))
-                     
           
           (define/public (open-in-new-tab filename)
             (if evaluation-enabled?
