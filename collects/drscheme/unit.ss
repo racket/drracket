@@ -75,7 +75,10 @@
 				   (collection-path "icons")
 				   (string-append filename ".bmp"))])
 		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
-		       (make-bitmap path capd)))
+		       (make-bitmap path
+				    (if (string=? capd "Execute")
+					"Restart"
+					capd))))
 		   (list "execute" "help" "save" "break"))))
   
   ;; this is the old definition of the interactions canvas.
@@ -469,10 +472,10 @@
 	     (drscheme:language:fill-language-menu language-menu)
 	     
 	     (send* scheme-menu
-	       (append-item "Execute"
+	       (append-item "Restart"
 			    (lambda ()
 			      (execute-callback))
-			    "Execute the definitions window" #f "t")
+			    "Restart the program in the definitions window" #f "t")
 	       (append-item "Break"
 			    (lambda ()
 			      (send interactions-edit break))
