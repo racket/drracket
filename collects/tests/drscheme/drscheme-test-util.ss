@@ -141,15 +141,25 @@
 		     #f)))])
 	(poll-until wait-for-new-frame-pred timeout))]))
 
+  ;; wait-for-computation : frame -> void
+  ;; waits until the drscheme frame finishes some computation.
+  ;; uses the state of the execute button to indicate when the
+  ;; computations is finished. That is, waits for the execute
+  ;; button to dim, indicating a computation is running. Then,
+  ;; waits for it to be re-enabled, indicating that the computation
+  ;; is complete.
   (define (wait-for-computation frame)
     (verify-drscheme-frame-frontmost 'wait-for-computation frame)
-    (let* ([wait-for-computation-pred
+    (let* ([wait-for-computation-to-start
+	    (lambda ()
+	      (fw:test:reraise-error)
+	      (not (send (send frame get-execute-button) is-enabled?)))]
+           [wait-for-computation-to-finish
 	    (lambda ()
 	      (fw:test:reraise-error)
 	      (send (send frame get-execute-button) is-enabled?))])
-      (poll-until
-       wait-for-computation-pred
-       60)))
+      ;(poll-until wait-for-computation-to-start 60) ;; hm.
+      (poll-until wait-for-computation-to-finish 60)))
 
   (define do-execute 
     (case-lambda
@@ -388,9 +398,9 @@
       (let ([start (send interactions-text paragraph-start-position 2)]
 	    [end (send interactions-text paragraph-end-position
 		       (- (send interactions-text last-paragraph) 1))])
-	(send interactions-text split-snip start)
+        (send interactions-text split-snip start)
 	(send interactions-text split-snip end)
-	(let loop ([pos start])
+        (let loop ([pos start])
 	  (cond
 	   [(<= end pos) #f]
 	   [else
@@ -426,9 +436,12 @@
      [(frame start end)
       (verify-drscheme-frame-frontmost 'fetch-output frame)
       (let ([interactions-text (send frame get-interactions-text)])
-	(send interactions-text split-snip start)
-	(send interactions-text split-snip end)
-	(let loop ([snip (send interactions-text find-snip end 'before)]
+
+        ;; this split-snip triggers a flow lock contract violation
+        (send interactions-text split-snip start)
+	
+        (send interactions-text split-snip end)
+        (let loop ([snip (send interactions-text find-snip end 'before)]
 		   [strings null])
 	  (cond
 	    [(< (send interactions-text get-snip-position snip) start)
