@@ -237,7 +237,8 @@
   
   (define-signature drscheme:module-overview^
     (module-overview
-     make-module-overview-pasteboard))
+     make-module-overview-pasteboard
+     fill-pasteboard))
 
   (define-signature drscheme:tool-exports^
     (phase1 

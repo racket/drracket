@@ -1,24 +1,4 @@
-#|
 
-todo : 
-
- - the flag that controls the new font size and also re-lays out the snips needs to be re-instated
-
- - add a way to hide lib-based paths to show-menu version of graph
- 
- - lines field can be #f and filename field might not be a file, so double check everything
-   and rename things!
- 
- - build abstraction for breakable drscheme:eval?
- 
- - in unit.ss
-    - status line messages timing is wrong (can be closed and still sending messages)
-    - shutdown the custodian when expansion is finished
-
- - disable module browser in all languages except module language and PLT languages
-   (popup message box when selecting menu item)
-    
-|#
 (module module-overview mzscheme
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
@@ -30,7 +10,8 @@ todo :
            (lib "graph.ss" "mrlib")
            "drsig.ss"
            (lib "unitsig.ss")
-           (lib "unit.ss"))
+           (lib "unit.ss")
+           (lib "async-channel.ss"))
   
   (provide module-overview@)
   (define module-overview@
@@ -91,6 +72,9 @@ todo :
       (define (make-module-overview-pasteboard vertical? show-filenames? mouse-currently-over)
         
         (define level-ht (make-hash-table))
+
+        ;; snip-table : hash-table[sym -o> snip]
+        (define snip-table (make-hash-table))
         (define label-font (find-label-font (preferences:get 'drscheme:module-overview:label-font-size)))
         (define text-color (make-object color% "blue"))
         
@@ -116,6 +100,8 @@ todo :
                      dc-location-to-editor-location
                      find-snip
                      get-canvas)
+            
+            (field [max-lines #f])
             
             ;; controls if the snips should be moved
             ;; around when the font size is changed.
@@ -159,20 +145,18 @@ todo :
                    (set! font-label-size-callback-running? #f))
                  #f)))
             
-            (field [max-lines #f])
-            
             (define/public (begin-adding-connections)
               (when max-lines
                 (error 'begin-adding-connections "already in begin-adding-connections/end-adding-connections sequence"))
               (set! max-lines 0)
-              
+              (begin-edit-sequence)
               (let loop ()
                 (let ([s (find-first-snip)])
                   (when s
                     (send s release-from-owner)
                     (loop))))
-              (set! snip-table (make-hash-table))
-              (begin-edit-sequence))
+              (set! level-ht (make-hash-table))
+              (set! snip-table (make-hash-table)))
 
             (define/public (end-adding-connections)
               (unless max-lines
@@ -235,11 +219,9 @@ todo :
                      (send snip get-children))))))
             
             ;; find/create-snip : (union string[filename] string) boolean? -> word-snip/lines
-            ;; snip-table : hash-table[sym -o> snip]
             ;; finds the snip with this key, or creates a new
             ;; ones. For the same key, always returns the same snip.
             ;; uses snip-table as a cache for this purpose.
-            (define snip-table (make-hash-table))
             (define (find/create-snip name is-filename?)
               (let ([key (string->symbol name)])
                 (hash-table-get
@@ -564,16 +546,7 @@ todo :
 ;   ;                                                    ;                   ;    ;  
 ;   ;                                                    ;                    ;;;;   
 
-      
-      ;; process-program : string channel -> thread
-      ;; process-program creates (and returns) a thread that processes the given program,
-      ;; putting values into the channel for the connections amoung the modules
-      (define (process-program filename channel)
-        (thread
-         (lambda ()
-           (define-values/invoke-unit (add-connections) (process-program-unit channel))
-           (add-connections filename))))
-      
+
       (define process-program-unit
         (unit 
           (import progress-channel
@@ -592,9 +565,7 @@ todo :
               [(string? filename/stx)
                (add-filename-connections filename/stx)]
               [(syntax? filename/stx)
-               (add-syntax-connections filename/stx)])
-            
-            (channel-put progress-channel 'done))
+               (add-syntax-connections filename/stx)]))
           
           ;; add-syntax-connections : syntax -> void
           (define (add-syntax-connections stx)
@@ -603,12 +574,24 @@ todo :
                (lambda (module-code)
                  (when (compiled-module-expression? module-code)
                    (let* ([name (extract-module-name stx)]
-                          [base (if (regexp-match #rx"^," name)
-                                    (substring name 1 (string-length name))
-                                    (build-path (current-load-relative-directory) name))])
+                          [base 
+                           (build-module-filename
+                            (if (regexp-match #rx"^," name)
+                                (substring name 1 (string-length name))
+                                (build-path (current-load-relative-directory) name)))])
                      (add-module-code-connections base module-code))))
                module-codes)))
           
+          (define (build-module-filename str)
+            (let ([try (lambda (ext)
+                         (let ([tst (string-append str ext)])
+                           (and (file-exists? tst)
+                                tst)))])
+              (or (try ".ss")
+                  (try ".scm")
+                  (try "")
+                  str)))
+              
           ;; add-filename-connections : string -> void
           (define (add-filename-connections filename)
             (add-module-code-connections filename (get-module-code filename)))
@@ -616,7 +599,7 @@ todo :
           (define (add-module-code-connections module-name module-code)
             (let ([visited-key (string->symbol module-name)])
               (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
-                (channel-put progress-channel (format adding-file module-name))
+                (async-channel-put progress-channel (format adding-file module-name))
                 (hash-table-put! visited-hash-table visited-key #t)
                 (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
                   (let ([requires (extract-filenames imports module-name)]
@@ -641,10 +624,10 @@ todo :
           ;; original-filename? and require-filename? are booleans indicating if the names
           ;; are filenames.
           (define (add-connection name-original name-require is-lib? for-syntax?)
-            (channel-put connection-channel (list name-original 
-                                                  name-require  
-                                                  is-lib?
-                                                  for-syntax?)))
+            (async-channel-put connection-channel (list name-original 
+                                                        name-require  
+                                                        is-lib?
+                                                        for-syntax?)))
           
           (define (extract-module-name stx)
             (syntax-case stx ()
@@ -727,7 +710,7 @@ todo :
                             #t
                             (lambda (x) (update-label x))))
         
-        (let ([success? (fill-pasteboard pasteboard text/pos show-status)])
+        (let ([success? (fill-pasteboard pasteboard text/pos show-status void)])
           (kill-thread thd)
           (send progress-frame show #f)
           (when success?
@@ -774,11 +757,12 @@ todo :
               (set! update-label
                     (lambda (s)
                       (if (and s (not (null? s)))
-                          (let ([currently-over (car s)])
-                            (send label-message set-label
-                                  (format filename-constant
-                                          (send currently-over get-filename)
-                                          (send currently-over get-lines))))
+                          (let* ([currently-over (car s)]
+                                 [fn (send currently-over get-filename)]
+                                 [lines (send currently-over get-lines)])
+                            (when (and fn lines)
+                              (send label-message set-label
+                                    (format filename-constant fn lines))))
                           (send label-message set-label ""))))
               
               ;; shouldn't be necessary here -- need to find callback on editor
@@ -786,15 +770,14 @@ todo :
               
               (send frame show #t)))))
       
-      (define (fill-pasteboard pasteboard text/pos show-status)
-        (define progress-channel (make-channel))
-        (define connection-channel (make-channel))
+      (define (fill-pasteboard pasteboard text/pos show-status send-user-thread/eventspace)
+        (define progress-channel (make-async-channel))
+        (define connection-channel (make-async-channel))
         
         (define-values/invoke-unit (add-connections) process-program-unit #f progress-channel connection-channel)
         
         ;; =user thread=
         (define (iter sexp continue)
-          (printf "iter: ~s\n" sexp)
           (cond
             [(eof-object? sexp) 
              (custodian-shutdown-all user-custodian)]
@@ -821,9 +804,10 @@ todo :
           (set! user-thread (current-thread))
           (current-load-relative-directory init-dir)
           (current-directory init-dir)
-          (error-display-handler (lambda (str exn) 
-                                   (printf "error-display-handler: ~a\n" str)
-                                   (set! error-str str)))
+          (error-display-handler 
+           (lambda (str exn) 
+             (set! error-str str)
+             (custodian-shutdown-all user-custodian)))
           (semaphore-post init-complete))
         (define (kill-termination) (void))
         (define complete-program? #t)
@@ -838,31 +822,38 @@ todo :
            complete-program?))
         
         (semaphore-wait init-complete)
+        (send-user-thread/eventspace user-thread user-custodian)
+        
+        ;; this thread puts a "cap" on the end of the connection-channel
+        ;; so that we know when we've gotten to the end.
+        ;; this ensures that we can completely flush out the
+        ;; connection-channel.
+        (thread
+         (lambda ()
+           (object-wait-multiple #f (thread-dead-waitable user-thread))
+           (async-channel-put connection-channel 'done)))
+        
         (send pasteboard begin-adding-connections)
-        (let loop ()
-          (let* ([waitable-value
-                  (yield/result
-                   (waitables->waitable-set
-                    (make-wrapped-waitable progress-channel (lambda (x) (cons 'progress x)))
-                    (make-wrapped-waitable connection-channel (lambda (x) (cons 'connect x)))
-                    (make-wrapped-waitable (thread-dead-waitable user-thread)
-                                           (lambda (x) (cons 'dead x)))))]
-                 [key (car waitable-value)]
-                 [val (cdr waitable-value)])
-            (printf "waitable-value: ~s\n" waitable-value)
-            (case key
-              [(dead) (void)]
-              [(progress) 
-               (unless (eq? val 'done)
+        (let ([waitable
+               (waitables->waitable-set
+                (make-wrapped-waitable progress-channel (lambda (x) (cons 'progress x)))
+                (make-wrapped-waitable connection-channel (lambda (x) (cons 'connect x))))])
+          (let loop ()
+            (let* ([waitable-value (yield waitable)]
+                   [key (car waitable-value)]
+                   [val (cdr waitable-value)])
+              (case key
+                [(progress) 
                  (show-status val)
-                 (loop))]
-              [(connect) 
-               (let ([name-original (first val)]
-                     [name-require (second val)]
-                     [lib-path? (third val)]
-                     [for-syntax? (fourth val)])
-                 (send pasteboard add-connection name-original name-require lib-path? for-syntax?))
-               (loop)])))
+                 (loop)]
+                [(connect)
+                 (unless (eq? val 'done)
+                   (let ([name-original (first val)]
+                         [name-require (second val)]
+                         [lib-path? (third val)]
+                         [for-syntax? (fourth val)])
+                     (send pasteboard add-connection name-original name-require lib-path? for-syntax?))
+                   (loop))]))))
         (send pasteboard end-adding-connections)
         
         (custodian-shutdown-all user-custodian)
@@ -876,16 +867,6 @@ todo :
            #f]
           [else
            #t]))
-      
-      (define (yield/result waitable)
-        (let* ([x-orig (gensym 'done)]
-               [x x-orig])
-          (yield (make-wrapped-waitable
-                  waitable
-                  (lambda (v) (set! x v))))
-          (when (eq? x-orig x)
-            (error 'yield/result "after didn't get called!"))
-          x))
       
       (define super-frame%
         (drscheme:frame:basics-mixin
