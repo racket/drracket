@@ -68,10 +68,29 @@
       ;; as the defaults in the dialog and the output language setting is the user's choice
       (define language-dialog
         (opt-lambda (settings-to-show [parent #f])
+          
+          ;; hier-list items that implement this interface correspond to
+	  ;; actual language selections
+	  (define hieritem-language<%>
+	    (interface (hierarchical-list-item<%>)
+	      show-details))
+
+	  ;; language-container-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
+	  ;; a mixin that delegates item clicks to the item clicked on, if it
+	  ;; is a language.
+	  (define selectable-hierlist%
+	    (class hierarchical-list%
+	      (override on-select)
+	      (rename [super-on-select on-select])
+	      (define (on-select i)
+		(when (is-a? hieritem-language<%>)
+		  (send i show-details)))
+	      (super-instantiate ())))
+
           (define dialog (make-object dialog% configure-language-title parent))
           (define outermost-panel (make-object horizontal-panel% dialog))
-          (define languages-hier-list (make-object hierarchical-list% outermost-panel))
-	  (define details-panel (make-object panel:
+          (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
+	  (define details-panel (make-object panel:single% outermost-panel))
           (define languages-table (make-hash-table))
           (define languages (get-available-languages))
 
@@ -85,32 +104,15 @@
 		      (send language config-panel panel))))
 		 languages))
 
-	  ;; hier-list items that implement this interface correspond to
-	  ;; actual 
-	  (define hierlist-language<%>
-	    (interface (hierarchical-list-item<%>)
-	      show-details))
-
-	  ;; language-container-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
-	  ;; a mixin that delegates item clicks to the item clicked on, if it
-	  ;; is a language.
-	  (define (language-container-mixin %)
-	    (class %
-	      (override on-select)
-	      (rename [super-on-select on-select])
-	      (define (on-select i)
-		(when (is-a? hieritem-language<%>)
-		  (send i show-details)))
-	      (super-initialize ())))
-
 	  ;; language-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
 	  ;; a mixin that responds to language selections and updates the details-panel
 	  (define (language-mixin % language)
-	    (class* % (hierlist-language<%>)
+	    (class* % (hieritem-language<%>)
 	      (public show-details)
 	      (define (show-details)
 		(send details-panel active-child
-		      (second (assoc language details-panels-associations))))))
+		      (second (assoc language details-panels-associations))))
+              (super-instantiate ())))
 
 	  ;; add-language : (instanceof language<%>) -> void
 	  ;; adds the language to the dialog
@@ -120,7 +122,7 @@
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let ([item (send hier-list new-item)])
+		 (let ([item (send hier-list new-item language-mixin)])
 		   (send (send item get-editor) insert (car lng)))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
