@@ -114,7 +114,7 @@
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(cons (box 1) (cons (box 1) empty))")
     (test-expression "(local ((define x x)) 1)" "Invalid definition: must be at the top level")
-    (test-expression "(letrec ([x x]) 1)" "error")
+    (test-expression "(letrec ([x x]) 1)" "First term after parenthesis is illegal in an application")
     (test-expression "(if 1 1 1)" "Condition value is neither #t nor #f: 1")
     (test-expression "(eq? 1 1)" "eq?: expected symbols as arguments, received 1 and 1")
     (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
@@ -129,7 +129,8 @@
     (zodiac "Intermediate")
     (generic-output #f)
     (set-language #f)
-    (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" "error")
+    (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
+		  "Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
@@ -161,7 +162,8 @@
     (zodiac "Advanced")
     (generic-output #t)
     (set-language #f)
-    (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" "error")
+    (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
+		  "Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
