@@ -1,12 +1,4 @@
-#|
 
-TODO: 
-
-fix the repeating decimal snip so that copies
-carry over the computation of the original
-(maybe just track the number of clicks?)
-
-|#
 (module number-snip mzscheme
   (require (lib "unitsig.ss")
            "drsig.ss"
@@ -46,22 +38,23 @@ carry over the computation of the original
   
   (define (set-box/f! b v) (when (box? b) (set-box! b v)))
   (define bw? (< (get-display-depth) 3))
-  
+
   (define number-snip-class%
     (class snip-class%
       (define/override (read f)
         (let* ([number (string->number (send f get-string))]
                [decimal-prefix (send f get-string)]
                [fraction-str (send f get-string)]
+               [expansions-str (send f get-string)]
                [fraction-view
                 (cond
-                  [(string=? "#t" (send f get-string)) 'decimal]
-                  [(string=? "#f" (send f get-string)) 
+                  [(string=? "#t" fraction-str) 'decimal]
+                  [(string=? "#f" fraction-str) 
                    (preferences:get 'drscheme:fraction-snip-style)]
-                  [(string=? "mixed" (send f get-string)) 'mixed]
-                  [(string=? "decimal" (send f get-string)) 'decimal]
-                  [(string=? "improper" (send f get-string)) 'improper])]
-               [expansions (string->number (send f get-string))]
+                  [(string=? "mixed" fraction-str) 'mixed]
+                  [(string=? "decimal" fraction-str) 'decimal]
+                  [(string=? "improper" fraction-str) 'improper])]
+               [expansions (string->number expansions-str)]
                [snip
                 (instantiate number-snip% ()
                   [number number]
@@ -319,9 +312,9 @@ carry over the computation of the original
           [(offset num) (get-text offset num #f)]
           [(offset num flattened?) 
            (case fraction-view
-             [(decimal)
-              (string-append wholes/frac " " nums "/" dens)]
              [(mixed)
+              (string-append wholes/frac " " nums "/" dens)]
+             [(decimal)
               (string-append 
                unbarred-portion
                (or barred-portion "")

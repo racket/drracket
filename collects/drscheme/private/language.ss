@@ -77,7 +77,7 @@
           render-value/format
           render-value
           
-          get-language-position
+          get-language-position 
           get-language-numbers
           get-one-line-summary))
       
@@ -544,7 +544,13 @@
                                          (parent filename-panel)
                                          (callback
                                           (lambda (x y) (browse-callback)))))
-        (define type-panel (make-object horizontal-panel% dlg))
+        (define type/base/help-panel (instantiate horizontal-panel% ()
+                                       (parent dlg)
+                                       (alignment '(center center))))
+        (define type/base-panel (instantiate vertical-panel% ()
+                                  (parent type/base/help-panel)
+                                  (stretchable-width #f)))
+        (define type-panel (make-object horizontal-panel% type/base-panel))
         (define type-rb (and show-type
                              (instantiate radio-box% ()
                                (label (string-constant executable-type))
@@ -552,22 +558,23 @@
                                               (string-constant stand-alone)))
                                (parent type-panel)
                                (callback void))))
-        (define base-panel (make-object horizontal-panel% dlg))
+        (define base-panel (make-object horizontal-panel% type/base-panel))
         (define base-rb (and show-base
                              (instantiate radio-box% ()                         
                                (label (string-constant executable-base))
                                (choices (list "MzScheme" "MrEd"))
                                (parent base-panel)
                                (callback void))))
+        
+        (define help-button (make-object button% 
+                              (string-constant help)
+                              type/base/help-panel
+                              (lambda (x y)
+                                (drscheme:help-desk:goto-help "drscheme" "Executables"))))
+
         (define button-panel (instantiate horizontal-panel% ()
                                (parent dlg)
                                (alignment '(right center))))
-
-        (define help-button (make-object button% 
-                              (string-constant help)
-                              button-panel
-                              (lambda (x y)
-                                (drscheme:help-desk:goto-help "drscheme" "Executables"))))
         
         (define-values (ok-button cancel-button)
           (gui-utils:ok/cancel-buttons
@@ -736,7 +743,6 @@
                                 (format "~s" exn))))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
-          
           
           (let ([init-code-mod-name
                  (let-values ([(base name dir?) 

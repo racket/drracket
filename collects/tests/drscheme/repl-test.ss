@@ -12,7 +12,7 @@
   ;; loc = (make-loc number number number)
   ;; numbers in loc structs start at zero.
   
-  (define-struct test (program               ;; : (union string 'abc-text-box 'fraction-sum)
+  (define-struct test (program               ;; : (union string 'fraction-sum)
                        execute-answer        ;; : string
                        load-answer           ;; : (union #f string)
                        
@@ -357,16 +357,6 @@
       #f
       #f)
      
-     ; non-strings snip test
-     (make-test 'abc-text-box
-                "{embedded \"abc\"}"
-                "{embedded \"abc\"}"
-                #f
-		'interactions
-                #f
-                #f
-                #f)
-     
      ; fraction snip test
      (make-test 'fraction-sum
                 "{number 5/6 \"5/6\" #t}"
@@ -563,11 +553,6 @@
              (insert-string program)]
             [(eq? program 'fraction-sum)
              (setup-fraction-sum-interactions)]
-            [(eq? program 'abc-text-box)
-             (test:menu-select "Special" "Insert Text Box")
-             (test:keystroke #\a)
-             (test:keystroke #\b)
-             (test:keystroke #\c)]
             [(list? program)
              (for-each
               (lambda (item)
