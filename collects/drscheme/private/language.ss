@@ -262,7 +262,8 @@
 	   (let ([o (current-output-port)])
 	     (lambda ()
 	       (namespace-attach-module orig-namespace lang-name)
-	       (namespace-require module-spec))))))
+	       (namespace-require module-spec)
+               (namespace-transformer-require 'mzscheme))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)
