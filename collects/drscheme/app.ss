@@ -133,7 +133,7 @@
     (define console
       (let ([frames (send drscheme:frame:group get-frames)])
 	(cond
-	 [(null? frames) (make-object drscheme:unit:frame%
+	 [(null? frames) (make-object (drscheme:unit:current-frame%)
 			   #f #f (mred:current-frames))]
 	 [else (car frames)])))
     (mred:debug:printf 'super-init "after console")

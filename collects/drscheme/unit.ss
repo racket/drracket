@@ -4,14 +4,13 @@
 	    [mzlib : mzlib:core^]
 	    [drscheme:setup : drscheme:setup^]
 	    [drscheme:compound-unit : drscheme:compound-unit^]
-	    [drscheme:tool : drscheme:tool^]
 	    [drscheme:frame : drscheme:frame^]
 	    [drscheme:edit : drscheme:edit^]
 	    [drscheme:rep : drscheme:rep^]
 	    [drscheme:language : drscheme:language^])
     
     (mred:debug:printf 'invoke "drscheme:unit@")
-
+    
     (define make-bitmap
       (let* ([font (send wx:the-font-list find-or-create-font
 			 12
@@ -143,6 +142,15 @@
 	     (super-on-size width height)
 	     (for-each update-snip-size snips))])))
 
+    (define current-interactions-canvas%
+      (make-parameter interactions-canvas%
+		      (lambda (x)
+			(if (subclass? x wx:media-canvas%)
+			    x
+			    (error 'current-interactions-canvas%
+				   "expected a subclass of wx:media-canvas%, got: ~a"
+				   x)))))
+
     (define do-help
       (lambda ()
 	(mred:open-hyper-view (string-append
@@ -151,6 +159,35 @@
 					   "doc"
 					   "drscheme"
 					   "index.htm")))))
+
+      (define definitions-canvas%
+	(class mred:frame-title-canvas% args
+	  (inherit get-media frame)
+	  (rename [super-edit-modified edit-modified])
+	  (public
+	    [edit-renamed
+	     (lambda (name)
+	       (send frame update-save-message name))]
+	    [edit-modified
+	     (lambda (mod?)
+	       (send frame update-save-button mod?)
+	       (super-edit-modified mod?))])
+	  (sequence
+	    (mred:debug:printf 'super-init "before drscheme:frame::get-canvas%")
+	    (apply super-init args)
+	    (mred:debug:printf 'super-init "after drscheme:frame::get-canvas%")
+	    (let ([m (get-media)])
+	      (send frame set-save-init-shown?
+		    (and (not (null? m)) (send m modified?)))))))
+
+    (define current-definitions-canvas%
+      (make-parameter definitions-canvas%
+		      (lambda (x)
+			(if (subclass? x wx:media-canvas%)
+			    x
+			    (error 'current-definitions-canvas%
+				   "expected a subclass of wx:media-canvas%, got: ~a"
+				   x)))))
     (define frame%
       (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip arg-group [show? #t])
 	(inherit get-canvas get-edit imports-panel
@@ -168,7 +205,8 @@
 
 	  [name-message #f]
 	  [save-button #f]
-	  [save-init-shown? #f])
+	  [save-init-shown? #f]
+	  [set-save-init-shown? (lambda (x) (set! save-init-shown? x))])
 
 	(public
 	  [canvas-show-mode #f]
@@ -176,38 +214,24 @@
 	  [forced-quit? #f])
 
 	(public
-	  [get-canvas% 
-	   (let ([%
-		  (class mred:frame-title-canvas% args
-		    (inherit get-media)
-		    (rename [super-edit-modified edit-modified])
-		    (public
-		      [edit-renamed
-		       (lambda (name)
-			 (when save-button
-			   (let ([msg (make-object 
-				       mred:message% top-panel
-				       (if (null? name)
-					   "Untitled" 
-					   (or (mzlib:file@:file-name-from-path name)
-					       "Untitlesd")))])
-			     (set! name-message msg)
-			     (send top-panel change-children
-				   (lambda (l) (build-top-panel-children))))))]
-		      [edit-modified
-		       (lambda (mod?)
-			 (if save-button
-			     (send save-button show mod?)
-			     (set! save-init-shown? mod?))
-			 (super-edit-modified mod?))])
-		    (sequence
-		      (mred:debug:printf 'super-init "before drscheme:frame::get-canvas%")
-		      (apply super-init args)
-		      (mred:debug:printf 'super-init "after drscheme:frame::get-canvas%")
-		      (let ([m (get-media)])
-			(set! save-init-shown? (and (not (null? m)) (send m modified?))))))])
-	     (lambda ()
-	       %))]
+	  [update-save-button
+	   (lambda (mod?)
+	     (if save-button
+		 (send save-button show mod?)
+		 (set! save-init-shown? mod?)))]
+	  [update-save-message
+	   (lambda (name)
+	     (when save-button
+	       (let ([msg (make-object 
+			   mred:message% top-panel
+			   (if (null? name)
+			       "Untitled" 
+			       (or (mzlib:file@:file-name-from-path name)
+				   "Untitlesd")))])
+		 (set! name-message msg)
+		 (send top-panel change-children
+		       (lambda (l) (build-top-panel-children))))))]
+	  [get-canvas% (lambda () (current-definitions-canvas%))]
 	  [ensure-interactions-shown
 	   (lambda ()
 	     (unless (send show-menu checked? interactions-id)
@@ -215,7 +239,7 @@
 	       (update-shown)))])
 	
 	(public
-	  [get-edit% (lambda () drscheme:edit:edit%)]
+	  [get-edit% (lambda () (current-definitions-edit%))]
 	  [change-to-file
 	   (lambda (name)
 	     (cond
@@ -284,25 +308,13 @@
 	   (lambda ()
 	     (let ([mb (super-make-menu-bar)]
 		   [scheme-menu (make-menu)]
-		   [tools-menu (make-menu)]
 		   [language-menu (make-menu)])
 	       
 	       (send* mb
 		      (append scheme-menu "S&cheme")
-		      (append tools-menu "&Tools")
 		      (append language-menu "&Language"))
 
 	       (drscheme:language:fill-language-menu language-menu)
-	       
-	       (for-each 
-		(lambda (x)
-		  (letrec* ([id #f])
-		    (set! id (send tools-menu append-item
-				   (drscheme:tool:tool-name x)
-				   (let ([c (drscheme:tool:tool-callback x)])
-				     (lambda ()
-				       (c this)))))))
-		drscheme:tool:tools)
 
 	       (send* scheme-menu
 		      (append-item "&Indent" 
@@ -391,8 +403,8 @@
 	(public
 	  [definitions-canvas (get-canvas)]
 	  [definitions-edit (get-edit)]
-	  [interactions-canvas (make-object interactions-canvas% panel)]
-	  [interactions-edit (make-object drscheme:rep:edit%)])
+	  [interactions-canvas (make-object (current-interactions-canvas%) panel)]
+	  [interactions-edit (make-object (current-interactions-edit%))])
 	
 	(sequence
 	  (send definitions-edit set-mode (make-object mred:scheme-mode%))
@@ -521,6 +533,35 @@
 	    (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
+    (define current-frame%
+      (make-parameter 
+       frame%
+       (lambda (x)
+	 (if (subclass? x wx:frame%)
+	     x
+	     (error 'current-frame%
+		    "expected a subclass of wx:frame%, got: ~a"
+		    x)))))
+
+    (define current-interactions-edit%
+      (make-parameter 
+       drscheme:rep:edit%
+       (lambda (x)
+	 (if (subclass? x wx:media-edit%)
+	     x
+	     (error 'current-interactions-edit% 
+		    "expected a subclass of wx:edit%, got: ~a"
+		    x)))))
+
+    (define current-definitions-edit%
+      (make-parameter 
+       mred:edit%
+       (lambda (x)
+	 (if (subclass? x wx:media-edit%)
+	     x
+	     (error 'current-definitions-edit% 
+		    "expected a subclass of wx:edit%, got: ~a"
+		    x)))))
 
     (define snip%
       (let ([f% frame%])
@@ -687,4 +728,4 @@
   (mred:insert-format-handler "Units"
                               (list "ss" "scm" "sch" "mredrc")
 				(opt-lambda (name group)
-				  (make-object frame% name #f group))))
+				  (make-object (current-frame%) name #f group))))

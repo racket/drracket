@@ -48,7 +48,12 @@
   (load/link-tool))
 
 (define-signature drscheme:unit^
-  (frame% snip-class% snip% make-bitmap))
+  (current-interactions-edit%
+   current-definitions-edit%
+   current-interactions-canvas%
+   current-definitions-canvas%
+   current-frame%
+   frame% snip-class% snip% make-bitmap))
 
 (define-signature drscheme:frame^
   (group
@@ -76,23 +81,6 @@
 (define-signature drscheme:app^
   ((open mred:application^)
    about-drscheme))
-
-(define-signature drscheme:middle^
-  ((unit drscheme:setup : drscheme:setup^)
-   (unit drscheme:tool : drscheme:tool^)
-   (unit drscheme:rep : drscheme:rep^)
-   (unit drscheme:unit : drscheme:unit^)
-   (unit drscheme:frame : drscheme:frame^)
-   (unit drscheme:aries : plt:aries^)
-   (unit drscheme:compound-unit : drscheme:compound-unit^)
-   (unit zodiac : zodiac:system^)))
-(define-signature drscheme:all^
-  ((open drscheme:middle^)
-   (open mred^)
-   (open mred:application^)
-   (open mzlib:core^)
-   (open mzlib:trigger^)
-   (open mzlib:print-convert^)))
 
 (define-signature drscheme:export^
   ((unit drscheme:frame : drscheme:frame^)
