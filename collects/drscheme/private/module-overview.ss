@@ -868,14 +868,12 @@
           [else
            #t]))
       
-      (define super-frame%
-        (drscheme:frame:basics-mixin
-         frame:standard-menus%))
-      
       (define overview-frame%
-        (class super-frame%
-          (define/override (file-menu:between-print-and-close menu) (void))
+        (class (drscheme:frame:basics-mixin
+                frame:standard-menus%)
           (define/override (edit-menu:between-select-all-and-find menu) (void))
+          (define/override (edit-menu:between-redo-and-cut menu) (void))
+          (define/override (edit-menu:between-find-and-preferences menu) (void))
           
           (define/override (edit-menu:create-cut?) #f)
           (define/override (edit-menu:create-copy?) #f)

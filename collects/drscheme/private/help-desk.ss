@@ -66,6 +66,8 @@
           (define/override (file-menu:new-callback x y)
             (handler:edit-file #f)
             #t)
+          (define/override (file-menu:between-save-as-and-print menu)
+            (new separator-menu-item% (parent menu)))
           
           (define current-language 
             (preferences:get drscheme:language-configuration:settings-preferences-symbol))

@@ -242,10 +242,14 @@
 			lang
 			(or settings (send lang default-settings)))))))))
       
-      (handler:set-recent-items-frame-superclass
-       (drscheme:frame:basics-mixin
-        (frame:standard-menus-mixin
-         frame:basic%)))
+      (let ([drs-handler-recent-items-super%
+             (class (drscheme:frame:basics-mixin
+                     (frame:standard-menus-mixin
+                      frame:basic%))
+               (define/override (edit-menu:between-select-all-and-find menu)
+                 (void))
+               (super-new))])
+      (handler:set-recent-items-frame-superclass drs-handler-recent-items-super%))
       
       ;;
       ;; Show expanded language dialog when version changes

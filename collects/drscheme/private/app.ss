@@ -29,7 +29,6 @@
             [define/override file-menu:create-save? (lambda () #f)]
             [define/override file-menu:create-save-as? (lambda () #f)]
             [define/override file-menu:between-close-and-quit (lambda (x) (void))]
-            [define/override file-menu:between-print-and-close (lambda (x) (void))]
             [define/override edit-menu:between-redo-and-cut (lambda (x) (void))]
             [define/override edit-menu:between-select-all-and-find (lambda (x) (void))]
             [define/override edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]

@@ -1261,18 +1261,18 @@
                 (make-object separator-menu-item% file-menu)))]
           
           [define/override file-menu:print-string (lambda () (string-constant print-definitions))]
-          [define/override file-menu:between-print-and-close
-            (lambda (file-menu)
-              (set! file-menu:print-transcript-item
-                    (make-object menu:can-restore-menu-item%
-                      (string-constant print-interactions)
-                      file-menu
-                      (lambda (_1 _2)
-                        (send interactions-text print
-                              #t 
-                              #t
-                              (preferences:get 'framework:print-output-mode)))))
-              (make-object separator-menu-item% file-menu))]
+          (rename [super-file-menu:between-print-and-close file-menu:between-print-and-close])
+          (define/override (file-menu:between-print-and-close file-menu)
+            (set! file-menu:print-transcript-item
+                  (make-object menu:can-restore-menu-item%
+                    (string-constant print-interactions)
+                    file-menu
+                    (lambda (_1 _2)
+                      (send interactions-text print
+                            #t 
+                            #t
+                            (preferences:get 'framework:print-output-mode)))))
+            (super-file-menu:between-print-and-close file-menu))
           
           (rename [super-edit-menu:between-find-and-preferences 
                    edit-menu:between-find-and-preferences])

@@ -95,12 +95,9 @@
                           (show-keybindings-to-user structured-list this)))))
                   (bell)))]
           
-          (override file-menu:open-callback file-menu:open-string
-                    file-menu:new-string
+          (override file-menu:open-callback file-menu:open-string file-menu:new-string
                     help-menu:about-callback help-menu:about-string help-menu:create-about?
-                    help-menu:before-about
-                    file-menu:between-open-and-revert
-                    edit-menu:between-find-and-preferences)
+                    help-menu:before-about)
           [define help-menu:before-about
             (lambda (help-menu)
               (make-help-desk-menu-item help-menu)
@@ -131,7 +128,7 @@
           (define (file-menu:open-string) (string-constant open-menu-item))
 
           (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
-          [define file-menu:between-open-and-revert
+          [define/override file-menu:between-open-and-revert
             (lambda (file-menu) 
               (make-object menu-item% 
                 (string-constant install-plt-file-menu-item...)
@@ -140,18 +137,18 @@
                   (install-plt-file this)))
               (super-file-menu:between-open-and-revert file-menu))]
           
-          (rename [super-file-menu:between-close-and-quit file-menu:between-close-and-quit])
-          (define/override (file-menu:between-close-and-quit menu)
-            (super-file-menu:between-close-and-quit menu)
-            (new separator-menu-item% (parent menu))
+          (rename [super-file-menu:between-print-and-close file-menu:between-print-and-close])
+          (define/override (file-menu:between-print-and-close menu)
+            (super-file-menu:between-print-and-close menu)
             (instantiate menu-item% ()
               (label (string-constant mfs-multi-file-search-menu-item))
               (parent menu)
               (callback
                (lambda (_1 _2)
-                 (drscheme:multi-file-search:multi-file-search)))))
+                 (drscheme:multi-file-search:multi-file-search))))
+            (new separator-menu-item% (parent menu)))
           
-          [define edit-menu:between-find-and-preferences
+          [define/override edit-menu:between-find-and-preferences
             (lambda (menu)
               (make-object separator-menu-item% menu)
               (let ([keybindings-on-demand
