@@ -2,6 +2,7 @@
   (unit/sig drscheme:unit^
     (import [mred : mred^]
 	    [mzlib : mzlib:core^]
+	    [drscheme:app : drscheme:app^]
 	    [drscheme:setup : drscheme:setup^]
 	    [drscheme:compound-unit : drscheme:compound-unit^]
 	    [drscheme:frame : drscheme:frame^]
@@ -230,6 +231,11 @@
 	
 	(public
 	  [get-edit% (lambda () (drscheme:parameters:current-definitions-edit%))]
+	  [still-untouched?
+	   (lambda ()
+	     (and (= (send definitions-edit last-position) 0)
+		  (not (send definitions-edit modified?))
+		  (null? (send definitions-edit get-filename))))]
 	  [change-to-file
 	   (lambda (name)
 	     (cond
@@ -249,7 +255,6 @@
 		   (send file-menu append-item "Print Interactions..."
 			 (lambda () (send interactions-edit print '()))))
 	     (send file-menu append-separator))]
-
 	  [id->child
 	   (lambda (id)
 	     (cond
@@ -511,6 +516,7 @@
 	  (set-title-prefix "DrScheme")
 
 	  (send definitions-canvas set-focus)
+	  (set! created-frame this)
 	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
@@ -676,8 +682,13 @@
 
     (define unit-snipclass (make-object snip-class%))
 
+    (define created-frame #f)
+
     (mred:insert-format-handler 
      "Units"
      (list "ss" "scm" "sch" "mredrc")
      (opt-lambda (name)
-       (make-object (drscheme:parameters:current-frame%) name #f))))
+       (if (and (eq? created-frame drscheme:app:console)
+		(send drscheme:app:console still-untouched?))
+	   (send drscheme:app:console change-to-file name)
+	   (make-object (drscheme:parameters:current-frame%) name #f)))))

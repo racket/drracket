@@ -1,10 +1,15 @@
-(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
-(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "sigs.ss")))
-(reference (begin-elaboration-time (build-path plt:home-directory "lib" "sparams.ss")))
-(reference (begin-elaboration-time (build-path plt:home-directory "lib" "ariess.ss")))
-(reference (begin-elaboration-time (build-path plt:home-directory "lib" "gusrspcs.ss")))
-
+(reference (begin-construction-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
+(printf "1~n")
+(reference (begin-construction-time (build-path plt:home-directory "zodiac" "sigs.ss")))
+(printf "2~n")
+(reference-library "sparams.ss" "backward")
+(printf "3~n")
+(reference-library "ariess.ss" "cogen")
+(printf "4~n")
+(reference-library "gusrspcs.ss" "userspce")
+(printf "5~n")
 (reference-library "pconvers.ss")
+(printf "6~n")
 
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
@@ -80,8 +85,7 @@
    (unit compound-unit : drscheme:compound-unit^)
    (unit parameters : drscheme:parameters^)))
 
-
-(begin-elaboration-time
+(begin-construction-time
  (define drscheme:tool-directories
    (quicksort (directory-list (build-path plt:home-directory
 					  "drscheme"
