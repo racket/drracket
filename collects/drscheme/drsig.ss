@@ -38,6 +38,7 @@
 
 (define-signature drscheme:language^
   (fill-language-menu
+   settings-preferences-symbol
    language-dialog))
 
 (define-signature drscheme:tool^

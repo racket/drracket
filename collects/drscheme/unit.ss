@@ -20,7 +20,7 @@
         [(not program-filename)
          (mred:message-box "Create Launcher" "You must save your program before creating a launcher")]
         [else
-	 (let* ([settings (fw:preferences:get 'drscheme:settings)]
+	 (let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
 		[v-settings (struct->vector settings)]
 		[teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
 		[in-mz? (regexp-match "MzScheme" (basis:setting-name settings))])
@@ -292,19 +292,19 @@
       (private
         [needs-execution-state #f]
         [already-warned-state #f]
-        [execute-language (fw:preferences:get 'drscheme:settings)])
+        [execute-language (fw:preferences:get drscheme:language:settings-preferences-symbol)])
       (public
 	[needs-execution? 
          (lambda ()
            (or needs-execution-state
                (not (equal? execute-language
-                            (fw:preferences:get 'drscheme:settings)))))]
+                            (fw:preferences:get drscheme:language:settings-preferences-symbol)))))]
 	[teachpack-changed
 	 (lambda ()
 	   (set! needs-execution-state #t))]
 	[just-executed
 	 (lambda ()
-           (set! execute-language (fw:preferences:get 'drscheme:settings))
+           (set! execute-language (fw:preferences:get drscheme:language:settings-preferences-symbol))
 	   (set! needs-execution-state #f)
 	   (set! already-warned-state #f))]
 	[already-warned? (lambda () already-warned-state)]
