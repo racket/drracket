@@ -879,9 +879,7 @@ TODO
                 [else (let ([admin (send txt-inner get-admin)])
                         (and (is-a? admin editor-snip-editor-admin<%>)
                              (loop (send (send (send admin get-snip) get-admin) get-editor))))])))
-          
-          (define (on-set-media) (void))
-          
+                    
           (define after-insert
             (lambda (x y)
               (reset-highlighting)
@@ -1435,6 +1433,7 @@ TODO
              (drscheme:teachpack:teachpack-cache-filenames 
               user-teachpack-cache))
             
+            (set-unread-start-point (last-position))
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
             (end-edit-sequence)
@@ -1442,6 +1441,7 @@ TODO
             (super-reset-console)
             (reset-region 0 'end))
           
+          (inherit set-unread-start-point)
           (define (initialize-console)
             (super-initialize-console)
             
@@ -1782,8 +1782,7 @@ TODO
                 (lock c-locked?)
                 (end-edit-sequence)
                 (scroll-to-position start-selection #f (last-position) 'start))))
-          (public reset-console)
-          (define reset-console
+          (define/public reset-console
             (lambda ()
               (void)))
           (define ready-non-prompt
