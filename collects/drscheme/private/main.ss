@@ -89,7 +89,7 @@
       
       (preferences:set-default 'drscheme:profile-how-to-count 'time
                                (lambda (x)
-                                 (memq x '(time number))))
+                                 (memq x '(time count))))
       (preferences:set-default 'drscheme:profile:low-color
                                (make-object color% 150 255 150)
                                (lambda (x) (is-a? x color%)))

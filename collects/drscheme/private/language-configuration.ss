@@ -1133,7 +1133,7 @@
                                                                    (format "uncaught exception: ~s" x)))
                                                   read-syntax/namespace-introduce)])
                                  (contract
-                                  (opt-> (any?)
+                                  (opt-> (any/c)
                                          (port? (list/c (and/c number? integer? exact? (>=/c 0))
                                                         (and/c number? integer? exact? (>=/c 0))
                                                         (and/c number? integer? exact? (>=/c 0))))

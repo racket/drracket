@@ -13,11 +13,11 @@
   (define mark-list? (listof procedure?))
   
   (provide/contract 
-   ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
-   [expose-mark (-> mark? (list/c any? symbol? (listof (list/c identifier? any?))))]
+   ;[make-debug-info (-> any/c binding-set? varref-set? any/c boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
+   [expose-mark (-> mark? (list/c any/c symbol? (listof (list/c identifier? any/c))))]
    [make-top-level-mark (syntax? . -> . syntax?)]
-   [lookup-all-bindings ((identifier? . -> . boolean?) mark-list? . -> . (listof any?))]
-   [lookup-first-binding ((identifier? . -> . boolean?) mark-list? ( -> any) . -> . any?)]
+   [lookup-all-bindings ((identifier? . -> . boolean?) mark-list? . -> . (listof any/c))]
+   [lookup-first-binding ((identifier? . -> . boolean?) mark-list? ( -> any) . -> . any/c)]
    [lookup-binding (mark-list? identifier? . -> . any)])
   
   (provide
