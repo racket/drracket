@@ -58,6 +58,51 @@
         (status-stack (cdr (status-stack)))
         (status "~a" (car (status-stack))))
 
+      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; Hardwired Scheme colorization; should come from a .css file
+
+      (define (make-color-delta col)
+	(let ([d (make-object style-delta%)])
+	  (send d set-delta-foreground col)
+	  d))
+
+      (define scheme-code-delta (make-color-delta "brown"))
+      (define scheme-code-delta/keyword
+	(let ([d (make-object style-delta% 'change-bold)])
+	  (send d set-delta-foreground (make-object color% #x99 0 0))
+	  d))
+      (define scheme-code-delta/variable (make-color-delta "navy"))
+      (define scheme-code-delta/global (make-color-delta "purple"))
+      (define scheme-code-delta/selfeval (make-color-delta "forest green"))
+      (define scheme-code-delta/comment (make-color-delta "cornflower blue"))
+
+      (define (lookup-class-delta class)
+	(cond
+	 [(string=? class "scheme") scheme-code-delta]
+	 [(string=? class "keyword") scheme-code-delta/keyword]
+	 [(string=? class "variable") scheme-code-delta/variable]
+	 [(string=? class "global") scheme-code-delta/global]
+	 [(string=? class "selfeval") scheme-code-delta/selfeval]
+	 [(string=? class "comment") scheme-code-delta/comment]
+	 [else #f]))
+
+      (define (lookup-span-class-delta class) (lookup-class-delta class))
+
+      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; Another hack: font changes are applied inside-out
+      (define (change-from-black a-text delta pos end-pos)
+	(let loop ([p pos])
+	  (unless (>= p end-pos)
+	    (send a-text split-snip pos)
+	    (let* ([snip (send a-text find-snip pos 'after)]
+		   [color (send (send snip get-style) get-foreground)]
+		   [size (send snip get-count)])
+	      (when (= 0 
+		       (send color red)
+		       (send color blue)
+		       (send color green))
+		(send a-text change-style delta p (min (+ p size) end-pos))
+		(loop (+ p size)))))))
       
       (define (call-with-output-file* file proc flag)
         ; Closes on escape
@@ -229,7 +274,14 @@
                [delta:h3 (let ([d (make-object style-delta% 'change-bold)])
                            (send d set-size-mult 1.2)
                            d)]
-               
+	       [delta:subscript (let ([d (make-object style-delta%)])
+				  (send d set-alignment-on 'bottom)
+				  (send d set-size-mult 0.8)
+				  d)]
+               [delta:superscript (let ([d (make-object style-delta%)])
+				    (send d set-alignment-on 'top)
+				    (send d set-size-mult 0.8)
+				    d)]
                [html-error
                 (lambda args
                   (when #f ; treat them all as ignored warnings
@@ -250,6 +302,8 @@
                
                [parse-div-align (make-get-field "align")]
                
+	       [parse-class (make-get-field "class")]
+
                [get-style (make-get-field "style")]
                [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
                
@@ -290,9 +344,7 @@
                                                #f)
                                         str))]
                               [else #f])]
-                           [label (if url-string
-                                      #f
-                                      (get-name s))]
+                           [label (get-name s)]
                            [scheme (get-mzscheme-arg s)])
                       (values url-string label scheme))))]
                
@@ -757,9 +809,25 @@
                               (normal)]
                              [(tt code samp kbd)
                               (send a-text change-style delta:fixed pos end-pos)
+			      (let* ([class (parse-class args)]
+				     [delta (and class (lookup-class-delta class))])
+				(when delta
+				  (change-from-black a-text delta pos end-pos)))
                               (normal)]
+			     [(sup)
+			      (send a-text change-style delta:superscript pos end-pos)
+			      (normal)]
+                             [(sub)
+			      (send a-text change-style delta:subscript pos end-pos)
+			      (normal)]
+			     [(span)
+			      (let* ([class (parse-class args)]
+				     [delta (and class (lookup-span-class-delta class))])
+				(when delta
+				  (change-from-black a-text delta pos end-pos)))
+			      (normal)]
                              [(pre)
-			 ; If it starts with a newline, delete it:
+			      ;; If it starts with a newline, delete it:
                               (let ([end-pos (if (and (< xpos end-pos)
                                                       (eq? (send a-text get-character xpos) #\newline))
                                                  (begin
@@ -767,6 +835,10 @@
                                                    (sub1 end-pos))
                                                  end-pos)])
                                 (send a-text change-style delta:fixed pos end-pos)
+				(let* ([class (parse-class args)]
+				       [delta (and class (lookup-class-delta class))])
+				  (when delta
+				    (change-from-black a-text delta pos end-pos)))
                                 (result (+ end-pos (try-newline end-pos 2 #t)) #t))]
                              [(font)
                               (let ([delta (parse-font args)])
@@ -783,7 +855,10 @@
                                          (send a-text add-link pos end-pos url-string)
                                          (when (or (not style)
                                                    (not (regexp-match re:transparent style)))
-                                           (send a-text make-link-style pos end-pos))]
+                                           (send a-text make-link-style pos end-pos))
+					 ;; might have a label, too:
+					 (when label
+					   (send a-text add-tag label pos))]
                                         [label
                                          (send a-text add-tag label pos)]
                                         [scheme

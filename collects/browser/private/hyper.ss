@@ -36,6 +36,17 @@
       
       (define hyper-style-list (make-object style-list%))
       
+      (define (same-page-url? a b)
+	(or (eq? a b)
+	    (and (url? a) (url? b)
+		 ;; fragment can be different
+		 (equal? (url-scheme a) (url-scheme b))
+		 (equal? (url-host a) (url-host b))
+		 (equal? (url-path a) (url-path b))
+		 (equal? (url-params a) (url-params b))
+		 (equal? (url-query a) (url-query b)))))
+		 
+
       (define hyper-text-mixin
         (lambda (super%)
           (class100 super% (_url _top-level-window . args)
@@ -130,7 +141,7 @@
                  (let ([style-list (get-style-list)])
                    (send style-list replace-named-style  "h-link-style"
                          (send style-list find-or-create-style  
-                               (send style-list find-named-style "Standard")
+                               (send style-list basic-style)
                                hyper-delta))))])
             
             (public
@@ -153,8 +164,9 @@
                  (if (and (integer? name) (positive? name))
                      name
                      (and (string? name)
-                          (ormap (lambda (x) (and (string=? name (hypertag-name x)) 
-                                                  (hypertag-position x)))
+                          (ormap (lambda (x) 
+				   (and (string=? name (hypertag-name x)) 
+					(hypertag-position x)))
                                  hypertags-list))))]
               [remove-tag 
                (lambda (name)
@@ -463,13 +475,16 @@
                                     relative
                                     url)
                                    (string->url url)))]
-                      [e (make-editor url)]
+                      [e (let ([e-now (get-editor)])
+			   (if (and e-now
+				    (same-page-url? url (send e-now get-url)))
+			       e-now
+			       (make-editor url)))]
                       [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
-                 (when tag-pos
-                   (send e set-position tag-pos))
                  (unless (and tag-pos (positive? tag-pos))
                    (send e hide-caret #t))
                  (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+                 (when tag-pos (send e set-position tag-pos))
                  (send (get-parent) update-url-display
 		       (format "~s"
 			       (if (url? url)
