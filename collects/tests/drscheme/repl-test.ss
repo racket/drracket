@@ -1,5 +1,6 @@
-(define-struct test (program r4rs-load-answer prepend-filename? r4rs-execute-answer r4rs-execute-location
-			     mred-execute-answer mred-load-answer mred-read-test? breaking-test?))
+(define-struct test (program
+		     r4rs-load-answer prepend-filename? r4rs-execute-answer r4rs-execute-location
+		     mred-execute-answer mred-load-answer mred-read-test? breaking-test?))
 
 (define test-data
   (list
@@ -350,7 +351,6 @@
 
 (define tmp-load-filename
   (normalize-path (build-path (current-load-relative-directory) "repl-test-tmp.ss")))
-
 
 ;; given a filename "foo", we perform two operations on the contents 
 ;; of the file "foo.ss".  First, we insert its contents into the REPL
