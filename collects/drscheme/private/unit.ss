@@ -762,13 +762,13 @@
           (public ensure-defs-shown ensure-rep-shown)
           [define ensure-defs-shown
             (lambda ()
-              (when (hidden? definitions-item)
-                (toggle-show/hide definitions-item)
+              (unless definitions-shown?
+                (toggle-show/hide-definitions)
                 (update-shown)))]
           [define ensure-rep-shown
            (lambda ()
-             (when (hidden? interactions-item)
-               (toggle-show/hide interactions-item)
+             (unless interactions-shown?
+               (toggle-show/hide-interactions)
                (update-shown)))]
           
           (override get-editor%)
@@ -789,13 +789,6 @@
                [else (send definitions-text clear)])
              (send definitions-canvas focus))]
           
-          [define hidden?
-            (lambda (item)
-              (let ([label (send item get-label)]
-                    [show-prefix (string-constant show-prefix)])
-                (and (string? label)
-                     (>= (string-length label) (string-length show-prefix))
-                     (string=? (substring label 0 4) show-prefix))))]
           [define save-as-text-from-text
            (lambda (text)
              (let ([file (parameterize ([finder:dialog-parent-parameter this])
@@ -803,19 +796,14 @@
                (when file
                  (send text save-file file 'text))))]
           
-          [define toggle-show/hide
-            (lambda (item)
-              (let ([label (send item get-label)])
-                (when (and (string? label)
-                           (>= (string-length label) (string-length (string-constant hide-prefix))))
-                  (let ([new-front
-                         (if (string=? (string-constant hide-prefix)
-                                       (substring label 0 
-                                                  (string-length (string-constant hide-prefix))))
-                             (string-constant show-prefix)
-                             (string-constant hide-prefix))]
-                        [back (substring label 4 (string-length label))])
-                    (send item set-label (string-append new-front back))))))]
+          [define (toggle-show/hide-definitions)
+            (set! definitions-shown? (not definitions-shown?))
+            (unless definitions-shown?
+              (set! interactions-shown? #t))]
+          [define (toggle-show/hide-interactions)
+            (set! interactions-shown? (not interactions-shown?))
+            (unless  interactions-shown?
+              (set! definitions-shown? #t))]
           
           [define file-menu:print-transcript-item #f]
           
@@ -1007,23 +995,8 @@
                     [c% (get-menu-item%)])
                 (make-object c% (string-constant insert-fraction-menu-item-label)
                   edit-menu callback #f #f on-demand)))]
-          [define item->children
-            (lambda (item)
-              (cond
-                [(eq? item interactions-item) interactions-canvases]
-                [(eq? item definitions-item) definitions-canvases]
-                [else (error 'item->children "unknown item: ~a" item)]))]
-
-          [define get-sub-items
-            (lambda ()
-              (list interactions-item definitions-item
-                    ;imports-item
-                    ))]
-          [define update-shown/ensure-one
-            (lambda (last-one)
-              (when (andmap (lambda (x) (hidden? x)) (get-sub-items))
-                (toggle-show/hide last-one))
-              (update-shown))]
+          (define interactions-shown? #t)
+          (define definitions-shown? #t)
           (override update-shown on-close)
           [define update-shown
             (lambda ()
@@ -1031,14 +1004,26 @@
               
               (let ([new-children
                      (mzlib:list:foldl
-                      (lambda (item sofar)
-                        (if (hidden? item)
-                            sofar
-                            (append (item->children item) sofar)))
+                      (lambda (shown? children sofar)
+                        (if shown?
+                            (append children sofar)
+                            sofar))
                       null
-                      (get-sub-items))]
+                      (list interactions-shown?
+                            definitions-shown?)
+                      (list interactions-canvases
+                            definitions-canvases))]
                     [p (preferences:get 'drscheme:unit-window-size-percentage)])
                 
+                (send definitions-item set-label 
+                      (if definitions-shown?
+                          (string-constant hide-definitions-menu-item-label)
+                          (string-constant show-definitions-menu-item-label)))
+                (send interactions-item set-label 
+                      (if interactions-shown?
+                          (string-constant hide-interactions-menu-item-label)
+                          (string-constant show-interactions-menu-item-label)))
+
                 ;; this might change the unit-window-size-percentage, so save/restore it
                 (send resizable-panel change-children (lambda (l) new-children))
                 
@@ -1064,19 +1049,17 @@
                                 (loop (cdr children))))])))
               
               
-              (let ([defs-show? (not (hidden? definitions-item))])
-                (for-each
-                 (lambda (get-item)
-                   (let ([item (get-item)])
-                     (when item
-                       (send item enable defs-show?))))
-                 (list (lambda () (file-menu:get-revert-item))
-                       (lambda () (file-menu:get-save-item))
-                       (lambda () (file-menu:get-save-as-item))
-                       ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
-                       (lambda () (file-menu:get-print-item)))))
-              (send file-menu:print-transcript-item enable
-                    (not (hidden? interactions-item))))]
+              (for-each
+               (lambda (get-item)
+                 (let ([item (get-item)])
+                   (when item
+                     (send item enable definitions-shown?))))
+               (list (lambda () (file-menu:get-revert-item))
+                     (lambda () (file-menu:get-save-item))
+                     (lambda () (file-menu:get-save-as-item))
+                     ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
+                     (lambda () (file-menu:get-print-item))))
+              (send file-menu:print-transcript-item enable interactions-shown?))]
           
           [define on-close
            (lambda ()
@@ -1226,23 +1209,23 @@
 	  (frame:reorder-menus this)
             
           (set! definitions-item
-                  (make-object menu:can-restore-menu-item%
-                    (string-constant hide-definitions-menu-item-label)
-                    (get-show-menu)
-                    (lambda (_1 _2) 
-                      (toggle-show/hide definitions-item)
-                      (update-shown/ensure-one interactions-item))
-                    #\d
-                    (string-constant hide-definitions-menu-item-help-string)))
-            (set! interactions-item
-                  (make-object menu:can-restore-menu-item%
-                    (string-constant interactions-menu-item-label)
-                    (get-show-menu)
-                    (lambda (_1 _2) 
-                      (toggle-show/hide interactions-item)
-                      (update-shown/ensure-one definitions-item))
-                    #\e
-                    (string-constant interactions-menu-item-help-string)))
+                (make-object menu:can-restore-menu-item%
+                  (string-constant hide-definitions-menu-item-label)
+                  (get-show-menu)
+                  (lambda (_1 _2) 
+                    (toggle-show/hide-definitions)
+                    (update-shown))
+                  #\d
+                  (string-constant definitions-menu-item-help-string)))
+          (set! interactions-item
+                (make-object menu:can-restore-menu-item%
+                  (string-constant show-interactions-menu-item-label)
+                  (get-show-menu)
+                  (lambda (_1 _2) 
+                    (toggle-show/hide-interactions)
+                    (update-shown))
+                  #\e
+                  (string-constant interactions-menu-item-help-string)))
           [define top-panel (make-object horizontal-panel% (get-area-container))]
           [define name-panel (make-object vertical-panel% top-panel)]
           [define resizable-panel (instantiate vertical-dragable/pref% ()
@@ -1335,8 +1318,13 @@
             
           (send interactions-text initialize-console)
             
-          (unless filename
-            (toggle-show/hide interactions-item))
+          (cond
+            [filename
+             (set! definitions-shown? #t)
+             (set! interactions-shown? #f)]
+            [else
+             (set! definitions-shown? #t)
+             (set! interactions-shown? #t)])
             
           (update-shown)
             
