@@ -81,6 +81,12 @@
 
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
+
+      ;; an error escape continuation that the user program can't
+      ;; change; DrScheme sets it, we use a parameter instead of an
+      ;; object field so that there's no non-weak pointer to the
+      ;; continuation from DrScheme.
+      (define current-error-escape-k (make-parameter void))
             
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
       ;; =User=
@@ -680,7 +686,7 @@
           
           (define protect
             (lambda (proc)
-              (let ([ut user-thread]
+              (let ([ut (get-user-thread)]
 		    [breaks-on? (break-enabled)])
                 (call-in-nested-thread
                  (lambda ()
@@ -696,7 +702,7 @@
                (parameterize ([current-eventspace drscheme:init:system-eventspace])
                  (queue-callback 
                   (lambda ()
-                    (when (or always? (eq? ut user-thread))
+                    (when (or always? (eq? ut (get-user-thread)))
                       (thunk)))
                   #f))]))
           
@@ -707,7 +713,7 @@
                 (queue-system-callback 
                  ut 
                  (lambda ()
-                   (when (eq? ut user-thread)
+                   (when (eq? ut (get-user-thread))
                      (thunk))
                    (semaphore-post s))
                  #t)
@@ -745,7 +751,7 @@
                       (when a
                         (send a grab-caret))))
                   (init-transparent-io-do-work grab-focus?))
-              (when  (eq? (current-thread) user-thread)
+              (when  (eq? (current-thread) (get-user-thread))
                 (set-caret-owner transparent-snip 'display))
               (end-edit-sequence)
               transparent-text))
@@ -1007,7 +1013,7 @@
             (queue-system-callback/sync
              (lambda () ; =Kernel=, =Handler=
                (run-io-collected-thunks))
-             user-thread))
+             (get-user-thread)))
           
           (define/public queue-output
 	    (opt-lambda (thunk [nonblock? #f]) ; =User=
@@ -1023,7 +1029,7 @@
 		      (begin
 					; Queue the output:
 			(semaphore-wait io-semaphore)
-			(if (eq? ut user-thread)
+			(if (eq? ut (get-user-thread))
 					; Queue output:
 			    (set! io-collected-thunks (cons thunk io-collected-thunks))
 					; Release limit allocation, instead:
@@ -1037,7 +1043,7 @@
 			   ut
 			   (lambda () ; =Kernel=, =Handler=
 			     (semaphore-post flushing-event-running)
-			     (if (eq? ut user-thread)
+			     (if (eq? ut (get-user-thread))
 				 (run-io-collected-thunks)
 				 (clear-io-collected-thunks)))
 			   #t))
@@ -1413,19 +1419,19 @@
           
           (define (get-prompt) "> ")
           (define (eval-busy?)
-            (not (and user-thread
-                      (thread-running? user-thread))))
+            (not (and (get-user-thread)
+                      (thread-running? (get-user-thread)))))
           
           (field (user-language-settings 'uninitialized-user-language-settings)
                  (user-custodian (make-custodian))
-                 (user-eventspace #f)
-                 (user-namespace #f)
-                 (user-thread #f))
+                 (user-eventspace-box (make-weak-box #f))
+                 (user-namespace-box (make-weak-box #f))
+                 (user-thread-box (make-weak-box #f)))
           
           (define (get-user-custodian) user-custodian)
-          (define (get-user-eventspace) user-eventspace)
-          (define (get-user-thread) user-thread)
-          (define (get-user-namespace) user-namespace)
+          (define (get-user-eventspace) (weak-box-value user-eventspace-box))
+          (define (get-user-thread) (weak-box-value user-thread-box))
+          (define (get-user-namespace) (weak-box-value user-namespace-box))
           
           (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                  (should-collect-garbage? #f)
@@ -1462,7 +1468,7 @@
           (define (cleanup)
             (set! in-evaluation? #f)
             (update-running)
-            (unless (and user-thread (thread-running? user-thread))
+            (unless (and (get-user-thread) (thread-running? (get-user-thread)))
               (lock #t)
               (unless shutting-down?
                 (no-user-evaluation-message
@@ -1480,7 +1486,7 @@
             (wait-for-io-to-complete)
             (cleanup-transparent-io)
             (set-caret-owner #f 'display)
-            (when (and user-thread (thread-running? user-thread))
+            (when (and (get-user-thread) (thread-running? (get-user-thread)))
               (let ([c-locked? (is-locked?)])
                 (lock #f)
                 (insert-prompt)
@@ -1522,7 +1528,7 @@
             ;; breaking state and calls the thunk it was called with.
             (lambda (run-loop)  ;; (((-> void) -> void) -> void)
               (send context disable-evaluation)
-              (send context set-breakables user-thread user-custodian)
+              (send context set-breakables (get-user-thread) (get-user-custodian))
               (cleanup-transparent-io)
               (reset-pretty-print-width)
               (ready-non-prompt)
@@ -1562,7 +1568,7 @@
                   ; Cleanup after evaluation:
                   (lambda () ; =User=, =Handler=, =No-Breaks=
                     (queue-system-callback/sync
-                     user-thread
+                     (get-user-thread)
                      (lambda () ; =Kernel=, =Handler= 
                        (cleanup-interaction)))))))))
           
@@ -1574,7 +1580,7 @@
             ;  thread). In that case, shut down user-custodian directly.
             (lambda ()
               (custodian-shutdown-all user-custodian)
-              (set! user-thread #f)
+              (set! user-thread-box (make-weak-box #f))
               (semaphore-wait io-semaphore)
               (for-each (lambda (i) (semaphore-post limiting-sema)) io-collected-thunks)
               (set! io-collected-thunks null)
@@ -1583,8 +1589,7 @@
           (define (kill-evaluation) ; =Kernel=, =Handler=
             (custodian-shutdown-all user-custodian))
           
-          (field (error-escape-k void)
-                 (user-break-enabled #t))
+          (field (user-break-enabled #t))
           
           (field (eval-thread-thunks null)
                  (eval-thread-state-sema 'not-yet-state-sema)
@@ -1600,7 +1605,7 @@
             (set! thread-killed
                   (thread
                    (lambda () ; =Kernel=
-                     (let ([ut user-thread])
+                     (let ([ut (get-user-thread)])
                        (thread-wait ut)
                        (queue-system-callback
                         ut
@@ -1622,20 +1627,20 @@
               (update-running)
               
               (let/ec k
-                (let ([saved-error-escape-k error-escape-k]
+                (let ([saved-error-escape-k (current-error-escape-k)]
                       [cleanup? #f])
                   (dynamic-wind
                    (lambda ()
                      (set! cleanup? #f)
-                     (set! error-escape-k (lambda () 
-                                            (set! cleanup? #t)
-                                            (k (void)))))
-                   (lambda () 
+                     (current-error-escape-k (lambda () 
+					       (set! cleanup? #t)
+					       (k (void)))))
+		  (lambda () 
                      (thunk) 
                      ; Breaks must be off!
                      (set! cleanup? #t))
                    (lambda () 
-                     (set! error-escape-k saved-error-escape-k)
+                     (current-error-escape-k saved-error-escape-k)
                      (when cleanup?
                        (set! in-evaluation? #f)
                        (update-running)
@@ -1659,8 +1664,10 @@
                             (send defs get-next-settings))
                           default)))
               (set! user-custodian (make-custodian))
-              (set! user-eventspace (parameterize ([current-custodian user-custodian])
-                                      (make-eventspace)))
+	      ; (custodian-limit-memory user-custodian 10000000 user-custodian)
+              (set! user-eventspace-box (make-weak-box
+					 (parameterize ([current-custodian user-custodian])
+					   (make-eventspace))))
               (set! user-break-enabled #t)
               (set! eval-thread-thunks null)
               (set! eval-thread-state-sema (make-semaphore 1))
@@ -1671,7 +1678,7 @@
                      [queue-user/wait
                       (lambda (thnk)
                         (let ([wait (make-semaphore 0)])
-                          (parameterize ([current-eventspace user-eventspace])
+                          (parameterize ([current-eventspace (get-user-eventspace)])
                             (queue-callback
                              (lambda ()
                                (thnk)
@@ -1686,15 +1693,15 @@
                    (lambda () ; =User=, =No-Breaks=
                      ; No user code has been evaluated yet, so we're in the clear...
                      (break-enabled #f)
-                     (set! user-thread (current-thread))
+                     (set! user-thread-box (make-weak-box (current-thread)))
                      (initialize-parameters snip-classes))))
                 
                 ;; set up break button.
-                (send context set-breakables user-thread user-custodian)
+                (send context set-breakables (get-user-thread) (get-user-custodian))
 
                 ;; re-loads any teachpacks that have changed
                 (drscheme:teachpack:load-teachpacks 
-                 user-namespace 
+                 (get-user-namespace)
                  (preferences:get 'drscheme:teachpacks))
                 
                 ;; initialize the language
@@ -1709,12 +1716,12 @@
                  (lambda () ; =User=, =No-Breaks=
                    (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))))
                 
-                (parameterize ([current-eventspace user-eventspace])
+                (parameterize ([current-eventspace (get-user-eventspace)])
                   (queue-callback
                    (lambda ()
                      (let ([drscheme-error-escape-handler
                             (lambda ()
-                              (error-escape-k))])
+			      ((current-error-escape-k)))])
                        (error-escape-handler drscheme-error-escape-handler))
                      
                      (set! in-evaluation? #f)
@@ -1767,7 +1774,7 @@
           (define update-running ; =User=, =Handler=, =No-Breaks=
             (lambda ()
               (queue-system-callback
-               user-thread
+               (get-user-thread)
                (lambda ()
                  (if in-evaluation?
                      (send context running)
@@ -1809,7 +1816,7 @@
               (current-directory dir)
               (current-load-relative-directory dir))
               
-              (set! user-namespace (current-namespace))
+              (set! user-namespace-box (make-weak-box (current-namespace)))
               
               (current-output-port this-out)
               (current-error-port this-err)
@@ -1824,7 +1831,7 @@
                      ;  is in a `yield'. If we get a break, that's ok, because
                      ;  the kernel never queues an event in the user's eventspace.
                      (cond
-                       [(eq? eventspace user-eventspace)
+                       [(eq? eventspace (get-user-eventspace))
                         ; =User=, =Handler=, =No-Breaks=
                         
                         (let* ([ub? (eq? user-break-enabled 'user)]
@@ -1839,7 +1846,7 @@
                           (cond
                             [(not in-evaluation?)
                              (send context reset-offer-kill)
-                             (send context set-breakables user-thread user-custodian)
+                             (send context set-breakables (get-user-thread) (get-user-custodian))
                              (protect-user-evaluation
                               ; Run the dispatch:
                               (lambda () ; =User=, =Handler=, =No-Breaks=

@@ -1210,24 +1210,24 @@
                (send interactions-text on-close)
                (super-on-close))]
           
-          (field [thread-to-break #f]
-                 [custodian-to-kill #f]
+          (field [thread-to-break-box (make-weak-box #f)]
+                 [custodian-to-kill-box (make-weak-box #f)]
                  [offer-kill? #f])
           
           ;; break-callback : -> void
           (define/public (break-callback)
             (cond
-              [(or (not thread-to-break)
-                   (not custodian-to-kill))
+              [(or (not (weak-box-value thread-to-break-box))
+                   (not (weak-box-value custodian-to-kill-box)))
                (bell)]
               [offer-kill? 
                (if (user-wants-kill?)
-                   (when thread-to-break
-                     (break-thread thread-to-break))
-                   (when custodian-to-kill
-                     (custodian-shutdown-all custodian-to-kill)))]
+                   (when (weak-box-value thread-to-break-box)
+                     (break-thread (weak-box-value thread-to-break-box)))
+                   (when (weak-box-value custodian-to-kill-box)
+                     (custodian-shutdown-all (weak-box-value custodian-to-kill-box))))]
               [else
-               (break-thread thread-to-break)
+               (break-thread (weak-box-value thread-to-break-box))
                ;; only offer a kill the next time if 
                ;; something got broken.
                (set! offer-kill? #t)]))
@@ -1250,12 +1250,12 @@
           
           ;; get-breakables : -> (union #f thread) (union #f cust) -> void
           (define/public (get-breakables)
-            (values thread-to-break custodian-to-kill))
+            (values (weak-box-value thread-to-break-box) (weak-box-value custodian-to-kill-box)))
 
           ;; set-breakables : (union #f thread) (union #f cust) -> void
           (define/public (set-breakables thd cust)
-            (set! thread-to-break thd)
-            (set! custodian-to-kill cust))
+            (set! thread-to-break-box (make-weak-box thd))
+            (set! custodian-to-kill-box (make-weak-box cust)))
           
           (define/public (execute-callback)
             (cond
