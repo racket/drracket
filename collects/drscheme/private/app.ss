@@ -8,7 +8,8 @@
            "drsig.ss"
            "../acks.ss"
            (lib "framework.ss" "framework")
-           (lib "file.ss"))
+           (lib "file.ss")
+           (lib "check-gui.ss" "version"))
   
   (provide app@)
   (define app@
@@ -135,7 +136,7 @@
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         
         
-        ;; type state = (union 'natural-language 'programming-language)
+        ;; type state = (union 'natural-language 'check-updates 'programming-language)
         ;; state : state
         (define state 'natural-language)
         
@@ -151,15 +152,18 @@
 				 (string-constant wizard-finish))]
             [else (send next-button set-label (string-constant wizard-next))])
           (case state
-            [(programming-language) (send sp active-child programming-language-state-panel)]
-            [(natural-language) (send sp active-child natural-language-state-panel)]))
+            [(natural-language) (send sp active-child natural-language-state-panel)]
+            [(check-updates) (send sp active-child check-updates-state-panel)]
+            [(programming-language) (send sp active-child programming-language-state-panel)]))
         
         ;; next-state : -> void
         (define (next-state)
           (case state
             [(natural-language)
              (when (okay-to-leave-nl-state?)
-               (set-state 'programming-language))]
+               (set-state 'check-updates))]
+            [(check-updates)
+             (set-state 'programming-language)]
             [(programming-language)
              (cond
                [(get-selected-language)
@@ -172,7 +176,8 @@
         ;; pre: state != 'natural-language
         (define (prev-state)
           (case state
-            [(programming-language) (set-state 'natural-language)]
+            [(programming-language) (set-state 'check-updates)]
+            [(check-updates) (set-state 'natural-language)]
             [else (error 'next-state "no next state from: ~s" state)]))
         
         ;; first-state?, last-state? : -> boolean
@@ -249,6 +254,34 @@
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;;                                                        ;;
         ;;                     State 2 GUI                        ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        (define check-updates-state-panel (instantiate vertical-panel% ()
+                                            (parent sp)
+                                            (alignment '(center center))))
+
+        (define cu-message
+          (instantiate message% ()
+            (label "Do you want DrScheme to\ncheck for updates now?")
+            (parent check-updates-state-panel)))
+
+        (define cu-space
+          (instantiate horizontal-panel% ()
+            (parent check-updates-state-panel)
+            (min-height 20)
+            (stretchable-height #f)))
+
+        (define cu-button
+          (instantiate button% ()
+            (label "Check!")
+            (parent check-updates-state-panel)
+            (callback (lambda (x y) (check-version dlg)))))
+        
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;                     State 3 GUI                        ;;
         ;;                                                        ;;
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         
