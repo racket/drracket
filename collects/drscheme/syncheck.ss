@@ -816,7 +816,7 @@ If the namespace does not, they are colored the unbound color.
 
           (define report-error-parent-panel 'uninitialized-report-error-parent-panel)
           (define report-error-panel 'uninitialized-report-error-panel)
-          (define report-error-text (new fw:scheme:text%))
+          (define report-error-text (new (fw:text:ports-mixin fw:scheme:text%)))
           (send report-error-text auto-wrap #t)
           (send report-error-text set-autowrap-bitmap #f)
           (send report-error-text lock #t)
@@ -855,37 +855,13 @@ If the namespace does not, they are colored the unbound color.
           (define/private (hide-error-report) 
             (when (member report-error-panel (send report-error-parent-panel get-children))
               (send report-error-parent-panel change-children
-                    (lambda (l) (remq report-error-panel l)))))
+                    (lambda (l) (remq report-error-panel l))))
+            (send report-error-text erase))
           
           (define/private (show-error-report)
             (unless (member report-error-panel (send report-error-parent-panel get-children))
               (send report-error-parent-panel change-children
                     (lambda (l) (cons report-error-panel l)))))
-          
-          (define/private (report-error message exn)
-            (drscheme:debug:show-error-and-highlight message exn (get-interactions-text))
-            
-            #;
-            (begin
-              (send* report-error-text
-                (begin-edit-sequence)
-                (lock #f)
-                (erase))
-              
-              (send report-error-text insert message)
-              (when (exn:fail:syntax? exn)
-                (send report-error-text insert " in:")
-                (for-each (lambda (stx) 
-                            (send report-error-text insert
-                                  (format " ~s" (syntax-object->datum stx))))
-                          (exn:fail:syntax-exprs exn)))
-              
-              (send* report-error-text
-                (set-position 0 0)
-                (lock #t)
-                (end-edit-sequence))
-              
-              (show-error-report)))
           
           (define rest-panel 'uninitialized-root)
           (define super-root 'uninitialized-super-root)
@@ -976,6 +952,7 @@ If the namespace does not, they are colored the unbound color.
                              (set-breakables old-break-thread old-custodian)
                              (enable-evaluation)
                              (send definitions-text end-edit-sequence)
+                             (send report-error-text clear-output-ports)
                              (close-status-line 'drscheme:check-syntax))]
                           [kill-termination
                            (lambda ()
@@ -997,17 +974,61 @@ If the namespace does not, they are colored the unbound color.
                                   (syncheck:clear-highlighting)
                                   (cleanup)
                                   (custodian-shutdown-all user-custodian)))))]
+                          [error-port (send report-error-text get-err-port)]
                           [init-proc
                            (lambda () ; =user=
                              (set-breakables (current-thread) (current-custodian))
                              (set-directory definitions-text)
-                             (error-display-handler (lambda (msg exn) ;; =user=
-                                                      (parameterize ([current-eventspace drs-eventspace])
-                                                        (queue-callback
-                                                         (lambda () ;; =drs=
-                                                           (report-error msg exn)
-                                                           ;; tell uncaught-expception-raised to cleanup
-                                                           (semaphore-post error-display-semaphore))))))
+                             (error-display-handler 
+                              (lambda (msg exn) ;; =user=
+                                (parameterize ([current-eventspace drs-eventspace])
+                                  (queue-callback
+                                   (lambda () ;; =drs=
+                                     (show-error-report))))
+                                
+                                (parameterize ([current-error-port error-port])
+                                  (drscheme:debug:show-error-and-highlight 
+                                   msg exn 
+                                   (lambda (src-to-display cms) ;; =user=
+                                     (parameterize ([current-eventspace drs-eventspace])
+                                       (queue-callback
+                                        (lambda () ;; =drs=
+                                          (send (get-interactions-text) highlight-errors src-to-display cms)))))))
+                                
+                                (semaphore-post error-display-semaphore))
+                              
+                              #;
+                              (begin
+                                (send* report-error-text
+                                  (begin-edit-sequence)
+                                  (lock #f)
+                                  (erase))
+                                
+                                (send report-error-text insert message)
+                                (when (exn:fail:syntax? exn)
+                                  (send report-error-text insert " in:")
+                                  (for-each (lambda (stx) 
+                                              (send report-error-text insert
+                                                    (format " ~s" (syntax-object->datum stx))))
+                                            (exn:fail:syntax-exprs exn)))
+                                
+                                (send* report-error-text
+                                  (set-position 0 0)
+                                  (lock #t)
+                                  (end-edit-sequence))
+                                
+                                (show-error-report)))
+                                                      
+                             #;
+                             (parameterize ([current-eventspace drs-eventspace])
+                               (queue-callback
+                                (lambda () ;; =drs=
+                                  
+                                  
+                                  (thread (lambda () (report-error msg exn)))
+                                  ;; tell uncaught-expception-raised to cleanup
+                                  (semaphore-post error-display-semaphore))))
+                             
                              (error-print-source-location #f) ; need to build code to render error first
                              (current-exception-handler
                               (let ([oh (current-exception-handler)])

@@ -232,7 +232,7 @@ profile todo:
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
       
-      (define (show-error-and-highlight msg exn rep highlight-errors)
+      (define (show-error-and-highlight msg exn highlight-errors)
         (let* ([cms (and (exn? exn) 
                          (continuation-mark-set? (exn-continuation-marks exn))
                          (continuation-mark-set->list 
