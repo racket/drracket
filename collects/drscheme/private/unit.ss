@@ -868,59 +868,100 @@
           
           (inherit get-edit-target-window)
           [define (split)
-            (let* ([target (get-edit-target-window)]
+            (let* ([canvas-to-be-replaced (get-edit-target-window)]
                    [update
                     (lambda (set-canvases! canvases canvas% text)
-                      (let ([orig-percentages (send resizable-panel get-percentages)]
-                            [orig-canvases (send resizable-panel get-children)]
-                            [new-canvas (make-object canvas% resizable-panel text)])
-                        
-                        (set-canvases!
-                         (let loop ([canvases canvases])
-                           (cond
-                             [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
-                             [else
-                              (let ([canvas (car canvases)])
-                                (if (eq? canvas target)
-                                    (list* new-canvas
-                                           canvas
-                                           (cdr canvases))
-                                    (cons canvas (loop (cdr canvases)))))])))
-                        
-                        (update-shown)
-                        
-                        (send resizable-panel set-percentages
-                              (let loop ([canvases orig-canvases]
-                                         [percentages orig-percentages])
-                                (cond
-                                  [(null? canvases)
-                                   (error 'split "couldn't split; didn't find canvas")]
-                                  [(null? percentages)
-                                   (error 'split "wrong number of percentages: ~s ~s"
-                                          orig-percentages
-                                          (send resizable-panel get-children))]
-                                  [else (let ([canvas (car canvases)])
-                                          (if (eq? target canvas)
-                                              (list* (/ (car percentages) 2)
-                                                     (/ (car percentages) 2)
-                                                     (cdr percentages))
-                                              (cons
-                                               (car percentages)
-                                               (loop (cdr canvases)
-                                                     (cdr percentages)))))])))
-                        (send new-canvas focus)))])
+                      (let-values ([(ox oy ow oh) (get-visible-region canvas-to-be-replaced)])
+                        (let ([orig-percentages (send resizable-panel get-percentages)]
+                              [orig-canvases (send resizable-panel get-children)]
+                              [new-canvas (make-object canvas% resizable-panel text)])
+                          
+                          (set-canvases!
+                           (let loop ([canvases canvases])
+                             (cond
+                               [(null? canvases) (error 'split "couldn't split; didn't find canvas")]
+                               [else
+                                (let ([canvas (car canvases)])
+                                  (if (eq? canvas canvas-to-be-replaced)
+                                      (list* new-canvas
+                                             canvas
+                                             (cdr canvases))
+                                      (cons canvas (loop (cdr canvases)))))])))
+                          
+                          (update-shown)
+                          
+                          (send resizable-panel set-percentages
+                                (let loop ([canvases orig-canvases]
+                                           [percentages orig-percentages])
+                                  (cond
+                                    [(null? canvases)
+                                     (error 'split "couldn't split; didn't find canvas")]
+                                    [(null? percentages)
+                                     (error 'split "wrong number of percentages: ~s ~s"
+                                            orig-percentages
+                                            (send resizable-panel get-children))]
+                                    [else (let ([canvas (car canvases)])
+                                            (if (eq? canvas-to-be-replaced canvas)
+                                                (list* (/ (car percentages) 2)
+                                                       (/ (car percentages) 2)
+                                                       (cdr percentages))
+                                                (cons
+                                                 (car percentages)
+                                                 (loop (cdr canvases)
+                                                       (cdr percentages)))))])))
+                          
+                          (set-visible-region new-canvas ox oy ow oh)
+                          (set-visible-region canvas-to-be-replaced ox oy ow oh)
+                          
+                          (send new-canvas focus))))])
               (cond
-                [(memq target definitions-canvases)
+                [(memq canvas-to-be-replaced definitions-canvases)
                  (update (lambda (x) (set! definitions-canvases x))
                          definitions-canvases
                          definitions-canvas%
                          definitions-text)]
-                [(memq target interactions-canvases)
+                [(memq canvas-to-be-replaced interactions-canvases)
                  (update (lambda (x) (set! interactions-canvases x))
                          interactions-canvases
                          interactions-canvas%
                          interactions-text)]
                 [else (bell)]))]
+          
+          ;; get-visible-region : editor-canvas -> number number number number
+          ;; calculates the visible region of the editor in this editor-canvas
+          (define (get-visible-region canvas)
+            (let ([admin
+                   (send canvas call-as-primary-owner
+                         (lambda ()
+                           (send (send canvas get-editor) get-admin)))]
+                  [xb (box 0)]
+                  [yb (box 0)]
+                  [wb (box 0)]
+                  [hb (box 0)])
+              (send admin get-view xb yb wb hb)
+              (values (unbox xb)
+                      (unbox yb)
+                      (unbox wb)
+                      (unbox hb))))
+          
+          ;; set-visible-region : editor-canvas number number number number -> void
+          ;; sets the visible region of the text displayed by the editor canvas
+          ;; to be the middle of the region (vertically) specified by x, y, w, and h.
+          (define (set-visible-region canvas x y w h)
+            (let ([admin 
+                   (send canvas call-as-primary-owner
+                         (lambda ()
+                           (send (send canvas get-editor) get-admin)))]
+                  [wb (box 0)]
+                  [hb (box 0)])
+              (send admin get-view #f #f wb hb)
+              (let ([nx x]
+                    [ny (- (+ y (/ h 2)) (/ (unbox hb) 2))]
+                    [nw (unbox wb)]
+                    [nh (unbox hb)])
+                (printf "moving from (~a, ~a) to (~a, ~a)~n" x y nx ny)
+                (send admin scroll-to nx ny nw nh))))
+          
           [define (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse

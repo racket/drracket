@@ -25,7 +25,7 @@
       (define first-dir (current-directory))
       
       (define original-error-display-handler (error-display-handler))
-      
+
       (define error-display-handler-message-box-title
         (make-parameter (string-constant drscheme-internal-error)))
       
@@ -35,7 +35,11 @@
       ;; identifying the error as a drscheme internal error.
       (error-display-handler
        (lambda (msg exn)
-         (original-error-display-handler msg exn)
+
+         ;; this  may raise an exception if the port is gone.
+         (with-handlers ([not-break-exn? (lambda (x) (void))])
+           (original-error-display-handler msg exn))
+
          (let ([title (error-display-handler-message-box-title)])
            (let ([text (let ([p (open-output-string)])
                          (parameterize ([current-error-port p]
