@@ -383,10 +383,9 @@
             (alignment '(left center))
             (label (string-constant install-plt-file-dialog-title))))
         (define choice
-          (instantiate gui-utils:choices-canvas% ()
+          (instantiate tab-panel% ()
             (parent dialog)
             (callback (lambda (x y) (update-panels)))
-	    (stretchable-width #f)
             (choices (list (string-constant install-plt-web-tab)
                            (string-constant install-plt-file-tab)))))
         (define outer-swapping-panel (instantiate horizontal-panel% ()
