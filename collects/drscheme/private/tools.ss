@@ -83,10 +83,7 @@
       ;;                    -> (listof string[sub-collection-name]) 
       ;;                       (union #f (cons string[filename] (listof string[collection-name])))
       ;;                       (union #f string)
-      ;;                    -> (list string[collection-name] 
-      ;;                             (listof string[sub-collection-name])
-      ;;                             (-> void)
-      ;;                             (-> void))
+      ;;                    -> void
       ;; `coll' is a collection to load the tool from
       ;; `in-path' is the `coll'-relative collection-path spec for the tool module file
       ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
@@ -124,20 +121,24 @@
                                     (format (string-constant error-invoking-tool-title)
                                             coll in-path)
                                     x))])
-                  (let ([phase-thunks (invoke-tool unit name)])
-                    ;; maybe too early todo that.
+                  (let ([_____phase-thunks (invoke-tool unit name)])
+                    ;; maybe too early to do that.
                     (set! successful-tools 
                           (cons (make-successful-tool tool-path tool-bitmap name)
                                 successful-tools))
-                    (list* coll in-path phase-thunks))))))))
+                    ;(list* coll in-path phase-thunks)
+		    (void)
+		    )))))))
 
       ;; invoke-tool : unit/sig string -> (list (-> void) (-> void))
       ;; invokes the tools and returns the two phase thunks.
       (define (invoke-tool unit tool-name)
 	(wrap-tool-inputs 
          (let ()
-           (define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
-           (cons phase1 phase2))
+           ;(define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
+           ;(cons phase1 phase2)
+           (define-values/invoke-unit/sig () unit #f drscheme:tool^)
+	   (void))
          'drscheme))
 
       ;; show-error : string exn -> void
