@@ -218,30 +218,36 @@
 
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete])
+      (private
+        [needs-execution-state #f]
+        [already-warned-state #f]
+        [execute-language #f])
       (public
-	[needs-execution? #f]
+	[needs-execution? 
+         (lambda ()
+           (or needs-execution-state
+               (not (equal? execute-language
+                            (fw:preferences:get 'drscheme:settings)))))]
 	[teachpack-changed
 	 (lambda ()
-	   (set! needs-execution? #t))]
-	[language-changed
-	 (lambda ()
-	   (set! needs-execution? #t))]
+	   (set! needs-execution-state #t))]
 	[just-executed
 	 (lambda ()
-	   (set! needs-execution? #f)
-	   (set! already-warned? #f))]
-	[already-warned? #f]
+           (set! execute-language (fw:preferences:get 'drscheme:settings))
+	   (set! needs-execution-state #f)
+	   (set! already-warned-state #f))]
+	[already-warned? (lambda () already-warned-state)]
 	[already-warned
 	 (lambda ()
-	   (set! already-warned? #t))])
+	   (set! already-warned-state #t))])
       (override
 	[after-insert
 	 (lambda x
-	   (set! needs-execution? #t)
+	   (set! needs-execution-state #t)
 	   (apply super-after-insert x))]
 	[after-delete
 	 (lambda x
-	   (set! needs-execution? #t)
+	   (set! needs-execution-state #t)
 	   (apply super-after-delete x))])
       (sequence
 	(super-init))))
