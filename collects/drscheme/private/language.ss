@@ -18,7 +18,8 @@
   (define language@
     (unit/sig drscheme:language^
       (import [drscheme:unit : drscheme:unit^]
-              [drscheme:language-tower : drscheme:language-tower^])
+              [drscheme:language-tower : drscheme:language-tower^]
+              [drscheme:rep : drscheme:rep^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.

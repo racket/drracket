@@ -33,6 +33,10 @@
               (drscheme:load-handler : drscheme:load-handler^)
               (drscheme:help : drscheme:help-interface^))
       
+      (define-struct text/pos (text start end))
+      ;; text/pos = (make-text/pos (instanceof text% number number))
+      ;; this represents a portion of a text to be processed.
+      
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -290,6 +294,10 @@
              (send text get-canvas)]
             [else #f])))
       
+      ;; instances of this interface provide a context for a rep:text%
+      ;; its connection to its environment (eg frame) for error display and general
+      ;; status infromation is all mediated through an instance of this
+      ;; interface.
       (define context<%>
         (interface ()
           ensure-rep-shown   ;; (-> void)
@@ -598,7 +606,7 @@
                 (close-text))))
           (send text insert #\newline)))
       
-      ;; open-and-higlight-in-file : syntax -> void
+      ;; open-and-highlight-in-file : syntax -> void
       ;; opens the window displaying this piece of syntax (if there is one)
       ;; and highlights the right position in the file
       (define (open-and-highlight-in-file stx)
@@ -1379,23 +1387,23 @@
             (define (do-many-text-evals text start end)
               (do-many-evals
                (lambda (single-loop-eval)
-                 (drscheme:load-handler:process-text
-                  ; BUG: is it possible that a macro turns on breaking?
-                  text
-                  (lambda (expr recur) ; =User=, =Handler=, =No-Breaks=
-                    (cond
-                      [(drscheme:load-handler:process-finish? expr)
-                       (void)]
-                      [else
-                       (single-loop-eval
-                        (lambda ()
-                          (call-with-values
+                 (let* ([text/pos (make-text/pos text start end)]
+                        [lang (drscheme:language:language-settings-language (current-language-settings))]
+                        [settings (drscheme:language:language-settings-settings (current-language-settings))]
+                        [get-sexp/syntax/eof (send lang front-end text/pos settings)])
+                   (let loop () 
+                     (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                       (cond
+                         [(eof-object? sexp/syntax/eof)
+                          (void)]
+                         [else
+                          (single-loop-eval
                            (lambda ()
-                             (primitive-eval expr))
-                           (lambda x (display-results x)))))
-                       (recur)]))
-                  start
-                  end))))
+                             (call-with-values
+                              (lambda ()
+                                (primitive-eval sexp/syntax/eof))
+                              (lambda x (display-results x)))))
+                          (loop)])))))))
             
             
 	    ;; do-many-evals : ((((-> void) -> void) -> void) -> void)

@@ -114,7 +114,8 @@
     (do-setup))
   
   (define-signature drscheme:rep^
-    (drs-bindings-keymap-mixin
+    ((struct text/pos (text start end))
+     drs-bindings-keymap-mixin
      text%
      context<%>
      show-interactions-history))
@@ -131,7 +132,6 @@
     ((struct process-finish ())
      process
      process-file
-     process-sexp
      process-text
      drscheme-load-handler))
  
