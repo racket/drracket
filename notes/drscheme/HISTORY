@@ -1,3 +1,28 @@
+199d6
+
+PRs:  2109
+
+As requested on plt-scheme, I've added a mechanism 
+for collapsing and expanding sexpressions to drscheme.
+right-click to collapse the enclosing sexpression
+to something like (...) and right click on that
+to expand it back to the previous text.
+
+THINGS STILL MISSING (and promised to be broken :)
+
+ - launchers
+ - project manager
+
+TRANSLATIONS
+
+ - added `collapse-sexp' and `expand-sexp'
+   for the popup menu item. right click on a
+   (matched) parenthesis to see the words.
+
+MINOR CHANGES AND BUG FIXES
+
+- Check Syntax now works better at the top level.
+
 199d5
 
 PRs: 2062 2086 2116

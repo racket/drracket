@@ -1,3 +1,4 @@
+
 (module sample-solutions-one-window mzscheme
   (require "drscheme-test-util.ss"
            (lib "gui.ss" "tests" "utils")
@@ -10,6 +11,12 @@
   
   (provide run-test)
   
+  (define (section->language section)
+    (cond
+      [(section . <= . 12) '("How to Design Programs" "Beginning Student")]
+      [(section . <= . 29) '("How to Design Programs" "Intermediate Student")]
+      [else '("How to Design Programs" "Advanced Student")]))
+
   (define sample-solutions-dir
     (let ([try1
            (collection-path "solutions")]
@@ -37,18 +44,19 @@
     (let* ([all-info (call-with-input-file (build-path (collection-path "solutions") 
                                                        'up 'up "proj" "book" "solutions"
                                                        "labels.scm") read)]
-           [all-labels (map car all-info)]
-           [ex-labels (filter (lambda (x) (and (string=? (substring x 0 3) "ex:")
-                                               (> (string-length x) 3)))
-                              all-labels)])
-      (map (lambda (x) (string-append (substring x 3 (string-length x)) ".scm"))
+           [ex-labels (filter (lambda (x) (and (string=? (substring (car x) 0 3) "ex:")
+                                               (> (string-length (car x)) 3)))
+                              all-info)])
+      (map (lambda (x) 
+             (cons (string-append (substring (car x) 3 (string-length (car x))) ".scm")
+                   (cdr x)))
            ex-labels)))
   
   (define sample-solutions
     (filter (lambda (x) (and 
                          (> (string-length x) 3)
                          (string=? "scm" (substring x (- (string-length x) 3) (string-length x)))
-                         (member x labels)))
+                         (memf (lambda (y) (string=? (car y) x)) labels)))
             (directory-list sample-solutions-dir)))
   
   (define (test-single-file filename)
@@ -56,8 +64,8 @@
                         (if lookup
                             (cdr lookup)
                             default-toc-entry))]
-           [language '("How to Design Programs"
-                       "Beginning Student")] ;; should be calculated from the section
+           [label (car (memf (lambda (x) (string=? (car x) filename)) labels))]
+           [language (section->language (car (cadr label)))]
            [errors-ok? (car toc-entry)]
            [teachpacks (cadr toc-entry)])
       
@@ -76,7 +84,7 @@
                  (format "Language: ~a." language))
           (set-language-level! language))
         
-      ;; only bother changing the teachpacks when necessary.
+        ;; only bother changing the teachpacks when necessary.
         (let* ([get-full-path
                 (lambda (teachpack)
                   (normal-case-path
@@ -92,6 +100,10 @@
                [teachpacks-already-set? (string=? teachpack-should-be teachpack-is)])
           (unless teachpacks-already-set?
             (fw:test:menu-select "Language" "Clear All Teachpacks")
+            (use-get/put-dialog
+             (lambda ()
+               (fw:test:menu-select "Language" "Add Teachpack..."))
+             (build-path (collection-path "tests" "drscheme") "sample-solutions-testsuite-tp.scm"))
             (for-each (lambda (teachpack)
                         (use-get/put-dialog
                          (lambda ()

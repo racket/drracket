@@ -378,7 +378,8 @@
             (insert "  McMicMac (c) 1995-1998 PLT, Rice University (Shriram Krishnamurthi)")
             (insert #\newline))
           
-          (when (eq? (system-type) 'macos)
+          (when (or (eq? (system-type) 'macos)
+                    (eq? (system-type) 'macosx))
             (send* e
               (insert "  The A List (c) 1997-2000 Kyle Hammond")
               (insert #\newline)))

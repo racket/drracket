@@ -103,15 +103,14 @@
         (define (debug-tool-error-display-handler msg exn)
           (let ([cms (and (exn? exn) (continuation-mark-set->list (exn-continuation-marks exn) cm-key))]
                 [rep (drscheme:rep:current-rep)])
-          
+            
 	    (when (and cms
 		       (not (null? cms)))
 	      (let ([locked? (send rep is-locked?)]
                     [mf-bday?
                      (let ([date (seconds->date (current-seconds))])
                        (and (= (date-month date) 10)
-                            (= (date-day date) 29)
-                            (>= (date-hour date) 17)))])
+                            (= (date-day date) 29)))])
 		(send rep lock #f)
 		(insert/clickback rep
                                   (if mf-bday? mf-note bug-note)
@@ -122,8 +121,8 @@
 		    (insert/clickback 
                      rep file-note
                      (lambda ()
-                       (open-and-highlight-in-file (car cms)))))
-		  (send rep lock locked?))))
+                       (open-and-highlight-in-file (car cms))))))
+                (send rep lock locked?)))
             
             (orig-error-display-handler msg exn)
             
