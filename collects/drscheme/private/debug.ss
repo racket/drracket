@@ -318,7 +318,7 @@ profile todo:
                  [mf-bday-note (when (mf-bday?)
                                  (instantiate message% ()
                                    (label (string-constant happy-birthday-matthias))
-                                   (parent current-backtrace-window)))]
+                                   (parent (send current-backtrace-window get-area-container))))]
                  [ec (make-object canvas:wide-snip% 
                        (send current-backtrace-window get-area-container)
                        text)]
@@ -396,7 +396,7 @@ profile todo:
       ;; Matthias's birthday
       (define (mf-bday?)
         (let ([date (seconds->date (current-seconds))])
-          (and (= (date-month date) 10)
+          '(and (= (date-month date) 10)
                (= (date-day date) 29))))
       
       ;; show-frame : (instanceof editor-canvas%)
