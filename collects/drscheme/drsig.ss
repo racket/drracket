@@ -36,8 +36,6 @@
    system-eventspace
    first-dir))
 
-(define-signature drscheme:prefs^ ())
-
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
 
@@ -137,7 +135,6 @@
    (unit plt:aries : plt:aries^)
 
    (unit drscheme:init : drscheme:init^)
-   (unit drscheme:prefs : drscheme:prefs^)
    (unit drscheme:text : drscheme:text^)
    (unit drscheme:snip : drscheme:snip^)
    (unit drscheme:export : drscheme:export^)
