@@ -515,7 +515,7 @@ TODO
                  #f))))
           
           ;; =User=
-          (define queue-system-callback/sync
+          (define/private queue-system-callback/sync
             (lambda (ut thunk)
               (let ([s (make-semaphore 0)])
                 (queue-system-callback 
@@ -806,7 +806,7 @@ TODO
                  (ask-about-kill? #f))
           (define/public (get-in-evaluation?) in-evaluation?)
           
-          (define (insert-warning)
+          (define/private (insert-warning)
             (begin-edit-sequence)
             (insert #\newline (last-position) (last-position))
             (let ([start (last-position)])
@@ -974,7 +974,7 @@ TODO
           
           (define/pubment (after-many-evals) (inner (void) after-many-evals))
           
-          (define shutdown-user-custodian ; =Kernel=, =Handler=
+          (define/private shutdown-user-custodian ; =Kernel=, =Handler=
             ; Use this procedure to shutdown when in the middle of other cleanup
             ;  operations, such as when the user clicks "Execute".
             ; Don't use it to kill a thread where other, external cleanup
@@ -1001,7 +1001,7 @@ TODO
                  (cleanup-semaphore 'not-yet-cleanup-semaphore)
                  (thread-grace 'not-yet-thread-grace)
                  (thread-killed 'not-yet-thread-killed))
-          (define (initialize-killed-thread) ; =Kernel=
+          (define/private (initialize-killed-thread) ; =Kernel=
             (when (thread? thread-killed)
               (kill-thread thread-killed))
             (set! thread-killed
@@ -1016,7 +1016,7 @@ TODO
                               (cleanup-interaction)
                               (cleanup)))))))))
           
-          (define protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
+          (define/private protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
             (lambda (thunk cleanup)
               
               ;; We only run cleanup if thunk finishes normally or tries to
@@ -1055,7 +1055,7 @@ TODO
             (semaphore-post eval-thread-state-sema)
             (semaphore-post eval-thread-queue-sema))
           
-          (define init-evaluation-thread ; =Kernel=
+          (define/private init-evaluation-thread ; =Kernel=
             (lambda ()
               (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
                     [frame (get-top-level-window)])
@@ -1206,7 +1206,7 @@ TODO
               (set! thread-killed #f))
             (shutdown-user-custodian))
           
-          (define update-running ; =User=, =Handler=, =No-Breaks=
+          (define/private update-running ; =User=, =Handler=, =No-Breaks=
             (lambda (bool)
               (queue-system-callback
                (get-user-thread)
@@ -1220,7 +1220,7 @@ TODO
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           ;; initialize-paramters : (listof snip-class%) -> void
-          (define initialize-parameters ; =User=
+          (define/private initialize-parameters ; =User=
             (lambda (snip-classes)
               
               (current-language-settings user-language-settings)

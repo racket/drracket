@@ -205,7 +205,7 @@
           [define hilite-line-delta (make-object style-delta% 'change-style 'italic)]
           [define unhilite-line-delta (make-object style-delta% 'change-style 'normal)]
           [define widest-filename #f]
-          [define indent-all-lines
+          [define/private indent-all-lines
             ;; indent-all-lines : number -> void
             ;; inserts `offset' spaces to the beginning of each line,
             ;; except the last one. Must be at least one such line in the text.
@@ -232,7 +232,7 @@
           [define col-in-current-file #f]
           
           [define old-line #f]
-          [define hilite-line
+          [define/private hilite-line
             (lambda (line)
               (begin-edit-sequence)
               (lock #f)

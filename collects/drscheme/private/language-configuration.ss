@@ -835,7 +835,7 @@
                [before-ec%
                 (class editor-canvas% 
                   (inherit get-client-size)
-                  (define (update-size)
+                  (define/private (update-size)
                     (let-values ([(cw ch) (get-client-size)])
                       (unless (or (zero? cw)
                                   (zero? ch))

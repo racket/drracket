@@ -32,7 +32,7 @@
       (define basics-mixin
         (mixin (frame:standard-menus<%>) (basics<%>)
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
-          [define get-menu-bindings
+          [define/private get-menu-bindings
             (lambda ()
               (let ([name-ht (make-hash-table)]
                     [fun-ht (make-hash-table)])
@@ -67,14 +67,14 @@
                    (send menu-container get-items)))
                 (values name-ht fun-ht)))]
           
-          [define copy-hash-table
+          [define/private copy-hash-table
             (lambda (ht)
               (let ([res (make-hash-table)])
                 (hash-table-for-each
                  ht
                  (lambda (x y) (hash-table-put! res x y)))
                 res))]
-          [define can-show-keybindings?
+          [define/private can-show-keybindings?
             (lambda ()
               (let ([edit-object (get-edit-target-object)])
                 (and edit-object
@@ -82,7 +82,7 @@
                      (let ([keymap (send edit-object get-keymap)])
                        (is-a? keymap keymap:aug-keymap<%>)))))]
           
-          [define show-keybindings
+          [define/private show-keybindings
             (lambda ()
               (if (can-show-keybindings?)
                   (let ([edit-object (get-edit-target-object)])

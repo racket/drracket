@@ -279,7 +279,7 @@ tab panels new behavior:
                   (init-rest args) 
                   (inherit get-top-level-window) 
                   
-                  (define (reset-highlighting) 
+                  (define/private (reset-highlighting) 
                     (let ([f (get-top-level-window)]) 
                       (when (and f 
                                  (is-a? f -frame<%>)) 
@@ -616,7 +616,7 @@ tab panels new behavior:
 	  
           (define sort-by-name? #f)
           (define sorting-name (string-constant sort-by-name))
-          (define (change-sorting-order)
+          (define/private (change-sorting-order)
             (set! sort-by-name? (not sort-by-name?))
             (set! sorting-name (if sort-by-name?
                                    (string-constant sort-by-position) 
@@ -893,14 +893,14 @@ tab panels new behavior:
           
           ;; pad-two : number -> string
           ;; pads a number to two digits?
-          (define (pad-two n)
+          (define/private (pad-two n)
             (cond
               [(<= 0 n 9) (format "0~a" n)]
               [else (format "~a" n)]))
           
           ;; start-logging : -> void
           ;; turns on the logging and shows the logging gui
-          (define (start-logging)
+          (define/private (start-logging)
             (let ([log-directory (mred:get-directory
                                   (string-constant please-choose-a-log-directory)
                                   this)])
@@ -915,7 +915,7 @@ tab panels new behavior:
           
           ;; stop-logging : -> void
           ;; turns off the logging procedure
-          (define (stop-logging)
+          (define/private (stop-logging)
             (log-interactions)
             (send logging-menu-item set-label (string-constant log-definitions-and-interactions))
             (set! logging #f)
@@ -923,7 +923,7 @@ tab panels new behavior:
           
           ;; build-logging-panel : -> void
           ;; builds the contents of the logging panel
-          (define (build-logging-panel)
+          (define/private (build-logging-panel)
             (define hp (make-object horizontal-panel% logging-panel '(border)))
             (make-object message% (string-constant logging-to) hp)
             (send (make-object message% (path->string logging) hp) stretchable-width #t)
@@ -949,7 +949,7 @@ tab panels new behavior:
           ;;     if that fails, report the error and return #f.
           ;;     if it succeeds, return #t.
           ;;   if they say no, return #f.
-          (define (ensure-empty log-directory)
+          (define/private (ensure-empty log-directory)
             (let ([dir-list (directory-list log-directory)])
               (or (null? dir-list)
                   (let ([query (message-box 
@@ -1072,7 +1072,7 @@ tab panels new behavior:
           [define save-button #f]
           [define save-init-shown? #f]
           
-          [define set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
+          [define/private set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
           
           [define canvas-show-mode #f]
           [define allow-split? #f]
@@ -1360,7 +1360,7 @@ tab panels new behavior:
 
           
           (inherit get-edit-target-window)
-          (define (split)
+          (define/private (split)
             (let* ([canvas-to-be-split (get-edit-target-window)]
                    [update
                     (lambda (set-canvases! canvases canvas% text)
@@ -1429,7 +1429,7 @@ tab panels new behavior:
           
           ;; split-demand : menu-item -> void
           ;; enables the menu-item if splitting is allowed, disables otherwise
-          (define (split-demand item)
+          (define/private (split-demand item)
             (let ([canvas-to-be-split (get-edit-target-window)])
               (send item enable
                     (or (memq canvas-to-be-split definitions-canvases)
@@ -1437,7 +1437,7 @@ tab panels new behavior:
           
           ;; collapse-demand : menu-item -> void
           ;; enables the menu-item if collapsing is allowed, disables otherwise
-          (define (collapse-demand item)
+          (define/private (collapse-demand item)
             (let ([canvas-to-be-split (get-edit-target-window)])
               (cond
                 [(memq canvas-to-be-split definitions-canvases)
@@ -1452,7 +1452,7 @@ tab panels new behavior:
           ;; four numbers for the x, y, width and height of the visible region
           ;; also, the last two booleans indiciate if the beginning and the end
           ;; of the selection was visible before the split, respectively.
-          (define (get-visible-region canvas)
+          (define/private (get-visible-region canvas)
             (send canvas call-as-primary-owner
                   (lambda ()
                     (let* ([text (send canvas get-editor)]
@@ -1473,7 +1473,7 @@ tab panels new behavior:
           ;; if start-visible? and/or end-visible? are true, some special handling
           ;; is done to try to keep the start and end visible, with precendence
           ;; given to start if both are #t.
-          (define (set-visible-region canvas x y w h cursor-y)
+          (define/private (set-visible-region canvas x y w h cursor-y)
             (send canvas call-as-primary-owner
                   (lambda ()
                     (let* ([text (send canvas get-editor)]
@@ -1495,7 +1495,7 @@ tab panels new behavior:
           
           ;; get-visible-area : admin -> number number number number
           ;; returns the visible area for this admin
-          (define (get-visible-area admin)
+          (define/private (get-visible-area admin)
             (let ([bx (box 0)]
                   [by (box 0)]
                   [bw (box 0)]
@@ -1506,7 +1506,7 @@ tab panels new behavior:
                       (unbox bw)
                       (unbox bh))))
           
-          (define (collapse)
+          (define/private (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
                     (lambda (get-canvases set-canvases!)
@@ -1604,11 +1604,11 @@ tab panels new behavior:
           (define interactions-shown? #t)
           (define definitions-shown? #t)
           
-          (define (toggle-show/hide-definitions)
+          (define/private (toggle-show/hide-definitions)
             (set! definitions-shown? (not definitions-shown?))
             (unless definitions-shown?
               (set! interactions-shown? #t)))
-          (define (toggle-show/hide-interactions)
+          (define/private (toggle-show/hide-interactions)
             (set! interactions-shown? (not interactions-shown?))
             (unless  interactions-shown?
               (set! definitions-shown? #t)))
@@ -1963,7 +1963,7 @@ tab panels new behavior:
           ;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
-          (define (update-teachpack-menu)
+          (define/private (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
             (for-each (lambda (item) (send item delete)) teachpack-items)
             (set! teachpack-items
@@ -2188,7 +2188,7 @@ tab panels new behavior:
           ;; set-directory : text -> void
           ;; sets the current-directory and current-load-relative-directory
           ;; based on the file saved in the definitions-text
-          (define (set-directory definitions-text)
+          (define/private (set-directory definitions-text)
             (let* ([tmp-b (box #f)]
                    [fn (send definitions-text get-filename tmp-b)])
               (unless (unbox tmp-b)

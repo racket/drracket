@@ -48,50 +48,47 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
       (define output-text (make-object text%))
       (define output-port (make-text-port output-text))
       
-      (define (make-modern text)
+      (define/private (make-modern text)
         (send text change-style
               (make-object style-delta% 'change-family 'modern)
               0
               (send text last-position)))
       
-      (define dummy
-        (begin (parameterize ([current-output-port output-port]
-                              [pretty-print-columns 30])
-                 (for-each
-                  (lambda (binding-pair)
-                    (let* ([stx (car binding-pair)]
-                          [value (cadr binding-pair)])
-                      ; this totally destroys the 'output-port' abstraction.  I don't know
-                      ; how to enrich the notion of an output-port to get 'bold'ing to 
-                      ; work otherwise...
-                      (let* ([before (send output-text last-position)])
-                        (pretty-print (syntax-object->datum stx))
-                        (let* ([post-newline (send output-text last-position)])
-                          (send output-text delete post-newline) ; delete the trailing \n. yuck!
-                          (send output-text insert " ")
-                          (send output-text change-style 
-                                (make-object style-delta% 'change-bold)
-                                before (- post-newline 1)))
-                        (pretty-print value))))
-                  bindings))
-               (send output-text delete (send output-text last-position))  ; delete final trailing \n
-               (make-modern output-text)))
+      (begin (parameterize ([current-output-port output-port]
+                            [pretty-print-columns 30])
+               (for-each
+                (lambda (binding-pair)
+                  (let* ([stx (car binding-pair)]
+                         [value (cadr binding-pair)])
+                    ; this totally destroys the 'output-port' abstraction.  I don't know
+                    ; how to enrich the notion of an output-port to get 'bold'ing to 
+                    ; work otherwise...
+                    (let* ([before (send output-text last-position)])
+                      (pretty-print (syntax-object->datum stx))
+                      (let* ([post-newline (send output-text last-position)])
+                        (send output-text delete post-newline) ; delete the trailing \n. yuck!
+                        (send output-text insert " ")
+                        (send output-text change-style 
+                              (make-object style-delta% 'change-bold)
+                              before (- post-newline 1)))
+                      (pretty-print value))))
+                bindings))
+             (send output-text delete (send output-text last-position))  ; delete final trailing \n
+             (make-modern output-text))
     
-      
-      
       (define outer-t (make-object text%))
       
-      (super-instantiate ()
-        (editor outer-t)
-        (with-border? #f)
-        (left-margin 3)
-        (top-margin 0)
-        (right-margin 0)
-        (bottom-margin 0)
-        (left-inset 1)
-        (top-inset 0)
-        (right-inset 0)
-        (bottom-inset 0))
+      (super-new
+       (editor outer-t)
+       (with-border? #f)
+       (left-margin 3)
+       (top-margin 0)
+       (right-margin 0)
+       (bottom-margin 0)
+       (left-inset 1)
+       (top-inset 0)
+       (right-inset 0)
+       (bottom-inset 0))
       
       (define inner-t (make-object text%))
       (define inner-es (instantiate editor-snip% ()
@@ -109,7 +106,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
       (define details-shown? #t)
       
       (inherit show-border set-tight-text-fit)
-      (define (hide-details)
+      (define/private (hide-details)
         (when details-shown?
           (send outer-t lock #f)
           (show-border #f)
@@ -119,7 +116,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
           (send outer-t lock #t)
           (set! details-shown? #f)))
       
-      (define (show-details)
+      (define/private (show-details)
         (unless details-shown?
           (send outer-t lock #f)
           (show-border #t)
@@ -133,7 +130,9 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
           (send outer-t lock #t)
           (set! details-shown? #t)))
       
-      (send outer-t insert (make-object turn-snip% hide-details show-details))
+      (send outer-t insert (make-object turn-snip% 
+                             (lambda () (hide-details))
+                             (lambda () (show-details))))
       (send outer-t insert (format "bindings\n"))
       (send outer-t insert inner-es)
       (make-modern outer-t)

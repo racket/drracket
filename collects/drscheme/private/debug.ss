@@ -1124,7 +1124,7 @@ profile todo:
         (mixin ((class->interface text%) drscheme:unit:definitions-text<%>) ()
           (inherit get-canvas)
           
-          (define (clear-profiling?)
+          (define/private (clear-profiling?)
             (eq? (message-box (string-constant drscheme)
                               (string-constant profiling-clear?)
                               (send (get-canvas) get-top-level-window)
@@ -1253,7 +1253,7 @@ profile todo:
                        (toggle-profile-visible))))))
           
           ;; toggle-profile-visible : -> void
-          (define (toggle-profile-visible)
+          (define/private (toggle-profile-visible)
             (cond
               [profile-info-visible?
                (clear-annotations)]
@@ -1570,7 +1570,7 @@ profile todo:
           
           ;; top : number (listof X) -> (listof X)
           ;; extracts the first `n' elements from a list.
-          (define (top n lst)
+          (define/private (top n lst)
             (let loop ([n n]
                        [lst lst])
               (cond
@@ -1582,12 +1582,12 @@ profile todo:
                  (percentage-editor #f)
                  (time-editor #f)
                  (count-editor #f))
-          (define (clear-editors)
+          (define/private (clear-editors)
             (set! src-loc-editor #f)
             (set! percentage-editor #f)
             (set! time-editor #f)
             (set! count-editor #f))
-          (define (initialize-editors)
+          (define/private (initialize-editors)
             (set! src-loc-editor (instantiate text% ()))
             (set! percentage-editor (instantiate text% ()))
             (set! time-editor (instantiate text% ()))
@@ -1605,13 +1605,13 @@ profile todo:
             (insert-title (string-constant profiling-col-percent-time) percentage-editor)
             (insert-title (string-constant profiling-col-calls) count-editor))
           
-          (define (insert-title str txt)
+          (define/private (insert-title str txt)
             (send txt insert str)
             (send txt insert "\n")
             (send txt change-style bold-delta 0 (- (send txt last-position) 1))
             (send txt set-paragraph-alignment 0 'center))
           
-          (super-instantiate ())
+          (super-new)
           (hide-caret #t)))
       
       ;; format-percentage : number[0 <= n <= 1] -> string
