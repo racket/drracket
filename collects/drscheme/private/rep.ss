@@ -292,7 +292,7 @@
                         (loop (sub1 i)))))
                   short-string)))))
 
-      (define drs-bindings-keymap (make-object keymap%))
+      (define drs-bindings-keymap (make-object keymap:aug-keymap%))
       (send drs-bindings-keymap add-function
             "execute"
             (lambda (obj evt)
@@ -331,8 +331,8 @@
 	    (cons drs-bindings-keymap (super-get-keymaps))]
 	  (super-instantiate ())))
       
-  ;; Max length of output queue (user's thread blocks if the
-  ;; queue is full):
+      ;; Max length of output queue (user's thread blocks if the
+      ;; queue is full):
       (define output-limit-size 2000)
       
       (define (printf . args) (apply fprintf drscheme:init:original-output-port args))
