@@ -98,6 +98,17 @@
 	      #f
 	      #f)
    
+   ;; leading comment test
+   (make-test (format "#!~n1")
+              "1"
+              #f
+              "1"
+              #f
+              "1"
+              "1"
+              #f
+              #f)
+   
    ;; eval tests
    (make-test "    (eval '(values 1 2))"
 	      (format "1~n2")

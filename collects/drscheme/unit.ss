@@ -478,7 +478,7 @@
 		stretchable-height)
        (rename [super-on-event on-event]))
 
-      (define-struct defn (indent name pos))
+      (define-struct defn (indent name start-pos end-pos))
 
       (define tag-string "(define")
       (define (get-definitions)
@@ -489,9 +489,21 @@
 			     (let ([indent (get-defn-indent defn-pos)]
 				   [name (get-defn-name (+ defn-pos (string-length tag-string)))])
 			       (set! min-indent (min indent min-indent))
-			       (cons (make-defn indent name defn-pos)
+			       (cons (make-defn indent name defn-pos defn-pos)
 				     (loop (+ defn-pos (string-length tag-string)))))
 			     null)))])
+          
+          ;; update end-pos's based on the start pos of the next defn
+          (unless (null? defs)
+            (let loop ([first (car defs)]
+                       [defs (cdr defs)])
+              (cond
+                [(null? defs) 
+                 (set-defn-end-pos! first (send text last-position))]
+                [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
+                                                    (defn-start-pos first)))
+                      (loop (car defs) (cdr defs))])))
+
           (unless sort-by-name?
             (for-each (lambda (defn)
                         (set-defn-name! defn
@@ -596,14 +608,14 @@
 		(let loop ([defns defns])
 		  (unless (null? defns)
 		    (let* ([defn (car defns)]
-			   [next-start (if (null? (cdr defns))
-					   (+ (send text last-position) 1)
-					   (defn-pos (car (cdr defns))))]
-			   
-			   [checked? (and (<= (defn-pos defn)
-					      (send text get-start-position))
-					  (<  (send text get-end-position)
-					      next-start))]
+			   [checked? 
+                            (let ([t-start (send text get-start-position)]
+                                  [t-end (send text get-end-position)]
+                                  [d-start (defn-start-pos defn)]
+                                  [d-end (defn-end-pos defn)])
+                              (or (<= t-start d-start t-end)
+                                  (<= t-start d-end t-end)
+                                  (<= d-start t-start t-end d-end)))]
 			   [item
 			    (make-object (if checked?
 					     fw:menu:can-restore-checkable-menu-item%
@@ -613,7 +625,7 @@
 			      (lambda x
 				(set! inverted? #f)
 				(on-paint)
-				(send text set-position (defn-pos defn) (defn-pos defn))
+				(send text set-position (defn-start-pos defn) (defn-start-pos defn))
 				(let ([canvas (send text get-canvas)])
 				  (when canvas
 				    (send canvas focus)))))])
