@@ -4,6 +4,7 @@
            (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
            (lib "class.ss")
+           (lib "list.ss")
            "drsig.ss"
            (lib "check-gui.ss" "version")
            (lib "mred.ss" "mred")
@@ -153,17 +154,60 @@
                      (lambda (menu-item)
                        (let ([last-edit-object (get-edit-target-window)])
                          (send menu-item enable (can-show-keybindings?))))])
-                (instantiate menu-item% ()
+                (instantiate menu% ()
                   (label (string-constant keybindings-menu-item))
                   (parent menu)
-                  (callback (lambda x (show-keybindings)))
-                  (help-string (string-constant keybindings-info))
-                  (demand-callback keybindings-on-demand)))
+                  (demand-callback
+                   (lambda (keybindings-menu)
+                     (for-each (lambda (old) (send old delete)) 
+                               (send keybindings-menu get-items))
+                     (new menu-item%
+                          (parent keybindings-menu)
+                          (label (string-constant keybindings-show-active))
+                          (callback (lambda (x y) (show-keybindings)))
+                          (help-string (string-constant keybindings-info))
+                          (demand-callback keybindings-on-demand))
+                     (new menu-item%
+                          (parent keybindings-menu)
+                          (label (string-constant keybindings-add-user-defined-keybindings))
+                          (callback
+                           (lambda (x y) 
+                             (let ([filename (finder:get-file #f
+                                                              (string-constant keybindings-choose-user-defined-file)
+                                                              #f "" this)])
+                               (when filename
+                                 (add-keybindings-file filename))))))
+                     (let ([ud (preferences:get 'drscheme:user-defined-keybindings)])
+                       (unless (null? ud)
+                         (new separator-menu-item% (parent keybindings-menu))
+                         (for-each (lambda (path)
+                                     (new menu-item%
+                                          (label (format (string-constant keybindings-menu-remove)
+                                                         (path->string path)))
+                                          (parent keybindings-menu)
+                                          (callback
+                                           (lambda (x y) (remove-keybindings-file path)))))
+                                   ud)))))))
               (unless (current-eventspace-has-standard-menus?)
                 (make-object separator-menu-item% menu)))]
           
           (super-instantiate ())))
 
+      (define (add-keybindings-file path)
+        (with-handlers ([exn? (lambda (x)
+                                (message-box (string-constant drscheme)
+                                             (exn-message x)))])
+          (keymap:add-user-keybindings-file path)
+          (preferences:set 'drscheme:user-defined-keybindings
+                           (cons path
+                                 (preferences:get 'drscheme:user-defined-keybindings)))))
+      (define (remove-keybindings-file path)
+        (keymap:remove-user-keybindings-file path)
+        (preferences:set
+         'drscheme:user-defined-keybindings
+         (remq path
+               (preferences:get 'drscheme:user-defined-keybindings))))
+      
       ;; install-plt-file : (union #f dialog% frame%) -> void
       ;; asks the user for a .plt file, either from the web or from
       ;; a file on the disk and installs it.

@@ -64,7 +64,15 @@
       (preferences:set-default 'drscheme:show-interactions-on-execute #f boolean?)
       (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
- 
+      (preferences:set-default 'drscheme:user-defined-keybindings '() (lambda (x) (and (list? x) (andmap path? x))))
+      (preferences:set-un/marshall 
+       'drscheme:user-defined-keybindings
+       (lambda (in) (map path->bytes in))
+       (lambda (ex) (if (and (list? ex)
+                             (andmap bytes? ex))
+                        (map bytes->path ex)
+                        '())))
+      
       (let ([number-between-zero-and-one?
              (lambda (x) (and (number? x) (<= 0 x 1)))])
         (preferences:set-default 'drscheme:unit-window-size-percentage 
@@ -336,6 +344,9 @@
       ;;   not going to be exiting yet.
       (autosave:restore-autosave-files/gui)
      
+      ;; install user's keybindings
+      (for-each keymap:add-user-keybindings-file (preferences:get 'drscheme:user-defined-keybindings))
+      
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
       (define (make-basic)
