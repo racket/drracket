@@ -1,10 +1,15 @@
 (module bug-report mzscheme
   (require "bug-report-server-info.ss" 
+           (lib "head.ss" "net")
+           (lib "smtp.ss" "net")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "class.ss"))
   
   (provide help-desk:report-bug)
+  
+  (define bug-email-server "bugs.drscheme.org")
+  (define bug-email-server-port 1025)
   
   ;; hopefully these are defined by DrScheme...
   (define get-language-level
@@ -286,26 +291,51 @@
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
     
     ;; smtp-send-bug-report : -> void
-    ;; breaks expected to be disabled when called.
     (define (smtp-send-bug-report)
-      (let ([sexp 
-             (list (format "~a" (preferences:get 'drscheme:email))
-                   (format "~a" (preferences:get 'drscheme:full-name))
-                   (send summary get-value)
-                   (send severity get-string-selection)
-                   (send priority get-string-selection)
-                   (translate-class (send bug-class get-string-selection))
-                   (send version get-value)
-                   (send environment get-value)
-                   (send tools get-value)
-                   (format "~a" (send docs-installed get-value))
-                   (format "~a" (send collections get-value))
-                   (get-strings description)
-                   (get-strings reproduce))])
-        (let-values ([(in out) (tcp-connect/enable-break bug-report-server-host bug-report-server-id)])
-          (write sexp out)
-          (close-output-port out)
-          (close-input-port in))))
+      (smtp-send-message
+       bug-email-server
+       (preferences:get 'drscheme:email)
+       (list "plt-gnats")
+       (insert-field
+        "X-Mailer"
+        (format "Help Desk ~a (bug report form)" (version:version))
+        (insert-field     
+         "Subject" 
+         (send summary get-value)
+         (insert-field
+          "To"
+          "plt-gnats@cs.rice.edu"
+          (insert-field
+           "From"
+           (preferences:get 'drscheme:email)
+           empty-header))))
+       (append
+        (list
+         ">Category:       all"
+         (format ">Synopsis:       ~a" (send summary get-value))
+         ">Confidential:   no"
+         (format ">Severity:       ~a" (send severity get-string-selection))
+         (format ">Priority:       ~a" (send priority get-string-selection))
+         (format ">Class:          ~a" (translate-class (send bug-class get-string-selection)))
+         ">Submitter-Id:   unknown"
+         (format ">Originator:     ~a" (preferences:get 'drscheme:full-name))
+         ">Organization:"
+         "titan"
+         (format ">Release:        ~a" (send version get-value))
+         ">Environment:"
+         (format "~a" (send environment get-value))
+         (format "Tools: ~a" (send tools get-value))
+         "Docs Installed:" (format "~a" (send docs-installed get-value))
+         "Collections:"
+         (format "~a" (send collections get-value))
+         ">Fix: ")
+        (cons
+         ">Description:"
+         (get-strings description))
+        (cons
+         ">How-To-Repeat:"
+         (get-strings reproduce)))
+       bug-email-server-port))
     
     ; send-bug-report : (-> boolean)
     ; returns true if uncancelled
@@ -320,21 +350,28 @@
                [smtp-thread
                 (thread
                  (lambda ()
-                   (break-enabled #f)
                    (semaphore-wait sema)
                    (send button enable #t)
-                   (with-handlers ([(lambda (x) 
-                                      #t) ;; want to handle both breaks and other exns
+                   (with-handlers ([(lambda (x) (exn:break? x))
+                                    (lambda (x) 
+                                      (void))]
+                                   [(lambda (x) (not (exn:break? x)))
                                     (lambda (x)
                                       (queue-callback
                                        (lambda ()
-                                         (message-box "Bug Report Submission Failure"
-                                                      (get-err-msg (if (exn? x)
-                                                                       (exn-message x)
-                                                                       (format "~s" x)))))))])
-                     (smtp-send-bug-report)
-                     (set! sucess? #t))
-                   (send f show #f)))]
+                                         (message-box 
+                                          "Error Sending Bug Report"
+                                          (format "An error occurred when sending this bug report. If your internet connection is otherwise working fine, please visit:~n~n    http://www.cs.rice.edu/CS/PLT/Bugs/~n~nand submit the bug via our online web-form. Sorry for the difficulties.~n~nThe error message is:~n~a"
+                                                  (if (exn? x)
+                                                      (exn-message x)
+                                                      (format "~s" x))))))
+                                      (send f show #f))])
+                     (parameterize ([smtp-sending-end-of-message
+                                     (lambda ()
+                                       (send button enable #f))])
+                       (smtp-send-bug-report)
+                       (set! sucess? #t)
+                       (send f show #f)))))]
                [sucess? #f])
         (send f center)
         (send button enable #f)
