@@ -1055,6 +1055,10 @@
                               text
                               s
                               (lambda (start end)
+                                (printf "changing from ~a to ~a ~a~n" 
+                                        start end
+                                        (list (send text is-locked?)
+                                              (send text get-styles-fixed)))
                                 (send text change-style output-delta start end))))])
                      (when old-saved-newline?
                        (gw newline-string))
