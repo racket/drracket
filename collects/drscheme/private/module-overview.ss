@@ -177,10 +177,15 @@ todo :
               (begin-edit-sequence)
               (with-handlers ([not-break-exn?
                                (lambda (x) 
-                                 (set! error
-                                       (if (exn? x)
-                                           (format "~a" (exn-message x))
-                                           (format "uncaught exn: ~s" x))))])
+                                 (let ([p (open-output-string)])
+                                   (parameterize ([current-output-port p]
+                                                  [current-error-port p])
+                                     ((error-display-handler) 
+                                      (if (exn? x)
+                                          (format "~a" (exn-message x))
+                                          (format "uncaught exn: ~s" x))
+                                      x))
+                                   (set! error (get-output-string p))))])
                 (cond
                   [(string? filename/stx)
                    (add-filename-connections filename/stx
@@ -218,11 +223,14 @@ todo :
                 (when (compiled-module-expression? module-code)
                   (let* ([name (extract-module-name stx)]
                          [visited-key (string->symbol name)]
-                         [snip (find/create-snip name #f)])
+                         [snip (find/create-snip name #f)]
+                         [base (if (regexp-match #rx"^," name)
+                                   (substring name 1 (string-length name))
+                                   name)])
                     (hash-table-put! visited-hash-table visited-key #t)
                     (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                      (let ([requires (extract-filenames imports name)]
-                            [syntax-requires (extract-filenames fs-imports name)])
+                      (let ([requires (extract-filenames imports base)]
+                            [syntax-requires (extract-filenames fs-imports base)])
                         (for-each (lambda (require)
                                     (add-connection name #f
                                                     (req-filename require) #t
@@ -248,7 +256,7 @@ todo :
               (syntax-case stx (module)
                 [(module m-name rest ...)
                  (identifier? (syntax m-name))
-                 (format "~s" (syntax-object->datum (syntax m-name)))]
+                 (format "~a" (syntax-object->datum (syntax m-name)))]
                 [else "<<unknown>>"]))
             
             ;; add-filename-connections : string hash-table (number -> void) (string -> void)  -> void
@@ -392,10 +400,17 @@ todo :
                   [(null? direct-requires) null]
                   [else (let ([dr (car direct-requires)])
                           (if (module-path-index? dr)
-                              (cons (make-req (normal-case-path (normalize-path (resolve-module-path-index dr base)))
+                              (cons (make-req (simplify-path (expand-path (resolve-module-path-index dr base)))
                                               (is-lib? dr))
                                     (loop (cdr direct-requires)))
                               (loop (cdr direct-requires))))])))
+            
+            (define (unparse-mpi mpi)
+              (cond
+                [(module-path-index? mpi)
+                 (let-values ([(a b) (module-path-index-split mpi)])
+                   `(mpi-join ,(unparse-mpi a) ,(unparse-mpi b)))]
+                [else mpi]))
             
             (define (is-lib? dr)
               (and (module-path-index? dr)

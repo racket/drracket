@@ -1702,7 +1702,7 @@
           
           (define/private (show-module-browser)
             (when module-browser-panel
-              (open-status-line 'mouse-over)
+              (open-status-line 'plt:module-browser:mouse-over)
               (open-status-line 'plt:module-browser)
               (update-status-line 'plt:module-browser status-expanding-definitions)
               (unless module-browser-ec 
@@ -1753,16 +1753,16 @@
           
           (define/private (hide-module-browser)
             (when module-browser-panel
-              (close-status-line 'mouse-over)
+              (close-status-line 'plt:module-browser:mouse-over)
               (send module-browser-parent-panel change-children
                     (lambda (l) 
                       (remq module-browser-panel l)))))
           
           (define/private (mouse-currently-over snips)
             (if (null? snips)
-                (update-status-line 'mouse-over "")
+                (update-status-line 'plt:module-browser:mouse-over #f)
                 (let ([snip (car snips)])
-                  (update-status-line 'mouse-over
+                  (update-status-line 'plt:module-browser:mouse-over
                                       (or (send snip get-filename)
                                           (send snip get-word))))))
             
