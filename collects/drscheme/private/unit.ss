@@ -364,9 +364,18 @@
                    text:info%))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
-            (rename
-             [super-set-modified set-modified]
-             [super-set-filename set-filename])
+            
+            (rename [super-after-save-file after-save-file])
+            (define/override (after-save-file success?)
+              (when success?
+                (let ([filename (get-filename)])
+                  (when filename
+                    (let-values ([(creator type) (file-creator-and-type filename)])
+                      (file-creator-and-type filename "DrSc" type)))))
+              (super-after-save-file success?))
+              
+            (rename [super-set-modified set-modified]
+                    [super-set-filename set-filename])
             (inherit is-modified? run-after-edit-sequence)
             (define/override (set-modified mod?)
               (super-set-modified mod?)
