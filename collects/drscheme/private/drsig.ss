@@ -76,6 +76,7 @@
   (define-signature drscheme:init^
     (original-output-port
      original-error-port
+     original-error-display-handler
      primitive-eval
      primitive-load
      error-display-handler-message-box-title

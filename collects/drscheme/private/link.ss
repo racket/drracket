@@ -37,7 +37,7 @@
             [number-snip : drscheme:number-snip^ (number-snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@)]
             [eval : drscheme:eval^ (eval@ language-configuration rep init language teachpack)]
-            [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
+            [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search init)]
             [rep : drscheme:rep^
                  (rep@ init number-snip language-configuration language app 
                      frame unit text help-desk teachpack debug eval)]

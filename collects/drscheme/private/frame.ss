@@ -17,10 +17,11 @@
   (provide frame@)
   (define frame@
     (unit/sig drscheme:frame^
-      (import (drscheme:unit : drscheme:unit^)
-              (drscheme:app : drscheme:app^)
-              (help : drscheme:help-desk^)
-              [drscheme:multi-file-search : drscheme:multi-file-search^])
+      (import [drscheme:unit : drscheme:unit^]
+              [drscheme:app : drscheme:app^]
+              [help : drscheme:help-desk^]
+              [drscheme:multi-file-search : drscheme:multi-file-search^]
+              [drscheme:init : drscheme:init^])
       
       (rename [-mixin mixin])
       
@@ -256,7 +257,8 @@
           [(from-web?)
            (install-plt-from-url (send url-text-field get-value) parent)]
           [else 
-           (run-installer (send file-text-field get-value))]))
+           (parameterize ([error-display-handler drscheme:init:original-error-display-handler])
+             (run-installer (send file-text-field get-value)))]))
 
       ;; install-plt-from-url : string (union #f dialog%) -> void
       ;; downloads and installs a .plt file from the given url
@@ -321,9 +323,10 @@
             (queue-callback (lambda () (semaphore-post wait-to-start))) 
             (send d show #t) 
             (when exn (raise exn))
-            (run-installer tmp-filename
-                           (lambda ()
-                             (delete-file tmp-filename))))))
+            (parameterize ([error-display-handler drscheme:init:original-error-display-handler])
+              (run-installer tmp-filename
+                             (lambda ()
+                               (delete-file tmp-filename)))))))
       
       
       (define keybindings-dialog%
