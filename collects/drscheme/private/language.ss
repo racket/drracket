@@ -117,7 +117,11 @@
                       (one-line-summary "")
                       (language-url #f)
                       (documentation-reference #f)
-                      (reader read-syntax))
+                      (reader (lambda (src port offsets)
+				(let ([v (read-syntax src port offsets)])
+				  (if (eof-object? v)
+				      v
+				      (namespace-syntax-introduce v))))))
           (define/public (get-module) module)
 	  (define/public (get-language-position) language-position)
           (define/public (get-language-numbers) language-numbers)
