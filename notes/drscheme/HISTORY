@@ -1,3 +1,56 @@
+101
+
+ In fixing 1163, I changed help desk's searching data a
+ little. I have tried many searches and things seem to work, but I
+ cannot be sure that I have correctly identified all of the places I
+ need to change. So, please try a few searches and tell me if they
+ work.
+
+ PRS
+
+   635, 714, 770, 532, 771, 1162, 1076, 
+   1042, 1208, 1053, 1163, 1216, 1169
+
+ FUNCTIONALITY CHANGES
+
+ Renamed two files in the graphics collection:
+    graphic.ss is now graphics.ss
+    graphics.ss is now graphicss.ss
+
+ gui-utils:get-choice accepts a new (final) parameter that controls the 
+ result when the user cancels the dialog. 
+
+ added color-model:rgb-color-distance that accepts six numbers representing 
+ two colors in rgb form and returns the distance between those colors. 
+ Larger numbers mean that the human eye will see larger differences. 
+ (Thanks, John!)
+
+ DrScheme's print menu now inserts the time, date and filename as the first 
+ line before printing (and removes it after printing). This works on the 
+ mac, but does not seem to work under Unix. The jury is still out for 
+ windows (Paul: can you test this?)
+
+ MINOR CHANGES AND BUG FIXES
+
+ - plugged leak: frames should now be collected
+
+ - updated collects/htdp to load graphicss.ss instead of graphics.ss
+
+ - Graphical languages come before textual languages in language
+   configuration dialog.
+
+ - error messages now match line numbering preferences, instead
+   of always using line:pos - line:pos
+
+ - comment/uncomment is improved. Now, it blindly adds a semicolon to the 
+ front of each line (and doesn't add extra semicolons on following lines)
+ and aways removes one semicolon (if present) from the front of each line.
+
+ - added close button to new version frame
+
+; ------------------------------------------------------------
+
+
 101d11
 
  - PRS: 1208, 1209, 1225, 1203
