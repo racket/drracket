@@ -35,7 +35,8 @@
    (struct zodiac-exn (message start-location end-location type))))
 
 (define-signature drscheme:language^
-  ((struct setting (vocabulary-symbol
+  ((struct setting (use-zodiac?
+		    vocabulary-symbol
 		    case-sensitive?
 		    allow-set!-on-undefined?
 		    unmatched-cond/case-is-error?
@@ -46,6 +47,7 @@
 		    signal-not-boolean
 		    eq?-only-compares-symbols?
 		    printing))
+   use-zodiac
    setting-name
    install-language
    eq?-only-compares-symbols
@@ -113,7 +115,7 @@
 
 (define-signature drscheme:rep^
   (edit%
-   (struct process/zodiac-finish (error?))))
+   (struct process-finish (error?))))
 
 (define-signature drscheme:exported-zodiac^ zodiac:system^)
 

@@ -5,3 +5,4 @@ Version 51:
    the class, the tool programmer must register a function that
    accepts a class and returns a class. See the manual for more
    details.
+ - process/zodiac-finish has been renamed to process-finish

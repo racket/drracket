@@ -743,10 +743,12 @@
 	     (set! filename fn)
 	     (set! collections cn)
 	     (when fn
-	       (send buffer load-file
-		     (build-path (apply collection-path 
-					(get-collections))
-				 (get-filename)))))])
+	       (let ([collections (get-collections)])
+		     (send buffer load-file
+			   (if (null? collections)
+			       (get-filename)
+			       (build-path (apply collection-path collections)
+					   (get-filename)))))))])
 	(sequence
 	  (super-init)
 	  (set! buffer (make-object buffer% this))
@@ -774,6 +776,8 @@
      (if (and created-frame
 	      (send created-frame still-untouched?))
 	 (send created-frame change-to-file name)
-	 (let ([f (make-object (drscheme:get/extend:get-unit-frame%) name #f)])
+	 (let* ([unit (make-unit name)]
+		[f (begin (send unit create-frame) 
+			  (send unit get-frame))])
 	   (send f show #t)
 	   f)))))
