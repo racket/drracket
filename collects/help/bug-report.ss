@@ -1,6 +1,5 @@
 (module bug-report mzscheme
-  (require (lib "head.ss" "net")
-           (lib "smtp.ss" "net")
+  (require "bug-report-server-info.ss" 
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "class.ss"))
@@ -286,50 +285,27 @@
     (define cancel-button (make-object button% "Cancel" button-panel (lambda x (cancel))))
     (define grow-box-spacer-pane (make-object grow-box-spacer-pane% button-panel))
     
+    ;; smtp-send-bug-report : -> void
+    ;; breaks expected to be disabled when called.
     (define (smtp-send-bug-report)
-      (smtp-send-message
-       "cs.rice.edu"
-       (preferences:get 'drscheme:email)
-       (list "plt-gnats")
-       (insert-field
-        "X-Mailer"
-        (format "Help Desk ~a (bug report form)" (version:version))
-        (insert-field     
-         "Subject" 
-         (send summary get-value)
-         (insert-field
-          "To"
-          "plt-gnats@cs.rice.edu"
-          (insert-field
-           "From"
-           (preferences:get 'drscheme:email)
-           empty-header))))
-       (append
-        (list
-         ">Category:       all"
-         (format ">Synopsis:       ~a" (send summary get-value))
-         ">Confidential:   no"
-         (format ">Severity:       ~a" (send severity get-string-selection))
-         (format ">Priority:       ~a" (send priority get-string-selection))
-         (format ">Class:          ~a" (translate-class (send bug-class get-string-selection)))
-         ">Submitter-Id:   unknown"
-         (format ">Originator:     ~a" (preferences:get 'drscheme:full-name))
-         ">Organization:"
-         "titan"
-         (format ">Release:        ~a" (send version get-value))
-         ">Environment:"
-         (format "~a" (send environment get-value))
-         (format "Tools: ~a" (send tools get-value))
-         "Docs Installed:" (format "~a" (send docs-installed get-value))
-         "Collections:"
-         (format "~a" (send collections get-value))
-         ">Fix: ")
-        (cons
-         ">Description:"
-         (get-strings description))
-        (cons
-         ">How-To-Repeat:"
-         (get-strings reproduce)))))
+      (let ([sexp 
+             (list (format "~a" (preferences:get 'drscheme:email))
+                   (format "~a" (preferences:get 'drscheme:full-name))
+                   (send summary get-value)
+                   (send severity get-string-selection)
+                   (send priority get-string-selection)
+                   (translate-class (send bug-class get-string-selection))
+                   (send version get-value)
+                   (send environment get-value)
+                   (send tools get-value)
+                   (format "~a" (send docs-installed get-value))
+                   (format "~a" (send collections get-value))
+                   (get-strings description)
+                   (get-strings reproduce))])
+        (let-values ([(in out) (tcp-connect/enable-break bug-report-server-host bug-report-server-id)])
+          (write sexp out)
+          (close-output-port out)
+          (close-input-port in))))
     
     ; send-bug-report : (-> boolean)
     ; returns true if uncancelled
@@ -344,14 +320,21 @@
                [smtp-thread
                 (thread
                  (lambda ()
+                   (break-enabled #f)
                    (semaphore-wait sema)
                    (send button enable #t)
-                   (parameterize ([smtp-sending-end-of-message
-                                   (lambda ()
-                                     (send button enable #f))])
+                   (with-handlers ([(lambda (x) 
+                                      #t) ;; want to handle both breaks and other exns
+                                    (lambda (x)
+                                      (queue-callback
+                                       (lambda ()
+                                         (message-box "Bug Report Submission Failure"
+                                                      (get-err-msg (if (exn? x)
+                                                                       (exn-message x)
+                                                                       (format "~s" x)))))))])
                      (smtp-send-bug-report)
-                     (set! sucess? #t)
-                     (send f show #f))))]
+                     (set! sucess? #t))
+                   (send f show #f)))]
                [sucess? #f])
         (send f center)
         (send button enable #f)
@@ -363,6 +346,22 @@
            "Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."
            bug-frame))
         sucess?))
+    
+    ;; get-err-msg : string -> string
+    ;; builds an error message telling the user to see the web-based form.
+    (define (get-err-msg str)
+      (string-append 
+       str "\n\n"
+       "There has been an error submitting your bug report. "
+       "If your internet connection is otherwise working, "
+       "chances are that DrScheme's bug "
+       "reporting system will not work for your computer."
+       "In that case, please use our web-based bug report form,"
+       "at:\n\n"
+       "   http://www.cs.rice.edu/CS/PLT/Bugs/\n\n"
+       "Sorry for any inconvenience.\n"
+       "\n\n"
+       str))
     
     (define (get-strings canvas)
       (let ([t (send canvas get-editor)])

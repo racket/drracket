@@ -13,7 +13,6 @@
            (lib "plt-installer.ss" "setup"))
   
   (define argv (namespace-variable-binding 'argv))
-  (define get-dropped-files (namespace-variable-binding 'get-dropped-files))
   
   (provide main@)
   
@@ -92,6 +91,7 @@
                       (loop (cdr files))
                       (cons (car files) (loop (cdr files))))])))
       
+      (define get-dropped-files (dynamic-require '(lib "splash.ss" "framework") 'get-dropped-files))
       (let* ([files-to-open (append (reverse (get-dropped-files))
 				    (reverse (vector->list argv)))]
              [normalized/filtered

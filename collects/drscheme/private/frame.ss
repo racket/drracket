@@ -274,7 +274,8 @@
                          (show-keybindings-to-user structured-list this)))))
                  (bell)))]
           
-          (override file-menu:new-callback
+          (override file-menu:open-callback file-menu:open-string
+                    file-menu:new-callback file-menu:new-string
 		    help-menu:about-callback help-menu:about-string help-menu:create-about?
                     help-menu:before-about
 		    file-menu:between-open-and-revert
@@ -296,7 +297,10 @@
             [define help-menu:about-string (lambda () "DrScheme")]
             [define help-menu:create-about? (lambda () #t)]
             
-            
+          [define (file-menu:open-callback item evt) (handler:open-file)]
+          [define (file-menu:open-string) ""]
+          
+            [define (file-menu:new-string) ""]
             [define file-menu:new-callback
              (lambda (item evt)
                (drscheme:unit:open-drscheme-window))]

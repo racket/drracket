@@ -153,12 +153,9 @@
             (unless (and (is-a? bitmap bitmap%)
                          (send bitmap ok?))
               (k #f))
-            (let-values ([(splash-eventspace splash-bitmap splash-canvas)
-                          (with-handlers ([not-break-exn? (lambda (x) (k (void)))])
-                            (values
-                             (namespace-variable-binding 'splash-eventspace)
-                             (namespace-variable-binding 'splash-bitmap)
-                             (namespace-variable-binding 'splash-canvas)))])
+            (let ([splash-eventspace ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-eventspace))]
+                  [splash-bitmap ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-bitmap))]
+                  [splash-canvas ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-canvas))])
               
               (unless (and (eventspace? splash-eventspace)
                            (is-a? splash-bitmap bitmap%)

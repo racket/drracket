@@ -106,11 +106,10 @@
   (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
   (error-print-width 200))
 
-(define-values (splash-bitmap splash-canvas splash-eventspace get-dropped-files shutdown-splash close-splash)
-  ((dynamic-require '(lib "splash.ss" "framework") 'splash)
-   (build-path (collection-path "icons") "plt.gif")
-   "DrScheme"
-   81))
+((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
+ (build-path (collection-path "icons") "plt.gif")
+ "DrScheme"
+ 81)
 
 (module drscheme mzscheme
   (require "private/link.ss"
@@ -119,7 +118,7 @@
 	   (lib "unitsig.ss")
            (lib "framework.ss" "framework"))
 
-  ((namespace-variable-binding 'shutdown-splash))
+  ((dynamic-require '(lib "splash.ss" "framework") 'shutdown-splash))
 
   (define-values/invoke-unit/sig drscheme^ drscheme@)
 
@@ -142,4 +141,4 @@
   (eval `(define get-language-level ,get-language-level))
 
 
-  ((namespace-variable-binding 'close-splash)))
+  ((dynamic-require '(lib "splash.ss" "framework") 'close-splash)))

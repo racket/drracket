@@ -3,10 +3,8 @@
            bw-default-code-styles
            code-style-color
            code-style-slant?
-           code-slant-bold?
-           code-slant-underline?)
-  
-  (define bw? (< (get-display-depth) 8))
+           code-style-bold?
+           code-style-underline?)
   
   (define-struct code-style (color slant? bold? underline?))
   ;; code-style = (make-code-style (union (list number number number) string) bolean boolean)
@@ -28,4 +26,3 @@
           (list 'primitive (make-code-style "navy" #f #f #f))
           (list 'constant (make-code-style '(51 135 39) #f #f #f))
           (list 'base (make-code-style "brown" #f #f #f)))))
-  
