@@ -142,7 +142,6 @@ A test case:
                (lambda (url-string post-data)
                  (with-handlers ([(lambda (x) #t)
                                   (lambda (x)
-                                    (printf "exn.5\n")
                                     (unless (or (exn:break? x)
                                                 (exn:file-saved-instead? x)
                                                 (exn:cancelled? x))
@@ -262,7 +261,6 @@ A test case:
                                      (end-busy-cursor)))])
                  (with-handlers ([(lambda (x) (and #f (exn:fail? x) busy?))
                                   (lambda (x) 
-                                    (printf "exn.4 ~s\n" (and (exn? x) (exn-message x)))
                                     (call/input-url 
                                      url
                                      (if post-data 
@@ -378,8 +376,6 @@ A test case:
                                        (semaphore-wait wait-to-start)
                                        (with-handlers ([void
                                                         (lambda (x)
-                                                          (printf "exn.3 ~s\n" (and (exn? exn)
-                                                                                    (exn-message exn)))
                                                           (when (not (exn:break? x))
                                                             (set! exn x)))])
                                          (semaphore-post wait-to-break)
@@ -856,14 +852,10 @@ A test case:
                (update-buttons)]
               [else 
                (send stop-button enable #t)
-               (when home
-                 (send home enable #f))
-               (when forw
-                 (send forw enable #f))
-               (when back
-                 (send back enable #f))
-               (when choice
-                 (send choice enable #f))]))
+               (when home (send home enable #f))
+               (when forw (send forw enable #f))
+               (when back (send back enable #f))
+               (when choice (send choice enable #f))]))
           
           (define/private (clear-info)
             (when info 
@@ -933,8 +925,7 @@ A test case:
                (with-handlers ([exn:break? 
                                 (lambda (x) (void))])
                  (send c goto-url init-page #f)
-                 (set! init-page (send c current-page))
-                 (update-buttons/set-page init-page))]
+                 (update-buttons))]
               [else 
                (send c set-page init-page #t)]))
           (field
@@ -948,9 +939,10 @@ A test case:
             (unless init-page
               (set! init-page page))
             (set! the-page page)
-            (update-buttons)) ;; want to remove this "page" argument so update-buttons can be called from elsewhere
+            (update-buttons))
           (define/private (update-buttons)
             (when control-bar?
+              (send home enable (or (url? init-page) (string? init-page)))
               (send back enable (pair? past))
               (send forw enable (pair? future))
               
