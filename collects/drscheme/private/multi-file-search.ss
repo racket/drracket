@@ -100,14 +100,22 @@
         (define frame (make-object search-size-frame% (string-constant mfs-drscheme-multi-file-search)))
         (define panel (make-object saved-vertical-resizable% (send frame get-area-container)))
         (define button-panel (make-object horizontal-panel% (send frame get-area-container)))
-        (define open-button (make-object button% (string-constant mfs-open-file) button-panel (lambda (x y) (open-file-callback))))
-        (define stop-button (make-object button% (string-constant mfs-stop-search) button-panel (lambda (x y) (stop-callback))))
+        (define open-button (make-object button% (string-constant mfs-open-file) button-panel
+                              (lambda (x y) (open-file-callback))))
+        (define stop-button (make-object button% (string-constant mfs-stop-search) button-panel
+                              (lambda (x y) (stop-callback))))
         (define grow-box-pane (make-object grow-box-spacer-pane% button-panel))
         
         (define zoom-text (make-object scheme:text%))
         (define results-text (make-object results-text% zoom-text))
-        (define results-ec (make-object canvas:basic% panel results-text))
-        (define zoom-ec (make-object canvas:basic% panel zoom-text))
+        (define results-ec (instantiate searching-canvas% ()
+                             (parent panel)
+                             (editor results-text)
+                             (frame frame)))
+        (define zoom-ec (instantiate searching-canvas% ()
+                          (parent panel)
+                          (editor zoom-text)
+                          (frame frame)))
         
         (define (open-file-callback)
           (send results-text open-file))
@@ -129,6 +137,7 @@
             (set! callback-queued? #f)
             (semaphore-post sema)
             (send results-text begin-edit-sequence)
+            (send results-text lock #f)
             (for-each
              (lambda (match)
                (let ([base-filename (car match)]
@@ -140,6 +149,7 @@
                  (send results-text add-match
                        base-filename filename line-string line-number col-number match-length)))
              matches)
+            (send results-text lock #t)
             (send results-text end-edit-sequence)))
         
         (define thd
@@ -182,6 +192,8 @@
                   (send results-text search-complete))
                 #f)))))
         
+        (send frame set-text-to-search results-text) ;; just to initialize it to something.
+        (send results-text lock #t)
         (send frame reflow-container)
         (send panel set-percentages (preferences:get 'drscheme:multi-file-search:percentages))
         (send button-panel set-alignment 'right 'center)
@@ -346,13 +358,30 @@
           (set-style-list (scheme:get-style-list))
           (insert (string-constant mfs-searching...))))
       
-      ;; this frame is just like a regular frame except that it
-      ;; remembers the frame size in the preferences
+      ;; collaborates with search-size-frame%
+      (define searching-canvas%
+        (class canvas:basic%
+          (init-field frame)
+          (rename [super-on-focus on-focus])
+          (inherit get-editor)
+          (define/override (on-focus on?)
+            (when on?
+              (send frame set-text-to-search (get-editor)))
+            (super-on-focus on?))
+          (super-instantiate ())))
+      
       ;; thread: eventspace main thread
       (define search-size-frame%
-        (class (drscheme:frame:basics-mixin frame:standard-menus%)
+        (class (drscheme:frame:basics-mixin 
+                (frame:searchable-mixin
+                 frame:standard-menus%))
           (init-field name)
           (rename [super-on-size on-size])
+
+          (field [text-to-search #f])
+          (define/public (set-text-to-search text) (set! text-to-search text))
+          (define/override (get-text-to-search) text-to-search)
+
           (define/override (on-size w h)
             (preferences:set 'drscheme:multi-file-search:frame-size (cons w h))
             (super-on-size w h))
