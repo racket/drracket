@@ -456,6 +456,7 @@ TODO
                    get-end-position
                    get-err-port
                    get-extent
+                   get-focus-snip
                    get-in-port
                    get-in-box-port
                    get-insertion-point
@@ -648,7 +649,7 @@ TODO
                   (for-each (λ (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
                   
                   (when first-loc
-                    (send first-file set-caret-owner #f 'global))))))
+                    (send first-file set-caret-owner (get-focus-snip) 'global))))))
           
           (define/public (reset-highlighting)
             (reset-error-ranges))
