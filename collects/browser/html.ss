@@ -615,7 +615,7 @@
 			   (add-document-note note)))
 		       (atomic-values (if skip-one? (add1 pos) pos) (or del-white? skip-one?)))]
 		    [(br) (break #f 1)]
-		    [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
+		    [(p hr) (break #f (if dewhite? 2 1))] ; dewhite? = #f => <P> in <PRE>
 		    [(li) (break #t 1)]
 		    [(dt) (break #f 2)]
 		    [(dd) (break #f 1)]
@@ -673,8 +673,9 @@
 			 [(pre) 2]
 			 [(h1 h2 h3) 2]
 			 [else 0])])
-		  (let-values ([(end-pos del-white? extra-tag extra-args) 
-				(find-end tag (+ pos (try-newline pos pre-newlines #t)) dewhite? del-white? enum-depth)])
+		  (let*-values ([(xpos) (+ pos (try-newline pos pre-newlines #t))]
+				[(end-pos del-white? extra-tag extra-args)
+				 (find-end tag xpos dewhite? del-white? enum-depth)])
 		    (let* ([result (lambda (pos del-white?)
 				     (values pos del-white? extra-tag extra-args))]
 			   [normal (lambda () (result end-pos del-white?))]
@@ -714,8 +715,15 @@
 			 (change-style delta:fixed pos end-pos)
 			 (normal)]
 			[(pre)
-			 (change-style delta:fixed pos end-pos)
-			 (result (+ end-pos (try-newline end-pos 2 #t)) #t)]
+			 ;; If it starts with a newline, delete it:
+			 (let ([end-pos (if (and (< xpos end-pos)
+						 (eq? (get-character xpos) #\newline))
+					    (begin
+					      (delete xpos (add1 xpos))
+					      (sub1 end-pos))
+					    end-pos)])
+			   (change-style delta:fixed pos end-pos)
+			   (result (+ end-pos (try-newline end-pos 2 #t)) #t))]
 			[(font)
 			 (let ([delta (parse-font args)])
 			   (when delta
