@@ -574,28 +574,21 @@ TODO
           
           reset-console
           
-          get-inserting-prompt
-          
           copy-prev-previous-expr
           copy-next-previous-expr
           copy-previous-expr
-          set-prompt-mode
-          get-prompt-mode
-          ready-non-prompt
           
-          balance-required
           
           initialize-console
           
           reset-pretty-print-width
           
           get-prompt
-          insert-prompt
-          set-prompt-position
-          get-prompt-position))
+          insert-prompt))
 
       (define text-mixin
         (mixin ((class->interface text%)
+                text:ports<%>
                 editor:file<%>
                 scheme:text<%>
                 color:text<%>
@@ -629,8 +622,10 @@ TODO
                    get-style-list
                    get-text
                    get-top-level-window
+                   get-unread-start-point
                    get-value-port
                    insert
+                   insert-between
                    invalidate-bitmap-cache
                    is-locked?
                    last-position
@@ -805,14 +800,13 @@ TODO
                         
                         (set! internal-reset-callback
                               (lambda ()
-                                (unless (get-inserting-prompt)
-                                  (semaphore-wait error-range/reset-callback-semaphore)
-                                  (set! error-ranges #f)
-                                  (when defs
-                                    (send defs set-error-arrows #f))
-                                  (set! internal-reset-callback void)
-                                  (for-each (lambda (x) (x)) resets)
-                                  (semaphore-post error-range/reset-callback-semaphore))))))
+                                (semaphore-wait error-range/reset-callback-semaphore)
+                                (set! error-ranges #f)
+                                (when defs
+                                  (send defs set-error-arrows #f))
+                                (set! internal-reset-callback void)
+                                (for-each (lambda (x) (x)) resets)
+                                (semaphore-post error-range/reset-callback-semaphore)))))
                     
                     (unless (is-a? first-file -text<%>)
                       (send first-file set-position first-start first-start)
@@ -907,7 +901,7 @@ TODO
           
           (field (already-warned? #f))
           
-          (define (cleanup)
+          (define/private (cleanup)
             (set! in-evaluation? #f)
             (update-running #f)
             (unless (and (get-user-thread) (thread-running? (get-user-thread)))
@@ -919,7 +913,7 @@ TODO
                         (send canvas get-top-level-window)))))))
           (field (need-interaction-cleanup? #f))
           
-          (define (cleanup-interaction) ; =Kernel=, =Handler=
+          (define/private (cleanup-interaction) ; =Kernel=, =Handler=
             (set! need-interaction-cleanup? #f)
             (begin-edit-sequence)
             (set-caret-owner #f 'display)
@@ -929,28 +923,51 @@ TODO
             (send context enable-evaluation))
           
           (inherit backward-containing-sexp)
+          
           (define/augment (on-submit)
-            (let ([start-pos (backward-containing-sexp (get-start-position) 0)])
-              (printf "start-pos ~s\n" start-pos)
-              (inner (void) on-submit)
-              ;; put two eofs in the port; one to terminate a potentially incomplete sexp
-              ;; (or a non-self-terminating one, like a number) and the other to ensure that
-              ;; an eof really does come thru the calls to `read'. 
-              ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
-              (send-eof-to-in-port)
-              (send-eof-to-in-port)
-              (evaluate-from-port 
-               (get-in-port) 
-               #f
-               (lambda ()
-                 (clear-input-port)))))
+            (inner (void) on-submit)
+            (when prompt-position
+              (printf "submit-predicate ~s\n" submit-predicate)
+              (when (submit-predicate this prompt-position)
+                ;; put two eofs in the port; one to terminate a potentially incomplete sexp
+                ;; (or a non-self-terminating one, like a number) and the other to ensure that
+                ;; an eof really does come thru the calls to `read'. 
+                ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
+                (send-eof-to-in-port)
+                (send-eof-to-in-port)
+                (set! prompt-position #f)
+                (evaluate-from-port 
+                 (get-in-port) 
+                 #f
+                 (lambda ()
+                   (clear-input-port))))))
+          
+          ;; prompt-position : (union #f integer)
+          ;; the position just after the last prompt
+          (field (prompt-position #f))
+          (define/public (get-prompt) "> ")
+          (define/public (insert-prompt)
+            (let ([locked? (is-locked?)])
+              (begin-edit-sequence)
+              (lock #f)
+              (printf "inserting\n")
+              (insert-between (get-prompt))
+              (printf "inserted\n")
+              (lock locked?)
+              (end-edit-sequence))
+            (set! prompt-position (get-unread-start-point)))
+          
+          (field [submit-predicate
+                  (lambda (text prompt-position)
+                    #t)])
+          (define/public (set-submit-predicate p)
+            (set! submit-predicate p))
           
           (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
             (send context disable-evaluation)
             (send context reset-offer-kill)
             (send context set-breakables (get-user-thread) (get-user-custodian))
             (reset-pretty-print-width)
-            (ready-non-prompt)
             (when should-collect-garbage?
               (set! should-collect-garbage? #f)
               (collect-garbage))
@@ -997,14 +1014,13 @@ TODO
                       (lambda () 
                         (current-error-escape-k saved-error-escape-k)
                         (when cleanup?
-                          (fprintf (get-out-port) (get-prompt))
-                          (flush-output (get-out-port))
                           (set! in-evaluation? #f)
                           (update-running #f)
                           (cleanup)
                           (queue-system-callback/sync
                            (get-user-thread)
                            (lambda () ; =Kernel=, =Handler= 
+                             (insert-prompt)
                              (after-many-evals)
                              (cleanup-interaction))))))))))))
           
@@ -1440,33 +1456,12 @@ TODO
                                  (car l)
                                  (last-str (cdr l)))))
           
-          (field (prompt-mode? #f)
-                 (prompt-position 0))
-          (define/public (get-prompt) "> ")
-          (define/public (get-prompt-mode) prompt-mode?)
-          (define/public (set-prompt-mode x) (set! prompt-mode? x))
-          (define/public (set-prompt-position v) (set! prompt-position v))
-          (define/public (get-prompt-position) prompt-position)
-          (define find-prompt 
-            (lambda (pos) 
-              (if (> pos prompt-position)
-                  prompt-position
-                  0)))
-          
-          (field (balance-required-cell #t))
-          (define/public balance-required
-            (case-lambda
-              [() balance-required-cell]
-              [(x) (set! balance-required-cell x)]))
-          
           (field (previous-expr-pos -1))
           
           (define/public copy-previous-expr
             (lambda ()
               (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
                 (begin-edit-sequence)
-                (unless prompt-mode?
-                  (insert-prompt))
                 (delete prompt-position (last-position) #f)
                 (for-each (lambda (snip/string)
                             (insert (if (is-a? snip/string snip%)
@@ -1552,49 +1547,6 @@ TODO
                                            (floor (/ width char-width)))])
                     (send dc set-font old-font)
                     (pretty-print-columns new-columns))))))
-          
-          (field [submit-predicate
-                  (lambda (text prompt-position)
-                    #t)])
-          (define/public (set-submit-predicate p)
-            (set! submit-predicate p))
-          
-          (field (inserting-prompt #f))
-          (define/public (get-inserting-prompt) inserting-prompt)
-          (define/public (insert-prompt)
-            (set! prompt-mode? #t)
-            (fluid-let ([inserting-prompt #t])
-              (begin-edit-sequence)
-              (let* ([last (last-position)]
-                     [c-locked? (is-locked?)]
-                     [start-selection (get-start-position)]
-                     [end-selection (get-end-position)]
-                     [last-str (if (= last 0)
-                                   ""
-                                   (get-text (- last 1) last))])
-                (lock #f)
-                (unless (or (string=? last-str newline-string)
-                            (= last 0))
-                  (insert #\newline last))
-                (let ([last (last-position)])
-                  (insert (get-prompt) last)
-                  (change-style normal-delta last (last-position)))
-                (set! prompt-position (last-position))
-                ;(clear-undos)
-                (lock c-locked?)
-                (end-edit-sequence)
-                (scroll-to-position start-selection #f (last-position) 'start)
-                (reset-region prompt-position 'end))))
-          
-          (define/public (ready-non-prompt)
-            (when prompt-mode?
-              (set! prompt-mode? #f)
-              (let ([c-locked (is-locked?)])
-                (begin-edit-sequence)
-                (lock #f)
-                (insert #\newline (last-position))
-                (lock c-locked)	   
-                (end-edit-sequence))))
           
           (super-new)
           (auto-wrap #t)
