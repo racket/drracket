@@ -16,6 +16,7 @@
 	       (append
 		(drscheme-info 'compile-elaboration-zos failure)
 		(list "rep-new.ss" "phooks.ss" "toy.ss" ; should these files be deleted?
+		      "rload.ss" "rrequire.ss"
 		      "getcoll.ss" "tmp.ss" ;; these files are tmp files in robby's directory, not in cvs
 		      "drscheme-in-drscheme.ss" "tool.ss" "rrequire.ss"))]
 	      [(compile-subcollections) (list (list "drscheme" "tools" "syncheck"))]
