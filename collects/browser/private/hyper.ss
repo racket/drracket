@@ -48,8 +48,6 @@
       
       (define-struct hypertag (name position))
       
-      (define hyper-style-list (make-object style-list%))
-      
       (define (same-page-url? a b)
 	(or (eq? a b)
 	    (and (url? a) (url? b)
@@ -69,7 +67,7 @@
           (class* super% (hyper-text<%>)
             
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
-                     change-style get-style-list set-style-list
+                     change-style
                      set-modified auto-wrap
                      find-snip get-snip-position set-clickback get-canvas
                      insert last-position hide-caret
@@ -128,24 +126,9 @@
             [define/public  get-document-notes
               (lambda () doc-notes)]
             
-            [define/public map-shift-style 
-              (lambda (start end shift-style)
-                (let loop ([pos start])
-                  (unless (>= pos end)
-                    (let* ([curr-snip (find-snip pos 'after-or-none)]
-                           [curr-snip-end (when curr-snip
-                                            (+ (get-snip-position curr-snip)
-                                               (send curr-snip get-count)))])
-                      (when curr-snip
-                        (change-style 
-                         (send (get-style-list) find-or-create-join-style 
-                               (send curr-snip get-style) shift-style)
-                         pos (min curr-snip-end end))
-                        (loop curr-snip-end))))))]
-            [define/public make-link-style       
+            [define/public make-link-style
               (lambda (start end)
-                (map-shift-style start end 
-                                 (send (get-style-list) find-named-style "h-link-style")))]
+                (change-style hyper-delta start end))]
             [define/public get-url (lambda () (and (url? url) url))]
             [define/private make-clickback-funct
               (opt-lambda (url-string [post-data #f])
@@ -179,14 +162,6 @@
                   [add (send hyper-delta get-foreground-add)])
               (send mult set 0 0 0)
               (send add set 0 0 255))
-            
-            [define/private add-h-link-style
-              (lambda ()
-                (let ([style-list (get-style-list)])
-                  (send style-list replace-named-style  "h-link-style"
-                        (send style-list find-or-create-style  
-                              (send style-list basic-style)
-                              hyper-delta))))]
             
             [define/public add-tag 
               (lambda (name pos)
@@ -564,7 +539,6 @@
                        ; (send progress stop)
                        (set! htmling? #f)
                        (close-input-port p)))
-                    (set-style-list hyper-style-list)
                     (set-modified #f)
                     (auto-wrap wrapping-on?)
                     (set-autowrap-bitmap #f)
@@ -637,7 +611,6 @@
                                       (combine-url/relative url loc)
                                       (string->url loc))))))))))]
             (super-instantiate ())
-            (add-h-link-style)
             ;; load url, but the user might break:
             (with-handlers ([exn:break? void])
               (reload progress)))))
