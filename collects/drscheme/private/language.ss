@@ -20,19 +20,8 @@
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:language-tower : drscheme:language-tower^])
       
-      (define configure-language-title "Configure Language")
-      
       (define settings-preferences-symbol 
         (string->symbol (format "drscheme:~a-settings" (version:version))))
-      
-      (define (get-printer-style-number printing-setting)
-        (case printing-setting
-          [(constructor-style) 0]
-          [(quasi-style) 1]
-          [(quasi-read-style) 1]
-          [(r4rs-style) 2]
-          [else (error 'drscheme:language:update-to "got: ~a as printing style"
-                       printing-setting)]))
       
       (define re:mred (regexp "MrEd"))
       
@@ -48,11 +37,8 @@
 		     (make-object drscheme:language-tower:simple-module-based-language%
 		       `(lib ,lang "langs")
 		       ps))))])
-          (list (make-simple "beginner.ss" '("HtDP" "Beginning Student"))
-                (make-simple "intermediate.ss" '("HtDP" "Intermediate Student"))
-                (make-simple "advanced.ss" '("HtDP" "Intermediate Student"))
-                (make-simple "full-mred.ss" '("Full" "Graphical (MrEd)"))
-                (make-simple "full-mred.ss" '("Full" "Textual (MzScheme)")))))
+          (list (make-simple "full-mred.ss" '("Full" "Graphical (MrEd)"))
+                (make-simple "full-mzscheme.ss" '("Full" "Textual (MzScheme)")))))
       
       (define (get-available-languages)
         (unless available-languages
@@ -88,7 +74,7 @@
                   (send i show-details)))
               (super-instantiate (parent))))
 
-          (define dialog (make-object dialog% configure-language-title parent #f #f #f #f '(resize-border)))
+          (define dialog (make-object dialog% (string-constant language-dialog-title) parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
 	  (define details-panel (make-object panel:single% outermost-panel))
