@@ -10,7 +10,7 @@
    add-basis))
 
 (define-signature drscheme:export^
-  (console))
+  (frame-group))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
