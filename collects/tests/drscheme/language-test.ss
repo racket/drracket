@@ -36,8 +36,33 @@
   (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause"))
 
 (define (zodiac-beginner)
-  (zodiac "Beginner")
-  (generic-output "Beginner" #f))
+  ;(zodiac "Beginner")
+  ;(generic-output "Beginner" #f)
+
+  (let ([drs (wait-for-drscheme-frame)])
+    (clear-definitions drs)
+    (set-language "Beginner" #t)
+    (do-execute drs))
+
+  (test-expression "(eq? 'a 'A)" "#f")
+  (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+  (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
+  (test-expression "(cons 1 2)" "error")
+  (test-expression "'(1)" "Misuse of quote: '(1) is not a symbol")
+
+  ;; sharing and list test
+  (test-expression "(define shared (box 1)) (list shared shared)"
+		   "(cons (box 1) (cons (box 1) empty))")
+
+  (test-expression "(local ((define x x)) 1)" "Invalid definition: must be at the top level")
+  (test-expression "(if 1 1 1)" "Condition value is neither #t nor #f: 1")
+  (test-expression "(eq? 1 1)" "error")
+  (test-expression "(+ 1)" "error")
+  (test-expression "1.0" "#i1.0")
+  (test-expression "#i1.0" "#i1.0")
+  (test-expression "3/2" "3/2")
+  (test-expression "(list 1)" "(cons 1 empty)")
+  (test-expression "argv" "reference to undefined identifier: argv"))
 
 (define (zodiac-intermediate)
   (zodiac "Intermediate")
@@ -174,15 +199,27 @@
 	   (list #t (whitespace-string=? "a " "a"))
 	   (list #t (whitespace-string=? "a" "a "))))
 
+(define (test-expression expression expected)
+  (let* ([drs (wait-for-drscheme-frame)]
+	 [interactions-edit (ivar drs interactions-edit)]
+	 [last-para (send interactions-edit last-paragraph)])
+    (send interactions-edit set-position
+	  (send interactions-edit last-position)
+	  (send interactions-edit last-position))
+    (type-in-interactions drs expression)
+    (type-in-interactions drs (string #\newline))
+    (wait-for-computation drs)
+    (let ([got
+	   (fetch-output
+	    drs
+	    (send interactions-edit paragraph-start-position (+ last-para 1))
+	    (send interactions-edit paragraph-end-position
+		  (- (send interactions-edit last-paragraph) 1)))])
+      (unless (whitespace-string=? got expected)
+	(printf "FAILED: expected ~s to produce ~s, got ~s instead~n"
+		expression expected got)))))
+
 '(define (zodiac-generic language)
-  (set-language language #f)
-  (test-setting "Allow improper lists" #f "'(1 . 2)" "Improper lists not allowed")
-  (open-language-dialog)
-  (test-setting "Allow improper lists" #t "'(1 . 2)" "(cons 1 2)")
-  (open-language-dialog)
-  (test-setting "Allow improper lists" #f "(cons 1 2)" "Improper lists not allowed")
-  (open-language-dialog)
-  (test-setting "Allow improper lists" #t "(cons 1 2)" "(cons 1 2)")
   
   (open-language-dialog)
   (test-setting "Signal undefined variables when first referenced" #t "(local [(define x x)] 1)" "error")
@@ -213,7 +250,7 @@
   (open-language-dialog)
   (test-setting "Allow set! on undefined identifiers" #f "(set! x 123) x" "set!: cannot set undefined identifier: x"))
 
-;(zodiac-beginner)
-(zodiac-intermediate)
-(zodiac-advanced)
-(mzscheme)
+(zodiac-beginner)
+;(zodiac-intermediate)
+;(zodiac-advanced)
+;(mzscheme)

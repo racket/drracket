@@ -25,7 +25,7 @@
     (case-lambda
      [(pred) (poll-until pred 10)]
      [(pred secs)
-      (let ([step 1/4])
+      (let ([step 1/20])
 	(let loop ([counter secs])
 	  (if (<= counter 0)
 	      (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred)
@@ -60,20 +60,21 @@
 	     active
 	     #f)))))
 
+  (define (wait-for-computation frame)
+    (verify-drscheme-frame-frontmost 'wait-for-computation frame)
+      (let ([button (ivar frame execute-button)])
+	(poll-until
+	 (lambda ()
+	   (fw:test:reraise-error)
+	   (send button is-enabled?))
+	 30)))
+
   (define do-execute 
     (lambda (frame)
       (verify-drscheme-frame-frontmost 'do-execute frame)
       (let ([button (ivar frame execute-button)])
 	(fw:test:button-push button)
-	(poll-until
-	 (lambda ()
-	   (fw:test:reraise-error)
-	   (= 0 (fw:test:number-pending-actions))))
-	(poll-until
-	 (lambda ()
-	   (fw:test:reraise-error)
-	   (send button is-enabled?))
-	 30))))
+	(wait-for-computation frame))))
   
   (define (verify-drscheme-frame-frontmost function-name frame)
     (unless (and (eq? frame (get-top-level-focus-window))
@@ -90,9 +91,14 @@
     
   
   (define (type-in-definitions frame str)
-    (verify-drscheme-frame-frontmost 'type-in-definitions frame)
+    (type-in-definitions/interactions 'definitions-canvas frame str))
+  (define (type-in-interactions frame str)
+    (type-in-definitions/interactions 'interactions-canvas frame str))
+
+  (define (type-in-definitions/interactions canvas-ivar frame str)
+    (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
     (let ([len (string-length str)])
-      (fw:test:new-window (ivar frame definitions-canvas))
+      (fw:test:new-window (ivar/proc frame canvas-ivar))
       (let loop ([i 0])
 	(unless (>= i len)
 	  (let ([c (string-ref str i)])
