@@ -3,6 +3,11 @@
    tools
    load/invoke-tool))
 
+(define-signature drscheme:basis^
+  ((open plt:aries:predicates^)
+   level->number level-symbols level-strings
+   build-basis))
+
 (define-signature drscheme:export^
   (console))
 
@@ -30,6 +35,5 @@
   (do-setup))
 
 (define-signature drscheme:spawn^
-  ((open plt:aries:predicates^)
-   spawned-process-console-frame%
+  (spawned-process-console-frame%
    spawned-process-console-edit%))
