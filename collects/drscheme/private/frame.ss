@@ -313,8 +313,8 @@
 		 (when 
 		  (eq? 'yes 
 		       (message-box 
-			(string-constant 'vc-update-check)
-		        (string-constant 'vc-check-prompt)
+			(string-constant vc-update-check)
+		        (string-constant vc-check-prompt)
 			this
 			'(yes-no)))
                  (check-version this)))))
