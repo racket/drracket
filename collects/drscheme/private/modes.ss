@@ -40,4 +40,4 @@
          (string-constant text-mode)
          #f
          (lambda (text prompt-position) #t)
-         (lambda (x) (regexp-match #rx"\\.txt$" x)))))))
+         (lambda (x) (and x (regexp-match #rx"\\.txt$" x))))))))
