@@ -68,7 +68,7 @@
                 (= (send interactions-text last-position)
                    (+ before-newline-pos 4)))
               "input box didn't appear")
-    ;; output-start-pos skips over the newline and then the input box
+	;; output-start-pos skips over the newline and then the input box
         (let ([output-start-pos (+ before-newline-pos 3)])
           (type-string (format input))
           (wait-for-computation drs-frame)

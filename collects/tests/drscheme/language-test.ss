@@ -71,6 +71,9 @@
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
       
+      (test-expression "(let ([f (lambda (x) x)]) f)" "#<procedure:f>")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+      
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
       (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
@@ -160,6 +163,9 @@
       (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "#f")
 
+      (test-expression "(let ([f (lambda (x) x)]) f)" "#<procedure:f>")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
   
@@ -231,6 +237,10 @@
       (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "true")
       
+      (test-expression "(let ([f (lambda (x) x)]) f)" 
+                       "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
+      (test-expression ",1" "read: illegal use of `,'")
+
       (test-expression "(list 1)" "(cons 1 empty)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
@@ -303,8 +313,11 @@
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
       (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
-      
       (test-expression "(exact? 1.5)" "true")
+      
+      (test-expression "(let ([f (lambda (x) x)]) f)" "function:f")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -377,8 +390,11 @@
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
       (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
-      
       (test-expression "(exact? 1.5)" "true")
+      
+      (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
@@ -454,6 +470,9 @@
       (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
       (test-expression "(exact? 1.5)" "true")
       
+      (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
