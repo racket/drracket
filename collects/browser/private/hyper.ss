@@ -61,7 +61,17 @@
                      get-end-position set-autowrap-bitmap)
 
             (private-field [url _url]
-                           [top-level-window _top-level-window])
+                           [top-level-window _top-level-window]
+                           [url-allows-evaling?
+                            (cond
+                              [(port? url) #f]
+                              [(url? url)
+                               (and (equal? "file" (url-scheme url))
+                                    (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
+                                      (path-below?
+                                       (normalize-path (collection-path "doc"))
+                                       (normalize-path (url-path url)))))]
+                              [else #f])])
 
             (rename [super-after-set-position after-set-position])
             
@@ -181,14 +191,19 @@
                  (let* ([new-link (make-hyperlink start end url-string)])
                    (set-clickback start end (make-clickback-funct url-string))))]
               
-          ;; remember the directory when the callback is added (during parsing)
-          ;; and restore it during the evaluation of the callback.
+              ;; remember the directory when the callback is added (during parsing)
+              ;; and restore it during the evaluation of the callback.
               [add-scheme-callback
                (lambda (start end scheme-string)
                  (let ([dir (current-load-relative-directory)])
-                   (set-clickback start end (lambda (edit start end)
-                                              (parameterize ([current-load-relative-directory dir])
-                                                (eval-scheme-string scheme-string))))))]
+                   (set-clickback 
+                    start end 
+                    (lambda (edit start end)
+                      (if url-allows-evaling?
+                          (parameterize ([current-load-relative-directory dir])
+                            (eval-scheme-string scheme-string))
+                          (message-box (string-constant help-desk)
+                                       "<A MZSCHEME= ...> disabled"))))))]
               [eval-scheme-string
                (lambda (s)
                  (let ([v (dynamic-wind
@@ -399,7 +414,8 @@
                                                                     (send e erase)
                                                                     (send e insert s))
                                                                   (semaphore-post wait-to-show))]
-                                                               [current-load-relative-directory directory])
+                                                               [current-load-relative-directory directory]
+                                                               [html-eval-ok url-allows-evaling?])
                                                   (html-convert p this))))
                                             (set! done? #t)
                                             (semaphore-wait wait-to-show)
@@ -474,6 +490,18 @@
       
       (define hyper-text% (hyper-text-mixin text:keymap%))
       
+      ;; path-below? : string[normalized-path] string[normalized-path] -> boolean
+      ;; returns #t if subpath points to a place below top
+      (define (path-below? top longer)
+        (let loop ([top (explode-path top)]
+                   [longer (explode-path longer)])
+          (cond
+            [(null? top) #t]
+            [(null? longer) #f]
+            [(equal? (car top) (car longer))
+             (loop (cdr top) (cdr longer))]
+            [else #f])))
+
       (keymap:add-to-right-button-menu/before
        (let ([old (keymap:add-to-right-button-menu/before)])
          (lambda (menu editor event)

@@ -3,13 +3,17 @@
   
   (provide relative-btree^
            bullet^
+           html-export^
            html^)
 
+  (define-signature html-export^
+    (html-img-ok
+     html-eval-ok))
+  
   (define-signature html^
     (html-convert
      html-status-handler
-     html-img-ok
-     html-eval-ok))
+     (open html-export^)))
   
   (define-signature bullet^
     (bullet-snip%

@@ -17,4 +17,5 @@
       (link [bullet : bullet^ (bullet@ mred)]
             [html : html^ (html@ bullet mred)]
             [hyper : browser^ (hyper@ html bullet mred plt-installer)])
-      (export (open hyper)))))
+      (export (open hyper)
+              (open (html : html-export^))))))
