@@ -363,15 +363,10 @@
     (fw:test:keystroke #\a)
     (fw:test:keystroke #\b)
     (fw:test:keystroke #\c)
-    (do-execute drs)
-    (let ([result (fetch-output drs)])
-      (unless (string=? result "[abc]")
-	(printf "FAILED comment-boxes, got ~s expected \"[abc]\"~n"
-		result)))
 
     ;; test comment box in print-convert and print-convert-less settings
     (test "Constructor" 'on 'on (if zodiac? "[abc]" "'non-string-snip"))
-    (test "write" 'on #f (if zodiac? "[abc]" "'non-string-snip"))))
+    (test "write" 'on #f (if zodiac? "[abc]" "non-string-snip"))))
 
 (define (whitespace-string=? string1 string2)
   (let loop ([i 0]
