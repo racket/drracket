@@ -37,13 +37,16 @@
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
-(define-signature drscheme:unit^
+(define-signature drscheme:parameters^
   (current-interactions-edit%
    current-definitions-edit%
    current-interactions-canvas%
    current-definitions-canvas%
-   current-frame%
-   frame% snip-class% snip% make-bitmap))
+   current-frame%))
+
+(define-signature drscheme:unit^
+  (frame% snip-class% snip% make-bitmap
+	  definitions-canvas%))
 
 (define-signature drscheme:frame^
   (group
@@ -73,9 +76,10 @@
    about-drscheme))
 
 (define-signature drscheme:export^
-  ((unit drscheme:frame : drscheme:frame^)
-   (unit drscheme:unit : drscheme:unit^)
-   (unit drscheme:compound-unit : drscheme:compound-unit^)))
+  ((unit frame : drscheme:frame^)
+   (unit unit : drscheme:unit^)
+   (unit compound-unit : drscheme:compound-unit^)
+   (unit parameters : drscheme:parameters^)))
 
 
 (begin-elaboration-time

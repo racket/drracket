@@ -7,7 +7,8 @@
 	    [drscheme:frame : drscheme:frame^]
 	    [drscheme:edit : drscheme:edit^]
 	    [drscheme:rep : drscheme:rep^]
-	    [drscheme:language : drscheme:language^])
+	    [drscheme:language : drscheme:language^]
+	    [drscheme:parameters : drscheme:parameters^])
     
     (mred:debug:printf 'invoke "drscheme:unit@")
     
@@ -70,8 +71,11 @@
 			 (make-bitmap path capd)))
 		     (list "execute" "help" "save" "break"))))
 
-    (define interactions-canvas%
-      (class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
+    ;; this is the old definition of the interactions canvas.
+    ;; It should be integrated into mred:wide-snip-canvas% 
+    ;; becuase it uses a better algorithm to find the snip
+    ;; wdie widths.
+    '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
 	(inherit get-media)
 	(rename [super-on-size on-size]
 		[super-set-media set-media])
@@ -140,16 +144,7 @@
 	  [NOGOOD-on-size
 	   (lambda (width height)
 	     (super-on-size width height)
-	     (for-each update-snip-size snips))])))
-
-    (define current-interactions-canvas%
-      (make-parameter interactions-canvas%
-		      (lambda (x)
-			(if (subclass? x wx:media-canvas%)
-			    x
-			    (error 'current-interactions-canvas%
-				   "expected a subclass of wx:media-canvas%, got: ~a"
-				   x)))))
+	     (for-each update-snip-size snips))]))
 
     (define do-help
       (lambda ()
@@ -180,14 +175,6 @@
 	      (send frame set-save-init-shown?
 		    (and (not (null? m)) (send m modified?)))))))
 
-    (define current-definitions-canvas%
-      (make-parameter definitions-canvas%
-		      (lambda (x)
-			(if (subclass? x wx:media-canvas%)
-			    x
-			    (error 'current-definitions-canvas%
-				   "expected a subclass of wx:media-canvas%, got: ~a"
-				   x)))))
     (define frame%
       (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip arg-group [show? #t])
 	(inherit get-canvas get-edit imports-panel
@@ -231,7 +218,7 @@
 		 (set! name-message msg)
 		 (send top-panel change-children
 		       (lambda (l) (build-top-panel-children))))))]
-	  [get-canvas% (lambda () (current-definitions-canvas%))]
+	  [get-canvas% (lambda () (drscheme:parameters:current-definitions-canvas%))]
 	  [ensure-interactions-shown
 	   (lambda ()
 	     (unless (send show-menu checked? interactions-id)
@@ -239,7 +226,7 @@
 	       (update-shown)))])
 	
 	(public
-	  [get-edit% (lambda () (current-definitions-edit%))]
+	  [get-edit% (lambda () (drscheme:parameters:current-definitions-edit%))]
 	  [change-to-file
 	   (lambda (name)
 	     (cond
@@ -379,13 +366,8 @@
 	       (ensure-interactions-shown)
 	       (send interactions-edit reset-console)
 	       (send interactions-edit do-many-buffer-evals
-		     definitions-edit
-		     0 (send definitions-edit last-position)
-		     void
-		     (lambda ()
-		       (send (send interactions-edit get-canvas) set-focus)
-		       (send interactions-edit insert-prompt) ; rep-new.ss -- get rid of this 
-		       ))))])
+		     definitions-edit 0
+		     (send definitions-edit last-position))))])
 	(sequence
 	  (mred:debug:printf 'super-init "before drscheme:unit-frame%")
 	  (super-init (cond 
@@ -402,8 +384,8 @@
 	(public
 	  [definitions-canvas (get-canvas)]
 	  [definitions-edit (get-edit)]
-	  [interactions-canvas (make-object (current-interactions-canvas%) panel)]
-	  [interactions-edit (make-object (current-interactions-edit%))])
+	  [interactions-canvas (make-object (drscheme:parameters:current-interactions-canvas%) panel)]
+	  [interactions-edit (make-object (drscheme:parameters:current-interactions-edit%))])
 	
 	(sequence
 	  (send definitions-edit set-mode (make-object mred:scheme-mode%))
@@ -530,36 +512,6 @@
 	  (send group insert-frame this)
 	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
-
-    (define current-frame%
-      (make-parameter 
-       frame%
-       (lambda (x)
-	 (if (subclass? x wx:frame%)
-	     x
-	     (error 'current-frame%
-		    "expected a subclass of wx:frame%, got: ~a"
-		    x)))))
-
-    (define current-interactions-edit%
-      (make-parameter 
-       drscheme:rep:edit%
-       (lambda (x)
-	 (if (subclass? x wx:media-edit%)
-	     x
-	     (error 'current-interactions-edit% 
-		    "expected a subclass of wx:edit%, got: ~a"
-		    x)))))
-
-    (define current-definitions-edit%
-      (make-parameter 
-       mred:edit%
-       (lambda (x)
-	 (if (subclass? x wx:media-edit%)
-	     x
-	     (error 'current-definitions-edit% 
-		    "expected a subclass of wx:edit%, got: ~a"
-		    x)))))
 
     (define snip%
       (let ([f% frame%])
@@ -726,4 +678,4 @@
   (mred:insert-format-handler "Units"
                               (list "ss" "scm" "sch" "mredrc")
 				(opt-lambda (name group)
-				  (make-object (current-frame%) name #f group))))
+				  (make-object (drscheme:parameters:current-frame%) name #f group))))

@@ -2,6 +2,7 @@
   (unit/sig drscheme:app^
     (import [drscheme:unit : drscheme:unit^]
 	    [drscheme:frame : drscheme:frame^]
+	    [drscheme:parameters : drscheme:parameters^]
 	    [mred : mred^]
 	    [mzlib : mzlib:core^])
     
@@ -133,7 +134,7 @@
     (define console
       (let ([frames (send drscheme:frame:group get-frames)])
 	(cond
-	 [(null? frames) (make-object (drscheme:unit:current-frame%)
+	 [(null? frames) (make-object (drscheme:parameters:current-frame%)
 			   #f #f (mred:current-frames))]
 	 [else (car frames)])))
     (mred:debug:printf 'super-init "after console")
