@@ -452,15 +452,25 @@
       
       ;; use-stand-alone-executable? : (union (instanceof frame%) (instanceof dialog%)) -> boolean
       (define (use-stand-alone-executable? parent)
-        (gui-utils:get-choice
-         (format (string-constant inline-saved-program-in-executable?)
-                 (case (system-type)
-                   [(unix) (system-library-subpath)]
-                   [else (system-type)]))
-         (string-constant yes)
-         (string-constant no)
-         (string-constant drscheme)
-         parent))
+	(let* ([raw-message
+		(format (string-constant inline-saved-program-in-executable?)
+			(case (system-type)
+			  [(unix) (system-library-subpath)]
+			  [else (system-type)]))]
+	       [message
+		(case (system-type)
+		  [(windows)
+		   (string-append
+		    raw-message
+		    "\n\n"
+		    (string-constant inline-saved-program-in-executable/windows))]
+		  [else raw-message])])
+	  (gui-utils:get-choice
+	   message
+	   (string-constant yes)
+	   (string-constant no)
+	   (string-constant drscheme)
+	   parent)))
       
       ;; create-module-based-stand-alone-executable : ... -> void (see docs)
       (define (create-module-based-stand-alone-executable program-filename 
