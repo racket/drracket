@@ -6,6 +6,7 @@
            (lib "file.ss")
            (lib "list.ss")
            (lib "string.ss")
+           (lib "thread.ss")
            (lib "url.ss" "net")
 	   (rename (lib "html.ss" "html") read-html-as-xml read-html-as-xml)
 	   (rename (lib "html.ss" "html") read-html-comments read-html-comments)
@@ -100,14 +101,6 @@
 			     (string->number (cadddr m) 16))
 		(send the-color-database find-color str)))))
 
-      (define (call-with-output-file* file proc flag)
-        ;; Closes on escape
-        (let ([p (open-output-file file flag)])
-          (dynamic-wind
-           void
-           (lambda () (proc p))
-           (lambda () (close-output-port p)))))
-      
       (define get-image-from-url
         (lambda (url)
           (let ([tmp-filename (make-temporary-file "mredimg~a")])
@@ -119,11 +112,7 @@
                                          url
                                          get-pure-port
                                          (lambda (ip)
-                                           (let loop ()
-                                             (let ([c (read-char ip)])
-                                               (unless (eof-object? c)
-                                                 (write-char c op)
-                                                 (loop))))))))
+					   (copy-port ip op)))))
                                     'truncate)
             (pop-status)
             (let* ([upath (url-path url)]
@@ -145,33 +134,34 @@
       
       (define cache-image
         (lambda (url)
-          (let loop ([n 0])
-            (cond
-              [(= n NUM-CACHED)
-	       ;; Look for item to uncache
-               (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
-               (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
-                          (if (= n NUM-CACHED)
-                              m
-                              (begin
-                                (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
-                                (loop (add1 n) (min m (vector-ref cached-use n))))))])
-                 (let loop ([n 0])
-                   (if (= (vector-ref cached-use n) m)
-                       (let ([image (get-image-from-url url)])
-                         (cond
-                           [image
-                            (vector-set! cached n image)
-                            (vector-set! cached-name n url)
-                            (vector-set! cached-use n 5)
-                            (send image copy)]
-                           [else #f]))
-                       (loop (add1 n)))))]
-              [(equal? url (vector-ref cached-name n))
-               (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
-               (send (vector-ref cached n) copy)]
-              [else
-               (loop (add1 n))]))))
+          (let ([url-string (url->string url)])
+            (let loop ([n 0])
+              (cond
+                [(= n NUM-CACHED)
+                 ;; Look for item to uncache
+                 (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
+                 (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
+                            (if (= n NUM-CACHED)
+                                m
+                                (begin
+                                  (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
+                                  (loop (add1 n) (min m (vector-ref cached-use n))))))])
+                   (let loop ([n 0])
+                     (if (= (vector-ref cached-use n) m)
+                         (let ([image (get-image-from-url url)])
+                           (cond
+                             [image
+                              (vector-set! cached n image)
+                              (vector-set! cached-name n url-string)
+                              (vector-set! cached-use n 5)
+                              (send image copy)]
+                             [else #f]))
+                         (loop (add1 n)))))]
+                [(equal? url-string (vector-ref cached-name n))
+                 (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
+                 (send (vector-ref cached n) copy)]
+                [else
+                 (loop (add1 n))])))))
       
       (define (make-get-field str)
         (let ([s (apply
@@ -309,6 +299,7 @@
 			(fixup-whitespace content leading-ok?))
 		      (values "" leading-ok?)))
 		(values "" leading-ok?)))]
+         [(pi? c) (values "" leading-ok?)] ;; processing instruction
 	 [else (let ([tag (car c)])
 		 (if (memq tag exact-whitespace-tags)
 		     (let-values ([(s done?) (remove-leading-newline c)])
@@ -606,6 +597,7 @@
 				(insert (or (latin-1-integer->char e) #\?))
 				(insert (format "&~a;" e)))
 			    void]
+                           [(or (comment? e) (pi? e)) void]
 			   [else (let* ([tag (car e)]
 					[rest/base/depth 
 					 (lambda (para-base enum-depth)
