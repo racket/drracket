@@ -605,9 +605,8 @@
                        
                        [parse-image-source
                         (lambda (s)
-                          (printf "parse-image-source ~s\n" s)
                           (let ([src (get-field s 'src)]
-                                [base-url (send a-text get-base-url)])
+                                [base-url (send a-text get-url)])
                             (and src
                                  (with-handlers ([exn:fail? (lambda (x) #f)])
                                    (if base-url
