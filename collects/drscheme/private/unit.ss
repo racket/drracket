@@ -473,7 +473,7 @@ tab panels new behavior:
                     ;; on setting the file creator and type.
                     (with-handlers ([exn:fail:filesystem? void])
                       (let-values ([(creator type) (file-creator-and-type filename)])
-                        (file-creator-and-type filename "DrSc" type))))))
+                        (file-creator-and-type filename #"DrSc" type))))))
               (super-after-save-file success?))
               
             (rename [super-set-modified set-modified]
@@ -1120,8 +1120,7 @@ tab panels new behavior:
           [define get-directory
             (lambda ()
               (let ([filename (send definitions-text get-filename)])
-                (if (and (string? filename)
-                         (not (string=? "" filename)))
+                (if (path? filename)
                     (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
                       base)
                     #f)))]
@@ -1256,7 +1255,6 @@ tab panels new behavior:
                                   n
                                   (loop (+ n 1)))]
                              [else #f]))])
-                   
                    (and first-prompt-para
                         (= first-prompt-para (send interactions-text last-paragraph))
                         (equal? 
@@ -1823,10 +1821,8 @@ tab panels new behavior:
                                (send definitions-text paragraph-start-position 1)
                                0)])
                 (send definitions-text split-snip start)
-                (send interactions-text do-many-text-evals
-                      definitions-text 
-                      start
-                      (send definitions-text last-position)
+                (send interactions-text evaluate-from-port
+                      (open-input-text-editor definitions-text start)
                       #t))
               (send interactions-text clear-undos)))
           
@@ -1998,7 +1994,8 @@ tab panels new behavior:
             (set-visible-regions interactions-text (tab-visible-ints current-tab))
             (set-visible-regions definitions-text (tab-visible-defs current-tab)))
 
-          (define/private (pathname-equal? p1 p2) (string=? (normalize-path p1) (normalize-path p2)))
+          (define/private (pathname-equal? p1 p2) (string=? (path->string (normalize-path p1))
+                                                            (path->string (normalize-path p2))))
           (define/override (make-visible filename)
             (let loop ([tabs tabs])
               (unless (null? tabs)

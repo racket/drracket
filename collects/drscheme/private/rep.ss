@@ -979,24 +979,24 @@ TODO
           
           (inherit send-eof-to-in-port flush-output-ports)
           (define/override (on-submit)
-            (flush-output-ports)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
             ;; an eof really does come thru the calls to `read'. handle-repl-evaluation
             ;; clears out the extra eof, if one is still there after evaluation
             (send-eof-to-in-port)
             (send-eof-to-in-port)
-            (handle-repl-evaluation))
+            (evaluate-from-port (get-in-port) #f))
           
-          ; =Kernel, =Handler=
-          (define/private (handle-repl-evaluation) ; =Kernel=, =Handler=
+          (define/public (evaluate-from-port port complete-program?) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
-                       (send lang front-end/interaction (get-in-port) this settings user-teachpack-cache)]
+                       (if complete-program?
+                           (send lang front-end/complete-program port this settings user-teachpack-cache)
+                           (send lang front-end/interaction port this settings user-teachpack-cache))]
                       [already-exited? #f]
                       [got-eof? #f])
                  (let loop ()
@@ -1007,12 +1007,14 @@ TODO
                         (cond
                           [(eof-object? sexp/syntax/eof)
                            (set! got-eof? #t)
+                           
                            ;; flush out extraneous eof object, if one is there
-                           (let ([in-port (get-in-port)])
-                             (when (char-ready? in-port)
-                               (let ([pc (peek-byte-or-special in-port)])
-                                 (when (eof-object? pc)
-                                   (read-byte in-port)))))
+                           ;; only necessary for the REPL, but doesn't hurt definitions
+                           (when (char-ready? port)
+                             (let ([pc (peek-byte-or-special port)])
+                               (when (eof-object? pc)
+                                 (read-byte port))))
+                           
                            (void)]
                           [else
                            (single-loop-eval
@@ -1029,7 +1031,7 @@ TODO
                            (set! already-exited? #t)
                            ;; want to do this for errors, but not for continuation jumps
                            (fprintf (get-out-port) (get-prompt))
-                           (flush-output (get-value-port)))]
+                           (flush-output (get-out-port)))]
                         [else
                          (loop)]))))))))
           
