@@ -297,41 +297,63 @@
 				      (and mime-type
 					   (regexp-match "text/html" mime-type)))
 				  ; HTML
-				  (let* ([es (make-eventspace)]
-					 [d (parameterize ([current-eventspace es])
-					      (make-object dialog% "Getting Page" top-level-window 400))]
-					 [c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))]
-					 [e (make-object text%)]
+				  (let* ([d #f]
+					 [e #f]
+					 [e-text ""]
 					 [exn #f]
 					 [done? #f]
 					 ; Semaphores to avoid race conditions:
+					 [wait-to-continue (make-semaphore 0)]
 					 [wait-to-break (make-semaphore 0)]
-					 [wait-on-thread (make-semaphore 0)]
+					 [wait-to-show (make-semaphore 1)]
 					 ; Thread to perform the download:
-					 [t (thread
-					     (lambda ()
-					       (with-handlers ([void (lambda (x) (set! exn x))])
-						 (semaphore-post wait-to-break)
-						 (parameterize ([html-status-handler
-								 (lambda (s) 
-								   (send e erase)
-								   (send e insert s))])
-						   (html-convert p this)))
-					       (set! done? #t)
-					       (send d show #f)))]
-					 [b (make-object button% "&Stop" d (lambda (b e)
-									     (semaphore-wait wait-to-break)
-									     (semaphore-post wait-to-break)
-									     (break-thread t)))])
-				    (send e auto-wrap #t)
-				    (send c set-editor e)
-				    (send c set-line-count 3)
-				    (send c enable #f)
-				    (send d center)
-				    (send b focus)
-				    (thread (lambda () (sleep 1) (unless done? (send d show #t))))
-				    (thread (lambda () (thread-wait t) (semaphore-post wait-on-thread)))
-				    (yield wait-on-thread)
+					 [t (parameterize ([break-enabled #f])
+					      (thread
+					       (lambda ()
+						 (with-handlers ([void (lambda (x) (set! exn x))])
+						   (parameterize ([break-enabled #t])
+						     (semaphore-post wait-to-break)
+						     (parameterize ([html-status-handler
+								     (lambda (s) 
+								       (set! e-text s)
+								       (semaphore-wait wait-to-show)
+								       (when e
+									 (send e erase)
+									 (send e insert s))
+								       (semaphore-post wait-to-show))])
+						       (html-convert p this))))
+						 (set! done? #t)
+						 (semaphore-wait wait-to-show)
+						 (when d
+						   (send d show #f))
+						 (semaphore-post wait-to-show)
+						 (semaphore-post wait-to-continue))))]
+					 [make-dialog
+					  (lambda ()
+					    (semaphore-wait wait-to-show)
+					    (unless done?
+					      (set! d (make-object dialog% "Getting Page" top-level-window 400))
+					      (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
+						(set! e (make-object text%))
+						(send e insert e-text)
+						(send e auto-wrap #t)
+						(send c set-editor e)
+						(send c set-line-count 3)
+						(send c enable #f))
+					      (send (make-object button% "&Stop" d (lambda (b e)
+										     (semaphore-wait wait-to-break)
+										     (semaphore-post wait-to-break)
+										     (break-thread t)))
+						    focus)
+					      (send d center)
+					      (thread (lambda () (send d show #t)))
+					      (let loop () (sleep) (unless (send d is-shown?) (loop)))
+					      (semaphore-post wait-to-show)))])
+				    (thread (lambda () (sleep 1) (unless done? (semaphore-post wait-to-continue))))
+				    (semaphore-wait wait-to-continue)
+				    (unless done?
+				      (make-dialog)
+				      (yield wait-to-continue))
 				    (when exn (raise exn)))]
 				 [else
 				  ; Text
