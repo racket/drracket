@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            (lib "hierlist.ss" "hierlist")
            (lib "class.ss")
-	   (lib "contracts.ss")
+	   (lib "contract.ss")
            "drsig.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")

@@ -6,7 +6,7 @@
            (lib "class.ss")
            (lib "list.ss")
            "drsig.ss"
-           (lib "contracts.ss")
+           (lib "contract.ss")
            "tool-contracts.ss"
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants"))

@@ -2,7 +2,7 @@
   (provide (rename -#%module-begin #%module-begin)
            (all-from-except mzscheme #%module-begin))
   
-  (require (lib "contracts.ss"))
+  (require (lib "contract.ss"))
   
   (define-syntax (-#%module-begin stx)
     (syntax-case stx ()
