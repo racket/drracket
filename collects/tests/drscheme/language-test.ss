@@ -214,7 +214,7 @@
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
-    (test-expression "'(1)" "Misuse of quote: '(1) is not a symbol")
+    (test-expression "'(1)" "(list 1)")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(list (box 1) (box 1))")
     (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
