@@ -6,7 +6,7 @@ It is run by a cron script each night and a new copy of
 stamp.ss is checked in each night.
 
 The stamp.ss module provides on definition: `stamp'
-that is bound to a symbol representing the current
+that is bound to a string representing the current
 day. 
 
 The time-stamp.ss file is a tool, used by drscheme
