@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            "drsig.ss"
            "mred-wrap.ss"
-           "framework-wrap.ss"
+           (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "unitsig.ss")
            (prefix pretty-print: (lib "pretty.ss"))

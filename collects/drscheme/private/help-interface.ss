@@ -6,7 +6,7 @@
            (lib "plt-installer.ss" "setup")
            (lib "info-thingy.ss" "setup.ss")
            (lib "mred-wrap.ss")
-           (lib "framework-wrap.ss")
+           (lib "framework.ss" "framework")
            (lib "startup-url.ss" "help"))
   
   (provide help-interface@)

@@ -2,8 +2,7 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
            "drsig.ss"
-           "date.ss"
-           "framework-wrap.ss"
+           (lib "framework.ss" "framework")
            (lib "zodiac.ss" "syntax"))
   
   (provide text@)

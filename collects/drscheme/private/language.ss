@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            "drsig.ss"
            "mred-wrap.ss"
-           "framework-wrap.ss"
+           (lib "framework.ss" "framework")
            (prefix drscheme:unit: "unit.ss")
            (prefix zodiac: (lib "zodiac.ss" "syntax"))
            (prefix basis (lib "basis.ss" "userspce"))

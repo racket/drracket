@@ -10,7 +10,7 @@
   (require (lib "unitsig.ss")
            "drsig.ss"
            (lib "mred-wrap.ss")
-           (lib "framework-wrap.ss")
+           (lib "framework.ss" "framework")
            (prefix mzlib:pretty-print: (lib "pretty.ss"))
            (prefix print-convert: (lib "pconvert.ss"))
            (prefix zodiac (lib "zodiac.ss" "syntax"))

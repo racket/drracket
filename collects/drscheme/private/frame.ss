@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
            "drsig.ss"
            "mred-wrap.ss"
-           "framework-wrap.ss"
+           (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
            (prefix zodiac: (lib "zodiac.ss" "syntax")))
