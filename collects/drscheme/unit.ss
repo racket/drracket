@@ -43,10 +43,7 @@
                                selected, so this will create a MrEd launcher. Continue?")
                              '(yes-no)))
                        #t)
-               (let ([filename (mred:put-file "Save a Launcher" frame #f #f
-					      (if (eq? (platform) 'windows)
-						  "exe"
-						  #f))])
+               (let ([filename (mred:put-file "Save a Launcher" frame #f #f "exe")])
                  (when filename
                    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
                                             "-e" (format "(define settings ~s)" v-settings)
