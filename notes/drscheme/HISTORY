@@ -29,7 +29,11 @@
 
  - Help Desk's browser now supports image maps
 
- - multi file search works much better now.
+ - multi file search works much better
+
+ - added list-immutable/c cons-immutable/c list-immutableof
+   to the contract library. These accept arbitrary contracts
+   as arguments, not just flat-contracts.
 
 ------------------------------
         Version 205
