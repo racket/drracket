@@ -132,5 +132,6 @@
 
     (mred:debug:printf 'super-init "before console")
     (define console (make-object (drscheme:parameters:current-frame%) #f #f))
+    (send console show #t)
     (mred:debug:printf 'super-init "after console")
     (define eval-string (lambda args (void))))

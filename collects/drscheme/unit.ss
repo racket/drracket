@@ -521,7 +521,6 @@
 
 	  (send definitions-canvas set-focus)
 	  (set! created-frame this)
-	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
     (define snip%
@@ -695,4 +694,6 @@
        (if (and (eq? created-frame drscheme:app:console)
 		(send drscheme:app:console still-untouched?))
 	   (send drscheme:app:console change-to-file name)
-	   (make-object (drscheme:parameters:current-frame%) name #f)))))
+	   (let ([f (make-object (drscheme:parameters:current-frame%) name #f)])
+	     (send f show #t)
+	     f)))))
