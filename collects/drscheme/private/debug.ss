@@ -61,6 +61,8 @@ profile todo:
       ;; the key used to put information on the continuation
       (define cm-key (gensym 'drscheme-debug-continuation-mark-key))
 
+      (define (get-cm-key) cm-key)
+
       ;; error-delta : (instanceof style-delta%)
       (define error-delta (make-object style-delta% 'change-style 'slant))
       (send error-delta set-delta-foreground (make-object color% 255 0 0))
@@ -143,7 +145,7 @@ profile todo:
 			       (insert/clickback rep
 						 (if mf-bday? mf-note bug-note)
 						 (lambda ()
-						   (show-backtrace-window rep msg cms mf-bday?)))))
+						   (show-backtrace-window msg cms mf-bday?)))))
 			   (when src-to-display
 			     (let ([src (car src-to-display)])
 			       (when (symbol? src)
@@ -295,13 +297,12 @@ profile todo:
           (define (edit-menu:between-find-and-preferences edit-menu) (void))
           (super-instantiate ())))
             
-      ;; show-backtrace-window : (union #f (instanceof drscheme:rep:text%) 
-      ;;                         string
+      ;; show-backtrace-window : string
       ;;                         (listof (cons debug-source (cons number number)))
       ;;                         boolean
       ;;                         -> 
       ;;                         void
-      (define (show-backtrace-window rep error-text dis mf-bday?)
+      (define (show-backtrace-window error-text dis mf-bday?)
         (reset-backtrace-window)
         (letrec ([text (make-object text:hide-caret/selection%)]
                  [mf-bday-note (when mf-bday?
@@ -324,7 +325,7 @@ profile todo:
                         (cond
                           [(and (< n (vector-length di-vec))
                                 (< n (+ index how-many-at-once)))
-                           (show-frame rep ec text (vector-ref di-vec n))
+                           (show-frame ec text (vector-ref di-vec n))
                            (loop (+ n 1))]
                           [else
                            (set! index n)]))
@@ -381,14 +382,13 @@ profile todo:
           (send text hide-caret #t)
           (send current-backtrace-window show #t)))
       
-      ;; show-frame : (union #f (instanceof drscheme:rep:text%))
-      ;;              (instanceof editor-canvas%)
+      ;; show-frame : (instanceof editor-canvas%)
       ;;              (instanceof text%) 
       ;;              (cons debug-source (cons number number))
       ;;              -> 
       ;;              void 
       ;; shows one frame of the continuation
-      (define (show-frame rep editor-canvas text di)
+      (define (show-frame editor-canvas text di)
         (let* ([start (cadr di)]
                [span (cddr di)]
                [debug-source (car di)]
@@ -486,8 +486,6 @@ profile todo:
       ;; open-and-highlight-in-file : (cons debug-source (cons number number))
       ;;                              -> 
       ;;                              void
-      ;; opens the window displaying this piece of syntax (if there is one)
-      ;; and highlights the right position in the file
       (define (open-and-highlight-in-file di)
         (let* ([debug-source (car di)]
                [position (cadr di)]

@@ -1,7 +1,6 @@
 
 (module main mzscheme
   (require (lib "string-constant.ss" "string-constants")
-           (lib "proxy-prefs.ss" "help")
            (lib "unitsig.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
@@ -137,7 +136,6 @@
                                 (send checkbox get-value))))])
                     (send q set-value (preferences:get pref-sym))))])
            (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once)))))
-      (add-proxy-prefs-panel)
       (drscheme:debug:add-prefs-panel)
       
       (handler:current-create-new-window

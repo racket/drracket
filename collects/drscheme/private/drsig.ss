@@ -44,7 +44,11 @@
      profile-definitions-text-mixin
      profile-interactions-text-mixin
      profiling-enabled
-     add-prefs-panel))
+     add-prefs-panel
+
+     open-and-highlight-in-file
+     show-backtrace-window
+     get-cm-key))
   
   (define-signature drscheme:module-language^
     (add-module-language))
@@ -183,8 +187,7 @@
  
   (define-signature drscheme:help-desk^
     (help-desk
-     open-url
-     open-users-url))
+     open-url))
   
   (define-signature drscheme:language^
     (get-default-mixin

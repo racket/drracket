@@ -336,11 +336,11 @@
           (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define file-menu:between-open-and-revert
             (lambda (file-menu) 
-              (make-object menu-item% 
-                (string-constant open-url...)
-                file-menu
-                (lambda (item evt)
-                  (help:open-users-url this)))
+              ;(make-object menu-item% 
+              ;  (string-constant install-plt-file-menu-item...)
+              ;  file-menu
+              ;  (lambda (item evt)
+              ;    (install-plt-file this)))
               (super-file-menu:between-open-and-revert file-menu))]
           
           [define edit-menu:between-find-and-preferences
@@ -365,6 +365,25 @@
               (make-object separator-menu-item% menu))]
           
           (super-instantiate ())))
+      
+      ;; install-plt-file : (is-a?/c frame%) -> void
+      ;; 
+      (define (install-plt-file parent)
+        (let* ([dialog
+                (instantiate dialog% ()
+                  (parent parent)
+                  (label (string-constant install-plt-file-dialog-title)))]
+               [radio-button (instantiate radio-box% ()
+                               (label #f)
+                               (parent dialog)
+                               (callback void)
+                               (choices (list (string-constant plt-from-web)
+                                              (string-constant plt-from-file))))]
+               [file-panel (instantiate horizontal-panel% () (parent dialog))]
+               [url-panel (instantiate horizontal-panel% () (parent dialog))]
+               [button-panel (instantiate horizontal-panel% () (parent dialog))])
+          (error 'install-plt-file "not-yet-implemented")
+          (send dialog show #t)))
       
       (define keybindings-dialog%
         (class dialog%

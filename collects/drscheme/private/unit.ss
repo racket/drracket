@@ -977,49 +977,6 @@
           
           [define file-menu:print-transcript-item #f]
           
-          (define/override (file-menu:new-callback item event)
-            (cond
-              [(preferences:get 'framework:open-here?)
-               (let ([clear-current (ask-about-new-here)])
-                 (cond
-                   [(eq? clear-current 'cancel) (void)]
-                   [clear-current
-                    (let ([canceled? (cancel-due-to-unsaved-changes definitions-text)])
-                      (unless canceled?
-                        (send definitions-text begin-edit-sequence)
-                        (send definitions-text set-filename #f)
-                        (send definitions-text erase)
-                        (send definitions-text set-modified #f)
-                        (send definitions-text clear-undos)
-                        (send definitions-text end-edit-sequence)))]
-                   [else (open-drscheme-window)]))]
-              [else (open-drscheme-window)]))
-
-          ;; cancel-due-to-unsaved-changes : -> boolean
-          (define (cancel-due-to-unsaved-changes editor)
-            (and (send editor is-modified?)
-                 (let ([save (gui-utils:unsaved-warning
-                              (or (send editor get-filename) (get-label))
-                              (string-constant clear-anyway)
-                              #t
-                              this)])
-                   (case save
-                     [(continue) #f]
-                     [(save) (not (send editor save-file))]
-                     [(cancel) #t]))))
-          
-          ;; ask-about-new-here : -> (union 'cancel boolean?)
-          ;; prompts the user about creating a new window
-          ;; or "reusing" the current one.
-          (define/private (ask-about-new-here)
-            (gui-utils:get-choice
-             (string-constant create-new-window-or-clear-current)
-             (string-constant clear-current)
-             (string-constant new-window)
-             (string-constant drscheme)
-             'cancel
-             this))
-          
           (rename
            [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           (override file-menu:between-open-and-revert
@@ -1680,11 +1637,12 @@
                              
                              
                              (send bdc set-bitmap (make-object bitmap% 
-                                                    (inexact->exact tw)
+                                                    (+ 2 (inexact->exact tw))
                                                     (inexact->exact th) 
                                                     #t))
                              (send bdc clear)
-                             (send bdc draw-text str 0 0)
+                             (send bdc draw-line 0 0 0 th)
+                             (send bdc draw-text str 2 0)
                              
                              (send edit begin-edit-sequence)
                              (let ([start (send edit get-start-position)]
