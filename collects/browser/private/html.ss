@@ -660,7 +660,7 @@
 						(if (eq? alignment 'left-outdent)
 						    (begin
 						      (send a-text set-paragraph-alignment para 'left)
-						      (send a-text set-paragraph-margins para 0 20 0))
+						      (send a-text set-paragraph-margins para 0 (* 2 (get-bullet-width)) 0))
 						    (send a-text set-paragraph-alignment para alignment))
 						(when delta
 						  (change-style delta start-pos end-pos))
