@@ -45,7 +45,7 @@
             [tool : drscheme:tools^ (tools@ frame unit rep get/extend language
                                           (language-configuration : drscheme:language-configuration^)
                                           help-desk init snip)]
-            [main : drscheme:main^ (main@ app unit get/extend language-configuration)])
+            [main : drscheme:main^ (main@ app unit get/extend language-configuration language snip)])
       (export
        (unit teachpack drscheme:teachpack)
        (unit language-configuration drscheme:language-configuration)))))

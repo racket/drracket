@@ -22,7 +22,8 @@
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-	   (lib "moddep.ss" "syntax"))
+	   (lib "moddep.ss" "syntax")
+           (lib "toplevel.ss" "syntax"))
   
   (provide rep@)
   
@@ -1267,7 +1268,9 @@
                                  (let ([rd (read-thnk)])
                                    (if (eof-object? rd)
                                        rd
-                                       (expand rd)))))])
+                                       (let ([expanded (expand rd)])
+                                         (eval-compile-time-part-of-top-level expanded)
+                                         expanded)))))])
                       (cond
                         [(eof-object? in)
                          (iter #f in run-in-eventspace (lambda () (void)))]

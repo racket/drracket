@@ -22,7 +22,9 @@
       (import (drscheme:app : drscheme:app^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:get/extend : drscheme:get/extend^)
-              (drscheme:language-configuration : drscheme:language-configuration/internal^))
+              (drscheme:language-configuration : drscheme:language-configuration/internal^)
+              [drscheme:language : drscheme:language^]
+              [drscheme:snip : drscheme:snip^])
       
       
       ;; no more extension after this point
@@ -32,6 +34,26 @@
       (drscheme:get/extend:get-interactions-text%)
       (drscheme:get/extend:get-definitions-text%)
       (drscheme:language-configuration:get-languages)
+      
+      (scheme:set-sexp-snip-class
+       (class* (scheme:get-sexp-snip-class) (drscheme:snip:special<%>)
+         (inherit-field saved-snips)
+         (define/public (read-special file line col pos)
+           (let ([text (make-object text:basic%)])
+             (for-each
+              (lambda (s) (send text insert (send s copy)
+                                (send text last-position)
+                                (send text last-position)))
+              saved-snips)
+             (values (datum->syntax-object
+                      #f
+                      (read (drscheme:language:open-input-text 
+                             text
+                             0
+                             (send text last-position)))
+                      (list file line col pos 1))
+                     1)))
+         (super-instantiate ())))
       
       ;; this default can only be set *after* the
       ;; languages have all be registered by tools
