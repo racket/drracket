@@ -62,6 +62,8 @@
                          (memf (lambda (y) (string=? (car y) x)) labels)))
             (directory-list sample-solutions-dir)))
 
+  (define separator-sexp "should be")
+  
   (define (test-single-file filename)
     (let* ([toc-entry (let ([lookup (assoc (string->symbol filename) toc)])
                         (if lookup
@@ -137,7 +139,7 @@
                      (and f (equal? (send f get-label)
                                     "Evaluation Terminated"))))])
             (poll-until wait-for-kill-window)
-            (fw:test:button-push "Ok")
+            (fw:test:button-push "OK")
             (wait-for-drscheme-frame #f)))
         
         ;; still check equal pairs when there is a sanctioned error.
@@ -154,20 +156,20 @@
            (let* ([output (fetch-output drs-frame)]
                   [port (open-input-string output)])
              (let loop ([last #f]
-                        [equal-count 0])
+                        [equal-count 1])
                (let ([sexp (with-handlers ([(lambda (exn) #t)
                                             (lambda (exn) exn)])
                              (read port))])
                  (unless (eof-object? sexp)
                    (cond
-                     [(and (not last) (equal? sexp "="))
+                     [(and (not last) (equal? sexp separator-sexp))
                       (printf "ERROR: ~a: found = as first sexp~n" filename)]
-                     [(and last (equal? '= sexp))
+                     [(and last (equal? separator-sexp sexp))
                       (let ([after (with-handlers ([(lambda (exn) #t)
                                                     (lambda (exn) exn)])
                                      (read port))])
                         (unless (equal? after last)
-                          (printf "ERROR: ~a: ~a mismatched.\n     got ~s\nexpected ~s\nteachpacks: ~a\n"
+                          (printf "ERROR: ~a: pair #~a mismatched.\n     got ~s\nexpected ~s\nteachpacks: ~a\n"
                                   filename equal-count 
                                   (if (exn? last) (exn-message last) last)
                                   (if (exn? after) (exn-message after) after)
