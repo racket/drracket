@@ -3,13 +3,6 @@
    tools
    load/invoke-tool))
 
-(define-signature drscheme:userspace^
-  ((open mzlib:function^)
-   (open mzlib:compat^)
-   (open mzlib:string^)
-   (open ricedefs^)
-   (open graphics^)))
-
 (define-signature drscheme:export^
   (console))
 
