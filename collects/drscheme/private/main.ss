@@ -65,7 +65,7 @@
         (preferences:set 'framework:exit-when-no-frames #f))
       
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
-      
+ 
       (let ([number-between-zero-and-one?
              (lambda (x) (and (number? x) (<= 0 x 1)))])
         (preferences:set-default 'drscheme:unit-window-size-percentage 
@@ -74,7 +74,6 @@
         (preferences:set-default 'drscheme:module-browser-size-percentage
                                  1/5
                                  number-between-zero-and-one?))
-
       
       (let ([frame-width 600]
             [frame-height 650]

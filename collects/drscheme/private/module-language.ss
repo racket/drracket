@@ -635,12 +635,16 @@
             (number? . -> . number?)
             (lambda (start) 
               (let ([last-pos (last-position)])
-                (let loop ([pos start])
+                (let loop ([pos start]
+                           [comment-depth 0])
                   (cond
                     [(pos . >= . last-pos) last-pos]
-                    [(char-whitespace? (get-character pos))
-                     (loop (+ pos 1))]
-                    [else pos])))))
+                    [else 
+                     (let ([char (get-character pos)])
+                       (cond
+                         [(char-whitespace? char)
+                          (loop (+ pos 1))]
+                         [else pos]))])))))
 
           (define/contract skip-to-whitespace
             (number? . -> . number?)

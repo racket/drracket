@@ -6,6 +6,7 @@
            (lib "etc.ss")
            (lib "class.ss")
            (lib "list.ss")
+           (lib "file.ss")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "text-string-style-desc.ss" "mrlib"))
@@ -17,6 +18,7 @@
   ;;                        (listof str/ann)
   ;;                        (listof (cons (list number number) (listof (list number number)))))
   (define-struct test (input expected arrows))
+  (define-struct (dir-test test) ())
   
   (define build-test
     (opt-lambda (input expected [arrow-table '()])
@@ -25,6 +27,7 @@
   ;; tests : (listof test)
   (define tests
     (list 
+     
      (build-test "12345"
                 '(("12345" constant)))
      (build-test "'abcdef"
@@ -138,6 +141,12 @@
                   ("x"      lexically-bound-variable)
                   (")"      #f))
                 (list '((10 11) (12 13) (16 17))))
+     (build-test "(#%top . x)"
+                 '(("("     #f) 
+                   ("#%top" imported-syntax)
+                   (" . "   #f)
+                   ("x"     error)
+                   (")"    #f)))
      (build-test "(set! x 1)"
                 '(("("    #f)
                   ("set!" imported-syntax)
@@ -146,12 +155,19 @@
                   (" "    #f)
                   ("1"    constant)
                   (")"    #f)))
-     (build-test "(#%top . x)"
-                 '(("("     #f) 
-                   ("#%top" imported-syntax)
-                   (" . "   #f)
-                   ("x"     error)
-                   (")"    #f)))
+     (build-test "(set! x 1) (define x 2)"
+                 '(("("      #f)
+                   ("set!"   imported-syntax)
+                   (" "      #f)
+                   ("x"      lexically-bound-variable)
+                   (" "      #f)
+                   ("1"      constant)
+                   (") ("    #f)
+                   ("define" imported-syntax)
+                   (" "      #f)
+                   ("x"      lexically-bound-variable)
+                   (" 2)"    #f))
+                 (list '((19 20) (6 7))))
      (build-test "(let ([x 1]) (set! x 2))"
                 '(("("    #f)
                   ("let"   imported-syntax)
@@ -562,28 +578,66 @@
                   ("x"                                            lexically-bound-variable)
                   ("))"                                           #f))
                 (list '((10 45) (47 52))
-                      '((62 63) (64 65) (68 69))))))
+                      '((62 63) (64 65) (68 69))))
+     
+     (make-dir-test "(module m mzscheme (require \"~a/list.ss\") foldl foldl)"
+                    '(("("             #f)
+                      ("module"        imported-syntax)
+                      (" m mzscheme (" #f)
+                      ("require"       imported-syntax)
+                      (" \""           #f)    
+                      (relative-path   #f)
+                      ("/list.ss\") "  #f)
+                      ("foldl"         imported-variable)
+                      (" "             #f)
+                      ("foldl"         imported-variable)
+                      (")"             #f))
+                    #f)))
   
   (define (run-test)
-    (wait-for-drscheme-frame)
     (check-language-level #rx"Graphical")
-    (let ([op (preferences:get 'framework:coloring-active)])
-      (preferences:set 'framework:coloring-active #f)
-      (for-each run-one-test tests)
-      (preferences:set 'framework:coloring-active op)))
+    (let* ([drs (wait-for-drscheme-frame)]
+           [defs (send drs get-definitions-text)]
+           [filename (make-temporary-file "syncheck-test~a")])
+      (let-values ([(dir _1 _2) (split-path filename)])
+        (send defs save-file filename)
+        (preferences:set 'framework:coloring-active #f)
+        (for-each (run-one-test (normalize-path dir)) tests)
+        (preferences:set 'framework:coloring-active #t)
+        (send defs save-file) ;; clear out autosave
+        (send defs set-filename #f)
+        (delete-file filename))))
   
-  (define (run-one-test test)
+  (define ((run-one-test save-dir) test)
     (let* ([drs (wait-for-drscheme-frame)]
            [defs (send drs get-definitions-text)]
            [input (test-input test)]
            [expected (test-expected test)]
-           [arrows (test-arrows test)])
+           [arrows (test-arrows test)]
+           [relative (find-relative-path save-dir (collection-path "mzlib"))])
       (clear-definitions drs)
-      (type-in-definitions drs input)
+      (cond
+        [(dir-test? test)
+         (type-in-definitions drs (format input relative))]
+        [else (type-in-definitions drs input)])
       (test:button-push (send drs syncheck:get-button))
       (wait-for-computation drs)
+      
+      ;; this isn't right -- seems like there is a race condition because
+      ;; wait-for-computation isn't waiting long enough?
+      '(when (send defs in-edit-sequence?)
+         (error 'syncheck-test.ss "still in edit sequence for ~s" input))
+      
+      ;; need to check for syntax error here
       (let ([got (get-annotated-output drs)])
-        (compare-output expected
+        (compare-output (cond
+                          [(dir-test? test)
+                           (map (lambda (x)
+                                  (list (if (eq? (car x) 'relative-path) relative (car x))
+                                        (cadr x)))
+                                expected)]
+                          [else
+                           expected])
                         got
                         arrows 
                         (send defs syncheck:get-bindings-table)
@@ -617,46 +671,46 @@
   ;;                  hash-table[(list text number number) -o> (listof (list text number number))]
   ;;               -> void
   (define (compare-arrows test-exp expected raw-actual)
-    (define already-checked (make-hash-table 'equal))
-    
-    (define actual-ht (make-hash-table 'equal))
-    (define stupid-internal-define-syntax1
-      (hash-table-for-each raw-actual
-                           (lambda (k v)
-                             (hash-table-put! actual-ht
-                                              (cdr k) 
-                                              (quicksort
-                                               (map cdr v)
-                                               (lambda (x y) (< (car x) (car y))))))))
-    (define expected-ht (make-hash-table 'equal))
-    (define stupid-internal-define-syntax2
-      (for-each (lambda (binding) (hash-table-put! expected-ht (car binding) (cdr binding)))
-                expected))
-    ;; binding-in-ht? : hash-table (list number number) (listof (list number number)) -> boolean
-    (define (test-binding expected? ht)
-      (lambda (pr)
-        (let ([frm (car pr)]
-              [to (cdr pr)])
-          (hash-table-get
-           already-checked
-           frm
-           (lambda ()
-             (hash-table-put! already-checked frm #t)
-             (let ([ht-ent (hash-table-get ht frm (lambda () 'nothing-there))])
-               (unless (equal? ht-ent to)
-                 (printf (if expected? 
-                             "FAILED arrow test ~s from ~s\n  expected ~s\n    actual ~s\n"
-                             "FAILED arrow test ~s from ~s\n    actual ~s\n  expected ~s\n")
-                         test-exp
-                         frm
-                         ht-ent
-                         to))))))))
-    
-    (for-each (test-binding #t expected-ht) (hash-table-map actual-ht cons))
-    (for-each (test-binding #f actual-ht) (hash-table-map expected-ht cons)))
+    (when expected
+      (let ()
+        (define already-checked (make-hash-table 'equal))
+        
+        (define actual-ht (make-hash-table 'equal))
+        (define stupid-internal-define-syntax1
+          (hash-table-for-each raw-actual
+                               (lambda (k v)
+                                 (hash-table-put! actual-ht
+                                                  (cdr k) 
+                                                  (quicksort
+                                                   (map cdr v)
+                                                   (lambda (x y) (< (car x) (car y))))))))
+        (define expected-ht (make-hash-table 'equal))
+        (define stupid-internal-define-syntax2
+          (for-each (lambda (binding) (hash-table-put! expected-ht (car binding) (cdr binding)))
+                    expected))
+        ;; binding-in-ht? : hash-table (list number number) (listof (list number number)) -> boolean
+        (define (test-binding expected? ht)
+          (lambda (pr)
+            (let ([frm (car pr)]
+                  [to (cdr pr)])
+              (hash-table-get
+               already-checked
+               frm
+               (lambda ()
+                 (hash-table-put! already-checked frm #t)
+                 (let ([ht-ent (hash-table-get ht frm (lambda () 'nothing-there))])
+                   (unless (equal? ht-ent to)
+                     (printf (if expected? 
+                                 "FAILED arrow test ~s from ~s\n  expected ~s\n    actual ~s\n"
+                                 "FAILED arrow test ~s from ~s\n    actual ~s\n  expected ~s\n")
+                             test-exp
+                             frm
+                             ht-ent
+                             to))))))))
+        
+        (for-each (test-binding #t expected-ht) (hash-table-map actual-ht cons))
+        (for-each (test-binding #f actual-ht) (hash-table-map expected-ht cons)))))
   
-  ;; compare-output 
-  ;; should show first difference.
   (define (compare-output raw-expected got arrows arrows-got input)
     (let ([expected (collapse-and-rename raw-expected)])
       (cond

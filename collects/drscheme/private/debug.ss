@@ -219,7 +219,7 @@ profile todo:
       ;; adds in the bug icon, if there are contexts to display
       (define (make-debug-error-display-handler orig-error-display-handler)
         (make-debug-error-display-handler/text
-         (lambda () 
+         (lambda ()
            (let ([rep (drscheme:rep:current-rep)])
              (and (is-a? rep drscheme:rep:text<%>)
                   (eq? (send rep get-this-err) (current-error-port))
@@ -591,10 +591,12 @@ profile todo:
 
       (define (initialize-test-coverage-point key expr)
         (unless (current-test-coverage-info)
-	  (let ([ht (make-hash-table)])
-	    (current-test-coverage-info ht)
-	    (send (drscheme:rep:current-rep) set-test-coverage-info ht)))
-        (hash-table-put! (current-test-coverage-info) key (list #f expr)))
+          (let ([rep (drscheme:rep:current-rep)])
+            (when rep
+              (let ([ht (make-hash-table)])
+                (current-test-coverage-info ht)
+                (send rep set-test-coverage-info ht)))
+            (hash-table-put! (current-test-coverage-info) key (list #f expr)))))
   
       (define (test-covered key)
         (let ([v (hash-table-get (current-test-coverage-info) key)])
@@ -949,9 +951,11 @@ profile todo:
       ;; imported into errortrace
       (define (initialize-profile-point key name expr)
 	(unless (current-profile-info)
-	  (let ([ht (make-hash-table)])
-	    (current-profile-info ht)
-	    (send (drscheme:rep:current-rep) set-profile-info ht)))
+          (let ([rep (drscheme:rep:current-rep)])
+            (when rep
+              (let ([ht (make-hash-table)])
+                (current-profile-info ht)
+                (send rep set-profile-info ht)))))
         (let ([profile-info (current-profile-info)])
           (hash-table-put! profile-info
 			   key 

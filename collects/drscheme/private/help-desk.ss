@@ -105,10 +105,11 @@
              (if already-frame
                  (send already-frame show #t)
                  (goto-hd-location cookie 'front-page)))]
-          [(key) (help-desk key #t)]
+          [(key) (help-desk key #f)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
-          [(key lucky? type) (help-desk key lucky? type 'exact)]
-          [(key lucky? type mode)
+          [(key lucky? type) (help-desk key lucky? type 'contins)]
+          [(key lucky? type mode) (help-desk key lucky? type mode 'all)]
+          [(key lucky? type mode manuals)
 	   (when (get-hd-cookie)
 	     (search-for-docs
 	      (get-hd-cookie)
@@ -123,6 +124,11 @@
 		[(contains) "containing-match"]
 		[(regexp) "regexp-match"]
 		[else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
+              (case manuals
+                [(student) "student-manuals"]
+                [(professional) "professional-manuals"]
+                [(all) "all-manuals"]
+                [else (error 'drscheme:help-desk:help-desk "unknown manuals argument: ~s" manuals)])
 	      lucky?))]))
       
       ;; open-url : string -> void
