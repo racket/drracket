@@ -266,4 +266,6 @@
 				(lambda () (drscheme:unit:open-drscheme-window f))))
 		   no-dups)])
 	(when (null? (filter (lambda (x) x) frames))
-	  (make-basic))))))
+	  (make-basic)))
+ 
+      (autosave:restore-autosave-files/gui))))
