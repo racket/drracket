@@ -54,7 +54,7 @@
 	       (with-handlers ([void (lambda (x)
 				       (message-box
 					"Error"
-					(format "Unable to find destination position ~s: ~a~n" 
+					(format "Cannot display ~s: ~a~n" 
 						url-string
 						(if (exn? x)
 						    (exn-message x)
@@ -125,9 +125,16 @@
 	  (apply super-init args)
 	  (add-h-link-style)
 	  (when url
-	    (let* ([p (if (port? url)
-			  url
-			  (get-pure-port url))])
+	    (let-values ([(p mime-headers)
+			  (if (port? url)
+			      (values url null)
+			      ; Try to get mime info, but use get-pure-port if that fails:
+			      (with-handlers ([void (lambda (x) (values (get-pure-port url) null))])
+				(let ([p (get-impure-port url)])
+				  (let ([headers (purify-port p)])
+				    (values p headers)))))]
+			 [(mime-header-name) (lambda (x) (struct-ref x 0))]
+			 [(mime-header-value) (lambda (x) (struct-ref x 1))])
 	      (dynamic-wind (lambda ()
 			      (begin-busy-cursor)
 			      (begin-edit-sequence #f))
@@ -135,22 +142,74 @@
 			      (set! htmling? #t)
 			      (erase)
 			      (clear-undos)
-			      (if (and (url? url)
-				       (regexp-match "[.]txt$" (url-path url)))
+			      (let ([mime-type (ormap (lambda (mh)
+							(and (string=? (mime-header-name mh) "content-type")
+							     (mime-header-value mh)))
+						      mime-headers)])
+				(cond
+				 [(and mime-type (regexp-match "application/" mime-type))
+				  ; Save the file
+				  (end-busy-cursor)
+				  (let ([f (put-file "Save downloaded file as"
+						     #f ; should be calling window!
+						     #f
+						     (and (url? url)
+							  (let ([m (regexp-match "([^/]*)$" (url-path url))])
+							    (and m (cadr m)))))])
+				    (begin-busy-cursor)
+				    (when f
+				      (let* ([d (make-object dialog% "Downloading")]
+					     [exn #f]
+					     ; Semaphores to avoid race conditions:
+					     [wait-to-start (make-semaphore 0)]
+					     [wait-to-break (make-semaphore 0)]
+					     ; Thread to perform the download:
+					     [t (thread
+						 (lambda ()
+						   (semaphore-wait wait-to-start)
+						   (with-handlers ([void (lambda (x) (when (not (exn:misc:user-break? x))
+										       (set! exn x)))])
+						     (semaphore-post wait-to-break)
+						     (with-output-to-file f
+						       (lambda ()
+							 (let loop ()
+							   (let ([s (read-string 1024 p)])
+							     (unless (eof-object? s)
+							       (display s)
+							       (loop)))))
+						       'binary 'truncate))
+						   (send d show #f)))])
+					(make-object message% "Downloading file..." d)
+					(make-object button% "&Stop" d (lambda (b e)
+									 (semaphore-wait wait-to-break)
+									 (set! f #f)
+									 (send d show #f)
+									 (break-thread t)))
+					; Let thread run only after the dialog is shown
+					(queue-callback (lambda () (semaphore-post wait-to-start)))
+					(send d show #t)
+					(when exn (raise exn))))
+				    (error (if f
+					       "The downloaded file was saved."
+					       "The download was cancelled.")))]
+				 [(or (and (url? url)
+					   (regexp-match "[.]txt$" (url-path url)))
+				      (and mime-type
+					   (regexp-match "text/plain" mime-type)))
 				  ; Text
-				  (begin
-				    (begin-edit-sequence)
-				    (let loop ()
-				      (let ([r (read-line p 'any)])
-					(unless (eof-object? r)
-					  (insert r)
-					  (insert #\newline)
-					  (loop))))
-				    (change-style (make-object style-delta% 'change-family 'modern)
-						  0 (last-position))
-				    (end-edit-sequence))
+				  (begin-edit-sequence)
+				  (let loop ()
+				    (let ([r (read-line p 'any)])
+				      (unless (eof-object? r)
+					(insert r)
+					(insert #\newline)
+					(loop))))
+				  (change-style (make-object style-delta% 'change-family 'modern)
+						0 (last-position))
+				  (end-edit-sequence)]
+				 [else
 				  ; HTML
-				  (html-convert p this)))
+				  (html-convert p this)])))
 			    (lambda ()
 			      (end-edit-sequence)
 			      (end-busy-cursor)

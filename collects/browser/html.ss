@@ -63,9 +63,9 @@
   (define html-convert
     (lambda (p b)
       (letrec 
-	  ([normal (send (send b get-style-list)
-			 find-named-style
-			 "Standard")]
+	  ([normal-style (send (send b get-style-list)
+			       find-named-style
+			       "Standard")]
 	   [get-character (ivar b get-character)]
 	   [set-position (ivar b set-position)]
 	   [insert (ivar b insert)]
@@ -95,7 +95,7 @@
 	   [verbatim-tags '(listing xmp plaintext)]
 	   [preformatted-tags '(pre blockquote)]
 	   [comment-tags '(script)]
-	   [atomic-tags '(p br hr li dd dt img html ! meta link)]
+	   [atomic-tags '(p br hr li dd dt img html ! meta link input)]
 	   [enum-tags '(ul dl ol)]
 
 	   [delta:fixed (make-object style-delta% 'change-family 'modern)]
@@ -172,6 +172,41 @@
 		       [scheme (let ([m (regexp-match re:quote-scheme s)])
 				 (and m (regexp-replace* "[|]" (cadr m) "\"")))])
 		  (values url-string label scheme))))]
+
+	   [parse-name
+	    (let ([re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
+		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")])
+	      (lambda (args)
+		(let ([m (or (regexp-match re:quote-name args)
+			     (regexp-match re:name args))])
+		  (and m (cadr m)))))]
+
+	   [parse-type
+	    (let ([re:quote-type (regexp "[tT][yY][pP][eE][ ]*=[ ]*\"([^\"]*)\"")]
+		  [re:type (regexp "[tT][yY][pP][eE][ ]*=[ ]*([^ ]*)")])
+	      (lambda (args)
+		(let ([m (or (regexp-match re:quote-type args)
+			     (regexp-match re:type args))])
+		  (and m (cadr m)))))]
+
+	   [make-unsupported
+	    (lambda (tag args)
+	      (let ([name (parse-name args)]
+		    [type (parse-type args)])
+		(if (and (eq? tag 'input) type (string=? type "hidden"))
+		    "" ; hidden input
+		    (format "[~a~a NOT SUPPORTED]"
+			    (if name
+				(format "~a " name)
+				"")
+			    (case tag
+			      [(select) "POPUP MENU"]
+			      [(textarea) "TEXT AREA"]
+			      [(input) (if type
+					   (case (string->symbol type)
+					     [(text) "TEXT FIELD"]
+					     [else "BUTTON"])
+					   "BUTTON")])))))]
 	   
 	   ;; Make sure newline strength before pos is count; returns number inserted
 	   [try-newline
@@ -246,7 +281,7 @@
 		   [(char=? #\null ch) 
 		    (flush-i-buffer)
 		    (when (> pos start-pos)
-		      (change-style normal start-pos pos))
+		      (change-style normal-style start-pos pos))
 		    (values -1 #f)]
 		   [(and (char-whitespace? ch) dewhite?)
 		    (if del-white?
@@ -257,7 +292,7 @@
 		   [(char=? #\< ch) 
 		    (flush-i-buffer)
 		    (when (> pos start-pos)
-		      (change-style normal start-pos pos))
+		      (change-style normal-style start-pos pos))
 		    (values pos del-white?)]
 		   [(char=? #\& ch) 
 		    (let ([ch (get-char)]
@@ -384,7 +419,7 @@
 				(insert (make-string enum-depth #\tab) pos)
 				(when bullet?
 				  (insert "* " (+ pos enum-depth))
-				  (change-style normal (+ pos enum-depth) (+ pos enum-depth 2)))
+				  (change-style normal-style (+ pos enum-depth) (+ pos enum-depth 2)))
 				(atomic-values (+ pos enum-depth 
 						  (try-newline pos newlines #t)
 						  (if bullet? 2 0))
@@ -402,6 +437,12 @@
 		       (insert b pos)
 		       (change-style (make-object style-delta% 'change-alignment 'center) pos (add1 pos)))
 		     (atomic-values (add1 pos) #f)]
+		    [(input)
+		     (let* ([unsupported (make-unsupported tag args)]
+			    [len (string-length unsupported)])
+		       (insert unsupported pos)
+		       (change-style normal-style pos (+ pos len))
+		       (atomic-values (+ pos len) #f))]
 		    [else 
 		     (html-error "unimplemented (atomic) tag: ~a" tag)
 		     (atomic-values pos del-white?)]))]
@@ -432,7 +473,8 @@
 				     (not (memq tag preformatted-tags)))]
 		      [pre-newlines
 		       (case tag
-			 [(dl ul) (if (< enum-depth 1) 2 1)]
+			 [(dl ul table) (if (< enum-depth 1) 2 1)]
+			 [(tr td) 1]
 			 [(pre) 2]
 			 [(h1 h2 h3) 2]
 			 [else 0])])
@@ -452,7 +494,7 @@
 			 (set-title (get-text pos end-pos))
 			 (delete pos end-pos)
 			 (result pos #t)]
-			[(dl ul)
+			[(dl ul table tr td)
 			 (result (+ end-pos (try-newline end-pos pre-newlines #t)) #t)]
 			[(b strong)
 			 (change-style delta:bold pos end-pos)
@@ -484,6 +526,12 @@
 				 (make-link-style pos end-pos)]
 				[else (void)])
 			       (normal))]
+			[(select textarea)
+			 (let* ([unsupported (make-unsupported tag args)]
+				[len (string-length unsupported)])
+			   (insert unsupported pos end-pos)
+			   (change-style normal-style pos (+ pos len))
+			   (result (+ pos len) #f))]
 			[else 
 			 (html-error "unimplemented tag: ~s" tag)
 			 (normal)]))))]))]
