@@ -389,6 +389,7 @@
         (interface (frame:editor<%> basics<%> frame:text-info<%>)
           running
           not-running
+	  get-currently-running?
           get-show-menu
           update-shown
           add-show-menu-items))

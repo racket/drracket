@@ -849,7 +849,8 @@
                   (frame:open-here-mixin
                    (frame:editor-mixin
                     (frame:standard-menus-mixin
-                     frame:basic%))))))))))))))
+                     (frame:basic-mixin
+		      frame%)))))))))))))))
       
       (define -frame<%>
         (interface ()
@@ -862,8 +863,9 @@
           execute-callback
           change-mode-to-match-filename))
 
-      (define -frame%
-        (class* super-frame% (drscheme:rep:context<%> -frame<%>)
+      (define frame-mixin
+        (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%>)
+	       (drscheme:rep:context<%> -frame<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
                    show get-menu%
@@ -1186,7 +1188,9 @@
             (cond
               [(and name (file-exists? name))
                (ensure-rep-hidden)
-               (send definitions-text load-file/gui-error name)]
+	       (send definitions-text begin-edit-sequence)
+               (send definitions-text load-file/gui-error name)
+	       (send definitions-text end-edit-sequence)]
               [name
                (send definitions-text set-filename name)]
               [else (send definitions-text clear)])
@@ -2443,6 +2447,8 @@
              (set! created-frame #f)]
             [else (void)])))
 
+      (define -frame% (frame-mixin super-frame%))
+
       (define module-browser-dragable-panel%
         (class panel:horizontal-dragable%
           (inherit get-percentages)
@@ -2554,11 +2560,10 @@
               (begin (send created-frame change-to-file name)
                      (send created-frame show #t)
                      created-frame)
-	      (time
-	       (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
-		      [frame (new drs-frame% (filename name))])
-		 (send frame show #t)
-		 frame)))]))
+	      (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
+		     [frame (new drs-frame% (filename name))])
+		(send frame show #t)
+		frame))]))
       
       (handler:insert-format-handler 
        "Units"
