@@ -77,7 +77,9 @@
   (define-signature drscheme:language-configuration^
     (add-language
      (struct language-settings (language settings) -setters)
-     get-settings-preferences-symbol))
+     get-settings-preferences-symbol
+     language-dialog
+     fill-language-dialog))
   
   (define-signature drscheme:language-configuration/internal^
     (add-info-specified-languages
@@ -89,7 +91,6 @@
      add-built-in-languages
      
      ;; for the language dialog
-     language-dialog
      add-new-teachpack
      clear-all-teachpacks))
   

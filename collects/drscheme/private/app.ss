@@ -52,15 +52,268 @@
                     (not (equal? last-language (this-language))))
             (preferences:set 'drscheme:last-version this-version)
             (preferences:set 'drscheme:last-language (this-language))
-            (let ([new-settings (drscheme:language-configuration:language-dialog
-                                 #t
-                                 (preferences:get
-                                  drscheme:language-configuration:settings-preferences-symbol)
-                                 #f)])
-              (when new-settings
-                (preferences:set
-                 drscheme:language-configuration:settings-preferences-symbol
-                 new-settings))))))
+            (show-wizard))))
+
+      ;; show-welcome-dialog : -> void
+      (define (show-v200-welcome-dialog)
+        (let ([new-settings (drscheme:language-configuration:language-dialog
+                             #t
+                             (preferences:get
+                              drscheme:language-configuration:settings-preferences-symbol)
+                             #f)])
+          (when new-settings
+            (preferences:set
+             drscheme:language-configuration:settings-preferences-symbol
+             new-settings))))
+      
+      
+      
+      
+;                                           
+;                                           
+;                                           
+;             ;                           ; 
+;                                         ; 
+;                                         ; 
+;  ;   ;   ;  ;   ;;;;;;  ;;;   ; ;;  ;;; ; 
+;  ;   ;   ;  ;       ;  ;   ;  ;;   ;   ;; 
+;   ; ; ; ;   ;      ;       ;  ;    ;    ; 
+;   ; ; ; ;   ;     ;     ;;;;  ;    ;    ; 
+;   ; ; ; ;   ;    ;     ;   ;  ;    ;    ; 
+;    ;   ;    ;   ;      ;   ;  ;    ;   ;; 
+;    ;   ;    ;   ;;;;;;  ;;;;; ;     ;;; ; 
+;                                           
+;                                           
+;                                           
+
+      
+      (define (show-wizard)
+        (define wizard-image-bitmap
+          (make-object bitmap% (build-path (collection-path "icons") "wizard-image.jpg")))
+        
+        (define bkg-color (make-object color% 0 0 0))
+        (define stupid-internal-define-syntax1
+          (let ([bdc (make-object bitmap-dc% wizard-image-bitmap)])
+            (send bdc get-pixel 0 0 bkg-color)
+            (send bdc set-bitmap #f)))
+        
+        (define bkg-brush (send the-brush-list find-or-create-brush bkg-color 'solid))
+        (define bkg-pen (send the-pen-list find-or-create-pen bkg-color 1 'solid))
+      
+        (define wizard-image-canvas%
+          (class canvas%
+            (inherit get-dc get-client-size)
+            (define/override (on-paint)
+              (let ([dc (get-dc)])
+                (let-values ([(w h) (get-client-size)])
+                  (send dc set-pen bkg-pen)
+                  (send dc set-brush bkg-brush)
+                  (send dc draw-rectangle 0 0 w h)
+                  (send dc draw-bitmap
+                        wizard-image-bitmap
+                        0
+                        (- h (send wizard-image-bitmap get-height))))))
+            
+            (super-instantiate ())
+            (inherit stretchable-width min-width min-height)
+            (stretchable-width #f)
+            (min-width (send wizard-image-bitmap get-width))
+            (min-height (send wizard-image-bitmap get-height))))  
+        
+        (define dlg (instantiate dialog% ()
+                      (label (string-constant welcome-to-drscheme))
+                      (style '(resize-border))))
+        (define hp (make-object horizontal-panel% dlg))
+        (define c (make-object wizard-image-canvas% hp))
+        (define vp (make-object vertical-panel% hp))
+        (define sp (make-object panel:single% vp))
+        (define bp (instantiate horizontal-panel% ()
+                     (parent vp)
+                     (stretchable-height #f)
+                     (alignment '(right center))))
+        
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;                    State Machine                       ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        
+        ;; type state = (union 'natural-language 'programming-language)
+        ;; state : state
+        (define state 'natural-language)
+        
+        ;; set-state : state -> void
+        ;; moves the state to `new-state'
+        (define (set-state new-state)
+          (set! state new-state)
+          (cond
+            [(first-state?) (send back-button enable #f)]
+            [else (send back-button enable #t)])
+          (cond
+            [(last-state?) (send next-button set-label "Finish")]
+            [else (send next-button set-label "Next")])
+          (case state
+            [(programming-language) (send sp active-child programming-language-state-panel)]
+            [(natural-language) (send sp active-child natural-language-state-panel)]))
+        
+        ;; next-state : -> void
+        (define (next-state)
+          (case state
+            [(natural-language) 
+             (set-state 'programming-language)]
+            [(programming-language)
+             (cond
+               [(get-selected-language)
+                (send dlg show #f)]
+               [else
+                (message-box (string-constant drscheme)
+                             (string-constant please-select-a-language))])]))
+        
+        ;; prev-state : -> void
+        ;; pre: state != 'natural-language
+        (define (prev-state)
+          (case state
+            [(programming-language) (set-state 'natural-language)]
+            [else (error 'next-state "no next state from: ~s" state)]))
+        
+        ;; first-state?, last-state? : -> boolean
+        (define (first-state?) (eq? state 'natural-language))
+        (define (last-state?) (eq? state 'programming-language))
+        
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;                 State 1 GUI                            ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        
+        (define natural-language-state-panel (make-object vertical-panel% sp))
+        
+        (define nl-space-above (make-object horizontal-panel% natural-language-state-panel))
+        
+        (define nl-welcome-panel (instantiate horizontal-panel% ()
+                                   (parent natural-language-state-panel)
+                                   (stretchable-height #f)
+                                   (alignment '(center center))))
+        
+        (define stupid-internal-define-syntax2
+          (begin
+            (send nl-welcome-panel set-label-font
+                  (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))
+            (send nl-welcome-panel set-control-font
+                  (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))))
+        
+        (define nl-welcome-msg (instantiate message%  ()
+                                 (label (string-constant welcome-to-drscheme))
+                                 (parent nl-welcome-panel)))
+        
+        (define nl-buttons
+          (let loop ([native-language-strings (string-constants is-this-your-native-language)]
+                     [languages (all-languages)])
+            (cond
+              [(null? native-language-strings) null]
+              [else (let ([native-lang-string (car native-language-strings)]
+                          [language (car languages)])
+                      (if (equal? (this-language) language)
+                          (loop (cdr native-language-strings)
+                                (cdr languages))
+                          (cons (instantiate button% ()
+                                  (label native-lang-string)
+                                  (parent natural-language-state-panel)
+                                  (stretchable-width #t)
+                                  (callback (lambda (x1 x2) (switch-language-to dlg language))))
+                                (loop (cdr native-language-strings)
+                                      (cdr languages)))))])))
+        
+        (define stupid-internal-define-syntax3
+          (let ([max (apply max (cons 0 (map (lambda (x) (send x min-width)) nl-buttons)))])
+            (for-each (lambda (x) (send x min-width max)) nl-buttons)))
+        
+        (define nl-space-below (make-object horizontal-panel% natural-language-state-panel))
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;                     State 2 GUI                        ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        (define programming-language-state-panel (instantiate vertical-panel% ()
+                                                   (parent sp)
+                                                   (alignment '(center center))))
+        (define pl-main-panel (instantiate vertical-panel% ()
+                                (parent programming-language-state-panel)
+                                (stretchable-width #t)
+                                (stretchable-height #t)))
+        (define pl-choose-language-message
+          (instantiate message% ()
+            (parent pl-main-panel)
+            (label (string-constant please-select-a-language))))
+        (define language-config-panel (make-object vertical-panel% pl-main-panel))
+        (define language-config-button-panel (instantiate horizontal-panel% ()
+                                               (parent pl-main-panel)
+                                               (stretchable-height #f)))
+                                               
+        (define-values (get-selected-language get-selected-language-settings)
+          (drscheme:language-configuration:fill-language-dialog
+           language-config-panel
+           language-config-button-panel
+           (preferences:get
+            drscheme:language-configuration:settings-preferences-symbol)))
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;                         GO                             ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        (define back-button (instantiate button% ()
+                              (label "Back")
+                              (parent bp)
+                              (callback (lambda (x y) (prev-state)))))
+        (define next-button (instantiate button% ()
+                              (label "Next")
+                              (parent bp)
+                              (callback (lambda (x y) (next-state)))))
+        
+        (set-state 'natural-language)
+        
+        (send dlg center 'both)
+        (send dlg show #t)
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;                                                        ;;
+        ;;              Put in Wizard Choices                     ;;
+        ;;                                                        ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+        (preferences:set
+         (drscheme:language-configuration:get-settings-preferences-symbol)
+         (drscheme:language-configuration:make-language-settings
+          (get-selected-language)
+          (get-selected-language-settings))))
+
+      
+;                                                                   
+;                                                                   
+;                                                                   
+;   ;                  ;                                            
+;                                                                   
+;                          ;               ;                        
+;   ;   ; ;;;  ;     ; ;  ;;;;   ;;;      ;;;;   ;;;;   ;    ;  ; ;;
+;   ;   ;;   ;  ;   ;  ;   ;    ;   ;      ;    ;    ;  ;    ;  ;;  
+;   ;   ;    ;  ;   ;  ;   ;    ;   ;      ;    ;    ;  ;    ;  ;   
+;   ;   ;    ;  ;   ;  ;   ;    ;;;;;      ;    ;    ;  ;    ;  ;   
+;   ;   ;    ;   ; ;   ;   ;    ;          ;    ;    ;  ;    ;  ;   
+;   ;   ;    ;   ; ;   ;   ;    ;          ;    ;    ;  ;   ;;  ;   
+;   ;   ;    ;    ;    ;    ;;   ;;;;       ;;   ;;;;    ;;; ;  ;   
+;                                                                   
+;                                                                   
+;                                                                   
+
+      
       
       (define (same-widths items)
         (let ([max-width (apply max (map (lambda (x) (send x get-width)) items))])
@@ -229,71 +482,26 @@
           (send tour-button focus)
           (send f show #t)))
       
-      (define (switch-language-to parent other-language)
-        (define-values (other-are-you-sure other-cancel other-accept-and-quit)
-          (let loop ([languages (all-languages)]
-                     [are-you-sures (string-constants are-you-sure-you-want-to-switch-languages)]
-                     [cancels (string-constants cancel)]
-                     [accept-and-quits (if (eq? (system-type) 'windows)
-                                           (string-constants accept-and-exit)
-                                           (string-constants accept-and-quit))])
-            (cond
-              [(null? languages) (error 'app.ss "")]
-              [(equal? other-language (car languages))
-               (values (car are-you-sures)
-                       (car cancels)
-                       (car accept-and-quits))]
-              [else (loop (cdr languages)
-                          (cdr are-you-sures)
-                          (cdr cancels)
-                          (cdr accept-and-quits))])))
-        (define dialog (make-object dialog% (string-constant drscheme) parent 400))
-        (define (make-section are-you-sure cancel-label quit-label)
-          (define text (make-object text:hide-caret/selection%))
-          (define ec (instantiate editor-canvas% ()
-                       (parent dialog)
-                       (editor text)
-                       (style '(no-hscroll))))
-          (define bp (instantiate horizontal-panel% ()
-                       (parent dialog)
-                       (alignment '(right center))))
-          (define-values (quit cancel)
-            (gui-utils:ok/cancel-buttons
-             bp
-             (lambda (x y)
-               (set! cancelled? #f)
-               (send dialog show #f))
-             (lambda (x y)
-               (send dialog show #f))
-             quit-label
-             cancel-label))
-          (send ec set-line-count 3)
-          (send text auto-wrap #t)
-          (send text set-autowrap-bitmap #f)
-          (send text insert are-you-sure)
-          (send text set-position 0 0))
-        (define cancelled? #t)
-        
-        (make-section other-are-you-sure
-                      other-cancel
-                      other-accept-and-quit)
 
-        (make-section (string-constant are-you-sure-you-want-to-switch-languages)
-                      (string-constant cancel)
-                      (if (eq? (system-type) 'windows)
-                          (string-constant accept-and-exit)
-                          (string-constant accept-and-quit)))
+      
+      
+;                                                              
+;                                                              
+;                                                              
+;          ;                                     ;             
+;          ;                                     ;             
+;          ;                       ;             ;             
+;    ;;;   ; ;;;    ;;;;   ;    ; ;;;;       ;;; ;  ; ;;  ;;;; 
+;   ;   ;  ;;   ;  ;    ;  ;    ;  ;        ;   ;;  ;;   ;     
+;       ;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;    ;     
+;    ;;;;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;     ;;;  
+;   ;   ;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;        ; 
+;   ;   ;  ;;   ;  ;    ;  ;   ;;  ;        ;   ;;  ;        ; 
+;    ;;;;; ; ;;;    ;;;;    ;;; ;   ;;       ;;; ;  ;    ;;;;  
+;                                                              
+;                                                              
+;                                                              
 
-        (send dialog show #t)
-        
-        (unless cancelled?
-          (let ([set-language? #t])
-            (exit:insert-on-callback 
-             (lambda ()
-               (when set-language?
-                 (set-language-pref other-language))))
-            (exit:exit #t)
-            (set! set-language? #f))))
       
       (define (about-drscheme)
         (let* ([e (make-object wrap-edit%)]
@@ -449,6 +657,93 @@
           (send button-panel set-alignment 'center 'center)
           (send f show #t)
           f))
+
+      
+
+;                                       
+;                                       
+;                                       
+;                ;   ;   ;              
+;                    ;                  
+;           ;        ;       ;          
+;   ;    ; ;;;;  ;   ;   ;  ;;;; ;     ;
+;   ;    ;  ;    ;   ;   ;   ;    ;   ; 
+;   ;    ;  ;    ;   ;   ;   ;    ;   ; 
+;   ;    ;  ;    ;   ;   ;   ;     ;  ; 
+;   ;    ;  ;    ;   ;   ;   ;     ; ;  
+;   ;   ;;  ;    ;   ;   ;   ;      ;;  
+;    ;;; ;   ;;  ;   ;   ;    ;;    ;   
+;                                   ;   
+;                                   ;   
+;                                  ;    
+
+      
+      ;; switch-language-to : (is-a?/c top-level-window<%>) symbol -> void
+      (define (switch-language-to parent other-language)
+        (define-values (other-are-you-sure other-cancel other-accept-and-quit)
+          (let loop ([languages (all-languages)]
+                     [are-you-sures (string-constants are-you-sure-you-want-to-switch-languages)]
+                     [cancels (string-constants cancel)]
+                     [accept-and-quits (if (eq? (system-type) 'windows)
+                                           (string-constants accept-and-exit)
+                                           (string-constants accept-and-quit))])
+            (cond
+              [(null? languages) (error 'app.ss ".1")]
+              [(equal? other-language (car languages))
+               (values (car are-you-sures)
+                       (car cancels)
+                       (car accept-and-quits))]
+              [else (loop (cdr languages)
+                          (cdr are-you-sures)
+                          (cdr cancels)
+                          (cdr accept-and-quits))])))
+        (define dialog (make-object dialog% (string-constant drscheme) parent 400))
+        (define (make-section are-you-sure cancel-label quit-label)
+          (define text (make-object text:hide-caret/selection%))
+          (define ec (instantiate editor-canvas% ()
+                       (parent dialog)
+                       (editor text)
+                       (style '(no-hscroll))))
+          (define bp (instantiate horizontal-panel% ()
+                       (parent dialog)
+                       (alignment '(right center))))
+          (define-values (quit cancel)
+            (gui-utils:ok/cancel-buttons
+             bp
+             (lambda (x y)
+               (set! cancelled? #f)
+               (send dialog show #f))
+             (lambda (x y)
+               (send dialog show #f))
+             quit-label
+             cancel-label))
+          (send ec set-line-count 3)
+          (send text auto-wrap #t)
+          (send text set-autowrap-bitmap #f)
+          (send text insert are-you-sure)
+          (send text set-position 0 0))
+        (define cancelled? #t)
+        
+        (make-section other-are-you-sure
+                      other-cancel
+                      other-accept-and-quit)
+        
+        (make-section (string-constant are-you-sure-you-want-to-switch-languages)
+                      (string-constant cancel)
+                      (if (eq? (system-type) 'windows)
+                          (string-constant accept-and-exit)
+                          (string-constant accept-and-quit)))
+        
+        (send dialog show #t)
+        
+        (unless cancelled?
+          (let ([set-language? #t])
+            (exit:insert-on-callback 
+             (lambda ()
+               (when set-language?
+                 (set-language-pref other-language))))
+            (exit:exit #t)
+            (set! set-language? #f))))
       
       (define (add-important-urls-to-help-menu help-menu)
 	(let* ([important-urls

@@ -126,8 +126,89 @@
       ;;                    -> language-setting)
       ;; allows the user to configure their language. The input language-setting is used
       ;; as the defaults in the dialog and the output language setting is the user's choice
+      ;; todo: when button is clicked, ensure language is selected
       (define language-dialog
         (opt-lambda (show-welcome? language-settings-to-show [parent #f])
+          (define ret-dialog%
+            (class dialog%
+              (rename [super-on-subwindow-char on-subwindow-char])
+              (define/override (on-subwindow-char receiver evt)
+                (case (send evt get-key-code)
+                  [(escape) (cancel-callback)]
+                  [(#\return numpad-enter) (ok-callback)]
+                  [else (super-on-subwindow-char receiver evt)]))
+              (super-instantiate ())))
+          
+	  (define dialog (make-object ret-dialog% 
+                           (if show-welcome?
+                               (string-constant welcome-to-drscheme)
+                               (string-constant language-dialog-title))
+                           parent #f #f #f #f '(resize-border)))
+          (define welcome-before-panel (instantiate horizontal-panel% ()
+                                         (parent dialog)
+                                         (stretchable-height #f)))
+          (define language-dialog-meat-panel (make-object vertical-panel% dialog))
+
+          (define welcome-after-panel (instantiate vertical-panel% () 
+                                        (parent dialog)
+                                        (stretchable-height #f)))
+          
+          (define button-panel (make-object horizontal-panel% dialog))
+          
+          (define-values (get-selected-language get-selected-language-settings)
+            (fill-language-dialog language-dialog-meat-panel button-panel language-settings-to-show))
+          
+          ;; cancelled? : boolean
+          ;; flag that indicates if the dialog was cancelled.
+          (define cancelled? #t)
+          
+	  ;; ok-callback : -> void
+          (define (ok-callback)
+            (cond
+              [(get-selected-language)
+               (set! cancelled? #f)
+               (send dialog show #f)]
+              [else
+               (message-box (string-constant drscheme)
+                            (string-constant please-select-a-language))]))
+          
+          ;; cancel-callback : -> void
+	  (define (cancel-callback)
+            (send dialog show #f))
+
+
+          (define show-details-label (string-constant show-details-button-label))
+          (define hide-details-label (string-constant hide-details-button-label))
+          
+          (define button-gap (make-object horizontal-panel% button-panel))
+	  (define-values (ok-button cancel-button)
+            (gui-utils:ok/cancel-buttons
+             button-panel
+             (lambda (x y) (ok-callback))
+             (lambda (x y) (cancel-callback))))
+          (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
+          
+          (when show-welcome?
+            (add-welcome dialog welcome-before-panel welcome-after-panel))
+
+          (send dialog stretchable-width #f)
+          (send dialog stretchable-height #f)
+
+          (unless parent
+            (send dialog center 'both))
+          (send dialog show #t)
+          (if cancelled?
+              language-settings-to-show
+              (make-language-settings
+               (get-selected-language)
+               (get-selected-language-settings)))))
+      
+      ;; fill-language-dialog :    (vertical-panel panel language-setting -> language-setting)
+      ;;                        -> (-> (union #f language<%>)) (-> settings[corresponding to fst thnk result])
+      ;; allows the user to configure their language. The input language-setting is used
+      ;; as the defaults in the dialog and the output language setting is the user's choice
+      (define fill-language-dialog
+        (opt-lambda (parent show-details-parent language-settings-to-show)
 
 	  (define language-to-show (language-settings-language language-settings-to-show))
 	  (define settings-to-show (language-settings-settings language-settings-to-show))
@@ -155,37 +236,15 @@
                   (send i toggle-open/closed)))
               (super-instantiate (parent))))
 
-          (define ret-dialog%
-            (class dialog%
-              (rename [super-on-subwindow-char on-subwindow-char])
-              (define/override (on-subwindow-char receiver evt)
-                (case (send evt get-key-code)
-                  [(escape) (cancel-callback)]
-                  [(#\return numpad-enter) (ok-callback)]
-                  [else (super-on-subwindow-char receiver evt)]))
-              (super-instantiate ())))
-          
-	  (define dialog (make-object ret-dialog% 
-                           (if show-welcome?
-                               (string-constant welcome-to-drscheme)
-                               (string-constant language-dialog-title))
-                           parent #f #f #f #f '(resize-border)))
-          (define welcome-before-panel (instantiate horizontal-panel% ()
-                                         (parent dialog)
-                                         (stretchable-height #f)))
-          (define outermost-panel (make-object horizontal-panel% dialog))
+          (define outermost-panel (make-object horizontal-panel% parent))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
           (define details-outer-panel (make-object vertical-pane% outermost-panel))
 	  (define details-panel (make-object panel:single% details-outer-panel))
           (define one-line-summary-message (instantiate message% ()
-                                             (parent dialog)
+                                             (parent parent)
                                              (label "")
                                              (stretchable-width #t)))
-          (define button-panel (make-object horizontal-panel% dialog))
-	  (define welcome-after-panel (instantiate vertical-panel% () 
-                                        (parent dialog)
-                                        (stretchable-height #f)))
-
+          
 	  (define no-details-panel (make-object vertical-panel% details-panel))
 
           (define languages-table (make-hash-table))
@@ -211,7 +270,6 @@
                   (send details-panel active-child language-details-panel)
                   (send one-line-summary-message set-label (send language get-one-line-summary))
                   (send revert-to-defaults-button enable #t)
-		  (send ok-button enable #t)
 		  (set! get/set-selected-language-settings get/set-settings)
 		  (set! selected-language language))
                 (apply super-make-object args))))
@@ -220,7 +278,6 @@
 	  ;; updates the GUI and selected-language and get/set-selected-language-settings
 	  ;; for when no language is selected.
 	  (define (nothing-selected)
-	    (send ok-button enable #f)
             (send revert-to-defaults-button enable #f)
 	    (send details-panel active-child no-details-panel)
             (send one-line-summary-message set-label "")
@@ -383,19 +440,6 @@
                   (lambda (l)
                     (if details-shown? (list details-panel) null))))
 
-          ;; cancelled? : boolean
-          ;; flag that indicates if the dialog was cancelled.
-          (define cancelled? #t)
-          
-	  ;; ok-callback : -> void
-          (define (ok-callback)
-            (set! cancelled? #f)
-	    (send dialog show #f))
-          
-          ;; cancel-callback : -> void
-	  (define (cancel-callback)
-            (send dialog show #f))
-
           ;; revert-to-defaults-callback : -> void
           (define (revert-to-defaults-callback)
             (when selected-language
@@ -408,57 +452,38 @@
                                    (if (show-details-label . system-font-space->= . hide-details-label)
                                        show-details-label
                                        hide-details-label)
-                                   button-panel
+                                   show-details-parent
                                    (lambda (x y)
                                      (details-callback))))
           
-          (define revert-to-defaults-outer-panel (make-object horizontal-pane% button-panel))
+          (define revert-to-defaults-outer-panel (make-object horizontal-pane% show-details-parent))
           (define revert-to-defaults-button (make-object button% 
                                               (string-constant revert-to-language-defaults)
                                               revert-to-defaults-outer-panel
                                               (lambda (_1 _2)
                                                 (revert-to-defaults-callback))))
-          (define button-gap (make-object horizontal-panel% button-panel))
-	  (define-values (ok-button cancel-button)
-            (gui-utils:ok/cancel-buttons
-             button-panel
-             (lambda (x y) (ok-callback))
-             (lambda (x y) (cancel-callback))))
-          (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
-          
-          (when show-welcome?
-            (add-welcome dialog welcome-before-panel welcome-after-panel))
 
           (send details-outer-panel stretchable-width #t)
           (send details-outer-panel stretchable-width #f)
           (send revert-to-defaults-outer-panel stretchable-width #f)
           (send revert-to-defaults-outer-panel stretchable-height #f)
           (send outermost-panel set-alignment 'center 'center)
-	  (send button-panel stretchable-height #f)
-
-          (send dialog stretchable-width #f)
-          (send dialog stretchable-height #f)
 
           (update-show/hide-details)
 
           (for-each add-language-to-dialog languages)
           (send languages-hier-list sort (lambda (x y) (< (send x get-number) (send y get-number))))
-	  (send dialog reflow-container)
 	  (send languages-hier-list stretchable-width #t)
-	  (send languages-hier-list min-client-width
-		(text-width (send languages-hier-list get-editor)))
-	  (close-all-languages)
+	  (send parent reflow-container)
+          (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
+          (close-all-languages)
 	  (open-current-language)
+	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (get/set-selected-language-settings settings-to-show)
           (send languages-hier-list focus)
-          (unless parent
-            (send dialog center 'both))
-          (send dialog show #t)
-          (if cancelled?
-              language-settings-to-show
-              (make-language-settings
-               selected-language
-               (get/set-selected-language-settings)))))
+          (values
+           (lambda () selected-language)
+           (lambda () (get/set-selected-language-settings)))))
 
       (define (add-welcome dialog welcome-before-panel welcome-after-panel)
         (let* ([outer-pb%
@@ -588,6 +613,19 @@
 		      (send text get-snip-location eol-snip box #f #t))
 		    (loop (- n 1)
 			  (max current-max-width (unbox box))))])))
+      
+      ;; text-height : (is-a?/c text% -> exact-integer
+      (define (text-height text)
+        (let ([y-box (box 0)])
+          (send text position-location 
+                (send text last-position)
+                #f
+                y-box
+                #f
+                #f
+                #t)
+          (+ 16 ;; some platform specific space I don't know how to get.
+             (floor (inexact->exact (unbox y-box))))))
 
       (define teachpack-directory 
         (let ([lib-dir (build-path 
