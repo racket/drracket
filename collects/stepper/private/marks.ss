@@ -37,14 +37,14 @@
    lookup-binding-list
    debug-key
    extract-mark-list
-   (struct normal-breakpoint-info (mark-list kind returned-value-list))
+   (struct normal-breakpoint-info (mark-list kind last-mark))
    (struct error-breakpoint-info (message))
    (struct breakpoint-halt ())
    (struct expression-finished (returned-value-list)))
   
   ; BREAKPOINT STRUCTURES
   
-  (define-struct normal-breakpoint-info (mark-list kind returned-value-list))
+  (define-struct normal-breakpoint-info (mark-list kind last-mark))
   (define-struct error-breakpoint-info (message))
   (define-struct breakpoint-halt ())
   (define-struct expression-finished (returned-value-list))
@@ -64,7 +64,7 @@
   
   (define (extract-mark-list mark-set)
     (strip-skiptos (continuation-mark-set->list mark-set debug-key)))
-  
+   
   
   ; the 'varargs' creator is used to avoid an extra cons cell in every mark:
   (define (make-make-full-mark-varargs source label bindings)
