@@ -4,7 +4,7 @@
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "external.ss" "browser")
-           (lib "help-desk.ss" "help")
+           ;(lib "help-desk.ss" "help")
            (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "list.ss")
@@ -34,6 +34,8 @@
 
       ;; get-docs : (listof (cons string[short-dir-name] string[doc full name]))
       (define (get-docs) 
+        '()
+        #;
         (let ([dirs (find-doc-names)])
           (map (lambda (pr)
                  (let-values ([(base name dir?) (split-path (car pr))])
@@ -45,12 +47,14 @@
                 (drscheme:teachpack:teachpack-cache-filenames
                  (preferences:get 'drscheme:teachpacks))))
       
-      (set-bug-report-info! "Computer Language" get-computer-language-info)
-      (set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
+      ;(set-bug-report-info! "Computer Language" get-computer-language-info)
+      ;(set-bug-report-info! "Teachpack filenames" get-teachpack-filenames)
 
       (define get-hd-cookie
         (let ([hd-cookie #f])
           (lambda ()
+            (error 'get-hd-cookie "no")
+            #;
             (unless hd-cookie
               (set! hd-cookie (start-help-server 
                                (lambda (x)
@@ -59,7 +63,8 @@
                                    x))))))
             hd-cookie)))
       
-      (define drscheme-help-desk-mixin
+      (define (drscheme-help-desk-mixin x) x)
+      #;(define drscheme-help-desk-mixin
         (mixin (frame:standard-menus<%>) ()
           (define/override (file-menu:create-open-recent?) #t)
           
@@ -167,6 +172,9 @@
           (super-new)))
       
       (define (goto-help manual link)
+        (error 'goto-help "no ~s ~s" manual link)
+        
+        #;
         (with-handlers ([not-break-exn?
                          (lambda (exn)
                            (message-box 
@@ -179,7 +187,9 @@
 	    (goto-manual-link (get-hd-cookie) manual link))))
       
       (define (goto-hd-loc cookie where)
-	(when cookie
+        (error 'goto-hd-loc "no ~s\n" where)
+	#;
+        (when cookie
 	  (goto-hd-location cookie where)))
 
       (define (goto-tour)
@@ -191,6 +201,8 @@
       (define (goto-plt-license)
         (goto-hd-loc (get-hd-cookie) 'plt-license))
       
+      (define (help-desk . x) (error 'help-desk "no ~s\n" x))
+      #;
       (define help-desk
         (case-lambda
           [() 

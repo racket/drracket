@@ -57,10 +57,10 @@
       ;; all-toplevel-collections : -> (listof string)
       ;; returns the list of collections currently available
       (define (all-toplevel-collections)
-        ;; collections-hash-table : (hash-table symbol string)
+        ;; collections-hash-table : hash-table[path -o> path]
         ;; contains a list of the available collections.
         ;; use a hash table to cancel out duplicate collections
-        (define collections-hash-table (make-hash-table))
+        (define collections-hash-table (make-hash-table 'equal))
         
         ;; add-collections-in-path : path -> void
         ;; adds each collection in the given path
@@ -69,8 +69,8 @@
           (for-each 
            (lambda (d) 
              (when (and (directory-exists? (build-path path d))
-                        (not (string-ci=? d "CVS")))
-               (hash-table-put! collections-hash-table (string->symbol d) d)))
+                        (not (string-ci=? (path->string d) "CVS")))
+               (hash-table-put! collections-hash-table d d)))
            (with-handlers ([not-break-exn?
                             (lambda (x) null)])
              (directory-list path))))
@@ -78,4 +78,4 @@
         (for-each add-collections-in-path (current-library-collection-paths))
         (quicksort
          (hash-table-map collections-hash-table (lambda (x y) y))
-         string<=?)))))
+         (lambda (x y) (string<=? (path->string x) (path->string y))))))))

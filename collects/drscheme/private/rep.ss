@@ -1008,12 +1008,12 @@
                  (semaphore-post fetcher-semaphore)
                  (send fetcher fetch ut peek? skip)))))
 
-	  (define this-in-read-char ; =User=
+	  (define this-in-read-byte ; =User=
             (lambda ()
-	      (this-in-fetch-char #f 0)))
-	  (define this-in-peek-char ; =User=
+	      (this-in-fetch-byte #f 0)))
+	  (define this-in-peek-byte ; =User=
             (lambda (skip)
-	      (this-in-fetch-char #t skip)))
+	      (this-in-fetch-byte #t skip)))
           
           (field (flushing-event-running (make-semaphore 1))
                  (limiting-sema (make-semaphore output-limit-size))) ; waited once foreach in io-collected-thunks
@@ -1201,21 +1201,21 @@
 						    void))
                  (this-out (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						    (lambda (s start end flush?) 
-						      (if (this-out-write (substring s start end) flush?)
+						      (if (this-out-write (subbytes s start end) flush?)
 							  (- end start)
 							  0))
 						    void
 						    void))
                  (this-in (make-custom-input-port (lambda (s) 
-						    (let ([c (this-in-read-char)])
+						    (let ([c (this-in-read-byte)])
 						      (cond
-						       [(char? c)
-							(string-set! s 0 c)
+						       [(byte? c)
+							(bytes-set! s 0 c)
 							1]
 						       [(not c) (make-semaphore-peek maybe-char-ready-sema)]
 						       [else c])))
 						  (lambda (s skip) 
-						    (let ([c (this-in-peek-char skip)])
+						    (let ([c (this-in-peek-byte skip)])
 						      (cond
 						       [(char? c)
 							(string-set! s 0 c)
@@ -1225,7 +1225,7 @@
 						  void))
                  (this-result (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						       (lambda (s start end flush?) 
-							 (if (this-result-write (substring s start end) flush?)
+							 (if (this-result-write (subytes s start end) flush?)
 							     (- end start)
 							     0))
 						       void
