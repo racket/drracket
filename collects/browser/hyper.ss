@@ -405,7 +405,7 @@
 					(queue-callback (lambda () (semaphore-post wait-to-start)))
 					(send d show #t)
 					(when exn (raise exn)))
-				      (when install?
+				      (when (and f install?)
 					(run-installer f)
 					(delete-file f)))
 				    (raise
