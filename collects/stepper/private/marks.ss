@@ -19,7 +19,8 @@
    [lookup-binding (case-> (-> mark-list? identifier? any)
                            (-> mark-list? identifier? procedure? any)
                            (-> mark-list? identifier? procedure? procedure? any))]
-   [lookup-binding-with-symbol (-> mark-list? symbol? any)])
+   [lookup-binding-with-symbol (-> mark-list? symbol? any)]
+   [lookup-binding-list-with-symbol (-> mark-list? symbol? any)])
   
   (provide
    make-debug-info
@@ -34,6 +35,7 @@
    mark-binding-value
    mark-binding-binding
    display-mark
+   all-bindings
    lookup-binding-list
    debug-key
    extract-mark-list
@@ -163,6 +165,12 @@
   
   (define (lookup-binding-list mark-list binding)
     (apply append (map (lambda (x) (binding-matches module-identifier=? x binding)) mark-list)))
+  
+  (define (lookup-binding-list-with-symbol mark-list sym)
+    (apply append (map (lambda (x) (binding-matches (lambda (stx y) (eq? (syntax-e stx) y)) x sym)) mark-list)))
+  
+  (define (all-bindings mark)
+    (map mark-binding-binding (mark-bindings mark)))
   
   (define (wcm-wrap debug-info expr)
     #`(with-continuation-mark #,debug-key #,debug-info #,expr))
