@@ -10,7 +10,6 @@
            "app.ss"
            "main.ss"
            "snip.ss"
-           "load-handler.ss"
            "rep.ss"
            "frame.ss"
            "unit.ss"
@@ -25,8 +24,7 @@
       (link [init : drscheme:init^ (init@)]
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
-            [load-handler : drscheme:load-handler^ (load-handler@)]
-            [rep : drscheme:rep^ (rep@ init snip language app frame unit text load-handler help-interface)]
+            [rep : drscheme:rep^ (rep@ init snip language app frame unit text help-interface)]
             [tower : drscheme:language-tower^ (language-tower@ rep)]
             [frame : drscheme:frame^ (frame@ unit app help-interface)]
             [unit : drscheme:unit^ (unit@ help-interface app frame text rep language get/extend snip)]

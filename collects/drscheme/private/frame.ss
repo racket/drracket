@@ -337,14 +337,19 @@
             
             [help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
             [help-menu:about-string (lambda () "DrScheme")]
+            [help-menu:create-about? (lambda () #t)]
             
             
             [file-menu:new-string (lambda () "")]
             [file-menu:new-callback
              (lambda (item evt)
                (drscheme:unit:open-drscheme-window))]
+            [file-menu:create-new? (lambda () #t)]
+            
             [file-menu:open-callback (lambda (item evt) (handler:open-file) #t)]
             [file-menu:open-string (lambda () "")]
+            [file-menu:create-open? (lambda () #t)]
+            
             [file-menu:between-open-and-revert
              (lambda (file-menu) 
                (make-object menu-item% 
@@ -384,6 +389,7 @@
           (inherit get-editor)
           (rename [super-file-menu:print-callback file-menu:print-callback])
           (override
+            [file-menu:create-print? (lambda () #t)]
             [file-menu:print-callback
              (lambda (item control)
                (let ([ps-setup (make-object ps-setup%)])

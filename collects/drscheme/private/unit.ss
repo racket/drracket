@@ -31,8 +31,8 @@
                   [start (send text get-start-position)]
                   [non-letter? (lambda (x)
                                  (or (char-whitespace? x)
-                                     (memq x ' (#\` #\' #\, #\;
-                                                 #\{ #\( #\[ #\] #\) #\}))))])
+                                     (memq x '(#\` #\' #\, #\;
+                                                #\{ #\( #\[ #\] #\) #\}))))])
              (unless (= 0 (send text last-position))
                (let ([str
                       (if (= end start)
@@ -93,7 +93,9 @@
                 (lambda ()
                   (let ([num-s (string->number (send num get-value))]
                         [den-s (string->number (send den get-value))]
-                        [whole-s (string->number (send whole get-value))])
+                        [whole-s (if (string=? (send whole get-value) "")
+                                     0
+                                     (string->number (send whole get-value)))])
                     (if (and num-s den-s whole-s)
                         (let ([ans (+ whole-s (/ num-s den-s))])
                           (if (and (exact? ans)

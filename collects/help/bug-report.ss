@@ -429,8 +429,9 @@
                   (version:version)))
     
     (send environment set-value   
-          (format "~a (~a) (get-display-depth) = ~a"
+          (format "~a ~s (~a) (get-display-depth) = ~a"
                   (system-type)
+                  (system-type #t)
                   (system-library-subpath)
                   (get-display-depth)))
     (send tools set-value 

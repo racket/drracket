@@ -16,7 +16,7 @@
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (prefix mzlib:pretty-print: (lib "pretty.ss"))
+           (lib "pretty.ss")
            (prefix print-convert: (lib "pconvert.ss")))  
   
   (provide rep@)
@@ -30,7 +30,6 @@
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
-              (drscheme:load-handler : drscheme:load-handler^)
               (drscheme:help : drscheme:help-interface^))
       
       (define-struct text/pos (text start end))
@@ -57,6 +56,45 @@
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
             
+      ;; drscheme-load-handler : string ->* TST
+      ;; the default load handler for programs running in DrScheme
+      (define (drscheme-load-handler filename)
+        (unless (string? filename)
+          (raise (raise-type-error
+                  'drscheme-load-handler
+                  "string"
+                  filename)))
+        (let* ([input (build-input filename)]
+               [ls (current-language-settings)]
+               [language (drscheme:language:language-settings-language ls)]
+               [settings (drscheme:language:language-settings-settings ls)]
+               [thnk (send language front-end input settings)])
+          (let ([first-exp (thnk)])
+            (if (eof-object? first-exp)
+                (void)
+                (let loop ([last-exp first-exp])
+                  (let ([next-exp (thnk)])
+                    (if (eof-object? next-exp)
+                        (eval last-exp)
+                        (begin
+                          (eval last-exp)
+                          (loop next-exp)))))))))
+      
+      ;; build-input : string[file-exists?] -> input
+      ;; returns an input to be used with a language's `front-end' method
+      (define (build-input filename)
+        (let* ([p (open-input-file filename)]
+               [chars (list (read-char p)
+                            (read-char p)
+                            (read-char p)
+                            (read-char p))])
+          (close-input-port p)
+          (if (equal? chars (string->list "WXME"))
+              (let ([text (make-object text%)])
+                (send text load-file filename)
+                (make-text/pos text 0 (send text last-position)))
+              filename)))
+      
       ;; bottom-escape-handler : (parameter ( -> A))
       ;; must escape. this is called if the user's error-escape-handler doesn't escape
       (define bottom-escape-handler (make-parameter void))
@@ -804,7 +842,7 @@
               generic-write
               this-result-write
               this-out-write
-              this-err-write/exn
+
               this-err-write
               get-this-err
               get-this-out
@@ -1225,11 +1263,8 @@
                        (gw newline-string))
                      (gw s1))))))
             
-	    ;; this-err-write/exn : (union string snip) (union exn #f) -> void
-	    ;; writes the string to the console error and highlights the
-	    ;; variable portion of the message if the second argument is
-	    ;; a variable:exn. 
-	    (define (this-err-write/exn s exn) ; =User=
+	    ;; this-err-write : (union string (instanceof snip%)) -> void
+	    (define (this-err-write s) ; =User=
               (queue-output
                (lambda () ; =Kernel=, =Handler=
                  (cleanup-transparent-io)
@@ -1237,52 +1272,8 @@
                   this
                   s
                   (lambda (start end)
-                    (change-style error-delta start end)
-                    (cond
-                      [(exn:variable? exn)
-                       (let* ([var (symbol->string (exn:variable-id exn))]
-                              [regexp (format "^(.*)(~a)" (quote-regexp-specials var))]
-                              [match (with-handlers ([(lambda (x) #t)
-                                                      (lambda (x)
-                                                        ((error-display-handler)
-                                                         (format "error constructing regexp: ~s~n"
-                                                                 regexp))
-                                                        #f)])
-                                       (regexp-match regexp s))])
-                         (when match
-                           (let* ([var-start (+ start (string-length (cadr match)))]
-                                  [var-end (+ var-start (string-length (caddr match)))])
-                             (change-style click-delta var-start var-end)
-                             (set-clickback var-start var-end
-                                            (lambda x
-                                              (drscheme:help:help-desk var))))))]
-                      [else
-                       (let ([bind-to-help
-                              (lambda (regexp s)
-                                (let ([match (regexp-match regexp s)])
-                                  (if match
-                                      (let* ([prefix (cadr match)]
-                                             [var (caddr match)]
-                                             [var-start (+ start (string-length prefix))]
-                                             [var-end (+ var-start (string-length var))])
-                                        (change-style click-delta var-start var-end)
-                                        (set-clickback
-                                         var-start var-end
-                                         (lambda x
-                                           (drscheme:help:help-desk var)))
-                                        prefix)
-                                      #f)))])
-                         (let loop ([s s])
-                           (when s
-                             (loop (bind-to-help class-regexp s))))
-                         (bind-to-help ivar-regexp s)
-                         (bind-to-help fallthru-regexp s))]))))))
+                    (change-style error-delta start end))))))
 
-	    ;; this-err-write : (union string (instanceof snip%)) -> void
-            (define this-err-write ; =User=
-              (lambda (s)
-                (this-err-write/exn s #f)))
-            
             (field (this-err (make-output-port (lambda (x) (this-err-write x))
                                                void))
                    (this-out (make-output-port (lambda (x) (this-out-write x))
@@ -1304,63 +1295,26 @@
             ;; for the initial output port, initial error port and the
             ;; value port.
             (define (setup-display/write-handlers)
-              (let* ([use-number-snip?
-                      (lambda (x)
-                        (and (number? x)
-                             (exact? x)
-                             (real? x)
-                             (not (integer? x))))]
-                     [pretty-print-size-hook
-                      (lambda (x _ port)
-                        (cond
-			  [(is-a? x sized-snip<%>) (send x get-character-width)]
-                          [(is-a? x snip%) 1]
-                          [(use-number-snip? x)
-                           (+ (string-length (number->string (floor x)))
-                              (max (string-length
-                                    (number->string 
-                                     (numerator (- x (floor x)))))
-                                   (string-length
-                                    (number->string 
-                                     (numerator (- x (floor x)))))))]
-                          [else #f]))]
-		     [make-pretty-print-print-hook
-		      (lambda (port-out-write)
-		      ;; port and port-out-write must match at this point.
-			(lambda (x _ port)
-			  (let ([snip/str
-				 (cond
-				   [(use-number-snip? x)
-				    (make-object drscheme:snip:whole/part-number-snip% x)]
-				   [else x])])
-			    (port-out-write snip/str))))]
-                     [make-setup-handler
+              (let* ([make-setup-handler
                       (lambda (port port-out-write)
                         (lambda (port-handler pretty)
                           (let ([original-handler (port-handler port)])
                             (port-handler
                              port
-                             (rec console-pp-handler
+                             (rec drscheme-port-handler
                                (lambda (v p)
                                  ;; avoid infinite recursion by calling original-handler
                                  ;; for strings, since `pretty' calls write/display with
                                  ;; strings
                                  (if (string? v)
                                      (original-handler v p)
-                                     (parameterize ([mzlib:pretty-print:pretty-print-size-hook
-                                                     pretty-print-size-hook]
-                                                    [mzlib:pretty-print:pretty-print-print-hook
-						     (make-pretty-print-print-hook port-out-write)]
-                                                    [mzlib:pretty-print:pretty-print-columns
-                                                     'infinity])
+                                     (parameterize ([pretty-print-columns 'infinity])
                                        (pretty v p)))))))))]
                      
                      [setup-handlers
                       (lambda (setup-handler)
-                        (setup-handler port-display-handler 
-                                       mzlib:pretty-print:pretty-display)
-                        (setup-handler port-write-handler
-                                       mzlib:pretty-print:pretty-print))]
+                        (setup-handler port-display-handler pretty-display)
+                        (setup-handler port-write-handler pretty-print))]
                      
                      [setup-out-handler (make-setup-handler this-out (lambda (x) (this-out-write x)))]
                      [setup-err-handler (make-setup-handler this-err (lambda (x) (this-err-write x)))]
@@ -1457,6 +1411,49 @@
                         ;; this case should never happen.
                         [(eq? port this-result) (lambda (x) (this-result-write x))]
                         [else #f]))))
+            
+            (define (drscheme-pretty-print-size-hook x _ port)
+              (and (or (eq? port this-out)
+                       (eq? port this-err)
+                       (eq? port this-result))
+                   (cond
+                     [(is-a? x sized-snip<%>) (send x get-character-width)]
+                     [(is-a? x snip%) 1]
+                     [(use-number-snip? x)
+                      (+ (string-length (number->string (floor x)))
+                         (max (string-length
+                               (number->string 
+                                (numerator (- x (floor x)))))
+                              (string-length
+                               (number->string 
+                                (denominator (- x (floor x)))))))]
+                     [else #f])))
+            
+            (define (drscheme-pretty-print-print-hook x _ port)
+              (let ([port-out-write
+                     (cond
+                       [(eq? port this-out) (lambda (x) (this-out-write x))]
+                       [(eq? port this-err) (lambda (x) (this-err-write x))]
+                       [(eq? port this-result) (lambda (x) (this-result-write x))]
+                       ;; this case should only happen if the user's program overrides the pretty-print-size-hook
+                       ;; and doesnt' override the pretty-print-print-hook to match.
+                       [else #f])])
+                (if port-out-write
+                    (let ([snip/str
+                           (cond
+                             [(use-number-snip? x)
+                              (make-object drscheme:snip:whole/part-number-snip% x)]
+                             [else x])])
+                      (port-out-write snip/str))
+                    (display x))))
+            
+            ;; use-number-snip? : TST -> boolean
+            ;; returns true if this value can be turned into a number snip for displaying
+            (define (use-number-snip? x)
+              (and (number? x)
+                   (exact? x)
+                   (real? x)
+                   (not (integer? x))))
             
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;                                            ;;;
@@ -1846,7 +1843,11 @@
                 (current-exception-handler drscheme-exception-handler)
                 (current-load-relative-directory #f)
                 (current-custodian user-custodian)
+                
                 (global-port-print-handler drscheme-port-print-handler)
+                (setup-display/write-handlers)
+                (pretty-print-size-hook drscheme-pretty-print-size-hook)
+                (pretty-print-print-hook drscheme-pretty-print-print-hook)
                 
                 (break-enabled #t)
                 (read-curly-brace-as-paren #t)
@@ -1855,11 +1856,7 @@
                 (error-print-width 250)
                 
                 (current-rep-text this)
-                (current-output-port this-out)
-                (current-error-port this-err)
-                (current-value-port this-result)
-                (current-input-port this-in)
-                
+
                 (print-convert:current-print-convert-hook
                  (lambda (expr basic-convert sub-convert)
                    (let ([ans (if (is-a? expr snip%)
@@ -1867,7 +1864,7 @@
                                   (basic-convert expr))])
                      ans)))
                 
-                (current-load drscheme:load-handler:drscheme-load-handler)
+                (current-load drscheme-load-handler)
                 
                 (error-display-handler
                  (rec drscheme-error-display-handler
@@ -1892,9 +1889,11 @@
                 
                 (current-namespace (make-namespace 'empty))
                 
-	    ;; set all parameters before constructing eventspace
-	    ;; so that the parameters are set in the eventspace's
-	    ;; parameterization
+                (current-output-port this-out)
+                (current-error-port this-err)
+                (current-value-port this-result)
+                (current-input-port this-in)
+                
                 (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                   (event-dispatch-handler
                    (rec drscheme-event-dispatch-handler ; <= a name for #<...> printout
@@ -2012,9 +2011,7 @@
                 (reset-console)
                 (insert-prompt)
                 (clear-undos)))
-            
-            (setup-display/write-handlers)
-            
+ 
             (super-instantiate ())
             
             (set-styles-sticky #f))))
@@ -2289,7 +2286,7 @@
                                [new-columns (max min-columns 
                                                  (floor (/ width char-width)))])
                           (send dc set-font old-font)
-                          (mzlib:pretty-print:pretty-print-columns new-columns)))))))
+                          (pretty-print-columns new-columns)))))))
               (define do-eval
                 (lambda (start end)
                   (error 'do-eval "abstract method")))

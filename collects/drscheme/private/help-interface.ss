@@ -59,7 +59,7 @@
                           open-url-from-user
                           doc-collections-changed
                           set-font-size)
-                         (dynamic-require '(lib "help-win.ss" "help") 'help@)
+                         (dynamic-require '(lib "help-unit.ss" "help") 'help@)
                          #f
 			 setup:plt-installer^
                          mred^
