@@ -329,6 +329,7 @@
                                   [(is-a? value snip%) 1]
                                   [(use-number-snip? value) 1]
                                   [(syntax? value) 1]
+                                  [(to-snip-value? value) 1]
                                   [else #f]))]
                              [pretty-print-print-hook
                               (lambda (value display? port)
@@ -350,7 +351,8 @@
                                     port)
                                    1]
                                   [(syntax? value)
-                                   (write-special (render-syntax/snip value))]))]
+                                   (write-special (render-syntax/snip value))]
+                                  [else (write-special (value->snip value))]))]
                              [print-graph
                               ;; only turn on print-graph when using `write' printing 
                               ;; style because the sharing is being taken care of
@@ -971,6 +973,26 @@
       (define (module-based-language-front-end port reader)
         (lambda () 
           (reader (object-name port) port)))
+      
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;
+      ;;  snip/value extensions
+      ;;
+      
+      (define to-snips null)
+      (define-struct to-snip (predicate? >value))
+      (define (add-snip-value predicate constructor)
+        (set! to-snips (cons (make-to-snip predicate constructor) to-snips)))
+      
+      (define (value->snip v)
+        (ormap (lambda (to-snip) (and ((to-snip-predicate? to-snip) v)
+                                      ((to-snip->value to-snip) v)))
+               to-snips))
+      (define (to-snip-value? v)
+        (ormap (lambda (to-snip) ((to-snip-predicate? to-snip) v)) to-snips))
+      
+      
 
                                                                       
                                              ;                        

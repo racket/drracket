@@ -218,6 +218,8 @@
 
      simple-module-based-language-config-panel
      
+     add-snip-value
+     
      language<%>
      module-based-language<%>
      simple-module-based-language<%>
