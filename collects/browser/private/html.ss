@@ -96,6 +96,23 @@
 
       (define (lookup-span-class-delta class) (lookup-class-delta class))
 
+      (define re:hexcolor 
+	(regexp "^#([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])$"))
+      
+      (define color-string->color
+	(lambda (str)
+	  (let ([m (regexp-match re:hexcolor str)])
+	    (if m
+		(make-object color%
+			     (string->number (cadr m) 16)
+			     (string->number (caddr m) 16)
+			     (string->number (cadddr m) 16))
+		(or (send the-color-database find-color str)
+		    (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
+				    extra-colors-table)])
+		      (and pr
+			   (cadr pr))))))))
+
       (define (call-with-output-file* file proc flag)
         ;; Closes on escape
         (let ([p (open-output-file file flag)])
@@ -414,14 +431,7 @@
 		       [parse-type (make-get-field "type")]
 		       
 		       [parse-font
-			(let ([color-string->color
-			       (lambda (str)
-				 (or (send the-color-database find-color str)
-				     (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
-						     extra-colors-table)])
-				       (and pr
-					    (cadr pr)))))]
-			      [face-regexp (regexp "([^,]*), *(.*)")])
+			(let ([face-regexp (regexp "([^,]*), *(.*)")])
 			  (lambda (args)
 			    (let ([size-string (get-field args 'size)]
 				  [face-string (get-field args 'face)]
@@ -514,6 +524,16 @@
 				   (lambda ()
 				     (change-style delta start-pos end-pos)
 				     (r))))]
+		       
+		       [maybe-bg-color (lambda (e rest)
+					 (let* ([c (get-field e 'bgcolor)]
+						[color (and c (color-string->color c))])
+					   (if color
+					       (styler (let ([d (make-object style-delta%)])
+							 (send d set-delta-background color)
+							 d)
+						       rest)
+					       (rest))))]
 		       
 		       [para-aligner (lambda (alignment delta rest)
 				       (let* ([start-pos (current-pos)]
@@ -700,17 +720,17 @@
 				     [(table)
 				      (insert-newlines 2 para-base)
 				      (begin0
-				       (rest)
+				       (maybe-bg-color e rest)
 				       (insert-newlines 2 para-base))]
 				     [(tr)
 				      (insert-newlines 1 para-base)
 				      (begin0
-				       (rest)
+				       (maybe-bg-color e rest)
 				       (insert-newlines 1 para-base))]
 				     [(td)
 				      (insert " ")
 				      (begin0
-				       (rest)
+				       (maybe-bg-color e rest)
 				       (insert " "))]
 				     [(img)
 				      (let* ([url (parse-image-source e)]
