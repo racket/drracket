@@ -2,7 +2,11 @@
         Version 299
 ------------------------------
 
- - DrScheme only looks in subcollections of the drs-tools
+- The regular expression language for the lexer has changed.
+   See doc.txt in the parser-tools collection.
+   (This isn't a DrScheme change per se.)
+
+- DrScheme only looks in subcollections of the drs-tools
    collection for tools now, rather than in every
    collection.
 
