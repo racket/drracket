@@ -737,21 +737,26 @@
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
           
-          (call-with-output-file bootstrap-tmp-filename
-            (lambda (port)
-              (write `(let () ;; cannot use begin, since it gets flattened to top-level (and re-compiled!)
-                        (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
-                        (namespace-transformer-require ',transformer-module-language-spec)
-                        ((dynamic-require '(file ,init-code-tmp-filename) 'init-code)))
-                     port))
-            'truncate
-            'text)
           
-          (let-values ([(_1 init-code-mod-name _2) (split-path init-code-tmp-filename)])
+          (let ([init-code-mod-name
+                 (let-values ([(base name dir?) 
+                               (split-path init-code-tmp-filename)])
+                   (string->symbol name))])
+          
+            (call-with-output-file bootstrap-tmp-filename
+              (lambda (port)
+                (write `(let () ;; cannot use begin, since it gets flattened to top-level (and re-compiled!)
+                          (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
+                          (namespace-transformer-require ',transformer-module-language-spec)
+                          ((dynamic-require ',init-code-mod-name 'init-code)))
+                       port))
+              'truncate
+              'text)
+            
             (let ([new-init-code 
                    (list*
                     (car init-code)
-                    (string->symbol init-code-mod-name)
+                    init-code-mod-name
                     (cddr init-code))])
               (call-with-output-file init-code-tmp-filename
                 (lambda (port)
