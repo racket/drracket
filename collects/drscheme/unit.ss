@@ -159,25 +159,39 @@
 			 "drscheme"
 			 "index.htm")))))))
 
-      (define definitions-canvas%
-	(class mred:frame-title-canvas% args
-	  (inherit get-media frame)
-	  (rename [super-edit-modified edit-modified])
+    ;; this sends a message to it's frame when it gets the focus
+    (define make-searchable-canvas%
+      (lambda (%)
+	(class-asi %
+	  (inherit frame)
+	  (rename [super-on-set-focus on-set-focus])
 	  (public
-	    [edit-renamed
-	     (lambda (name)
-	       (send frame update-save-message name))]
-	    [edit-modified
-	     (lambda (mod?)
-	       (send frame update-save-button mod?)
-	       (super-edit-modified mod?))])
-	  (sequence
-	    (mred:debug:printf 'super-init "before drscheme:frame::get-canvas%")
-	    (apply super-init args)
-	    (mred:debug:printf 'super-init "after drscheme:frame::get-canvas%")
-	    (let ([m (get-media)])
-	      (send frame set-save-init-shown?
-		    (and (not (null? m)) (send m modified?)))))))
+	    [on-set-focus
+	     (lambda ()
+	       (send frame make-searchable this)
+	       (super-on-set-focus))]))))
+
+    (define interactions-canvas% (make-searchable-canvas% mred:wide-snip-canvas%))
+
+    (define definitions-canvas%
+      (class (make-searchable-canvas% mred:frame-title-canvas%) args
+	(inherit get-media frame)
+	(rename [super-edit-modified edit-modified])
+	(public
+	  [edit-renamed
+	   (lambda (name)
+	     (send frame update-save-message name))]
+	  [edit-modified
+	   (lambda (mod?)
+	     (send frame update-save-button mod?)
+	     (super-edit-modified mod?))])
+	(sequence
+	  (mred:debug:printf 'super-init "before drscheme:frame::get-canvas%")
+	  (apply super-init args)
+	  (mred:debug:printf 'super-init "after drscheme:frame::get-canvas%")
+	  (let ([m (get-media)])
+	    (send frame set-save-init-shown?
+		  (and (not (null? m)) (send m modified?)))))))
 
     (define frame%
       (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip [show? #t])
@@ -203,6 +217,18 @@
 	  [canvas-show-mode #f]
 	  [allow-split? #f]
 	  [forced-quit? #f])
+
+	(private
+	  [search-canvas #f])
+	(public
+	  [make-searchable
+	   (lambda (canvas)
+	     (set! search-canvas canvas))]
+	  [get-edit-to-search
+	   (lambda ()
+	     (if search-canvas
+		 (send search-canvas get-media)
+		 (get-edit)))])
 
 	(public
 	  [disable-evaluation

@@ -46,8 +46,10 @@
    current-frame%))
 
 (define-signature drscheme:unit^
-  (frame% snip-class% snip% make-bitmap
-	  definitions-canvas%))
+  (frame% 
+   snip-class% snip% make-bitmap
+   definitions-canvas%
+   interactions-canvas%))
 
 (define-signature drscheme:frame^
   (frame%))
@@ -69,7 +71,8 @@
   (do-setup))
 
 (define-signature drscheme:rep^
-  (edit%))
+  (edit%
+   (struct process/zodiac-finish (error?))))
 
 (define-signature drscheme:app^
   ((open mred:application^)
@@ -79,7 +82,8 @@
   ((unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit compound-unit : drscheme:compound-unit^)
-   (unit parameters : drscheme:parameters^)))
+   (unit parameters : drscheme:parameters^)
+   (unit rep : drscheme:rep^)))
 
 (begin-construction-time
  (define drscheme:tool-directories
