@@ -41,6 +41,21 @@
       
       (rename [-text% text%])
 
+      ;; these module specs are copied over to each new user's namespace 
+      (define to-be-copied-module-specs
+        (list 'mzscheme
+              '(lib "mred.ss" "mred")))
+      ;; just double check that they are all here.
+      (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-specs)
+      ;; get the names of those modules.
+      (define to-be-copied-module-names
+        (let ([get-name
+               (lambda (spec)
+                 (if (symbol? spec)
+                     spec
+                     ((current-module-name-resolver) spec #f #f)))])
+          (map get-name to-be-copied-specs)))
+
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -1133,7 +1148,9 @@
               (let ([user-custodian (current-custodian)])
                 (exit-handler (lambda (arg) ; =User=
                                 (custodian-shutdown-all user-custodian))))
-              (current-namespace (make-namespace 'empty)))
+              (current-namespace (make-namespace 'empty))
+              (for-each (lambda (x) (namespace-attach-module drscheme:init:system-namespace x))
+                        to-be-copied-module-names))
             
             ;; drscheme-port-print-handler : TST port -> void
             ;; effect: prints the value on the port
@@ -1755,13 +1772,19 @@
 	      (set! in-evaluation? #f)
 	      (update-running)
 	      
+              ;; clear out repl first before doing any work.
+              (begin-edit-sequence)
+	      (set-resetting #t)
+	      (delete (paragraph-start-position 1) (last-position))
+              (set-resetting #f)
+              (end-edit-sequence)
+
 	      ;; must init-evaluation-thread before determining
 	      ;; the language's name, since this updates user-language-settings
 	      (init-evaluation-thread)
 	      
               (begin-edit-sequence)
 	      (set-resetting #t)
-	      (delete (paragraph-start-position 1) (last-position))
 	      (set-prompt-mode #f)
 	      (set-resetting #f)
 	      (set-position (last-position) (last-position))

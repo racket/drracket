@@ -37,6 +37,7 @@
      error-display-handler-message-box-title
      system-custodian
      system-eventspace
+     system-namespace
      first-dir))
   
   (define-signature drscheme:snip^ 

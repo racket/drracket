@@ -22,6 +22,7 @@
       (define system-custodian (current-custodian))
       (define system-eventspace (current-eventspace))
       (define system-thread (current-thread))
+      (define system-namespace (current-namespace))
       (define first-dir (current-directory))
       
       (define original-error-display-handler (error-display-handler))

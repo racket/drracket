@@ -21,6 +21,7 @@
       (import [drscheme:rep : drscheme:rep^]
               [drscheme:snip : drscheme:snip^])
       
+      
       (define original-output-port (current-output-port))
       (define (printf . args) (apply fprintf original-output-port args)) 
       
@@ -253,43 +254,24 @@
           (super-instantiate ())))
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
-      (define (initialize-module-based-language use-copy? module-spec transformer-module-spec run-in-user-thread)
-        (let ([to-be-copied-specs
-               (list 'mzscheme
-                     '(lib "mred.ss" "mred"))])
-          (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-specs)
-          
-          (let* ([orig-namespace (current-namespace)]
-                 [get-name
-                  (lambda (spec)
-                    (if (symbol? spec)
-                        spec
-                        ((current-module-name-resolver) spec #f #f)))]
-                 [to-be-copied-names
-                  (map get-name to-be-copied-specs)])
-
-	    ;; add these in here so the code is `read' with
-	    ;; drs's reader settings, not the reader settings
-	    ;; of the language.
-            (dynamic-require module-spec #f)
-	    (dynamic-require transformer-module-spec #f)
-
-            (run-in-user-thread
-             (lambda ()
-               (with-handlers ([(lambda (x) #t)
-                                (lambda (x)
-                                  (display (exn-message x))
-                                  (newline))])
-                 (for-each (lambda (x) 
-                             (namespace-attach-module orig-namespace x))
-                           to-be-copied-names)
-                 
-                 ;; this parameterize is here to hack around the way mz works.
-                 (parameterize ([read-dot-as-symbol #f])
-                   (if use-copy?
-                       (namespace-require/copy module-spec)
-                       (namespace-require module-spec))
-                   (namespace-transformer-require transformer-module-spec))))))))
+      (define (initialize-module-based-language use-copy?
+                                                module-spec
+                                                transformer-module-spec
+                                                run-in-user-thread)
+        (run-in-user-thread
+         (lambda ()
+           (with-handlers ([(lambda (x) #t)
+                            (lambda (x)
+                              (display (exn-message x))
+                              (newline))])
+             
+             ;; this parameterize is here to hack around thing 'til the
+             ;; next mz release.
+             (parameterize ([read-dot-as-symbol #f])
+               (if use-copy?
+                   (namespace-require/copy module-spec)
+                   (namespace-require module-spec))
+               (namespace-transformer-require transformer-module-spec))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)
