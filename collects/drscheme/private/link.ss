@@ -15,8 +15,7 @@
            "frame.ss"
            "unit.ss"
            "get-extend.ss"
-           "help-interface.ss"
-           "language-tower.ss")
+           "help-interface.ss")
   (provide drscheme@)
   
   (define drscheme@
@@ -31,10 +30,10 @@
             [frame : drscheme:frame^ (frame@ unit app help-interface)]
             [unit : drscheme:unit^ (unit@ help-interface app frame text rep language get/extend snip teachpack)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
-            [language : drscheme:language^ (language@ unit tower rep teachpack)]            
+            [language : drscheme:language/internal^ (language@ unit tower rep teachpack)]            
             [help-interface : drscheme:help-interface^ (help-interface@ frame language)]
 	    [app : drscheme:app^ (app@ unit frame help-interface)]
             [main-before : () (main-before@ app unit get/extend language tower teachpack)]
-            [tool : () (tools@ frame unit rep get/extend)]
+            [tool : () (tools@ frame unit rep get/extend tower (language : drscheme:language^))]
             [main : drscheme:main^ (main@ app unit get/extend language)])
       (export))))

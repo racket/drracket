@@ -7,6 +7,7 @@
            drscheme:init^
            drscheme:snip^
            drscheme:language^
+           drscheme:language/internal^
            drscheme:load/link-tool^
            drscheme:get/extend^
            drscheme:unit^
@@ -19,9 +20,7 @@
 	   drscheme:load-handler^
            drscheme:help-interface^
            drscheme:language-tower^
-           drscheme:teachpack^
-           drscheme:export^
-           drscheme^)
+           drscheme:teachpack^)
   
   (define-signature drscheme:get-collection^
     (get-file/collection))
@@ -44,9 +43,12 @@
      whole/part-number-snip%))
   
   (define-signature drscheme:language^
+    (add-language))
+  
+  (define-signature drscheme:language/internal^
     ((struct language-settings (language settings))
      get-default-language-settings
-     add-language
+     (open drscheme:language^)
      get-languages
      fill-language-menu
      settings-preferences-symbol
@@ -139,24 +141,4 @@
      new-teachpack-cache
      teachpack-cache?
      teachpack-cache-filenames
-     set-teachpack-cache-filenames!))
-  
-  (define-signature drscheme:export^
-    ((unit snip : drscheme:snip^)
-     (unit frame : drscheme:frame^)
-     (unit unit : drscheme:unit^)
-     (unit program : drscheme:program^)
-     (unit get/extend : drscheme:get/extend^)
-     (unit load-handler : drscheme:load-handler^)
-     (unit rep : drscheme:rep^)
-     (unit language : drscheme:language^)
-     (unit help-desk : drscheme:help-interface^)))
-  
-  (define-signature drscheme^
-    ((open framework^)
-     
-     (unit drscheme:init : drscheme:init^)
-     (unit drscheme:text : drscheme:text^)
-     (unit drscheme:export : drscheme:export^)
-     (unit drscheme:app : drscheme:app^)
-     (unit drscheme:main : drscheme:main^))))
+     set-teachpack-cache-filenames!)))

@@ -20,7 +20,7 @@
   (define help-interface@
     (unit/sig  drscheme:help-interface^
       (import [drscheme:frame : drscheme:frame^]
-              [drscheme:language : drscheme:language^])
+              [drscheme:language : drscheme:language/internal^])
       
       (define new-help-frame #f)
       (define open-url-from-user #f)

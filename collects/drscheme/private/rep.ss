@@ -12,7 +12,7 @@
            (lib "class100.ss")
            (lib "list.ss")
            "drsig.ss"
-           "string-constant.ss"
+           (lib "string-constant.ss" "string-constants")
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -25,7 +25,7 @@
     (unit/sig drscheme:rep^
       (import (drscheme:init : drscheme:init^)
               (drscheme:snip : drscheme:snip^)
-              (drscheme:language : drscheme:language^)
+              (drscheme:language : drscheme:language/internal^)
               (drscheme:app : drscheme:app^)
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)

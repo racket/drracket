@@ -22,7 +22,7 @@
       (import (drscheme:app : drscheme:app^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:get/extend : drscheme:get/extend^)
-              (drscheme:language : drscheme:language^))
+              (drscheme:language : drscheme:language/internal^))
       
       
   ;; no more extension after this point

@@ -5,7 +5,7 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
-           "string-constant.ss"
+           (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "list.ss")
@@ -16,7 +16,7 @@
   (provide language@)
   
   (define language@
-    (unit/sig drscheme:language^
+    (unit/sig drscheme:language/internal^
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:language-tower : drscheme:language-tower^]
               [drscheme:rep : drscheme:rep^]

@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-           "string-constant.ss"
+           (lib "string-constant.ss" "string-constants")
 	   "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -21,7 +21,7 @@
               [drscheme:frame : drscheme:frame^]
               [drscheme:text : drscheme:text^]
               [drscheme:rep : drscheme:rep^]
-              [drscheme:language : drscheme:language^]
+              [drscheme:language : drscheme:language/internal^]
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:teachpack : drscheme:teachpack^])
