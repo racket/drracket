@@ -71,6 +71,8 @@
 				   (new-message)
 				   (new-message)
 				   (new-message)
+				   (new-message)
+				   (new-message)
 				   (new-message))]
 		   [stack null]
 		   [ol (current-load)]
