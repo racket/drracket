@@ -147,8 +147,8 @@
                 #f
                 #f)
      (make-test "(raise (make-exn:syntax 1 2 3 4 5))"
-                "uncaught exception: #f"
-                "uncaught exception: #f"
+                "1"
+                "1"
                 #f
 		'interactions
                 #f
@@ -443,285 +443,287 @@
   (define docs-image-string "{image}")
   (define backtrace-image-string "{image}")
   (define file-image-string "{image}")
-  
-  (define drscheme-frame (wait-for-drscheme-frame))
-  
-  (define interactions-text (send drscheme-frame get-interactions-text))
-  (define interactions-canvas (send drscheme-frame get-interactions-canvas))
-  (define definitions-text (send drscheme-frame get-definitions-text))
-  (define definitions-canvas (send drscheme-frame get-definitions-canvas))
-  (define execute-button (send drscheme-frame get-execute-button))
-  (define (insert-string string)
-    (let loop ([n 0])
-      (unless (= n (string-length string))
-	(let ([c (string-ref string n)])
-	  (if (char=? c #\newline)
-	      (test:keystroke #\return)
-	      (test:keystroke c)))
-	(loop (+ n 1)))))
-  
-  (define wait-for-execute (lambda () (wait-for-button execute-button)))
-  (define get-int-pos (lambda () (get-text-pos interactions-text)))
-  
-  (define tmp-load-short-filename "repl-test-tmp.ss")
-  (define tmp-load-filename
-    (normal-case-path
-     (normalize-path 
-      (build-path (collection-path "tests" "drscheme")
-                  tmp-load-short-filename))))
-  
-  (define short-tmp-load-filename
-    (let-values ([(base name dir?) (split-path tmp-load-filename)])
-      name))
-  
-  
-  ;; setup-fraction-sum-interactions : -> void 
-  ;; clears the definitions window, and executes `1/2' to
-  ;; get a fraction snip in the interactions window.
-  ;; Then, copies that and uses it to construct the sum
-  ;; of the 1/2 image and 1/3.
-  (define (setup-fraction-sum-interactions)
-    (clear-definitions drscheme-frame)
-    (type-in-definitions drscheme-frame "1/2")
-    (do-execute drscheme-frame)
-    (let* ([start (send interactions-text paragraph-start-position 2)]
-           
-           ;; since the fraction is supposed to be one char wide, we just
-           ;; select one char, so that, if the regular number prints out,
-           ;; this test will fail.
-           [end (+ start 1)])
-      (send interactions-text set-position start end)
-      (test:menu-select "Edit" "Copy"))
-    (clear-definitions drscheme-frame)
-    (type-in-definitions drscheme-frame "(+ ")
-    (test:menu-select "Edit" "Paste")
-    (type-in-definitions drscheme-frame " 1/3)"))
-  
-  
-  ; given a filename "foo", we perform two operations on the contents 
-  ; of the file "foo.ss".  First, we insert its contents into the REPL
-  ; directly, and second, we use the load command.  We compare the
-  ; the results of these operations against expected results.
-  (define run-single-test
-    (lambda (execute-text-start escape raw?)
-      (lambda (in-vector)
-        (let* ([program (test-program in-vector)]
-               [execute-answer (test-execute-answer in-vector)]
-	       [source-location (test-source-location in-vector)]
-	       [source-location-in-message (test-source-location-in-message in-vector)]
-               [start-line (and source-location-in-message
-                                (number->string (+ 1 (loc-line (car source-location)))))]
-               [start-col (and source-location-in-message
-                               (number->string (loc-col (car source-location))))]
-	       [formatted-execute-answer
-		(let* ([w/backtrace
-			(if (and (test-has-backtrace? in-vector)
-				 (not raw?))
-			    (string-append backtrace-image-string " ")
-			    "")]
-		       [final
-                        ;; if there is a source-location for the message, put the
-                        ;; icons just before it. Otherwise, but the icons at
-                        ;; the beginning of the entire string.
-			(if source-location-in-message
-			    (format execute-answer w/backtrace)
-			    (string-append w/backtrace execute-answer))])
-		  final)]
-               [load-answer (test-load-answer in-vector)]
-               [formatted-load-answer
-		(and load-answer
-                     (let* ([w/backtrace
-                             (if raw?
-                                 load-answer
-                                 (if (or (eq? source-location 'definitions)
-                                         (pair? source-location))
-                                     (string-append backtrace-image-string " " load-answer)
-                                     load-answer))]
-                            [w/file-icon
-                             (if raw?
-                                 (if source-location-in-message
-                                     (string-append file-image-string " " w/backtrace)
-                                     w/backtrace)
-                                 (if (or (eq? source-location 'definitions)
-                                         (pair? source-location))
-                                     (string-append file-image-string " " w/backtrace)
-                                     w/backtrace))])
-                       (if source-location-in-message
-                           (format w/file-icon 
-                                   (format "~a:~a:~a: "
-                                           short-tmp-load-filename
-                                           start-line
-                                           start-col))
-                           w/file-icon)))]
-               [breaking-test? (test-breaking-test? in-vector)])
-          
-          (clear-definitions drscheme-frame)
-          ; load contents of test-file into the REPL, recording
-          ; the start and end positions of the text
-          
-          (cond
-            [(string? program)
-             (insert-string program)]
-            [(eq? program 'fraction-sum)
-             (setup-fraction-sum-interactions)]
-            [(list? program)
-             (for-each
-              (lambda (item)
-                (cond
-                  [(string? item) (insert-string item)]
-                  [(eq? item 'left)
-                   (send definitions-text 
-                         set-position
-                         (- (send definitions-text get-start-position) 1)
-                         (- (send definitions-text get-start-position) 1))]
-                  [(pair? item) (apply test:menu-select item)]))
-              program)])
-	  
-          (do-execute drscheme-frame #f)
-          (when breaking-test?
-            (test:button-push (send drscheme-frame get-break-button)))
-	  (wait-for-execute)
-          
-          (let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
-                 [received-execute
-                  (fetch-output drscheme-frame execute-text-start execute-text-end)])
-            
-            ; check focus and selection for execute test
-            (unless raw?
-              (cond
-                [(eq? source-location 'definitions)
-                 (unless (send definitions-canvas has-focus?)
-                   (printf "FAILED execute test for ~s\n  expected definitions to have the focus\n"
-                           program))]
-                [(eq? source-location 'interactions)
-                 (unless (send interactions-canvas has-focus?)
-                   (printf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
-                           program))]
-                [(send definitions-canvas has-focus?)
-		 (let ([start (car source-location)]
-		       [finish (cdr source-location)])
-		   (let* ([error-ranges (send interactions-text get-error-ranges)]
-                          [error-range (and error-ranges
-                                            (not (null? error-ranges))
-                                            (car error-ranges))])
-		     (unless (and error-range
-				  (= (cadr error-range) (loc-offset start))
-				  (= (caddr error-range) (loc-offset finish)))
-		       (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~a ~a\n"
-			       program
-			       error-range
-			       (loc-offset start)
-			       (loc-offset finish)))))]))
-            
-            ; check text for execute test
-	    (unless (string=? received-execute formatted-execute-answer)
-	      (printf "FAILED execute test for ~s (~a)\n  expected: ~s\n       got: ~s\n"
-		      program
-		      raw?
-		      formatted-execute-answer received-execute))
-            
-            (test:new-window interactions-canvas)
-            
-            ; save the file so that load is in sync
-            (test:menu-select "File" "Save Definitions")
-            
-            ; make sure that a prompt is available at end of the REPL
-            (unless (and (char=? #\>
-                                 (send interactions-text get-character
-                                       (- (send interactions-text last-position) 2)))
-                         (char=? #\space
-                                 (send interactions-text get-character
-                                       (- (send interactions-text last-position) 1))))
-              (test:keystroke #\return))
-            
-            ; stuff the load command into the REPL 
-            (for-each test:keystroke
-                      (string->list (format "(load ~s)" tmp-load-short-filename)))
-            
-            ; record current text position, then stuff a CR into the REPL
-            (let ([load-text-start (+ 1 (send interactions-text last-position))])
-              
-              (test:keystroke #\return)
-              
-              (when breaking-test?
-                (test:button-push (send drscheme-frame get-break-button)))
-              (wait-for-execute)
-              
-              (when load-answer
-                (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
-                       [received-load 
-                        (fetch-output drscheme-frame load-text-start load-text-end)])
-                  
-                  ; check load text 
-                  (unless (string=? received-load formatted-load-answer)
-                    (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
-                            program formatted-load-answer received-load)))))
-            
-            ; check for edit-sequence
-            (when (repl-in-edit-sequence?)
-              (printf "FAILED: repl in edit-sequence")
-              (escape)))))))
-  
-  (define (run-test-in-language-level raw?)
-    (let ([level (list "PLT" (regexp "Graphical"))]
-          [drs (wait-for-drscheme-frame)])
-      (printf "running ~s (raw? ~a) tests\n" level raw?)
-      (if raw?
-          (begin
-            (set-language-level! level #f)
-            (test:set-radio-box-item! "No debugging or profiling")
-            (let ([f (get-top-level-focus-window)])
-              (test:button-push "OK")
-              (wait-for-new-frame f)))
-          (set-language-level! level))
 
-      (test:new-window definitions-canvas)
+  (define (run-test)
+    
+    (define drscheme-frame (wait-for-drscheme-frame))
+    
+    (define interactions-text (send drscheme-frame get-interactions-text))
+    (define interactions-canvas (send drscheme-frame get-interactions-canvas))
+    (define definitions-text (send drscheme-frame get-definitions-text))
+    (define definitions-canvas (send drscheme-frame get-definitions-canvas))
+    (define execute-button (send drscheme-frame get-execute-button))
+    
+    (define (insert-string string)
+      (let loop ([n 0])
+        (unless (= n (string-length string))
+          (let ([c (string-ref string n)])
+            (if (char=? c #\newline)
+                (test:keystroke #\return)
+                (test:keystroke c)))
+          (loop (+ n 1)))))
+    
+    (define wait-for-execute (lambda () (wait-for-button execute-button)))
+    (define get-int-pos (lambda () (get-text-pos interactions-text)))
+    
+    (define tmp-load-short-filename "repl-test-tmp.ss")
+    (define tmp-load-filename
+      (normal-case-path
+       (normalize-path 
+        (build-path (collection-path "tests" "drscheme")
+                    tmp-load-short-filename))))
+    
+    (define short-tmp-load-filename
+      (let-values ([(base name dir?) (split-path tmp-load-filename)])
+        name))
+    
+    
+    ;; setup-fraction-sum-interactions : -> void 
+    ;; clears the definitions window, and executes `1/2' to
+    ;; get a fraction snip in the interactions window.
+    ;; Then, copies that and uses it to construct the sum
+    ;; of the 1/2 image and 1/3.
+    (define (setup-fraction-sum-interactions)
+      (clear-definitions drscheme-frame)
+      (type-in-definitions drscheme-frame "1/2")
+      (do-execute drscheme-frame)
+      (let* ([start (send interactions-text paragraph-start-position 2)]
+             
+             ;; since the fraction is supposed to be one char wide, we just
+             ;; select one char, so that, if the regular number prints out,
+             ;; this test will fail.
+             [end (+ start 1)])
+        (send interactions-text set-position start end)
+        (test:menu-select "Edit" "Copy"))
+      (clear-definitions drscheme-frame)
+      (type-in-definitions drscheme-frame "(+ ")
+      (test:menu-select "Edit" "Paste")
+      (type-in-definitions drscheme-frame " 1/3)"))
+    
+    
+    ; given a filename "foo", we perform two operations on the contents 
+    ; of the file "foo.ss".  First, we insert its contents into the REPL
+    ; directly, and second, we use the load command.  We compare the
+    ; the results of these operations against expected results.
+    (define run-single-test
+      (lambda (execute-text-start escape raw?)
+        (lambda (in-vector)
+          (let* ([program (test-program in-vector)]
+                 [execute-answer (test-execute-answer in-vector)]
+                 [source-location (test-source-location in-vector)]
+                 [source-location-in-message (test-source-location-in-message in-vector)]
+                 [start-line (and source-location-in-message
+                                  (number->string (+ 1 (loc-line (car source-location)))))]
+                 [start-col (and source-location-in-message
+                                 (number->string (loc-col (car source-location))))]
+                 [formatted-execute-answer
+                  (let* ([w/backtrace
+                          (if (and (test-has-backtrace? in-vector)
+                                   (not raw?))
+                              (string-append backtrace-image-string " ")
+                              "")]
+                         [final
+                          ;; if there is a source-location for the message, put the
+                          ;; icons just before it. Otherwise, but the icons at
+                          ;; the beginning of the entire string.
+                          (if source-location-in-message
+                              (format execute-answer w/backtrace)
+                              (string-append w/backtrace execute-answer))])
+                    final)]
+                 [load-answer (test-load-answer in-vector)]
+                 [formatted-load-answer
+                  (and load-answer
+                       (let* ([w/backtrace
+                               (if raw?
+                                   load-answer
+                                   (if (or (eq? source-location 'definitions)
+                                           (pair? source-location))
+                                       (string-append backtrace-image-string " " load-answer)
+                                       load-answer))]
+                              [w/file-icon
+                               (if raw?
+                                   (if source-location-in-message
+                                       (string-append file-image-string " " w/backtrace)
+                                       w/backtrace)
+                                   (if (or (eq? source-location 'definitions)
+                                           (pair? source-location))
+                                       (string-append file-image-string " " w/backtrace)
+                                       w/backtrace))])
+                         (if source-location-in-message
+                             (format w/file-icon 
+                                     (format "~a:~a:~a: "
+                                             short-tmp-load-filename
+                                             start-line
+                                             start-col))
+                             w/file-icon)))]
+                 [breaking-test? (test-breaking-test? in-vector)])
+            
+            (clear-definitions drscheme-frame)
+            ; load contents of test-file into the REPL, recording
+            ; the start and end positions of the text
+            
+            (cond
+              [(string? program)
+               (insert-string program)]
+              [(eq? program 'fraction-sum)
+               (setup-fraction-sum-interactions)]
+              [(list? program)
+               (for-each
+                (lambda (item)
+                  (cond
+                    [(string? item) (insert-string item)]
+                    [(eq? item 'left)
+                     (send definitions-text 
+                           set-position
+                           (- (send definitions-text get-start-position) 1)
+                           (- (send definitions-text get-start-position) 1))]
+                    [(pair? item) (apply test:menu-select item)]))
+                program)])
+            
+            (do-execute drscheme-frame #f)
+            (when breaking-test?
+              (test:button-push (send drscheme-frame get-break-button)))
+            (wait-for-execute)
+            
+            (let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
+                   [received-execute
+                    (fetch-output drscheme-frame execute-text-start execute-text-end)])
+              
+              ; check focus and selection for execute test
+              (unless raw?
+                (cond
+                  [(eq? source-location 'definitions)
+                   (unless (send definitions-canvas has-focus?)
+                     (printf "FAILED execute test for ~s\n  expected definitions to have the focus\n"
+                             program))]
+                  [(eq? source-location 'interactions)
+                   (unless (send interactions-canvas has-focus?)
+                     (printf "FAILED execute test for ~s\n  expected interactions to have the focus\n"
+                             program))]
+                  [(send definitions-canvas has-focus?)
+                   (let ([start (car source-location)]
+                         [finish (cdr source-location)])
+                     (let* ([error-ranges (send interactions-text get-error-ranges)]
+                            [error-range (and error-ranges
+                                              (not (null? error-ranges))
+                                              (car error-ranges))])
+                       (unless (and error-range
+                                    (= (cadr error-range) (loc-offset start))
+                                    (= (caddr error-range) (loc-offset finish)))
+                         (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~a ~a\n"
+                                 program
+                                 error-range
+                                 (loc-offset start)
+                                 (loc-offset finish)))))]))
+              
+              ; check text for execute test
+              (unless (string=? received-execute formatted-execute-answer)
+                (printf "FAILED execute test for ~s (~a)\n  expected: ~s\n       got: ~s\n"
+                        program
+                        raw?
+                        formatted-execute-answer received-execute))
+              
+              (test:new-window interactions-canvas)
+              
+              ; save the file so that load is in sync
+              (test:menu-select "File" "Save Definitions")
+              
+              ; make sure that a prompt is available at end of the REPL
+              (unless (and (char=? #\>
+                                   (send interactions-text get-character
+                                         (- (send interactions-text last-position) 2)))
+                           (char=? #\space
+                                   (send interactions-text get-character
+                                         (- (send interactions-text last-position) 1))))
+                (test:keystroke #\return))
+              
+              ; stuff the load command into the REPL 
+              (for-each test:keystroke
+                        (string->list (format "(load ~s)" tmp-load-short-filename)))
+              
+              ; record current text position, then stuff a CR into the REPL
+              (let ([load-text-start (+ 1 (send interactions-text last-position))])
+                
+                (test:keystroke #\return)
+                
+                (when breaking-test?
+                  (test:button-push (send drscheme-frame get-break-button)))
+                (wait-for-execute)
+                
+                (when load-answer
+                  (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
+                         [received-load 
+                          (fetch-output drscheme-frame load-text-start load-text-end)])
+                    
+                    ; check load text 
+                    (unless (string=? received-load formatted-load-answer)
+                      (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
+                              program formatted-load-answer received-load)))))
+              
+              ; check for edit-sequence
+              (when (repl-in-edit-sequence?)
+                (printf "FAILED: repl in edit-sequence")
+                (escape)))))))
+    
+    (define (run-test-in-language-level raw?)
+      (let ([level (list "PLT" (regexp "Graphical"))])
+        (printf "running ~s (raw? ~a) tests\n" level raw?)
+        (if raw?
+            (begin
+              (set-language-level! level #f)
+              (test:set-radio-box-item! "No debugging or profiling")
+              (let ([f (get-top-level-focus-window)])
+                (test:button-push "OK")
+                (wait-for-new-frame f)))
+            (set-language-level! level))
+        
+        (test:new-window definitions-canvas)
+        (clear-definitions drscheme-frame)
+        (do-execute drscheme-frame)
+        (let/ec escape 
+          (for-each (run-single-test (get-int-pos) escape raw?) test-data))))
+    
+    (define (kill-tests)
       (clear-definitions drscheme-frame)
       (do-execute drscheme-frame)
-      (let/ec escape 
-        (for-each (run-single-test (get-int-pos) escape raw?) test-data))))
-  
-  (define (kill-tests)
-    (let ([drs (wait-for-drscheme-frame)])
-      (clear-definitions drs)
-      (do-execute drs)
       
       (test:menu-select "Scheme" "Kill")
       
-      (let ([win (wait-for-new-frame drs)])
+      (let ([win (wait-for-new-frame drscheme-frame)])
         (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
-          (unless (eq? drs2 drs)
+          (unless (eq? drs2 drscheme-frame)
             (error 'kill-test1 "expected original drscheme frame to come back to the front"))))
       
-      (type-in-definitions drs "(kill-thread (current-thread))")
-      (do-execute drs #f)
-      (let ([win (wait-for-new-frame drs)])
+      (type-in-definitions drscheme-frame "(kill-thread (current-thread))")
+      (do-execute drscheme-frame #f)
+      (let ([win (wait-for-new-frame drscheme-frame)])
         (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
-          (unless (eq? drs2 drs)
+          (unless (eq? drs2 drscheme-frame)
             (error 'kill-test2 "expected original drscheme frame to come back to the front"))))
-
-      (clear-definitions drs)
-      (do-execute drs)
+      
+      (clear-definitions drscheme-frame)
+      (do-execute drscheme-frame)
       (type-in-definitions
-       drs
+       drscheme-frame
        "(define (f) (queue-callback f) (error 'ouch)) (f)")
-      (do-execute drs #f)
+      (do-execute drscheme-frame #f)
       (sleep 1/2)
       (test:menu-select "Scheme" "Kill")
-      (let ([win (wait-for-new-frame drs null 360)])
+      (let ([win (wait-for-new-frame drscheme-frame null 360)])
         (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
-          (unless (eq? drs2 drs)
+          (unless (eq? drs2 drscheme-frame)
             (error
-	     'kill-test3
-	     "expected original drscheme frame to come back to the front"))))
-      (when (send (send drs get-interactions-text) local-edit-sequence?)
-	(error 'kill-test3 "in edit-sequence"))
-))
-  
-  (define (run-test)
+             'kill-test3
+             "expected original drscheme frame to come back to the front"))))
+      (when (send (send drscheme-frame get-interactions-text) local-edit-sequence?)
+        (error 'kill-test3 "in edit-sequence")))
+    
+    
+    ;; run the tests
+    
     (when (file-exists? tmp-load-filename)
       (delete-file tmp-load-filename))
     (save-drscheme-window-as tmp-load-filename)
@@ -729,5 +731,4 @@
     ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
     (run-test-in-language-level #t)
-    (run-test-in-language-level #f)
-    ))
+    (run-test-in-language-level #f)))

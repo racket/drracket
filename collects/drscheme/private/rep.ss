@@ -172,12 +172,16 @@
           (cond
             [(exn:syntax? exn)
              (let* ([expr (exn:syntax-expr exn)]
-                    [src (and expr (syntax-source expr))]
-                    [pos (and expr (syntax-position expr))]
-                    [span (and expr (syntax-span expr))]
-                    [col (and expr (syntax-column expr))]
-                    [line (and expr (syntax-line expr))])
-               (when (string? src)
+                    [src (and (syntax? expr) (syntax-source expr))]
+                    [pos (and (syntax? expr) (syntax-position expr))]
+                    [span (and (syntax? expr) (syntax-span expr))]
+                    [col (and (syntax? expr) (syntax-column expr))]
+                    [line (and (syntax? expr) (syntax-line expr))])
+               (when (and (string? src)
+                          (number? pos)
+                          (number? span)
+                          (number? line)
+                          (number? col))
                  (insert-file-name/icon src pos span line col))
                (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (when (syntax? expr)
@@ -194,7 +198,11 @@
                    [span (exn:read-span exn)]
                    [line (exn:read-line exn)]
                    [col (exn:read-column exn)])
-               (when (string? src)
+               (when (and (string? src)
+                          (number? pos)
+                          (number? span)
+                          (number? line)
+                          (number? col))
                  (insert-file-name/icon src pos span line col))
                (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (insert/delta text "\n")
@@ -206,7 +214,14 @@
              (let ([locs (exn:locs-locs exn)])
                (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (insert/delta text "\n")
-	       (highlight-errors locs))]
+               (when (andmap (lambda (loc)
+                               (and (list? loc)
+                                    (= 3 (length loc))
+                                    (is-a? (first loc) text:basic%)
+                                    (number? (second loc))
+                                    (number? (third loc))))
+                             locs)
+                 (highlight-errors locs)))]
             [(exn? exn)
              (insert/delta text (format "~a" (exn-message exn)) error-delta)
              (insert/delta text "\n")]
