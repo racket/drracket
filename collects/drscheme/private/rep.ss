@@ -50,9 +50,6 @@ TODO
       (rename [-text% text%]
               [-text<%> text<%>])
 
-      ;; locs = (listof (list text% number number))
-      (define-struct (exn:locs exn) (locs))
-      
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -1352,21 +1349,20 @@ TODO
           (field (previous-expr-pos -1))
           
           (define/public (copy-previous-expr)
-            (when prompt-position
-              (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
-                (begin-edit-sequence)
-                (delete prompt-position (last-position) #f)
-                (for-each (lambda (snip/string)
-                            (insert (if (is-a? snip/string snip%)
-                                        (send snip/string copy)
-                                        snip/string)
-                                    prompt-position))
-                          snip/strings)
-                (set-position (last-position))
-                (end-edit-sequence))))
+            (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
+              (begin-edit-sequence)
+              (delete prompt-position (last-position) #f)
+              (for-each (lambda (snip/string)
+                          (insert (if (is-a? snip/string snip%)
+                                      (send snip/string copy)
+                                      snip/string)
+                                  prompt-position))
+                        snip/strings)
+              (set-position (last-position))
+              (end-edit-sequence)))
           
-          (define/public (copy-next-previous-expr)
-            (when prompt-position
+          (define/public copy-next-previous-expr
+            (lambda ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
@@ -1374,9 +1370,8 @@ TODO
                             (add1 previous-expr-pos)
                             0))
                   (copy-previous-expr)))))
-          
-          (define/public (copy-prev-previous-expr)
-            (when prompt-position
+          (define/public copy-prev-previous-expr
+            (lambda ()
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos

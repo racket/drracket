@@ -27,6 +27,9 @@
 
  - tool & framework interface changes:
 
+   . remove exn:locs; this functionality is now in
+     mzscheme itself.
+
    . removed drscheme:unit:make-bitmap. Use
      (lib "bitmap-label.ss" "mrlib") instead.
 

@@ -168,7 +168,6 @@
      current-language-settings
      current-value-port
      get-drs-bindings-keymap
-     (struct exn:locs (locs))
      text%
      text<%>
      context<%>))
