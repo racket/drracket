@@ -373,7 +373,8 @@
                  (scheme:text-mixin
                   (drscheme:rep:drs-bindings-keymap-mixin
                    (text:delegate-mixin
-                    text:info%)))))])
+                    (text:nbsp->space-mixin
+                     text:info%))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
             

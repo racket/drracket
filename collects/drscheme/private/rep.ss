@@ -2624,4 +2624,5 @@
             (text:info-mixin
              (editor:info-mixin
               (text:searching-mixin
-               text:clever-file-format%)))))))))))
+               (text:nbsp->space-mixin
+                text:clever-file-format%))))))))))))
