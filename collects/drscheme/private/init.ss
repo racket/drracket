@@ -46,6 +46,7 @@
                                         [current-output-port p])
                            (original-error-display-handler msg exn))
                          (get-output-string p))])
+             
              (if (eq? (current-eventspace) system-eventspace)
                  (message-box title text #f '(stop ok))
                  (parameterize ([current-eventspace system-eventspace]
