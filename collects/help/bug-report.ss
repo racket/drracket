@@ -50,6 +50,7 @@
       
       (super-make-object title)))
   
+  
   (define (help-desk:report-bug)
     (define bug-frame (instantiate bug-frame% () (title (string-constant bug-report-form))))
     (define outermost-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
@@ -172,6 +173,7 @@
               (lambda (panel)
                 (let* ([text (make-object (editor:keymap-mixin text:basic%))]
                        [canvas (make-object canvas:basic% panel text)])
+                  (send text set-paste-text-only #t)
                   (send text set-style-list (scheme:get-style-list))
                   (send text set-styles-fixed #t)
                   canvas))
@@ -422,19 +424,20 @@
     
     (define (cleanup-frame)
       (send bug-frame close))
-    
+        
     (send severity set-selection 1)
     (send priority set-selection 1)
     (send version set-value   
           (format "~a"
                   (version:version)))
-    
+
     (send environment set-value   
           (format "~a ~s (~a) (get-display-depth) = ~a"
                   (system-type)
                   (system-type #t)
                   (system-library-subpath)
                   (get-display-depth)))
+    
     (send (send collections get-editor)
           insert       
           (format "~s"
