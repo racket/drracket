@@ -949,17 +949,7 @@
       ;; module-based-language-front-end : (port source reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
       (define (module-based-language-front-end port source reader)
-        (let ([closed? #f])
-          (lambda ()
-            (if closed?
-                eof
-                (let ([result (reader source port (list 1 0 0))])
-                  (if (eof-object? result)
-                      (begin
-                        (set! closed? #t)
-                        (close-input-port port)
-                        eof)
-                      result))))))
+        (lambda () (reader source port (list 1 0 0))))
 
                                                                       
                                              ;                        
