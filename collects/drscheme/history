@@ -1,8 +1,11 @@
 DRSCHEME TOOLS/LIBRARIES HISTORY
 --------------------------------
 Version 51:
+ - tools must now import wx names explicitly, as a new first import.
+
  - the parameters interface has changed. Instead getting and setting
    the class, the tool programmer must register a function that
    accepts a class and returns a class. See the manual for more
    details.
+
  - process/zodiac-finish has been renamed to process-finish

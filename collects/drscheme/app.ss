@@ -1,6 +1,7 @@
 
   (unit/sig drscheme:app^
-    (import [mred : mred^]
+    (import [wx : wx^]
+	    [mred : mred^]
 	    [mzlib : mzlib:core^])
     
     (mred:debug:printf 'invoke "drscheme:application@")

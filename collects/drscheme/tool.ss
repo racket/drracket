@@ -1,11 +1,11 @@
 (begin-construction-time
  `(compound-unit/sig
-      (import [mred : mred^]
+      (import [wx : wx^]
+	      [mred : mred^]
 	      [mzlib : mzlib:core^]
 	      [print-convert : mzlib:print-convert^]
 	      [zodiac : drscheme:zodiac^]
 	      [export : drscheme:export^])
-    
     (link 
      ,@(let loop ([dirs drscheme:tool-directories])
 	 (cond
@@ -18,7 +18,7 @@
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
 			 [link-sym (string->symbol dir)])
 		    `((,link-sym : () ((reference-unit/sig ,unit-path)
-				       mred mzlib print-convert export zodiac))
+				       wx mred mzlib print-convert export zodiac))
 		      .
 		      ,(loop (cdr dirs))))
 		  (loop (cdr dirs))))])))
