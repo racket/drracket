@@ -52,7 +52,7 @@
 
       (define hyper-text-mixin
         (lambda (super%)
-          (class100 super% (_url _top-level-window progress . args)
+          (class100 super% (_url _top-level-window progress [post-data #f] . args)
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                      change-style get-style-list set-style-list
                      set-modified auto-wrap get-view-size
@@ -62,6 +62,7 @@
 
             (private-field [url _url]
                            [top-level-window _top-level-window]
+                           [post-string post-data]
                            [url-allows-evaling?
                             (cond
                               [(port? url) #f]
@@ -117,10 +118,10 @@
               [get-url (lambda () (and (url? url) url))])
             (private
               [make-clickback-funct
-               (lambda (url-string)
+               (opt-lambda (url-string [post-data #f])
                  (lambda (edit start end)
                    (on-url-click
-                    (lambda (url-string)
+                    (lambda (url-string post-data)
                       (with-handlers ([void (lambda (x)
                                               (unless (or (exn:break? x)
                                                           (exn:file-saved-instead? x)
@@ -132,14 +133,15 @@
                                                          (if (exn? x)
                                                              (exn-message x)
                                                              x)))))])
-                        (send (get-canvas) goto-url url-string (get-url))))
-                    url-string)))])
+                        (send (get-canvas) goto-url url-string (get-url) void post-data)))
+                    url-string
+                    post-data)))])
             (public
-              [on-url-click (lambda (f x) 
+              [on-url-click (lambda (f x post-data) 
                               (let ([c (get-canvas)])
                                 (if c
-                                    (send c on-url-click f x)
-                                    (f x))))]
+                                    (send c on-url-click f x post-data)
+                                    (f x post-data))))]
               [get-title (lambda () (or title (and (url? url) (url->string url))))]
               [set-title (lambda (t) (set! title t))])
             (private-field
@@ -211,9 +213,9 @@
 		 (set-clickback 
 		  start end 
 		  (lambda (edit start end)
-		    (let ([url-string (thunk)])
-		      (when url-string
-			((make-clickback-funct url-string) edit start end))))))]
+		    (let-values ([(url post-data) (thunk)])
+                      (when url
+			((make-clickback-funct url post-data) edit start end))))))]
 
               [eval-scheme-string
                (lambda (s)
@@ -226,22 +228,8 @@
               
               [reload
                (opt-lambda ([progress void])
-                 (when url
-                   (let-values ([(wrapping-on?) #t]
-                                [(p mime-headers)
-                                 (if (port? url)
-                                     (values url empty-header)
-				     ;; Turn on the busy cursor:
-				     (dynamic-wind
-				      (lambda () (begin-busy-cursor))
-				      (lambda ()
-					;; Try to get mime info, but use get-pure-port if that fails.
-					(with-handlers ([void (lambda (x) 
-								(values (get-pure-port url) empty-header))])
-						       (let ([p (get-impure-port url)])
-							 (let ([headers (purify-port p)])
-							   (values p headers)))))
-				      (lambda () (end-busy-cursor))))])
+                 (define (read-from-port p mime-headers)
+                   (let-values ([(wrapping-on?) #t])
                      (lock #f)
                      (dynamic-wind
                       (lambda ()
@@ -268,10 +256,10 @@
                                                     (let ([m (regexp-match "([^/]*)$" (url-path url))])
                                                       (and m (cadr m))))]
                                     [size (let ([s (extract-field "content-length" mime-headers)])
-					    (and s (let ([m (regexp-match
-							     "[0-9]+"
-							     s)])
-						     (and m (string->number (car m))))))]
+                                            (and s (let ([m (regexp-match
+                                                             "[0-9]+"
+                                                             s)])
+                                                     (and m (string->number (car m))))))]
                                     [install?
                                      (and (and orig-name (regexp-match "[.]plt$" orig-name))
                                           (let ([d (make-object dialog% (string-constant install?))]
@@ -316,14 +304,14 @@
                                     [f (if install?
                                            (make-temporary-file "tmp~a.plt")
                                            (put-file 
-                                             (if size
-                                                 (format 
-                                                  (string-constant save-downloaded-file/size)
-                                                  size)
-                                                 (string-constant save-downloaded-file))
-                                             #f ; should be calling window!
-                                             #f
-                                             orig-name))])
+                                            (if size
+                                                (format 
+                                                 (string-constant save-downloaded-file/size)
+                                                 size)
+                                                (string-constant save-downloaded-file))
+                                            #f ; should be calling window!
+                                            #f
+                                            orig-name))])
                                (begin-busy-cursor) ; turn the cursor back on
                                (when f
                                  (let* ([d (make-object dialog% (string-constant downloading) top-level-window)]
@@ -498,8 +486,45 @@
                      (set-modified #f)
                      (auto-wrap wrapping-on?)
                      (set-autowrap-bitmap #f)
-                     (lock #t))))])
-            
+                     (lock #t)))
+
+                 (define (mk-post post-string)
+                   (if post-string
+                       (list (format "Content-Length: ~a" (+ 2 (string-length post-string))) "" post-string)
+                       null))
+
+                 (when url
+                   (if (port? url)
+                       (read-from-port url empty-header)
+                       (let* ([busy? #t]
+                              [stop-busy (lambda ()
+                                           (when busy?
+                                             (set! busy? #f)
+                                             (end-busy-cursor)))])
+                         (dynamic-wind
+                          ;; Turn on the busy cursor:
+                          begin-busy-cursor
+                          (lambda ()
+                            ;; Try to get mime info, but use get-pure-port if it fails.
+                            (with-handlers ([(lambda (x)
+                                               (and (not-break-exn? x)
+                                                    busy?))
+                                             (lambda (x) 
+                                               (call/input-url 
+                                                url
+                                                (if post-string post-pure-port get-pure-port)
+                                                (lambda (p)
+                                                  (stop-busy)
+                                                  (read-from-port p empty-header))
+                                                (mk-post post-string)))])
+                              (call/input-url 
+                               url (if post-string post-impure-port get-impure-port)
+                               (lambda (p)
+                                 (let ([headers (purify-port p)])
+                                   (stop-busy)
+                                   (read-from-port p headers)))
+                               (mk-post post-string))))
+                          stop-busy)))))])
             (sequence
               (apply super-init args)
               (add-h-link-style)
@@ -556,7 +581,8 @@
           
           (public
             [get-editor% (lambda () hyper-text%)]
-            [make-editor (lambda (url progress) (make-object (get-editor%) url (get-top-level-window) progress))]
+            [make-editor (lambda (url progress post-data) 
+                           (make-object (get-editor%) url (get-top-level-window) progress post-data))]
             [current-page
              (lambda ()
                (let ([e (get-editor)])
@@ -565,9 +591,9 @@
                             [ebox (box 0)])
                         (send e get-visible-position-range sbox ebox)
                         (list e (unbox sbox) (unbox ebox))))))]
-            [on-url-click (lambda (k url) (send (get-parent) on-url-click k url))]
+            [on-url-click (lambda (k url post-data) (send (get-parent) on-url-click k url post-data))]
             [goto-url
-             (opt-lambda (url relative [progress void])
+             (opt-lambda (url relative [progress void] [post-data #f])
                (let* ([url (if (or (url? url) (port? url))
                                url
                                (if relative
@@ -581,7 +607,7 @@
 			       (begin
                                  (progress #t)
                                  e-now)
-			       (make-editor url progress)))]
+			       (make-editor url progress post-data)))]
                       [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
                  (unless (and tag-pos (positive? tag-pos))
                    (send e hide-caret #t))
@@ -830,7 +856,7 @@
             [on-navigate (lambda () (void))]
             [filter-notes (lambda (l) (apply string-append l))]
             [get-canvas (lambda () c)]
-            [on-url-click (lambda (k url) (k url))]
+            [on-url-click (lambda (k url post-data) (k url post-data))]
             
             [reload
              (lambda ()

@@ -3,7 +3,8 @@
 	   (lib "class.ss")
 	   (lib "string.ss"))
 
-  (provide option-snip%)
+  (provide option-snip%
+           checkbox-snip%)
 
   (define inset 2)
   (define arrow-sep 5)
@@ -23,13 +24,18 @@
       (define h #f)
       (define current-option #f)
 
-      (define/public (add-option o)
-	(set! options (append options (list o)))
+      (define/public (add-option o v)
+	(set! options (append options (list (cons o v))))
 	(set! w #f)
 	(set! h #f)
 	(let ([a (get-admin)])
 	  (when a
 	    (send a resized this #t))))
+      
+      (define/public (get-value)
+        (with-handlers ([not-break-exn? (lambda (x) #f)])
+          (cdr (or current-option
+                   (car options)))))
 
       (override*
 	[get-extent  ; called by an editor to get the snip's size
@@ -38,7 +44,7 @@
 	     (let ([font (send (get-style) get-font)])
 	       (let ([w+hs
 		      (map (lambda (o)
-			     (let-values ([(tw th td ta) (send dc get-text-extent o font)])
+			     (let-values ([(tw th td ta) (send dc get-text-extent (car o) font)])
 			       (cons tw th)))
 			   options)])
 		 (if (null? w+hs)
@@ -75,7 +81,7 @@
 		   (+ y (/ (- h arrow-height) 2)))
 	     (send dc set-brush brush))
 	   (unless (null? options)
-	     (send dc draw-text (or current-option (car options)) (+ x inset) (+ y inset))))]
+	     (send dc draw-text (car (or current-option (car options))) (+ x inset) (+ y inset))))]
 	[copy
 	 (lambda ()
 	   (make-object option-snip% options))]
@@ -85,7 +91,7 @@
 		    (when (send event button-down?)
 		      (let ([popup (make-object popup-menu%)])
 			(for-each (lambda (o)
-				    (make-object menu-item% o popup
+				    (make-object menu-item% (car o) popup
 						 (lambda (i e)
 						   (set! current-option o)
 						   (let ([a (get-admin)])
@@ -97,6 +103,87 @@
 			    (send a popup-menu popup this 0 0))))))]
 	[adjust-cursor (lambda (dc x y editorx editory event)
 			 arrow-cursor)])
+      (super-instantiate ())
+      (set-flags (cons 'handles-events (get-flags)))
+      (set-count 1)))
+  
+  (define cb-width 12)
+  (define cb-height 12)
+  
+  (define checkbox-snip%
+    (class snip%
+      (inherit get-admin set-snipclass set-count get-style get-flags set-flags)
+      (init-field [checked? #f])
+      (define tracking? #f)
+      (define hit? #f)
+      (define w cb-width)
+      (define h cb-height)
+
+      (define/public (get-value) checked?)
+      
+      (override*
+	[get-extent  ; called by an editor to get the snip's size
+	 (lambda (dc x y wbox hbox descentbox spacebox lspacebox rspacebox)
+	   (when hbox
+	     (set-box! hbox h))
+	   (when wbox
+	     (set-box! wbox w))
+	   (when descentbox
+	     (set-box! descentbox 0))
+	   (when spacebox
+	     (set-box! spacebox 0))
+	   (when rspacebox
+	     (set-box! rspacebox 0))
+	   (when lspacebox
+	     (set-box! lspacebox 0)))]
+	[draw  ; called by an editor to draw the snip
+	 (lambda (dc x y . other)
+	   (send dc draw-rectangle x y w h)
+           (when tracking?
+             (send dc draw-rectangle (+ x 1) (+ y 1) (- w 2) (- h 2)))
+           (when (or (and (not hit?) checked?)
+                     (and hit? (not checked?)))
+             (send dc draw-line x y (+ x w -1) (+ y h -1))
+             (send dc draw-line x (+ y h -1) (+ x w -1) y)))]
+	[copy
+	 (lambda ()
+	   (make-object checkbox-snip% checked?))]
+	[on-event (lambda (dc x y editorx editory event)
+		    (when (send event button-down?)
+                      (set! tracking? #t)
+                      (refresh)
+                      (set! hit? #f))
+                    (if (or (send event button-down?)
+                            (and tracking? (send event dragging?))
+                            (and tracking? (send event button-up?)))
+                        (if (or #t ;; no grab on mouse events, so skip bbox test for now
+                                (and (<= 0 (- (send event get-x) x))
+                                     (<= 0 (- (send event get-y) y))))
+                            (when (not hit?)
+                              (set! hit? #t)
+                              (refresh))
+                            (when hit?
+                              (set! hit? #f)
+                              (refresh)))
+                        (when tracking?
+                          (set! tracking? #f)
+                          (set! hit? #f)
+                          (refresh)))
+                    (when (and tracking?
+                               (and tracking? (send event button-up?)))
+                      (set! tracking? #f)
+                      (when hit?
+                        (set! hit? #f)
+                        (set! checked? (not checked?)))
+                      (refresh)))]
+	[adjust-cursor (lambda (dc x y editorx editory event)
+			 arrow-cursor)])
+
+      (define/private (refresh)
+        (let ([a (get-admin)])
+          (when a
+            (send a needs-update this 0 0 w h))))
+
       (super-instantiate ())
       (set-flags (cons 'handles-events (get-flags)))
       (set-count 1))))

@@ -228,6 +228,16 @@
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
 
       (define-struct form (action target method parts active-select))
+      (define (protect-chars s)
+        (apply string-append 
+               (map (lambda (c)
+                      (if (or (char-alphabetic? c)
+                              (char-numeric? c))
+                          (string c)
+                          (format "%~a"
+                                  (let ([s (format "0~x" (or (char->latin-1-integer c) 65))])
+                                    (substring s (- (string-length s) 2) (string-length s))))))
+                      (string->list s))))
       
       (define verbatim-tags '(listing xmp plaintext))
       (define preformatted-tags '(pre))
@@ -803,44 +813,75 @@
 				      (rest/form (make-form (get-field e 'action) (get-field e 'target) (get-field e 'method) null #f))]
 				     [(input select textarea)
 				      (let ([unsupported (make-unsupported tag e)]
-					    [pos (current-pos)])
+					    [pos (current-pos)]
+                                            [type (let ([t (get-field e 'type)])
+                                                    (and t (string->symbol t)))])
 					(let-values ([(cb get-val)
 						      (cond
 						       [(eq? tag 'select)
 							(let ([select (make-object option-snip%)])
 							  (set-form-active-select! form select)
 							  (insert select)
-							  (values #f #f))]
-						       [(eq? tag 'input)
-							(if (eq? 'text (let ([t (get-field e 'type)])
-									 (and t (string->symbol t))))
-							    (let* ([text (make-object text%)]
-								   [snip (make-object editor-snip% text)]
-								   [size (get-field e 'size)])
-							      (let ([width (* 10 (or (and size (string->number size))
-										     25))])
-								(send text set-min-width width)
-								(send text set-max-width width))
-							      (insert snip)
-							      (values
-							       #f
-							       (lambda () (send text get-text))))
-							    (begin
-							      (insert (get-field e 'value))
-							      (values
-							       (lambda ()
-								 (bell)
-								 #f)
-							       #f)))]
+							  (values #f
+                                                                  (lambda () (send select get-value))))]
+						       [(and (eq? tag 'input)
+                                                             (eq? type 'text))
+                                                        (let* ([text (make-object text%)]
+                                                               [snip (make-object editor-snip% text)]
+                                                               [size (get-field e 'size)]
+                                                               [val (get-field e 'value)])
+                                                          (let ([width (* 10 (or (and size (string->number size))
+                                                                                 25))])
+                                                            (send text set-min-width width)
+                                                            (send text set-max-width width))
+                                                          (when val
+                                                            (send text insert val))
+                                                          (insert snip)
+                                                          (values
+                                                           #f
+                                                           (lambda () (send text get-text))))]
+                                                       [(and (eq? tag 'input)
+                                                             (eq? type 'submit))
+                                                        (insert (get-field e 'value))
+                                                        (values
+                                                         (lambda ()
+                                                           (let ([post-string
+                                                                  (apply 
+                                                                   string-append
+                                                                   (map (lambda (v)
+                                                                          (if (car v)
+                                                                              (format "~a=~a&"
+                                                                                      (car v)
+                                                                                      (protect-chars (or ((cdr v))
+                                                                                                         "?")))
+                                                                              ""))
+                                                                        (form-parts form)))])
+                                                             (printf "post-string: ~s~n" post-string)
+                                                             (values 
+                                                              (form-action form)
+                                                              ;; Remove trailing &, if any:
+                                                              (substring post-string 0 
+                                                                         (max 0 (sub1 (string-length post-string)))))))
+                                                         #f)]
+                                                       [(and (eq? tag 'input)
+                                                             (eq? type 'checkbox))
+                                                        (let ([cb (make-object checkbox-snip%)])
+                                                          (insert cb)
+                                                          (values
+                                                           #f
+                                                           (lambda () (if (send cb get-value)
+                                                                          "true"
+                                                                          "false"))))]
 						       [else
 							(insert unsupported)
 							(values #f #f)])])
 					  (set-form-parts! form
-							   (cons (cons (get-field e 'name)
+							   (cons (cons (or (get-field e 'name)
+                                                                           (get-field e 'id))
 								       (or get-val
 									   (lambda () (get-field e 'value))))
 								 (form-parts form)))
-					  (let ([r (rest)]
+                                          (let ([r (rest)]
 						[end-pos (current-pos)])
 					    (set-form-active-select! form #f)
 					    (lambda ()
@@ -854,12 +895,13 @@
 				     [(option)
 				      (let ([pos (current-pos)]
 					    [r (rest)]
+                                            [val (get-field e 'value)]
 					    [end-pos (current-pos)])
 					(let ([str (send a-text get-text pos end-pos)]
 					      [select (form-active-select form)])
 					  (delete pos end-pos)
 					  (when select
-					    (send select add-option str))
+					    (send select add-option str (or val str)))
 					  r))]				      
 				     [(tt code samp kbd pre)
 				      (when (memq tag '(pre))
