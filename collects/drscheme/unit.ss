@@ -845,6 +845,8 @@
 	  [create-frame (opt-lambda ([show? #t])
 			  (unless frame
 			    (set! frame (make-object frame% this))
+			    (when filename
+			      (send (send frame get-editor) load-file filename))
 			    (when show?
 			      (send frame show #t))
 			    frame))]
