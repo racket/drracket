@@ -844,9 +844,7 @@ TODO
             (end-edit-sequence)
             (set! inserting-prompt? #f))
           
-          (field [submit-predicate
-                  (λ (text prompt-position)
-                    #t)])
+          (field [submit-predicate (λ (text prompt-position) #t)])
           (define/public (set-submit-predicate p)
             (set! submit-predicate p))
           
@@ -1358,17 +1356,18 @@ TODO
           (field (previous-expr-pos -1))
           
           (define/public (copy-previous-expr)
-            (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
-              (begin-edit-sequence)
-              (delete prompt-position (last-position) #f)
-              (for-each (λ (snip/string)
-                          (insert (if (is-a? snip/string snip%)
-                                      (send snip/string copy)
-                                      snip/string)
-                                  prompt-position))
-                        snip/strings)
-              (set-position (last-position))
-              (end-edit-sequence)))
+            (when prompt-position
+              (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
+                (begin-edit-sequence)
+                (delete prompt-position (last-position) #f)
+                (for-each (λ (snip/string)
+                            (insert (if (is-a? snip/string snip%)
+                                        (send snip/string copy)
+                                        snip/string)
+                                    prompt-position))
+                          snip/strings)
+                (set-position (last-position))
+                (end-edit-sequence))))
           
           (define/public copy-next-previous-expr
             (λ ()
