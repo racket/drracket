@@ -537,16 +537,6 @@
                     (send e set-clickback before after 
                           (lambda args (send-url url))
                           d-http))
-                  (send e change-style d-usual))]
-               [insert-url
-                (lambda (str url)
-                  (send e change-style d-http)
-                  (let* ([before (send e get-start-position)]
-                         [_ (send e insert str)]
-                         [after (send e get-start-position)])
-                    (send e set-clickback before after 
-                          (lambda args (help-desk:open-url url))
-                          d-http))
                   (send e change-style d-usual))])
           
           (send* d-http 
@@ -597,8 +587,8 @@
                               'up
                               'up
                               "notes"
-                              "COPYING.LIB"))])
-            (insert-url "COPYING.LIB" (string-append "file:" copying.lib)))
+                              "COPYING-LIB"))])
+            (send e insert copying.lib))
           
           (send* e
             (insert ".")
