@@ -22,8 +22,13 @@
 	     [outside-margin 2]
 	     [middle-margin 3])
 	(lambda (filename text)
-	  (let* ([img-bitmap
-		  (make-object wx:bitmap% filename wx:const-bitmap-type-bmp)]
+	  (let* ([clear-bitmap? #f]
+		 [img-bitmap
+		  (let ([q (make-object wx:bitmap% filename wx:const-bitmap-type-bmp)])
+		    (if (send q ok?)
+			q
+			(begin (set! clear-bitmap? #t)
+			       (make-object wx:bitmap% 1 1))))]
 		 [img-width (send img-bitmap get-width)]
 		 [img-height (send img-bitmap get-height)]
 		 [img-memory-dc (make-object wx:memory-dc%)]
@@ -32,6 +37,9 @@
 		 [descent (box 0.)]
 		 [leading (box 0.)])
 	    (send img-memory-dc select-object img-bitmap)
+	    (when clear-bitmap?
+	      (send img-memory-dc clear))
+	    (printf "couldn't get file for: ~a~n" filename)
 	    (send img-memory-dc get-text-extent text width height descent leading font)
 	    (let* ([new-width (+ outside-margin
 				 img-width
@@ -71,6 +79,11 @@
 			 (string-set! capd 0 (char-upcase (string-ref capd 0)))
 			 (make-bitmap path capd)))
 		     (list "execute" "help" "save" "break"))))
+    
+    (printf "execute-bitmap: ~a~n" (send execute-bitmap ok?))
+    (printf "help-bitmap: ~a~n" (send help-bitmap ok?))
+    (printf "save-bitmap: ~a~n" (send save-bitmap ok?))
+    (printf "break-bitmap: ~a~n" (send break-bitmap ok?))
 
     ;; this is the old definition of the interactions canvas.
     ;; It should be integrated into mred:wide-snip-canvas% 
@@ -466,6 +479,7 @@
 				 [(null? fn) "Untitled"]
 				 [(mzlib:file@:file-name-from-path fn)]
 				 [else "Untitled"]))))
+
 
 	  (set! save-button
 		(make-object mred:button% 

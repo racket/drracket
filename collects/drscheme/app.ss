@@ -39,13 +39,19 @@
 		    [autowrap-bitmap null]))]
 	       [e (make-object wrap-edit%)]
 	       [main-media (make-object wrap-edit%)]
-	       [image-snip (make-object wx:image-snip% 
-					(build-path mred:constants:plt-home-directory
-						    "icons"
-						    (if (< (wx:display-depth) 8)
-							"bwlambda.gif"
-							"rblambda.gif"))
-					wx:const-bitmap-type-gif)]
+	       [image-snip 
+		(let ([filename (build-path mred:constants:plt-home-directory
+					    "icons"
+					    (if (< (wx:display-depth) 8)
+						"bwlambda.gif"
+						"rblambda.gif"))])
+		  (if (file-exists? filename)
+		      (make-object wx:image-snip% 
+				   filename
+				   wx:const-bitmap-type-gif)
+		      (let ([i (make-object wx:text-snip%)])
+			(send i insert "[lambda]")
+			i)))]
 	       [media-snip (make-object wx:media-snip% e #f)]
 	       [f (make-object (class-asi mred:standard-menus-frame%
 				 (private
