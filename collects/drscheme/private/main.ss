@@ -312,7 +312,8 @@
                (string-constant install-plt-file/yes)
                (string-constant install-plt-file/no))))
        (lambda (filename)
-         (run-installer filename)))
+         (run-installer filename)
+	 #f))
       
       (drscheme:tools:load/invoke-all-tools
        (lambda ()
