@@ -428,26 +428,37 @@
                    (let-values ([(x y) (dc-location-to-editor-location ex ey)])
                      (let ([snip (find-snip x y)]
                            [canvas (get-canvas)])
-                       (when (and snip
-                                  (is-a? snip boxed-word-snip<%>)
-                                  canvas
-                                  (send snip get-filename))
-                         (let* ([right-button-menu (make-object popup-menu%)]
-                                [open-file-item (instantiate menu-item% ()
-                                                  (label 
-                                                   (trim-string
-                                                    (format open-file-format
-                                                            (path->string (send snip get-filename)))
-                                                    200))
-                                                  (parent right-button-menu)
-                                                  (callback
-                                                   (λ (x y)
-                                                     (handler:edit-file
-                                                      (send snip get-filename)))))])
-                           (send canvas popup-menu
-                                 right-button-menu
-                                 (+ (send evt get-x) 1)
-                                 (+ (send evt get-y) 1)))))))]
+                       (let ([right-button-menu (make-object popup-menu%)])
+                         (when (and snip
+                                    (is-a? snip boxed-word-snip<%>)
+                                    canvas
+                                    (send snip get-filename))
+                           (instantiate menu-item% ()
+                             (label 
+                              (trim-string
+                               (format open-file-format
+                                       (path->string (send snip get-filename)))
+                               200))
+                             (parent right-button-menu)
+                             (callback
+                              (λ (x y)
+                                (handler:edit-file
+                                 (send snip get-filename))))))
+                         (instantiate menu-item% ()
+                           (label (string-constant module-browser-open-all))
+                           (parent right-button-menu)
+                           (callback
+                            (λ (x y)
+                              (let loop ([snip (find-first-snip)])
+                                (when snip
+                                  (when (is-a? snip boxed-word-snip<%>)
+                                    (let ([filename (send snip get-filename)])
+                                      (handler:edit-file filename)))
+                                  (loop (send snip next)))))))
+                         (send canvas popup-menu
+                               right-button-menu
+                               (+ (send evt get-x) 1)
+                               (+ (send evt get-y) 1))))))]
                 [else (super on-event evt)]))
             
             (super-instantiate ())))
