@@ -2,7 +2,17 @@
 
   (require (lib "list.ss")
 	   (lib "contracts.ss")
-           "my-macros.ss")
+           "my-macros.ss"
+           "shared.ss")
+
+  ; CONTRACTS
+  (define mark? procedure?)
+  (define mark-list? (listof mark?))
+
+  (define make-full-mark-contract (-> syntax? symbol? identifier-list? syntax?)) ; (location label bindings -> mark-stx)
+
+  (provide/contract 
+   [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any?)])
   
   (provide
    skipto-mark?
@@ -30,6 +40,8 @@
    (struct breakpoint-halt ())
    (struct expression-finished (returned-value-list)))
   
+  ; BREAKPOINT STRUCTURES
+  
   (define-struct normal-breakpoint-info (mark-list kind returned-value-list))
   (define-struct error-breakpoint-info (message))
   (define-struct breakpoint-halt ())
@@ -43,11 +55,7 @@
   (define (strip-skiptos mark-list)
     (filter (lx (not (skipto-mark? _))) mark-list))
   
-  (define mark? procedure?)
-  (define mark-list? (listof mark?))
-
-  (define make-full-mark-contract (-> syntax? symbol? identifier-list? syntax?)) ; (location label bindings -> mark-stx)
-  
+    
   ; debug-key: this key will be used as a key for the continuation marks.
   (define-struct debug-key-struct ())
   (define debug-key (make-debug-key-struct))
@@ -178,4 +186,36 @@
      'caller))
   
   (define (lookup-binding-list mark-list binding)
-    (apply append (map (lambda (x) (binding-matches x binding)) mark-list))))
+    (apply append (map (lambda (x) (binding-matches x binding)) mark-list)))
+  
+  
+  ; DEBUG-INFO STRUCTURES
+  
+  ;;;;;;;;;;
+  ;;
+  ;; make-debug-info builds the thunk which will be the mark at runtime.  It contains 
+  ;; a source expression and a set of binding/value pairs.
+  ;; (syntax-object BINDING-SET VARREF-SET symbol boolean) -> debug-info)
+  ;;
+  ;;;;;;;;;;
+     
+  (define make-debug-info
+    (contract 
+     (-> syntax? binding-set? varref-set? symbol? boolean? any?)
+     (lambda (source tail-bound free-vars label lifting?)
+       (let*-2vals ([kept-vars (binding-set-varref-set-intersect tail-bound free-vars)]
+                    [let-bindings (filter (lambda (var) 
+                                            (case (syntax-property var 'stepper-binding-type)
+                                              ((let-bound macro-bound) #t)
+                                              ((lambda-bound stepper-temp non-lexical) #f)
+                                              (else (error 'make-debug-info 
+                                                           "varref ~a's binding-type info was not recognized: ~a"
+                                                           (syntax-e var)
+                                                           (syntax-property var 'stepper-binding-type)))))
+                                          kept-vars)]
+                    [lifter-syms (map get-lifted-var let-bindings)])
+                   (make-full-mark source label (append kept-vars (if lifting? lifter-syms null)))))
+     'make-debug-info
+     'caller))
+  
+)
