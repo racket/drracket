@@ -1,6 +1,7 @@
 
 (module frame mzscheme
   (require (lib "unitsig.ss")
+           (lib "class.ss")
            "drsig.ss"
            "mred-wrap.ss"
            (lib "framework.ss" "framework")
@@ -204,7 +205,7 @@
       (define basics<%> (interface (frame:standard-menus<%>)))
       
       (define keybindings-dialog%
-        (class mred:dialog% args
+        (class100 mred:dialog% args
           (rename [super-on-size on-size])
           (override
             [on-size
@@ -331,15 +332,15 @@
                  (lambda (item evt)
                    (drscheme:app:invite-tour))))]
             
-            [help-menu:about (lambda (item evt) (drscheme:app:about-drscheme))]
+            [help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
             [help-menu:about-string (lambda () "DrScheme")]
             
             
             [file-menu:new-string (lambda () "")]
-            [file-menu:new
+            [file-menu:new-callback
              (lambda (item evt)
                (drscheme:unit:open-drscheme-window))]
-            [file-menu:open (lambda (item evt) (handler:open-file) #t)]
+            [file-menu:open-callback (lambda (item evt) (handler:open-file) #t)]
             [file-menu:open-string (lambda () "")]
             [file-menu:between-open-and-revert
              (lambda (file-menu) 
@@ -353,7 +354,7 @@
              (lambda (menu)
                (make-object mred:separator-menu-item% menu)
                (let ([keybindings-menu-item%
-                      (class mred:menu-item% args
+                      (class100 mred:menu-item% args
                         (inherit enable)
                         (override
                           [on-demand
@@ -399,9 +400,9 @@
                  (set! root-panel s-root)
                  root))])
           
+          (public-field
+            [show-menu #f])
           (public
-            [show-menu #f]
-            
             [update-shown (lambda () (void))])
           
           (private
@@ -410,7 +411,8 @@
                (let ([p (build-path (collection-path "icons") icon)])
                  (if (file-exists? p)
                      (make-object mred:bitmap% p 'gif)
-                     string)))]
+                     string)))])
+          (private-field
             [currently-running? #f]
             [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" "not running")]
             [active-bitmap (get-bitmap/string "snoopy-active.gif" "running")])
@@ -431,6 +433,6 @@
             (apply super-init name args)
             (set! show-menu (make-object (get-menu%) "&Show" (get-menu-bar))))
           
-          (private
-            [running-message
-             (make-object mred:message% sleepy-bitmap (get-info-panel))]))))))
+          (private-field
+           [running-message
+            (make-object mred:message% sleepy-bitmap (get-info-panel))]))))))

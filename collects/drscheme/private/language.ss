@@ -1,6 +1,8 @@
 
 (module language mzscheme
   (require (lib "unitsig.ss")
+           (lib "class.ss")
+           (lib "class100.ss")
            "drsig.ss"
            "mred-wrap.ss"
            (lib "framework.ss" "framework")
@@ -36,7 +38,7 @@
 	   [language-levels (map basis:setting-name basis:settings)]
 
 	   [dialog%
-	    (class mred:dialog% args
+	    (class100 mred:dialog% args
 	      (override
 	       [on-close
 		(lambda ()
@@ -431,7 +433,7 @@
                        'drscheme:teachpack-file
                        (append old-pref (list lib-file))))))
               (set! teachpack-directory (path-only lib-file)))))))
-    (make-object (class menu:can-restore-menu-item% args
+    (make-object (class100 menu:can-restore-menu-item% args
                    (inherit enable)
                    (rename [super-on-demand on-demand])
                    (override

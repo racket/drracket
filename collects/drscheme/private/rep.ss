@@ -84,7 +84,7 @@
   ;;   for any x that is an instance of the resulting class,
   ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
   (define (drs-bindings-keymap-mixin editor%)
-    (class editor% args
+    (class100* editor% args
       (rename [super-get-keymaps get-keymaps])
       (override
         [get-keymaps
@@ -302,7 +302,7 @@
   (define (show-backtrace-window dis error-text)
     (kill-backtrace-window)
     (set! current-backtrace-window 
-          (make-object (class (drscheme:frame:basics-mixin (fw:frame:standard-menus-mixin fw:frame:basic%)) args
+          (make-object (class100 (drscheme:frame:basics-mixin (fw:frame:standard-menus-mixin fw:frame:basic%)) args
 			 (rename [super-on-size on-size])
 			 (override
 			  [on-size
@@ -578,7 +578,7 @@
 
   (define arrow-cursor (make-object mred:cursor% 'arrow))
   (define eof-icon-snip%
-    (class mred:image-snip% (rep)
+    (class100 mred:image-snip% (rep)
       (rename [super-on-event on-event])
       (override
         [on-event
@@ -596,34 +596,35 @@
 
   (define (make-text% super%)
     (rec rep-text%
-      (class/d super% (context)
-        ((inherit insert change-style get-canvas
-		  get-active-canvas
-                  set-styles-sticky
-                  clear-undos set-caret-owner
-                  clear-previous-expr-positions
-                  get-end-position
-                  set-clickback
-                  do-post-eval
-                  insert-prompt
-                  erase prompt-mode?
-                  ready-non-prompt
-                  set-prompt-mode
-                  delete lock is-locked?
-                  paragraph-start-position
-                  last-position
-                  set-resetting
-                  position-line
-                  set-position
-                  begin-edit-sequence
-                  end-edit-sequence
-                  reset-pretty-print-width
-                  scroll-to-position
-                  get-admin
-                  set-prompt-position
-                  get-canvases find-snip
-                  inserting-prompt
-                  release-snip)
+      (class super%
+        (init-field context)
+        (inherit insert change-style get-canvas
+                 get-active-canvas
+                 set-styles-sticky
+                 clear-undos set-caret-owner
+                 clear-previous-expr-positions
+                 get-end-position
+                 set-clickback
+                 do-post-eval
+                 insert-prompt
+                 erase prompt-mode?
+                 ready-non-prompt
+                 set-prompt-mode
+                 delete lock is-locked?
+                 paragraph-start-position
+                 last-position
+                 set-resetting
+                 position-line
+                 set-position
+                 begin-edit-sequence
+                 end-edit-sequence
+                 reset-pretty-print-width
+                 scroll-to-position
+                 get-admin
+                 set-prompt-position
+                 get-canvases find-snip
+                 inserting-prompt
+                 release-snip)
          (rename [super-on-insert on-insert]
                  [super-on-delete on-delete]
                  [super-initialize-console initialize-console]
@@ -694,7 +695,7 @@
 
 	   submit-eof
            show-eof-icon
-           hide-eof-icon))
+           hide-eof-icon)
         
         (unless (is-a? context context<%>)
           (error 'drscheme:rep:text% "expected an object that implements drscheme:rep:context<%> as initialization argument, got: ~e"
@@ -844,12 +845,13 @@
         
         (define (make-fetcher)
 	  (make-object
-	      (class object% ()
-		(public
+	      (class100 object% ()
+		(public-field
 		  [fetch-char-sema (make-semaphore 1)]
 		  [fetcher-spawned? #f]
 		  [char-fetched-sema (make-semaphore)]
-		  [char-fetched #f]
+		  [char-fetched #f])
+                (public
 		  [fetch ; =Protected-User=
 		   (lambda (ut peek?)
 					; Only one reader at a time:
@@ -1937,86 +1939,87 @@
   (define make-console-text%
     (lambda (super%)
       (rec console-text%
-        (class/d super% args
-          ((inherit position-line position-location
-                    line-location get-admin
-                    set-position set-caret-owner
-                    clear-undos insert delete
-                    begin-edit-sequence
-                    end-edit-sequence
-                    run-after-edit-sequence
-                    change-style split-snip
-                    scroll-to-position is-locked? lock
-                    last-position get-start-position get-end-position
-                    get-text get-snip-position
-                    get-character find-snip find-string
-                    erase
-                    invalidate-bitmap-cache
-                    get-extent get-style-list)
-           (rename [super-on-local-char on-local-char]
-                   [super-on-paint on-paint]
-                   [super-after-set-size-constraint after-set-size-constraint]
-                   [super-get-keymaps get-keymaps])
-           (rename [super-can-insert? can-insert?]
-                   [super-after-insert after-insert]
-                   
-                   [super-can-delete? can-delete?]
-                   [super-after-delete after-delete]
-                   
-                   [super-can-change-style? can-change-style?]
-                   [super-after-change-style after-change-style]
-                   
-                   [super-on-edit-sequence on-edit-sequence]
-                   [super-after-edit-sequence after-edit-sequence]
-                   
-                   [super-after-set-position after-set-position])
-           (override autosave?
-                     get-keymaps
-                     can-insert?
-                     can-delete?
-                     can-change-style?
-                     after-insert
-                     after-delete
-                     after-change-style
-                     on-edit-sequence
-                     after-edit-sequence
-                     after-set-position
-                     on-local-char)
-           
-           (public set-resetting
-                   resetting?
-                   
-                   copy-prev-previous-expr
-                   copy-next-previous-expr
-                   copy-previous-expr
-                   clear-previous-expr-positions
-                   
-                   balance-required
-                   
-                   initialize-console
-                   
-                   clear-previous-expr-positions
-                   copy-previous-expr
-                   previous-expr-pos
-                   previous-expr-positions
-                   prompt-mode?
-                   set-prompt-mode
-                   ready-non-prompt
-                   inserting-prompt
-                   
-                   reset-pretty-print-width
-                   
-                   get-prompt
-                   insert-prompt
-                   set-prompt-position
-                   prompt-position
-                   reset-console
-                   
-                   do-pre-eval
-                   do-eval
-                   do-post-eval
-                   eval-busy?))
-
+        (class super% args
+          (init-rest args)
+          (inherit position-line position-location
+                   line-location get-admin
+                   set-position set-caret-owner
+                   clear-undos insert delete
+                   begin-edit-sequence
+                   end-edit-sequence
+                   run-after-edit-sequence
+                   change-style split-snip
+                   scroll-to-position is-locked? lock
+                   last-position get-start-position get-end-position
+                   get-text get-snip-position
+                   get-character find-snip find-string
+                   erase
+                   invalidate-bitmap-cache
+                   get-extent get-style-list)
+          (rename [super-on-local-char on-local-char]
+                  [super-on-paint on-paint]
+                  [super-after-set-size-constraint after-set-size-constraint]
+                  [super-get-keymaps get-keymaps])
+          (rename [super-can-insert? can-insert?]
+                  [super-after-insert after-insert]
+                  
+                  [super-can-delete? can-delete?]
+                  [super-after-delete after-delete]
+                  
+                  [super-can-change-style? can-change-style?]
+                  [super-after-change-style after-change-style]
+                  
+                  [super-on-edit-sequence on-edit-sequence]
+                  [super-after-edit-sequence after-edit-sequence]
+                  
+                  [super-after-set-position after-set-position])
+          (override autosave?
+                    get-keymaps
+                    can-insert?
+                    can-delete?
+                    can-change-style?
+                    after-insert
+                    after-delete
+                    after-change-style
+                    on-edit-sequence
+                    after-edit-sequence
+                    after-set-position
+                    on-local-char)
+          
+          (public set-resetting
+                  resetting?
+                  
+                  copy-prev-previous-expr
+                  copy-next-previous-expr
+                  copy-previous-expr
+                  clear-previous-expr-positions
+                  
+                  balance-required
+                  
+                  initialize-console
+                  
+                  clear-previous-expr-positions
+                  copy-previous-expr
+                  previous-expr-pos
+                  previous-expr-positions
+                  prompt-mode?
+                  set-prompt-mode
+                  ready-non-prompt
+                  inserting-prompt
+                  
+                  reset-pretty-print-width
+                  
+                  get-prompt
+                  insert-prompt
+                  set-prompt-position
+                  prompt-position
+                  reset-console
+                  
+                  do-pre-eval
+                  do-eval
+                  do-post-eval
+                  eval-busy?)
+          
           (define autosave? (lambda () #f))
           
           (define edit-sequence-count 0)
@@ -2308,7 +2311,7 @@
 		  (insert (get-prompt) last)
 		  (change-style normal-delta last (last-position)))
 		(set! prompt-position (last-position))
-					;(clear-undos)
+                ;(clear-undos)
 		(lock c-locked?)
 		(end-edit-sequence)
 		(scroll-to-position start-selection #f (last-position) 'start))))
@@ -2343,7 +2346,7 @@
       fw:text:searching%)))
   
   (define transparent-io-text%
-    (class* transparent-io-super% (transparent-io-text<%>) (rep-text)
+    (class100* transparent-io-super% (transparent-io-text<%>) (rep-text)
       (inherit change-style
 	       prompt-position set-prompt-position
 	       resetting? set-resetting lock get-text
@@ -2352,35 +2355,34 @@
 	       do-pre-eval do-post-eval balance-required)
       (rename [super-after-insert after-insert]
 	      [super-on-local-char on-local-char])
-      (private
+      (private-field
 	[data null]
 	[stream-start 0]
-	[stream-end 0])
-      (private [shutdown? #f])
+	[stream-end 0]
+        [shutdown? #f])
       
+      (public-field
+       [stream-start/end-protect (make-semaphore 1)]
+       [wait-for-sexp (make-semaphore 0)]
+       [consumed-delta 
+        (make-object mred:style-delta% 'change-bold)]
+       [ibeam-cursor (make-object mred:cursor% 'ibeam)]
+       [eof-submitted? #f])
       (public
-	[stream-start/end-protect (make-semaphore 1)]
-	[wait-for-sexp (make-semaphore 0)]
-	
         [get-insertion-point
          (lambda ()
            stream-start)]
-
-	[auto-set-wrap #t]
 	[shutdown
 	 (lambda ()
 	   (set! shutdown? #t)
 	   (semaphore-post wait-for-sexp)
 	   (lock #t))]
-	[consumed-delta 
-	 (make-object mred:style-delta% 'change-bold)]
 	[mark-consumed
 	 (lambda (start end)
 	   (let ([old-resetting resetting?])
 	     (set-resetting #t)
 	     (change-style consumed-delta start end)
 	     (set-resetting old-resetting)))]
-	[ibeam-cursor (make-object mred:cursor% 'ibeam)]
 	[check-char-ready? ; =Reentrant=
 	 (lambda ()
 	   (semaphore-wait stream-start/end-protect)
@@ -2390,7 +2392,6 @@
 	     [else #f])
 	    (semaphore-post stream-start/end-protect)))]
 
-	[eof-submitted? #f]
 	[eof-received
          (lambda () ; =Kernel=, =Handler=
 	   (set! eof-submitted? #t)
