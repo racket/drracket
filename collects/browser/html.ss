@@ -106,7 +106,7 @@
 	   [delta:fixed (make-object style-delta% 'change-family 'modern)]
 	   [delta:bold (make-object style-delta% 'change-bold)] 
 	   [delta:underline (make-object style-delta% 'change-underline #t)]
-	   [delta:slant (make-object style-delta% 'change-style 'slant)]
+	   [delta:italic (make-object style-delta% 'change-italic)]
 	   [delta:h1 (let ([d (make-object style-delta% 'change-bold)])
 		       (send d set-size-mult 2.0)
 		       d)]
@@ -525,7 +525,7 @@
 			 (change-style delta:underline pos end-pos)
 			 (normal)]
 			[(i em var dfn cite)
-			 (change-style delta:slant pos end-pos)
+			 (change-style delta:italic pos end-pos)
 			 (normal)]
 			[(tt code samp kbd)
 			 (change-style delta:fixed pos end-pos)
