@@ -415,21 +415,27 @@
                                     (lambda (x y) (search-text-field-callback))))
         (define active-method-panel (make-object panel:single% method-panel))
         (define methods-check-boxess
-          (map
-           (lambda (search-type prefs-settings)
-             (let ([p (make-object vertical-panel% active-method-panel)])
-               (send p set-alignment 'left 'center)
-               (map (lambda (flag-pair prefs-setting)
-                      (let ([cb (make-object check-box% 
-                                  (car flag-pair)
-                                  p
-                                  (lambda (evt chk) (method-callback chk)))])
-                        (send cb set-value prefs-setting)
-                        cb))
-                    (search-type-params search-type)
-                    prefs-settings)))
-           search-types
-           (preferences:get 'drscheme:multi-file-search:search-check-boxes)))
+          (let ([pref (preferences:get 'drscheme:multi-file-search:search-check-boxes)])
+            (map
+             (lambda (search-type prefs-settings)
+               (let ([p (make-object vertical-panel% active-method-panel)]
+                     [params (search-type-params search-type)])
+                 (send p set-alignment 'left 'center)
+                 (map (lambda (flag-pair prefs-setting)
+                        (let ([cb (make-object check-box% 
+                                    (car flag-pair)
+                                    p
+                                    (lambda (evt chk) (method-callback chk)))])
+                          (send cb set-value prefs-setting)
+                          cb))
+                      params
+                      (if (= (length params) (length prefs-settings))
+                          prefs-settings
+                          (map (lambda (x) #f) params)))))
+             search-types
+             (if (= (length search-types) (length pref))
+                 pref
+                 (map (lambda (x) '()) search-types)))))
         
         (define ok-button (make-object button% (string-constant ok) button-panel
                             (lambda (x y) (ok-button-callback)) '(border)))
