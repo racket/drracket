@@ -5,6 +5,7 @@
 	   (lib "mred.ss" "mred")
            (lib "browser.ss" "net")
            (lib "help-desk.ss" "help")
+           (prefix fw: (lib "framework.ss" "framework"))
 	   "drsig.ss")
   
   (provide help-desk@)
@@ -14,8 +15,27 @@
       (import [drscheme:frame : drscheme:frame^]
               [drscheme:language-configuration : drscheme:language-configuration/internal^])
 
+      
+      
+      ; to decide if an internal browser connected to the web server by pipes will be used
+      ; : browser-preference -> bool
+      (define (use-internal-browser? browser)
+        (eq? 'plt browser))
+
       (define get-hd-cookie
-        (let ([hd-cookie #f])
+        (let ([hd-cookie #f]
+              [internal (use-internal-browser? (fw:preferences:get 'external-browser))])
+          (fw:preferences:add-callback
+           'external-browser
+           (lambda (k v)
+             (let ([new-internal (use-internal-browser? v)])
+               (unless new-internal
+                 (external-browser v))
+               (unless (eq? new-internal internal)
+                 (when hd-cookie
+                   ((hd-cookie->exit-proc hd-cookie))
+                   (set! hd-cookie #f)))
+               (set! internal new-internal))))
           (lambda ()
             (unless hd-cookie
               (set! hd-cookie (start-help-server)))
