@@ -82,7 +82,10 @@
           debug-tool-eval-handler))
 
       ;; simple-scheme-text% : (implements scheme:text<%>)
-      (define simple-scheme-text% (scheme:text-mixin (editor:keymap-mixin text:basic%)))
+      (define simple-scheme-text% (scheme:text-mixin
+                                   (text:hide-caret/selection-mixin
+                                    (editor:keymap-mixin 
+                                     text:basic%))))
       
       ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string exn -> void
       ;; adds in the bug icon, if there are contexts to display
@@ -239,7 +242,7 @@
       ;;                         void
       (define (show-backtrace-window rep error-text dis mf-bday?)
         (reset-backtrace-window)
-        (letrec ([text (make-object text:basic%)]
+        (letrec ([text (make-object text:hide-caret/selection%)]
                  [mf-bday-note (when mf-bday?
                                  (instantiate message% ()
                                    (label "Happy Birthday, Matthias!")

@@ -70,7 +70,7 @@
           (for-each (lambda (x) (send x min-height max-height)) items)))
       
       (define wrap-edit% 
-        (class100-asi text%
+        (class100-asi text:hide-caret/selection%
           (inherit begin-edit-sequence end-edit-sequence
                    get-max-width find-snip position-location)
           (rename [super-after-set-size-constraint after-set-size-constraint])
