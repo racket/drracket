@@ -11,6 +11,10 @@ Version 103:
 
  FUNCTIONALITY CHANGES
 
+ - typing characters in to the definitions and interactions window
+   should be more responsive now (it was noticably slow on slower
+   machines)
+
  - files added to projects are now stored as relative files, 
    by default. (use project menu to change the default)
 
