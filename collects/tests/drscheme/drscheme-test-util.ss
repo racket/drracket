@@ -12,7 +12,13 @@
   
   ;; HACK!
   (define (get-drscheme-eventspace)
-    (global-defined-value 'drscheme-eventspace))
+    (if (defined? 'drscheme-eventspace)
+	(global-defined-value 'drscheme-eventspace)
+	(error 'get-drscheme-eventspace "drscheme-eventspace is not bound...")))
+  
+  (define (get-top-level-drscheme-focus-window)
+    (parameterize ([mred:current-eventspace (get-drscheme-eventspace)])
+      (mred:get-top-level-focus-window)))
   
   ;; -> eventspace
   ;; returns the eventspace used by the program in the current drscheme window
@@ -42,7 +48,7 @@
   (define (wait-for-drscheme-frame)
     (let* ([pred (lambda ()
 		   (mred:yield)
-		   (let ([active (mred:get-top-level-focus-window)])
+		   (let ([active (get-top-level-drscheme-focus-window)])
 		     (printf "active: ~a~n" active)
 		     (if (and active
 			      (begin
@@ -57,7 +63,7 @@
   (define (wait-for-new-frame old-frame)
     (poll-until
      (lambda ()
-       (let ([active (mred:get-top-level-focus-window)])
+       (let ([active (get-top-level-drscheme-focus-window)])
 	 (if (and active
 		  (not (eq? active old-frame)))
 	     active
@@ -147,7 +153,7 @@
   
   ; set language level in the frontmost DrScheme frame
   (define (set-language-level! level)
-    (let ([frame (mred:get-top-level-focus-window)])
+    (let ([frame (get-top-level-drscheme-focus-window)])
       (fw:test:menu-select "Language" "Configure Language...")
       (wait-for-new-frame frame)
       (fw:test:set-choice! (find-labelled-window "Language" mred:choice%) level)
@@ -157,4 +163,4 @@
     (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
   
   (define (fetch-output)
-    (mred:get-top-level-focus-window)))
+    (get-top-level-drscheme-focus-window)))
