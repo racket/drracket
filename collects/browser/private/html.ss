@@ -824,6 +824,7 @@
                             ;; poor ascii approximations. probably these
                             ;; (and other) characters exist somewhere,
                             ;; but I don't know where.
+                            [(= e 160) (insert " ") void]
                             [(= e 338) (insert "OE") void]
                             [(= e 339) (insert "oe") void]
                             [(= e 732) (insert "~") void]
