@@ -9,12 +9,15 @@ Version 102:
  - the help desk language level specific documentation has been
    integrated into drscheme.
 
-  - errortrace-like facility is now available in drscheme debug
-    language levels. Click on the bug next to an error message to see
-    a trace of the continuation of the error.
+ - errortrace-like facility is now available in drscheme debug
+   language levels. Click on the bug next to an error message to see
+   a trace of the continuation of the error.
 
+ - added a slew of -on-demand methods to frame:standard-menus-mixin
 
  MINOR CHANGES AND BUG FIXES
+
+ - many menus now grey out in a context sensitive manner.
 
  - added parents for these dialogs:
 

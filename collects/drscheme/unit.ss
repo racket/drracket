@@ -576,6 +576,8 @@
 	  (let-values ([(w h) (get-client-size)])
 	    (draw-button-label dc label w h inverted?))))
 
+      (define sorted? #f)
+
       (define (on-event evt)
 	(cond
 	 [(send evt button-down?)
