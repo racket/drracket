@@ -718,34 +718,59 @@ TODO
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-          (define-values (user-input-port backend-user-input-port) (make-pipe))
-          (define current-input-text%
-            (class (text:ports-mixin text:basic%)
-              (define/override (on-peek)
-                (parameterize ([current-eventspace drscheme:init:system-eventspace])
-                  (queue-callback 
-                   (lambda ()
-                     (show-input-text)))))
-              (super-new)))
+          (define current-input-text% (text:ports-mixin text:basic%))
           
-          (define current-input-text (new current-input-text%))
+          (define current-input-text #f)
+          (define current-input-port-args #f)
           (define current-text-inserted? #f)
-          (define current-input-text-thread #f)
+          
+          (define user-input-port
+            (let* ([read-proc 1]
+                   [peek-proc 2]
+                   [close-proc 3]
+                   [progress-evt-proc 4]
+                   [commit-proc 5]
+                   [location-proc 6]
+                   [call
+                    (lambda (i . args)
+                      (apply (list-ref current-input-port-args i) args))])
+              (make-input-port this
+                               (lambda (bstr)
+                                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                                   (queue-callback
+                                    (lambda ()
+                                      (show-input-text))))
+                                 (call read-proc bstr))
+                               (lambda (bstr num p-evt)
+                                 (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                                   (queue-callback
+                                    (lambda ()
+                                      (show-input-text))))
+                                 (call peek-proc bstr num p-evt))
+                               (lambda () (call close-proc))
+                               (lambda () (call progress-evt-proc))
+                               (lambda (kr evt done-evt) (call commit-proc kr evt done-evt))
+                               (lambda () (call location-proc)))))
           
           (define/private (show-input-text)
             (unless current-text-inserted?
               (set! current-text-inserted? #t)
-              (let* ([es (new editor-snip% (editor current-input-text))])
-                (insert es))))
+              (let ([locked? (is-locked?)])
+                (let ([es (new editor-snip% (editor current-input-text))])
+                  (let ([canvases (get-canvases)])
+                    (for-each (lambda (canvas) (send canvas add-wide-snip es))
+                              canvases))
+                  (lock #f)
+                  (insert-between es)
+                  (set-insertion-point (last-position))
+                  (set-unread-start-point (last-position))
+                  (set-caret-owner es 'immediate)
+                  (lock locked?)))))
+          
           (define/private (reset-input-text)
-            (when current-input-text-thread
-              (kill-thread current-input-text-thread))
+            (set! current-text-inserted? #f)
             (set! current-input-text (new current-input-text%))
-            (set! current-input-text-thread
-                  (thread
-                   (lambda ()
-                     (copy-port (send current-input-text get-in-port)
-                                backend-user-input-port)))))
+            (set! current-input-port-args (send current-input-text get-in-port-args)))
               
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
@@ -856,6 +881,7 @@ TODO
           (define/public (get-prompt) "> ")
           (define/public (insert-prompt)
             (set! inserting-prompt? #t)
+            (reset-input-text)
             (let* ([pmt (get-prompt)]
                    [prompt-space (string-length pmt)])
               
