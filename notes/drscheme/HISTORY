@@ -1,3 +1,29 @@
+Version 100alpha2:
+
+General
+-------
+
+ - Graphics functions were removed from the teaching languages
+   (Beginner, Intermediate, and Advanced), except that Advanced still
+   contains Turtles. To use graphics functions, you must select a
+   library (and the libraries are not yet updated).
+
+ - The MzScheme and MrEd languages match exactly the languages
+   provided by the MzScheme and MrEd executables.
+
+ - The old viewport-based graphics library can be loaded into the MrEd
+   Debug language via (require-library "graphic.ss" "graphics").
+
+ - I/O within DrScheme is substantially improved, but not yet secure
+   when used by a program that kills its own threads.
+
+ - Beginner contains define-struct. Intermediate prints lists with the
+   `list' abbreviation.
+
+ - The library and tool interfaces for extended DrScheme have
+   changed. The revised tool interface is not yet documented.
+
+
 Version 53:
 
 General
@@ -19,6 +45,7 @@ General
    which is our best approximation to "PLTHOME/lib"
  
  - elevator library can now select more than one floor at a time
+
 
 Version 52:
 
@@ -72,6 +99,7 @@ DrScheme Tools/Libraries
       all of the information about the language level
   - the process-*/zodiac and process-*/no-zodiac proceudres
     are no longer methods and their arguments have changed
+
 
 Version 51:
 
