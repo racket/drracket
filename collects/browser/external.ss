@@ -4,6 +4,7 @@
            (lib "class.ss")
            (lib "file.ss")
            (lib "list.ss")
+           (lib "match.ss")
            (prefix raw: (lib "sendurl.ss" "net"))
            (lib "url.ss" "net")
            (lib "unitsig.ss")
@@ -28,29 +29,34 @@
   
   (define http-proxy-preference 'plt:http-proxy)
 
-  (fw:preferences:set-default http-proxy-preference
-			      #f
-			      (lambda (x) (or (not x)
-					      (and (list? x)
-						   (= (length x) 3)
-						   (equal? (car x) "http")
-						   (string? (cadr x))
-						   (number? (caddr x))))))
-  (fw:preferences:add-callback 
-   http-proxy-preference
-   (lambda (p v)
-     (let* ([ops (current-proxy-servers)]
-            [removed (remove-all-proxies "http" ops)])
-       (current-proxy-servers
-        (if v
-            (cons v removed)
-            removed)))))
+  ;; proxy-pref? : any -> boolean
+  ;; determines if the input is a valid setting for the
+  ;; http-proxy-preference pref
+  (define (proxy-pref? x)
+    (match x
+      [#f #t]
+      [`("http" ,(? string?) ,(? number?)) #t]
+      [else #f]))
+  
+  ;; sync-current-proxy-servers : proxy-pref -> void
+  ;; syncs current-proxy-servers parameter with the proxy-pref-val
+  (define (sync-current-proxy-servers pref-val)
+    (let* ([ops (current-proxy-servers)]
+           [removed (remove-all-proxies "http" ops)])
+      (current-proxy-servers
+       (if pref-val
+           (cons pref-val removed)
+           removed))))
 
   (define (remove-all-proxies scheme proxies)
     (filter (lambda (x) 
               (and (pair? x)
                    (not (equal? (car x) scheme))))
             proxies))
+  
+  (fw:preferences:set-default http-proxy-preference #f proxy-pref?)
+  (sync-current-proxy-servers (fw:preferences:get http-proxy-preference))
+  (fw:preferences:add-callback http-proxy-preference (lambda (p v) (sync-current-proxy-servers v)))
     
   (define send-url
     (if (unix-browser?)
