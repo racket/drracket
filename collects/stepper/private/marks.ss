@@ -9,9 +9,8 @@
   (define mark? procedure?)
   (define mark-list? (listof mark?))
 
-  (define make-full-mark-contract (-> syntax? symbol? identifier-list? syntax?)) ; (location label bindings -> mark-stx)
-
   (provide/contract 
+   [make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
    [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any?)])
   
   (provide
@@ -22,7 +21,6 @@
    cheap-mark?
    make-cheap-mark
    cheap-mark-source
-   make-full-mark ; : make-full-mark-contract
    stx-protector-stx ; : (protector -> identifier) FOR TESTING ONLY
    mark-source
    mark-bindings
@@ -96,16 +94,11 @@
   (define-struct stx-protector (stx))
   
   ; see module top for type
-  (define make-full-mark
-    (contract
-     make-full-mark-contract 
-     (lambda (location label bindings)
-       (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
-                                                 (quote-syntax ,location) 
-                                                 ,(get-label-num label)
-                                                 ,@(apply append (map make-mark-binding-stx bindings))))))
-     'make-full-mark
-     'caller))
+  (define (make-full-mark location label bindings)
+    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
+                                              (quote-syntax ,location) 
+                                              ,(get-label-num label)
+                                              ,@(apply append (map make-mark-binding-stx bindings))))))
   
   (define-struct cheap-mark (source))
   
@@ -199,23 +192,20 @@
   ;;
   ;;;;;;;;;;
      
-  (define make-debug-info
-    (contract 
-     (-> syntax? binding-set? varref-set? symbol? boolean? any?)
-     (lambda (source tail-bound free-vars label lifting?)
-       (let*-2vals ([kept-vars (binding-set-varref-set-intersect tail-bound free-vars)]
-                    [let-bindings (filter (lambda (var) 
-                                            (case (syntax-property var 'stepper-binding-type)
-                                              ((let-bound macro-bound) #t)
-                                              ((lambda-bound stepper-temp non-lexical) #f)
-                                              (else (error 'make-debug-info 
-                                                           "varref ~a's binding-type info was not recognized: ~a"
-                                                           (syntax-e var)
-                                                           (syntax-property var 'stepper-binding-type)))))
-                                          kept-vars)]
-                    [lifter-syms (map get-lifted-var let-bindings)])
-                   (make-full-mark source label (append kept-vars (if lifting? lifter-syms null)))))
-     'make-debug-info
-     'caller))
+  (define (make-debug-info source tail-bound free-vars label lifting?)
+       (let*-2vals ([kept-vars (binding-set-varref-set-intersect tail-bound free-vars)])
+         (if lifting?
+             (let*-2vals ([let-bindings (filter (lambda (var) 
+                                                  (case (syntax-property var 'stepper-binding-type)
+                                                    ((let-bound macro-bound) #t)
+                                                    ((lambda-bound stepper-temp non-lexical) #f)
+                                                    (else (error 'make-debug-info 
+                                                                 "varref ~a's binding-type info was not recognized: ~a"
+                                                                 (syntax-e var)
+                                                                 (syntax-property var 'stepper-binding-type)))))
+                                                kept-vars)]
+                          [lifter-syms (map get-lifted-var let-bindings)])
+               (make-full-mark source label (append kept-vars lifter-syms)))
+             (make-full-mark source label kept-vars))))
   
 )
