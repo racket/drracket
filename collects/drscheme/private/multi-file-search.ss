@@ -461,12 +461,11 @@
              (cond
                [(null? methods-check-boxess) null]
                [else
-                (cons
-                 (let loop ([methods-check-boxes (car methods-check-boxess)])
-                   (cond
-                     [(null? methods-check-boxes) null]
-                     [else (cons (send (car methods-check-boxes) get-values)
-                                 (loop (cdr methods-check-boxes)))])))]))))
+                (let loop ([methods-check-boxes (car methods-check-boxess)])
+                  (cond
+                    [(null? methods-check-boxes) null]
+                    [else (cons (send (car methods-check-boxes) get-value)
+                                (loop (cdr methods-check-boxes)))]))]))))
         
         (define (dir-field-callback)
           (preferences:set 'drscheme:multi-file-search:directory (send dir-field get-value)))
