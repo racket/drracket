@@ -644,7 +644,7 @@ Scheme_Object *mx_unit_init(Scheme_Object **boxes,Scheme_Object **anchors,
     anchors[i] = boxes[i];
   }
   
-  mx_omit_obj = (Scheme_Object *)scheme_malloc_uncollectable(sizeof(MX_OMIT));
+  mx_omit_obj = (Scheme_Object *)scheme_malloc(sizeof(MX_OMIT));
   mx_omit_obj->type = mx_com_omit_type;
   
   SCHEME_ENVBOX_VAL(boxes[sizeray(mxPrims)]) = mx_omit_obj;
@@ -2027,14 +2027,6 @@ VARTYPE getVarTypeFromElemDesc(ELEMDESC *pElemDesc) {
   
   return pElemDesc->tdesc.vt;
   
-}
-
-Scheme_Object *newTypeSymbol(char *s) {
-  Scheme_Object *retval;
-  retval = scheme_intern_symbol(s);
-  scheme_register_extension_global(retval,sizeof(Scheme_Object));
-  
-  return retval;
 }
 
 Scheme_Object *elemDescToSchemeType(ELEMDESC *pElemDesc,BOOL ignoreByRef,BOOL isOpt) {
@@ -4200,62 +4192,25 @@ Scheme_Object *scheme_initialize(Scheme_Env *env) {
 
   // globals in mysterx.cxx
 
-  scheme_register_extension_global(&AtlWndProc,sizeof(AtlWndProc));
-  scheme_register_extension_global(&hIcon,sizeof(hIcon));
-  scheme_register_extension_global(&browserHwndMutex,sizeof(browserHwndMutex));
-  scheme_register_extension_global(&createHwndSem,sizeof(createHwndSem));
-  scheme_register_extension_global(&eventSinkMutex,sizeof(eventSinkMutex));
-  scheme_register_extension_global((void *)&emptyClsId,sizeof(emptyClsId));
   scheme_register_extension_global(&mx_unit,sizeof(mx_unit));
-  scheme_register_extension_global(&typeTable,sizeof(typeTable));
-  scheme_register_extension_global(&myssink_table,sizeof(myssink_table));
-  scheme_register_extension_global(&objectAttributes,sizeof(objectAttributes));
-  scheme_register_extension_global(&controlAttributes,sizeof(controlAttributes));
-  scheme_register_extension_global(&mxPrims,sizeof(mxPrims));
-
-  // globals in browser.cxx
-
-  scheme_register_extension_global(&browserHwnd,sizeof(browserHwnd));
-  scheme_register_extension_global(&styleOptions,sizeof(styleOptions));
-
-  // globals in comtypes.cxx 
+  scheme_register_extension_global(&mx_omit_obj,sizeof(mx_omit_obj));
 
   mx_com_object_type = scheme_make_type("<com-object>");
-  scheme_register_extension_global(&mx_com_object_type,sizeof(mx_com_object_type));
   mx_com_type_type = scheme_make_type("<com-type>");
-  scheme_register_extension_global(&mx_com_type_type,sizeof(mx_com_type_type));
   mx_browser_type = scheme_make_type("<mx-browser>");
-  scheme_register_extension_global(&mx_browser_type,sizeof(mx_browser_type));
   mx_document_type = scheme_make_type("<mx-document>");
-  scheme_register_extension_global(&mx_document_type,sizeof(mx_document_type));
   mx_element_type = scheme_make_type("<mx-element>");
-  scheme_register_extension_global(&mx_element_type,sizeof(mx_element_type));
   mx_event_type = scheme_make_type("<mx-event>");
-  scheme_register_extension_global(&mx_event_type,sizeof(mx_event_type));
   mx_com_cy_type = scheme_make_type("<com-currency>");
-  scheme_register_extension_global(&mx_com_cy_type,sizeof(mx_com_cy_type));
   mx_com_date_type = scheme_make_type("<com-date>");
-  scheme_register_extension_global(&mx_com_date_type,sizeof(mx_com_date_type));
   mx_com_boolean_type = scheme_make_type("<com-bool>");
-  scheme_register_extension_global(&mx_com_boolean_type,sizeof(mx_com_boolean_type));
   mx_com_scode_type = scheme_make_type("<com-scode>");
-  scheme_register_extension_global(&mx_com_scode_type,sizeof(mx_com_scode_type));
   mx_com_variant_type = scheme_make_type("<com-variant>");
-  scheme_register_extension_global(&mx_com_variant_type,sizeof(mx_com_variant_type));
   mx_com_iunknown_type = scheme_make_type("<com-iunknown>");
-  scheme_register_extension_global(&mx_com_iunknown_type,sizeof(mx_com_iunknown_type));
   mx_com_pointer_type = scheme_make_type("<com-pointer>");
-  scheme_register_extension_global(&mx_com_pointer_type,sizeof(mx_com_pointer_type));
   mx_com_array_type = scheme_make_type("<com-array>");
-  scheme_register_extension_global(&mx_com_array_type,sizeof(mx_com_array_type));
   mx_com_omit_type = scheme_make_type("<com-omit>");
-  scheme_register_extension_global(&mx_com_omit_type,sizeof(mx_com_omit_type));
   mx_com_typedesc_type = scheme_make_type("<com-typedesc>");
-  scheme_register_extension_global(&mx_com_typedesc_type,sizeof(mx_com_typedesc_type));
-
-  // globals in htmlevent.cxx
-
-  scheme_register_extension_global(&eventNames,sizeof(eventNames));
 
   hr = CoInitialize(NULL);
   
@@ -4265,13 +4220,9 @@ Scheme_Object *scheme_initialize(Scheme_Env *env) {
     return scheme_false;
   }		
   
-  // make type hash table uncollectable
-  
-  scheme_register_extension_global(typeTable,TYPE_TBL_SIZE * sizeof(MX_TYPE_TBL_ENTRY *));
-  
   // export prims + omit value
   
-  mx_unit = (Scheme_Unit *)scheme_malloc_uncollectable(sizeof(Scheme_Unit));
+  mx_unit = (Scheme_Unit *)scheme_malloc(sizeof(Scheme_Unit));
   mx_unit->type = scheme_unit_type;
   mx_unit->num_imports = 0;
   mx_unit->num_exports = sizeray(mxPrims) + 1;

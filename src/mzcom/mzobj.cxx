@@ -1,21 +1,33 @@
 // mzobj.cxx : Implementation of CMzObj
 
-#include "resource.h"
-
 #include "stdafx.h"
+#include "resource.h"
+#ifdef _ATL_STATIC_REGISTRY
+#include <statreg.h>
+#include <statreg.cpp>
+#endif
+#include <atlimpl.cpp>
+
 #include "mzcom.h"
 #include "mzobj.h"
+
+static THREAD_GLOBALS tg;
 
 static Scheme_Env *env;
 
 static BOOL *pErrorState;
 static OLECHAR *wideError;
 
+static HANDLE evalLoopSems[2];
 static HANDLE exitSem;
 
 static Scheme_Object *exn_catching_apply;
 static Scheme_Object *exn_p;
 static Scheme_Object *exn_message;
+
+static void ErrorBox(char *s) {
+  ::MessageBox(NULL,s,"MzCOM",MB_OK);
+}
 
 static Scheme_Object *_apply_thunk_catch_exceptions(Scheme_Object *f,
 						    Scheme_Object **exn) {
@@ -76,7 +88,7 @@ OLECHAR *wideStringFromSchemeObj(Scheme_Object *obj,char *fmt,int fmtlen) {
   len = strlen(s);
   wideString = (OLECHAR *)scheme_malloc((len + 1) * sizeof(OLECHAR));
   MultiByteToWideChar(CP_ACP,(DWORD)0,s,len,wideString,len + 1);
-  wideString[len] = '\0';
+  wideString[len] = L'\0';
   return wideString;
 }
 
@@ -85,44 +97,21 @@ void exitHandler(int) {
   ExitThread(0);
 } 
 
-DWORD WINAPI evalLoop(LPVOID args) {
-  UINT len;
-  char *narrowInput;
-  Scheme_Object *outputObj;
-  OLECHAR *outputBuffer;
-  mz_jmp_buf saveBuff;
-  THREAD_GLOBALS *pTg;
-  HANDLE readSem;
-  HANDLE writeSem;
-  BSTR **ppInput;
-  BSTR *pOutput;
-  HRESULT *pHr;
+void setupSchemeEnv(void) {
   char *wrapper;
   char exeBuff[260];
-
-  // make sure all MzScheme calls in this thread
-
-  GC_use_registered_statics = 1;
-
-  scheme_exit = exitHandler;
-
-  pTg = (THREAD_GLOBALS *)args;
-
-  ppInput = pTg->ppInput;
-  pOutput = pTg->pOutput; 
-  pHr = pTg->pHr;
-  readSem = pTg->readSem;
-  writeSem = pTg->writeSem;
-  pErrorState = pTg->pErrorState;
 
   env = scheme_basic_env();
 
   if (env == NULL) {
-    ::MessageBox(NULL,"Can't create Scheme environment","MzCOM",MB_OK);
+    ErrorBox("Can't create Scheme environment");
     ExitThread(0);
-  }
+  } 
 
-  scheme_dont_gc_ptr(env); 
+  scheme_register_static(&env,sizeof(env)); 
+  scheme_register_static(&exn_catching_apply,sizeof(exn_catching_apply));
+  scheme_register_static(&exn_p,sizeof(exn_p));
+  scheme_register_static(&exn_message,sizeof(exn_message));
 
   // set up exception trapping
   
@@ -154,11 +143,51 @@ DWORD WINAPI evalLoop(LPVOID args) {
 		     "(#%lambda () (#%find-executable-path mzcom-exe \"..\")) "
 		     "(#%lambda () \"c:\\plt\\collects\") "
 		     ")) #%null)))",
-		     env);
+		     env); 
+}
+
+DWORD WINAPI evalLoop(LPVOID args) {
+  UINT len;
+  char *narrowInput;
+  Scheme_Object *outputObj;
+  OLECHAR *outputBuffer;
+  THREAD_GLOBALS *pTg;
+  HANDLE readSem;
+  HANDLE writeSem;
+  HANDLE resetSem;
+  HANDLE resetDoneSem;
+  BSTR **ppInput;
+  BSTR *pOutput;
+  HRESULT *pHr;
+
+  // make sure all MzScheme calls in this thread
+
+  GC_use_registered_statics = 1;
+
+  setupSchemeEnv();
+
+  scheme_exit = exitHandler;
+
+  pTg = (THREAD_GLOBALS *)args;
+
+  ppInput = pTg->ppInput;
+  pOutput = pTg->pOutput; 
+  pHr = pTg->pHr;
+  readSem = pTg->readSem;
+  writeSem = pTg->writeSem;
+  resetSem = pTg->resetSem;
+  resetDoneSem = pTg->resetDoneSem;
+  pErrorState = pTg->pErrorState;
 
   while (1) {
 
-    WaitForSingleObject(readSem,INFINITE);
+    if (WaitForMultipleObjects(2,evalLoopSems,FALSE,INFINITE) ==
+	WAIT_OBJECT_0 + 1) {
+      // reset semaphore signalled
+      setupSchemeEnv();
+      ReleaseSemaphore(resetDoneSem,1,NULL);
+      continue;
+    }
 
     len = SysStringLen(**ppInput);
 
@@ -188,8 +217,6 @@ DWORD WINAPI evalLoop(LPVOID args) {
       *pHr = S_OK;
     }
 
-    memcpy(&scheme_error_buf,&saveBuff,sizeof(mz_jmp_buf));
-
     ReleaseSemaphore(writeSem,1,NULL);
 
   }
@@ -198,13 +225,13 @@ DWORD WINAPI evalLoop(LPVOID args) {
 }
 
 void CMzObj::startMzThread(void) {
-  static THREAD_GLOBALS tg;
-
   tg.pHr = &hr;
   tg.ppInput = &globInput;
   tg.pOutput = &globOutput;
   tg.readSem = readSem;
   tg.writeSem = writeSem;
+  tg.resetSem = resetSem;
+  tg.resetDoneSem = resetDoneSem;
   tg.pErrorState = &errorState;
 
   threadHandle = CreateThread(NULL,0,evalLoop,(LPVOID)&tg,0,&threadId);
@@ -212,7 +239,7 @@ void CMzObj::startMzThread(void) {
 
 
 CMzObj::CMzObj(void) {
-
+  lastOutput = NULL;
   inputMutex = NULL;
   readSem = NULL;
   threadId = NULL;
@@ -220,33 +247,49 @@ CMzObj::CMzObj(void) {
 
   inputMutex = CreateSemaphore(NULL,1,1,NULL);
   if (inputMutex == NULL) {
-    MessageBox(NULL,"Can't create input mutex","MzCOM",MB_OK);
+    ErrorBox("Can't create input mutex");
     return;
   }
 
   readSem = CreateSemaphore(NULL,0,1,NULL);
 
   if (readSem == NULL) {
-    MessageBox(NULL,"Can't create read semaphore","MzCOM",MB_OK);
+    ErrorBox("Can't create read semaphore");
     return; 
   }
 
   writeSem = CreateSemaphore(NULL,0,1,NULL);
 
   if (writeSem == NULL) {
-    MessageBox(NULL,"Can't create write semaphore","MzCOM",MB_OK);
+    ErrorBox("Can't create write semaphore");
     return; 
   }
 
   exitSem = CreateSemaphore(NULL,0,1,NULL);
 
   if (exitSem == NULL) {
-    MessageBox(NULL,"Can't create exit semaphore","MzCOM",MB_OK);
+    ErrorBox("Can't create exit semaphore");
     return; 
   }
 
-  evalSems[0] = writeSem;
-  evalSems[1] = exitSem;
+  resetSem = CreateSemaphore(NULL,0,1,NULL);
+
+  if (resetSem == NULL) {
+    ErrorBox("Can't create reset semaphore");
+    return; 
+  }
+
+  resetDoneSem = CreateSemaphore(NULL,0,1,NULL);
+
+  if (resetSem == NULL) {
+    ErrorBox("Can't create reset-done semaphore");
+    return; 
+  }
+
+  evalLoopSems[0] = readSem;
+  evalLoopSems[1] = resetSem;
+  evalDoneSems[0] = writeSem;
+  evalDoneSems[1] = exitSem;
 
   startMzThread();
 }
@@ -268,6 +311,10 @@ void CMzObj::killMzThread(void) {
 }
 
 CMzObj::~CMzObj(void) {
+
+  if (lastOutput) {
+    SysFreeString(lastOutput); 
+  }
 
   killMzThread();
 
@@ -318,23 +365,30 @@ BOOL CMzObj::testThread(void) {
 /////////////////////////////////////////////////////////////////////////////
 // CMzObj
 
-
 STDMETHODIMP CMzObj::Eval(BSTR input, BSTR *output) {
+
   if (!testThread()) {
     return E_ABORT;
   }
 
   WaitForSingleObject(inputMutex,INFINITE);
+  if (lastOutput) {
+    SysFreeString(lastOutput);
+    lastOutput = NULL;
+  }
+
   globInput = &input;
   // allow evaluator to read
   ReleaseSemaphore(readSem,1,NULL);
+
   // wait until evaluator done or eval thread terminated
-  if (WaitForMultipleObjects(2,evalSems,FALSE,INFINITE) ==
+  if (WaitForMultipleObjects(2,evalDoneSems,FALSE,INFINITE) ==
       WAIT_OBJECT_0 + 1) {
     RaiseError(L"Scheme terminated evaluator");
     return E_FAIL;
   }
-  *output = globOutput;
+
+  lastOutput = *output = globOutput;
   ReleaseSemaphore(inputMutex,1,NULL);
 
   if (errorState) {
@@ -367,3 +421,12 @@ STDMETHODIMP CMzObj::About() {
   return S_OK;
 }
 
+STDMETHODIMP CMzObj::Reset() {
+  if (!testThread()) {
+    return E_ABORT;
+  }
+
+  ReleaseSemaphore(resetSem,1,NULL);
+  WaitForSingleObject(resetDoneSem,INFINITE);
+  return S_OK;
+}

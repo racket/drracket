@@ -1,4 +1,4 @@
-; $Id: quasi.ss,v 1.9 1999/02/04 14:32:53 mflatt Exp $
+; $Id: quasi.ss,v 1.10 1999/06/13 21:41:25 mflatt Exp $
 
 ; Fix the null? in qq-normalize.
 
@@ -65,13 +65,15 @@
 				    body
 				    (qq-list x (sub1 level))))))
 			    ((pat:match-against qq-m&e-2 x env)
-			      (static-error x
-				"unquote takes exactly one expression"))
+			      (static-error
+				"unquote" 'kwd:unquote x
+				"takes exactly one expression"))
 			    ((pat:match-against qq-m&e-3 x env)
 			      (qq-list x (add1 level)))
 			    ((pat:match-against qq-m&e-4 x env)
-			      (static-error x
-				"invalid context for unquote-splicing inside quasiquote"))
+			      (static-error
+				"unquote-splicing" 'kwd:unquote-splicing x
+				"invalid context inside quasiquote"))
 			    ((pat:match-against qq-m&e-5 x env)
 			      =>
 			      (lambda (p-env)
@@ -93,8 +95,9 @@
 					      '()))
 					  (qq-normalize q-rest rest))))))))
 			    ((pat:match-against qq-m&e-6 x env)
-			      (static-error x
-				"unquote-splicing takes exactly one expression"))
+			      (static-error
+				"unquote-splicing" 'kwd:unquote-splicing x
+				"takes exactly one expression"))
 			    (else
 			      (qq-list x level))))
 			((z:vector? x)
@@ -114,7 +117,8 @@
 		  template)
 		expr env attributes vocab))))
 	(else
-	  (static-error expr "Malformed quasiquote"))))))
+	  (static-error
+	    "quasiquote" 'kwd:quasiquote expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'quasiquote intermediate-vocabulary quasiquote-micro)
 (add-primitivized-micro-form 'quasiquote scheme-vocabulary quasiquote-micro)

@@ -382,7 +382,7 @@
   (define beginner-level-name "Beginning Student")
       
   (define (stepper-go frame)
-    (let ([settings (f:preferences:get 'drscheme:settings)])
+    (let ([settings (f:preferences:get d:language:settings-preferences-symbol)])
       (if #f ; (not (string=? (d:basis:setting-name settings) beginner-level-name))
           (message-box "Stepper" 
                        (format (string-append "Language level is set to \"~a\".~n"

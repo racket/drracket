@@ -1,6 +1,6 @@
 ;;
 ;;  zodiac:scanner-code@
-;;  $Id: scanner.ss,v 1.13 1999/10/26 18:47:02 shriram Exp $
+;;  $Id: scanner.ss,v 1.14 2000/03/24 14:50:29 clements Exp $
 ;;
 ;;  Zodiac Scanner  July 96.
 ;;  mwk, plt group, Rice university.
@@ -10,10 +10,6 @@
 ;;    scalar  (symbol, number, string, boolean, char)
 ;;    token   (anything else)
 ;;    eof
-;;
-;;  In case of error, we invoke static-error (or internal-error)
-;;  with args: token (type 'error) message (string).
-;;
 
 ;;
 ;; Imports: make- constructors and parameters.
@@ -348,18 +344,21 @@
 	      (case-lambda 
 	       [(str)
 		(report:static-error
-		 (z:token  error-tag  z:void  start-loc  (prev-loc))
-		 str)]
+		  "syntax error" 'scan:syntax-error
+		  (z:token  error-tag  z:void  start-loc  (prev-loc))
+		  str)]
 	       [(str  text)
 		(report:static-error
-		 (z:token  error-tag  z:void  start-loc  (prev-loc))
-		 (format  str  (text->string  text)))])]
+		  "syntax error" 'scan:syntax-error
+		  (z:token  error-tag  z:void  start-loc  (prev-loc))
+		  (format  str  (text->string  text)))])]
 	     
 	     [z:eof-error
 	      (lambda  (str)
 		(report:static-error
-		 (z:token  error-tag  z:void  start-loc  (prev-loc))
-		 (format  "unexpected end of file inside ~a"  str)))]
+		  "syntax error" 'scan:syntax-error
+		  (z:token  error-tag  z:void  start-loc  (prev-loc))
+		  (format  "unexpected end of file inside ~a"  str)))]
 	     
 	     ;;
 	     ;; States in the scanner.

@@ -1,4 +1,4 @@
-; $Id: scm-core.ss,v 1.57 2000/03/24 14:50:29 clements Exp $
+; $Id: scm-core.ss,v 1.59 2000/04/30 22:37:34 clements Exp $
 
 (unit/sig zodiac:scheme-core^
   (import zodiac:structures^ zodiac:misc^ zodiac:sexp^
@@ -170,17 +170,17 @@
       (when sig-space
 	(unless (get-attribute attributes 'delay-sig-name-check?)
 	  (when (hash-table-get sig-space (z:symbol-orig-name expr) (lambda () #f))
-	    (static-error 
-	     expr
-	     "Invalid use of signature name ~s" (z:symbol-orig-name expr)))))))
+	    (static-error
+	      "signature" 'term:signature-out-of-context expr
+	     "invalid use of signature name ~s" (z:symbol-orig-name expr)))))))
 
   (define ensure-not-macro/micro
     (lambda (expr env vocab attributes)
       (let ((r (resolve expr env vocab)))
 	(if (or (macro-resolution? r) (micro-resolution? r))
-            (static-error 
-	     expr
-	     "Invalid use of keyword ~s" (z:symbol-orig-name expr))
+            (static-error
+	      "keyword" 'term:keyword-out-of-context expr
+	     "invalid use of keyword ~s" (z:symbol-orig-name expr))
 	    r))))
 
   (define process-top-level-resolution
@@ -216,32 +216,39 @@
 	  (else
 	   (internal-error expr "Invalid resolution in core: ~s" r))))))
 
-  (define (make-list-micro null-ok? lexvar-ok? expr-ok?)
+  (define (make-list-micro null-ok? lambda-bound-ok? expr-ok?)
     (lambda (expr env attributes vocab)
       (let ((contents (expose-list expr)))
 	(if (null? contents)
 	  (if null-ok?
 	    (expand-expr (structurize-syntax `(quote ,expr) expr)
 	      env attributes vocab)
-	    (static-error expr "Empty combination is a syntax error"))
+	    (static-error
+	      "illegal term" 'term:empty-combination expr
+	      "empty combination is not valid syntax"))
 	  (as-nested
 	   attributes
 	   (lambda ()
 	     (let ((bodies
-		    (map
-		     (lambda (e)
-		       (expand-expr e env attributes vocab))
-		     contents)))
-	       (when (or (and (not lexvar-ok?)
-			      (not (top-level-varref? (car bodies))))
-			 (and (not expr-ok?)
-			      (not (varref? (car bodies)))))
-		 (static-error expr
-			       "First term after parenthesis is illegal in an application"))
-	      (create-app (car bodies) (cdr bodies) expr))))))))
+		     (map
+		       (lambda (e)
+			 (expand-expr e env attributes vocab))
+		       contents)))
+	       (when (and (not lambda-bound-ok?)
+		       (lambda-varref? (car bodies)))
+		 (static-error
+		   "illegal application" 'term:app-first-term-lambda-bound
+		   expr
+		   "first term in application is a function-bound identifier"))
+	       (when (and (not expr-ok?)
+		       (not (varref? (car bodies))))
+		 (static-error
+		   "illegal application" 'term:app-first-term-not-var
+		   expr
+		   "first term in application must be a function name"))
+	       (create-app (car bodies) (cdr bodies) expr))))))))
 
   (add-list-micro beginner-vocabulary (make-list-micro #f #f #f))
-  (add-list-micro intermediate-vocabulary (make-list-micro #f #t #f))
   (add-list-micro advanced-vocabulary (make-list-micro #f #t #t))
   (add-list-micro scheme-vocabulary (make-list-micro #t #t #t))
 
@@ -378,7 +385,9 @@
   (define valid-syntactic-id?
     (lambda (id)
       (or (z:symbol? id) 
-	(static-error id "~s is not an identifier" (sexp->raw id)))))
+	(static-error
+	  "not an identifier" 'term:expected-an-identifier id
+	  "~s" (sexp->raw id)))))
 
   (define valid-syntactic-id/s?
     (lambda (ids)
@@ -388,8 +397,9 @@
 	  (let ((first (car ids)) (rest (cdr ids)))
 	    (if (valid-syntactic-id? first)
 	      (cons (z:read-object first) (valid-syntactic-id/s? rest))
-	      (static-error first "~e is not an identifier"
-		(sexp->raw first)))))
+	      (static-error
+		"not an identifier" 'term:expected-an-identifier first
+		"~e" (sexp->raw first)))))
 	(else (internal-error ids "Illegal to check validity of id/s")))))
 
   (define distinct-valid-syntactic-id/s?
@@ -399,12 +409,15 @@
 	  (or (null? ids)
 	    (if (symbol? (car ids))
 	      (if (memq (car ids) (cdr ids))
-		(static-error (list-ref input-ids index)
-		  "Identifier ~s repeated" (car ids))
+		(static-error
+		  "identifier" 'term:repeated-identifier
+		  (list-ref input-ids index)
+		  "~s repeated" (car ids))
 		(loop (cdr ids) (add1 index)))
 	      (let ((erroneous (list-ref input-ids index)))
-		(static-error erroneous "~e is not an identifier"
-		  (sexp->raw erroneous)))))))))
+		(static-error
+		  "not an identifier" 'term:expected-an-identifier
+		  erroneous "~e" (sexp->raw erroneous)))))))))
 
   (define syntactic-id/s->ids
     (lambda (ids)
@@ -414,15 +427,17 @@
 	((z:symbol? ids) (list ids))
 	((pair? ids) ids)
 	((null? ids) ids)
-	(else (static-error ids "~e is not an identifier"
-		(sexp->raw ids))))))
+	(else (static-error
+		"not an identifier" 'term:expected-an-identifier ids
+		"~e" (sexp->raw ids))))))
 
   ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   (define valid-id?
     (lambda (id)
       (or (binding? id) 
-	(static-error id "Invalid identifier"))))
+	(static-error
+	  "identifier" 'term:invalid-identifier id "invalid"))))
 
   (define valid-id/s?
     (lambda (ids)
@@ -432,7 +447,8 @@
 	  (let ((first (car ids)) (rest (cdr ids)))
 	    (if (valid-id? first)
 	      (cons (binding-orig-name first) (valid-id/s? rest))
-	      (static-error first "Invalid identifier"))))
+	      (static-error
+		"identifier" 'term:invalid-identifier first "invalid"))))
 	(else (internal-error ids "Illegal to check validity of id/s")))))
 
   (define distinct-valid-id/s?
@@ -442,9 +458,9 @@
 	  (or (null? ids)
 	    (if (memq (car ids) (cdr ids))
 	      (let ((v (list-ref input-ids index)))
-		(static-error v
-		  "Repeated identifier ~e"
-		  (car ids)))
+		(static-error
+		  "identifier" 'term:repeated-identifier v
+		  "~e repeated" (car ids)))
 	      (loop (cdr ids) (add1 index))))))))
 
   (define id/s->ids
@@ -455,8 +471,8 @@
 	((z:symbol? ids) (list ids))
 	((pair? ids) ids)
 	((null? ids) ids)
-	(else (static-error ids "Invalid identifier")))))
-
+	(else (static-error
+		"identifier" 'term:invalid-identifier ids "invalid")))))
     
   ; ----------------------------------------------------------------------
 
@@ -475,10 +491,10 @@
 
   (define optarglist-decl-entry-parser-vocab
     (create-vocabulary 'optarglist-decl-entry-parser-vocab #f
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"))
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"))
 
   (add-sym-micro optarglist-decl-entry-parser-vocab
     (lambda (expr env attributes vocab)
@@ -486,13 +502,15 @@
 	(case (unbox status-holder)
 	  ((proper improper) (void))
 	  ((proper/defaults)
-	    (static-error expr
-	      "Appears after initial value specifications"))
+	    (static-error
+	      "argument list" 'term:arglist-after-init-value-spec expr
+	      "appears after initial value specifications"))
 	  ((improper/defaults)
 	    (set-box! status-holder 'improper/done))
 	  ((improper/done)
-	    (static-error expr
-	      "Appears past catch-all argument"))
+	    (static-error
+	      "argument list" 'term:arglist-after-catch-all-arg expr
+	      "appears past catch-all argument"))
 	  (else (internal-error (unbox status-holder)
 		  "Invalid in optarglist-decl-entry-parser-vocab sym"))))
       (make-optarglist-entry
@@ -508,8 +526,9 @@
 	    ((proper) (set-box! status-holder 'proper/defaults))
 	    ((improper) (set-box! status-holder 'improper/defaults))
 	    ((proper/defaults improper/defaults) (void))
-	    ((improper/done) (static-error expr
-			       "Invalid default value specification"))
+	    ((improper/done) (static-error
+			       "argument list" 'term:arglist-invalid-init-value
+			       expr "invalid default value specification"))
 	    (else (internal-error (unbox status-holder)
 		    "Invalid in optarglist-decl-entry-parser-vocab list"))))
 	(cond
@@ -523,14 +542,16 @@
 		  (create-lexical-binding+marks var)
 		  val))))
 	  (else
-	    (static-error expr "Invalid init-var declaration"))))))
+	    (static-error
+	      "argument list" 'term:arglist-invalid-init-var-decl
+	      expr "invalid init-var declaration"))))))
 
   (define optarglist-decls-vocab
     (create-vocabulary 'optarglist-decls-vocab #f
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"))
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"))
 
   (add-sym-micro optarglist-decls-vocab
     (lambda (expr env attributes vocab)
@@ -563,8 +584,10 @@
 	  (let loop ((result result) (exprs expr-list))
 	    (if (null? (cdr result))
 	      (when (initialized-optarglist-entry? (car result))
-		(static-error (car exprs)
-		  "Last argument must not have an initial value"))
+		(static-error
+		  "argument list" 'term:arglist-last-arg-no-init
+		  (car exprs)
+		  "last argument must not have an initial value"))
 	      (loop (cdr result) (cdr exprs))))
 	  (make-ilist-optarglist result)))))
 
@@ -635,10 +658,10 @@
 
   (define paroptarglist-decl-entry-parser-vocab
     (create-vocabulary 'paroptarglist-decl-entry-parser-vocab #f
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"))
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"))
 
   (add-sym-micro paroptarglist-decl-entry-parser-vocab
     (lambda (expr env attributes vocab)
@@ -646,13 +669,15 @@
 	(case (unbox status-holder)
 	  ((proper improper) (void))
 	  ((proper/defaults)
-	    (static-error expr
-	      "Appears after initial value specifications"))
+	    (static-error
+	      "argument list" 'term:arglist-after-init-value-spec expr
+	      "appears after initial value specifications"))
 	  ((improper/defaults)
 	    (set-box! status-holder 'improper/done))
 	  ((improper/done)
-	    (static-error expr
-	      "Appears past catch-all argument"))
+	    (static-error
+	      "argument list" 'term:arglist-after-catch-all-arg expr
+	      "appears past catch-all argument"))
 	  (else (internal-error (unbox status-holder)
 		  "Invalid in paroptarglist-decl-entry-parser-vocab sym"))))
       (make-paroptarglist-entry
@@ -668,8 +693,10 @@
 	    ((proper) (set-box! status-holder 'proper/defaults))
 	    ((improper) (set-box! status-holder 'improper/defaults))
 	    ((proper/defaults improper/defaults) (void))
-	    ((improper/done) (static-error expr
-			       "Invalid default value specification"))
+	    ((improper/done) (static-error
+			       "argument list" 'term:arglist-invalid-init-value
+			       expr
+			       "invalid default value specification"))
 	    (else (internal-error (unbox status-holder)
 		    "Invalid in paroptarglist-decl-entry-parser-vocab list"))))
 	(cond
@@ -683,14 +710,16 @@
 		  (create-lexical-binding+marks var)
 		  val))))
 	  (else
-	    (static-error expr "Invalid init-var declaration"))))))
+	    (static-error
+	      "argument list" 'term:arglist-invalid-init-var-decl
+	      expr "invalid init-var declaration"))))))
 
   (define paroptarglist-decls-vocab
     (create-vocabulary 'paroptarglist-decls-vocab #f
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"))
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"))
 
   (add-sym-micro paroptarglist-decls-vocab
     (lambda (expr env attributes vocab)
@@ -723,8 +752,10 @@
 	  (let loop ((result result) (exprs expr-list))
 	    (if (null? (cdr result))
 	      (when (initialized-paroptarglist-entry? (car result))
-		(static-error (car exprs)
-		  "Last argument must not have an initial value"))
+		(static-error
+		  "argument list" 'term:arglist-last-arg-no-init
+		  (car exprs)
+		  "last argument must not have an initial value"))
 	      (loop (cdr result) (cdr exprs))))
 	  (make-ilist-paroptarglist result)))))
 
@@ -794,10 +825,10 @@
 
   (define (make-arglist-decls-vocab)
     (create-vocabulary 'arglist-decls-vocab #f
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"
-      "Invalid argument list entry"))
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"
+      "malformed argument list entry"))
 
   ; note: the only difference between the lambda-<> vocabs and the <> vocabs
   ; is that the lambda-<> vocabs use create-lambda-binding+marks instead
@@ -821,7 +852,9 @@
                       (binding-constructor expr)))))
     
     (let ([m (lambda (expr env attributes vocab)
-               (static-error expr "Invalid argument list syntax"))])
+               (static-error
+		 "argument list" 'term:arglist-invalid-syntax expr
+		 "invalid syntax"))])
       (add-sym-micro proper-vocab m)
       (add-sym-micro nonempty-vocab m))
 
@@ -831,7 +864,9 @@
                (let ((contents (expose-list expr)))
                  (when (and (not null-ok?)
                             (null? contents))
-                   (static-error expr "All procedures must take at least one argument"))
+                   (static-error
+		     "application" 'term:proc-arity->=-1 expr
+		     "all procedures must take at least one argument"))
                  (make-list-arglist
                   (map binding-constructor contents)))))])
       (add-list-micro nonempty-vocab (make-arg-list-micro #f))
@@ -839,7 +874,9 @@
       (add-list-micro full-vocab (make-arg-list-micro #t)))
 
     (let ([m (lambda (expr env attributes vocab)
-               (static-error expr "Invalid argument list syntax"))])
+               (static-error
+		 "argument list" 'term:arglist-invalid-syntax expr
+		 "invalid syntax"))])
       (add-ilist-micro proper-vocab m)
       (add-ilist-micro nonempty-vocab m))
 

@@ -482,5 +482,25 @@ Okay, time to do units.  Compound units are dead easy.  Just wrap them in a wcm 
    (define c c)
    ...)
    
+************
+
+Well, I still haven't written the code to annotate units, so it's a damn good thing
+I wrote down the transformation.  I'm here today (thank you very much) to talk about
+annotation schemes.  
+
+I just (okay, a month ago --- it's now 2000-05-23) folded aries into the stepper. the
+upshot of this is that aries now supports two different annotation modes: "cheap-wrap,"
+which is what aries used to do, and the regular annotation, used for the algebraic
+stepper.
+
+However, I'm beginning to see a need for a third annotation, to be used for (non-
+algebraic) debugging.  In particular, much of the bulk involved in annotating the
+program source is due to the strict algebraic nature of the stepper.  For instance,
+I'm now annotating lets.  The actual step taken by the let is after the evaluation
+of all bindings.  So we need a break there.  However, the body expression is 
+_also_ going to have a mark and a break around it, for the "result-break" of the
+let.  I thought I could leave out the outer break, but it doesn't work.  Actually,
+maybe I could leave out the inner one.  Gee whiz.  This stuff is really complicated.
+
 
       

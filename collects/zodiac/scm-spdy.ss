@@ -1,4 +1,4 @@
-; $Id: scm-spdy.ss,v 1.42 1999/01/16 15:47:07 mflatt Exp $
+; $Id: scm-spdy.ss,v 1.43 1999/03/15 14:35:40 mflatt Exp $
 
 (unit/sig zodiac:scheme-mrspidey^
   (import zodiac:misc^ (z : zodiac:structures^)
@@ -71,7 +71,7 @@
   ; --------------------------------------------------------------------
 
   (define mrspidey-vocabulary
-    (create-vocabulary 'mrspidey-vocabulary full-vocabulary))
+    (create-vocabulary 'mrspidey-vocabulary scheme-vocabulary))
 
   ; --------------------------------------------------------------------
 
@@ -89,7 +89,9 @@
 		  (expand-expr p-expr env attributes vocab)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed poly"))))))
+	    (static-error
+	      "polymorphic" 'kwd:polymorphic
+	      expr "malformed definition"))))))
 
   (add-primitivized-micro-form ': mrspidey-vocabulary
     (let* ((kwd '())
@@ -107,7 +109,9 @@
 		  (sexp->raw type)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed :"))))))
+	    (static-error
+	      ":" 'kwd::
+	      expr "malformed declaration"))))))
 
   (add-primitivized-micro-form 'type: mrspidey-vocabulary
     (let* ((kwd '())
@@ -125,7 +129,9 @@
 		  (map sexp->raw attrs)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed type:"))))))
+	    (static-error
+	      "type:" 'kwd:type:
+	      expr "malformed declaration"))))))
 
   (add-primitivized-micro-form 'mrspidey:control mrspidey-vocabulary
     (let* ((kwd '())
@@ -143,7 +149,9 @@
 		  (sexp->raw val)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed mrspidey:control"))))))
+	    (static-error
+	      "mrspidey:control" 'kwd:mrspidey:control
+	      expr "malformed declaration"))))))
 
   (add-primitivized-micro-form 'define-type mrspidey-vocabulary
     (let* ((kwd '())
@@ -162,7 +170,9 @@
 		  (sexp->raw type)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed define-type"))))))
+	    (static-error
+	      "define-type" 'kwd:define-type
+	      expr "malformed definition"))))))
 
   (add-primitivized-micro-form 'define-constructor mrspidey-vocabulary
     (let* ((kwd '())
@@ -181,14 +191,18 @@
 		; I have no idea what (assert-syn def ...) does.
 		(map (lambda (mode)
 		       (unless (z:boolean? mode)
-			 (static-error mode "Malformed mode")))
+			 (static-error
+			   "define-constructor" 'kwd:define-constructor
+			   mode "malformed mode")))
 		  modes)
 		(create-define-constructor-form
 		  (z:read-object sym)
 		  (map sexp->raw modes)
 		  expr))))
 	  (else
-	    (static-error expr "Malformed define-constructor"))))))
+	    (static-error
+	      "define-constructor" 'kwd:define-constructor
+	      expr "malformed definition"))))))
 
   (add-primitivized-micro-form 'reference-file mrspidey-vocabulary
     (let* ((kwd '())
@@ -207,15 +221,20 @@
 		      (let-values (((base name dir?)
 				     (split-path raw-filename)))
 			(when dir?
-			  (static-error file
-			    "Cannot include a directory"))
+			  (static-error
+			    "reference-file" 'kwd:reference-file
+			    file
+			    "cannot include a directory"))
 			(let* ((original-directory
 				 (current-load-relative-directory))
 				(p (with-handlers
 				     ((exn:i/o:filesystem?
 					(lambda (exn)
-					  (static-error file
-					    "Unable to open file ~a"
+					  (static-error
+					    "reference-file"
+					    'kwd:reference-file
+					    file
+					    "unable to open file ~a"
 					    raw-filename))))
 				     (open-input-file
 				       (if (complete-path? raw-filename)
@@ -254,7 +273,9 @@
 					      (cons input
 						(loop)))))))
 				  (if (null? code)
-				    (static-error expr "Empty file")
+				    (static-error
+				      "reference-file" 'kwd:reference-file
+				      expr "empty file")
 				    (expand-expr
 				      (structurize-syntax
 					`(begin ,@code)
@@ -263,12 +284,16 @@
 			    (lambda ()
 			      (current-load-relative-directory original-directory)
 			      (close-input-port p))))))
-		    (static-error file "Does not yield a filename"))))))
+		    (static-error
+		      "reference-file" 'kwd:reference-file
+		      file "does not yield a filename"))))))
 	  (else
-	    (static-error expr "Malformed reference-file"))))))
+	    (static-error
+	      "reference-file" 'kwd:reference-file
+	      expr "malformed expression"))))))
 
   (define reference-library/relative-maker
-    (lambda (form-name make-raw-filename)
+    (lambda (form-name kwd:form-name make-raw-filename)
       (let* ((kwd '())
 	      (in-pattern '(_ filename collections ...))
 	      (m&e (pat:make-match&env in-pattern kwd)))
@@ -285,12 +310,16 @@
 			       collections)))
 		    (unless (and (quote-form? f)
 			      (z:string? (quote-form-expr f)))
-		      (static-error filename "Does not yield a filename"))
+		      (static-error
+			(symbol->string form-name) kwd:form-name
+			filename "does not yield a filename"))
 		    (for-each
 		      (lambda (c collection)
 			(unless (and (quote-form? c)
 				  (z:string? (quote-form-expr c)))
-			  (static-error collection "Does not yield a string")))
+			  (static-error
+			    (symbol->string form-name) kwd:form-name
+			    collection "does not yield a string")))
 		      cs collections)
 		    (let* ((raw-f (z:read-object (quote-form-expr f)))
 			    (raw-cs (map (lambda (c)
@@ -299,16 +328,22 @@
 			    (raw-filename
 			      (if (relative-path? raw-f)
 				(or (make-raw-filename raw-f raw-cs expr)
-				  (static-error filename
-				    "No such library file found"))
-				(static-error f
-				  "Library path ~s must be a relative path"
+				  (static-error
+				    (symbol->string form-name) kwd:form-name
+				    filename
+				    "no such library file found"))
+				(static-error
+				  (symbol->string form-name) kwd:form-name
+				  f
+				  "library path ~s must be a relative path"
 				  raw-f))))
 			(let-values (((base name dir?)
 				       (split-path raw-filename)))
 			  (when dir?
-			    (static-error filename
-			      "Cannot include a directory"))
+			    (static-error
+			      (symbol->string form-name) kwd:form-name
+			      filename
+			      "cannot include a directory"))
 			  (let ((original-directory
 				  (current-load-relative-directory))
 				 (original-collections
@@ -316,8 +351,11 @@
 				 (p (with-handlers
 				      ((exn:i/o:filesystem?
 					 (lambda (exn)
-					   (static-error filename
-					     "Unable to open file ~a"
+					   (static-error
+					     (symbol->string form-name)
+					     kwd:form-name
+					     filename
+					     "unable to open file ~a"
 					     raw-filename))))
 				      (open-input-file raw-filename))))
 			    (dynamic-wind
@@ -347,7 +385,10 @@
 						(cons input
 						  (loop)))))))
 				    (if (null? code)
-				      (static-error expr "Empty file")
+				      (static-error
+					(symbol->string form-name)
+					kwd:form-name
+					expr "empty file")
 				      (expand-expr
 					(structurize-syntax
 					  `(begin ,@code)
@@ -360,25 +401,31 @@
 				  original-collections)
 				(close-input-port p))))))))))
 	    (else
-	      (static-error expr (string-append "Malformed "
-				   (symbol->string form-name)))))))))
+	      (static-error
+		(symbol->string form-name) kwd:form-name
+		expr
+		(string-append "malformed expression"))))))))
 
   (add-primitivized-micro-form 'require-library mrspidey-vocabulary
     (reference-library/relative-maker 'require-library
+      'kwd:require-library
       (lambda (raw-f raw-cs expr)
 	(apply mzlib:find-library raw-f raw-cs))))
 
   (add-primitivized-micro-form 'require-relative-library mrspidey-vocabulary
     (reference-library/relative-maker 'require-relative-library
+      'kwd:require-relative-library
       (lambda (raw-f raw-cs expr)
 	(apply mzlib:find-library raw-f
 	  (append (or (current-require-relative-collection)
-		    (static-error expr
-		      "No current collection for library \"~a\"" raw-f))
+		    (static-error
+		      "require-relative-library" 'kwd:require-relative-library
+		      expr
+		      "no current collection for library \"~a\"" raw-f))
 	    raw-cs)))))
 
   (define reference-unit-maker
-    (lambda (form-name signed?)
+    (lambda (form-name kwd:form-name signed?)
       (add-primitivized-micro-form form-name mrspidey-vocabulary
 	(let* ((kwd '())
 		(in-pattern `(_ file))
@@ -402,15 +449,19 @@
 			  'exp
 			  signed?
 			  expr)
-			(static-error file "Does not yield a filename"))))))
+			(static-error
+			  (symbol->string form-name) kwd:form-name
+			  file "does not yield a filename"))))))
 	      (else
-		(static-error expr "Malformed ~a" form-name))))))))
+		(static-error
+		  (symbol->string form-name) kwd:form-name
+		  expr "malformed expression"))))))))
 
-  (reference-unit-maker 'require-unit #f)
-  (reference-unit-maker 'require-unit/sig #t)
+  (reference-unit-maker 'require-unit 'kwd:require-unit #f)
+  (reference-unit-maker 'require-unit/sig 'kwd:require-unit/sig #t)
 
   (define reference-library-unit-maker
-    (lambda (form-name sig? relative?)
+    (lambda (form-name kwd:form-name sig? relative?)
 	(add-primitivized-micro-form form-name mrspidey-vocabulary
 	  (let* ((kwd '())
 		  (in-pattern '(_ filename collections ...))
@@ -429,13 +480,17 @@
 				   collections)))
 			(unless (and (quote-form? f)
 				  (z:string? (quote-form-expr f)))
-			  (static-error filename "Does not yield a filename"))
+			  (static-error
+			    (symbol->string form-name) kwd:form-name
+			    filename "does not yield a filename"))
 			(for-each
 			  (lambda (c collection)
 			    (unless (and (quote-form? c)
 				      (z:string? (quote-form-expr c)))
-			      (static-error collection
-				"Does not yield a string")))
+			      (static-error
+				(symbol->string form-name) kwd:form-name
+				collection
+				"does not yield a string")))
 			  cs collections)
 			(let ((raw-f (z:read-object (quote-form-expr f)))
 			       (raw-cs (map (lambda (c)
@@ -443,8 +498,10 @@
 						(quote-form-expr c)))
 					 cs)))
 			  (unless (relative-path? raw-f)
-			    (static-error f
-			      "Library path ~s must be a relative path"
+			    (static-error
+			      (symbol->string form-name) kwd:form-name
+			      f
+			      "library path ~s must be a relative path"
 			      raw-f))
 			  (create-reference-unit-form
 			    (structurize-syntax
@@ -455,8 +512,10 @@
 						  null)
 					  raw-cs)
 					raw-cs))
-				  (static-error expr
-				    "Unable to locate library ~a in collection path ~a"
+				  (static-error
+				    (symbol->string form-name) kwd:form-name
+				    expr
+				    "unable to locate library ~a in collection path ~a"
 				    raw-f
 				    (if (null? raw-cs) "mzlib" raw-cs)))
 				(or (current-load-relative-directory)
@@ -466,13 +525,18 @@
 			    sig?
 			    expr))))))
 		(else
-		  (static-error expr
-		    (string-append "Malformed ~a" form-name)))))))))
+		  (static-error
+		    (symbol->string form-name) kwd:form-name
+		    expr "malformed expression"))))))))
 
-  (reference-library-unit-maker 'require-library-unit #f #f)
-  (reference-library-unit-maker 'require-library-unit/sig #t #f)
-  (reference-library-unit-maker 'require-relative-library-unit #f #t)
-  (reference-library-unit-maker 'require-relative-library-unit/sig #t #t)
+  (reference-library-unit-maker 'require-library-unit
+    'kwd:require-library-unit #f #f)
+  (reference-library-unit-maker 'require-library-unit/sig
+    'kwd:require-library-unit/sig #t #f)
+  (reference-library-unit-maker 'require-relative-library-unit
+    'kwd:require-relative-library-unit #f #t)
+  (reference-library-unit-maker 'require-relative-library-unit/sig
+    'kwd:require-relative-library-unit/sig #t #t)
 
 '  (add-primitivized-micro-form 'references-unit-imports mrspidey-vocabulary
     (let* ((kwd '())

@@ -6726,29 +6726,6 @@ void initTypes(void) {
   sql_op_parms_type = scheme_make_type("<sql-op-parms>");
   sql_guid_type = scheme_make_type("<sql-guid>");
   sql_paramlength_type = scheme_make_type("<sql-paramlength>");
-
-  register_global(sql_date_type);
-  register_global(sql_decimal_type);
-  register_global(sql_pointer_type);
-  register_global(sql_time_type);
-  register_global(sql_timestamp_type);
-  register_global(sql_return_type);
-  register_global(sql_henv_type);
-  register_global(sql_hdbc_type);
-  register_global(sql_hstmt_type);
-  register_global(sql_hdesc_type);
-  register_global(sql_boxed_uint_type);
-  register_global(sql_buffer_type);
-  register_global(sql_length_type);
-  register_global(sql_indicator_type);
-  register_global(sql_row_status_type);
-  register_global(sql_array_status_type);
-  register_global(sql_binding_offset_type);
-  register_global(sql_rows_processed_type);
-  register_global(sql_octet_length_type);
-  register_global(sql_op_parms_type);
-  register_global(sql_guid_type);
-  register_global(sql_paramlength_type);
 }
 
 void initExns(Scheme_Env *env) {
@@ -6780,12 +6757,12 @@ void initExns(Scheme_Env *env) {
     exnNameCount += name_count;
   }
 
-  register_global(withInfoFuns);
-  register_global(noDataFuns);
-  register_global(invalidHandleFuns);
-  register_global(errorFuns);
-  register_global(needDataFuns);
-  register_global(stillExecutingFuns);
+  scheme_register_extension_global(&withInfoFuns,sizeof(withInfoFuns)); 
+  scheme_register_extension_global(&noDataFuns,sizeof(noDataFuns));
+  scheme_register_extension_global(&invalidHandleFuns,sizeof(invalidHandleFuns));
+  scheme_register_extension_global(&errorFuns,sizeof(errorFuns));
+  scheme_register_extension_global(&needDataFuns,sizeof(needDataFuns));
+  scheme_register_extension_global(&stillExecutingFuns,sizeof(stillExecutingFuns));
 }
 
 void initStructs(void) {
@@ -6808,24 +6785,42 @@ void initStructs(void) {
     structNameCount += name_count;
   }
 
-  register_global(numericStructFuns);
-  register_global(dateStructFuns);
-  register_global(timeStructFuns);
-  register_global(timeStampStructFuns);
-  register_global(guidStructFuns);
-  register_global(yearIntervalStructFuns);
-  register_global(monthIntervalStructFuns);
-  register_global(dayIntervalStructFuns);
-  register_global(hourIntervalStructFuns);
-  register_global(minuteIntervalStructFuns);
-  register_global(secondIntervalStructFuns);
-  register_global(yearToMonthIntervalStructFuns);
-  register_global(dayToHourIntervalStructFuns);
-  register_global(dayToMinuteIntervalStructFuns);
-  register_global(dayToSecondIntervalStructFuns);
-  register_global(hourToMinuteIntervalStructFuns);
-  register_global(hourToSecondIntervalStructFuns);
-  register_global(minuteToSecondIntervalStructFuns);
+  scheme_register_extension_global(&numericStructFuns,
+				   sizeof(numericStructFuns));
+  scheme_register_extension_global(&dateStructFuns,
+				   sizeof(dateStructFuns));
+  scheme_register_extension_global(&timeStructFuns,
+				   sizeof(timeStructFuns));
+  scheme_register_extension_global(&timeStampStructFuns,
+				   sizeof(timeStampStructFuns));
+  scheme_register_extension_global(&guidStructFuns,
+				   sizeof(guidStructFuns));
+  scheme_register_extension_global(&yearIntervalStructFuns,
+				   sizeof(yearIntervalStructFuns));
+  scheme_register_extension_global(&monthIntervalStructFuns,
+				   sizeof(monthIntervalStructFuns));
+  scheme_register_extension_global(&dayIntervalStructFuns,
+				   sizeof(dayIntervalStructFuns));
+  scheme_register_extension_global(&hourIntervalStructFuns,
+				   sizeof(hourIntervalStructFuns));
+  scheme_register_extension_global(&minuteIntervalStructFuns,
+				   sizeof(minuteIntervalStructFuns));
+  scheme_register_extension_global(&secondIntervalStructFuns,
+				   sizeof(secondIntervalStructFuns));
+  scheme_register_extension_global(&yearToMonthIntervalStructFuns,
+				   sizeof(yearToMonthIntervalStructFuns));
+  scheme_register_extension_global(&dayToHourIntervalStructFuns,
+				   sizeof(dayToHourIntervalStructFuns));
+  scheme_register_extension_global(&dayToMinuteIntervalStructFuns,
+				   sizeof(dayToMinuteIntervalStructFuns));
+  scheme_register_extension_global(&dayToSecondIntervalStructFuns,
+				   sizeof(dayToSecondIntervalStructFuns));
+  scheme_register_extension_global(&hourToMinuteIntervalStructFuns,
+				   sizeof(hourToMinuteIntervalStructFuns));
+  scheme_register_extension_global(&hourToSecondIntervalStructFuns,
+				   sizeof(hourToSecondIntervalStructFuns));
+  scheme_register_extension_global(&minuteToSecondIntervalStructFuns,
+				   sizeof(minuteToSecondIntervalStructFuns));
 }
 
 Scheme_Object *schemeObjectFromString(char *s,Scheme_Env *env) {
@@ -6834,7 +6829,7 @@ Scheme_Object *schemeObjectFromString(char *s,Scheme_Env *env) {
 
 void initGlobals(Scheme_Env *env) {
   scheme_raise = schemeObjectFromString("raise",env);
-  register_global(scheme_raise);
+  scheme_register_extension_global(&scheme_raise,sizeof(scheme_raise));
 }
 
 void sortConsts(void) {

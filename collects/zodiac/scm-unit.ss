@@ -1,4 +1,4 @@
-; $Id: scm-unit.ss,v 1.86 1999/05/21 12:53:30 mflatt Exp $
+; $Id: scm-unit.ss,v 1.87 2000/01/10 22:51:12 clements Exp $
 
 (unit/sig zodiac:scheme-units^
   (import zodiac:misc^ (z : zodiac:structures^)
@@ -118,9 +118,11 @@
 	      (unless (null? unresolveds)
 		(let ([id (unresolved-id (car unresolveds))])
 		  (check-for-signature-name id attributes)
-		  (static-error (unresolved-id (car unresolveds))
-				"Unbound unit identifier ~a"
-				(z:read-object id)))))
+		  (static-error
+		    "unit" 'term:unit-unbound-id
+		    (unresolved-id (car unresolveds))
+		    "unbound identifier ~a"
+		    (z:read-object id)))))
 	    (put-attribute attributes 'unresolved-unit-vars
 			   (cons (append unresolveds (car left-unresolveds))
 				 (cdr left-unresolveds)))))))
@@ -146,7 +148,9 @@
 		  (hash-table-put! id-table id-name
 		    (make-link-id id)))
 		((link-id? entry)
-		  (static-error id "Duplicate link name"))
+		  (static-error
+		    "unit linkage" 'term:unit-link-duplicate-tag
+		    id "duplicate link tag name"))
 		(else
 		  (internal-error entry "Invalid in register-links"))))))
 	ids)))
@@ -191,13 +195,17 @@
 	      (hash-table-put! id-table id-name
 		(make-import-id id)))
 	    ((import-id? entry)
-	      (static-error id "Duplicate import identifier ~a" id-name))
+	      (static-error
+		"unit" 'term:unit-duplicate-import
+		id "duplicate import identifier ~a" id-name))
 	    ((export-id? entry)
-	      (static-error id "Exported identifier ~a being imported"
-		id-name))
+	      (static-error
+		"unit" 'term:unit-import-exported
+		id "exported identifier ~a being imported" id-name))
 	    ((internal-id? entry)
-	      (static-error id
-		"Defined identifier ~a being imported" id-name))
+	      (static-error
+		"unit" 'term:unit-defined-imported
+		id "defined identifier ~a being imported" id-name))
 	    (else
 	      (internal-error entry
 		"Invalid in register-import/export")))))))
@@ -215,15 +223,19 @@
 		  (hash-table-put! id-table id-name
 		    (make-internal-id id)))
 		((import-id? entry)
-		  (static-error id "Redefined imported identifier ~a" id-name))
+		  (static-error
+		    "unit" 'term:unit-redefined-import
+		    id "redefined imported identifier ~a" id-name))
 		((export-id? entry)
 		  (if (export-id-defined? entry)
-		    (static-error id "Redefining exported identifier ~a"
-		      id-name)
+		    (static-error
+		      "unit" 'term:unit-duplicate-definition
+		      id "redefining exported identifier ~a" id-name)
 		    (set-export-id-defined?! entry #t)))
 		((internal-id? entry)
-		  (static-error id "Duplicate internal definition for ~a"
-		    id-name))
+		  (static-error
+		    "unit" 'term:unit-duplicate-definition
+		    id "duplicate internal definition for ~a" id-name))
 		(else
 		  (internal-error entry
 		    "Invalid entry in register-definitions"))))))
@@ -240,10 +252,13 @@
 	      (hash-table-put! id-table id-name
 		(make-export-id id #f)))
 	    ((import-id? entry)
-	      (static-error id "Imported identifier ~a being exported"
-		id-name))
+	      (static-error
+		"unit" 'term:unit-import-exported
+		id "imported identifier ~a being exported" id-name))
 	    ((export-id? entry)
-	      (static-error id "Duplicate export identifier ~a" id-name))
+	      (static-error
+		"unit" 'term:unit-duplicate-export
+		id "duplicate export identifier ~a" id-name))
 	    ((internal-id? entry)
 	      (internal-error entry
 		"Should not have had an internal-id in register-export"))
@@ -259,15 +274,18 @@
 		       (lambda () #f))))
 	  (cond
 	    ((not entry)
-	      (static-error id "Exported identifier ~a not defined"
-		id-name))
+	      (static-error
+		"unit" 'term:unit-export-not-defined
+		id "Exported identifier ~a not defined" id-name))
 	    ((import-id? entry)
-	      (static-error id "Imported identifier ~a being exported"
-		id-name))
+	      (static-error
+		"unit" 'term:unit-import-exported
+		id "imported identifier ~a being exported" id-name))
 	    ((export-id? entry)
 	      (unless (export-id-defined? entry)
-		(static-error id "Exported identifier ~a not defined"
-		  id-name)))
+		(static-error
+		  "unit" 'term:unit-export-not-defined
+		  id "exported identifier ~a not defined" id-name)))
 	    ((internal-id? entry)
 	      (internal-error entry
 		"Should not have had an internal-id in verify-export"))
@@ -318,10 +336,10 @@
 
   (define c/imports-vocab
     (create-vocabulary 'c/imports-vocab #f
-      "Invalid import declaration"
-      "Invalid import declaration"
-      "Invalid import declaration"
-      "Invalid import declaration"))
+      "malformed import declaration"
+      "malformed import declaration"
+      "malformed import declaration"
+      "malformed import declaration"))
 
   (add-sym-micro c/imports-vocab
     (lambda (expr env attributes vocab)
@@ -332,10 +350,10 @@
 
   (define unit-register-exports-vocab
     (create-vocabulary 'unit-register-exports-vocab #f
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"))
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"))
 
   (add-sym-micro unit-register-exports-vocab
     (lambda (expr env attributes vocab)
@@ -356,16 +374,18 @@
 		(valid-syntactic-id? external)
 		(register-export internal attributes))))
 	  (else
-	    (static-error expr "Malformed export declaration"))))))
+	    (static-error
+	      "unit export" 'term:unit-export
+	      expr "malformed declaration"))))))
 
   ;; ----------------------------------------------------------------------
 
   (define unit-generate-external-names-vocab
     (create-vocabulary 'unit-generate-external-names-vocab #f
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"))
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"))
 
   (add-sym-micro unit-generate-external-names-vocab
     (lambda (expr env attributes vocab)
@@ -382,16 +402,18 @@
 	    (lambda (p-env)
 	      (pat:pexpand 'external-id p-env kwd)))
 	  (else
-	    (static-error expr "Malformed export declaration"))))))
+	    (static-error
+	      "unit export" 'term:unit-export
+	      expr "malformed declaration"))))))
 
   ;; --------------------------------------------------------------------
 
   (define unit-verify-exports-vocab
     (create-vocabulary 'unit-verify-exports-vocab #f
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"
-      "Invalid export declaration"))
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"
+      "malformed export declaration"))
 
   (add-sym-micro unit-verify-exports-vocab
     (lambda (expr env attributes vocab)
@@ -417,7 +439,9 @@
 		  (cons (process-unit-top-level-resolution internal attributes)
 			external)))))
 	  (else
-	    (static-error expr "Malformed export declaration"))))))
+	    (static-error
+	      "unit export" 'term:unit-export
+	      expr "malformed declaration"))))))
 
   ; ----------------------------------------------------------------------
 
@@ -604,7 +628,9 @@
 			  expr))))
 		   (lambda () (put-attribute attributes 'top-levels old-top-level))))))
 	    (else
-	     (static-error expr "Malformed unit"))))))
+	     (static-error
+	       "unit" 'kwd:unit
+	       expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'unit full-vocabulary unit-micro)
   (add-primitivized-micro-form 'unit scheme-vocabulary unit-micro)
@@ -613,18 +639,19 @@
 
   (define c-unit-link-import-vocab
     (create-vocabulary 'c-unit-link-import-vocab #f
-      "Invalid link import declaration"
-      "Invalid link import declaration"
-      "Invalid link import declaration"
-      "Invalid link import declaration"))
+      "malformed link import declaration"
+      "malformed link import declaration"
+      "malformed link import declaration"
+      "malformed link import declaration"))
 
   (add-sym-micro c-unit-link-import-vocab
     (lambda (expr env attributes vocab)
       (if (check-import expr attributes)
 	(list (expand-expr expr env attributes
 		(get-c-unit-vocab-attribute attributes)))
-	(static-error expr "~a: Not an imported identifier"
-	  (z:read-object expr)))))
+	(static-error
+	  "compound-unit linkage" 'term:c-unit-not-import
+	  expr "~a: not an imported identifier" (z:read-object expr)))))
 
   (add-list-micro c-unit-link-import-vocab
     (let* ((kwd '())
@@ -641,18 +668,21 @@
 		  (when (eq? (z:read-object tag)
 			     (get-c-unit-current-link-tag-attribute
 			      attributes))
-		    (static-error expr "Self-import of tag ~a"
-				  (z:read-object tag))))
+		    (static-error
+		      "compound-unit linkage" 'term:unit-link-self-import-tag
+		      expr "self-import of tag ~a" (z:read-object tag))))
 		(map (lambda (id) (cons tag id)) ids))))
 	  (else
-	    (static-error expr "Invalid link syntax"))))))
+	    (static-error
+	      "compound-unit linkage" 'term:c-unit-linkage
+	      expr "invalid syntax"))))))
 
   (define c-unit-link-body-vocab
     (create-vocabulary 'c-unit-link-body-vocab #f
-      "Invalid link body declaration"
-      "Invalid link body declaration"
-      "Invalid link body declaration"
-      "Invalid link body declaration"))
+      "malformed link body declaration"
+      "malformed link body declaration"
+      "malformed link body declaration"
+      "malformed link body declaration"))
 
   (add-list-micro c-unit-link-body-vocab
     (let* ((kwd '())
@@ -675,14 +705,16 @@
 			   c-unit-link-import-vocab))
 		    imported-vars)))))
 	  (else
-	    (static-error expr "Invalid linkage body"))))))
+	    (static-error
+	      "compound-unit linkage" 'term:c-unit-linkage
+	      expr "malformed body"))))))
 
   (define c-unit-exports-vocab
     (create-vocabulary 'c-unit-exports-vocab #f
-      "Invalid unit export declaration"
-      "Invalid unit export declaration"
-      "Invalid unit export declaration"
-      "Invalid unit export declaration"))
+      "malformed unit export declaration"
+      "malformed unit export declaration"
+      "malformed unit export declaration"
+      "malformed unit export declaration"))
 
   (add-sym-micro c-unit-exports-vocab
     (lambda (expr env attributes vocab)
@@ -703,14 +735,16 @@
 		(valid-syntactic-id? external-id)
 		(cons internal-id external-id))))
 	  (else
-	    (static-error expr "Invalid export clause"))))))
+	    (static-error
+	      "compound-unit" 'term:c-unit-export
+	      expr "malformed export clause"))))))
 
   (define c-unit-export-clause-vocab
     (create-vocabulary 'c-unit-export-clause-vocab #f
-      "Invalid export clause declaration"
-      "Invalid export clause declaration"
-      "Invalid export clause declaration"
-      "Invalid export clause declaration"))
+      "malformed export clause declaration"
+      "malformed export clause declaration"
+      "malformed export clause declaration"
+      "malformed export clause declaration"))
 
   (add-list-micro c-unit-export-clause-vocab
     (let* ((kwd '())
@@ -730,9 +764,13 @@
 			   (expand-expr e env attributes
 			     c-unit-exports-vocab)))
 		    exports)
-		  (static-error tag "Not a valid tag")))))
+		  (static-error
+		    "compound-unit" 'term:c-unit-invalid-tag
+		    tag "not a valid tag")))))
 	  (else
-	    (static-error expr "Invalid export clause"))))))
+	    (static-error
+	      "compound-unit" 'term:c-unit-export
+	      expr "malformed export clause"))))))
 
   (define compound-unit-micro
       (let* ((kwd `(import link export))
@@ -792,10 +830,16 @@
 						     (if (z:symbol? arg)
 							 (when (not (memq (z:read-object arg)
 									  raw-link-clauses))
-							   (static-error arg
-									 "Not a valid tag"))
-							 (static-error arg
-								       "Tag must be a symbol"))))
+							   (static-error
+							     "compound-unit"
+							     'term:c-unit-invalid-tag
+							     arg
+							     "not a valid tag"))
+							 (static-error
+							   "compound-unit"
+							   'term:c-unit-invalid-tag
+							   arg
+							   "tag must be a symbol"))))
 					       (loop (cdr args)))))))))
 			       in:link-tags in:link-bodies))
 			 (proc:export-clauses
@@ -814,7 +858,9 @@
 		      proc:export-clauses
 		      expr)))))
 	    (else
-	      (static-error expr "Malformed compound-unit"))))))
+	      (static-error
+		"compound-unit" 'kwd:compound-unit
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'compound-unit full-vocabulary compound-unit-micro)
   (add-primitivized-micro-form 'compound-unit scheme-vocabulary compound-unit-micro)
@@ -848,7 +894,9 @@
 		      var-exprs
 		      expr)))))
 	    (else
-	      (static-error expr "Malformed invoke-unit"))))))
+	      (static-error
+		"invoke-unit" 'kwd:invoke-unit
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'invoke-unit full-vocabulary invoke-unit-micro)
   (add-primitivized-micro-form 'invoke-unit scheme-vocabulary invoke-unit-micro)
@@ -905,8 +953,10 @@
 	    (lambda (handler)
 	      (lambda (expr env attributes vocab)
 		(unless (at-top-level? attributes)
-		  (static-error expr
-		    "Invalid definition: must be at the top level"))
+		  (static-error
+		    "definition" 'term:def-not-at-top-level
+		    expr
+		    "must be at the top level"))
 		(cond
 		  ((pat:match-against m&e-1 expr env)
 		    =>
@@ -924,8 +974,11 @@
 				       (when (or (micro-resolution? r)
 					       (macro-resolution? r))
 					 (unless (check-export var attributes)
-					   (static-error var
-					     "Cannot bind keyword ~s"
+					   (static-error
+					     "keyword"
+					     'term:cannot-bind-kwd
+					     var
+					     "cannot bind keyword ~s"
 					     (z:symbol-orig-name var))))))
 				   vars))
 			      (out (handler expr env attributes
@@ -933,7 +986,9 @@
 			(set-top-level-status attributes
 			  top-level?)
 			out)))
-		  (else (static-error expr "Malformed define-values")))))))
+		  (else (static-error
+			  "define-values" 'kwd:define-values
+			  expr "malformed definition")))))))
 
       (add-primitivized-micro-form 'define-values unit-clauses-vocab-delta
 	(define-values-helper
@@ -952,10 +1007,10 @@
 
   (define define-values-id-parse-vocab
     (create-vocabulary 'define-values-id-parse-vocab #f
-      "Invalid in identifier position"
-      "Invalid in identifier position"
-      "Invalid in identifier position"
-      "Invalid in identifier position"))
+      "malformed in identifier position"
+      "malformed in identifier position"
+      "malformed in identifier position"
+      "malformed in identifier position"))
 
   (add-sym-micro define-values-id-parse-vocab
     (let ((top-level-resolution (make-top-level-resolution 'dummy #f)))
@@ -997,10 +1052,14 @@
 				 (pat:pexpand 'val p-env kwd)
 				 env attributes vocab)))
 	      (when (check-import var-p attributes)
-		(static-error var-p "Mutating imported identifier"))
+		(static-error
+		  "set!" 'term:no-set!-imported
+		  var-p "cannot mutate imported identifier"))
 	      (set-top-level-status attributes top-level?)
 	      (create-set!-form id-expr expr-expr expr))
-	    (static-error expr "Malformed set!"))))))
+	    (static-error
+	      "set!" 'kwd:set!
+	      expr "malformed expression"))))))
 
   (define process-unit-top-level-resolution
     (lambda (expr attributes)
@@ -1016,19 +1075,22 @@
       (lambda (expr env attributes vocab)
 	(let loop ((r (resolve expr env vocab)))
 	  (cond
-	   ((or (macro-resolution? r) (micro-resolution? r))
-	    (if (check-export expr attributes)
+	    ((or (macro-resolution? r) (micro-resolution? r))
+	      (if (check-export expr attributes)
 		(loop top-level-resolution)
-		(static-error expr
-			      "Invalid use of keyword ~a" (z:symbol-orig-name expr))))
-	   ((lexical-binding? r)
-	    (create-lexical-varref r expr))
-	   ((top-level-resolution? r)
-	    (check-for-signature-name expr attributes)
-	    (process-unit-top-level-resolution expr attributes))
-	   (else
-	    (internal-error expr "Invalid resolution in unit delta: ~s"
-			    r)))))))
+		(static-error
+		  "keyword" 'term:keyword-out-of-context expr
+		  "invalid use of keyword ~s" (z:symbol-orig-name expr))))
+	    ((lambda-binding? r)
+	      (create-lambda-varref r expr))
+	    ((lexical-binding? r)
+	      (create-lexical-varref r expr))
+	    ((top-level-resolution? r)
+	      (check-for-signature-name expr attributes)
+	      (process-unit-top-level-resolution expr attributes))
+	    (else
+	      (internal-error expr "Invalid resolution in unit delta: ~s"
+		r)))))))
   
   ; --------------------------------------------------------------------
 
@@ -1037,7 +1099,7 @@
   ; --------------------------------------------------------------------
 
   (define reference-unit-maker
-    (lambda (form-name sig?)
+    (lambda (form-name form-name-str kwd:form-name sig?)
       (let ([micro
 	     (let* ((kwd '())
 		    (in-pattern `(_ filename))
@@ -1072,18 +1134,22 @@
 			       #f
 			       (z:make-origin 'micro expr))
 			      env attributes vocab)
-			     (static-error filename
-					   "Does not yield a filename"))))))
+			     (static-error
+			       form-name-str kwd:form-name
+			       filename "does not yield a filename"))))))
 		  (else
-		   (static-error expr "Malformed ~a" form-name)))))])
+		   (static-error
+		     form-name-str kwd:form-name
+		     expr "malformed expression")))))])
 	(add-primitivized-micro-form form-name full-vocabulary micro)
 	(add-on-demand-form 'micro form-name common-vocabulary micro))))
 
-  (reference-unit-maker 'require-unit #f)
-  (reference-unit-maker 'require-unit/sig #t)
+  (reference-unit-maker 'require-unit "require-unit" 'kwd:require-unit #f)
+  (reference-unit-maker 'require-unit/sig
+    "require-unit/sig" 'kwd:require-unit/sig #t)
 
   (define reference-library-unit-maker
-    (lambda (form-name sig? relative?)
+    (lambda (form-name form-name-str kwd:form-name sig? relative?)
       (let ([micro
 	     (let* ((kwd '())
 		    (in-pattern '(_ filename collections ...))
@@ -1102,13 +1168,16 @@
 				      collections)))
 			 (unless (and (quote-form? f)
 				      (z:string? (quote-form-expr f)))
-			   (static-error filename "Does not yield a filename"))
+			   (static-error
+			     form-name-str kwd:form-name
+			     filename "does not yield a filename"))
 			 (for-each
 			  (lambda (c collection)
 			    (unless (and (quote-form? c)
 					 (z:string? (quote-form-expr c)))
-			      (static-error collection
-					    "Does not yield a string")))
+			      (static-error
+				form-name-str kwd:form-name
+				collection "does not yield a string")))
 			  cs collections)
 			 (let ((raw-f (z:read-object (quote-form-expr f)))
 			       (raw-cs (map (lambda (c)
@@ -1116,9 +1185,11 @@
 					       (quote-form-expr c)))
 					    cs)))
 			   (unless (relative-path? raw-f)
-			     (static-error f
-					   "Library path ~s must be a relative path"
-					   raw-f))
+			     (static-error
+			       form-name-str kwd:form-name
+			       f
+			       "library path ~s must be a relative path"
+			       raw-f))
 			   (expand-expr
 			    (structurize-syntax
 			     `(let ((result (,(if relative?
@@ -1145,15 +1216,21 @@
 			     (z:make-origin 'micro expr))
 			    env attributes vocab))))))
 		  (else
-		   (static-error expr
-				 (string-append "Malformed ~a" form-name))))))])
+		   (static-error
+		     form-name-str kwd:form-name
+		     expr "malformed expression")))))])
 	(add-primitivized-micro-form form-name full-vocabulary micro)
 	(add-on-demand-form 'micro form-name common-vocabulary micro))))
 
-  (reference-library-unit-maker 'require-library-unit #f #f)
-  (reference-library-unit-maker 'require-library-unit/sig #t #f)
-  (reference-library-unit-maker 'require-relative-library-unit #f #t)
-  (reference-library-unit-maker 'require-relative-library-unit/sig #t #t)
+  (reference-library-unit-maker 'require-library-unit 
+    "require-library-unit" 'kwd:require-library-unit #f #f)
+  (reference-library-unit-maker 'require-library-unit/sig
+    "require-library-unit/sig" 'kwd:require-library-unit/sig #t #f)
+  (reference-library-unit-maker 'require-relative-library-unit
+    "require-relative-library-unit" 'kwd:require-relative-library-unit #f #t)
+  (reference-library-unit-maker 'require-relative-library-unit/sig
+    "require-relative-library-unit/sig"
+    'kwd:require-relative-library-unit/sig #t #t)
 
   (define (reset-unit-attributes attr)
     (put-attribute attr 'c-unit-link-import/body-vocab null)

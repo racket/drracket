@@ -46,7 +46,7 @@
    mark-binding-varref
    expose-mark
    display-mark
-   find-var-binding))
+   lookup-var-binding))
 
 (define-signature stepper:client-procs^
   (read-getter

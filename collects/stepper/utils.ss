@@ -45,7 +45,7 @@
 			 (let ([gdv (global-defined-value real-id)])
 			   (or (syntax? gdv)
 			       (macro? gdv)))))
-	    (e:static-error id "Invalid use of keyword ~s" real-id))))))
+	    (e:static-error id "keyword: invalid use of keyword ~s" real-id))))))
   
   (define check-for-keyword (check-for-keyword/both #t))
   (define check-for-syntax-or-macro-keyword (check-for-keyword/both #f))

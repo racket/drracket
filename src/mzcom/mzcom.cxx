@@ -13,9 +13,10 @@
 #include "MzCOM_i.c"
 #include "mzobj.h"
 
-
-const DWORD dwTimeOut = 5000; // time for EXE to be idle before shutting down
-const DWORD dwPause = 1000; // time to wait for threads to finish up
+// time for EXE to be idle before shutting down
+#define dwTimeOut (5000)
+// time to wait for threads to finish up
+#define dwPause (1000)
 
 HINSTANCE globHinst;
 
@@ -79,7 +80,6 @@ CExeModule _Module;
 BEGIN_OBJECT_MAP(ObjectMap)
 OBJECT_ENTRY(CLSID_MzObj, CMzObj)
 END_OBJECT_MAP()
-
 
 LPCTSTR FindOneOf(LPCTSTR p1, LPCTSTR p2)
 {

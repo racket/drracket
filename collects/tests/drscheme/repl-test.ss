@@ -7,27 +7,27 @@
 
    ;; basic tests
    (make-test "("
-	      "1.1-1.2: missing close paren"
+	      "1.1-1.2: syntax error: missing close paren"
 	      #t
-	      "missing close paren"
+	      "syntax error: missing close paren"
 	      (vector 0 1)
 	      "read: expected a ')'; started at position 1 in "
 	      "read: expected a ')'; started at position 1, line 1 in "
 	      #t
 	      #f)
    (make-test "."
-	      "1.1-1.2: can't use `.' outside list"
+	      "1.1-1.2: syntax error: can't use `.' outside list"
 	      #t
-	      "can't use `.' outside list"
+	      "syntax error: can't use `.' outside list"
 	      (vector 0 1)
 	      "read: illegal use of \".\" at position 1 in "
 	      "read: illegal use of \".\" at position 1, line 1 in "
 	      #t
 	      #f)
    (make-test "(lambda ())"
-	      "1.1-1.12: Malformed lambda"
+	      "1.1-1.12: lambda: malformed expression"
 	      #t
-	      "Malformed lambda"
+	      "lambda: malformed expression"
 	      (vector 0 11)
 	      "lambda: bad syntax in: (lambda ())"
 	      "lambda: bad syntax in: (lambda ())"
@@ -99,9 +99,9 @@
 	      #f
 	      #f)
    (make-test "    (eval '(lambda ()))"
-	      "1.5-1.24: Malformed lambda"
+	      "1.5-1.24: lambda: malformed expression"
 	      #t
-	      "Malformed lambda"
+	      "lambda: malformed expression"
 	      (vector 4 23)
 	      "lambda: bad syntax in: (lambda ())"
 	      "lambda: bad syntax in: (lambda ())"
@@ -131,18 +131,18 @@
    
    ;; error in the middle
    (make-test "1 2 ( 3 4"
-	      "1.5-1.6: missing close paren"
+	      "1.5-1.6: syntax error: missing close paren"
 	      #t
-	      (format "1~n2~nmissing close paren")
+	      (format "1~n2~nsyntax error: missing close paren")
 	      (vector 4 5)
 	      (format "1~n2~nread: expected a ')'; started at position 5 in ")
 	      (format "read: expected a ')'; started at position 5, line 1 in ")
 	      #t
 	      #f)
    (make-test "1 2 . 3 4"
-	      "1.5-1.6: can't use `.' outside list"
+	      "1.5-1.6: syntax error: can't use `.' outside list"
 	      #t
-	      (format "1~n2~ncan't use `.' outside list")
+	      (format "1~n2~nsyntax error: can't use `.' outside list")
 	      (vector 4 5)
 	      (format "1~n2~nread: illegal use of \".\" at position 5 in ")
 	      (format "read: illegal use of \".\" at position 5, line 1 in ")
@@ -251,9 +251,9 @@
     #f)
    (make-test
     "(define-macro m 1)"
-    "1.1-1.19: Expander is not a procedure"
+    "1.1-1.19: define-macro: expander is not a procedure"
     #t
-    "Expander is not a procedure"
+    "define-macro: expander is not a procedure"
     (vector 0 18)
     "define-macro: not a procedure"
     "define-macro: not a procedure"

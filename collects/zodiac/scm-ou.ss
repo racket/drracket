@@ -1,4 +1,4 @@
-; $Id: scm-ou.ss,v 1.17 1999/02/02 19:33:15 mflatt Exp $
+; $Id: scm-ou.ss,v 1.18 1999/04/07 22:38:04 mflatt Exp $
 
 (unit/sig zodiac:scheme-objects+units^
   (import zodiac:misc^ (z : zodiac:structures^) (z : zodiac:reader-structs^)
@@ -12,6 +12,8 @@
 	    (lambda (expr env attributes vocab)
 	      (let loop ((r (resolve expr env vocab)))
 		(cond
+		  ((lambda-binding? r)
+		    (create-lambda-varref r expr))
 		  ((lexical-binding? r)
 		    (create-lexical-varref r expr))
 		  ((top-level-resolution? r)
@@ -35,9 +37,9 @@
 		    (if (and (inside-unit? attributes)
 			     (check-export expr attributes))
 			(loop top-level-resolution)
-			(static-error 
-			 expr
-			 "Invalid use of keyword ~a" (z:symbol-orig-name expr))))
+		      (static-error
+			"keyword" 'term:keyword-out-of-context expr
+			"invalid use of keyword ~s" (z:symbol-orig-name expr))))
 		  (else
 		    (internal-error expr "Invalid resolution in ou: ~s" r))))))))
 

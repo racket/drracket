@@ -5,4 +5,5 @@
    set-cdr!
    list*
    append
-   append!))
+   append!
+   error))

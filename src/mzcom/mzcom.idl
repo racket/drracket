@@ -17,6 +17,7 @@ import "ocidl.idl";
 	{
 		[id(1), helpstring("method Eval")] HRESULT Eval(BSTR input,[out,retval]BSTR *output);
 		[id(2), helpstring("method About")] HRESULT About();
+		[id(3), helpstring("method Reset")] HRESULT Reset();
 	};
 
 [

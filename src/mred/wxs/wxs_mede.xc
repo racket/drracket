@@ -205,7 +205,7 @@
 
 @MACRO checkNull = if (!x0) x0 = &_x0;
 
-@ "get-tabs" : float[]/bReturnList[float.0] GetTabs(nnint?=NULL,float?=NULL,bool?=NULL); : : /checkNull/
+@ "get-tabs" : float[]/bReturnList[float.0]///push GetTabs(nnint?=NULL,float?=NULL,bool?=NULL); : : /checkNull/
 @ "set-tabs" : void SetTabs(float[]/bList/ubList/cList///push,-int,float=wxTAB_WIDTH,bool=TRUE); : : /glueListSet[float.0.0.1.METHODNAME("text%","set-tabs")]//
 
 @ v "can-insert?" : bool CanInsert(nnlong,nnlong);

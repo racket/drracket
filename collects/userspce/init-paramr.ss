@@ -43,6 +43,7 @@
 				signal-not-boolean
 				eq?-only-compares-symbols?
 				<=-at-least-two-args
+				error-sym/string-only
 				disallow-untagged-inexact-numbers
 				print-tagged-inexact-numbers
 				whole/fractional-exact-numbers
@@ -71,6 +72,7 @@
 	     (signal-not-boolean #t)
 	     (eq?-only-compares-symbols? #t)
 	     (<=-at-least-two-args #t)
+	     (error-sym/string-only #t)
 	     (disallow-untagged-inexact-numbers #f)
 	     (print-tagged-inexact-numbers #t)
 	     (whole/fractional-exact-numbers #f)
@@ -96,6 +98,7 @@
 	     (signal-not-boolean #t)
 	     (eq?-only-compares-symbols? #t)
 	     (<=-at-least-two-args #t)
+	     (error-sym/string-only #t)
 	     (disallow-untagged-inexact-numbers #f)
 	     (print-tagged-inexact-numbers #t)
 	     (whole/fractional-exact-numbers #f)
@@ -121,6 +124,7 @@
 	     (signal-not-boolean #f)
 	     (eq?-only-compares-symbols? #f)
 	     (<=-at-least-two-args #t)
+	     (error-sym/string-only #t)
 	     (disallow-untagged-inexact-numbers #f)
 	     (print-tagged-inexact-numbers #t)
 	     (whole/fractional-exact-numbers #f)
@@ -146,6 +150,7 @@
 	     (signal-not-boolean #f)
 	     (eq?-only-compares-symbols? #f)
 	     (<=-at-least-two-args #f)
+	     (error-sym/string-only #f)
 	     (disallow-untagged-inexact-numbers #f)
 	     (print-tagged-inexact-numbers #f)
 	     (whole/fractional-exact-numbers #f)
@@ -171,6 +176,7 @@
 	     (signal-not-boolean #f)
 	     (eq?-only-compares-symbols? #f)
 	     (<=-at-least-two-args #f)
+	     (error-sym/string-only #f)
 	     (disallow-untagged-inexact-numbers #f)
 	     (print-tagged-inexact-numbers #f)
 	     (whole/fractional-exact-numbers #f)
@@ -664,6 +670,7 @@
         (params:allow-improper-lists improper-lists?))
       (params:eq?-only-compares-symbols (setting-eq?-only-compares-symbols? setting))
       (params:<=-at-least-two-args (setting-<=-at-least-two-args setting))
+      (params:error-sym/string-only (setting-error-sym/string-only setting))
       (when (teaching-level? setting)
         (global-define-values/invoke-unit/sig ricedefs^ ricedefs@ #f (params : plt:userspace:params^)))
       ;; end ricedefs

@@ -1,8 +1,20 @@
 Version 102:
 
-102d10:
+102
 
-102d10. 
+ PRS:
+
+ FUNCTIONALITY CHANGES
+
+ - the help desk language level specific documentation has been
+   integrated into drscheme.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - Only the platform-specific dialogs are used in drscheme now, on
+   all platforms. The preference has been removed from the dialog.
+
+102d10:
 
  PRS:
 

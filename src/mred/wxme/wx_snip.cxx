@@ -70,7 +70,10 @@ static void memmove(char *dest, char *src, long size)
 
 #define ALWAYSZERO(x) if (x) *x = 0;
 
+extern void *wxMallocAtomicIfPossible(size_t s);
+
 #define STRALLOC(n) new WXGC_ATOMIC char[n]
+#define TRY_STRALLOC(n) (char *)wxMallocAtomicIfPossible(n)
 #define STRFREE(s) /* empty */
 
 /***************************************************************/
@@ -477,6 +480,9 @@ wxSnip *TextSnipClass::Read(wxTextSnip *snip, wxMediaStreamIn *f)
   pos = f->Tell();
   f->Get(&count);
   f->JumpTo(pos);
+
+  if (count < 0)
+    count = 10; /* This is a failure. We make up something. */
 
   snip->Read(count, f);
 
@@ -915,9 +921,25 @@ void wxTextSnip::Read(long len, wxMediaStreamIn *f)
     return;
 
   if (allocated < len) {
-    allocated = 2 * len;
+    long l = 2 * len;
+    if (l < 0) {
+      Read(100, f);
+      return;
+    }
     STRFREE(buffer);
-    buffer = STRALLOC(allocated + 1);
+    if (l > 500) {
+      buffer = TRY_STRALLOC(l + 1);
+      if (!buffer) {
+	Read(100, f);
+	return;
+      }
+    } else
+      buffer = STRALLOC(l + 1);
+
+    allocated = l;
+
+    if (!buffer)
+      Read(10, f);
   }
 
   dtext = 0;
@@ -1113,7 +1135,7 @@ wxSnip *ImageSnipClass::Read(wxMediaStreamIn *f)
     long len;
     f->GetFixed(&len);
 
-    if (len) {
+    if ((len > 0) && f->Ok()) {
       char *fname;
       FILE *fi;
       char buffer[IMG_MOVE_BUF_SIZE + 1];
@@ -1127,6 +1149,9 @@ wxSnip *ImageSnipClass::Read(wxMediaStreamIn *f)
 	while (len--) {
 	  c = IMG_MOVE_BUF_SIZE + 1;
 	  f->Get(&c, buffer);
+
+	  if (!f->Ok())
+	    break;
 	  
 	  c = fwrite(buffer, 1, c, fi);
 	}
@@ -1602,6 +1627,15 @@ wxSnip *MediaSnipClass::Read(wxMediaStreamIn *f)
     media = wxsMakeMediaEdit();
   else
     media = wxsMakeMediaPasteboard();
+
+  if (lm < 0) lm = 0;
+  if (tm < 0) tm = 0;
+  if (rm < 0) rm = 0;
+  if (bm < 0) bm = 0;
+  if (li < 0) li = 0;
+  if (ti < 0) ti = 0;
+  if (ri < 0) ri = 0;
+  if (bi < 0) bi = 0;
 
   snip = wxsMakeMediaSnip(media, border, lm, tm, rm, bm, li, ti, ri, bi,
 			  w, W, h, H);

@@ -143,6 +143,7 @@ void check_ps_mode(int v, Scheme_Object *p)
 @ "get-afm-path" : nstring GetAFMPath();
 @ "get-level-2" : bool GetLevel2();
 @ "get-editor-margin" : void GetEditorMargin(nnlong*,nnlong*);
+@ "get-margin" : void GetMargin(nnfloat*,nnfloat*);
 
 @ "set-command" : void SetPrinterCommand(string);
 @ "set-file" : void SetPrinterFile(npathname);
@@ -156,6 +157,7 @@ void check_ps_mode(int v, Scheme_Object *p)
 @ "set-afm-path" : void SetAFMPath(nstring);
 @ "set-level-2" : void SetLevel2(bool);
 @ "set-editor-margin" : void SetEditorMargin(nnlong,nnlong);
+@ "set-margin" : void SetMargin(nnfloat,nnfloat);
 
 @ "copy-from" : void copy(wxPrintSetupData!);
 

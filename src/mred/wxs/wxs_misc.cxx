@@ -1031,6 +1031,30 @@ static Scheme_Object *os_wxPrintSetupDatacopy(Scheme_Object *obj, int n,  Scheme
   return scheme_void;
 }
 
+static Scheme_Object *os_wxPrintSetupDataSetMargin(Scheme_Object *obj, int n,  Scheme_Object *p[])
+{
+  WXS_USE_ARGUMENT(n) WXS_USE_ARGUMENT(p)
+  REMEMBER_VAR_STACK();
+  objscheme_check_valid(obj);
+  nnfloat x0;
+  nnfloat x1;
+
+  SETUP_VAR_STACK_REMEMBERED(2);
+  VAR_STACK_PUSH(0, p);
+  VAR_STACK_PUSH(1, obj);
+
+  
+  x0 = WITH_VAR_STACK(objscheme_unbundle_nonnegative_float(p[0], "set-margin in ps-setup%"));
+  x1 = WITH_VAR_STACK(objscheme_unbundle_nonnegative_float(p[1], "set-margin in ps-setup%"));
+
+  
+  WITH_VAR_STACK(((wxPrintSetupData *)((Scheme_Class_Object *)obj)->primdata)->SetMargin(x0, x1));
+
+  
+  
+  return scheme_void;
+}
+
 static Scheme_Object *os_wxPrintSetupDataSetEditorMargin(Scheme_Object *obj, int n,  Scheme_Object *p[])
 {
   WXS_USE_ARGUMENT(n) WXS_USE_ARGUMENT(p)
@@ -1303,6 +1327,37 @@ static Scheme_Object *os_wxPrintSetupDataSetPrinterCommand(Scheme_Object *obj, i
   WITH_VAR_STACK(((wxPrintSetupData *)((Scheme_Class_Object *)obj)->primdata)->SetPrinterCommand(x0));
 
   
+  
+  return scheme_void;
+}
+
+static Scheme_Object *os_wxPrintSetupDataGetMargin(Scheme_Object *obj, int n,  Scheme_Object *p[])
+{
+  WXS_USE_ARGUMENT(n) WXS_USE_ARGUMENT(p)
+  REMEMBER_VAR_STACK();
+  objscheme_check_valid(obj);
+  nnfloat _x0;
+  nnfloat* x0 = &_x0;
+  nnfloat _x1;
+  nnfloat* x1 = &_x1;
+  Scheme_Object *sbox_tmp;
+
+  SETUP_VAR_STACK_REMEMBERED(2);
+  VAR_STACK_PUSH(0, p);
+  VAR_STACK_PUSH(1, obj);
+
+  
+      *x0 = (sbox_tmp = WITH_VAR_STACK(objscheme_unbox(p[0], "get-margin in ps-setup%")), WITH_VAR_STACK(objscheme_unbundle_nonnegative_float(sbox_tmp, "get-margin in ps-setup%"", extracting boxed argument")));
+      *x1 = (sbox_tmp = WITH_VAR_STACK(objscheme_unbox(p[1], "get-margin in ps-setup%")), WITH_VAR_STACK(objscheme_unbundle_nonnegative_float(sbox_tmp, "get-margin in ps-setup%"", extracting boxed argument")));
+
+  
+  WITH_VAR_STACK(((wxPrintSetupData *)((Scheme_Class_Object *)obj)->primdata)->GetMargin(x0, x1));
+
+  
+  if (n > 0)
+    WITH_VAR_STACK(objscheme_set_box(p[0], WITH_VAR_STACK(scheme_make_double(_x0))));
+  if (n > 1)
+    WITH_VAR_STACK(objscheme_set_box(p[1], WITH_VAR_STACK(scheme_make_double(_x1))));
   
   return scheme_void;
 }
@@ -1627,9 +1682,10 @@ void objscheme_setup_wxPrintSetupData(void *env)
 
   wxREGGLOB(os_wxPrintSetupData_class);
 
-  os_wxPrintSetupData_class = WITH_VAR_STACK(objscheme_def_prim_class(env, "ps-setup%", "object%", os_wxPrintSetupData_ConstructScheme, 25));
+  os_wxPrintSetupData_class = WITH_VAR_STACK(objscheme_def_prim_class(env, "ps-setup%", "object%", os_wxPrintSetupData_ConstructScheme, 27));
 
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "copy-from", os_wxPrintSetupDatacopy, 1, 1));
+  WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-margin", os_wxPrintSetupDataSetMargin, 2, 2));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-editor-margin", os_wxPrintSetupDataSetEditorMargin, 2, 2));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-level-2", os_wxPrintSetupDataSetLevel2, 1, 1));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-afm-path", os_wxPrintSetupDataSetAFMPath, 1, 1));
@@ -1642,6 +1698,7 @@ void objscheme_setup_wxPrintSetupData(void *env)
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-preview-command", os_wxPrintSetupDataSetPrintPreviewCommand, 1, 1));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-file", os_wxPrintSetupDataSetPrinterFile, 1, 1));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "set-command", os_wxPrintSetupDataSetPrinterCommand, 1, 1));
+  WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "get-margin", os_wxPrintSetupDataGetMargin, 2, 2));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "get-editor-margin", os_wxPrintSetupDataGetEditorMargin, 2, 2));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "get-level-2", os_wxPrintSetupDataGetLevel2, 0, 0));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxPrintSetupData_class, "get-afm-path", os_wxPrintSetupDataGetAFMPath, 0, 0));

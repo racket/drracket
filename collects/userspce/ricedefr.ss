@@ -4,7 +4,7 @@
   (define check-second 
     (lambda (prim-name a b)
       (unless (list? b)
-	(error prim-name
+	(#%error prim-name
 	       "second argument must be of type <list>, given ~e and ~e"
 	       a b))))
   
@@ -16,7 +16,7 @@
 	 [(null? (cdr l))
 	  (let ([last (car l)])
 	    (unless (list? last)
-	      (error prim-name
+	      (#%error prim-name
 		     "last argument must be of type <list>, given ~e; all args: ~a"
 		     last
 		     (map (lambda (x) (format "~e" x)) args))))]
@@ -25,7 +25,7 @@
   (define (check-arity prim len lst)
     (let ([lst-len (length lst)])
       (unless (#%>= lst-len len)
-	(error prim
+	(#%error prim
 	       "expects at least ~a arguments, given ~a"
 	       len
 	       (if (#%= 0 lst-len)
@@ -126,4 +126,15 @@
 		      #%append!
 		      (lambda x
 			(check-last 'append! x)
-			(apply #%append! x)))))
+			(apply #%append! x))))
+
+  (define error (if (params:error-sym/string-only)
+		    (lambda (sym str)
+		      (unless (and (symbol? sym)
+				   (string? str))
+			(#%error 'error
+				 "expected a symbol and a string, got ~e and ~e"
+				 sym str))
+		      (#%error sym str))
+		    #%error))
+  )

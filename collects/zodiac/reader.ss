@@ -1,6 +1,6 @@
 ;;
 ;;  zodiac:reader-code@
-;;  $Id: reader.ss,v 1.6 1999/02/04 14:32:54 mflatt Exp $
+;;  $Id: reader.ss,v 1.7 1999/03/12 17:22:30 mflatt Exp $
 ;;
 ;;  Zodiac Reader  July 96
 ;;  mwk, plt group, Rice university.
@@ -10,10 +10,6 @@
 ;;    scalar    (symbol, number, string, boolean, char)
 ;;    sequence  (list, vector, improper-list)
 ;;    eof
-;;
-;;  In case of error, we invoke static-error (or internal-error)
-;;  with args:  zodiac-obj  fmt-string . args
-;;
 
 (unit/sig  zodiac:reader-code^
 
@@ -66,7 +62,13 @@
      (lambda (how)
        (make-origin  'reader  how)))
    
-   (define z:r-s-e (lambda x (apply report:static-error x)))
+   (define z:r-s-e
+     (lambda args
+       (apply report:static-error
+	 "syntax error"
+	 'read:syntax-error
+	 args)))
+
    (define z:int-error (lambda x (apply report:internal-error x)))
 
    ;; pack-quote into zodiac structure.

@@ -1,4 +1,4 @@
-; $Id: x.ss,v 1.52 1999/05/31 11:19:39 mflatt Exp $
+; $Id: x.ss,v 1.53 1999/07/09 18:44:34 mflatt Exp $
 
 (unit/sig zodiac:expander^
   (import
@@ -34,16 +34,16 @@
     (opt-lambda (name (root #f)
 		  (symbol-error (if root
 				  (vocabulary-record-symbol-error root)
-				  "Symbol invalid in this position"))
+				  "symbol invalid in this position"))
 		  (literal-error (if root
 				   (vocabulary-record-literal-error root)
-				   "Literal invalid in this position"))
+				   "literal invalid in this position"))
 		  (list-error (if root
 				(vocabulary-record-list-error root)
-				"List invalid in this position"))
+				"list invalid in this position"))
 		  (ilist-error (if root
 				 (vocabulary-record-ilist-error root)
-				 "Improper-list syntax invalid in this position")))
+				 "improper-list syntax invalid in this position")))
       (let ((h (make-hash-table)))
 	(self-subexpr-vocab
 	 (make-vocabulary-record
@@ -159,6 +159,7 @@
       ;   (pretty-print (sexp->raw expr)) (newline)
       ; (printf "top-level-status: ~s~n" (get-top-level-status attributes))
       ; (printf "Expanding~n") (pretty-print expr) (newline)
+      ; (printf "Expanding~n") (pretty-print (sexp->raw expr)) (newline)
       ; (printf "Expanding~n") (display expr) (newline) (newline)
       ; (printf "in ~s~n" (get-vocabulary-name vocab))
       ;	(printf "in vocabulary~n") (print-env vocab)
@@ -175,7 +176,9 @@
 	      (sym-expander
 		(internal-error expr "Invalid sym expander ~s" sym-expander))
 	      (else
-		(static-error expr
+		(static-error
+		  "symbol syntax" 'term:invalid-pos-symbol
+		  expr
 		  (vocabulary-record-symbol-error vocab))))))
 	((or (z:scalar? expr)		; "literals" = scalars - symbols
 	   (z:vector? expr))
@@ -188,7 +191,9 @@
 		(internal-error expr
 		  "Invalid lit expander ~s" lit-expander))
 	      (else
-		(static-error expr
+		(static-error
+		  "literal syntax" 'term:invalid-pos-literal
+		  expr
 		  (vocabulary-record-literal-error vocab))))))
 	((z:list? expr)
 	  (let ((invoke-list-expander
@@ -202,7 +207,9 @@
 			  (internal-error expr
 			    "Invalid list expander ~s" list-expander))
 			(else
-			  (static-error expr
+			  (static-error
+			    "list syntax" 'term:invalid-pos-list
+			    expr
 			    (vocabulary-record-list-error vocab)))))))
 		 (contents (expose-list expr)))
 	    (if (null? contents)
@@ -214,7 +221,10 @@
 		      ((macro-resolution? r)
 			(with-handlers ((exn:user?
 					  (lambda (exn)
-					    (static-error expr
+					    (static-error
+					      "macro error"
+					      'term:macro-error
+					      expr
 					      (exn-message exn)))))
 			  (let* ((rewriter (macro-resolution-rewriter r))
 				  (m (new-mark))
@@ -223,10 +233,9 @@
 						  rewritten expr (list m)
 						  #f
 						  (make-origin 'macro
-						    expr)))
-				  (expanded (expand-expr structurized env
-					      attributes vocab)))
-			    expanded)))
+						    expr))))
+			    (expand-expr structurized env
+			      attributes vocab))))
 		      ((micro-resolution? r)
 			((micro-resolution-rewriter r)
 			  expr env attributes (vocabulary-record-subexpr-vocab vocab)))
@@ -243,7 +252,9 @@
 		(internal-error expr
 		  "Invalid ilist expander ~s" ilist-expander))
 	      (else
-		(static-error expr
+		(static-error
+		  "improper list syntax" 'term:invalid-pos-ilist
+		  expr
 		  (vocabulary-record-ilist-error vocab))))))
 	(else
 	  (internal-error expr

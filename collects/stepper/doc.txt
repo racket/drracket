@@ -1,15 +1,14 @@
-What is the _Foot_?
 What is the _Stepper_?
 
-The Foot is a "stepper," which means that it proceeds through the 
+DrScheme includes an "algebraic stepper," a tool which proceeds through the 
 evaluation of a set of definitions and expressions, one step at a time. 
 This evaluation shows the user how DrScheme evaluates expressions and 
-definitions, and can help in debugging programs.  Currently, the Foot is 
-available only in the "Beginner" language level.
+definitions, and can help in debugging programs.  Currently, the Stepper is 
+available in the "Beginner" and "Intermediate" language levels.
 
-How do I use the Foot?
+How do I use the Stepper?
 
-The Foot  operates on the contents of the frontmost DrScheme window.  A click 
+The Stepper operates on the contents of the frontmost DrScheme window.  A click 
 on the "Step" button brings up the stepper window.  The stepper window has 
 three boxes; each one is separated by a blue horizontal line.
 

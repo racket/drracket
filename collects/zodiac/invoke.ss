@@ -1,4 +1,4 @@
-; $Id: invoke.ss,v 1.40 1999/05/27 15:48:55 mflatt Exp $
+; $Id: invoke.ss,v 1.41 1999/06/01 16:55:18 mflatt Exp $
 
 (begin-elaboration-time
  (require-library "cores.ss"))
@@ -63,13 +63,27 @@
 			    e)))])
       (read-eval-print-loop))))
 
-(define zodiac:see (zodiac:make-see 
-		    (lambda (in)
-		      (zodiac:scheme-expand-program (list in)))))
+(define zodiac:see
+  (zodiac:make-see 
+    (lambda (in)
+      (zodiac:scheme-expand-program (list in)))))
 
-(define zodiac:see-parsed (zodiac:make-see 
-			   (lambda (in)
-			     (zodiac:scheme-expand-program (list in)))))
+(define zodiac:see-parsed
+  (lambda ()
+    ((zodiac:make-see 
+       (lambda (in)
+	 (zodiac:scheme-expand-program (list in))))
+      #f)))
+
+(define zodiac:see
+  (opt-lambda ((print-as-sexp? #t) (vocab zodiac:scheme-vocabulary))
+    ((zodiac:make-see 
+       (lambda (in)
+	 (zodiac:scheme-expand-program
+	   (list in)
+	   (zodiac:make-attributes)
+	   vocab)))
+      print-as-sexp?)))
 
 (define zodiac:spidey-see (zodiac:make-see 
 			   (lambda (in)

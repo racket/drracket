@@ -1,6 +1,6 @@
 ;;
 ;;  zodiac:scanner-parameters@
-;;  $Id: scanparm.ss,v 1.5 1997/12/03 19:20:21 robby Exp $
+;;  $Id: scanparm.ss,v 1.7 2000/05/26 15:47:33 clements Exp $
 ;;
 ;;  Scanner/Reader Parameters.
 ;;
@@ -51,8 +51,20 @@
 
    (define  scan:newline-list  (list  newline  return))
    (define  scan:tab-list      (list  tab))
-   (define  scan:whitespace-list
-     (list  space  tab  newline  vtab  page  return))
+
+  (define scan:whitespace-list
+    (let loop ((n 0))
+      (if (> n 255) '()
+	(if (char-whitespace? (integer->char n))
+	  (cons n (loop (+ n 1)))
+	  (loop (+ n 1))))))
+
+  ;; Old definition:
+  ; (define  scan:whitespace-list
+  ;   (list  space  tab  newline  vtab  page  return))
+  ;; removed because this list depends on platform (eg,
+  ;; char 202 is the non-breakable whitespace on the Mac);
+  ;; char-whitespace? helps us stay platform-independent
 
    (define  scan:delim-list
      (append  scan:whitespace-list

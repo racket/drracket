@@ -29,6 +29,7 @@ public:
 	bool bActivity;
 };
 extern CExeModule _Module;
+
 #include <atlcom.h>
 
 //{{AFX_INSERT_LOCATION}}

@@ -33,51 +33,46 @@ RSC=rc.exe
 
 OUTDIR=.\Debug
 INTDIR=.\Debug
-# Begin Custom Macros
-OutDir=.\Debug
-# End Custom Macros
 
-ALL : "$(OUTDIR)\MzCOM.exe" ".\Debug\regsvr32.trg"
+ALL : "..\..\..\collects\mzcom\mzcom.exe" ".\Debug\regsvr32.trg"
 
 
 CLEAN :
 	-@erase "$(INTDIR)\mzcom.obj"
 	-@erase "$(INTDIR)\mzcom.res"
-	-@erase "$(INTDIR)\mzcom.tlb"
 	-@erase "$(INTDIR)\mzobj.obj"
-	-@erase "$(INTDIR)\stdafx.obj"
 	-@erase "$(INTDIR)\vc60.idb"
 	-@erase "$(INTDIR)\vc60.pdb"
-	-@erase "$(OUTDIR)\MzCOM.exe"
-	-@erase "$(OUTDIR)\MzCOM.ilk"
-	-@erase "$(OUTDIR)\MzCOM.pdb"
+	-@erase "$(OUTDIR)\mzcom.pdb"
+	-@erase "..\..\..\collects\mzcom\mzcom.exe"
+	-@erase "..\..\..\collects\mzcom\mzcom.ilk"
+	-@erase ".\mzcom.tlb"
 	-@erase ".\Debug\regsvr32.trg"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
-CPP_PROJ=/nologo /MT /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
+CPP_PROJ=/nologo /MTd /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
 RSC_PROJ=/l 0x409 /fo"$(INTDIR)\mzcom.res" /i ".\..\mzcom" /d "_DEBUG" 
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\MzCOM.bsc" 
 BSC32_SBRS= \
 	
 LINK32=link.exe
-LINK32_FLAGS=libcmtd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /incremental:yes /pdb:"$(OUTDIR)\MzCOM.pdb" /debug /machine:I386 /nodefaultlib:"libcmt.lib" /out:"$(OUTDIR)\MzCOM.exe" /pdbtype:sept /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release" 
+LINK32_FLAGS=libcmtd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /incremental:yes /pdb:"$(OUTDIR)\mzcom.pdb" /debug /machine:I386 /nodefaultlib:"libcmt.lib" /out:"../../../collects/mzcom/mzcom.exe" /pdbtype:sept /libpath:"..\mzsrc\Debug" /libpath:"..\gc\Debug" 
 LINK32_OBJS= \
 	"$(INTDIR)\mzcom.obj" \
 	"$(INTDIR)\mzobj.obj" \
-	"$(INTDIR)\stdafx.obj" \
 	"$(INTDIR)\mzcom.res"
 
-"$(OUTDIR)\MzCOM.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
+"..\..\..\collects\mzcom\mzcom.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
 
 OutDir=.\Debug
-TargetPath=.\Debug\MzCOM.exe
-InputPath=.\Debug\MzCOM.exe
+TargetPath=\plt\collects\mzcom\mzcom.exe
+InputPath=\plt\collects\mzcom\mzcom.exe
 SOURCE="$(InputPath)"
 
 "$(OUTDIR)\regsvr32.trg" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -93,48 +88,43 @@ SOURCE="$(InputPath)"
 
 OUTDIR=.\Release
 INTDIR=.\Release
-# Begin Custom Macros
-OutDir=.\Release
-# End Custom Macros
 
-ALL : "$(OUTDIR)\MzCOM.exe" "$(OUTDIR)\mzcom.tlb" ".\Release\regsvr32.trg"
+ALL : "..\..\..\collects\mzcom\mzcom.exe" ".\Release\regsvr32.trg"
 
 
 CLEAN :
 	-@erase "$(INTDIR)\mzcom.obj"
 	-@erase "$(INTDIR)\mzcom.res"
-	-@erase "$(INTDIR)\stdafx.obj"
 	-@erase "$(INTDIR)\vc60.idb"
-	-@erase "$(OUTDIR)\MzCOM.exe"
-	-@erase ".\Release\mzcom.tlb"
+	-@erase "..\..\..\collects\mzcom\mzcom.exe"
+	-@erase ".\mzcom.tlb"
 	-@erase ".\Release\mzobj.obj"
 	-@erase ".\Release\regsvr32.trg"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
-CPP_PROJ=/nologo /MT /W3 /O1 /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
+CPP_PROJ=/nologo /MT /W3 /O1 /I "..\..\mzcom" /I "." /I "..\..\..\collects\mzscheme\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 RSC_PROJ=/l 0x409 /fo"$(INTDIR)\mzcom.res" /i "..\..\mzcom" /d "NDEBUG" 
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\MzCOM.bsc" 
 BSC32_SBRS= \
 	
 LINK32=link.exe
-LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /incremental:no /pdb:"$(OUTDIR)\MzCOM.pdb" /machine:I386 /out:"$(OUTDIR)\MzCOM.exe" /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release" 
+LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /incremental:no /pdb:"$(OUTDIR)\mzcom.pdb" /machine:I386 /out:"../../../collects/mzcom/mzcom.exe" /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release" 
 LINK32_OBJS= \
 	"$(INTDIR)\mzcom.obj" \
 	".\Release\mzobj.obj" \
-	"$(INTDIR)\stdafx.obj" \
 	"$(INTDIR)\mzcom.res"
 
-"$(OUTDIR)\MzCOM.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
+"..\..\..\collects\mzcom\mzcom.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
 
 OutDir=.\Release
-TargetPath=.\Release\MzCOM.exe
-InputPath=.\Release\MzCOM.exe
+TargetPath=\plt\collects\mzcom\mzcom.exe
+InputPath=\plt\collects\mzcom\mzcom.exe
 SOURCE="$(InputPath)"
 
 "$(OUTDIR)\regsvr32.trg" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -194,7 +184,7 @@ SOURCE=..\..\mzcom\mzcom.cxx
 
 !IF  "$(CFG)" == "MzCOM - Win32 Debug"
 
-CPP_SWITCHES=/nologo /MT /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /I "../../mzscheme/include ../worksp/mzcom" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
+CPP_SWITCHES=/nologo /MTd /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /I "../../mzscheme/include ../worksp/mzcom" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /GZ /c 
 
 "$(INTDIR)\mzcom.obj" : $(SOURCE) "$(INTDIR)"
 	$(CPP) @<<
@@ -204,7 +194,7 @@ CPP_SWITCHES=/nologo /MT /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include"
 
 !ELSEIF  "$(CFG)" == "MzCOM - Win32 Release"
 
-CPP_SWITCHES=/nologo /MT /W3 /O1 /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
+CPP_SWITCHES=/nologo /MT /W3 /O1 /I "..\..\mzcom" /I "." /I "..\..\..\collects\mzscheme\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /Fp"$(INTDIR)\MzCOM.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 
 "$(INTDIR)\mzcom.obj" : $(SOURCE) "$(INTDIR)"
 	$(CPP) @<<
@@ -218,9 +208,9 @@ SOURCE=..\..\mzcom\mzcom.idl
 
 !IF  "$(CFG)" == "MzCOM - Win32 Debug"
 
-MTL_SWITCHES=/tlb "$(OUTDIR)\mzcom.tlb" 
+MTL_SWITCHES=/tlb "./mzcom.tlb" 
 
-"$(INTDIR)\mzcom.tlb" : $(SOURCE) "$(INTDIR)"
+".\mzcom.tlb" : $(SOURCE) "$(INTDIR)"
 	$(MTL) @<<
   $(MTL_SWITCHES) $(SOURCE)
 <<
@@ -228,9 +218,9 @@ MTL_SWITCHES=/tlb "$(OUTDIR)\mzcom.tlb"
 
 !ELSEIF  "$(CFG)" == "MzCOM - Win32 Release"
 
-MTL_SWITCHES=/tlb "$(OUTDIR)\mzcom.tlb" 
+MTL_SWITCHES=/tlb "./mzcom.tlb" 
 
-"$(INTDIR)\mzcom.tlb" : $(SOURCE)
+".\mzcom.tlb" : $(SOURCE)
 	$(MTL) @<<
   $(MTL_SWITCHES) $(SOURCE)
 <<
@@ -256,15 +246,9 @@ SOURCE=..\..\mzcom\mzobj.cxx
 
 !ENDIF 
 
-SOURCE=..\..\mzcom\stdafx.cxx
-
-"$(INTDIR)\stdafx.obj" : $(SOURCE) "$(INTDIR)"
-	$(CPP) $(CPP_PROJ) $(SOURCE)
-
-
 SOURCE=.\mzcom.rc
 
-"$(INTDIR)\mzcom.res" : $(SOURCE) "$(INTDIR)" "$(INTDIR)\mzcom.tlb"
+"$(INTDIR)\mzcom.res" : $(SOURCE) "$(INTDIR)" ".\mzcom.tlb"
 	$(RSC) $(RSC_PROJ) $(SOURCE)
 
 

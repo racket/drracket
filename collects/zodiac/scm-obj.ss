@@ -1,4 +1,4 @@
-; $Id: scm-obj.ss,v 1.43 1999/05/20 22:36:52 mflatt Exp $
+; $Id: scm-obj.ss,v 1.44 1999/05/21 12:53:29 mflatt Exp $
 
 (unit/sig zodiac:scheme-objects^
   (import zodiac:misc^ (z : zodiac:structures^) (z : zodiac:reader-structs^)
@@ -111,7 +111,9 @@
 		      variables
 		      expr)))))
 	    (else
-	      (static-error expr "Malformed interface"))))))
+	      (static-error
+		"interface" 'kwd:interface
+		expr "malformed declaration"))))))
 
   (add-primitivized-micro-form 'interface full-vocabulary interface-micro)
   (add-primitivized-micro-form 'interface scheme-vocabulary interface-micro)
@@ -122,6 +124,8 @@
     (lambda (expr env attributes vocab)
       (let ((r (resolve expr env vocab)))
 	(cond
+	  ((lambda-binding? r)
+	    (create-lambda-varref r expr))
 	  ((lexical-binding? r)
 	    (create-lexical-varref r expr))
 	  ((top-level-resolution? r)
@@ -142,8 +146,9 @@
 	  ((superinit-binding? r)
 	    (create-superinit-varref r expr))
 	  ((or (macro-resolution? r) (micro-resolution? r))
-	    (static-error expr
-	      "Invalid use of keyword ~s" (z:symbol-orig-name expr)))
+	    (static-error
+	      "keyword" 'term:keyword-out-of-context expr
+	      "invalid use of keyword ~s" (z:symbol-orig-name expr)))
 	  (else
 	    (internal-error expr "Invalid resolution in obj: ~s" r))))))
 
@@ -171,24 +176,24 @@
 
   (define ivar-decls-vocab
     (create-vocabulary 'ivar-decls-vocab #f
-      "Invalid ivar declaration"
-      "Invalid ivar declaration"
-      "Invalid ivar declaration"
-      "Invalid ivar declaration"))
+      "malformed ivar declaration"
+      "malformed ivar declaration"
+      "malformed ivar declaration"
+      "malformed ivar declaration"))
 
   (define public-ivar-decl-entry-parser-vocab
     (create-vocabulary 'public-ivar-decl-entry-parser-vocab #f
-      "Invalid public declaration"
-      "Invalid public declaration"
-      "Invalid public declaration"
-      "Invalid public declaration"))
+      "malformed public declaration"
+      "malformed public declaration"
+      "malformed public declaration"
+      "malformed public declaration"))
 
   (define override-ivar-decl-entry-parser-vocab
     (create-vocabulary 'override-ivar-decl-entry-parser-vocab #f
-      "Invalid override declaration"
-      "Invalid override declaration"
-      "Invalid override declaration"
-      "Invalid override declaration"))
+      "malformed override declaration"
+      "malformed override declaration"
+      "malformed override declaration"
+      "malformed override declaration"))
 
   (add-sym-micro public-ivar-decl-entry-parser-vocab
     (lambda (expr env attributes vocab)
@@ -237,7 +242,9 @@
 		  var
 		  (make-void-init-expr expr)))))
 	  (else
-	    (static-error expr (format "Invalid ~a ivar declaration" kind-str)))))))
+	    (static-error
+	      "ivar" 'term:invalid-ivar-decl
+	      expr (format "malformed ~a declaration" kind-str)))))))
 
     (let* ((kwd `(,kind-sym))
 	   (in-pattern `(,kind-sym ivar-decl ...))
@@ -258,7 +265,9 @@
 		  (map cadr decls)
 		  (map caddr decls)))))
 	   (else
-	    (static-error expr (format "Invalid ~a clause" kind-str))))))))
+	    (static-error
+	      "ivar" 'term:invalid-ivar-clause
+	      expr (format "malformed ~a clause" kind-str))))))))
 
   (mk-public/override-micro 'public "public"
 			    public-ivar-decl-entry-parser-vocab
@@ -274,10 +283,10 @@
 
   (define private-ivar-decl-entry-parser-vocab
     (create-vocabulary 'private-ivar-decl-entry-parser-vocab #f
-      "Invalid private declaration"
-      "Invalid private declaration"
-      "Invalid private declaration"
-      "Invalid private declaration"))
+      "malformed private declaration"
+      "malformed private declaration"
+      "malformed private declaration"
+      "malformed private declaration"))
 
   (add-sym-micro private-ivar-decl-entry-parser-vocab
     (lambda (expr env attributes vocab)
@@ -307,7 +316,9 @@
 		(cons (create-private-binding+marks var)
 		  (make-void-init-expr expr)))))
 	  (else
-	    (static-error expr "Invalid ivar declaration"))))))
+	    (static-error
+	      "ivar" 'term:invalid-ivar-decl
+	      expr "malformed declaration"))))))
 
   (let* ((kwd '(private))
 	  (in-pattern '(private ivar-decl ...))
@@ -327,16 +338,18 @@
 		  (map car decls)
 		  (map cdr decls)))))
 	  (else
-	    (static-error expr "Invalid private clause"))))))
+	    (static-error
+	      "private" 'kwd:class-private
+	      expr "malformed declaration"))))))
 
 					; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
   (define inherit-ivar-decl-entry-parser-vocab
     (create-vocabulary 'inherit-ivar-decl-entry-parser-vocab #f
-      "Invalid inherit declaration"
-      "Invalid inherit declaration"
-      "Invalid inherit declaration"
-      "Invalid inherit declaration"))
+      "malformed inherit declaration"
+      "malformed inherit declaration"
+      "malformed inherit declaration"
+      "malformed inherit declaration"))
 
   (add-sym-micro inherit-ivar-decl-entry-parser-vocab
     (lambda (expr env attributes vocab)
@@ -361,7 +374,9 @@
 		  (create-inherit-binding+marks internal-var)
 		  var))))
 	  (else
-	    (static-error expr "Invalid ivar declaration"))))))
+	    (static-error
+	      "ivar" 'term:invalid-ivar-decl
+	      expr "malformed declaration"))))))
 
   (let* ((kwd '(inherit))
 	  (in-pattern '(inherit ivar-decl ...))
@@ -381,16 +396,18 @@
 		  (map car decls)
 		  (map cdr decls)))))
 	  (else
-	    (static-error expr "Invalid inherit clause"))))))
+	    (static-error
+	      "inherit" 'kwd:class-inherit
+	      expr "malformed declaration"))))))
 
 					; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
   (define rename-ivar-decl-entry-parser-vocab
     (create-vocabulary 'rename-ivar-decl-entry-parser-vocab #f
-      "Invalid rename declaration"
-      "Invalid rename declaration"
-      "Invalid rename declaration"
-      "Invalid rename declaration"))
+      "malformed rename declaration"
+      "malformed rename declaration"
+      "malformed rename declaration"
+      "malformed rename declaration"))
 
   (add-list-micro rename-ivar-decl-entry-parser-vocab
     (let* ((kwd '())
@@ -407,7 +424,9 @@
 		(valid-syntactic-id? inherited-var)
 		(cons (create-rename-binding+marks var) inherited-var))))
 	  (else
-	    (static-error expr "Invalid ivar declaration"))))))
+	    (static-error
+	      "ivar" 'term:invalid-ivar-decl
+	      expr "malformed declaration"))))))
 
   (let* ((kwd '(rename))
 	  (in-pattern '(rename ivar-decl ...))
@@ -427,7 +446,9 @@
 		  (map car decls)
 		  (map cdr decls)))))
 	  (else
-	    (static-error expr "Invalid rename clause"))))))
+	    (static-error
+	      "rename" 'kwd:class-rename
+	      expr "malformed declaration"))))))
 
   ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -443,7 +464,9 @@
 	      (make-sequence-entry
 		(pat:pexpand '(expr ...) p-env kwd))))
 	  (else
-	    (static-error expr "Invalid sequence clause"))))))
+	    (static-error
+	      "sequence" 'kwd:class-sequence
+	      expr "malformed declaration"))))))
 
   ; ----------------------------------------------------------------------
 
@@ -477,7 +500,9 @@
 		      (z:make-origin 'micro expr))
 		    env attributes vocab))))
 	    (else
-	      (static-error expr "Malformed class"))))))
+	      (static-error
+		"class" 'kwd:class
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'class full-vocabulary class-micro)
   (add-primitivized-micro-form 'class scheme-vocabulary class-micro)
@@ -512,17 +537,12 @@
 		      (z:make-origin 'micro expr))
 		    env attributes vocab))))
 	    (else
-	      (static-error expr "Malformed class*"))))))
+	      (static-error
+		"class*" 'kwd:class*
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'class* full-vocabulary class*-micro)
   (add-primitivized-micro-form 'class* scheme-vocabulary class*-micro)
-
-  (define flag-non-supervar
-    (lambda (super env)
-      (unless (supervar-binding?
-		(resolve-in-env (z:read-object super)
-		  (z:symbol-marks super) env))
-	(static-error super "Not a superclass reference"))))
 
   (define class*/names-micro
     (let* ((kwd '())
@@ -669,7 +689,9 @@
 					    env)
 			       result))))))))))
 	    (else
-	      (static-error expr "Malformed class*/names"))))))
+	      (static-error
+		"class*/names" 'kwd:class*/names
+		expr "malformed expression"))))))
 
 
   (add-primitivized-micro-form 'class*/names full-vocabulary class*/names-micro)
@@ -700,7 +722,9 @@
 		       (z:make-origin 'micro expr))
 		      env attributes vocab))))))
 	    (else
-	      (static-error expr "Malformed ivar"))))))
+	      (static-error
+		"ivar" 'kwd:ivar
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'ivar full-vocabulary ivar-micro)
   (add-primitivized-micro-form 'ivar scheme-vocabulary ivar-micro)
@@ -712,7 +736,9 @@
 	      (m&e (pat:make-match&env in-pattern kwd)))
 	(lambda (expr env)
 	  (or (pat:match-and-rewrite expr m&e out-pattern kwd env)
-	    (static-error expr "Malformed send")))))
+	    (static-error
+	      "send" 'kwd:send
+	      expr "malformed expression")))))
 
   (add-primitivized-macro-form 'send full-vocabulary send-macro)
   (add-primitivized-macro-form 'send scheme-vocabulary send-macro)
@@ -726,22 +752,42 @@
 			      ...)))
 	(lambda (expr env)
 	  (or (pat:match-and-rewrite expr m&e out-pattern kwd env)
-	    (static-error expr "Malformed send*")))))
+	    (static-error
+	      "send*" 'kwd:send*
+	      expr "malformed expression")))))
 
   (add-primitivized-macro-form 'send* full-vocabulary send*-macro)
   (add-on-demand-form 'macro 'send* common-vocabulary send*-macro)
 
-  (define make-generic-macro
-      (let* ((kwd '())
-	      (in-pattern '(_ class name))
-	      (m&e (pat:make-match&env in-pattern kwd))
-	      (out-pattern '(#%make-generic/proc class (quote name))))
-	(lambda (expr env)
-	  (or (pat:match-and-rewrite expr m&e out-pattern kwd env)
-	    (static-error expr "Malformed make-generic")))))
+  (define make-generic-micro
+    (let* ((kwd '())
+	    (in-pattern '(_ ci name))
+	    (m&e (pat:make-match&env in-pattern kwd)))
+      (lambda (expr env attributes vocab)
+	(cond
+	  ((pat:match-against m&e expr env)
+	    =>
+	    (lambda (p-env)
+	      (let ((ci (pat:pexpand 'ci p-env kwd))
+		     (name (pat:pexpand 'name p-env kwd)))
+		(valid-syntactic-id? name)
+		(as-nested
+		  attributes
+		  (lambda ()
+		    (expand-expr
+		      (structurize-syntax
+			`(#%make-generic/proc ,ci (quote ,name))
+			expr '(-1)
+			#f
+			(z:make-origin 'micro expr))
+		      env attributes vocab))))))
+	  (else
+	    (static-error
+	      "make-generic" 'kwd:make-generic
+	      expr "malformed expression"))))))
 
-  (add-primitivized-macro-form 'make-generic full-vocabulary make-generic-macro)
-  (add-primitivized-macro-form 'make-generic scheme-vocabulary make-generic-macro)
+  (add-primitivized-micro-form 'make-generic full-vocabulary make-generic-micro)
+  (add-primitivized-micro-form 'make-generic scheme-vocabulary make-generic-micro)
 
   ; ----------------------------------------------------------------------
 
@@ -763,10 +809,14 @@
 				    env attributes vocab)))))
 		(when (or (inherit-varref? id-expr)
 			(rename-varref? id-expr))
-		  (static-error var-p
-		    "Cannot mutate inherited or renamed variables"))
+		  (static-error
+		    "set!" 'term:no-set!-inherited/renamed
+		    var-p
+		    "cannot mutate inherited or renamed variables"))
 		(create-set!-form id-expr expr-expr expr))
-	      (static-error expr "Malformed set!"))))))
+	      (static-error
+		"set!" 'kwd:set!
+		expr "malformed expression"))))))
 
   (add-primitivized-micro-form 'set! full-vocabulary set!-micro)
   (add-primitivized-micro-form 'set! scheme-vocabulary set!-micro)

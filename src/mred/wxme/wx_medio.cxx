@@ -393,8 +393,7 @@ wxMediaStreamIn *wxMediaStreamIn::GetFixed(long *v)
   return this;
 }
 
-extern "C" void *scheme_malloc_fail_ok(void *(*f)(size_t), size_t);
-extern "C" void *GC_malloc_atomic(size_t);
+extern void *wxMallocAtomicIfPossible(size_t s);
 
 char *wxMediaStreamIn::GetString(long *n)
 {
@@ -411,8 +410,7 @@ char *wxMediaStreamIn::GetString(long *n)
 
   Typecheck(st_STRING);
 
-#if 1
-  r = (char *)scheme_malloc_fail_ok(GC_malloc_atomic, m);
+  r = (char *)wxMallocAtomicIfPossible(m);
   if (!r) {
     wxmeError("String too large (out of memory) reading stream.");
     bad = 1;
@@ -420,9 +418,6 @@ char *wxMediaStreamIn::GetString(long *n)
       *n = 0;
     return NULL;
   }
-#else
-  r = new char[m];
-#endif
 
   if (f->Read(r, m) != m) {
     bad = 1;

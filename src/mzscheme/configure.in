@@ -99,6 +99,9 @@ AC_PROG_CPP
 AC_PROG_CXX
 if test "$AS" = '' ; then 
   AS=as
+  as_was_set=no
+else
+  as_was_set=yes
 fi
 AC_PROG_RANLIB
 if test "$AR" = '' ; then 
@@ -152,13 +155,22 @@ fi
 
 ############## platform tests ################
 
+if test -x "/bin/uname" ; then
+  UNAME=/bin/uname
+elif test -x "/usr/bin/uname" ; then
+  UNAME=/usr/bin/uname
+else
+  echo configure: cannot find uname
+  exit 1
+fi
+
 # for flags we don't want to use in config tests:
 EXTRALIBS=
 
-OS=`uname -s`
+OS=`$UNAME -s`
 case $OS in
   SunOS)
-    case `uname -r` in
+    case `$UNAME -r` in
       5.*)
        if test "${enable_osthreads}" = "yes" ; then
 	 OPTIONS="${OPTIONS} -DSOLARIS_THREADS"
@@ -224,7 +236,19 @@ case $OS in
     fi
     ;;
   *)
-    echo "Warning: Unknown OS"
+    ;;
+esac
+
+MACH=`$UNAME -m`
+case "$MACH" in
+  alpha)
+    if test "$CC" = "gcc" ; then
+      if test "$as_was_set" = "no" ; then
+       AS="gcc -c -x assembler-with-cpp"
+      fi
+    fi
+    ;; 
+  *)
     ;;
 esac
 
@@ -239,7 +263,6 @@ if test "${enable_sgcdebug}" = "yes" ; then
   GCDIR=sgc
   OPTIONS="$OPTIONS -DSGC_STD_DEBUGGING=1"
 fi
-
 
 ############## C++ grunge ################
 

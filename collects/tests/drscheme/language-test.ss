@@ -48,6 +48,9 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(error 'a \"~a\" 1)" "a: 1")
+    (test-expression "(error \"a\" \"a\")" "a \"a\"")
+
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
@@ -86,6 +89,9 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(error 'a \"~a\" 1)" "a: 1")
+    (test-expression "(error \"a\" \"a\")" "a \"a\"")
     
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
@@ -131,6 +137,9 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(error 'a \"~a\" 1)" "a: 1")
+    (test-expression "(error \"a\" \"a\")" "a \"a\"")
+
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
@@ -138,7 +147,7 @@
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
 
     (test-expression "true" "reference to undefined identifier: true")
-    (test-expression "mred^" "Invalid use of signature name mred^")
+    (test-expression "mred^" "signature: invalid use of signature name mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "")
@@ -146,7 +155,8 @@
     (test-expression "'(1)" "(1)")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(#&1 #&1)")
-    (test-expression "(local ((define x x)) 1)" "Invalid position for internal definition")
+    (test-expression "(local ((define x x)) 1)"
+		     "definition: invalid position for internal definition")
     (test-expression "(letrec ([x x]) 1)" "1")
     (test-expression "(if 1 1 1)" "1")
     (test-expression "(+ 1)" "1")
@@ -176,6 +186,9 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(error 'a \"~a\" 1)" "a: 1")
+    (test-expression "(error \"a\" \"a\")" "a \"a\"")
+
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
@@ -191,7 +204,8 @@
     (test-expression "'(1)" "(1)")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(#&1 #&1)")
-    (test-expression "(local ((define x x)) 1)" "Invalid position for internal definition")
+    (test-expression "(local ((define x x)) 1)"
+		     "definition: invalid position for internal definition")
     (test-expression "(letrec ([x x]) 1)" "1")
     (test-expression "(if 1 1 1)" "1")
     (test-expression "(+ 1)" "1")
@@ -214,6 +228,11 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(error 'a \"~a\" 1)"
+		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
+    (test-expression "(error \"a\" \"a\")"
+		     "error: expected a symbol and a string, got \"a\" and \"a\"")
+    
     (test-expression "(time 1)" "reference to undefined identifier: time")
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "(cons make-posn (cons posn-x (cons posn-y (cons posn? empty))))")
@@ -226,11 +245,13 @@
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
     (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
-    (test-expression "'(1)" "Misuse of quote: '(1) is not a symbol")
+    (test-expression "'(1)" "quote: misused: '(1) is not a symbol")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(cons (box 1) (cons (box 1) empty))")
-    (test-expression "(local ((define x x)) 1)" "Invalid definition: must be at the top level")
-    (test-expression "(letrec ([x x]) 1)" "First term after parenthesis is illegal in an application")
+    (test-expression "(local ((define x x)) 1)"
+		     "definition: must be at the top level")
+    (test-expression "(letrec ([x x]) 1)"
+		     "illegal application: first term in application must be a function name")
     (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
@@ -256,6 +277,11 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(error 'a \"~a\" 1)"
+		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
+    (test-expression "(error \"a\" \"a\")"
+		     "error: expected a symbol and a string, got \"a\" and \"a\"")
     
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
@@ -299,6 +325,11 @@
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
+    
+    (test-expression "(error 'a \"~a\" 1)"
+		     "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
+    (test-expression "(error \"a\" \"a\")"
+		     "error: expected a symbol and a string, got \"a\" and \"a\"")
     
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 

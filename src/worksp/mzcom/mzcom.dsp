@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MT /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /ZI /Od /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /i ".\..\mzcom" /d "_DEBUG"
 BSC32=bscmake.exe
@@ -51,12 +51,12 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libcmtd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"libcmt.lib" /pdbtype:sept /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release"
+# ADD LINK32 libcmtd.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"libcmt.lib" /out:"../../../collects/mzcom/mzcom.exe" /pdbtype:sept /libpath:"..\mzsrc\Debug" /libpath:"..\gc\Debug"
 # SUBTRACT LINK32 /pdb:none
 # Begin Custom Build - Performing registration
 OutDir=.\Debug
-TargetPath=.\Debug\MzCOM.exe
-InputPath=.\Debug\MzCOM.exe
+TargetPath=\plt\collects\mzcom\mzcom.exe
+InputPath=\plt\collects\mzcom\mzcom.exe
 SOURCE="$(InputPath)"
 
 "$(OutDir)\regsvr32.trg" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /O1 /I "../../mzscheme/include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /D "_ATL_MIN_CRT" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /O1 /I "..\..\..\collects\mzscheme\include" /I "..\..\mzcom" /I "." /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /O1 /I "..\..\mzcom" /I "." /I "..\..\..\collects\mzscheme\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_ATL_STATIC_REGISTRY" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /i "..\..\mzcom" /d "NDEBUG"
 BSC32=bscmake.exe
@@ -88,12 +88,12 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib mzsrc.lib gc.lib /nologo /subsystem:windows /machine:I386 /out:"../../../collects/mzcom/mzcom.exe" /libpath:"..\mzsrc\Release" /libpath:"..\gc\Release"
 # SUBTRACT LINK32 /pdb:none
 # Begin Custom Build - Performing registration
 OutDir=.\Release
-TargetPath=.\Release\MzCOM.exe
-InputPath=.\Release\MzCOM.exe
+TargetPath=\plt\collects\mzcom\mzcom.exe
+InputPath=\plt\collects\mzcom\mzcom.exe
 SOURCE="$(InputPath)"
 
 "$(OutDir)\regsvr32.trg" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -131,9 +131,13 @@ SOURCE=..\..\mzcom\mzcom.idl
 
 !IF  "$(CFG)" == "MzCOM - Win32 Debug"
 
+# ADD MTL /tlb "./mzcom.tlb"
+# SUBTRACT MTL /Oicf
+
 !ELSEIF  "$(CFG)" == "MzCOM - Win32 Release"
 
 # PROP Intermediate_Dir "Release"
+# ADD MTL /tlb "./mzcom.tlb"
 
 !ENDIF 
 
@@ -150,10 +154,6 @@ SOURCE=..\..\mzcom\mzobj.cxx
 
 !ENDIF 
 
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mzcom\stdafx.cxx
 # End Source File
 # Begin Source File
 

@@ -2313,6 +2313,34 @@ void *wxOutOfMemory()
 {
   MrEdOutOfMemory();
   return NULL;
+} 
+
+
+static void (*mr_save_oom)(void);
+static mz_jmp_buf oom_buf;
+
+static void not_so_much_memory(void)
+{
+  scheme_longjmp(oom_buf, 1);
+}
+
+void *wxMallocAtomicIfPossible(size_t s)
+{
+  void *v;
+
+  if (s < 5000)
+    return scheme_malloc_atomic(s);
+
+  mr_save_oom = GC_out_of_memory;
+  if (!scheme_setjmp(oom_buf)) {
+    GC_out_of_memory = not_so_much_memory;
+    v = scheme_malloc_atomic(s);
+  } else {
+    v = NULL;
+  }
+  GC_out_of_memory = mr_save_oom;
+
+  return v;
 }
 
 static const char *CallSchemeExpand(const char *filename)

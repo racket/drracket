@@ -1,7 +1,6 @@
 /* srpersist.h */
 
 #define sizeray(x) (sizeof(x)/sizeof(*x))
-#define register_global(x) scheme_register_extension_global(&x,sizeof(x))
 
 #define sql_return(v,retcode,f) if (retcode == success) \
                              { return v; } \

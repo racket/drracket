@@ -151,6 +151,8 @@
 
 (define-signature drscheme:interface^ 
   ((open zodiac:interface^)
+   (struct exn:zodiac-syntax (link-tag))
+   (struct exn:zodiac-read (link-tag))
    set-zodiac-phase))
 
 (define-signature plt:basis-import^

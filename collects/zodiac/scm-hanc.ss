@@ -1,4 +1,4 @@
-; $Id: scm-hanc.ss,v 1.63 1999/05/21 12:53:26 mflatt Exp $
+; $Id: scm-hanc.ss,v 1.64 1999/05/23 17:31:24 mflatt Exp $
 
 (define-struct signature-element (source))
 (define-struct (name-element struct:signature-element) (name))
@@ -29,17 +29,16 @@
 		      (signs (map car sign:rest)))
 	    (unless (null? in)
 	      (if (memq (car signs) (cdr signs))
-		(static-error (car in)
-		  "Name \"~s\" is exported twice"
-		  (car signs))
+		(static-error
+		  "unit" 'term:unit-double-export (car in)
+		  "name \"~s\" is exported twice" (car signs))
 		(loop (cdr in) (cdr signs)))))
 	  (let loop ((in in:names)
 		      (signs sign:names))
 	    (unless (null? in)
 	      (if (memq (car signs) (cdr signs))
-		(static-error (car in)
-		  "Name \"~s\" is exported twice"
-		  (car signs))
+		(static-error 'term:unit-double-export (car in)
+		  "name \"~s\" is exported twice" (car signs))
 		(loop (cdr in) (cdr signs))))))
 	(let ((in (car in:all)) (sign (car sign:all)))
 	  (if (or (symbol? sign) (z:symbol? sign))
@@ -72,8 +71,10 @@
 		    (else
 		      (internal-error first "Invalid unit element")))))
 	    (when (memq first-name seen)
-	      (static-error (signature-element-source first)
-		"Duplicate signature entry: ~s" first-name))
+	      (static-error
+		"signature" 'term:duplicate-signature
+		(signature-element-source first)
+		"duplicate entry: ~s" first-name))
 	    (loop (cons first-name seen) (cdr rest))))))
     (letrec
       ((split
@@ -190,11 +191,13 @@
 	(let ((entry
 		(hash-table-get sig-space (z:read-object name)
 		  (lambda ()
-		    (static-error name "Unbound signature name: ~s"
-		      (z:read-object name))))))
+		    (static-error
+		      "signature" 'term:unbound-sig-name name
+		      "unbound name: ~s" (z:read-object name))))))
 	  entry)
-	(static-error name "Unbound signature name: ~s"
-	  (z:read-object name))))))
+	(static-error
+	  "signature" 'term:unbound-sig-name name
+	  "unbound name: ~s" (z:read-object name))))))
 
 (define extract-sub-unit-signature
   (lambda (signature indices)
@@ -204,7 +207,9 @@
 	      (raw-first (z:read-object first)))
 	(let loop ((elements (signature-elements signature)))
 	  (if (null? elements)
-	    (static-error first "No such sub-unit in signature")
+	    (static-error
+	      "signature" 'term:signature-no-sub-unit first
+	      "no such sub-unit")
 	    (if (unit-element? (car elements))
 	      (if (eq? raw-first (unit-element-id (car elements)))
 		(extract-sub-unit-signature
@@ -249,7 +254,9 @@
   (lambda (table tag)
     (cu/s-tag-table-lookup table tag
       (lambda ()
-	(static-error tag "Unbound tag")))))
+	(static-error
+	  "unit linkage" 'term:unit-link-unbound-tag tag
+	  "unbound tag")))))
 
 (define cu/s-tag-table-lookup/internal-error
   (lambda (table tag)
@@ -261,10 +268,10 @@
 
 (define sig-vocab
   (create-vocabulary 'sig-vocab #f
-    "Invalid signature expression"
-    "Invalid signature expression"
-    "Invalid signature expression"
-    "Invalid signature expression"))
+    "malformed signature expression"
+    "malformed signature expression"
+    "malformed signature expression"
+    "malformed signature expression"))
 
 (add-sym-micro sig-vocab
   (lambda (expr env attributes vocab)
@@ -283,10 +290,10 @@
 
 (define sig-element-vocab
   (create-vocabulary 'sig-element-vocab #f
-    "Invalid signature element"
-    "Invalid signature element"
-    "Invalid signature element"
-    "Invalid signature element"))
+    "malformed signature element"
+    "malformed signature element"
+    "malformed signature element"
+    "malformed signature element"))
 
 (add-sym-micro sig-element-vocab
   (lambda (expr env attributes vocab)
@@ -321,8 +328,11 @@
 		      (let ((first (car omits)))
 			(when (z:symbol? first)
 			  (unless (memq (z:read-object first) generated-names)
-			    (static-error first
-			      "Name not generated; illegal to omit")))
+			    (static-error
+			      "structs in signature"
+			      'term:signature-struct-illegal-omit-name
+			      first
+			      "name not generated; illegal to omit")))
 			(loop (cdr omits)))))
 		  (let ((real-omits
 			  (let loop ((omits omit-names))
@@ -338,20 +348,24 @@
 			  (cons (make-name-element expr (car names))
 			    (loop (cdr names))))))))))))
 	(else
-	  (static-error expr "Malformed struct clause"))))))
+	  (static-error
+	    "struct" 'kwd:signature-struct expr
+	    "malformed clause"))))))
 
 (define signature-struct-omission-checker-vocab
   (create-vocabulary 'signature-struct-omission-checker-vocab #f
-    "Invalid signature structure omission declaration"
-    "Invalid signature structure omission declaration"
-    "Invalid signature structure omission declaration"
-    "Invalid signature structure omission declaration"))
+    "malformed signature structure omission declaration"
+    "malformed signature structure omission declaration"
+    "malformed signature structure omission declaration"
+    "malformed signature structure omission declaration"))
 
 (add-sym-micro signature-struct-omission-checker-vocab
   (lambda (expr env attributes vocab)
     (let ((raw-expr (z:read-object expr)))
       (unless (memq raw-expr '(-selectors -setters))
-	(static-error expr "Invalid omission specifier"))
+	(static-error
+	  "structs in signature" 'term:signature-invalid-struct-omit
+	  expr "invalid omission specifier"))
       raw-expr)))
 
 (add-micro-form '- signature-struct-omission-checker-vocab
@@ -367,7 +381,9 @@
 	      (valid-syntactic-id? var)
 	      (structurize-syntax (z:read-object var) expr))))
 	(else
-	  (static-error expr "Malformed omission specifier"))))))
+	  (static-error
+	    "structs in signature" 'term:signature-malformed-omit-clause
+	    expr "malformed omission specifier"))))))
 
 (add-micro-form 'open sig-element-vocab
   (let* ((kwd '(open))
@@ -383,7 +399,9 @@
 	      (signature-elements
 		(expand-expr sig env attributes sig-vocab)))))
 	(else
-	  (static-error expr "Malformed open clause"))))))
+	  (static-error
+	    "structs in signature" 'term:signature-malformed-open-clause
+	    expr "malformed open clause"))))))
 
 (add-micro-form 'unit sig-element-vocab
   (let* ((kwd '(unit :))
@@ -400,16 +418,18 @@
 	      (list (make-unit-element expr (z:read-object id)
 		      (expand-expr sig env attributes sig-vocab))))))
 	(else
-	  (static-error expr "Malformed unit clause"))))))
+	  (static-error
+	    "structs in signature" 'term:signature-malformed-unit-clause
+	    expr "Malformed unit clause"))))))
 
 ; --------------------------------------------------------------------
 
 (define u/s-prim-imports-vocab
   (create-vocabulary 'u/s-prim-imports-vocab #f
-    "Invalid imports declaration"
-    "Invalid imports declaration"
-    "Invalid imports declaration"
-    "Invalid imports declaration"))
+    "malformed imports declaration"
+    "malformed imports declaration"
+    "malformed imports declaration"
+    "malformed imports declaration"))
 
 (add-sym-micro u/s-prim-imports-vocab
   (lambda (expr env attributes vocab)
@@ -436,7 +456,9 @@
 		  (expand-expr sig env attributes sig-vocab))
 		(z:read-object id)))))
 	((pat:match-against m&e-2 expr env)
-	  (static-error expr "Ambiguous : in signature"))
+	  (static-error
+	    "signature" 'term:signature-ambiguous-:
+	    expr "ambiguous : in signature"))
 	(else
 	  (convert-to-prim-format
 	    (signature-elements
@@ -483,10 +505,10 @@
 
 (define u/s-sign-imports-vocab
   (create-vocabulary 'u/s-sign-imports-vocab #f
-    "Invalid signature imports declaration"
-    "Invalid signature imports declaration"
-    "Invalid signature imports declaration"
-    "Invalid signature imports declaration"))
+    "malformed signature imports declaration"
+    "malformed signature imports declaration"
+    "malformed signature imports declaration"
+    "malformed signature imports declaration"))
 
 (add-sym-micro u/s-sign-imports-vocab
   (lambda (expr env attributes vocab)
@@ -512,7 +534,9 @@
 		(signature-exploded
 		  (expand-expr sig env attributes sig-vocab))))))
 	((pat:match-against m&e-2 expr env)
-	  (static-error expr "Ambiguous : in signature"))
+	  (static-error
+	    "signature" 'term:signature-ambiguous-:
+	    expr "ambiguous : in signature"))
 	(else
 	  (cons immediate-signature-name
 	    (explode-signature-elements
@@ -537,7 +561,9 @@
 	    '()
 	    (let ((first (car sig-names)))
 	      (when (unit-element? first)
-		(static-error source "Unit exports not allowed"))
+		(static-error
+		  "unit" 'term:no-unit-exports source
+		  "unit exports not allowed"))
 	      (let ((name (name-element-name first)))
 		(cons
 		  (let ((entry (hash-table-get table name (lambda () #f))))
@@ -550,10 +576,10 @@
 
 (define u/s-sign-exports-vocab
   (create-vocabulary 'u/s-sign-exports-vocab #f
-    "Invalid signature exports declaration"
-    "Invalid signature exports declaration"
-    "Invalid signature exports declaration"
-    "Invalid signature exports declaration"))
+    "malformed signature exports declaration"
+    "malformed signature exports declaration"
+    "malformed signature exports declaration"
+    "malformed signature exports declaration"))
 
 (add-sym-micro u/s-sign-exports-vocab
   (lambda (expr env attributes vocab)
@@ -577,7 +603,9 @@
 	      (signature-exploded
 		(expand-expr sig env attributes sig-vocab)))))
 	((pat:match-against m&e-2 expr env)
-	  (static-error expr "Ambiguous : in signature"))
+	  (static-error
+	    "signature" 'term:signature-ambiguous-: expr
+	    "ambiguous : in signature"))
 	(else
 	  (explode-signature-elements
 	    (signature-elements
@@ -604,7 +632,9 @@
 		    (structurize-syntax `(,'quote ,elements) expr '(-1))
 		    env attributes vocab)))))
 	  (else
-	    (static-error expr "Malformed signature->symbols"))))))
+	    (static-error
+	      "signature->symbols" 'kwd:signature->symbols
+	      expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'signature->symbols full-vocabulary signature->symbols-micro)
 (add-on-demand-form 'micro 'signature->symbols common-vocabulary signature->symbols-micro)
@@ -622,7 +652,9 @@
 		     (sig (pat:pexpand 'sig p-env kwd)))
 		(valid-syntactic-id? name)
 		(unless (get-top-level-status attributes)
-		  (static-error expr "Only supported at top-level"))
+		  (static-error
+		    "define-signature" 'kwd:define-signature
+		    expr "only supported at top-level"))
 		(let ((elements
 			(signature-elements
 			  (expand-expr sig env attributes sig-vocab))))
@@ -632,7 +664,9 @@
 				      #f (z:make-origin 'micro expr))
 		  env attributes vocab))))
 	  (else
-	    (static-error expr "Malformed define-signature"))))))
+	    (static-error
+	      "define-signature" 'kwd:define-signature
+	      expr "malformed definition"))))))
 
 (add-primitivized-micro-form 'define-signature full-vocabulary define-signature-micro)
 (add-primitivized-micro-form 'define-signature scheme-vocabulary define-signature-micro)
@@ -678,7 +712,9 @@
 		   (lambda ()
 		     (pop-signature name attributes old-value)))))))
 	  (else
-	   (static-error expr "Malformed let-signature"))))))
+	   (static-error
+	     "let-signature" 'kwd:let-signature
+	     expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'let-signature full-vocabulary let-signature-micro)
 (add-primitivized-micro-form 'let-signature scheme-vocabulary let-signature-micro)
@@ -697,17 +733,22 @@
           (lambda (p-env)
             (let ((filename (pat:pexpand 'filename p-env kwd)))
               (unless (z:string? filename)
-                (static-error filename "File name must be a string"))
+                (static-error
+		  "include" 'kwd:unit-include
+		  filename "file name must be a string"))
               (let ((raw-filename (z:read-object filename)))
                 (let-values (((base name dir?) (split-path raw-filename)))
                   (when dir?
-                    (static-error filename "Cannot include a directory"))
+                    (static-error
+		      "include" 'kwd:unit-include
+		      filename "cannot include a directory"))
                   (let* ((original-directory (current-load-relative-directory))
 			  (p (with-handlers
 			       ((exn:i/o:filesystem?
 				  (lambda (exn)
-				    (static-error filename
-				      "Unable to open file ~s: ~a" raw-filename exn))))
+				    (static-error
+				      "include" 'kwd:unit-include filename
+				      "unable to open file ~s: ~a" raw-filename exn))))
 			       (open-input-file
 				 (if (and original-directory
 				       (not (complete-path? raw-filename)))
@@ -754,7 +795,9 @@
 			(lambda ()
 			  (close-input-port p))))))))))
 	(else
-          (static-error expr "Malformed include"))))))
+          (static-error
+	    "include" 'kwd:unit-include
+	    expr "malformed expression"))))))
 
 (define unit/sig-micro
     (let* ((kwd-1 '(import rename))
@@ -834,7 +877,9 @@
 		  (z:make-origin 'micro expr))
 		env attributes vocab)))
 	  (else
-	    (static-error expr "Malformed unit/sig"))))))
+	    (static-error
+	      "unit/sig" 'kwd:unit/sig
+	      expr "malformed expression"))))))
 
 
 (add-primitivized-micro-form 'unit/sig full-vocabulary unit/sig-micro)
@@ -844,10 +889,10 @@
 
 (define cu/s-imports-record-tag-sigs-vocab
   (create-vocabulary 'cu/s-imports-record-tag-sigs-vocab #f
-    "Invalid import clause"
-    "Invalid import clause"
-    "Invalid import clause"
-    "Invalid import clause"))
+    "malformed import clause"
+    "malformed import clause"
+    "malformed import clause"
+    "malformed import clause"))
 
 (add-list-micro cu/s-imports-record-tag-sigs-vocab
   (let* ((kwd '(:))
@@ -863,18 +908,21 @@
 	      (valid-syntactic-id? tag)
 	      (let ((table (extract-cu/s-tag-table attributes)))
 		(when (cu/s-tag-table-lookup table tag)
-		  (static-error tag
-		    "Duplicate tag definition"))
+		  (static-error
+		    "compound-unit/sig" 'kwd:compound-unit/sig tag
+		    "duplicate link tag definition"))
 		(cu/s-tag-table-put/import table tag sig env attributes)))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig import clause"))))))
+	  (static-error
+	    "compound unit/sig" 'kwd:compound-unit/sig expr
+	    "malformed import clause"))))))
 
 (define cu/s-sign-imports-vocab
   (create-vocabulary 'cu/s-sign-imports-vocab #f
-    "Invalid import clause"
-    "Invalid import clause"
-    "Invalid import clause"
-    "Invalid import clause"))
+    "malformed import clause"
+    "malformed import clause"
+    "malformed import clause"
+    "malformed import clause"))
 
 (add-list-micro cu/s-sign-imports-vocab
   (let* ((kwd '(:))
@@ -892,14 +940,16 @@
 		    (tag-table-entry-signature
 		      (cu/s-tag-table-lookup/internal-error table tag))))))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig import clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig expr
+	    "malformed import clause"))))))
 
 (define cu/s-link-imports-vocab
   (create-vocabulary 'cu/s-link-imports-vocab #f
-    "Invalid link imports declaration"
-    "Invalid link imports declaration"
-    "Invalid link imports declaration"
-    "Invalid link imports declaration"))
+    "malformed link imports declaration"
+    "malformed link imports declaration"
+    "malformed link imports declaration"
+    "malformed link imports declaration"))
 
 (add-list-micro cu/s-link-imports-vocab
   (let* ((kwd '(:))
@@ -918,16 +968,18 @@
 		      (cu/s-tag-table-lookup/internal-error table tag)))
 		  (z:read-object tag))))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig import clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig expr
+	    "malformed import clause"))))))
 
 ; --------------------------------------------------------------------
 
 (define cu/s-link-record-tag-sigs-vocab
   (create-vocabulary 'cu/s-link-record-tag-sigs-vocab #f
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"))
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"))
 
 (add-list-micro cu/s-link-record-tag-sigs-vocab
   (let* ((kwd '(:))
@@ -943,18 +995,22 @@
 	      (valid-syntactic-id? tag)
 	      (let ((table (extract-cu/s-tag-table attributes)))
 		(when (cu/s-tag-table-lookup table tag)
-		  (static-error tag
-		    "Duplicate tag definition"))
+		  (static-error
+		    "unit linkage" 'term:unit-link-duplicate-tag
+		    tag
+		    "duplicate link tag name"))
 		(cu/s-tag-table-put/link table tag sig env attributes)))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed link clause"))))))
 
 (define cu/s-link-exports-vocab
   (create-vocabulary 'cu/s-link-exports-vocab #f
-    "Invalid link export declaration"
-    "Invalid link export declaration"
-    "Invalid link export declaration"
-    "Invalid link export declaration"))
+    "malformed link export declaration"
+    "malformed link export declaration"
+    "malformed link export declaration"
+    "malformed link export declaration"))
 
 (add-list-micro cu/s-link-exports-vocab
   (let* ((kwd '(:))
@@ -971,14 +1027,16 @@
 		  (tag-table-entry-signature
 		    (cu/s-tag-table-lookup/internal-error table tag)))))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed link clause"))))))
 
 (define cu/s-link-tags-vocab
   (create-vocabulary 'cu/s-link-tags-vocab #f
-    "Invalid link tag declaration"
-    "Invalid link tag declaration"
-    "Invalid link tag declaration"
-    "Invalid link tag declaration"))
+    "malformed link tag declaration"
+    "malformed link tag declaration"
+    "malformed link tag declaration"
+    "malformed link tag declaration"))
 
 (add-list-micro cu/s-link-tags-vocab
   (let* ((kwd '(:))
@@ -992,14 +1050,16 @@
 	    (let ((tag (pat:pexpand 'tag p-env kwd)))
 	      tag)))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed link clause"))))))
 
 (define cu/s-link-exprs-vocab
   (create-vocabulary 'cu/s-link-exprs-vocab #f
-    "Invalid link expression"
-    "Invalid link expression"
-    "Invalid link expression"
-    "Invalid link expression"))
+    "malformed link expression"
+    "malformed link expression"
+    "malformed link expression"
+    "malformed link expression"))
 
 (add-list-micro cu/s-link-exprs-vocab
   (let* ((kwd '(:))
@@ -1013,14 +1073,16 @@
 	    (let ((expr (pat:pexpand 'expr p-env kwd)))
 	      expr)))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compount-unit/sig
+	    expr "malformed link clause"))))))
 
 (define cu/s-link-linking-sigs-vocab
   (create-vocabulary 'cu/s-link-linking-sigs-vocab #f
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"))
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"))
 
 (add-list-micro cu/s-link-linking-sigs-vocab
   (let* ((kwd '(:))
@@ -1040,7 +1102,9 @@
 		       cu/s-unit-path-linkage-vocab))
 		path-elts))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed link clause"))))))
 
 (define cu/s-check-self-import
   (lambda (tag attributes)
@@ -1048,14 +1112,16 @@
       (when (eq? (z:read-object tag)
 		 (get-attribute attributes cu/s-this-link-attr
 				(lambda () (internal-error tag "No this-link attribute"))))
-	(static-error tag "Self import of tag ~s" (z:read-object tag))))))
+	(static-error
+	  "unit linkage" 'term:unit-link-self-import-tag tag
+	  "self import of tag ~s" (z:read-object tag))))))
 
 (define cu/s-link-prim-unit-names-vocab
   (create-vocabulary 'cu/s-link-prim-unit-names-vocab #f
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"
-    "Invalid link clause"))
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"
+    "malformed link clause"))
 
 (add-list-micro cu/s-link-prim-unit-names-vocab
   (let* ((kwd '(:))
@@ -1074,7 +1140,9 @@
 			 cu/s-unit-path-prim-links-vocab))
 		  path-elts)))))
 	(else
-	  (static-error expr "Malformed compound-unit/sig link clause"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed link clause"))))))
 
 ; --------------------------------------------------------------------
 
@@ -1119,8 +1187,9 @@
 		  (with-handlers
 		    ((exn:unit?
 		       (lambda (exn)
-			 (static-error expr
-			   (exn-message exn)))))
+			 (static-error
+			   "signature matching" 'term:signature-not-matching
+			   expr (exn-message exn)))))
 		    (verify-signature-match 'compound-unit/sig
 		      #f
 		      (format "signature ~s" (signature-name small-sig))
@@ -1143,8 +1212,9 @@
 		(with-handlers
 		  ((exn:unit?
 		     (lambda (exn)
-		       (static-error expr
-			 (exn-message exn)))))
+		       (static-error
+			 "signature matching" 'term:signature-not-matching
+			 expr (exn-message exn)))))
 		  (verify-signature-match 'compound-unit/sig
 		    #f
 		    (format "signature ~s" (signature-name small-sig))
@@ -1167,14 +1237,16 @@
 			(extract-sub-unit-signature initial-sig ids)))
 		  final-sig)))))
 	(else
-	  (static-error expr "Malformed unit path element"))))))
+	  (static-error
+	    "unit linkage" 'kwd:unit-link-path-malformed
+	    expr "malformed unit path element"))))))
 
 (define cu/s-unit-path-linkage-vocab
   (create-vocabulary 'cu/s-unit-path-linkage-vocab #f
-    "Invalid linkage"
-    "Invalid linkage"
-    "Invalid linkage"
-    "Invalid linkage"))
+    "malformed linkage"
+    "malformed linkage"
+    "malformed linkage"
+    "malformed linkage"))
 
 (add-sym-micro cu/s-unit-path-linkage-vocab
   (lambda (expr env attributes vocab)
@@ -1217,8 +1289,9 @@
 		  (with-handlers
 		    ((exn:unit?
 		       (lambda (exn)
-			 (static-error expr
-			   (exn-message exn)))))
+			 (static-error
+			   "signature matching" 'term:signature-not-matching
+			   expr (exn-message exn)))))
 		    (verify-signature-match 'compound-unit/sig
 		      #f
 		      (format "signature ~s" (signature-name small-sig))
@@ -1243,8 +1316,9 @@
 		(with-handlers
 		  ((exn:unit?
 		     (lambda (exn)
-		       (static-error expr
-			 (exn-message exn)))))
+		       (static-error
+			 "signature matching" 'term:signature-not-matching
+			 expr (exn-message exn)))))
 		  (verify-signature-match 'compound-unit/sig
 		    #f
 		    (format "signature ~s" (signature-name small-sig))
@@ -1270,14 +1344,16 @@
 		  (cons (z:read-object tag)
 		    (signature-exploded final-sig)))))))
 	(else
-	  (static-error expr "Malformed unit path element"))))))
+	  (static-error
+	    "unit linkage" 'kwd:unit-link-path-malformed
+	    expr "malformed unit path element"))))))
 
 (define cu/s-unit-path-prim-links-vocab
   (create-vocabulary 'cu/s-unit-path-prim-links-vocab #f
-    "Invalid linkage"
-    "Invalid linkage"
-    "Invalid linkage"
-    "Invalid linkage"))
+    "malformed linkage"
+    "malformed linkage"
+    "malformed linkage"
+    "malformed linkage"))
 
 (add-sym-micro cu/s-unit-path-prim-links-vocab
   (lambda (expr env attributes vocab)
@@ -1388,7 +1464,9 @@
 			(internal-error tag-table-entry
 			  "Illegal tag-table entry")))))))))
 	(else
-	  (static-error expr "Malformed unit path element"))))))
+	  (static-error
+	    "unit linkage" 'kwd:unit-link-path-malformed
+	    expr "malformed unit path element"))))))
 
 (define cu/s-unit-path-tag+build-prefix-vocab
   (create-vocabulary 'cu/s-unit-path-tag+build-prefix-vocab))
@@ -1448,7 +1526,9 @@
 			  (cons ":"
 			    (loop (cdr ids))))))))))))
 	(else
-	  (static-error expr "Malformed unit path element"))))))
+	  (static-error
+	    "unit linkage" 'kwd:unit-link-path-malformed
+	    expr "malformed unit path element"))))))
 
 (define cu/s-unit-path-tag-vocab
   (create-vocabulary 'cu/s-unit-path-tag-vocab))
@@ -1496,7 +1576,9 @@
 		   (ids (pat:pexpand '(id ...) p-env kwd)))
 	      (z:read-object tag))))
 	(else
-	  (static-error expr "Malformed unit path element"))))))
+	  (static-error
+	    "unit linkage" 'kwd:unit-link-path-malformed
+	    expr "malformed unit path element"))))))
 
 (define cu/s-build-link-names
   (opt-lambda (signature (prefix-string ""))
@@ -1542,17 +1624,19 @@
     (let ((raw-var (z:read-object variable)))
       (let loop ((elements (signature-elements sig)))
 	(if (null? elements)
-	  (static-error variable "No such identifier in signature")
+	  (static-error
+	    "signature" 'term:signature-no-var variable
+	    "no such identifier")
 	  (or (and (name-element? (car elements))
 		(eq? raw-var (name-element-name (car elements))))
 	    (loop (cdr elements))))))))
 
 (define cu/s-prim-export-vocab
   (create-vocabulary 'cu/s-prim-export-vocab #f
-    "Invalid export declaration"
-    "Invalid export declaration"
-    "Invalid export declaration"
-    "Invalid export declaration"))
+    "malformed export declaration"
+    "malformed export declaration"
+    "malformed export declaration"
+    "malformed export declaration"))
 
 ; Returns a fully-formed export element of the form
 ;   (tag (internal-name external-name))
@@ -1609,7 +1693,9 @@
 				(z:read-object variable))
 			  external)))))))
 	(else
-	  (static-error expr "Malformed var export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed var export"))))))
 
 (add-micro-form 'open cu/s-prim-export-vocab
   (let* ((kwd '(open))
@@ -1635,7 +1721,9 @@
 		    (convert-to-prim-format
 		      (signature-elements final-sig))))))))
 	(else
-	  (static-error expr "Malformed open export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed open export"))))))
 
 (add-micro-form 'unit cu/s-prim-export-vocab
   (let* ((kwd '(unit))
@@ -1680,7 +1768,9 @@
 		    (convert-to-prim-format (signature-elements final-sig)
 		      (z:read-object variable))))))))
 	(else
-	  (static-error expr "Malformed unit export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed unit export"))))))
 
 (define cu/s-export-sign-vocab
   (create-vocabulary 'cu/s-export-sign-vocab))
@@ -1707,7 +1797,9 @@
 		   (external (pat:pexpand 'external-variable p-env kwd)))
 	      (list external))))
 	(else
-	  (static-error expr "Malformed var export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed var export"))))))
 
 (add-micro-form 'open cu/s-export-sign-vocab
   (let* ((kwd '(open))
@@ -1724,7 +1816,9 @@
 			cu/s-unit-path-extract-final-sig-vocab)))
 		(signature-exploded final-sig)))))
 	(else
-	  (static-error expr "Malformed open export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed open export"))))))
 
 (add-micro-form 'unit cu/s-export-sign-vocab
   (let* ((kwd '(unit))
@@ -1760,7 +1854,9 @@
 		(list (cons (z:read-object variable)
 			(signature-exploded final-sig)))))))
 	(else
-	  (static-error expr "Malformed unit export"))))))
+	  (static-error
+	    "compound-unit/sig" 'kwd:compound-unit/sig
+	    expr "malformed unit export"))))))
 
 ; --------------------------------------------------------------------
 
@@ -1869,7 +1965,9 @@
 			(z:make-origin 'micro expr))
 		      env attributes vocab))))))
 	  (else
-	    (static-error expr "Malformed compound-unit/sig"))))))
+	    (static-error
+	      "compound-unit/sig" 'kwd:compound-unit/sig
+	      expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'compound-unit/sig full-vocabulary compound-unit/sig-micro)
 (add-primitivized-micro-form 'compound-unit/sig scheme-vocabulary compound-unit/sig-micro)
@@ -1879,10 +1977,10 @@
 
 (define iu/s-linkage-vocab
   (create-vocabulary 'iu/s-linkage-vocab #f
-    "Invalid linkage declaration"
-    "Invalid linkage declaration"
-    "Invalid linkage declaration"
-    "Invalid linkage declaration"))
+    "malformed linkage declaration"
+    "malformed linkage declaration"
+    "malformed linkage declaration"
+    "malformed linkage declaration"))
 
 (add-sym-micro iu/s-linkage-vocab
   (lambda (expr env attributes vocab)
@@ -1907,7 +2005,9 @@
 		(signature-exploded
 		  (expand-expr in:sig env attributes sig-vocab))))))
 	((pat:match-against m&e-2 expr env)
-	  (static-error expr "Ambiguous : in signature"))
+	  (static-error
+	    "signature" 'term:signature-ambiguous-: expr
+	    "ambiguous : in signature"))
 	(else
 	  (cons immediate-signature-name
 	    (signature-exploded
@@ -1915,10 +2015,10 @@
 
 (define iu/s-imports-vocab
   (create-vocabulary 'iu/s-imports-vocab #f
-    "Invalid import declaration"
-    "Invalid import declaration"
-    "Invalid import declaration"
-    "Invalid import declaration"))
+    "malformed import declaration"
+    "malformed import declaration"
+    "malformed import declaration"
+    "malformed import declaration"))
 
 (add-sym-micro iu/s-imports-vocab
   (lambda (expr env attributes vocab)
@@ -1943,7 +2043,9 @@
 		  (expand-expr in:sig env attributes sig-vocab))
 		(z:read-object in:id)))))
 	((pat:match-against m&e-2 expr env)
-	  (static-error expr "Ambiguous : in signature"))
+	  (static-error
+	    "signature" 'term:signature-ambiguous-: expr
+	    "ambiguous : in signature"))
 	(else
 	  (convert-to-prim-format
 	    (signature-elements
@@ -1996,7 +2098,9 @@
 	     in:expr in:linkage
 	     expr env attributes vocab))))
 	  (else
-	    (static-error expr "Malformed invoke-unit/sig"))))))
+	    (static-error
+	      "invoke-unit/sig" 'kwd:invoke-unit/sig
+	      expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'invoke-unit/sig full-vocabulary invoke-unit/sig-micro)
 (add-primitivized-micro-form 'invoke-unit/sig scheme-vocabulary invoke-unit/sig-micro)
@@ -2036,7 +2140,9 @@
 		    (z:make-origin 'micro expr))
 		  env attributes vocab))))
 	  (else
-	    (static-error expr "Malformed unit->unit/sig"))))))
+	    (static-error
+	      "unit->unit/sig" 'kwd:unit->unit/sig
+	      expr "malformed expression"))))))
 
 (add-primitivized-micro-form 'unit->unit/sig full-vocabulary unit->unit/sig-micro)
 (add-primitivized-micro-form 'unit->unit/sig scheme-vocabulary unit->unit/sig-micro)
@@ -2088,10 +2194,17 @@
 	 (m&e (pat:make-match&env in-pattern kwd))
 	 (m&e2 (pat:make-match&env in-pattern2 kwd))
 	 (badsyntax (lambda (expr why)
-		      (static-error expr 
-				    (format "Malformed ~adefine-values/invoke-unit/sig~a"
-					    (if global? "global-" "")
-					    why)))))
+		      (static-error
+			(if global?
+			  "global-define-values"
+			  "define-values")
+			(if global?
+			  'kwd:global-define-values
+			  'kwd:define-values)
+			expr 
+			(format "Malformed ~adefine-values/invoke-unit/sig~a"
+			  (if global? "global-" "")
+			  why)))))
     (lambda (expr env attributes vocab)
       (let ([doit (lambda (p-env prefix?)
 		    (let ((in:export (pat:pexpand 'export p-env kwd))

@@ -233,7 +233,7 @@ int scheme_solaris_semaphore_try_down(void *);
 # if defined(__mc68000__)
 #  define SCHEME_PLATFORM_LIBRARY_SUBPATH "m68k-linux"
 # endif
-# if defined(__alpha)
+# if defined(__alpha__)
 #  define SCHEME_PLATFORM_LIBRARY_SUBPATH "alpha-linux"
 # endif
 # ifndef SCHEME_PLATFORM_LIBRARY_SUBPATH
