@@ -2531,9 +2531,10 @@
       (define transparent-io-super% 
         (console-text-mixin
          (scheme:text-mixin
-          (mode:host-text-mixin
-           (text:searching-mixin
-            text:autowrap%)))))
+          (color:text-mixin
+           (mode:host-text-mixin
+            (text:searching-mixin
+             text:autowrap%))))))
       
       (define consumed-delta (make-object style-delta%))
       (send (send consumed-delta get-foreground-mult) set 0.75 0.75 0.75)
@@ -2670,11 +2671,13 @@
       (define -text% 
         (drs-bindings-keymap-mixin
          (text-mixin 
-          (console-text-mixin
-           (scheme:text-mixin
-            (text:info-mixin
-             (editor:info-mixin
-              (text:searching-mixin
-               (text:nbsp->space-mixin
-                (mode:host-text-mixin
-                 text:clever-file-format%)))))))))))))
+          (color:interactions-mixin
+           (console-text-mixin
+            (scheme:text-mixin
+             (color:text-mixin
+              (text:info-mixin
+               (editor:info-mixin
+                (text:searching-mixin
+                 (text:nbsp->space-mixin
+                  (mode:host-text-mixin
+                   text:clever-file-format%)))))))))))))))

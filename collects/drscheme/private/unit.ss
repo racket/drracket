@@ -378,11 +378,12 @@
                ((get-program-editor-mixin)
                 (drscheme:module-language:module-language-put-file-mixin
                  (scheme:text-mixin
-                  (drscheme:rep:drs-bindings-keymap-mixin
-                   (mode:host-text-mixin
-                    (text:delegate-mixin
-                     (text:nbsp->space-mixin
-                      text:info%)))))))])
+                  (color:text-mixin
+                   (drscheme:rep:drs-bindings-keymap-mixin
+                    (mode:host-text-mixin
+                     (text:delegate-mixin
+                      (text:nbsp->space-mixin
+                       text:info%))))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
             
