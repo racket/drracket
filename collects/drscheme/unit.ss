@@ -364,7 +364,9 @@
 	 (lambda (file-menu)
 	   (set! file-menu:print-transcript-id
 		 (send file-menu append-item "Print Interactions..."
-		       (lambda () (send interactions-edit print '()))))
+		       (lambda () (send interactions-edit print '()
+					#t (mred:preferences:get-preference
+					    'mred:print-output-mode)))))
 	   (send file-menu append-separator))]
 	[id->child
 	 (lambda (id)
