@@ -1,3 +1,15 @@
+#|
+
+add this test:
+
+(let ()
+  (display "x")
+  (write-special (make-object string-snip% " in: "))
+  (display "y")
+  (flush-output))
+
+|#
+
 (module io mzscheme
   (require "drscheme-test-util.ss"
            (lib "gui.ss" "tests" "utils")

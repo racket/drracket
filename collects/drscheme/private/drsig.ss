@@ -164,8 +164,6 @@
   (define-signature drscheme:rep^
     (get-error-ranges
      reset-error-ranges
-     insert-error-in-text
-     insert-error-in-text/highlight-errors
      use-number-snip
      which-number-snip
      drs-bindings-keymap-mixin

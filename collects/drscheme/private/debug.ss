@@ -11,6 +11,7 @@ profile todo:
            (lib "class.ss")
            (lib "list.ss")
            (lib "etc.ss")
+           (lib "file.ss")
            "drsig.ss"
            (lib "framework.ss" "framework")
            (lib "mred.ss" "mred")
@@ -143,6 +144,7 @@ profile todo:
                (letrec ([note%
                          (class clickable-image-snip%
                            (inherit get-callback)
+                           (define/public (get-image-name) filename)
                            (define/override (copy) 
                              (let ([n (new note%)])
                                (send n set-callback (get-callback))
@@ -192,13 +194,17 @@ profile todo:
 			   [(begin expr ...)
 			    ;; Found a `begin', so expand/eval each contained 
 			    ;; expression one at a time 
-			    (foldl (lambda (e old-val) (loop e)) 
-				   (void)
-				   (syntax->list #'(expr ...)))]
+			    (let i-loop ([exprs (syntax->list #'(expr ...))]
+                                         [last-one (list (void))])
+                              (cond
+                                [(null? exprs) (apply values last-one)]
+                                [else (i-loop (cdr exprs)
+                                              (call-with-values
+                                               (lambda () (loop (car exprs)))
+                                               list))]))]
 			   [_else 
 			    ;; Not `begin', so proceed with normal expand and eval 
-			    (let* ([annotated
-				    (annotate-top (expand-syntax top-e) #f)])
+			    (let* ([annotated (annotate-top (expand-syntax top-e) #f)])
 			      (oe annotated))])))))])
 	  debug-tool-eval-handler))
       
@@ -207,16 +213,11 @@ profile todo:
       ;;                                              (string (union TST exn) -> void)
       ;;                                             -> string (union TST exn)
       ;;                                             -> void
-      (define (make-debug-error-display-handler/text get-text 
-                                                     highlight-errors
-                                                     orig-error-display-handler)
+      (define (make-debug-error-display-handler/text get-rep highlight-errors orig-error-display-handler)
         (define (debug-error-display-handler msg exn)
-          (let ([text (get-text)])
+          (let ([rep (get-rep)])
             (cond
-              [(and text
-                    (let ([rep (drscheme:rep:current-rep)])
-                      (and rep
-                           (eq? (current-error-port) (send rep get-err-port)))))
+              [rep
                (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
 				(continuation-mark-set->list 
@@ -232,41 +233,46 @@ profile todo:
                          (write-special note (current-error-port))
                          (display #\space (current-error-port))))))
                  
-                 (let ([src-to-display (find-src-to-display exn cms)])
-                   (when src-to-display
-                     (let ([src (car src-to-display)])
-                       (when (and (symbol? src)
-                                  file-note%)
-                         (let ([note (new file-note%)])
-                           (send note set-callback 
-                                 (lambda () (open-and-highlight-in-file src-to-display)))
-                           (write-special note (current-error-port))
-                           (display #\space (current-error-port))))))
+                 (let ([srcs-to-display (find-src-to-display exn cms)])
+                   (for-each (lambda (src-to-display)
+                               (let ([src (srcloc-source src-to-display)])
+                                 (when (and (path? src) file-note%)
+                                   (let ([note (new file-note%)])
+                                     (send note set-callback 
+                                           (lambda () (open-and-highlight-in-file src-to-display)))
+                                     (write-special note (current-error-port))
+                                     (display #\space (current-error-port))
+                                     (display (path->string (find-relative-path (current-directory) src))
+                                              (current-error-port))
+                                     (display ": " (current-error-port))))))
+                             srcs-to-display)
+                   
                    
                    (display msg (current-error-port))
+                   (when (exn:fail:syntax? exn)
+                     (write-special (make-object string-snip% " in: ") (current-error-port)))
                    (newline (current-error-port))
+                   
+                   ;; need to flush here so that error annotations insrted in next line
+                   ;; don't get erased if this output were to happen after the insertion
+                   (flush-output (current-error-port))
                    
                    (parameterize ([current-eventspace drscheme:init:system-eventspace])
                      (queue-callback
                       (lambda ()
                         ;; need to make sure that the user's eventspace is still the same
                         ;; and still running here?
-                        (when src-to-display
-                          (let* ([src (car src-to-display)]
-                                 [position (cadr src-to-display)]
-                                 [span (cddr src-to-display)])
-                            (when (and (object? src)
-                                       (is-a? src text:basic%))
-                              (highlight-errors text 
-                                                (list (make-srcloc src #f #f position (+ position span)))
-                                                (filter 
-                                                 (lambda (x)
-                                                   (and (pair? x)
-                                                        (is-a? (car x) text:basic<%>)
-                                                        (pair? (cdr x))
-                                                        (number? (cadr x))
-                                                        (number? (cddr x))))
-                                                 cms))))))))))]
+                        (highlight-errors rep
+                                          srcs-to-display
+                                          (and cms
+                                               (filter 
+                                                (lambda (x)
+                                                  (and (pair? x)
+                                                       (is-a? (car x) text:basic<%>)
+                                                       (pair? (cdr x))
+                                                       (number? (cadr x))
+                                                       (number? (cddr x))))
+                                                cms))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
@@ -280,24 +286,26 @@ profile todo:
              (and (is-a? rep drscheme:rep:text<%>)
                   (eq? (send rep get-err-port) (current-error-port))
                   rep)))
-         (lambda (rep x y) (send rep highlight-errors x y))
+         (lambda (rep errs arrows) (send rep highlight-errors errs arrows))
          orig-error-display-handler))
 
-      ;; find-src-to-display : exn (union #f (listof (cons <src> (cons number number))))
-      ;;                    -> (union #f (cons (union symbol <src>) (cons number number)))
+      ;; find-src-to-display : exn (union #f (listof (list* <src> number number)))
+      ;;                    -> (listof srclocs)
       ;; finds the source location to display, choosing between
       ;; the stack trace and the exception record.
       ;; returns #f if the source isn't a string.
       (define (find-src-to-display exn cms)
 	(cond
-	  [(or (exn:fail:read? exn)
-               (exn:fail:syntax? exn))     
-           ;; assume that the original error-display-handler displays the 
-           ;; error in this case.
-           #f]
-	  [else 
-           (and (pair? cms)
-                (car cms))]))
+	  [(exn:srclocs? exn)
+           ((exn:srclocs-accessor exn) exn)]
+          [(pair? cms)
+           (let ([fst (car cms)])
+             (list (make-srcloc (car fst)
+                                #f
+                                #f
+                                (cadr fst)
+                                (cddr fst))))]
+          [else '()]))
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
@@ -320,8 +328,8 @@ profile todo:
       ;; members of the debug-source type, after unwrapped with st-mark-source
       (define (with-mark src-stx expr)
         (let ([source (cond
-                        [(string? (syntax-source src-stx))
-                         (string->symbol (syntax-source src-stx))]
+                        [(path? (syntax-source src-stx))
+                         (syntax-source src-stx)]
                         [(is-a? (syntax-source src-stx) editor<%>)
                          (syntax-source src-stx)]
                         [else #f])]
@@ -487,7 +495,7 @@ profile todo:
             (send text set-clickback
                   start-pos end-pos
                   (lambda x
-                    (open-and-highlight-in-file di))))
+                    (open-and-highlight-in-file (make-srcloc debug-source #f #f start span)))))
           
           ;; make bindings hier-list
           (let ([bindings (st-mark-bindings di)])
@@ -574,21 +582,19 @@ profile todo:
               (or (send editor get-filename) 
                   untitled))))
 
-      ;; open-and-highlight-in-file : (cons debug-source (cons number number))
-      ;;                              -> 
-      ;;                              void
-      (define (open-and-highlight-in-file di)
-        (let* ([debug-source (car di)]
-               [position (cadr di)]
-               [span (cddr di)]
+      ;; open-and-highlight-in-file : srcloc -> void
+      (define (open-and-highlight-in-file srcloc)
+        (let* ([debug-source (srcloc-source srcloc)]
+               [position (srcloc-position srcloc)]
+               [span (srcloc-span srcloc)]
                [frame (cond
-                        [(symbol? debug-source) (handler:edit-file (symbol->string debug-source))]
+                        [(path? debug-source) (handler:edit-file debug-source)]
                         [(is-a? debug-source editor<%>)
                          (let ([canvas (send debug-source get-canvas)])
                            (and canvas
                                 (send canvas get-top-level-window)))])]
                [editor (cond
-                         [(symbol? debug-source)
+                         [(path? debug-source)
                           (cond
                             [(and frame (is-a? frame drscheme:unit:frame%))
                              (send frame get-definitions-text)]

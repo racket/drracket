@@ -463,7 +463,8 @@
                                         strings))]))]
                      [(is-a? snip image-snip%)
                       (loop (send snip previous)
-                            (cons (format "{image}")
+                            (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
+                                    (format "{~a}" (send snip get-image-name)))
                                   strings))]
                      
                      [;; this test is an approximation of

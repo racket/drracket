@@ -163,16 +163,6 @@
                 #f
                 void
                 void)
-     (make-test "(raise (make-exn:syntax 1 2 3 4 5))"
-                "1"
-                "1"
-                #f
-		'interactions
-                #f
-                #f
-                #f
-                void
-                void)
      
      (make-test "(values 1 2)"
                 "1\n2"
@@ -638,9 +628,8 @@
                 void
                 void)))
   
-  (define docs-image-string "{image}")
-  (define backtrace-image-string "{image}")
-  (define file-image-string "{image}")
+  (define backtrace-image-string "{bug09.gif}")
+  (define file-image-string "{file.gif}")
 
   (define (run-test)
     
@@ -673,7 +662,7 @@
     
     (define short-tmp-load-filename
       (let-values ([(base name dir?) (split-path tmp-load-filename)])
-        name))
+        (path->string name)))
     
     
     ;; setup-fraction-sum-interactions : -> void 
@@ -733,13 +722,31 @@
                  [load-answer (test-load-answer in-vector)]
                  [formatted-load-answer
                   (and load-answer
-                       (let* ([w/backtrace
+                       (let* ([w/file-icon
+                               (if raw?
+                                   (if source-location-in-message
+                                       (string-append file-image-string " " load-answer)
+                                       load-answer)
+                                   (if (or (eq? source-location 'definitions)
+                                           (pair? source-location))
+                                       (string-append file-image-string " " load-answer)
+                                       load-answer))]
+                              [w/backtrace
+                               (if raw?
+                                   w/file-icon
+                                   (if (or (eq? source-location 'definitions)
+                                           (pair? source-location))
+                                       (string-append backtrace-image-string " " w/file-icon)
+                                       w/file-icon))]
+                              #;
+                              [w/backtrace
                                (if raw?
                                    load-answer
                                    (if (or (eq? source-location 'definitions)
                                            (pair? source-location))
                                        (string-append backtrace-image-string " " load-answer)
                                        load-answer))]
+                              #;
                               [w/file-icon
                                (if raw?
                                    (if source-location-in-message
@@ -810,13 +817,14 @@
                                               (not (null? error-ranges))
                                               (car error-ranges))])
                        (unless (and error-range
-                                    (= (cadr error-range) (loc-offset start))
-                                    (= (caddr error-range) (loc-offset finish)))
-                         (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~a ~a\n"
+                                    (= (+ (srcloc-position error-range) -1) (loc-offset start))
+                                    (= (+ (srcloc-position error-range) -1 (srcloc-span error-range)) (loc-offset finish)))
+                         (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~s\n"
                                  program
-                                 error-range
-                                 (loc-offset start)
-                                 (loc-offset finish)))))]))
+                                 (list (+ (srcloc-position error-range) -1)
+                                       (+ (srcloc-position error-range) -1 (srcloc-span error-range)))
+                                 (list (loc-offset start)
+                                       (loc-offset finish))))))]))
               
               ; check text for execute test
               (unless (string=? received-execute formatted-execute-answer)

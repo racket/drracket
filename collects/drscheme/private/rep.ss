@@ -106,6 +106,7 @@ TODO
       (define (drscheme-error-display-handler msg exn)
         (display msg (current-error-port))
         (newline (current-error-port))
+        (flush-output (current-error-port))
         (let ([rep (current-rep)])
           (when (and (is-a? rep -text<%>)
                      (eq? (current-error-port) (send rep get-err-port)))
@@ -113,141 +114,6 @@ TODO
               (queue-callback
                (lambda ()
                  (send rep highlight-errors/exn exn)))))))
-
-
-      ;; insert-error-in-text : (is-a?/c text%)
-      ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
-      ;;                        string?
-      ;;                        exn?
-      ;;                        (union false? (and/c string? directory-exists?))
-      ;;                        ->
-      ;;                        void?
-      (define (insert-error-in-text text interactions-text msg exn user-dir)
-        (insert-error-in-text/highlight-errors
-         text
-         (lambda (l) (send interactions-text highlight-errors l))
-         msg
-         exn
-         user-dir))
-      
-      ;; insert-error-in-text/highlight-errors : (is-a?/c text%)
-      ;;                                         ((listof (list text% number number)) -> void)
-      ;;                                         string?
-      ;;                                         exn?
-      ;;                                         (union false? (and/c string? directory-exists?))
-      ;;                                         ->
-      ;;                                         void?
-      (define (insert-error-in-text/highlight-errors text highlight-errors msg exn user-dir)
-        (let ([locked? (send text is-locked?)]
-              [insert-file-name/icon
-               ;; insert-file-name/icon : string number number number number -> void
-               (lambda (source-name start span row col)
-                 (let* ([range-spec
-                         (cond
-                           [(and row col)
-                            (format ":~a:~a" row col)]
-                           [start
-                            (format "::~a" start)]
-                           [else ""])])
-                   (cond
-                     [(file-exists? source-name)
-                      (let* ([normalized-name (normalize-path source-name)]
-                             [short-name (if user-dir
-                                             (find-relative-path user-dir normalized-name)
-                                             source-name)])
-                        (let-values ([(icon-start icon-end) (insert/delta text (send file-icon copy))]
-                                     [(space-start space-end) (insert/delta text " ")]
-                                     [(name-start name-end) (insert/delta text short-name)]
-                                     [(range-start range-end) (insert/delta text range-spec)]
-                                     [(colon-start colon-ent) (insert/delta text ": ")])
-                          (when (number? start)
-                            (send text set-clickback icon-start range-end
-                                  (lambda (_1 _2 _3)
-                                    (open-file-and-highlight normalized-name
-                                                             (- start 1) 
-                                                             (if span
-                                                                 (+ start -1 span)
-                                                                 start)))))))]
-                     [else
-                      (insert/delta text source-name)
-                      (insert/delta text range-spec)
-                      (insert/delta text ": ")])))])
-          (send text begin-edit-sequence)
-          (send text lock #f)
-          (cond
-            [(exn:fail:syntax? exn)
-             (for-each
-              (lambda (expr)
-                (let ([src (and (syntax? expr) (syntax-source expr))]
-                      [pos (and (syntax? expr) (syntax-position expr))]
-                      [span (and (syntax? expr) (syntax-span expr))]
-                      [col (and (syntax? expr) (syntax-column expr))]
-                      [line (and (syntax? expr) (syntax-line expr))])
-                  (when (and (string? src)
-                             (number? pos)
-                             (number? span)
-                             (number? line)
-                             (number? col))
-                    (insert-file-name/icon src pos span line col))
-                  (insert/delta text (format "~a" (exn-message exn)) error-delta)
-                  (when (syntax? expr)
-                    (insert/delta text " in: ")
-                    (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
-                  (insert/delta text "\n")
-                  (when (and (is-a? src text:basic%)
-                             (number? pos)
-                             (number? span))
-                    (highlight-errors (list (list src (- pos 1) (+ pos -1 span)))))))
-              (exn:fail:syntax-exprs exn))]
-            [(exn:fail:read? exn)
-             '(let ([src (exn:read-source exn)]
-                    [pos (exn:read-position exn)]
-                    [span (exn:read-span exn)]
-                    [line (exn:read-line exn)]
-                    [col (exn:read-column exn)])
-                (when (and (string? src)
-                           (number? pos)
-                           (number? span)
-                           (number? line)
-                           (number? col))
-                  (insert-file-name/icon src pos span line col))
-                (insert/delta text (format "~a" (exn-message exn)) error-delta)
-                (insert/delta text "\n")
-                (when (and (is-a? src text:basic%)
-                           (number? pos)
-                           (number? span))
-                  (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
-            [(exn? exn)
-             (insert/delta text (format "~a" (exn-message exn)) error-delta)
-             (insert/delta text "\n")]
-            [else
-             (insert/delta text "uncaught exception: " error-delta)
-             (insert/delta text (format "~s" exn) error-delta)
-             (insert/delta text "\n")])
-          (send text lock locked?)
-          (send text end-edit-sequence)))
-      
-      ;; open-file-and-highlight : string (union number #f) (union number #f)
-      ;; =Kernel, =Handler=
-      ;; opens the file named by filename. If position is #f,
-      ;; doesn't highlight anything. If position is a number and other-position
-      ;; is #f, highlights the range from position to the end of sexp.
-      ;; if other-position is a number, highlights from position to 
-      ;; other position.
-      (define (open-file-and-highlight filename position other-position)
-        (let ([file (handler:edit-file filename)])
-          (when (and (is-a? file drscheme:unit:frame%)
-                     position)
-            (if other-position
-                (send (send file get-interactions-text)
-                      highlight-error
-                      (send file get-definitions-text)
-                      position
-                      other-position)
-                (send (send file get-interactions-text)
-                      highlight-error/forward-sexp
-                      (send file get-definitions-text)
-                      position)))))
       
       ;; drscheme-error-value->string-handler : TST number -> string
       (define (drscheme-error-value->string-handler x n)
@@ -547,8 +413,7 @@ TODO
         (interface ()
           reset-highlighting
           highlight-errors
-          highlight-error
-          highlight-error/forward-sexp
+          highlight-errors/exn
           
           get-user-custodian
           get-user-eventspace
@@ -726,23 +591,7 @@ TODO
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           (define/public (get-error-ranges) error-ranges)
-          
-          (define/public (highlight-error/forward-sexp text start)
-            (let ([end (if (is-a? text scheme:text<%>)
-                           (or (send text get-forward-sexp start)
-                               (+ start 1))
-                           (+ start 1))])
-              (highlight-error text start end)))
-          
-          (define/public (highlight-error/line-col text start-line start-col span)
-            (let ([start
-                   (+ (send text paragraph-start-position start-line)
-                      start-col)])
-              (highlight-error
-               text
-               start
-               (+ start span))))
-          
+
           ;; highlight-error : file number number -> void
           (define/public (highlight-error file start end)
             (highlight-errors (list (make-srcloc file #f #f start (- end start))) #f))
@@ -751,16 +600,8 @@ TODO
           ;; highlights all of the errors associated with the exn (incl. arrows)
           (define/public (highlight-errors/exn exn)
             (let ([locs (cond
-                          [(exn:fail:read? exn) 
-                           (exn:fail:read-srclocs exn)]
-                          [(exn:fail:syntax? exn)
-                           (map (lambda (stx)
-                                  (make-srcloc (syntax-source stx)
-                                               (syntax-line stx)
-                                               (syntax-column stx)
-                                               (syntax-position stx)
-                                               (syntax-span stx)))
-                                (exn:fail:syntax-exprs exn))]
+                          [(exn:srclocs? exn)
+                           ((exn:srclocs-accessor exn) exn)]
                           [else '()])])
               (highlight-errors locs #f)))
           
@@ -858,6 +699,31 @@ TODO
           ;;  specialization
           ;;
           
+          (define/augment (after-insert start len)
+            (inner (void) after-insert start len)
+            (unless inserting-prompt?
+              (reset-highlighting))
+            (when (and prompt-position (<= start prompt-position))
+              
+              ;; trim extra space, according to preferences
+              #;
+              (let* ([start (get-repl-header-end)]
+                     [end (get-insertion-point)]
+                     [space (- end start)]
+                     [pref (preferences:get 'drscheme:repl-buffer-size)])
+                (when (car pref)
+                  (let ([max-space (* 1000 (cdr pref))])
+                    (when (space . > . max-space)
+                      (let ([to-delete-end (+ start (- space max-space))])
+                        (delete/io start to-delete-end))))))
+              
+              (set! prompt-position (get-unread-start-point))
+              (reset-region prompt-position 'end)))
+          (define/augment after-delete
+            (lambda (x y)
+              (unless inserting-prompt?
+                (reset-highlighting))
+              (inner (void) after-delete x y)))
           
           (define/override get-keymaps
             (lambda ()
@@ -956,8 +822,10 @@ TODO
           ;; prompt-position : (union #f integer)
           ;; the position just after the last prompt
           (field (prompt-position #f))
+          (define inserting-prompt? #f)
           (define/public (get-prompt) "> ")
           (define/public (insert-prompt)
+            (set! inserting-prompt? #t)
             (let* ([pmt (get-prompt)]
                    [prompt-space (string-length pmt)])
               
@@ -972,26 +840,8 @@ TODO
               
               (let ([sp (get-unread-start-point)])
                 (set! prompt-position sp)
-                (reset-region sp 'end))))
-          
-          (define/augment (after-insert start len)
-            (inner (void) after-insert start len)
-            (when (and prompt-position (<= start prompt-position))
-              
-              ;; trim extra space, according to preferences
-              #;
-              (let* ([start (get-repl-header-end)]
-                     [end (get-insertion-point)]
-                     [space (- end start)]
-                     [pref (preferences:get 'drscheme:repl-buffer-size)])
-                (when (car pref)
-                  (let ([max-space (* 1000 (cdr pref))])
-                    (when (space . > . max-space)
-                      (let ([to-delete-end (+ start (- space max-space))])
-                        (delete/io start to-delete-end))))))
-              
-              (set! prompt-position (get-unread-start-point))
-              (reset-region prompt-position 'end)))
+                (reset-region sp 'end)))
+            (set! inserting-prompt? #f))
           
           (field [submit-predicate
                   (lambda (text prompt-position)
@@ -1595,6 +1445,143 @@ TODO
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
           
+      ;; insert-error-in-text : (is-a?/c text%)
+      ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
+      ;;                        string?
+      ;;                        exn?
+      ;;                        (union false? (and/c string? directory-exists?))
+      ;;                        ->
+      ;;                        void?
+      (define (insert-error-in-text text interactions-text msg exn user-dir)
+        (insert-error-in-text/highlight-errors
+         text
+         (lambda (l) (send interactions-text highlight-errors l))
+         msg
+         exn
+         user-dir))
+      
+      ;; insert-error-in-text/highlight-errors : (is-a?/c text%)
+      ;;                                         ((listof (list text% number number)) -> void)
+      ;;                                         string?
+      ;;                                         exn?
+      ;;                                         (union false? (and/c string? directory-exists?))
+      ;;                                         ->
+      ;;                                         void?
+      (define (insert-error-in-text/highlight-errors text highlight-errors msg exn user-dir)
+        (let ([locked? (send text is-locked?)]
+              [insert-file-name/icon
+               ;; insert-file-name/icon : string number number number number -> void
+               (lambda (source-name start span row col)
+                 (let* ([range-spec
+                         (cond
+                           [(and row col)
+                            (format ":~a:~a" row col)]
+                           [start
+                            (format "::~a" start)]
+                           [else ""])])
+                   (cond
+                     [(file-exists? source-name)
+                      (let* ([normalized-name (normalize-path source-name)]
+                             [short-name (if user-dir
+                                             (find-relative-path user-dir normalized-name)
+                                             source-name)])
+                        (let-values ([(icon-start icon-end) (insert/delta text (send file-icon copy))]
+                                     [(space-start space-end) (insert/delta text " ")]
+                                     [(name-start name-end) (insert/delta text short-name)]
+                                     [(range-start range-end) (insert/delta text range-spec)]
+                                     [(colon-start colon-ent) (insert/delta text ": ")])
+                          (when (number? start)
+                            (send text set-clickback icon-start range-end
+                                  (lambda (_1 _2 _3)
+                                    (open-file-and-highlight normalized-name
+                                                             (- start 1) 
+                                                             (if span
+                                                                 (+ start -1 span)
+                                                                 start)))))))]
+                     [else
+                      (insert/delta text source-name)
+                      (insert/delta text range-spec)
+                      (insert/delta text ": ")])))])
+          (send text begin-edit-sequence)
+          (send text lock #f)
+          (cond
+            [(exn:fail:syntax? exn)
+             (for-each
+              (lambda (expr)
+                (let ([src (and (syntax? expr) (syntax-source expr))]
+                      [pos (and (syntax? expr) (syntax-position expr))]
+                      [span (and (syntax? expr) (syntax-span expr))]
+                      [col (and (syntax? expr) (syntax-column expr))]
+                      [line (and (syntax? expr) (syntax-line expr))])
+                  (when (and (string? src)
+                             (number? pos)
+                             (number? span)
+                             (number? line)
+                             (number? col))
+                    (insert-file-name/icon src pos span line col))
+                  (insert/delta text (format "~a" (exn-message exn)) error-delta)
+                  (when (syntax? expr)
+                    (insert/delta text " in: ")
+                    (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
+                  (insert/delta text "\n")
+                  (when (and (is-a? src text:basic%)
+                             (number? pos)
+                             (number? span))
+                    (highlight-errors (list (list src (- pos 1) (+ pos -1 span)))))))
+              (exn:fail:syntax-exprs exn))]
+            [(exn:fail:read? exn)
+             '(let ([src (exn:read-source exn)]
+                    [pos (exn:read-position exn)]
+                    [span (exn:read-span exn)]
+                    [line (exn:read-line exn)]
+                    [col (exn:read-column exn)])
+                (when (and (string? src)
+                           (number? pos)
+                           (number? span)
+                           (number? line)
+                           (number? col))
+                  (insert-file-name/icon src pos span line col))
+                (insert/delta text (format "~a" (exn-message exn)) error-delta)
+                (insert/delta text "\n")
+                (when (and (is-a? src text:basic%)
+                           (number? pos)
+                           (number? span))
+                  (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
+            [(exn? exn)
+             (insert/delta text (format "~a" (exn-message exn)) error-delta)
+             (insert/delta text "\n")]
+            [else
+             (insert/delta text "uncaught exception: " error-delta)
+             (insert/delta text (format "~s" exn) error-delta)
+             (insert/delta text "\n")])
+          (send text lock locked?)
+          (send text end-edit-sequence)))
+
+
+      ;; open-file-and-highlight : string (union number #f) (union number #f)
+      ;; =Kernel, =Handler=
+      ;; opens the file named by filename. If position is #f,
+      ;; doesn't highlight anything. If position is a number and other-position
+      ;; is #f, highlights the range from position to the end of sexp.
+      ;; if other-position is a number, highlights from position to 
+      ;; other position.
+      (define (open-file-and-highlight filename position other-position)
+        (let ([file (handler:edit-file filename)])
+          (when (and (is-a? file drscheme:unit:frame%)
+                     position)
+            (if other-position
+                (send (send file get-interactions-text)
+                      highlight-error
+                      (send file get-definitions-text)
+                      position
+                      other-position)
+                (send (send file get-interactions-text)
+                      highlight-error/forward-sexp
+                      (send file get-definitions-text)
+                      position)))))
+      
+
+                           
       (define -text% 
         (drs-bindings-keymap-mixin
          (text-mixin 
