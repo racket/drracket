@@ -410,15 +410,20 @@ tab panels new behavior:
               (super on-focus on?))
             (super-new))))
       
-      (define interactions-canvas% (make-searchable-canvas%
-                                    (canvas:info-mixin
-                                     (canvas:wide-snip-mixin
-                                      (canvas:info-mixin
-                                       canvas:color%)))))
+      (define interactions-canvas% 
+        (class (make-searchable-canvas%
+                (canvas:info-mixin
+                 (canvas:wide-snip-mixin
+                  (canvas:info-mixin
+                   canvas:color%))))
+          (init [style '()])
+          (super-new (style (cons 'auto-hscroll style)))))
+
       
       (define definitions-canvas%
         (class (make-searchable-canvas% (canvas:delegate-mixin (canvas:info-mixin canvas:color%)))
-          (super-new)))
+          (init [style '()])
+          (super-new (style (cons 'auto-hscroll style)))))
       
 ;                                                                                                  
 ;                                                                                                  
@@ -1477,6 +1482,7 @@ tab panels new behavior:
                                     (get-visible-region canvas-to-be-split)])
                         (let ([orig-percentages (send resizable-panel get-percentages)]
                               [orig-canvases (send resizable-panel get-children)]
+                              [_ (printf "new canvas%\n")]
                               [new-canvas (new canvas% 
                                             (parent resizable-panel)
                                             (editor text)
@@ -1527,12 +1533,12 @@ tab panels new behavior:
                 [(memq canvas-to-be-split definitions-canvases)
                  (update (lambda (x) (set! definitions-canvases x))
                          definitions-canvases
-                         definitions-canvas%
+                         (drscheme:get/extend:get-definitions-canvas)
                          definitions-text)]
                 [(memq canvas-to-be-split interactions-canvases)
                  (update (lambda (x) (set! interactions-canvases x))
                          interactions-canvases
-                         interactions-canvas%
+                         (drscheme:get/extend:get-interactions-canvas)
                          interactions-text)]
                 [else (bell)])))
           
