@@ -17,7 +17,8 @@ profile todo:
            (lib "thread.ss")
 	   (lib "toplevel.ss" "syntax")
            (lib "string-constant.ss" "string-constants")
-           (lib "bday.ss" "framework" "private"))
+           (lib "bday.ss" "framework" "private")
+           (lib "marks.ss" "stepper" "private"))
   
   (define orig (current-output-port))
   
@@ -149,9 +150,10 @@ profile todo:
 	       (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
 				(continuation-mark-set->list 
-				 (exn-continuation-marks exn)
-				 cm-key))]
-		      [src-to-display (find-src-to-display exn cms)])
+                                 (exn-continuation-marks exn)
+                                 cm-key))]
+		      [src-to-display (find-src-to-display exn 
+                                                           (map mark-label cms))])
                  
                  (queue-output
                   text
@@ -210,9 +212,10 @@ profile todo:
                     (eq? (send rep get-this-err) (current-error-port)))
 	       (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
-				(continuation-mark-set->list 
-				 (exn-continuation-marks exn)
-				 cm-key))]
+				(map mark-label
+                                     (continuation-mark-set->list 
+                                      (exn-continuation-marks exn)
+                                      cm-key)))]
 		      [src-to-display (find-src-to-display exn cms)])
 
                  (send rep queue-output
@@ -303,32 +306,31 @@ profile todo:
 		  (lambda (txt start end)
 		    (clickback))))))
 
-      ;; with-mark : syntax syntax -> syntax
+      ;; with-mark : mark-stx syntax (any? -> syntax) -> syntax
       ;; a member of stacktrace-imports^
       ;; guarantees that the continuation marks associated with cm-key are
       ;; members of the debug-source type
-      (define (with-mark mark expr)
+      (define (with-mark src-stx mark-maker expr)
         (let ([source (cond
-                        [(string? (syntax-source mark))
-                         (string->symbol (syntax-source mark))]
-                        [(is-a? (syntax-source mark) editor<%>)
-                         (syntax-source mark)]
+                        [(string? (syntax-source src-stx))
+                         (string->symbol (syntax-source src-stx))]
+                        [(is-a? (syntax-source src-stx) editor<%>)
+                         (syntax-source src-stx)]
                         [else #f])]
-              [position (syntax-position mark)]
-              [span (syntax-span mark)])
+              [position (syntax-position src-stx)]
+              [span (syntax-span src-stx)])
           (if (and source
                    (number? position)
                    (number? span))
-              (with-syntax ([expr expr]
-                            [source source]
-                            [offset (- position 1)]
-                            [span span]
-                            [cm-key cm-key])
-                (syntax
-                 (with-continuation-mark
-                  'cm-key
-                  '(source offset . span)
-                  expr)))
+              (let* ([mark-label `(,source ,(- position 1) . ,span)])
+                (with-syntax ([expr expr]
+                              [mark (mark-maker mark-label)]
+                              [cm-key cm-key])
+                  (syntax
+                   (with-continuation-mark
+                    'cm-key
+                    mark
+                    expr))))
               expr)))
 
     
@@ -378,7 +380,7 @@ profile todo:
           (super-instantiate ())))
             
       ;; show-backtrace-window : string
-      ;;                         (listof (cons debug-source (cons number number)))
+      ;;                         (listof mark?)
       ;;                         -> 
       ;;                         void
       (define (show-backtrace-window error-text dis)
@@ -468,7 +470,8 @@ profile todo:
       ;;              void 
       ;; shows one frame of the continuation
       (define (show-frame editor-canvas text di)
-        (let* ([start (cadr di)]
+        (let* ([di-source-info (mark-label)]
+               [start (cadr di)]
                [span (cddr di)]
                [debug-source (car di)]
                [fn (get-filename debug-source)]
@@ -483,6 +486,9 @@ profile todo:
                   start-pos end-pos
                   (lambda x
                     (open-and-highlight-in-file di))))
+          
+          ;; make bindings hier-list
+          
           
           (insert-context editor-canvas text debug-source start span)
           (send text insert #\newline)))
