@@ -64,13 +64,15 @@
       ;; just runs the phases. If PLTONLYTOOL is set,
       ;; it only loads tools in those collections
       (define (load/invoke-all-tools/collections collections phase1-extras phase2-extras)
-        (unless (getenv "PLTNOTOOLS")
-	  (let ([onlys (getenv "PLTONLYTOOL")])
-	    (if onlys
-		(let ([filtered (filter (lambda (x) (string=? onlys x))
-					collections)])
-		  (for-each load/invoke-tools filtered))
-		(for-each load/invoke-tools collections))))
+        (cond
+          [(getenv "PLTNOTOOLS") (printf "PLTNOTOOLS: skipping tools\n")]
+          [else
+           (let ([onlys (getenv "PLTONLYTOOL")])
+             (if onlys
+                 (let ([filtered (filter (lambda (x) (string=? onlys x)) collections)])
+                   (printf "PLTONLYTOOL: only loading ~s\n" filtered)
+                   (for-each load/invoke-tools filtered))
+                 (for-each load/invoke-tools collections)))])
         (run-phases phase1-extras phase2-extras))
 
       
@@ -142,7 +144,7 @@
         (lambda (in-path icon-spec name tool-url)
           (let ([tool-bitmap
                  (and icon-spec
-                      (install-tool-bitmap icon-spec))])
+                      (install-tool-bitmap name icon-spec))])
             (let/ec k
               (unless (or (string? in-path)
                           (and (list? in-path)
@@ -205,9 +207,9 @@
            x)))
 
 
-      ;; install-tool-bitmap : module-path -> bitmap
+      ;; install-tool-bitmap : string module-path -> bitmap
       ;; adds the tool's bitmap to the splash screen
-      (define (install-tool-bitmap bitmap-path)
+      (define (install-tool-bitmap name bitmap-path)
         (let/ec k
           (let ([bitmap
                  (with-handlers ([not-break-exn? (lambda (x) (k (void)))])
@@ -254,11 +256,10 @@
                        (send bdc draw-bitmap bitmap tool-bitmap-x translated-tool-bitmap-y)
                        (send bdc set-bitmap #f)
                        (send splash-canvas on-paint)
-                       (if ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
-                           (begin
-                             (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
-                             (set! tool-bitmap-x tool-bitmap-gap))
-                           (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap)))
+                       (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap))
+                       (when ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
+                         (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
+                         (set! tool-bitmap-x tool-bitmap-gap))
                        (when ((+ tool-bitmap-y tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
                          (set! tool-bitmap-y tool-bitmap-gap)))))))
             bitmap)))

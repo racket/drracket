@@ -28,6 +28,7 @@
   (define profiling? (equal? (getenv "PLTDRDEBUG") "profile"))
 
   (when (getenv "PLTDRDEBUG")
+    (printf "PLTDRDEBUG: installing errortrace\n")
     (let ([main-eventspace-thread (current-thread)]
           [main-eventspace (current-eventspace)])
       (let-values ([(sw sh) (get-display-size)])
@@ -163,6 +164,7 @@
 
               (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
               (when profiling?
+                (printf "PLTDRDEBUG: turning on profiling\n")
                 ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
                 (let ([enable-initially?
                        (message-box
@@ -204,7 +206,7 @@
    99)
 
   (when (getenv "PLTDRCM")
-    (printf "installing compilation manager\n")
+    (printf "PLTDRCM: installing compilation manager\n")
     (current-load/use-compiled
      ((dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))))
   
