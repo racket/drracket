@@ -49,24 +49,24 @@
      
      ;; basic tests
      (make-test "("
-                "~a: read: expected a ')'"
-                "~a: read: expected a ')'"
+                "~aread: expected a ')'"
+                "~aread: expected a ')'"
                 #f
                 (cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
                 #f)
      (make-test "."
-                "~a: read: illegal use of \".\""
-                "~a: read: illegal use of \".\""
+                "~aread: illegal use of \".\""
+                "~aread: illegal use of \".\""
                 #f
 		(cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
                 #f)
      (make-test "(lambda ())"
-                "~a: lambda: bad syntax in: (lambda ())"
-                "~a: lambda: bad syntax in: (lambda ())"
+                "~alambda: bad syntax in: (lambda ())"
+                "~alambda: bad syntax in: (lambda ())"
                 #f
                 (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand
@@ -197,24 +197,24 @@
      
      ;; error in the middle
      (make-test "1 2 ( 3 4"
-                "1\n2\n~a: read: expected a ')'"
-                "~a: read: expected a ')'"
+                "1\n2\n~aread: expected a ')'"
+                "~aread: expected a ')'"
 		#f
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
                 #f)
      (make-test "1 2 . 3 4"
-                "1\n2\n~a: read: illegal use of \".\""
-                "~a: read: illegal use of \".\""
+                "1\n2\n~aread: illegal use of \".\""
+                "~aread: illegal use of \".\""
 		#f
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
                 #f)
      (make-test "1 2 (lambda ()) 3 4"
-                "1\n2\n~a: lambda: bad syntax in: (lambda ())"
-                "~a: lambda: bad syntax in: (lambda ())"
+                "1\n2\n~alambda: bad syntax in: (lambda ())"
+                "~alambda: bad syntax in: (lambda ())"
 		#f
 		(cons (make-loc 0 4 4) (make-loc 0 15 15))
                 'expand
@@ -247,8 +247,8 @@
      
      ;; new namespace test
      (make-test "(current-namespace (make-namespace))\nif"
-                "~a: if: bad syntax in: if"
-                "~a: if: bad syntax in: if"
+                "~aif: bad syntax in: if"
+                "~aif: bad syntax in: if"
                 #f
 		(cons (make-loc 1 0 37) (make-loc 1 2 39))
                 'expand
@@ -256,7 +256,7 @@
                 #f)
      
      (make-test "(current-namespace (make-namespace 'empty))\nif"
-                "~a: compile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in: if"
+                "~acompile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in: if"
                 #f
                 #f
 		(cons (make-loc 1 0 44) (make-loc 1 0 46))
@@ -457,17 +457,11 @@
 			    (string-append docs-image-string " " w/backtrace)
 			    w/backtrace)]
 		       [final
-                        ;; if there is a source-location for the message, but the
+                        ;; if there is a source-location for the message, put the
                         ;; icons just before it. Otherwise, but the icons at
                         ;; the beginning of the entire string.
 			(if source-location-in-message
-			    (format execute-answer
-                                    (string-append 
-                                     w/docs-icon
-                                     (format
-                                      "#<struct:object:derived-from-definitions-text%>:~a:~a"
-                                      start-line
-                                      start-col)))
+			    (format execute-answer w/docs-icon)
 			    (string-append w/docs-icon execute-answer))])
 		  final)]
                [load-answer (test-load-answer in-vector)]
@@ -495,7 +489,7 @@
                                  w/file-icon)])
                        (if source-location-in-message
                            (format w/docs-icon 
-                                   (format "~a::~a"
+                                   (format "~a::~a: "
                                            short-tmp-load-filename
                                            error-start))
                            w/docs-icon)))]
@@ -541,8 +535,8 @@
 		       [finish (cdr source-location)])
 		   (let ([error-range (send interactions-text get-error-range)])
 		     (unless (and error-range
-				  (= (car error-range) (loc-offset start))
-				  (= (cdr error-range) (loc-offset finish)))
+				  (= (cadr error-range) (loc-offset start))
+				  (= (caddr error-range) (loc-offset finish)))
 		       (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~a ~a\n"
 			       program
 			       error-range
@@ -599,12 +593,19 @@
               (escape)))))))
   
   (define (run-test-in-language-level raw?)
-    (let ([level (if raw?
-                     (list "R5RS-like" "Graphical without debugging (MrEd)")
-                     (list "R5RS-like" "Graphical (MrEd)"))]
+    (let ([level (list "R5RS-like" "Graphical (MrEd)")]
           [drs (wait-for-drscheme-frame)])
       (printf "running ~s tests\n" level)
-      (set-language-level! level)
+
+      (if raw?
+          (begin
+            (set-language-level! level #f)
+            (fw:test:set-check-box! "Debugging" #f)
+            (let ([f (get-top-level-focus-window)])
+              (fw:test:button-push "OK")
+              (wait-for-new-frame f)))
+          (set-language-level! level))
+
       (fw:test:new-window definitions-canvas)
       (clear-definitions drscheme-frame)
       (do-execute drscheme-frame)

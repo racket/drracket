@@ -411,7 +411,7 @@
                      (insert #\newline))))
                tools)))
           
-          (send e insert "\nThanks to Tim Hanson, Philippe Meunier, Francisco Solsona, and Reini Urban for their help translating DrScheme's GUI to other languages.")
+          (send e insert "\nThanks to Ian Barland, Tim Hanson, Philippe Meunier, Francisco Solsona, and Reini Urban for their help translating DrScheme's GUI to other languages.")
           
           (send* e
             (auto-wrap #t)

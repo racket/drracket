@@ -95,6 +95,7 @@
                 [rep (drscheme:rep:current-rep)])
 
             (send rep begin-edit-sequence)
+            (send rep wait-for-io-to-complete/user)
             
 	    (when (and cms
 		       (not (null? cms)))
@@ -118,6 +119,7 @@
             
             (orig-error-display-handler msg exn)
             
+            (send rep wait-for-io-to-complete/user)
             (when (and cms
 		       (not (null? cms)))
               (let* ([first-cms (car cms)]

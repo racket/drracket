@@ -1,3 +1,55 @@
+199d7
+
+THINGS STILL MISSING (and promised to be broken...)
+
+ - launchers
+ - project manager
+
+TRANSLATIONS
+
+- added `accept-and-quit' and `accept-and-exit'
+  probably in all other languages besides English, 
+  these should be have the same translation.
+
+- added `debugging' and `dynamic-properties' string
+  constants. The first is the label for a check box that
+  determines if debugging is enabled for this language. The
+  second is a label in the "show details" section of the
+  language levels. It is in parallel to "input syntax" and
+  "output syntax".
+
+- added `bad-module-language-specs' that contains an error
+  message for when info.ss-specified languages have
+  problems. See the English for details.
+
+OTHER
+
+- error message printing in DrScheme now takes
+  full advantage of the error-print-source-location
+  parameter to make a colored error message.
+
+- debugging is now available to all languages and
+  the debug tool is gone.
+
+- added info.ss mechanism to specify the same content
+  as in simple-module-based-language<%>.
+
+- the EoPL language is now a info.ss-specified language (the
+  only one!). It still has a tool, but only so that it
+  can put a little icon and something shows up in the About
+  Box of DrScheme.
+
+- the teaching languages and the hangman teachpack now
+  collude to support the abstraction breaking necessary for
+  that teachpack.
+
+  This means that the hangman teachpack doesn't work in any
+  other languages (unlike the other teachpacks).
+
+- teaching languages now have source location
+  highlighting for runtime errors.
+
+
 199d6
 
 PRs:  2109

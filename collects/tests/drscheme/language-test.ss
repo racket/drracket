@@ -16,174 +16,13 @@
   (define (set-language close-dialog?)
     (set-language-level! (language) close-dialog?))
   
-  (define (raw-mred)
-    (parameterize ([language (list "R5RS-like" "Graphical without debugging (MrEd)")])
-
-      (check-top-of-repl)
-
-      (generic-settings #f)
-      (generic-output #t #t #t)
-      
-;      (set-language #f)
-;      (test-setting "Unmatched cond/case is an error"
-;                    #t
-;                    "(cond [#f 1])" "cond or case: no matching clause")
-      
-      (test-hash-bang)
-      
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
-      
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
-
-      (test-expression "(sqrt -1)" "0+1i")
-
-      (test-expression "class" (regexp "class: bad syntax in: class"))
-      (test-expression "shared" "reference to undefined identifier: shared")
-      
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
-      
-      (test-expression "(define (f define) 1)" "")
-      (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f empty) 1)" "")
-      
-      (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
-      
-      (test-expression "(error 'a \"~a\" 1)" "a: 1")
-      (test-expression "(error \"a\" \"a\")" "a \"a\"")
-      
-      (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
-      
-      (test-expression "(list make-posn posn-x posn-y posn?)"
-                       "reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
-      
-      (test-expression "true" "reference to undefined identifier: true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
-      (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
-      (test-expression "(cond [(= 1 2) 3])" "")
-      (test-expression "(cons 1 2)" "(1 . 2)")
-      (test-expression "'(1)" "(1)")
-      (test-expression "(define shrd (box 1)) (list shrd shrd)"
-                       "(#&1 #&1)")
-      (test-expression
-       "(local ((define x x)) 1)"
-       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
-      (test-expression "(if 1 1 1)" "1")
-      (test-expression "(+ 1)" "1")
-      
-      (test-expression "1.0" "1.0")
-      (test-expression "#i1.0" "1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
-      (test-expression "1/2" "{number 1/2 \"1/2\"}")
-      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
-      (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+1/2i" "0+1/2i")
-      (test-expression "(exact? 1.5)" "#f")
-      
-      (test-expression "(list 1)" "(1)")
-      (test-expression "argv" "#0()")))
-  
-  (define (raw-mzscheme)
-    (parameterize ([language (list "R5RS-like" "Textual without debugging (MzScheme)")])
-
-      (check-top-of-repl)
-
-      (generic-settings #f)
-      (generic-output #t #t #t)
-;      (set-language #f)
-;      (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
-      
-      (test-hash-bang)
-      
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
-      
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
-      
-      (test-expression "(sqrt -1)" "0+1i")
-
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
-      
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
-      
-      (test-expression "(define (f define) 1)" "")
-      (test-expression "(define (f car) 1)" "")
-      (test-expression "(define (f empty) 1)" "")
-      
-      (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
-      
-      (test-expression "(error 'a \"~a\" 1)" "a: 1")
-      (test-expression "(error \"a\" \"a\")" "a \"a\"")
-      
-      (test-expression "(time 1)" 
-                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
-      
-      (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
-      
-      (test-expression "true" "reference to undefined identifier: true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
-      (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
-      (test-expression "(cond [(= 1 2) 3])" "")
-      (test-expression "(cons 1 2)" "(1 . 2)")
-      (test-expression "'(1)" "(1)")
-      (test-expression "(define shrd (box 1)) (list shrd shrd)"
-                       "(#&1 #&1)")
-      (test-expression
-       "(local ((define x x)) 1)"
-       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
-      (test-expression "(if 1 1 1)" "1")
-      (test-expression "(+ 1)" "1")
-      
-      (test-expression "1.0" "1.0")
-      (test-expression "#i1.0" "1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
-      (test-expression "1/2" "{number 1/2 \"1/2\"}")
-      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
-      (test-expression "+1/3i" "0+1/3i")
-      (test-expression "+1/2i" "0+1/2i")
-      (test-expression "(exact? 1.5)" "#f")
-      
-      (test-expression "(list 1)" "(1)")
-      (test-expression "argv" "#0()")))
-  
   (define (mred)
     (parameterize ([language (list "R5RS-like" "Graphical (MrEd)")])
       (check-top-of-repl)
 
       (generic-settings #f)
       (generic-output #t #t #t)
-;      (set-language #f)
-;      (test-setting "Unmatched cond/case is an error" #t
-;                    "(cond [#f 1])"
-;                    "{image #f} cond: all question results were false")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
-;                    "{image #f} local variable used before its definition: x")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
-      
+
       (test-hash-bang)
       
       (let ([drs (wait-for-drscheme-frame)])
@@ -737,8 +576,6 @@
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
-    (raw-mred)
-    (raw-mzscheme)
     (mred)
     (mzscheme)
     (beginner)
