@@ -32,11 +32,9 @@
       (define help-desk
         (case-lambda
           [()
-           (cond
-             [hd-cookie 
-              (help-desk-browser hd-cookie)]
-             [else
-              (set! hd-cookie (start-help-server))])]
+           (unless hd-cookie
+             (set! hd-cookie (start-help-server)))
+           (help-desk-browser hd-cookie)]
           [(key) (help-desk key #t)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'exact)]
