@@ -3,6 +3,7 @@
            (lib "stacktrace.ss" "errortrace")
            (lib "class.ss")
            (lib "list.ss")
+           (lib "date.ss")
            (lib "tool.ss" "drscheme")
            (lib "framework.ss" "framework")
            (lib "mred.ss" "mred")
@@ -40,11 +41,21 @@
       (define error-color (make-object color% "PINK"))
       
       ;; bug-note : (union string (instanceof snip%))
-      (define bug-note (let ([b (make-object bitmap% 
-                                  (build-path (collection-path "icons") "bug09.gif"))])
-                         (if (send b ok?)
-                             (make-object image-snip% b)
-                             "[err trace]")))
+      (define bug-note 
+        (let ([b (make-object bitmap% 
+                   (build-path (collection-path "icons") "bug09.gif"))])
+          (if (send b ok?)
+              (make-object image-snip% b)
+              "[err trace]")))
+
+      ;; mf-note : (union string (instanceof snip%))
+      (define mf-note
+        (let ([bitmap
+               (make-object bitmap%
+                 (build-path (collection-path "icons") "mf.gif"))])
+          (if (send bitmap ok?)
+              (make-object image-snip% bitmap)
+              "[err trace]")))
       
       ;; file-note : (union string (instanceof snip%))
       (define file-note (let ([b (make-object bitmap% 
@@ -95,10 +106,15 @@
           
 	    (when (and cms
 		       (not (null? cms)))
-	      (let ([locked? (send rep is-locked?)])
+	      (let ([locked? (send rep is-locked?)]
+                    [mf-bday?
+                     (let ([date (seconds->date (current-seconds))])
+                       (and (= (date-month date) 10)
+                            (= (date-day date) 29)
+                            (>= (date-hour date) 17)))])
 		(send rep lock #f)
 		(insert/clickback rep
-				  bug-note
+                                  (if mf-bday? mf-note bug-note)
 				  (lambda ()
 				    (show-backtrace-window rep msg cms)))
 		(let ([debug-source (car (car cms))])
