@@ -184,7 +184,14 @@
  ~n       (import plt:userspace^)
  ~n       (define m (lambda (x) `(class object% () (public [x ,x]) (sequence (super-init)))))))")
    "(mo (m 11))"
-   "11"))
+   "11")
+
+  (test-good-teachpack
+   (get-string-from-file
+    (build-path (collection-path "tests" "drscheme")
+		"force-delay-teachpack.scm"))
+   "(force (delay 1))"
+   "1"))
 
 (define (good-tests)
   (set-language-level! "Graphical (MrEd)")
@@ -196,7 +203,13 @@
   (test-good-teachpack
    "(unit/sig (car) (import [p : plt:userspace^]) (define car (list \"not-cars-original-defn\")))"
    "(first car)"
-   "\"not-cars-original-defn\""))
+   "\"not-cars-original-defn\"")
+
+  ;; re-defined an old primitive
+  (test-good-teachpack
+   "(unit/sig (display) (import plt:userspace^) (define (display x) x))"
+   "(display 1)"
+   "1"))
   
 (define (bad-tests)
   (set-language-level! "Beginning Student")
@@ -217,7 +230,16 @@
    "(unit/sig () (import plt:userspace^) (car 1))"
    "car: expects argument of type <pair>; given 1"))
 
+(define (get-string-from-file fn)
+  (call-with-input-file fn
+    (lambda (port)
+      (apply string-append
+	     (let loop ()
+	       (let ([l (read-line port)])
+		 (if (eof-object? l)
+		     null
+		     (list* l " " (loop)))))))
+    'text))
+
 (bad-tests)
 (good-tests)
-
-
