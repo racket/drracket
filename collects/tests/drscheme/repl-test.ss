@@ -200,7 +200,7 @@
                 "1\n2\n~aread: expected a ')'"
                 "~aread: expected a ')'"
 		#f
-		(cons (make-loc 0 4 4) (make-loc 0 5 5))
+		(cons (make-loc 0 4 4) (make-loc 0 9 9))
                 'read
                 #f
                 #f)

@@ -75,6 +75,15 @@
                 (exact? x)
                 (real? x)
                 (not (integer? x))))))
+
+      ;; which-number-snip : (parameter
+      ;;                      (number -> (union 'mixed-fraction
+      ;;                                        'repeating-decimal-e
+      ;;                                        'repeating-decimal)))
+      (define which-number-snip
+        (make-parameter
+         (lambda (x)
+           'mixed-fraction)))
       
       ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
@@ -1237,13 +1246,23 @@
                      [(is-a? x sized-snip<%>) (send x get-character-width)]
                      [(is-a? x snip%) 1]
                      [((use-number-snip) x)
-                      (+ (string-length (number->string (floor x)))
-                         (max (string-length
-                               (number->string 
-                                (numerator (- x (floor x)))))
-                              (string-length
-                               (number->string 
-                                (denominator (- x (floor x)))))))]
+                      (let ([number-snip-type ((which-number-snip) x)])
+                        (cond
+                          [(or (eq? number-snip-type 'repeating-decimal)
+                               (eq? number-snip-type 'repeating-decimal-e))
+                           1] ;; no idea of size yet
+                          [(eq? number-snip-type 'mixed-fraction)
+                           (+ (string-length (number->string (floor x)))
+                              (max (string-length
+                                    (number->string 
+                                     (numerator (- x (floor x)))))
+                                   (string-length
+                                    (number->string 
+                                     (denominator (- x (floor x)))))))]
+                          [else 
+                           (error 'which-number-snip
+                                  "unexpected result from parameter: ~e" 
+                                  number-snip-type)]))]
                      [else #f])))
             
             (define (drscheme-pretty-print-print-hook x _ port)
@@ -1259,7 +1278,18 @@
                     (let ([snip/str
                            (cond
                              [((use-number-snip) x)
-                              (make-object drscheme:snip:whole/part-number-snip% x)]
+                              (let ([number-snip-type ((which-number-snip) x)])
+                                (cond
+                                  [(eq? number-snip-type 'repeating-decimal)
+                                   (drscheme:snip:make-repeating-fraction-snip x #f)]
+                                  [(eq? number-snip-type 'repeating-decimal-e)
+                                   (drscheme:snip:make-repeating-fraction-snip x #t)]
+                                  [(eq? number-snip-type 'mixed-fraction)
+                                   (make-object drscheme:snip:whole/part-number-snip% x)]
+                                  [else
+                                   (error 'which-number-snip
+                                          "expected either 'repeating-decimal or 'mixed fraction, got : ~e"
+                                          number-snip-type)]))]
                              [else x])])
                       (port-out-write snip/str))
                     (display x))))

@@ -148,12 +148,12 @@
                     (procedure-arity make-simple-settings))
                  (boolean? (vector-ref printable 0))
                  (memq (vector-ref printable 1) '(constructor quasiquote write))
-                 (boolean? (vector-ref printable 2))
+                 (memq (vector-ref printable 2) '(mixed-fraction repeating-decimal))
                  (boolean? (vector-ref printable 3))
                  (boolean? (vector-ref printable 4))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'write #f #t #t))
+            (make-simple-settings #f 'write 'mixed-fraction #f #t #t))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -172,9 +172,15 @@
 	  (super-instantiate ())))
 
       ;; settings for a simple module based language
-      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines debugging))
+      (define-struct simple-settings (case-sensitive 
+                                      printing-style
+                                      fraction-style
+                                      show-sharing
+                                      insert-newlines
+                                      debugging))
       ;;  case-sensitive  : boolean
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
+      ;;  fraction-style  : (union 'mixed-fraction 'repeating-decimal 'repeating-decimal-e)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
       ;;  debugging       : boolean
@@ -217,6 +223,10 @@
 				     (string-constant write-printing-style))
 			       output-panel
 			       void)]
+               [fraction-style
+                (make-object check-box% (string-constant decimal-notation-for-rationals)
+                  output-panel
+                  void)]
 	       [show-sharing (make-object check-box%
 			       (string-constant sharing-printing-label)
 			       output-panel
@@ -239,6 +249,9 @@
 	       [(0) 'constructor]
 	       [(1) 'quasiquote]
 	       [(2) 'write])
+             (if (send fraction-style get-value)
+                 'repeating-decimal-e
+                 'mixed-fraction)
 	     (send show-sharing get-value)
 	     (send insert-newlines get-value)
              (send debugging get-value))]
@@ -249,6 +262,8 @@
                     [(constructor) 0]
                     [(quasiquote) 1]
                     [(write) 2]))
+            (send fraction-style set-value (eq? (simple-settings-fraction-style settings)
+                                                'repeating-decimal-e))
             (send show-sharing set-value (simple-settings-show-sharing settings))
             (send insert-newlines set-value (simple-settings-insert-newlines settings))
             (send debugging set-value (simple-settings-debugging settings))])))
@@ -259,11 +274,15 @@
           (let ([converted-value
                  (simple-module-based-language-convert-value value settings)])
             (parameterize ([print-graph
-			  ;; only turn on print-graph when using `write' printing style
-			  ;; because the sharing is being taken care of by the print-convert
-			  ;; sexp construction when using other printing styles.
+                            ;; only turn on print-graph when using `write' printing 
+                            ;; style because the sharing is being taken care of
+                            ;; by the print-convert sexp construction when using
+                            ;; other printing styles.
                             (and (eq? (simple-settings-printing-style settings) 'write)
-                                 (simple-settings-show-sharing settings))])
+                                 (simple-settings-show-sharing settings))]
+                           [drscheme:rep:which-number-snip
+                            (lambda (n)
+                              (simple-settings-fraction-style settings))])
               (cond
                 [(simple-settings-insert-newlines settings)
                  (pretty-print converted-value port)]
@@ -275,7 +294,17 @@
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
         (parameterize ([pretty-print-columns 'infinity]
-                       [current-inspector drscheme-inspector])
+                       [current-inspector drscheme-inspector]
+                       [drscheme:rep:use-number-snip
+                        (lambda (x)
+                          (if (and (number? x)
+                                   (exact? x)
+                                   (real? x)
+                                   (not (integer? x)))
+                              (if (eq? (simple-settings-fraction-style settings) 'repeating-decimal)
+                                  'repeating-decimal
+                                  #t)
+                              #f))])
           (pretty-print (simple-module-based-language-convert-value value settings) port)))
       
       ;; drscheme-inspector : inspector

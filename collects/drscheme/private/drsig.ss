@@ -56,7 +56,8 @@
      all-toplevel-collections))
   
   (define-signature drscheme:snip^ 
-    (whole/part-number-snip%
+    (make-repeating-fraction-snip
+     whole/part-number-snip%
      special<%>))
   
   (define-signature drscheme:language-configuration^
@@ -124,6 +125,7 @@
   
   (define-signature drscheme:rep^
     (use-number-snip
+     which-number-snip
      drs-bindings-keymap-mixin
      current-rep
      text%
@@ -158,8 +160,11 @@
      use-stand-alone-executable?
 
      (struct text/pos (text start end))
-     (struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
-    
+     (struct simple-settings (case-sensitive 
+                              printing-style 
+                              fraction-style
+                              show-sharing
+                              insert-newlines))
      simple-settings->vector
      open-input-text
      language<%>

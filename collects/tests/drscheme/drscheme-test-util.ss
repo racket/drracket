@@ -71,7 +71,7 @@
 	  (for-each fw:test:keystroke (string->list filename))
 	  (fw:test:button-push "OK")
 	  (wait-for-new-frame dlg))
-	(fw:preferences:set 'framework-file-dialogs 'std))))
+	(fw:preferences:set 'framework:file-dialogs 'std))))
 
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
@@ -425,5 +425,18 @@
 		      (cons (format "{number ~s ~s}"
 				    (send snip get-number)
 				    (send snip get-formatted-string))
+			    strings))]
+               [;; this is an approximation of the test:
+                ;; (is-a? snip drscheme:snip:repeat-snip%)
+                (and (method-in-interface? 'get-number (object-interface snip))
+                     (method-in-interface? 'get-whole-digits (object-interface snip))
+                     (method-in-interface? 'get-non-repeat-digits (object-interface snip))
+                     (method-in-interface? 'get-repeat-digits (object-interface snip)))
+		(loop (send snip previous)
+		      (cons (format "{repeating-decimal ~s ~s ~s ~s}"
+				    (send snip get-number)
+				    (send snip get-whole-digits)
+                                    (send snip get-non-repeat-digits)
+                                    (send snip get-repeat-digits))
 			    strings))]
 	       [else (error 'find-output "{unknown snip: ~e}~n" snip)])])))])))

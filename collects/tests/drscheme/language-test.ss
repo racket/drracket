@@ -15,6 +15,22 @@
   ;; set-language : boolean -> void
   (define (set-language close-dialog?)
     (set-language-level! (language) close-dialog?))
+
+  
+                            
+                         ;; 
+                          ; 
+                          ; 
+;;; ;   ; ;;;   ;;;    ;;;; 
+ ; ; ;   ;     ;   ;  ;   ; 
+ ; ; ;   ;     ;;;;;  ;   ; 
+ ; ; ;   ;     ;      ;   ; 
+ ; ; ;   ;     ;   ;  ;   ; 
+;; ; ;; ;;;;    ;;;    ;;; ;
+                            
+                            
+                            
+
   
   (define (mred)
     (parameterize ([language (list "PLT" "Graphical (MrEd)")])
@@ -22,7 +38,8 @@
 
       (generic-settings #f)
       (generic-output #t #t #t)
-
+      (plt-language-fraction-output)
+      
       (test-hash-bang)
       
       (let ([drs (wait-for-drscheme-frame)])
@@ -59,7 +76,7 @@
       (test-expression "true" "{image #f} reference to undefined identifier: true")
       (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
       (test-expression "(cons 1 2)" "(1 . 2)")
       (test-expression "'(1)" "(1)")
@@ -92,6 +109,22 @@
       
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
+
+
+                                                        
+                            ;;                          
+                             ;                          
+                             ;                          
+;;; ;   ;;;;;   ;;;    ;;;   ; ;;    ;;;  ;;; ;    ;;;  
+ ; ; ;  ;  ;   ;   ;  ;   ;  ;;  ;  ;   ;  ; ; ;  ;   ; 
+ ; ; ;    ;     ;;;   ;      ;   ;  ;;;;;  ; ; ;  ;;;;; 
+ ; ; ;   ;         ;  ;      ;   ;  ;      ; ; ;  ;     
+ ; ; ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ; 
+;; ; ;; ;;;;;   ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;  
+                                                        
+                                                        
+                                                        
+
   
   (define (mzscheme)
     (parameterize ([language (list "PLT" "Textual (MzScheme)")])
@@ -100,6 +133,7 @@
 
       (generic-settings #f)
       (generic-output #t #t #t)
+      (plt-language-fraction-output)
       
       (test-hash-bang)
       
@@ -137,7 +171,7 @@
       (test-expression "true" "{image #f} reference to undefined identifier: true")
       (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
       (test-expression "(cons 1 2)" "(1 . 2)")
       (test-expression "'(1)" "(1)")
@@ -170,13 +204,30 @@
 
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
+
+
+                                                        
+;;                      ;                               
+ ;                                                      
+ ;                                                      
+ ;;;;    ;;;    ;;; ; ;;;   ; ;;;  ; ;;;    ;;;   ; ;;; 
+ ;   ;  ;   ;  ;   ;    ;    ;;  ;  ;;  ;  ;   ;   ;    
+ ;   ;  ;;;;;  ;   ;    ;    ;   ;  ;   ;  ;;;;;   ;    
+ ;   ;  ;      ;   ;    ;    ;   ;  ;   ;  ;       ;    
+ ;   ;  ;   ;  ;   ;    ;    ;   ;  ;   ;  ;   ;   ;    
+; ;;;    ;;;    ;;;;  ;;;;; ;;;  ;;;;;  ;;  ;;;   ;;;;  
+                   ;                                    
+                   ;                                    
+                ;;;                                     
+
   
   (define (beginner)
     (parameterize ([language (list "How to Design Programs" "Beginning Student")])
       (check-top-of-repl)
-  
+      
       (generic-settings #t)
       (generic-output #f #f #f)
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -243,11 +294,27 @@
       (test-expression "(let ([f (lambda (x) x)]) f)" 
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression ",1"
-                       "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
+                       "read: illegal use of `,'")
 
       (test-expression "(list 1)" "(cons 1 empty)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
+
+                                                               
+;;                         ;       ;;                          
+ ;                        ;         ;                          
+ ;                        ;         ;                          
+ ;;;;    ;;;    ;;; ;    ;   ;;;;   ;;;;   ; ;;;   ;;;  ;;; ;;;
+ ;   ;  ;   ;  ;   ;     ;       ;  ;   ;   ;     ;   ;  ;   ; 
+ ;   ;  ;;;;;  ;   ;    ;     ;;;;  ;   ;   ;     ;;;;;  ;   ; 
+ ;   ;  ;      ;   ;    ;    ;   ;  ;   ;   ;     ;       ; ;  
+ ;   ;  ;   ;  ;   ;   ;     ;   ;  ;   ;   ;     ;   ;   ;;;  
+; ;;;    ;;;    ;;;;   ;      ;;; ;; ;;;   ;;;;    ;;;     ;   
+                   ;  ;                                        
+                   ;                                           
+                ;;;                                            
+
+
   (define (beginner/abbrev)
     (parameterize ([language (list "How to Design Programs" 
                                    "Beginning Student with List Abbreviations")])
@@ -255,6 +322,7 @@
   
       (generic-settings #t)
       (generic-output #t #f #f)
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -326,17 +394,29 @@
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
 
+
+                                                                                    
+   ;                                                 ;;    ;                        
+                ;                                     ;                 ;           
+                ;                                     ;                 ;           
+ ;;;   ; ;;;   ;;;;;   ;;;   ; ;;; ;;; ;    ;;;    ;;;;  ;;;    ;;;;   ;;;;;   ;;;  
+   ;    ;;  ;   ;     ;   ;   ;     ; ; ;  ;   ;  ;   ;    ;        ;   ;     ;   ; 
+   ;    ;   ;   ;     ;;;;;   ;     ; ; ;  ;;;;;  ;   ;    ;     ;;;;   ;     ;;;;; 
+   ;    ;   ;   ;     ;       ;     ; ; ;  ;      ;   ;    ;    ;   ;   ;     ;     
+   ;    ;   ;   ;   ; ;   ;   ;     ; ; ;  ;   ;  ;   ;    ;    ;   ;   ;   ; ;   ; 
+ ;;;;; ;;;  ;;   ;;;   ;;;   ;;;;  ;; ; ;;  ;;;    ;;; ; ;;;;;   ;;; ;   ;;;   ;;;  
+                                                                                    
+                                                                                    
+                                                                                    
+
+
   (define (intermediate)
     (parameterize ([language (list "How to Design Programs" "Intermediate Student")])
       (check-top-of-repl)
 
       (generic-settings #t)
       (generic-output #t #f #f)
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
-;                    "local variable used before its definition: x")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -405,17 +485,30 @@
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
 
+
+                                                                      
+   ;                       ; ;;;                 ;;         ;;        
+                ;         ;    ;                  ;          ;        
+                ;         ;    ;                  ;          ;        
+ ;;;   ; ;;;   ;;;;;     ;     ;    ;;;;  ;;; ;   ;;;;    ;;;;  ;;;;  
+   ;    ;;  ;   ;        ;     ;        ;  ; ; ;  ;   ;  ;   ;      ; 
+   ;    ;   ;   ;       ;      ;     ;;;;  ; ; ;  ;   ;  ;   ;   ;;;; 
+   ;    ;   ;   ;       ;      ;    ;   ;  ; ; ;  ;   ;  ;   ;  ;   ; 
+   ;    ;   ;   ;   ;  ;       ;    ;   ;  ; ; ;  ;   ;  ;   ;  ;   ; 
+ ;;;;; ;;;  ;;   ;;;   ;     ;;;;;;  ;;; ;;; ; ;;; ;;;    ;;; ;  ;;; ;
+                      ;                                               
+                                                                      
+                                                                      
+
+
   (define (intermediate/lambda)
-    (parameterize ([language (list "How to Design Programs" "Intermediate Student with Lambda")])
+    (parameterize ([language (list "How to Design Programs" 
+                                   "Intermediate Student with lambda")])
       (check-top-of-repl)
       
       (generic-settings #t)
       (generic-output #t #f #f)
-      ;      (set-language #f)
-      ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
-      ;                    "local variable used before its definition: x")
-      ;      (set-language #f)
-      ;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -484,17 +577,29 @@
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
   
+
+                                                        
+           ;;                                        ;; 
+            ;                                         ; 
+            ;                                         ; 
+ ;;;;    ;;;; ;;; ;;; ;;;;  ; ;;;    ;;;    ;;;    ;;;; 
+     ;  ;   ;  ;   ;      ;  ;;  ;  ;   ;  ;   ;  ;   ; 
+  ;;;;  ;   ;  ;   ;   ;;;;  ;   ;  ;      ;;;;;  ;   ; 
+ ;   ;  ;   ;   ; ;   ;   ;  ;   ;  ;      ;      ;   ; 
+ ;   ;  ;   ;   ;;;   ;   ;  ;   ;  ;   ;  ;   ;  ;   ; 
+  ;;; ;  ;;; ;   ;     ;;; ;;;;  ;;  ;;;    ;;;    ;;; ;
+                                                        
+                                                        
+                                                        
+
+
   (define (advanced)
     (parameterize ([language (list "How to Design Programs" "Advanced Student")])
       (check-top-of-repl)
 
       (generic-settings #t)
       (generic-output #t #t #t)
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
-;                    "local variable used before its definition: x")
-;      (set-language #f)
-;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -563,6 +668,23 @@
 
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
+
+
+                            
+   ;;;         ;;;    ;;;   
+  ;              ;      ;   
+  ;              ;      ;   
+ ;;;;; ;;  ;;    ;      ;   
+  ;     ;   ;    ;      ;   
+  ;     ;   ;    ;      ;   
+  ;     ;   ;    ;      ;   
+  ;     ;   ;    ;      ;   
+ ;;;;    ;;; ; ;;;;;; ;;;;;;
+                            
+                            
+                            
+
+
   
   (define (full)
     (parameterize ([language (list "How to Design Programs" "Full")])
@@ -570,11 +692,7 @@
       
       (generic-settings #t)
       (generic-output #t #t #t)
-      ;      (set-language #f)
-      ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
-      ;                    "local variable used before its definition: x")
-      ;      (set-language #f)
-      ;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      (teaching-language-fraction-output)
       
       (test-hash-bang)
       
@@ -641,8 +759,32 @@
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
 
-  (define (test-setting setting-name value expression result)
-    (fw:test:set-check-box! setting-name value)
+
+                                                 
+                                                 
+                                            ;    
+                                            ;    
+  ;;;  ;;  ;; ; ;;;  ; ;;;    ;;;   ; ;;;  ;;;;; 
+ ;   ;  ;   ;  ;   ;  ;   ;  ;   ;   ;      ;    
+  ;;;   ;   ;  ;   ;  ;   ;  ;   ;   ;      ;    
+     ;  ;   ;  ;   ;  ;   ;  ;   ;   ;      ;    
+ ;   ;  ;   ;  ;   ;  ;   ;  ;   ;   ;      ;   ;
+  ;;;    ;;; ; ;;;;   ;;;;    ;;;   ;;;;     ;;; 
+               ;      ;                          
+               ;      ;                          
+              ;;;    ;;;                         
+
+
+  ;; test-setting : (-> void) string string string -> void
+  ;; opens the language dialog, runs `set-setting'
+  ;; closes the language dialog, executes,
+  ;; makes sure that `expression' produces
+  ;; `result'. `set-setting' is expected to click around
+  ;; in the language dialog.
+  ;; `setting-name' is used in the error message when the test fails.
+  (define (test-setting set-setting setting-name expression result)
+    (set-language #f)
+    (set-setting)
     (let ([f (get-top-level-focus-window)])
       (fw:test:button-push "OK")
       (wait-for-new-frame f))
@@ -653,8 +795,8 @@
       (do-execute drs)
       (let* ([got (fetch-output drs)])
         (unless (string=? result got)
-          (printf "FAILED: ~s ~s ~s ~s test~n expected: ~a~n      got: ~a~n"
-                  (language) setting-name value expression result got)))))
+          (printf "FAILED: ~s ~s ~s test~n expected: ~a~n      got: ~a~n"
+                  (language) setting-name expression result got)))))
   
   (define (test-hash-bang)
     (let* ([expression (format "#!~n1")]
@@ -689,11 +831,43 @@
           (error 'language-test.ss "failed get top of repl test")))))
 
   
+  ;; teaching-language-fraction-output
+  ;; tests that the teaching langauges properly handle repeating decimals
+  (define (teaching-language-fraction-output)
+    (test-setting
+     (lambda () (fw:test:set-radio-box! "Fraction Style" "Mixed fractions"))
+     "Fraction Style -- Mixed fractions"
+     "4/3"
+     "{number 4/3 \"1 1/3\"}")
+    (test-setting
+     (lambda () (fw:test:set-radio-box! "Fraction Style" "Repeating decimals"))
+     "Fraction Style -- Repeating decimals"
+     "4/3"
+     "{repeating-decimal 4/3 \"1\" \"\" \"3\"}"))
+  
+  ;; plt-language-fraction-output : -> void
+  ;; tests that the PLT languages properly handle repeating decimals
+  (define (plt-language-fraction-output)
+    (test-setting
+     (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #f))
+     "Use decimal notation for rationals -- #f"
+     "4/3 1/2"
+     "{number 4/3 \"1 1/3\"}\n{number 1/2 \"1/2\"}")
+    (test-setting
+     (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #t))
+     "Use decimal notation for rationals -- #t"
+     "4/3 1/2"
+     "{repeating-decimal 4/3 \"1\" \"\" \"3\"}\n{repeating-decimal 1/2 \"\" \"5\" \"\"}"))
+  
   (define (generic-settings false/true?)
-    (set-language #f)
-    (test-setting "Case sensitive" #t "(eq? 'g 'G)" (if false/true? "false" "#f"))
-    (set-language #f)
-    (test-setting "Case sensitive" #f "(eq? 'g 'G)" (if false/true? "true" "#t"))
+    (test-setting
+     (lambda () (fw:test:set-check-box! "Case sensitive" #t))
+     "Case sensitive -- #t"
+     "(eq? 'g 'G)" (if false/true? "false" "#f"))
+    (test-setting
+     (lambda () (fw:test:set-check-box! "Case sensitive" #f))
+     "Case sensitive -- #f"
+     "(eq? 'g 'G)" (if false/true? "true" "#t"))
 ;    (set-language #f)
 ;    (test-setting "Unmatched cond/case is an error" #f
 ;                  (format "(cond [~a 1])" (if false/true? "false" "#f"))
@@ -837,11 +1011,11 @@
   (define (run-test)
     ;; clear teachpack
     (let ([drs (wait-for-drscheme-frame)])
-      (fw:test:menu-select "Language" "Clear All Teachpacks"))
+      (fw:test:menu-select "Language" "Clear All TeachPacks"))
     
-    ;(mred)
-    ;(mzscheme)
-    ;(beginner)
+    (mred)
+    (mzscheme)
+    (beginner)
     (beginner/abbrev)
     (intermediate)
     (intermediate/lambda)
