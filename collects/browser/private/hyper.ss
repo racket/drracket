@@ -464,7 +464,7 @@
       (define hyper-text% (hyper-text-mixin text:keymap%))
       
       (keymap:add-to-right-button-menu/before
-       (let ([old (keymap:add-to-right-button-menu)])
+       (let ([old (keymap:add-to-right-button-menu/before)])
          (lambda (menu editor event)
            (when (is-a? editor hyper-text%)
              (let* ([panel (let ([canvas (send editor get-canvas)])
