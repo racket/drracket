@@ -121,8 +121,7 @@
             (min-height (send wizard-image-bitmap get-height))))  
         
         (define dlg (instantiate dialog% ()
-                      (label (string-constant welcome-to-drscheme))
-                      (style '(resize-border))))
+                      (label (string-constant welcome-to-drscheme))))
         (define hp (make-object horizontal-panel% dlg))
         (define c (make-object wizard-image-canvas% hp))
         (define vp (make-object vertical-panel% hp))
