@@ -102,11 +102,7 @@
                     edit-menu:between-find-and-preferences)
           [define help-menu:before-about
             (lambda (help-menu)
-              (make-object menu-item%
-                (string-constant help-desk)
-                help-menu
-                (lambda (item evt)
-                  (help:help-desk)))
+              (make-help-desk-menu-item help-menu)
               '(make-object menu-item%
                 (format (string-constant welcome-to-something)
                         (string-constant drscheme))
@@ -442,4 +438,34 @@
           
           (field
            [running-message
-            (make-object message% sleepy-bitmap (get-info-panel))]))))))
+            (make-object message% sleepy-bitmap (get-info-panel))])))
+      
+      
+      (define (create-root-menubar)
+        (let* ([mb (new menu-bar% (parent 'root))]
+               [file-menu (new menu% 
+                               (label (string-constant file-menu))
+                               (parent mb))]
+               [help-menu (new menu% 
+                               (label (string-constant help-menu))
+                               (parent mb))])
+          (new menu-item%
+               (label (string-constant new-menu-item))
+               (parent file-menu)
+               (shortcut #\n)
+               (callback
+                (lambda (x y)
+                  (handler:edit-file #f)
+                  #t)))
+          (make-help-desk-menu-item help-menu)))
+      
+      (define (make-help-desk-menu-item help-menu)
+        (make-object menu-item%
+          (string-constant help-desk)
+          help-menu
+          (lambda (item evt)
+            (help:help-desk)
+            #t)))
+      
+      
+      )))

@@ -145,7 +145,8 @@
     (<%>
      mixin
      basics-mixin
-     basics<%>))
+     basics<%>
+     create-root-menubar))
   
   (define-signature drscheme:program^
     (frame%))

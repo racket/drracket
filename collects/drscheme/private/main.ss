@@ -44,6 +44,10 @@
                                      '("Scheme (.ss)" "*.ss")
                                      (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
+
+      (when (current-eventspace-has-menu-root?)
+        (drscheme:frame:create-root-menubar)
+        (preferences:set 'framework:exit-when-no-frames #f))
       
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
       
