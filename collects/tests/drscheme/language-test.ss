@@ -307,6 +307,80 @@
       (test-expression "(exact? 1.5)" "true")
       (test-expression "(list 1)" "(list 1)")
       (test-expression "argv" "reference to undefined identifier: argv")))
+
+  (define (intermediate/lambda)
+    (parameterize ([language (list "How to Design Programs" "Intermediate Student with Lambda")])
+      (check-top-of-repl)
+      
+      (generic-settings #t)
+      (generic-output #t #f #f)
+      ;      (set-language #f)
+      ;      (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
+      ;                    "local variable used before its definition: x")
+      ;      (set-language #f)
+      ;      (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
+      
+      (test-hash-bang)
+      
+      (let ([drs (wait-for-drscheme-frame)])
+        (clear-definitions drs)
+        (set-language #t)
+        (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      
+      (test-expression "(sqrt -1)" "0+1i")
+      
+      (test-expression "class" "reference to undefined identifier: class")
+      (test-expression "shared" "reference to undefined identifier: shared")
+      
+      (test-expression "(define (. x y) (* x y)) ." ".")
+      
+      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      
+      (test-expression "(error 'a \"~a\" 1)"
+                       "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
+      (test-expression "(error \"a\" \"a\")"
+                       "error: expected a symbol and a string, got \"a\" and \"a\"")
+      
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      
+      (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
+      (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+      
+      (test-expression "true" "true")
+      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "false")
+      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
+      (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
+      (test-expression "'(1)" "(list 1)")
+      (test-expression "(define shrd (list 1)) (list shrd shrd)"
+                       "(list (list 1) (list 1))")
+      (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
+      (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
+      (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
+      (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
+      
+      (test-expression "1.0" "1")
+      (test-expression "#i1.0" "#i1.0")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
+      (test-expression "1/3" "{number 1/3 \"1/3\"}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
+      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "3/2" "1.5")
+      (test-expression "1/2" "0.5")
+      (test-expression "-1/2" "-0.5")
+      (test-expression "-3/2" "-1.5")
+      (test-expression "+1/3i" "0+1/3i")
+      (test-expression "+1/2i" "0+0.5i")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      
+      (test-expression "(exact? 1.5)" "true")
+      (test-expression "(list 1)" "(list 1)")
+      (test-expression "argv" "reference to undefined identifier: argv")))
   
   (define (advanced)
     (parameterize ([language (list "How to Design Programs" "Advanced Student")])
@@ -585,4 +659,5 @@
     (mzscheme)
     (beginner)
     (intermediate)
+    (intermediate/lambda)
     (advanced)))
