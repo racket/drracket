@@ -540,7 +540,6 @@
 			    (on-paint)
 			    (send text set-position (defn-pos defn) (defn-pos defn))
                             (let ([canvas (send text get-canvas)])
-                              (printf "canvas: ~s~n" canvas)
                               (when canvas
                                 (send canvas focus)))))])
 		  (when checked?
