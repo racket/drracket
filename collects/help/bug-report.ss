@@ -59,7 +59,7 @@
     (define outermost-panel (make-object vertical-panel% single))
     
     (define response-panel (new vertical-panel% (parent single)))
-    (define response-text (new (html-text-mixin text%)))
+    (define response-text (new (html-text-mixin text%) (auto-wrap #t)))
     (define response-ec (new editor-canvas% (parent response-panel) (editor response-text)))
     (define response-button-panel (new horizontal-panel%
                                        (stretchable-height #f)
@@ -90,7 +90,9 @@
     (define top-panel (make-object vertical-panel% outermost-panel))
     
     (define (switch-to-respose-view) (send single active-child response-panel))
-    (define (switch-to-compose-view) (send single active-child outermost-panel))
+    (define (switch-to-compose-view) 
+      (send reponse-text erase)
+      (send single active-child outermost-panel))
     
     (define lps null)
     
