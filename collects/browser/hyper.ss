@@ -148,17 +148,25 @@
 	  [make-clickback-funct
 	   (lambda (url-string)
 	     (lambda (edit start end)
-	       (with-handlers ([void (lambda (x)
-				       (unless (exn:misc:user-break? x)
-					 (message-box
-					  "Error"
-					  (format "Cannot display ~s: ~a~n" 
-						  url-string
-						  (if (exn? x)
-						      (exn-message x)
-						      x)))))])
-		 (send (get-canvas) goto-url url-string (get-url)))))])
+	       (on-url-click
+		(lambda (url-string)
+		  (with-handlers ([void (lambda (x)
+					  (unless (exn:misc:user-break? x)
+					    (message-box
+					     "Error"
+					     (format "Cannot display ~s: ~a~n" 
+						     url-string
+						     (if (exn? x)
+							 (exn-message x)
+							 x)))))])
+		    (send (get-canvas) goto-url url-string (get-url))))
+		url-string)))])
 	(public
+	  [on-url-click (lambda (f x) 
+			  (let ([c (get-canvas)])
+			    (if c
+				(send c on-url-click f x)
+				(f x))))]
 	  [get-title (lambda () (or title (and (url? url) (url->string url))))]
 	  [set-title (lambda (t) (set! title t))])
 	(public
@@ -392,6 +400,7 @@
 			[ebox (box 0)])
 		    (send e get-visible-position-range sbox ebox)
 		    (list e (unbox sbox) (unbox ebox))))))]
+	[on-url-click (lambda (k url) (send (get-parent) on-url-click k url))]
 	[goto-url
 	 (lambda (url relative)
 	   (let* ([url (if (or (url? url) (port? url))
@@ -513,6 +522,7 @@
 	; [get-progress (lambda () progress)]
 	[get-canvas (lambda () c)]
 	[on-navigate void]
+	[on-url-click (lambda (k url) (k url))]
 	[leaving-page (lambda (page new-page)
 			(set! future null)
 			(when page
