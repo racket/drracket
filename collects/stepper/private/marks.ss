@@ -158,33 +158,36 @@
                          (mark-binding-value binding)))
                (mark-bindings mark))))
   
-  (define (binding-matches mark binding)
+  
+  (define (binding-matches matcher mark binding)
     (let ([matches
            (filter (lambda (b)
-                     (module-identifier=? (mark-binding-binding b) binding))
+                     (matcher (mark-binding-binding b) binding))
                    (mark-bindings mark))])
       (if (> (length matches) 1)
           (error 'lookup-binding "multiple bindings found for ~a" binding)
           matches)))
   
-  (define (meta-lookup-binding binding-matcher)
-    (lambda (mark-list binding)
-      (if (null? mark-list)
-          (error 'lookup-binding "variable not found in environment: ~a~n" (syntax-e binding))
-          (let ([matches (binding-matcher (car mark-list) binding)])
+  
+  (define (meta-lookup-binding binding-matcher mark-list binding)
+    (if (null? mark-list)
+          (error 'lookup-binding "variable not found in environment: ~a~n" binding)
+          (let ([matches (binding-matches binding-matcher (car mark-list) binding)])
             (cond [(null? matches)
-                   (lookup-binding (cdr mark-list) binding)]
+                   (meta-lookup-binding binding-matcher (cdr mark-list) binding)]
                   [else
-                   (car matches)])))))
+                   (car matches)]))))
   
   (define lookup-binding
-    (meta-lookup-binding binding-matches))
+    (lambda args
+      (apply meta-lookup-binding module-identifier=? args)))
   
   (define lookup-binding-with-symbol
-    (meta-lookup-binding (lambda (id sym) (eq? (syntax-e id) sym))))
+    (lambda args
+      (apply meta-lookup-binding (lambda (id sym) (eq? (syntax-e id) sym)) args)))
   
   (define (lookup-binding-list mark-list binding)
-    (apply append (map (lambda (x) (binding-matches x binding)) mark-list)))
+    (apply append (map (lambda (x) (binding-matches module-identifier=? x binding)) mark-list)))
   
   
   ; DEBUG-INFO STRUCTURES
