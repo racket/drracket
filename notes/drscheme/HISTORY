@@ -1,3 +1,25 @@
+101d7
+
+ - PRS: 1154, 1133,
+
+ - Parenthesis highlighting now turns unmatched parens red
+   in addition to turning matched parenthesis regions grey.
+   Also (now that the caret flashes) if the caret is between two
+   parens, both before and after parens will be highlighted,
+   not just the ones before.
+   
+   Thus, every time the cursor is next to an uncommented
+   paren, the programmer sees some feedback about the paren.
+ 
+ - PR 1112 (matthew's submission). I cannot reject the bad preference
+   at drscheme startup (so drscheme will have this "badfont") 
+   without searching for all of the fixed with fonts on every
+   startup of drscheme. So, I only reject the preference when the
+   preferences dialog is opened. I hope that this is satisfactory.
+
+
+; ------------------------------------------------------------
+
 101d6
 
  - PRS: 1121 1068 1067 1066
