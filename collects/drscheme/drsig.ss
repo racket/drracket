@@ -108,7 +108,8 @@
    (unit unit : drscheme:unit^)
    (unit program : drscheme:program^)
    (unit get/extend : drscheme:get/extend^)
-   (unit rep : drscheme:rep^)))
+   (unit rep : drscheme:rep^)
+   (unit help-desk : help:drscheme-interface^)))
 
 (begin-elaboration-time
  (define drscheme:tool-directories (directory-list (collection-path "drscheme" "tools")))
