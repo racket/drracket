@@ -139,7 +139,52 @@
   (test-good-teachpack
    "(cons (unit/sig () (import plt:userspace^)) (unit/sig () (import plt:userspace^)))"
    "1"
-   "1"))
+   "1")
+
+  (test-good-teachpack
+   (format
+    "(cons (unit/sig () (import plt:userspace^)) ~
+   ~n      (unit/sig (m) 
+   ~n        (import plt:userspace^)
+   ~n        (define m (lambda (x) `(+ ,x 1)))))")
+   "m"
+   "keyword: invalid use of keyword m")
+
+  (test-good-teachpack
+   (format
+    "(cons (unit/sig () (import plt:userspace^)) ~
+    ~n      (unit/sig (m) 
+    ~n        (import plt:userspace^)
+    ~n        (define m (lambda (x) `(+ ,x 1)))))")
+   "(m 1)"
+   "2")
+
+  (test-good-teachpack
+   (format
+    "(cons (unit/sig () (import plt:userspace^))~
+   ~n      (unit/sig (m) ~
+   ~n        (import plt:userspace^)~
+   ~n        (define m (lambda (x) `(+ ,x 1)))))")
+   "(define (f x) (m x)) (m 1)"
+   "2")
+
+  (test-good-teachpack
+   (format
+    "(cons (unit/sig (frc) (import plt:userspace^) (define (frc x) (x)))~
+ ~n      (unit/sig (dly) 
+ ~n       (import plt:userspace^)
+ ~n       (define dly (lambda (x) `(lambda () ,x)))))")
+   "(frc (dly 11))"
+   "11")
+
+  (test-good-teachpack
+   (format
+    "(cons (unit/sig (mo) (import plt:userspace^) (define (mo x) (ivar (make-object x) x)))~
+ ~n      (unit/sig (m) 
+ ~n       (import plt:userspace^)
+ ~n       (define m (lambda (x) `(class object% () (public [x ,x]) (sequence (super-init)))))))")
+   "(mo (m 11))"
+   "11"))
 
 (define (good-tests)
   (set-language-level! "Graphical (MrEd)")
@@ -172,46 +217,7 @@
    "(unit/sig () (import plt:userspace^) (car 1))"
    "car: expects argument of type <pair>; given 1"))
 
-;(bad-tests)
-;(good-tests)
+(bad-tests)
+(good-tests)
 
-(set-language-level! "Beginning Student")
-(test-good-teachpack
- "(cons (unit/sig () (import plt:userspace^)) 
-        (unit/sig (m) 
-          (import plt:userspace^)
-          (define m (lambda (x) `(+ ,x 1)))))"
- "m"
- "bad keyword: m")
 
-(test-good-teachpack
- "(cons (unit/sig () (import plt:userspace^)) 
-        (unit/sig (m) 
-          (import plt:userspace^)
-          (define m (lambda (x) `(+ ,x 1)))))"
- "(m 1)"
- "2")
-
-(test-good-teachpack
- "(cons (unit/sig () (import plt:userspace^)) 
-        (unit/sig (m) 
-          (import plt:userspace^)
-          (define m (lambda (x) `(+ ,x 1)))))"
- "(let ([y 2]) (m y))"
- "2")
-
-(test-good-teachpack
- "(cons (unit/sig () (import plt:userspace^)) 
-        (unit/sig (m) 
-          (import plt:userspace^)
-          (define m (lambda (x) `(+ ,x 1)))))"
- "(let ([x 2]) (m x))"
- "2")
-
-(test-good-teachpack
- "(cons (unit/sig (mo) (import plt:userspace^) (define (mo x) (ivar (make-object x) x)))
-        (unit/sig (m) 
-          (import plt:userspace^)
-          (define m (lambda (x) `(class object% (public [x ,x]))))))"
- "(mo (m 11))"
- "11")
