@@ -1840,7 +1840,7 @@
             (make-object c% (string-constant insert-lambda)
               special-menu
               (lambda (x y) (insert-lambda))
-              #\,
+              #\\
               #f
               has-editor-on-demand))
           
