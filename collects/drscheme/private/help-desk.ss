@@ -20,12 +20,14 @@
       (define (get-computer-language-info)
         (list
          (list
-          'computer-language
+          "Computer Language"
           (format "~s"
-                  (send (preferences:get drscheme:language-configuration:settings-preferences-symbol)
-                        get-language-position)))))
+                  (send 
+                   (drscheme:language-configuration:language-settings-language
+                    (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+                   get-language-position)))))
       
-      ;(set-bug-report-info! get-computer-language-info)
+      (set-bug-report-info! get-computer-language-info)
       
       ; to decide if an internal browser connected to the web server by pipes will be used
       ; : browser-preference -> bool
