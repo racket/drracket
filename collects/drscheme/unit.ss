@@ -228,7 +228,16 @@
       (rename
        [super-set-modified set-modified]
        [super-set-filename set-filename])
+      (inherit is-modified? run-after-edit-sequence)
       (override
+       [set-modified
+	(lambda (mod?)
+	  (super-set-modified mod?)
+	  (run-after-edit-sequence
+	   (lambda ()
+	     (let ([f (get-top-level-window)])
+	       (when f
+		 (send f update-save-button (is-modified?)))))))]
        [set-filename
 	(case-lambda
 	 [(fn) (set-filename fn #f)]
