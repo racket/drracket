@@ -10,6 +10,44 @@
 	  [fw : framework^]
 	  test-utils:gui^)
   
+  ;; save-drscheme-window-as : string -> void
+  ;; use the "save as" dialog in drscheme to save the definitions
+  ;; window to a file.
+  (define (save-drscheme-window-as filename)
+    (use-open/close-dialog
+     (lambda ()
+       (fw:test:menu-select "File" "Save Definitions As..."))
+     filename))
+
+  ;; use-open/save-dialog : (-> void) string -> void
+  ;; open-dialog is a thunk that should open the dialog
+  ;; filename is a string naming a file that should be typed into the dialog
+  (define (use-open/close-dialog open-dialog filename)
+    (unless (procedure? open-dialog)
+      (error 'use-open/close-dialog "expected procedure as first argument, got: ~e, other arg: ~e"
+	     open-dialog filename))
+    (unless (string? filename)
+      (error 'use-open/close-dialog "expected string as second argument, got: ~e, other arg: ~e"
+	     filename open-dialog))
+    (let ([drs (wait-for-drscheme-frame)]
+	  [old-pref (fw:preferences:get 'framework:file-dialogs)])
+      (with-handlers ([(lambda (x) #t)
+		       (lambda (x)
+			 (fw:preferences:set 'framework:file-dialogs old-pref)
+			 (raise x))])
+	(fw:preferences:set 'framework:file-dialogs 'common)
+	(open-dialog)
+	(let ([dlg (wait-for-new-frame drs)])
+	  (send (find-labelled-window "Full pathname") focus)
+	  (fw:test:keystroke #\a (list (case (system-type)
+					 [(windows) 'control]
+					 [(macos) 'command]
+					 [(unix) 'alt])))
+	  (for-each fw:test:keystroke (string->list filename))
+	  (fw:test:button-push "OK")
+	  (wait-for-new-frame dlg))
+	(fw:preferences:set 'framework-file-dialogs old-pref))))
+
   ;; -> eventspace
   ;; returns the eventspace used by the program in the current drscheme window
   (define (get-user-eventspace)
