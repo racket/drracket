@@ -12,9 +12,7 @@ Version 102:
    1502: (define's hard to find
    1506: Help Desk exits gracelessly when interrupted
    1507: thread error freezes repl
-
    1503: Launcher prints debug info
-    - unable to reproduce
 
  FUNCTIONALITY CHANGES
 
