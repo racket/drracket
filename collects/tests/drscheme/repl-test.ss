@@ -146,6 +146,15 @@
                 #f
                 #f
                 #f)
+     (make-test "(raise (make-exn:syntax 1 2 3 4 5))"
+                "uncaught exception: #f"
+                "uncaught exception: #f"
+                #f
+		'interactions
+                #f
+                #f
+                #f)
+     
      (make-test "(values 1 2)"
                 "1\n2"
                 "1\n2"
