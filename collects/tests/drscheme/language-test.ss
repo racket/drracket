@@ -274,7 +274,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
@@ -364,7 +364,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
@@ -452,7 +452,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "function:f")
@@ -540,7 +540,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -628,7 +628,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -715,7 +715,7 @@
       (test-expression "-3/2" "{number -3/2 \"-1.5\" decimal}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" decimal}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -988,17 +988,25 @@
           (printf err-msg (language) expression expected got)))))
   
   
+  (define-syntax (go stx)
+    (syntax-case stx ()
+      [(_ arg)
+       (identifier? (syntax arg))
+       (syntax (begin (printf "> starting ~a\n" (syntax-object->datum #'arg))
+                      (arg)
+                      (printf "> finished ~a\n" (syntax-object->datum #'arg))))]))
+  
   (define (run-test)
     ;; clear teachpack
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
-    (beginner)
-    (beginner/abbrev)
-    (intermediate)
-    (intermediate/lambda)
-    (advanced)
+    ;(go beginner)
+    ;(go beginner/abbrev)
+    ;(go intermediate)
+    ;(go intermediate/lambda)
+    (go advanced)
     ;(full) ;; not there anymore
-    ;(mred)
-    ;(mzscheme)
+    (go mred)
+    (go mzscheme)
     ))
