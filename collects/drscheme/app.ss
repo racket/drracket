@@ -11,7 +11,8 @@
 	(let* ([names (string-append
 		       "Gann Bierner, Corky Cartwright, Richard Cobbe, Moy Easwaran, "
 		       "Matthias Felleisen, Robby Findler, Cormac Flanagan, Matthew Flatt, "
-		       "Sebastian Good, Mark Krentel, Shriram Krishnamurthi, and Stephanie Weirich")]
+		       "Sebastian Good, Mark Krentel, Shriram Krishnamurthi, "
+		       "Paul Steckler, and Stephanie Weirich")]
 	       [wrap-edit% 
 		(class-asi mred:media-edit%
 		  (inherit get-max-width find-snip  set-autowrap-bitmap position-location)

@@ -74,10 +74,7 @@
 				   (collection-path "icons")
 				   (string-append filename ".bmp"))])
 		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
-		       (make-bitmap path
-				    (if (string=? "Break" capd)
-					"Kevork"
-					capd))))
+		       (make-bitmap path capd)))
 		   (list "execute" "help" "save" "break"))))
   
   ;; this is the old definition of the interactions canvas.
@@ -248,7 +245,7 @@
       (public
 	[definitions-id #f]
 	[interactions-id #f]
-	[imports-id #f]
+	;[imports-id #f]
 	
 	[name-message #f]
 	[save-button #f]
@@ -376,7 +373,7 @@
 	   (cond
 	     [(= id interactions-id) interactions-canvas]
 	     [(= id definitions-id) definitions-canvas]
-	     [(= id imports-id) imports-panel]
+	     ;[(= id imports-id) imports-panel]
 	     [else (error 'id->child "unknown id: ~a" id)]))]
 	[update-shown
 	 (lambda ()
@@ -390,7 +387,9 @@
 				(cons (id->child id) sofar)
 				sofar))
 			  null
-			  (list interactions-id definitions-id imports-id)))))
+			  (list interactions-id definitions-id 
+				;imports-id
+				)))))
 	   
 	   (send interactions-edit scroll-to-position 
 		 (send interactions-edit get-end-position)
@@ -459,7 +458,7 @@
 		 (append-item "Setup &Lab..."
 			      (lambda () (drscheme:setup:do-setup "lab")))))
 	     
-	     (set! imports-id 
+	     '(set! imports-id 
 		   (send show-menu append-item
 			 "&Imports"
 			 (lambda () (update-shown))
@@ -636,7 +635,7 @@
 		 button-panel))])
       
       (sequence
-	(send show-menu check imports-id #f)
+	;(send show-menu check imports-id #f)
 	(send show-menu check definitions-id #t)
 	(send show-menu check interactions-id 
 	      (or (ivar interactions-edit repl-initially-active?)
