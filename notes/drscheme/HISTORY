@@ -7,7 +7,7 @@ THINGS MISSING (as compared to 103):
 
 GENERAL
 
-- added a code overview window that is
+- added a code ``contour'' window that is
   visible along the rhs of the drscheme
   window. Use the `show' menu to make 
   it visible.
