@@ -11,7 +11,7 @@
 (require-library "turtles.ss" "graphics")
 (require-library "pconvers.ss")
 (require-library "classd.ss")
-
+(require-library "launchers.ss" "launcher")
 (require-library "frameworks.ss" "framework")
 
 (require-library "sig.ss" "help")
