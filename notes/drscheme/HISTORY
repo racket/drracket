@@ -28,6 +28,11 @@ Version 102:
 
  FUNCTIONALITY CHANGES
 
+ - the framework's info frame mixins no longer require frame:editor<%> 
+   as an input. Also, they are moved lower in the hierarchy of the
+   instantiated mixin classes in the framework. This affects all of the
+   frame:XX% classes.
+
  - project manager windows now have a repl.
    The repl shows the values returned by loading each of the files
    in the project.
