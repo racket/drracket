@@ -631,11 +631,15 @@ profile todo:
           (inherit get-canvas)
           
           (define/private (clear-test-coverage?)
-            (eq? (message-box (string-constant drscheme)
-                              (string-constant test-coverage-clear?)
-                              (send (get-canvas) get-top-level-window)
-                              '(yes-no))
-                 'yes))
+            (equal? (message-box/custom
+                     (string-constant drscheme)
+                     (string-constant test-coverage-clear?)
+                     (string-constant yes)
+                     (string-constant no)
+                     #f
+                     (send (get-canvas) get-top-level-window)
+                     '(default=1))
+                    1))
           
           (define/private (clear-test-coverage)
             (let ([canvas (get-canvas)])
@@ -665,20 +669,28 @@ profile todo:
                          (or (not (send frame get-test-coverage-info-visible?))
                              (clear-test-coverage?)))))))
           
-          (rename [super-on-insert on-insert])
-          (define/override (on-insert x y)
-            (super-on-insert x y)
+          (rename [super-after-insert after-insert])
+          (define/override (after-insert x y)
+            (super-after-insert x y)
             (clear-test-coverage))
           
-          (rename [super-on-delete on-delete])
-          (define/override (on-delete x y)
-            (super-on-delete x y)
+          (rename [super-after-delete after-delete])
+          (define/override (after-delete x y)
+            (super-after-delete x y)
             (clear-test-coverage))
           
           (super-instantiate ())))
       
-      (define test-covered-color (send the-color-database find-color "lime green"))
-      (define test-not-covered-color (send the-color-database find-color "pink"))
+      ;(define test-covered-color (send the-color-database find-color "lime green"))
+      ;(define test-not-covered-color (send the-color-database find-color "pink"))
+
+      (define test-covered-style-delta (make-object style-delta%))
+      (send test-covered-style-delta set-delta-foreground "forest green")
+      
+      (define test-not-covered-style-delta (make-object style-delta%))
+      (send test-not-covered-style-delta set-delta-foreground "firebrick")
+      
+      (define erase-test-coverage-style-delta (make-object style-delta% 'change-normal-color))
       
       ;; test-coverage-unit-frame-mixin
       (define test-coverage-unit-frame-mixin
@@ -711,49 +723,74 @@ profile todo:
                     (quicksort
                      filtered
                      (lambda (x y)
-                       (<= (syntax-span (cadr x))
-                           (syntax-span (cadr y)))))]
-                   [thunks null])
+                       (>= (syntax-span (cadr x))
+                           (syntax-span (cadr y)))))])
+              
+              ;; turn on edit-sequences in all editors to be touched by new annotations
+              ;; also fill in the edit-sequence-ht
+              (for-each
+               (lambda (pr)
+                 (let ([src (syntax-source (cadr pr))])
+                   (hash-table-get 
+                    edit-sequence-ht
+                    src
+                    (lambda ()
+                      (hash-table-put! edit-sequence-ht src #f)
+                      (send src begin-edit-sequence #f)))))
+               sorted)
+              
+              ;; clear out old annotations
               (when internal-clear-test-coverage-display
                 (internal-clear-test-coverage-display)
                 (set! internal-clear-test-coverage-display #f))
+              
+              ;; set new annotations
               (for-each
                (lambda (pr)
                  (let ([stx (cadr pr)]
                        [on? (car pr)])
                    (when (syntax? stx)
-                     (let ([src (syntax-source stx)]
-                           [pos (syntax-position stx)]
-                           [span (syntax-span stx)])
-                       (hash-table-get 
-                        edit-sequence-ht
-                        src
-                        (lambda ()
-                          (hash-table-put! edit-sequence-ht src #f)
-                          (send src begin-edit-sequence)))
-                       (set! thunks
-                             (cons
-                              (send src highlight-range 
-                                    (- pos 1)
-                                    (+ (- pos 1) span) 
-                                    (if on?
-                                        test-covered-color
-                                        test-not-covered-color))
-                              thunks))))))
+                     (let* ([src (syntax-source stx)]
+                            [pos (syntax-position stx)]
+                            [span (syntax-span stx)]
+                            [locked? (send src is-locked?)])
+                       (when locked? (send src lock #f))
+                       (send src change-style
+                             (if on?
+                                 test-covered-style-delta
+                                 test-not-covered-style-delta) 
+                             (- pos 1)
+                             (+ (- pos 1) span)
+                             #f)
+                       (when locked? (send src lock #t))))))
                sorted)
+
+              ;; end edit sequences
               (hash-table-for-each 
                edit-sequence-ht
                (lambda (txt _) (send txt end-edit-sequence)))
+              
+              ;; save thunk to reset these new annotations
               (set! internal-clear-test-coverage-display
                     (lambda ()
                       (hash-table-for-each
                        edit-sequence-ht
-                       (lambda (txt _) (send txt begin-edit-sequence)))
-                      (for-each (lambda (thnk) (thnk)) thunks)
+                       (lambda (txt _) (send txt begin-edit-sequence #f)))
+                      (hash-table-for-each
+                       edit-sequence-ht
+                       (lambda (txt _) 
+                         (let ([locked? (send txt is-locked?)])
+                           (when locked? (send txt lock #f))
+                           (send txt change-style 
+                                 erase-test-coverage-style-delta
+                                 0
+                                 (send txt last-position)
+                                 #f)
+                           (when locked? (send txt lock #t)))))
                       (hash-table-for-each
                        edit-sequence-ht
                        (lambda (txt _) (send txt end-edit-sequence)))))))
-                     
+
           (rename [super-clear-annotations clear-annotations])
           (define/override (clear-annotations)
             (super-clear-annotations)
