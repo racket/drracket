@@ -45,7 +45,8 @@
       ;; if a language is registered with this position, it is
       ;; considered the default language
       (define default-language-position
-        (list (string-constant how-to-design-programs)
+        (list (string-constant teaching-languages)
+              (string-constant how-to-design-programs)
               (string-constant beginning-student)))
 
       ;; languages : (listof (instanceof language<%>))
@@ -222,9 +223,6 @@
 	    (interface (hierarchical-list-item<%>)
 	      selected))
 
-	  ;; language-container-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
-	  ;; a mixin that delegates item clicks to the item clicked on, if it
-	  ;; is a language.
 	  (define selectable-hierlist%
             (class hierarchical-list%
               (init parent)
@@ -384,7 +382,8 @@
                                      [hier-list languages-hier-list]
                                      [positions positions]
                                      [numbers numbers]
-                                     [first? #t])
+                                     [first? #t]
+                                     [factor 1])
                 (cond
                   [(null? (cdr positions))
                    (let-values ([(language-details-panel get/set-settings)
@@ -428,29 +427,32 @@
                                  (string->symbol position)
                                  (lambda ()
                                    (if first?
-                                       (let ([x (cons (make-hash-table) hier-list)])
+                                       (let ([x (cons (make-hash-table) hier-list)]
+                                             [item (send hier-list new-item number-mixin)])
                                          (hash-table-put! ht (string->symbol position) x)
+                                         (send item set-number number)
+                                         (send item set-allow-selection #f)
+                                         (let* ([editor (send item get-editor)]
+                                                [pos (send editor last-position)])
+                                           (unless (= (send (send hier-list get-editor) last-position) 0)
+                                             (send editor insert "\n"))
+                                           (send editor insert position)
+                                           (send editor change-style section-style-delta pos (send editor last-position)))
                                          x)
                                        (let* ([new-list (send hier-list new-list number-mixin)]
                                               [x (cons (make-hash-table) new-list)])
-                                         (send new-list set-number number)
+                                         (send new-list set-number (* factor number))
                                          (send new-list set-allow-selection #f)
                                          (send new-list open)
                                          (send (send new-list get-editor) insert position)
                                          (hash-table-put! ht (string->symbol position) x)
                                          x))))])
-                          (when first
-                            (let* ([editor (send hier-list get-editor)]
-                                   [pos (send editor last-position)])
-                              (send editor insert position pos pos)
-                              (send editor insert "\n")
-                              (send editor change-style bold-style-delta pos 
-                                    (- (send editor last-position) 1))))
                           (add-sub-language (car sub-ht/sub-hier-list)
                                             (cdr sub-ht/sub-hier-list)
                                             (cdr positions)
                                             (cdr numbers)
-                                            #f))]))))
+                                            #f
+                                            (if first? number 1)))]))))
 
           ;; number-mixin : (extends object%) -> (extends object%)
           ;; adds the get/set-number methods to this class
@@ -492,8 +494,10 @@
 	  ;; and selects the current language
 	  (define (open-current-language)
 	    (let loop ([hi languages-hier-list]
-		       [first-pos (car (send language-to-show get-language-position))]
-		       [position (cdr (send language-to-show get-language-position))])
+                       
+                       ;; skip the first position, since it is flattened into the dialog
+		       [first-pos (cadr (send language-to-show get-language-position))]
+		       [position (cddr (send language-to-show get-language-position))])
 		 (let ([child
 			;; know that this `car' is okay by construction of the dialog
 			(car 
@@ -566,21 +570,24 @@
           (update-show/hide-details)
 
           (for-each add-language-to-dialog languages)
-          (send languages-hier-list sort (lambda (x y) (< (send x get-number) (send y get-number))))
+          ;(send languages-hier-list sort (lambda (x y) (< (send x get-number) (send y get-number))))
 	  (send languages-hier-list stretchable-width #t)
 	  (send parent reflow-container)
           (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
 	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (close-all-languages)
 	  (open-current-language)
-          (get/set-selected-language-settings settings-to-show)
+          (when get/set-selected-language-settings
+            (get/set-selected-language-settings settings-to-show))
           (send languages-hier-list focus)
           (values
            (lambda () selected-language)
-           (lambda () (get/set-selected-language-settings)))))
+           (lambda () 
+             (and get/set-selected-language-settings
+                  (get/set-selected-language-settings))))))
 
-      (define bold-style-delta
-        (make-object style-delta% 'change-bold))
+      (define section-style-delta (make-object style-delta% 'change-bold))
+      (send section-style-delta set-delta-foreground "medium blue")
       
       (define (add-welcome dialog welcome-before-panel welcome-after-panel)
         (let* ([outer-pb%
