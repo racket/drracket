@@ -161,8 +161,9 @@
         ;; next-state : -> void
         (define (next-state)
           (case state
-            [(natural-language) 
-             (set-state 'programming-language)]
+            [(natural-language)
+             (when (okay-to-leave-nl-state?)
+               (set-state 'programming-language))]
             [(programming-language)
              (cond
                [(get-selected-language)
@@ -181,7 +182,6 @@
         ;; first-state?, last-state? : -> boolean
         (define (first-state?) (eq? state 'natural-language))
         (define (last-state?) (eq? state 'programming-language))
-        
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;;                                                        ;;
@@ -215,34 +215,30 @@
                                                 (this-language)))
                                  (parent natural-language-state-panel)))
         
-        (define nl-buttons
-          (let loop ([native-language-strings (string-constants is-this-your-native-language)]
-                     [languages (all-languages)])
-            (cond
-              [(null? native-language-strings) null]
-              [else (let ([native-lang-string (car native-language-strings)]
-                          [language (car languages)])
-                      (if (equal? (this-language) language)
-                          (cons (instantiate button% ()
-                                  (label native-lang-string)
-                                  (parent natural-language-state-panel)
-                                  (stretchable-width #t)
-                                  (callback (lambda (x1 x2) (next-state))))
-                                (loop (cdr native-language-strings)
-                                      (cdr languages)))
-                          (cons (instantiate button% ()
-                                  (label native-lang-string)
-                                  (parent natural-language-state-panel)
-                                  (stretchable-width #t)
-                                  (callback (lambda (x1 x2) (switch-language-to dlg language))))
-                                (loop (cdr native-language-strings)
-                                      (cdr languages)))))])))
-        
-        (define stupid-internal-define-syntax3
-          (let ([max (apply max (cons 0 (map (lambda (x) (send x min-width)) nl-buttons)))])
-            (for-each (lambda (x) (send x min-width max)) nl-buttons)))
+        (define nl-radio-box
+          (instantiate radio-box% ()
+            (label #f)
+            (choices (string-constants interact-with-drscheme-in-language))
+            (parent natural-language-state-panel)
+            (callback (lambda (x y) (void)))))
         
         (define nl-space-below (make-object horizontal-panel% natural-language-state-panel))
+        
+        ;; okay-to-leave-nl-state? : -> boolean
+        ;; returns #t if next is okay to proceed, #f if not.
+        (define (okay-to-leave-nl-state?)
+          (let loop ([languages (all-languages)]
+                     [n 0])
+            (cond
+              [(null? languages) (error 'wizard "lost language")]
+              [else (let ([language (car languages)])
+                      (if (= n (send nl-radio-box get-selection))
+                          (if (eq? (this-language) language)
+                              #t
+                              (begin (switch-language-to dlg language) 
+                                     #f))
+                          (loop (cdr languages) (+ n 1))))])))
+        
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;;                                                        ;;
@@ -680,6 +676,7 @@
 
       
       ;; switch-language-to : (is-a?/c top-level-window<%>) symbol -> void
+      ;; doesn't return if the language changes
       (define (switch-language-to parent other-language)
         (define-values (other-are-you-sure other-cancel other-accept-and-quit)
           (let loop ([languages (all-languages)]
