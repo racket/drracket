@@ -321,7 +321,7 @@ tab panels new behavior:
       
       (define make-execute-bitmap 
         (make-bitmap (string-constant execute-button-label) 
-                     (build-path (collection-path "icons") "execute.bmp")))
+                     (build-path (collection-path "icons") "run.png")))
       (define make-save-bitmap 
         (make-bitmap (string-constant save-button-label) 
                      (build-path (collection-path "icons") "save.bmp")))
