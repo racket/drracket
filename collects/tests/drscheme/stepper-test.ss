@@ -22,21 +22,29 @@
   
   (define sample-solutions-directory "/home/robby/unison/collects/solutions")
   
+  (define to-skip-to "average-price.scm")
+  
   (define (run-test)
     (set-language-level! (list "How to Design Programs" "Beginning Student"))
-    ;(run-file-test (build-path sample-solutions-directory "add.scm"))
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    '(for-each
-      (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
-      (directory-list sample-solutions-directory))
+    (run-string-test "(define (f x) (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2  (+ 1 (* 2 x)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))(+ 1 2)")
+    '(run-sample-solution-tests)
     
     '(set-language-level! (list "How to Design Programs" "Beginning Student with List Abbreviations"))
-    '(for-each
-      (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
-      (directory-list sample-solutions-directory)))
-
+    '(run-sample-solution-tests))
+  
+  (define (run-sample-solution-tests)
+    (let ([found-it? #f])
+      (for-each
+       (lambda (file) 
+         (when (equal? file to-skip-to)
+           (set! found-it? #t))
+         (when found-it?
+           (run-file-test (build-path sample-solutions-directory file))))
+       (directory-list sample-solutions-directory))))
+  
   ;; run-file-test : string -> void
   (define (run-file-test filename)
     (let/ec k
@@ -148,9 +156,12 @@
         (for-each
          (lambda (content)
            (cond
-             [(or (string? content) 
-                  (is-a? content snip%))
+             [(string? content)
               (send defns insert content
+                    (send defns last-position)
+                    (send defns last-position))]
+             [(is-a? content snip%)
+              (send defns insert (send content copy)
                     (send defns last-position)
                     (send defns last-position))]
              [(eq? content 'unknown)
@@ -167,13 +178,13 @@
                      (string-length s2))
                  (string=? (substring s2 0 (string-length s1))
                            s1))
-      (simple-failure step "expected ~s to be the beginning of ~s" s1 s2)))
+      (simple-failure step "expected\n  ~s\nto be the beginning of\n  ~s" s1 s2)))
   
   ;; check-same-results : step string string -> void
   ;; raises an error if s1 is not s2.
   (define (check-same-results step s1 s2)
     (unless (string=? s1 s2)
-      (simple-failure step "expected ~s to be the same as ~s" s1 s2)))
+      (simple-failure step "expected\n  ~s\nto be the same as\n  ~s" s1 s2)))
   
   ;; step-and-extract-program : program-spec -> (listof step)
   (define (step-and-extract-program program)
@@ -207,7 +218,12 @@
   ;; get-all-steps : frame -> (listof step)
   (define (get-all-steps stepper-frame)
     (let* ([stepper-canvas (find-labelled-window #f editor-canvas% stepper-frame)]
-           [stepper-editor (poll-until (lambda () (send stepper-canvas get-editor)))])
+           [stepper-editor (poll-until (lambda () 
+                                         (let ([ed (send stepper-canvas get-editor)])
+                                           (if (and ed
+                                                    (not (send ed refresh-delayed?)))
+                                               ed
+                                               #f))))])
       (cons (get-step stepper-frame stepper-editor)
             (get-more-steps stepper-frame))))
 
@@ -217,26 +233,34 @@
     (let ([next-button (find-labelled-window "Next >>" button% stepper-frame)]
           [stepper-canvas (find-labelled-window #f editor-canvas% stepper-frame)])
       
-      ;; just make sure we are in a ready state.
-      (poll-until (lambda () (send next-button is-enabled?)) 1 void)
+      ;; wait until we are in a "ready" state.
+      (poll-until (lambda () (send next-button is-enabled?))
+                  2
+                  void)
       
+      ;; at most 200 steps
       (let loop ([n 200])
         (cond
-          [(zero? n) null] ;; at most 200 steps
+          [(zero? n) null]
           [(send next-button is-enabled?)
-           (test:button-push next-button)
-           
-           ;; wait for the next button to re-enable to
-           ;; indicate a new step is rendered
-           (poll-until
-            (lambda () (send next-button is-enabled?))
-            2
-            void) ;; no error signalled if button doesn't show up.
-           
-           (let ([step (get-step stepper-frame (send stepper-canvas get-editor))])
-             (if step
-                 (cons step (loop (- n 1)))
-                 (loop (- n 1))))]
+           (let* ([before-editor (poll-until (lambda () (send stepper-canvas get-editor)))]
+                  [new-step-available?
+                   ;; if there is a new editor and the next button is enabled,
+                   ;; we take that to mean that a new step has appeared.
+                   (lambda ()
+                     (let ([editor (send stepper-canvas get-editor)])
+                       (and editor
+                            (not (eq? before-editor editor))
+                            (not (send editor refresh-delayed?))
+                            (send next-button is-enabled?))))])
+             (test:button-push next-button)
+             (poll-until new-step-available? 2 void)
+             (if (new-step-available?)
+                 (let ([step (get-step stepper-frame (send stepper-canvas get-editor))])
+                   (if step
+                       (cons step (loop (- n 1)))
+                       (loop (- n 1))))
+                 null))]
           [else null]))))
   
   ;; get-step : frame editor -> (union step #f)
@@ -246,19 +270,20 @@
     (let ([canvas (find-labelled-window #f canvas% stepper-frame (lambda () #f))])
       (when canvas
         (error 'get-steps "stepper warning present!")))
-      (let* ([extraction (extract-from-editor stepper-editor)]
-             [step (separate-steps extraction)])
-        (unless step
-          (unless (equal? '("evaluation of program is complete.") extraction)
-            (error 'get-step "couldn't parse stepper window: ~s\n" extraction)))
-        step))
+    (let* ([extraction (extract-from-editor stepper-editor)]
+           [step (separate-steps extraction)])
+      (unless step
+        (unless (equal? '("evaluation of program is complete.") extraction)
+          (error 'get-step "couldn't parse stepper window: ~s\n" extraction)))
+      step))
       
   ;; snips = (union (cons error snips) (cons snip snips) (cons snips snips) null)
   ;; extract-from-editor : editor -> snips
   (define (extract-from-editor editor)
     (let loop ([snip (send editor find-first-snip)])
       (cond
-        [(not snip) null]
+        [(not snip)
+         null]
         [(is-a? snip editor-snip%)
          (let ([editor (send snip get-editor)])
            (cons (cond
@@ -274,11 +299,10 @@
         [(is-a? snip string-snip%)
          (cons (send snip get-text 0 (send snip get-count) #t)
                (loop (send snip next)))]
-        [(is-a? snip image-snip%)
-         (cons snip (loop (send snip next)))]
-        [(and (is-a? snip snip%)
-              (method-in-interface? 'get-fraction-view (object-interface snip)))
-         (cons snip (loop (send snip next)))]
+        [(or (is-a? snip image-snip%)
+             (and (is-a? snip snip%)
+                  (method-in-interface? 'get-fraction-view (object-interface snip))))
+         (cons (send snip copy) (loop (send snip next)))]
         [else (cons 'unknown
                     (loop (send snip next)))])))
   
