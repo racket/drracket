@@ -1,6 +1,6 @@
 
 (unit/sig drscheme:app^
-  (import [mred : mred-interfaces^]
+  (import [mred : mred^]
           [mzlib : mzlib:core^]
           [fw : framework^]
           [drscheme:unit : drscheme:unit^]
@@ -51,14 +51,14 @@
                    (lambda ()
                      (begin-edit-sequence)
                      (let ([snip (find-snip 1 'after-or-none)])
-                       (when (is-a? snip mred:original:editor-snip%)
+                       (when (is-a? snip mred:editor-snip%)
                          (send (send snip get-editor) begin-edit-sequence))))]
                   [after-set-size-constraint
                    (lambda ()
                      (super-after-set-size-constraint)
                      (let ([width (get-max-width)]
                            [snip (find-snip 1 'after-or-none)])
-                       (when (is-a? snip mred:original:editor-snip%)
+                       (when (is-a? snip mred:editor-snip%)
                          (let ([b (box 0)])
                            (position-location 1 b #f #f #t)
                            (let ([new-width (- width 4 (unbox b))])

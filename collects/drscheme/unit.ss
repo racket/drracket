@@ -1,6 +1,6 @@
 
 (unit/sig drscheme:unit^
-  (import [mred : mred-interfaces^]
+  (import [mred : mred^]
 	  [mzlib : mzlib:core^]
 	  [fw : framework^]
 	  [drscheme:app : drscheme:app^]

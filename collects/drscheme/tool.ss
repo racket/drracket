@@ -1,6 +1,6 @@
 (begin-construction-time
  `(compound-unit/sig
-      (import [mred : mred-interfaces^]
+      (import [mred : mred^]
 	      [mzlib : mzlib:core^]
 	      [framework : framework^]
 	      [print-convert : mzlib:print-convert^]
