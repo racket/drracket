@@ -975,7 +975,6 @@
             
             (define generic-write ; =Kernel=, =Handler=
               (lambda (text s style-func)
-                
                 (let ([add-text
                        (lambda (text)
                          (unless (or (eq? this text)
@@ -2001,8 +2000,8 @@
                 (lambda ()
                   (cons scheme-interaction-mode-keymap (super-get-keymaps))))
               
-          ;; used to highlight the prompt that the caret is "in the range of".
-          ;; not currently used at all.
+              ;; used to highlight the prompt that the caret is "in the range of".
+              ;; not currently used at all.
               (define find-which-previous-sexp
                 (lambda ()
                   (let*-values ([(x y) (values (get-start-position) (get-end-position))])
@@ -2024,7 +2023,8 @@
                          (not (number? prompt-position))
                          (>= start prompt-position))
                      (super start len)]
-                    [else #f])))
+                    [else 
+                     #f])))
               (define after-something
                 (lambda (combine start len)
                   (when (or resetting?
@@ -2331,7 +2331,8 @@
       (define consumed-delta (make-object style-delta% 'change-bold))
 	   
       (define transparent-io-text%
-        (class100* transparent-io-super% (transparent-io-text<%>) (_rep-text)
+        (class* transparent-io-super% (transparent-io-text<%>) 
+          (init-field _rep-text)
           (inherit change-style
                    get-resetting set-resetting lock get-text
                    set-position last-position get-character
@@ -2339,99 +2340,107 @@
                    do-pre-eval do-post-eval balance-required)
           (rename [super-after-insert after-insert]
                   [super-on-local-char on-local-char])
-          (private-field
+          (field
 	   [rep-text _rep-text]
            [data null]
            [stream-start 0]
            [stream-end 0]
            [shutdown? #f])
           
-          (private-field
+          (field
            [stream-start/end-protect (make-semaphore 1)]
            [wait-for-sexp (make-semaphore 0)]
            [eof-submitted? #f])
-          (public
-            [get-insertion-point
-             (lambda ()
-               stream-start)]
-            [shutdown
-             (lambda ()
-               (set! shutdown? #t)
-               (semaphore-post wait-for-sexp)
-               (lock #t))]
-            [mark-consumed
-             (lambda (start end)
-               (let ([old-resetting (get-resetting)])
-                 (set-resetting #t)
-                 (change-style consumed-delta start end)
-                 (set-resetting old-resetting)))]
-            [check-char-ready? ; =Reentrant=
-             (lambda ()
-               (semaphore-wait stream-start/end-protect)
-               (begin0
-                 (cond
-                   [(< stream-start stream-end) #t]
-                   [else #f])
-                 (semaphore-post stream-start/end-protect)))]
+
+          [define/public get-insertion-point
+            (lambda ()
+              stream-start)]
+          [define/public shutdown
+            (lambda ()
+              (set! shutdown? #t)
+              (semaphore-post wait-for-sexp)
+              (lock #t))]
+          [define/public mark-consumed
+            (lambda (start end)
+              (let ([old-resetting (get-resetting)])
+                (set-resetting #t)
+                (change-style consumed-delta start end)
+                (set-resetting old-resetting)))]
+          [define/public check-char-ready? ; =Reentrant=
+            (lambda ()
+              (semaphore-wait stream-start/end-protect)
+              (begin0
+                (cond
+                  [(< stream-start stream-end) #t]
+                  [else #f])
+                (semaphore-post stream-start/end-protect)))]
             
-            [eof-received
-             (lambda () ; =Kernel=, =Handler=
-               (set! eof-submitted? #t)
-               (set! stream-end (last-position))
-               (semaphore-post wait-for-sexp))]
-            [fetch-char ; =Kernel=, =Handler=, =Non-Reentrant= (queue requests externally)
-             (lambda ()
-               (send rep-text show-eof-icon)
-               (let* ([ready-char #f])
-                 (let loop ()
-                   (semaphore-wait stream-start/end-protect)
-                   (cond
-                     [(< stream-start stream-end)
-                      (let ([s stream-start])
-                        (mark-consumed s (add1 s))
-                        (set! stream-start (add1 s))
-                        (set! ready-char (get-character s)))]
-                     [eof-submitted?
-                      (set! ready-char eof)]
-                     [else (void)])
-                   (semaphore-post stream-start/end-protect)
-                   (or ready-char
-                       (begin
-                         (yield wait-for-sexp)
-                         (if shutdown? 
-                             eof
-                             (loop)))))))])
-          (override
-            [get-prompt (lambda () "")])
-          (private-field
+          [define/public eof-received
+            (lambda () ; =Kernel=, =Handler=
+              (set! eof-submitted? #t)
+              (set! stream-end (last-position))
+              (semaphore-post wait-for-sexp))]
+          
+          [define/public fetch-char ; =Kernel=, =Handler=, =Non-Reentrant= (queue requests externally)
+            (lambda ()
+              (send rep-text show-eof-icon)
+              (let* ([ready-char #f])
+                (let loop ()
+                  (semaphore-wait stream-start/end-protect)
+                  (cond
+                    [(< stream-start stream-end)
+                     (let ([s stream-start])
+                       (mark-consumed s (add1 s))
+                       (set! stream-start (add1 s))
+                       (set! ready-char (get-character s)))]
+                    [eof-submitted?
+                     (set! ready-char eof)]
+                    [else (void)])
+                  (semaphore-post stream-start/end-protect)
+                  (or ready-char
+                      (begin
+                        (yield wait-for-sexp)
+                        (if shutdown? 
+                            eof
+                            (loop)))))))]
+          [define/override get-prompt (lambda () "")]
+          (field
            [program-output? #f])
-          (public
-            [set-program-output
-             (lambda (_program-output?)
-               (set! program-output? _program-output?))])
-          (override
-            [after-insert
-             (lambda (start len)
-               (super-after-insert start len)
-               (when program-output?
-                 (when (start . <= . stream-start)
-                   (set! stream-start (+ stream-start len))))
-               (unless program-output?
-                 (let ([old-r (get-resetting)])
-                   (set-resetting #t)
-                   (change-style input-delta start (+ start len))
-                   (set-resetting old-r))))])
-          (override
-            [do-eval
-             (lambda (start end)
-               (do-pre-eval)
-               (set! stream-end (+ end 1))
-               (semaphore-post wait-for-sexp)
-               (do-post-eval))])
+          [define/public set-program-output
+            (lambda (_program-output?)
+              (set! program-output? _program-output?))]
+          (rename [super-can-insert? can-insert?]
+                  [super-can-change-style? can-change-style?])
+          (define/override can-insert?
+            (lambda (start len)
+              (or program-output?
+                  (super-can-insert? start len))))
+          [define/override can-change-style?
+            (lambda (start len)
+              (or program-output?
+                  (super-can-change-style? start len)))]
+          [define/override after-insert
+            (lambda (start len)
+              (super-after-insert start len)
+              (when program-output?
+                (when (start . <= . stream-start)
+                  (change-style output-delta start (+ start len))
+                  (set! stream-start (+ stream-start len))
+                  (set! stream-end (+ stream-end len))))
+              (unless program-output?
+                (let ([old-r (get-resetting)])
+                  (set-resetting #t)
+                  (change-style input-delta start (+ start len))
+                  (set-resetting old-r))))]
+          [define/override do-eval
+            (lambda (start end)
+              (do-pre-eval)
+              (set! stream-end (+ end 1))
+              (semaphore-post wait-for-sexp)
+              (do-post-eval))]
           (inherit insert-prompt)
-          (sequence
-            (super-init)
-            (insert-prompt))))
+          (super-make-object)
+          (insert-prompt)))
       
       (define -text% 
         (drs-bindings-keymap-mixin
