@@ -445,8 +445,8 @@
                                  (string->symbol position)
                                  (lambda ()
                                    (if first?
-                                       (let ([x (cons (make-hash-table) hier-list)]
-                                             [item (send hier-list new-item number-mixin)])
+                                       (let* ([item (send hier-list new-item number-mixin)]
+                                              [x (list (make-hash-table) hier-list item)])
                                          (hash-table-put! ht (string->symbol position) x)
                                          (send item set-number number)
                                          (send item set-allow-selection #f)
@@ -462,7 +462,7 @@
                                                               (if second-number
                                                                   (compose second-number-mixin number-mixin)
                                                                   number-mixin))]
-                                              [x (cons (make-hash-table) new-list)])
+                                              [x (list (make-hash-table) new-list #f)])
                                          (send new-list set-number number)
                                          (when second-number
                                            (send new-list set-second-number second-number))
@@ -471,8 +471,23 @@
                                          (send (send new-list get-editor) insert position)
                                          (hash-table-put! ht (string->symbol position) x)
                                          x))))])
+                          (cond
+                            [first? 
+                             (unless (= number (send (caddr sub-ht/sub-hier-list) get-number))
+                               (error 'add-language "language ~s; expected number for ~e to be ~e, got ~e"
+                                      (send language get-language-name)
+                                      position
+                                      (send (caddr sub-ht/sub-hier-list) get-number)
+                                      number))]
+                            [else
+                             (unless (= number (send (cadr sub-ht/sub-hier-list) get-number))
+                               (error 'add-language "language ~s; expected number for ~e to be ~e, got ~e"
+                                      (send language get-name)
+                                      position
+                                      (send (cadr sub-ht/sub-hier-list) get-number)
+                                      number))])
                           (add-sub-language (car sub-ht/sub-hier-list)
-                                            (cdr sub-ht/sub-hier-list)
+                                            (cadr sub-ht/sub-hier-list)
                                             (cdr positions)
                                             (cdr numbers)
                                             #f
