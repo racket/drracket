@@ -359,6 +359,11 @@
   (define definitions-text%
     (class definitions-super% ()
 
+      (public
+	[clear-annotations
+	 (lambda ()
+	   (void))])
+
       (inherit get-top-level-window)
       (private
         [reset-highlighting

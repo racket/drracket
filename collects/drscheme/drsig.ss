@@ -115,6 +115,9 @@
    invite-tour
    about-drscheme))
 
+(define-signature drscheme:draw-arrow^
+  (draw-arrow))
+
 (define-signature drscheme:export^
   ((unit snip : drscheme:snip^)
    (unit interface : drscheme:interface^)
