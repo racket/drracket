@@ -1582,4 +1582,5 @@ TODO
                (text:searching-mixin
                 (text:nbsp->space-mixin
                  (mode:host-text-mixin
-                  text:clever-file-format%))))))))))))))
+                  (text:foreground-color-mixin
+                   text:clever-file-format%)))))))))))))))

@@ -459,7 +459,8 @@ tab panels new behavior:
                     (mode:host-text-mixin
                      (text:delegate-mixin
                       (text:nbsp->space-mixin
-                       text:info%))))))))])
+                       (text:foreground-color-mixin
+                        text:info%)))))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
             
