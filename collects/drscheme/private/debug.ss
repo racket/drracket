@@ -15,8 +15,7 @@ profile todo:
            (lib "mred.ss" "mred")
            (lib "string-constant.ss" "string-constants")
            (lib "bday.ss" "framework" "private")
-	   "bindings-browser.ss"
-           (lib "marks.ss" "stepper" "private"))
+	   "bindings-browser.ss")
 
   (define orig (current-output-port))
   
@@ -174,7 +173,7 @@ profile todo:
                               (exn:break-continuation exn))]
 		      [src-to-display (find-src-to-display exn 
                                                            (and cms
-                                                                (map mark-source cms)))])
+                                                                (map st-mark-source cms)))])
                  
                  (queue-output
                   text
@@ -260,7 +259,7 @@ profile todo:
       ;; with-mark : mark-stx syntax (any? -> syntax) -> syntax
       ;; a member of stacktrace-imports^
       ;; guarantees that the continuation marks associated with cm-key are
-      ;; members of the debug-source type
+      ;; members of the debug-source type, after unwrapped with st-mark-source
       (define (with-mark src-stx mark-maker expr)
         (let ([source (cond
                         [(string? (syntax-source src-stx))
@@ -431,7 +430,7 @@ profile todo:
       ;;              void 
       ;; shows one frame of the continuation
       (define (show-frame editor-canvas text di)
-        (let* ([di-source-info (mark-source di)]
+        (let* ([di-source-info (st-mark-source di)]
                [start (cadr di-source-info)]
                [span (cddr di-source-info)]
                [debug-source (car di-source-info)]
@@ -449,7 +448,7 @@ profile todo:
                     (open-and-highlight-in-file di-source-info))))
           
           ;; make bindings hier-list
-          (let ([bindings (mark-bindings di)])
+          (let ([bindings (st-mark-bindings di)])
             (when (not (null? bindings))
               (send text insert (render-bindings/snip bindings))))
           (send text insert #\newline)
