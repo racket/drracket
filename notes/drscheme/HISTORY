@@ -23,6 +23,19 @@
 
  - tool & framework interface changes:
 
+   . contract name changes (overall, removed all of the
+
+      not/f => not/c
+      box/p => box/c
+      cons/p => cons/c
+      vector/p => vector/c
+      list/p => list/c
+      any? => any/c
+      printable? => printable/c
+      false? => false/c
+      natural-number? => natural-number/c
+
+
    . The framework still probhits editing of files that are
      read-only, but rather than using the editor<%>'s lock
      method, it overrides can-insert? and can-delete? in
