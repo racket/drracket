@@ -37,14 +37,14 @@
    lookup-binding-list
    debug-key
    extract-mark-list
-   (struct normal-breakpoint-info (mark-list kind last-mark))
+   (struct normal-breakpoint-info (mark-list kind))
    (struct error-breakpoint-info (message))
    (struct breakpoint-halt ())
    (struct expression-finished (returned-value-list)))
   
   ; BREAKPOINT STRUCTURES
   
-  (define-struct normal-breakpoint-info (mark-list kind last-mark))
+  (define-struct normal-breakpoint-info (mark-list kind))
   (define-struct error-breakpoint-info (message))
   (define-struct breakpoint-halt ())
   (define-struct expression-finished (returned-value-list))
