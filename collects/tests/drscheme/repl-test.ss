@@ -430,7 +430,7 @@
 
 (define run-test-in-language-level
   (lambda (raw?)
-    (let ([level (if raw? "MrEd" "MrEd Debug")])
+    (let ([level (if raw? "Graphical without Debugging (MrEd)" "Graphical (MrEd)")])
       (printf "running ~a tests~n" level)
       (set-language-level! level)
       (fw:test:new-window definitions-canvas)
