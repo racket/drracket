@@ -8,6 +8,7 @@ tab panels bug fixes:
   - logging
   - test autosave when closing a single tab
   - disable close-tab when only one tab (in gui and in callback)
+  - definitions popup does use the current  tab
 
 waiting for matthew:
   - tabs don't have the right names when files are opened
@@ -612,8 +613,10 @@ tab panels new behavior:
       (define func-defs-canvas%
         (class name-message%
 	  (init-field frame)
-	  (init-field fallback-text)
 	  
+          (unless (is-a? frame -frame<%>)
+            (error 'func-defs-canvas "frame is not a drscheme:unit:frame<%>"))
+          
           (define sort-by-name? #f)
           (define sorting-name (string-constant sort-by-name))
           (define/private (change-sorting-order)
@@ -623,54 +626,50 @@ tab panels new behavior:
                                    (string-constant sort-by-name))))
           
           (define/override (fill-popup menu reset)
-	    (let* ([text (let ([active-text (send frame get-edit-target-object)])
-			   (if (and (object? active-text)
-				    (is-a? active-text definitions-text<%>))
-			       active-text
-			       fallback-text))]
-		   [unsorted-defns (get-definitions (not sort-by-name?) text)]
-		   [defns (if sort-by-name?
-			      (quicksort 
-			       unsorted-defns
-			       (λ (x y) (string-ci<=? (defn-name x) (defn-name y))))
-			      unsorted-defns)])
-	      (make-object menu:can-restore-menu-item% sorting-name
-			   menu
-			   (λ x
-			     (change-sorting-order)))
-	      (make-object separator-menu-item% menu)
-	      (if (null? defns)
-		  (send (make-object menu:can-restore-menu-item%
-				     (string-constant no-definitions-found)
-				     menu
-				     void)
-			enable #f)
-		  (let loop ([defns defns])
-		    (unless (null? defns)
-		      (let* ([defn (car defns)]
-			     [checked? 
-			      (let ([t-start (send text get-start-position)]
-				    [t-end (send text get-end-position)]
-				    [d-start (defn-start-pos defn)]
-				    [d-end (defn-end-pos defn)])
-				(or (<= t-start d-start t-end)
-				    (<= t-start d-end t-end)
-				    (<= d-start t-start t-end d-end)))]
-			     [item
-			      (make-object (if checked?
-					       menu:can-restore-checkable-menu-item%
-					       menu:can-restore-menu-item%)
-					   (gui-utils:trim-string (defn-name defn) 200)
-					   menu
-					   (λ x
-					     (reset)
-					     (send text set-position (defn-start-pos defn) (defn-start-pos defn))
-					     (let ([canvas (send text get-canvas)])
-					       (when canvas
-						 (send canvas focus)))))])
-			(when checked?
-			  (send item check #t))
-			(loop (cdr defns))))))))
+	    (let* ([text (send frame get-definitions-text)]
+                   [unsorted-defns (get-definitions (not sort-by-name?) text)]
+                   [defns (if sort-by-name?
+                              (quicksort 
+                               unsorted-defns
+                               (λ (x y) (string-ci<=? (defn-name x) (defn-name y))))
+                              unsorted-defns)])
+              (make-object menu:can-restore-menu-item% sorting-name
+                menu
+                (λ (x y)
+                  (change-sorting-order)))
+              (make-object separator-menu-item% menu)
+              (if (null? defns)
+                  (send (make-object menu:can-restore-menu-item%
+                          (string-constant no-definitions-found)
+                          menu
+                          void)
+                        enable #f)
+                  (let loop ([defns defns])
+                    (unless (null? defns)
+                      (let* ([defn (car defns)]
+                             [checked? 
+                              (let ([t-start (send text get-start-position)]
+                                    [t-end (send text get-end-position)]
+                                    [d-start (defn-start-pos defn)]
+                                    [d-end (defn-end-pos defn)])
+                                (or (<= t-start d-start t-end)
+                                    (<= t-start d-end t-end)
+                                    (<= d-start t-start t-end d-end)))]
+                             [item
+                              (make-object (if checked?
+                                               menu:can-restore-checkable-menu-item%
+                                               menu:can-restore-menu-item%)
+                                (gui-utils:trim-string (defn-name defn) 200)
+                                menu
+                                (λ (x y)
+                                  (reset)
+                                  (send text set-position (defn-start-pos defn) (defn-start-pos defn))
+                                  (let ([canvas (send text get-canvas)])
+                                    (when canvas
+                                      (send canvas focus)))))])
+                        (when checked?
+                          (send item check #t))
+                        (loop (cdr defns))))))))
           
           (super-new (label "(define ...)"))))
 
@@ -850,7 +849,8 @@ tab panels new behavior:
       ;; ints : interactions-text
       ;; visible-defs : (listof (list number number number number))
       ;; visible-ints : (listof (list number number number number))
-      (define-struct tab (defs ints visible-defs visible-ints))
+      ;; i : number  -- which tab this is in the tab panel
+      (define-struct tab (defs ints visible-defs visible-ints i))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
@@ -1137,16 +1137,19 @@ tab panels new behavior:
             (update-tabs-labels))
           
           (define/private (update-tabs-labels)
-            ;; need better C-level support before I can call this one.
-            '(let loop ()
-               (unless (zero? (send tabs-panel get-number))
-                 (send tabs-panel delete 0)
-                 (loop)))
-            '(for-each
-              (λ (tab)
-                (let ([defs (tab-defs tab)])
-                  (send tabs-panel append (send defs get-filename/untitled-name))))
-              tabs))
+            (for-each
+             (λ (tab)
+               (let* ([defs (tab-defs tab)]
+                      [fn (send defs get-filename)]
+                      [label
+                       (if fn
+                           (let-values ([(base name dir?) (split-path fn)])
+                             (path->string name))
+                           (send defs get-filename/untitled-name))])
+                 (unless (equal? label (send tabs-panel get-item-label (tab-i tab)))
+                   (send tabs-panel set-item-label (tab-i tab) label))))
+             tabs)
+            (send tabs-panel set-selection (tab-i current-tab)))
 
           [define/override get-canvas% (λ () (drscheme:get/extend:get-definitions-canvas))]
           
@@ -1826,24 +1829,24 @@ tab panels new behavior:
           ;;
           
           ;; tabs : (listof tab)
-          (define tabs (list (make-tab definitions-text interactions-text #f #f)))
+          (define tabs (list (make-tab definitions-text interactions-text #f #f 0)))
           
           ;; current-tab : tab
           ;; corresponds to the tabs-panel's active button.
           (define current-tab (car tabs))
           
+          (define tab-count 1)
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab) 
-            (error 'create-new-tab "not yet implemented")
+            ;(error 'create-new-tab "not yet implemented")
             (when evaluation-enabled?
-              (let* ([b #&1]
-                     [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+              (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                      [defs (new (drscheme:get/extend:get-definitions-text))]
-                     [new-tab (make-tab defs ints #f #f)])
+                     [new-tab (make-tab defs ints #f #f tab-count)])
                 (set! tabs (append tabs (list new-tab)))
-                (send tabs-panel append (format "tab ~a" (unbox b)))
-                (set-box! b (+ (unbox b) 1))
+                (send tabs-panel append (format "tab ~a" tab-count))
+                (set! tab-count (+ tab-count 1))
                 (send (send tabs-panel get-parent)
                       change-children
                       (λ (l)
@@ -2529,7 +2532,7 @@ tab panels new behavior:
           (define tabs-panel (new tab-panel% 
                                   (parent panel-with-tabs)
                                   (stretchable-height #f)
-                                  (style '(deleted))
+                                  (style '(deleted no-border))
                                   (choices '("first name"))
                                   (callback (λ (x y)
                                               (let ([sel (send tabs-panel get-selection)])
@@ -2588,8 +2591,7 @@ tab panels new behavior:
           
           [define func-defs-canvas (new func-defs-canvas% 
                                         (parent name-panel)
-                                        (frame this)
-                                        (fallback-text definitions-text))]
+                                        (frame this))]
           
           (set! execute-button
                 (make-object button%
