@@ -11,21 +11,15 @@
     (define-struct def-binding (var arg))
     
     (define (process-case case-stx)
-      (syntax-case* case-stx (def) (lambda (x y) 
-                                     (car)
-                                     (printf "x: ~s y: ~s\n" x y)
-                                     (eq? (syntax-e x) (syntax-e y))
-                                     #f)
+      (syntax-case case-stx (define)
+        [(define name expr)
+         (identifier? (syntax name))
+         (make-def-binding (syntax name) (syntax expr))]
         [(name type type-names strs ...)
          (and (identifier? (syntax name))
               (not (string? (syntax-object->datum (syntax type))))
               (andmap (lambda (x) (string? (syntax-object->datum x))) (syntax->list (syntax (strs ...)))))
-         (begin
-           (printf "name: ~s\n" (syntax-object->datum (syntax name)))
-           (make-ctc-binding (syntax name) (syntax type)))]
-        [(def name expr)
-         (identifier? (syntax name))
-         (make-def-binding (syntax name) (syntax expr))]
+         (make-ctc-binding (syntax name) (syntax type))]
         [else (raise-syntax-error 'tool-contract-language.ss "unknown case" stx case-stx)]))
               
     
@@ -56,7 +50,7 @@
                                      [(in-def-name (... ...)) (map f (syntax->list (syntax (def-name ...))))]
                                      [(in-def-exp (... ...)) (map f (syntax->list (syntax (def-exp ...))))])
                          (syntax/loc in-stx
-                           (let ([in-def-name in-def-val] (... ...))
+                           (let ([in-def-name in-def-exp] (... ...))
                              (let ([in-name (contract (let ([in-name in-type]) in-name)
                                                       in-name
                                                       'drscheme
