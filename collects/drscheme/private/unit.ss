@@ -2002,10 +2002,7 @@
       (define lambda-snip% 
         (class* snip% (readable-snip<%>)
           (define/public (read-one-special index source line column position)
-            (values
-             'lambda;(datum->syntax-object #'here 'lambda (list source line column position 1))
-             1
-             #t))
+            (values 'lambda 1 #t))
           
           (define/private (get-normal-font)
             (send the-font-list find-or-create-font
