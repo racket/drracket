@@ -471,6 +471,7 @@ todo :
               
             ;; render-snips : -> void
             (define/public (render-snips)
+              (begin-edit-sequence)
               (let ([for-each-level (lambda (f) (hash-table-for-each level-ht f))]
                     [max-minor 0])
                 
@@ -524,7 +525,8 @@ todo :
                                   (if vertical? 
                                       (get-snip-vspace)
                                       (get-snip-hspace))
-                                  this-major)))])))))
+                                  this-major)))]))))
+              (end-edit-sequence))
             
             (define/override (on-mouse-over-snips snips)
               (mouse-currently-over snips))

@@ -1734,8 +1734,9 @@
                     (drscheme:module-overview:make-module-overview-pasteboard
                      #t
                      #f 
-                     (lambda (x) (mouse-currently-over x))
-                     (lambda (msg)
+                     (lambda (x) ;=drscheme thread=
+                       (mouse-currently-over x))
+                     (lambda (msg) ;=user compile thread=
                        (if (eq? msg 'done)
                            (close-module-browser-status)
                            (show-module-browser-status msg)))))
@@ -1790,7 +1791,7 @@
               (set! status-callback-running? #t)
               (thread
                (lambda ()
-                 (sleep)
+                 (sleep 0.5)
                  (parameterize ([current-eventspace drscheme:init:system-eventspace]) 
                    ;; must run in the eventspace of this frame (which is drscheme:init:system-eventspace)
                    (queue-callback
@@ -1819,14 +1820,15 @@
                                 name)])
                   (update-status-line 'plt:module-browser:mouse-over str))))
             
-          (define/private (calculate-module-browser)
+          (define/private (calculate-module-browser) ;=drscheme thread=
             (let* ([defs (get-definitions-text)]
                    [text-pos (drscheme:language:make-text/pos 
                               defs
                               0
                               (send defs last-position))]
                    [shutdown
-                    (lambda ()
+                    (lambda () ;=user compile thread=
+                      (send module-browser-pb render-snips)
                       (send module-browser-button enable #t)
                       (send module-browser-lib-path-check-box enable #t)
                       (close-status-line 'plt:module-browser))]
@@ -1835,7 +1837,7 @@
                    [init (lambda () (set-directory defs))]
                    [complete-program? #t]
                    [iter 
-                    (lambda (exp cont)
+                    (lambda (exp cont) ;=user compile thread=
                       (cond
                         [(eof-object? exp) 
                          (shutdown)]
