@@ -1352,20 +1352,21 @@ TODO
           (field (previous-expr-pos -1))
           
           (define/public (copy-previous-expr)
-            (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
-              (begin-edit-sequence)
-              (delete prompt-position (last-position) #f)
-              (for-each (lambda (snip/string)
-                          (insert (if (is-a? snip/string snip%)
-                                      (send snip/string copy)
-                                      snip/string)
-                                  prompt-position))
-                        snip/strings)
-              (set-position (last-position))
-              (end-edit-sequence)))
+            (when prompt-position
+              (let ([snip/strings (list-ref (get-previous-exprs) previous-expr-pos)])
+                (begin-edit-sequence)
+                (delete prompt-position (last-position) #f)
+                (for-each (lambda (snip/string)
+                            (insert (if (is-a? snip/string snip%)
+                                        (send snip/string copy)
+                                        snip/string)
+                                    prompt-position))
+                          snip/strings)
+                (set-position (last-position))
+                (end-edit-sequence))))
           
-          (define/public copy-next-previous-expr
-            (lambda ()
+          (define/public (copy-next-previous-expr)
+            (when prompt-position
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
@@ -1373,8 +1374,9 @@ TODO
                             (add1 previous-expr-pos)
                             0))
                   (copy-previous-expr)))))
-          (define/public copy-prev-previous-expr
-            (lambda ()
+          
+          (define/public (copy-prev-previous-expr)
+            (when prompt-position
               (let ([previous-exprs (get-previous-exprs)])
                 (unless (null? previous-exprs)
                   (set! previous-expr-pos
