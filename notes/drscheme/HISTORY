@@ -15,10 +15,17 @@ General
      - Graphical Full Scheme (with and without debugging), and
      - Textual Full Scheme (with and without debugging)
 
-
  - Help Desk now supports bug report submissions. Please use it in
    favor of the web based form. To submit a bug, follow the "Sumbit a
    Bug" link near the bottom of Help Desk's front page
+
+ - On European keyboards, the backslash character
+   may not work properly in DrScheme.  If you 
+   experience this problem, comment out this line:
+
+        (map-meta "\\" "remove-space")
+
+   in PLTHOME/collects/framework/keymap.ss.
 
  - For tools, invoke-library is now called invoke-teachpack.
 
