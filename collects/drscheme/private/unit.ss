@@ -1,14 +1,19 @@
 #|
 
 tab panels bug fixes:
-  - can-close? & on-close in frame need to account for all tabs
-    (skip current tab, except for interactions; do all other tabs)
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
   - logging
   - test autosave when closing a single tab
   - disable close-tab when only one tab (in gui and in callback)
   - definitions popup does use the current  tab
+
+on close:
+  - can-close? & on-close in frame need to account for all tabs
+    (skip current tab, except for interactions; do all other tabs)
+
+      - send the editor on-close
+      - send the editor can-close?
 
 waiting for matthew:
   - tabs don't have the right names when files are opened
@@ -1886,14 +1891,27 @@ tab panels new behavior:
                 [else
                  (let ([tab (car tabs)])
                    (if (eq? tab current-tab)
-                       (let ([new-tabs (append (reverse acc) (cdr tabs))])
-                         (error 'on-close "need lots of stuff here to close only a tab!! ack...")
-                         (change-to-tab (if (null? acc)
-                                            (car tabs)
-                                            (car acc)))
-                         (set! tabs new-tabs))
+                       (when (close-tab tab)
+                         (let ([new-tabs (append (reverse acc) (cdr tabs))])
+                           (change-to-tab (if (null? acc)
+                                              (car tabs)
+                                              (car acc)))
+                           (set! tabs new-tabs)))
                        (loop (cdr tabs)
                              (cons tab acc))))])))
+          
+          (define/private (close-tab tab)
+            (let ([close-editor
+                   (λ (ed)
+                     (cond
+                       [(send ed can-close?)
+                        (send ed on-close)
+                        #t]
+                       [else
+                        #f]))])
+              (and (close-editor (tab-defs tab))
+                   (close-editor (tab-ints tab)))))
+                     
           
           (define/public (open-in-new-tab filename)
             (if evaluation-enabled?
