@@ -15,6 +15,7 @@
     (unit/sig drscheme:app^
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:frame : drscheme:frame^]
+              [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [help-desk : drscheme:help-desk^]
               [drscheme:tools : drscheme:tools^])
 
@@ -39,6 +40,7 @@
           (sequence
             (super-init (string-constant about-drscheme-frame-title)))))
       
+      ;; check-new-version : -> void
       (define (check-new-version)
         (let ([this-version (version:version)]
               [last-version (preferences:get 'drscheme:last-version)]
@@ -47,7 +49,19 @@
                     (not last-language)
                     (not (equal? last-version this-version))
                     (not (equal? last-language (this-language))))
-            (invite-tour))))
+            (printf "last-version ~a this-version ~a\nlast-language ~a this-language ~a\n"
+                    last-version this-version last-language (this-language))
+            (preferences:set 'drscheme:last-version this-version)
+            (preferences:set 'drscheme:last-language (this-language))
+            (let ([new-settings (drscheme:language-configuration:language-dialog
+                                 #t
+                                 (preferences:get
+                                  drscheme:language-configuration:settings-preferences-symbol)
+                                 #f)])
+              (when new-settings
+                (preferences:set
+                 drscheme:language-configuration:settings-preferences-symbol
+                 new-settings))))))
       
       (define (same-widths items)
         (let ([max-width (apply max (map (lambda (x) (send x get-width)) items))])
@@ -211,10 +225,8 @@
           (same-widths (list tour-button release-notes-button close-button))
           
           (send tour-button focus)
-          (preferences:set 'drscheme:last-version this-version)
-          (preferences:set 'drscheme:last-language (this-language))
           (send f show #t)))
-
+      
       (define (switch-language-to parent other-language)
         (define-values (other-are-you-sure other-cancel other-accept-and-quit)
           (let loop ([languages (all-languages)]

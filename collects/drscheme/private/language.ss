@@ -43,7 +43,8 @@
           render-value
           
           get-language-position
-          get-style-delta))
+          get-style-delta
+          get-language-numbers))
       
       (define module-based-language<%>
 	(interface ()
@@ -60,19 +61,23 @@
           render-value/format
           render-value
           
-          get-language-position))
+          get-language-position
+          get-language-numbers))
       
       (define simple-module-based-language<%>
 	(interface ()
-	  get-module
-          get-language-position))
+          get-module
+          get-language-position
+          get-language-numbers))
       
       (define simple-module-based-language%
         (class* object% (simple-module-based-language<%>)
-          (init-field module language-position)
-          (public get-module get-language-position)
-          (define (get-module) module)
-	  (define (get-language-position) language-position)
+          (init-field module
+                      language-position
+                      (language-numbers (map (lambda (x) 0) language-position)))
+          (define/public (get-module) module)
+	  (define/public (get-language-position) language-position)
+          (define/public (get-language-numbers) language-numbers)
 	  (super-instantiate ())))
       
       ;; simple-module-based-language->module-based-language : module-based-language<%>

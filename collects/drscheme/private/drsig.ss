@@ -1,3 +1,4 @@
+
 (module drsig mzscheme
   (require (lib "unitsig.ss")
 	   (lib "framework-sig.ss" "framework"))
@@ -66,9 +67,12 @@
      get-default-language-settings
      (open drscheme:language-configuration^)
      get-languages
-     fill-language-menu
      settings-preferences-symbol
-     choose-language))
+     
+     ;; for the language dialog
+     language-dialog
+     add-new-teachpack
+     clear-all-teachpacks))
   
   (define-signature drscheme:tools^
     ((struct successful-tool (spec bitmap name))
@@ -124,9 +128,10 @@
   
   (define-signature drscheme:app^
     (check-new-version
-     invite-tour
      about-drscheme
-     add-language-items-to-help-menu))
+     invite-tour
+     add-language-items-to-help-menu
+     switch-language-to))
   
   (define-signature drscheme:draw-arrow^
     (draw-arrow))

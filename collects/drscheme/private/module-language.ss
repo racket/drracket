@@ -72,9 +72,11 @@
       (define module-language-style-delta (make-object style-delta% 'change-family 'modern))
 
       ;; transform-module-to-export-everything : syntax -> syntax
-      (define (transform-module-to-export-everything stx)
+      (define (transform-module-to-export-everything filename stx)
         (syntax-case stx (module #%plain-module-begin)
           [(module name lang (#%plain-module-begin bodies ...))
+           (when filename
+             (check-filename-matches filename (syntax-object->datum (syntax name)) stx))
            (with-syntax ([(to-provide-specs ...)
                           (get-provide-specs
                            (syntax->list
@@ -93,6 +95,18 @@
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
                                stx)]))
+
+      ;; check-filename-matches : string datum syntax -> void
+      (define re:check-filename-matches (regexp "^(.*).[^.]*"))
+      (define (check-filename-matches filename datum stx)
+        (unless (symbol? datum)
+          (raise-syntax-error 'module-language "unexpected object in name position of module" stx))
+        (let-values ([(base name dir?) (split-path filename)])
+          (let ([m (regexp-match re:check-filename-matches name)]
+                [matches?
+                 (if m
+                     (equal? (string->symbol (cadr m))
+
       
       ;; get-provide-spec : syntax -> (union (listof syntax) #f)
       ;; given a top-level module expression, returns #f if it

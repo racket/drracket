@@ -22,7 +22,8 @@
               [drscheme:rep : drscheme:rep^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:init : drscheme:init^]
-              [drscheme:language : drscheme:language^])
+              [drscheme:language : drscheme:language^]
+              [drscheme:app : drscheme:app^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.
@@ -87,13 +88,14 @@
       ;; type language-settings = (make-language-settings (instanceof language<%>) settings)
       (define-struct language-settings (language settings))
        
-      ;; language-dialog : (language-setting -> language-setting)
-      ;;                   (language-setting (union #f (instanceof top-level-window%))
+      ;; language-dialog : (boolean language-setting -> language-setting)
+      ;;                   (boolean language-setting (union #f (instanceof top-level-window%))
       ;;                    -> language-setting)
       ;; allows the user to configure their language. The input language-setting is used
       ;; as the defaults in the dialog and the output language setting is the user's choice
       (define language-dialog
-        (opt-lambda (language-settings-to-show [parent #f])
+        (opt-lambda (show-welcome? language-settings-to-show [parent #f])
+
 	  (define language-to-show (language-settings-language language-settings-to-show))
 	  (define settings-to-show (language-settings-settings language-settings-to-show))
           
@@ -129,13 +131,22 @@
                   [else (super-on-subwindow-char receiver evt)]))
               (super-instantiate ())))
           
-	  (define dialog (make-object ret-dialog% (string-constant language-dialog-title)
+	  (define dialog (make-object ret-dialog% 
+                           (if show-welcome?
+                               (string-constant welcome-to-drscheme)
+                               (string-constant language-dialog-title))
                            parent #f #f #f #f '(resize-border)))
+          (define welcome-before-panel (instantiate horizontal-panel% ()
+                                         (parent dialog)
+                                         (stretchable-height #f)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
           (define details-outer-panel (make-object vertical-pane% outermost-panel))
 	  (define details-panel (make-object panel:single% details-outer-panel))
-	  (define button-panel (make-object horizontal-panel% dialog))
+          (define button-panel (make-object horizontal-panel% dialog))
+	  (define welcome-after-panel (instantiate vertical-panel% () 
+                                        (parent dialog)
+                                        (stretchable-height #f)))
 
 	  (define no-details-panel (make-object vertical-panel% details-panel))
 
@@ -144,7 +155,7 @@
 
 	  ;; selected-language : (union (instanceof language<%>) #f)
 	  ;; invariant: selected-language and get/set-selected-language-settings
-	  ;;            match the user's selection in the language-hier-list.
+	  ;;            match the user's selection in the languages-hier-list.
 	  ;;            or #f if the user is not selecting a language.
 	  (define selected-language #f)
 	  ;; get/set-selected-language-settings (union #f (-> settings))
@@ -182,49 +193,77 @@
           ;; when `language' matches language-to-show, update the settings
           ;;   panel to match language-to-show, otherwise set to defaults.
           (define (add-language-to-dialog language)
-            (let add-sub-language ([ht languages-table]
-                                   [hier-list languages-hier-list]
-                                   [lng (send language get-language-position)])
-              (cond
-                [(null? (cdr lng))
-                 (let-values ([(language-details-panel get/set-settings)
-                               (make-details-panel language)])
-                   (let ([item
-                          (send hier-list new-item
-                                (language-mixin language language-details-panel get/set-settings))])
-                     
-                     (let ([text (send item get-editor)]
-                           [delta (send language get-style-delta)])
-                       (send text insert (car lng))
+            (let ([positions (send language get-language-position)]
+                  [numbers (send language get-language-numbers)])
+              (unless (and (list? positions)
+                           (list? numbers)
+                           (pair? positions)
+                           (pair? numbers)
+                           (andmap number? numbers)
+                           (andmap string? positions)
+                           (= (length positions) (length numbers)))
+                (error 'drscheme:language
+                       "languages position and numbers must be lists of strings and numbers, respectively, and must have the same length, got: ~e ~e"
+                       positions numbers))
+              (let add-sub-language ([ht languages-table]
+                                     [hier-list languages-hier-list]
+                                     [positions positions]
+                                     [numbers numbers])
+                (cond
+                  [(null? (cdr positions))
+                   (let-values ([(language-details-panel get/set-settings)
+                                 (make-details-panel language)])
+                     (let* ([position (car positions)]
+                            [number (car numbers)]
+                            [item
+                             (send hier-list new-item
+                                   (compose
+                                    number-mixin
+                                    (language-mixin language language-details-panel get/set-settings)))]
+                            [text (send item get-editor)]
+                            [delta (send language get-style-delta)])
+                       (send item set-number number)
+                       (send text insert position)
                        (when delta
                          (send text change-style 
                                (send language get-style-delta)
                                0
-                               (send text last-position))))
-                     
+                               (send text last-position))))                     
                      (cond
                        [(equal? (send language-to-show get-language-position)
                                 (send language get-language-position))
                         (get/set-settings settings-to-show)]
                        [else
-                        (get/set-settings (send language default-settings))])))]
-                [else (let ([sub-lng (car lng)]
-                            [sub-ht/sub-hier-list
-                             (hash-table-get
-                              ht
-                              (string->symbol (car lng))
-                              (lambda ()
-                                (let* ([new-list (send hier-list new-list)]
-                                       [x (cons (make-hash-table) new-list)])
-                                  (send new-list set-allow-selection #f)
-                                  (send new-list open)
-                                  (send (send new-list get-editor) insert (car lng))
-                                  (hash-table-put! ht (string->symbol (car lng)) x)
-                                  x)))])
-                        (add-sub-language (car sub-ht/sub-hier-list)
-                                          (cdr sub-ht/sub-hier-list)
-                                          (cdr lng)))])))
+                        (get/set-settings (send language default-settings))]))]
+                  [else (let* ([position (car positions)]
+                               [number (car numbers)]
+                               [sub-ht/sub-hier-list
+                                (hash-table-get
+                                 ht
+                                 (string->symbol position)
+                                 (lambda ()
+                                   (let* ([new-list (send hier-list new-list number-mixin)]
+                                          [x (cons (make-hash-table) new-list)])
+                                     (send new-list set-number number)
+                                     (send new-list set-allow-selection #f)
+                                     (send new-list open)
+                                     (send (send new-list get-editor) insert position)
+                                     (hash-table-put! ht (string->symbol position) x)
+                                     x)))])
+                          (add-sub-language (car sub-ht/sub-hier-list)
+                                            (cdr sub-ht/sub-hier-list)
+                                            (cdr positions)
+                                            (cdr numbers)))]))))
 
+          ;; number-mixin : (extends object%) -> (extends object%)
+          ;; adds the get/set-number methods to this class
+          (define (number-mixin %)
+            (class %
+              (field (number 0))
+              (define/public (get-number) number)
+              (define/public (set-number _number) (set! number _number))
+              (super-instantiate ())))
+              
           ;; make-details-panel : ((instanceof language<%>) -> (values panel (case-> (-> settings) (settings -> void))))
 	  ;; adds a details panel for `language', using
 	  ;; the language's default settings, unless this is
@@ -338,6 +377,9 @@
                               '(border)))
           (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
           
+          (when show-welcome?
+            (add-welcome dialog welcome-before-panel welcome-after-panel))
+
           (send details-outer-panel stretchable-width #t)
           (send details-outer-panel stretchable-width #f)
           (send revert-to-defaults-outer-panel stretchable-width #f)
@@ -351,20 +393,59 @@
           (update-show/hide-details)
 
           (for-each add-language-to-dialog languages)
+          (send languages-hier-list sort (lambda (x y) (< (send x get-number) (send y get-number))))
 	  (send dialog reflow-container)
-	  (send languages-hier-list stretchable-width #f)
+	  (send languages-hier-list stretchable-width #t)
 	  (send languages-hier-list min-client-width
 		(text-width (send languages-hier-list get-editor)))
 	  (close-all-languages)
 	  (open-current-language)
           (get/set-selected-language-settings settings-to-show)
+          (unless parent
+            (send dialog center 'both))
           (send dialog show #t)
           (if cancelled?
               language-settings-to-show
               (make-language-settings
                selected-language
                (get/set-selected-language-settings)))))
- 
+
+      (define (add-welcome dialog welcome-before-panel welcome-after-panel)
+        (let* ([before-msg (instantiate message%  ()
+                             (label (make-object bitmap% (build-path (collection-path "icons") "plt-small-shield.gif")))
+                             (parent welcome-before-panel))]
+               [before-text (make-object text%)]
+               [before-ec (instantiate editor-canvas% ()
+                            (parent welcome-before-panel)
+                            (editor before-text)
+                            (stretchable-height #f)
+                            (style '(hide-hscroll)))]
+               [first-line-style-delta (make-object style-delta% 'change-bold)])
+          (send first-line-style-delta set-delta-foreground (make-object color% 150 0 150))
+          (send before-ec min-width 500)
+          (send before-text insert 
+                (format (string-constant welcome-to-drscheme-version/language)
+                        (version:version)
+                        (this-language)))
+          (send before-text insert #\newline)
+          (send before-text insert (string-constant introduction-to-language-dialog))
+          (send before-text change-style 
+                first-line-style-delta
+                0
+                (send before-text paragraph-end-position 0))
+          (send before-text auto-wrap #t)
+          (send before-ec set-line-count 3)
+          
+          (for-each (lambda (native-lang-string language)
+                      (unless (equal? (this-language) language)
+                        (instantiate button% ()
+                          (label native-lang-string)
+                          (parent welcome-after-panel)
+                          (stretchable-width #t)
+                          (callback (lambda (x1 x2) (drscheme:app:switch-language-to dialog language))))))
+                    (string-constants is-this-your-native-language)
+                    (all-languages))))
+
       ;; system-font-space->= : string string -> boolean
       ;; determines which string is wider, when drawn in the system font
       (define (x . system-font-space->= . y)
@@ -437,45 +518,6 @@
          (preferences:get 'drscheme:teachpacks)
          null))
       
-      ;; choose-language : (instance frame%) -> void
-      ;; queries the user for a new language setting
-      ;; and sets it. Uses the argument for the parent
-      ;; to the dialog
-      (define (choose-language frame)
-        (let ([new-settings (language-dialog
-                             (preferences:get settings-preferences-symbol)
-                             frame)])
-          (when new-settings
-            (preferences:set
-	     settings-preferences-symbol
-	     new-settings))))
-      
-      (define (fill-language-menu frame language-menu)
-        (make-object menu:can-restore-menu-item%
-          (string-constant choose-language-menu-item-label)
-          language-menu
-          (lambda (_1 _2)
-            (choose-language frame))
-          #\l)
-        (make-object separator-menu-item% language-menu)
-        (make-object menu:can-restore-menu-item%
-          (string-constant add-teachpack-menu-item-label)
-          language-menu
-          (lambda (_1 _2)
-            (add-new-teachpack frame)))
-        (let ([clear-all-on-demand
-               (lambda (menu-item)
-                 (send menu-item enable
-                       (not (null? (drscheme:teachpack:teachpack-cache-filenames
-                                    (preferences:get 'drscheme:teachpacks))))))])
-          (make-object menu:can-restore-menu-item% 
-            (string-constant clear-all-teachpacks-menu-item-label)
-            language-menu
-            (lambda (_1 _2) (clear-all-teachpacks))
-            #f
-            #f
-            clear-all-on-demand)))
-      
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
       ;;                    info.ss-specified languages                   ;;
@@ -490,14 +532,24 @@
         (let ([info-proc (get-info (list collection-name))])
           (when info-proc
             (let* ([lang-positions (info-proc 'drscheme-language-positions (lambda () null))]
-                   [lang-modules (info-proc 'drscheme-language-modules (lambda () null))])
+                   [lang-modules (info-proc 'drscheme-language-modules (lambda () null))]
+                   [numberss (info-proc 'drscheme-language-numbers 
+                                        (lambda ()
+                                          (map (lambda (lang-position)
+                                                 (map (lambda (x) 0) lang-position))
+                                               lang-positions)))])
               (cond
                 [(and (list? lang-positions)
-                      (andmap (lambda (x)
-                                (and (list? x)
-                                     (pair? x)
-                                     (andmap string? x)))
-                              lang-positions)
+                      (andmap (lambda (lang-position numbers)
+                                (and (list? lang-position)
+                                     (pair? lang-position)
+                                     (andmap string? lang-position)
+                                     (list? numbers)
+                                     (andmap number? numbers)
+                                     (= (length numbers)
+                                        (length lang-position))))
+                              lang-positions
+                              numberss)
                       (list? lang-modules)
                       (andmap (lambda (x)
                                 (and (list? x)
@@ -506,16 +558,18 @@
                       (= (length lang-positions)
                          (length lang-modules)))
                  (for-each
-                  (lambda (lang-module lang-position)
+                  (lambda (lang-module lang-position lang-numbers)
                     (let ([%
                            (drscheme:language:module-based-language->language-mixin
                             (drscheme:language:simple-module-based-language->module-based-language-mixin
                              drscheme:language:simple-module-based-language%))])
                       (add-language (instantiate % ()
                                       (module `(lib ,@lang-module))
-                                      (language-position lang-position)))))
+                                      (language-position lang-position)
+                                      (language-numbers lang-numbers)))))
                   lang-modules
-                  lang-positions)]
+                  lang-positions
+                  numberss)]
                 [else
                  (message-box (string-constant drscheme)
                               (format (string-constant bad-module-language-specs)

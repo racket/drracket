@@ -91,9 +91,15 @@
 			lang
 			(or settings (send lang default-settings)))))))))
       
+      ;;
+      ;; Show expanded language dialog when version changes
+      ;; 
+      (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
+      (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (string? x) (not x))))
+      (drscheme:app:check-new-version)
       
-  ;; the initial window doesn't set the 
-  ;; unit object's state correctly, yet.
+      ;; the initial window doesn't set the 
+      ;; unit object's state correctly, yet.
       (define (make-basic)
 	(let* ([frame (drscheme:unit:open-drscheme-window)]
 	       [interactions-edit (send frame get-interactions-text)]
@@ -133,18 +139,4 @@
             (for-each (lambda (f) (handler:edit-file
                                    f
                                    (lambda () (drscheme:unit:open-drscheme-window f))))
-                      no-dups)))
-      
-  ;;
-  ;; Show about box when version changes
-  ;; 
-      
-      (preferences:set-default 'drscheme:last-version #f
-                               (lambda (x)
-                                 (or (string? x)
-                                     (not x))))
-      (preferences:set-default 'drscheme:last-language #f
-                               (lambda (x)
-                                 (or (string? x)
-                                     (not x))))
-      (drscheme:app:check-new-version))))
+                      no-dups))))))

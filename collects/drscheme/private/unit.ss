@@ -25,9 +25,9 @@
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:teachpack : drscheme:teachpack^])
-
+      
       (rename [-frame% frame%])
-
+      
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
@@ -155,56 +155,56 @@
       (define (create-launcher frame)
         (error 'create-lanuncher "not yet implemented")
         '(let* ([program-filename (send (send frame get-definitions-text) get-filename)]
-               [executable-filename
-                (if (eq? (system-type) 'windows)
-                    (string-append (basename program-filename) ".exe")
-                    (basename program-filename))]
-               [settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
-          
-          (cond
-            [(not program-filename)
-             (message-box (string-constant create-launcher-title)
-                          (string-constant must-save-before-launcher)
-                          frame)]
-            
-            [else
-             (let* ([filename 
-                     (parameterize ([finder:dialog-parent-parameter frame]
-                                    [finder:default-extension "exe"])
-                       (finder:put-file
-                        executable-filename
-                        #f #f
-                        (string-constant save-a-launcher)))]
-                    [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-                    [teachpacks 
-                     (drscheme:teachpack:teachpack-cache-filenames
-                      (preferences:get 'drscheme:teachpacks))])
-               (when filename
-                 (cond
-	     ;; this condition should guarantee that the language
-	     ;; matches the default mred or mzscheme initial language.
-	     ;; in that case, we don't need to load any of the
-	     ;; drs support so that program starts up much faster.
-                   [(and (null? teachpacks)
-                         (basis:full-language? settings)
-                         (ormap (lambda (x) (equal? x settings)) (basis:get-settings)))
-                    ((if in-mz?
-                         launcher:make-mzscheme-launcher
-                         launcher:make-mred-launcher)
-                     (list "-qmve"
-                           (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
-                                   program-filename))
-                     filename)]
-                   [else
-                    (let* ([v-settings (struct->vector settings)]
-                           [definitions (list "-e" (format "(define filename ~s)" program-filename)
-                                              "-e" (format "(define settings ~s)" v-settings)
-                                              "-e" (format "(define teachpacks '~s)" teachpacks))])
-                      ((if (and in-mz? (null? teachpacks))
-                           launcher:make-mzscheme-launcher
-                           launcher:make-mred-launcher)
-                       (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-                       filename))])))])))
+                [executable-filename
+                 (if (eq? (system-type) 'windows)
+                     (string-append (basename program-filename) ".exe")
+                     (basename program-filename))]
+                [settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
+           
+           (cond
+             [(not program-filename)
+              (message-box (string-constant create-launcher-title)
+                           (string-constant must-save-before-launcher)
+                           frame)]
+             
+             [else
+              (let* ([filename 
+                      (parameterize ([finder:dialog-parent-parameter frame]
+                                     [finder:default-extension "exe"])
+                        (finder:put-file
+                         executable-filename
+                         #f #f
+                         (string-constant save-a-launcher)))]
+                     [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
+                     [teachpacks 
+                      (drscheme:teachpack:teachpack-cache-filenames
+                       (preferences:get 'drscheme:teachpacks))])
+                (when filename
+                  (cond
+                    ;; this condition should guarantee that the language
+                    ;; matches the default mred or mzscheme initial language.
+                    ;; in that case, we don't need to load any of the
+                    ;; drs support so that program starts up much faster.
+                    [(and (null? teachpacks)
+                          (basis:full-language? settings)
+                          (ormap (lambda (x) (equal? x settings)) (basis:get-settings)))
+                     ((if in-mz?
+                          launcher:make-mzscheme-launcher
+                          launcher:make-mred-launcher)
+                      (list "-qmve"
+                            (format "((require-library \"launcher-raw-bootstrap.ss\" \"userspce\") ~s)"
+                                    program-filename))
+                      filename)]
+                    [else
+                     (let* ([v-settings (struct->vector settings)]
+                            [definitions (list "-e" (format "(define filename ~s)" program-filename)
+                                               "-e" (format "(define settings ~s)" v-settings)
+                                               "-e" (format "(define teachpacks '~s)" teachpacks))])
+                       ((if (and in-mz? (null? teachpacks))
+                            launcher:make-mzscheme-launcher
+                            launcher:make-mred-launcher)
+                        (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+                        filename))])))])))
       
       (define make-bitmap 
         (case-lambda 
@@ -279,10 +279,10 @@
         (make-bitmap (string-constant break-button-label) 
                      (build-path (collection-path "icons") "break.bmp")))
       
-  ;; this is the old definition of the interactions canvas.
-  ;; It should be integrated into canvas:wide-snip% 
-  ;; becuase it uses a better algorithm to find the snip
-  ;; wide widths.
+      ;; this is the old definition of the interactions canvas.
+      ;; It should be integrated into canvas:wide-snip% 
+      ;; becuase it uses a better algorithm to find the snip
+      ;; wide widths.
       '(class-asi wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
          (inherit get-editor)
          (rename [super-on-size on-size]
@@ -318,8 +318,8 @@
                                              snip)))]					
                          [view-width (let* ([width (box 0)]
                                             [extra-space 2] ;; this is to allow the edit room
-					;; to show the caret at the end
-					;; of the line
+                                            ;; to show the caret at the end
+                                            ;; of the line
                                             [media (get-editor)])
                                        (send (send media get-admin)
                                              get-view null null width null)
@@ -342,7 +342,7 @@
               (super-set-media x)
               (send x on-set-media this))]))
       
-  ;; this sends a message to it's frame when it gets the focus
+      ;; this sends a message to it's frame when it gets the focus
       (define make-searchable-canvas%
         (lambda (%)
           (class100 % args
@@ -398,7 +398,7 @@
            text:info%))))
       
       (define definitions-text<%> (interface ()))
-
+      
       (define definitions-text%
         (class* definitions-super% (definitions-text<%>)
           (inherit get-top-level-window)
@@ -426,19 +426,22 @@
           (rename [super-after-insert after-insert]
                   [super-after-delete after-delete])
           (field
-            [needs-execution-state #f]
-            [already-warned-state #f]
-            [execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
+           [needs-execution-state #f]
+           [already-warned-state #f]
+           [execute-settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
+           [next-settings execute-settings])
+
+          (define/public (get-next-settings) next-settings)
+          (define/public (set-next-settings _next-settings) (set! next-settings _next-settings))
+
           (define/public (needs-execution?)
             (or needs-execution-state
-                (not (equal? execute-language
-                             (preferences:get 
-                              drscheme:language-configuration:settings-preferences-symbol)))))
-
+                (not (equal? execute-settings next-settings))))
+          
           (define/public (teachpack-changed)
             (set! needs-execution-state #t))
           (define/public (just-executed)
-            (set! execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+            (set! execute-settings next-settings)
             (set! needs-execution-state #f)
             (set! already-warned-state #f))
           (define/public (already-warned?)
@@ -454,8 +457,8 @@
           
           (inherit get-filename)
           (field
-            [tmp-date-string #f])
-
+           [tmp-date-string #f])
+          
           (define (get-date-string)
             (string-append
              (mzlib:date:date->string (seconds->date (current-seconds)))
@@ -506,7 +509,7 @@
                                          (loop (+ defn-pos (string-length tag-string)))))
                                  null)))])
               
-          ;; update end-pos's based on the start pos of the next defn
+              ;; update end-pos's based on the start pos of the next defn
               (unless (null? defs)
                 (let loop ([first (car defs)]
                            [defs (cdr defs)])
@@ -710,22 +713,22 @@
                       base)
                     #f)))]
           [define needs-execution?
-           (lambda ()
-             (send definitions-text needs-execution?))]
+            (lambda ()
+              (send definitions-text needs-execution?))]
           
           [define definitions-item #f]
           [define interactions-item #f]
           [define name-message #f]
           [define save-button #f]
           [define save-init-shown? #f]
-
+          
           [define set-save-init-shown? (lambda (x) (set! save-init-shown? x))]
           
           [define canvas-show-mode #f]
           [define allow-split? #f]
           [define forced-quit? #f]
           [define search-canvas #f]
-
+          
           (public make-searchable)
           [define make-searchable
             (lambda (canvas)
@@ -740,23 +743,23 @@
           
           [define was-locked? #f]
           [define execute-menu-item #f]
-
+          
           (public disable-evaluation enable-evaluation)
           [define disable-evaluation
-           (lambda ()
-             (when execute-menu-item
-               (send execute-menu-item enable #f))
-             (send execute-button enable #f)
-             (send definitions-text lock #t)
-             (send interactions-text lock #t))]
+            (lambda ()
+              (when execute-menu-item
+                (send execute-menu-item enable #f))
+              (send execute-button enable #f)
+              (send definitions-text lock #t)
+              (send interactions-text lock #t))]
           [define enable-evaluation
-           (lambda ()
-             (when execute-menu-item
-               (send execute-menu-item enable #t))
-             (send execute-button enable #t)
-             (send definitions-text lock #f)
-             (unless (send interactions-text eval-busy?)
-               (send interactions-text lock #f)))]
+            (lambda ()
+              (when execute-menu-item
+                (send execute-menu-item enable #t))
+              (send execute-button enable #t)
+              (send definitions-text lock #f)
+              (unless (send interactions-text eval-busy?)
+                (send interactions-text lock #f)))]
           
           (inherit set-label)
           (public update-save-button update-save-message)
@@ -779,10 +782,10 @@
                 (toggle-show/hide-definitions)
                 (update-shown)))]
           [define ensure-rep-shown
-           (lambda ()
-             (unless interactions-shown?
-               (toggle-show/hide-interactions)
-               (update-shown)))]
+            (lambda ()
+              (unless interactions-shown?
+                (toggle-show/hide-interactions)
+                (update-shown)))]
           
           (override get-editor%)
           [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))]
@@ -793,21 +796,21 @@
                    (not (send definitions-text is-modified?))
                    (not (send definitions-text get-filename))))]
           [define change-to-file
-           (lambda (name)
-             (cond
-               [(and name (file-exists? name))
-                (send definitions-text load-file name)]
-               [name
-                (send definitions-text set-filename name)]
-               [else (send definitions-text clear)])
-             (send definitions-canvas focus))]
+            (lambda (name)
+              (cond
+                [(and name (file-exists? name))
+                 (send definitions-text load-file name)]
+                [name
+                 (send definitions-text set-filename name)]
+                [else (send definitions-text clear)])
+              (send definitions-canvas focus))]
           
           [define save-as-text-from-text
-           (lambda (text)
-             (let ([file (parameterize ([finder:dialog-parent-parameter this])
-                           (finder:put-file))])
-               (when file
-                 (send text save-file file 'text))))]
+            (lambda (text)
+              (let ([file (parameterize ([finder:dialog-parent-parameter this])
+                            (finder:put-file))])
+                (when file
+                  (send text save-file file 'text))))]
           
           [define (toggle-show/hide-definitions)
             (set! definitions-shown? (not definitions-shown?))
@@ -915,7 +918,7 @@
                                                  (car percentages)
                                                  (loop (cdr canvases)
                                                        (cdr percentages)))))])))
-
+                          
                           (set-visible-region new-canvas ox oy ow oh cursor-y)
                           (set-visible-region canvas-to-be-split ox oy ow oh cursor-y)
                           
@@ -932,7 +935,7 @@
                          interactions-canvas%
                          interactions-text)]
                 [else (bell)]))]
-
+          
           ;; split-demand : menu-item -> void
           ;; enables the menu-item if splitting is allowed, disables otherwise
           (define (split-demand item)
@@ -952,7 +955,7 @@
                  (send item enable (2 . <= . (length interactions-canvases)))]
                 [else
                  (send item enable #f)])))
-              
+          
           ;; get-visible-region : editor-canvas -> number number number number (union #f number)
           ;; calculates the visible region of the editor in this editor-canvas, returning
           ;; four numbers for the x, y, width and height of the visible region
@@ -1011,7 +1014,7 @@
                       (unbox by)
                       (unbox bw)
                       (unbox bh))))
-
+          
           [define (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
@@ -1052,7 +1055,7 @@
                               (error 'collapse "internal error.3"))
                             (set-canvases! (mzlib:list:remq target (get-canvases)))
                             (update-shown)
-
+                            
                             (let ([target-admin 
                                    (send target call-as-primary-owner
                                          (lambda ()
@@ -1065,7 +1068,7 @@
                                 
                                 ;; this line makes the soon-to-be-bigger-canvas bigger
                                 (send resizable-panel set-percentages percentages)
-
+                                
                                 (let-values ([(ax ay aw ah) (get-visible-area to-be-bigger-admin)])
                                   (send soon-to-be-bigger-canvas scroll-to
                                         bx
@@ -1073,7 +1076,7 @@
                                         aw
                                         ah
                                         #t))))
-
+                            
                             (send soon-to-be-bigger-canvas focus))))])
               (cond
                 [(memq target definitions-canvases)
@@ -1138,7 +1141,7 @@
                       (if interactions-shown?
                           (string-constant hide-interactions-menu-item-label)
                           (string-constant show-interactions-menu-item-label)))
-
+                
                 ;; this might change the unit-window-size-percentage, so save/restore it
                 (send resizable-panel change-children (lambda (l) new-children))
                 
@@ -1150,7 +1153,7 @@
                            (= 2 (length new-children)))
                   (send resizable-panel set-percentages
                         (list p (- 1 p)))))
-                  
+              
               (when (ormap (lambda (child)
                              (and (is-a? child editor-canvas%)
                                   (not (send child has-focus?))))
@@ -1177,40 +1180,39 @@
               (send file-menu:print-transcript-item enable interactions-shown?))]
           
           [define on-close
-           (lambda ()
-             (when (eq? this created-frame)
-               (set! created-frame #f))
-             (send interactions-text shutdown)
-             (send interactions-text on-close)
-             (super-on-close))]
+            (lambda ()
+              (when (eq? this created-frame)
+                (set! created-frame #f))
+              (send interactions-text shutdown)
+              (send interactions-text on-close)
+              (super-on-close))]
           
           [define running? #t]
 	  (public execute-callback)
-          [define execute-callback
-            (lambda ()
-              (cond
-                [(send definitions-text save-file-out-of-date?)
-                 (message-box 
-                  (string-constant drscheme)
-                  (string-constant definitions-modified))]
-                [else
-                 (ensure-rep-shown)
-                 (send definitions-text just-executed)
-                 (send interactions-canvas focus)
-                 (send interactions-text reset-console)
-                 (send interactions-text clear-undos)
-                 
-                 (let ([start (if (and ((send definitions-text last-position) . >= . 2)
-                                       (char=? (send definitions-text get-character 0) #\#)
-                                       (char=? (send definitions-text get-character 1) #\!))
-                                  (send definitions-text paragraph-start-position 1)
-                                  0)])
-                   (send definitions-text split-snip start)
-                   (send interactions-text do-many-text-evals
-                         definitions-text 
-                         start
-                         (send definitions-text last-position)))
-                 (send interactions-text clear-undos)]))]
+          [define (execute-callback)
+            (cond
+              [(send definitions-text save-file-out-of-date?)
+               (message-box 
+                (string-constant drscheme)
+                (string-constant definitions-modified))]
+              [else
+               (ensure-rep-shown)
+               (send definitions-text just-executed)
+               (send interactions-canvas focus)
+               (send interactions-text reset-console)
+               (send interactions-text clear-undos)
+               
+               (let ([start (if (and ((send definitions-text last-position) . >= . 2)
+                                     (char=? (send definitions-text get-character 0) #\#)
+                                     (char=? (send definitions-text get-character 1) #\!))
+                                (send definitions-text paragraph-start-position 1)
+                                0)])
+                 (send definitions-text split-snip start)
+                 (send interactions-text do-many-text-evals
+                       definitions-text 
+                       start
+                       (send definitions-text last-position)))
+               (send interactions-text clear-undos)])]
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
           [define language-menu 'uninited-language-menu]
@@ -1257,10 +1259,10 @@
             (get-area-container))
           
           (super-instantiate ()
-                             (filename filename)
-                             (width (preferences:get 'drscheme:unit-window-width))
-                             (height (preferences:get 'drscheme:unit-window-height)))
-            
+            (filename filename)
+            (width (preferences:get 'drscheme:unit-window-width))
+            (height (preferences:get 'drscheme:unit-window-height)))
+          
 	  (let* ([mb (get-menu-bar)]
                  [language-menu-on-demand
                   (lambda (menu-item)
@@ -1279,7 +1281,38 @@
                                   (eq? text interactions-text))
                           (method text)))))])
             
-            (drscheme:language-configuration:fill-language-menu this language-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant choose-language-menu-item-label)
+              language-menu
+              (lambda (_1 _2)
+                (let ([new-settings (drscheme:language-configuration:language-dialog
+                                     #f
+                                     (send definitions-text get-next-settings)
+                                     this)])
+                  (when new-settings
+                    (send definitions-text set-next-settings new-settings)
+                    (preferences:set
+                     drscheme:language-configuration:settings-preferences-symbol
+                     new-settings))))
+              #\l)
+            (make-object separator-menu-item% language-menu)
+            (make-object menu:can-restore-menu-item%
+              (string-constant add-teachpack-menu-item-label)
+              language-menu
+              (lambda (_1 _2)
+                (drscheme:language-configuration:add-new-teachpack this)))
+            (let ([clear-all-on-demand
+                   (lambda (menu-item)
+                     (send menu-item enable
+                           (not (null? (drscheme:teachpack:teachpack-cache-filenames
+                                        (preferences:get 'drscheme:teachpacks))))))])
+              (make-object menu:can-restore-menu-item% 
+                (string-constant clear-all-teachpacks-menu-item-label)
+                language-menu
+                (lambda (_1 _2) (drscheme:language-configuration:clear-all-teachpacks))
+                #f
+                #f
+                clear-all-on-demand))
             
             (set! execute-menu-item
                   (make-object menu:can-restore-menu-item%
@@ -1320,8 +1353,8 @@
               (string-constant uncomment-menu-item-label)
               scheme-menu
               (send-method (lambda (x) (send x uncomment-selection)))))
-            
-
+          
+          
 	  (frame:reorder-menus this)
           
           
@@ -1370,7 +1403,7 @@
                                        resizable-panel)]
           [define definitions-canvases (list definitions-canvas)]
           [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
-                                   resizable-panel)]
+                                        resizable-panel)]
           [define interactions-canvases (list interactions-canvas)]
           
           (define/public (get-definitions-canvases) 
@@ -1401,7 +1434,7 @@
                       (when text
                         (send text save-file)
                         (send definitions-canvas focus))))))
-            
+          
           (set! name-message (make-object drscheme:frame:name-message% name-panel))
           [define teachpack-items null]
           [define break-button (void)]
@@ -1429,13 +1462,13 @@
                     (send (send interactions-text get-canvas) focus))))
           (send button-panel stretchable-height #f)
           (send button-panel stretchable-width #f) 
-            
+          
           (send top-panel change-children
                 (lambda (l)
                   (list name-panel save-button
                         (make-object vertical-panel% top-panel) ;; spacer
                         button-panel)))
-
+          
           (send top-panel stretchable-height #f)
           (inherit get-label)
           (let ([m (send definitions-canvas get-editor)])
@@ -1444,11 +1477,11 @@
 	  (send name-message set-message
                 (if filename #t #f)
                 (or filename (get-label) (string-constant untitled)))
-            
+          
           (update-save-button #f)
-            
+          
           (send interactions-text initialize-console)
-            
+          
           (cond
             [filename
              (set! definitions-shown? #t)
@@ -1456,16 +1489,16 @@
             [else
              (set! definitions-shown? #t)
              (set! interactions-shown? #t)])
-            
+          
           (update-shown)
-            
+          
           (when (= 2 (length (send resizable-panel get-children)))
             (send resizable-panel set-percentages
                   (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
                     (list p (- 1 p)))))
-            
+          
           (set-label-prefix (string-constant drscheme))
-            
+          
           (send definitions-canvas focus)
           (cond
             [(eq? created-frame 'nothing-yet)
