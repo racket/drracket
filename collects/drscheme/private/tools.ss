@@ -55,10 +55,24 @@
       (define (load/invoke-all-tools phase1-extras phase2-extras)
         (set! current-phase 'loading-tools)
         (load/invoke-all-tools/collections
-         (drscheme:init:all-toplevel-collections)
+         (all-tool-collections)
          phase1-extras
          phase2-extras))
 
+      (define (all-tool-collections)
+        (let loop ([coll-dirs (current-library-collection-paths)]
+                   [acc null])
+          (cond
+            [(null? coll-dirs) (apply append acc)]
+            [else 
+             (let ([tool-dir (build-path (car coll-dirs) "drs-tools")])
+               (if (directory-exists? tool-dir)
+                   (loop (cdr coll-dirs)
+                         (cons (map (lambda (x) (build-path tool-dir x))
+                                    (directory-list tool-dir))
+                               acc))
+                   (loop (cdr coll-dirs) acc)))])))
+      
       ;; loads the the tools in each collection
       ;; unless PLTNOTOOLS is set, in which case it
       ;; just runs the phases. If PLTONLYTOOL is set,
@@ -74,7 +88,10 @@
                                      [(symbol? exp) (list exp)]
                                      [(pair? exp) exp]
                                      [else '()]))]
-                        [filtered (filter (lambda (x) (memq (string->symbol (path->string x)) allowed))
+                        [filtered (filter (lambda (x) 
+                                            (let-values ([(base name dir) (split-path x)])
+                                              (memq (string->symbol (path->string name))
+                                                    allowed)))
                                           collections)])
                    (printf "PLTONLYTOOL: only loading ~s\n" filtered)
                    (for-each load/invoke-tools filtered))
@@ -99,15 +116,15 @@
       
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
-      (define (load/invoke-tools coll)
-        (let ([table (with-handlers ([exn:fail? 
+      (define (load/invoke-tools coll-dir)
+        (let ([table (with-handlers ([(lambda (x) #f) ; exn:fail? 
                                       (lambda (x)
                                         (show-error
                                          (format (string-constant error-getting-info-tool)
-                                                 coll)
+                                                 coll-dir)
                                          x)
                                         #f)])
-                       (get-info (list coll)))])
+                       (get-info/full coll-dir))])
           (when table
             (let* ([tools (table 'tools (lambda () null))]
                    [tool-icons (table 'tool-icons (lambda () (map (lambda (x) #f) tools)))]
@@ -116,27 +133,27 @@
               (unless (= (length tools) (length tool-icons))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-icons-same-length)
-                                     coll tools tool-icons)
+                                     coll-dir tools tool-icons)
                              #f
                              '(ok stop))
                 (set! tool-icons (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-names))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-names-same-length)
-                                     coll tools tool-names)
+                                     coll-dir tools tool-names)
                              #f
                              '(ok stop))
                 (set! tool-names (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-urls))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-urls-same-length)
-                                     coll tools tool-urls)
+                                     coll-dir tools tool-urls)
                              #f
                              '(ok stop))
                 (set! tool-urls (map (lambda (x) #f) tools)))
-              (for-each (load/invoke-tool coll) tools tool-icons tool-names tool-urls)))))
+              (for-each (load/invoke-tool coll-dir) tools tool-icons tool-names tool-urls)))))
       
-      ;; load/invoke-tool :    string[collection-name] 
+      ;; load/invoke-tool :    path[directory-of-collection] 
       ;;                    -> (listof string[sub-collection-name]) 
       ;;                       (union #f (cons string[filename] (listof string[collection-name])))
       ;;                       (union #f string)
@@ -146,7 +163,7 @@
       ;; `in-path' is the `coll'-relative collection-path spec for the tool module file
       ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
       ;; `name' is the name of the tool (only used in about box)
-      (define (load/invoke-tool coll)
+      (define (load/invoke-tool coll-dir)
         (lambda (in-path icon-spec name tool-url)
           (let ([tool-bitmap
                  (and icon-spec
@@ -158,20 +175,20 @@
                                (andmap string? in-path)))
                 (message-box (string-constant drscheme)
                              (format (string-constant invalid-tool-spec)
-                                     coll in-path)
+                                     coll-dir in-path)
                              #f
                              '(ok stop))
                 (k (void)))
               (let* ([tool-path
                       (if (string? in-path) 
-                          `(lib ,in-path ,(path->string coll))
-                          `(lib ,(car in-path) ,(path->string coll) ,@(cdr in-path)))]
+                          `(file ,(path->string (build-path coll-dir in-path)))
+                          `(file ,(path->string (apply build-path coll-dir (append (cdr in-path) (list (car in-path)))))))]
                      [unit 
                        (with-handlers ([exn:fail? 
                                         (lambda (x)
                                           (show-error
                                            (format (string-constant error-invoking-tool-title)
-                                                   coll in-path)
+                                                   coll-dir in-path)
                                            x)
                                           (k (void)))])
                          (dynamic-require tool-path 'tool@))])
@@ -179,10 +196,10 @@
                                  (lambda (x)
                                    (show-error 
                                     (format (string-constant error-invoking-tool-title)
-                                            coll in-path)
+                                            coll-dir in-path)
                                     x))])
                   (let-values ([(phase1-thunk phase2-thunk) 
-                                (invoke-tool unit (string->symbol (or name (path->string coll))))])
+                                (invoke-tool unit (string->symbol (or name (path->string coll-dir))))])
                     (set! successfully-loaded-tools 
                           (cons (make-successfully-loaded-tool
                                  tool-path

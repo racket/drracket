@@ -7,15 +7,12 @@
            (lib "match.ss")
            (prefix raw: (lib "sendurl.ss" "net"))
            (lib "url.ss" "net")
-           (lib "unitsig.ss")
-           (lib "tool.ss" "drscheme")
            (prefix fw: (lib "framework.ss" "framework")))
   (provide send-url
            (rename raw:browser-preference? browser-preference?)
            update-browser-preference
 	   install-help-browser-preference-panel
-	   add-to-browser-prefs-panel
-           tool@)
+	   add-to-browser-prefs-panel)
   
   ; : -> bool
   (define (unix-browser?)
@@ -315,14 +312,4 @@
 	     (send bad-host show #f)))
 
 	 (set! synchronized? #t)
-	 (values pref-panel callbacks)))))
-
-  ;; to add a preference pannel to drscheme that sets the browser preference
-  (define tool@
-    (unit/sig drscheme:tool-exports^
-      (import drscheme:tool^)
-      
-      (define phase1 void)
-      (define phase2 void)
-      
-      (install-help-browser-preference-panel))))
+	 (values pref-panel callbacks))))))
