@@ -3,6 +3,7 @@
            (lib "getinfo.ss" "setup")
            (lib "mred.ss" "mred")
            (lib "class.ss")
+           (lib "list.ss")
            "drsig.ss"
            (lib "string-constant.ss" "string-constants"))
   
@@ -10,8 +11,8 @@
 
   (define tools@
     (unit/sig drscheme:tools^
-      (import [drscheme:frame^ : drscheme:frame^]
-              [drscheme:unit^ : drscheme:unit^]
+      (import [drscheme:frame : drscheme:frame^]
+              [drscheme:unit : drscheme:unit^]
               [drscheme:rep : drscheme:rep^]
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:language-tower : drscheme:language-tower^]
@@ -117,16 +118,16 @@
                                             coll in-path)
                                     x))])
                   (invoke-unit/sig unit
-                                   [drscheme:frame^ : drscheme:frame^]
-                                   [drscheme:unit^ : drscheme:unit^]
-                                   [drscheme:rep : drscheme:rep^]
-                                   [drscheme:get/extend : drscheme:get/extend^]
-                                   [drscheme:language-tower : drscheme:language-tower^]
-                                   [drscheme:language : drscheme:language^])
+                                   ((unit drscheme:frame : drscheme:frame^)
+                                    (unit drscheme:unit : drscheme:unit^)
+                                    (unit drscheme:rep : drscheme:rep^)
+                                    (unit drscheme:get/extend : drscheme:get/extend^)
+                                    (unit drscheme:language-tower : drscheme:language-tower^)
+                                    (unit drscheme:language : drscheme:language^)))
                   
                   (set! successful-tools 
                         (cons (make-successful-tool tool-path tool-bitmap name)
-                              successful-tools))))))))      
+                              successful-tools))))))))
 
       ;; show-error : string exn -> void
       (define (show-error title x)
@@ -157,16 +158,25 @@
                              (namespace-variable-binding 'splash-bitmap)
                              (namespace-variable-binding 'splash-canvas)))])
               
+              (unless (and (eventspace? splash-eventspace)
+                           (is-a? splash-bitmap bitmap%)
+                           (send splash-bitmap ok?)
+                           (is-a? splash-canvas canvas%))
+                (k (void)))
               
               (let ([bdc (make-object bitmap-dc%)])
                 
                 ;; truncate the bitmap, if necessary
                 (unless (and (= tool-bitmap-size (send bitmap get-width))
                              (= tool-bitmap-size (send bitmap get-height)))
-                  (let ([new-b (make-object bitmap% 16 16 #f)])
+                  (let ([new-b (make-object bitmap% tool-bitmap-size tool-bitmap-size #f)])
                     (send bdc set-bitmap new-b)
                     (send bdc clear)
-                    (send bdc draw-bitmap bitmap 0 0)
+                    (send bdc draw-bitmap bitmap 
+                          (max 0 (- (/ tool-bitmap-size 2)
+                                    (/ (send bitmap get-width) 2)))
+                          (max 0 (- (/ tool-bitmap-size 2)
+                                    (/ (send bitmap get-height) 2))))
                     (send bdc set-bitmap #f)
                     (set! bitmap new-b)))
                 
@@ -197,6 +207,7 @@
       (for-each add-collections-in-path (current-library-collection-paths))
       
       ;; loads the the tools in each collection
-      (hash-table-for-each
-       collections-hash-table
-       (lambda (sym str) (load/invoke-tools str))))))
+      (for-each load/invoke-tools
+                (quicksort
+                 (hash-table-map collections-hash-table (lambda (sym str) str))
+                 string<=?)))))

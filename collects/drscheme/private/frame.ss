@@ -253,104 +253,106 @@
           (send f show #t)))
       
       (define basics-mixin
-        (mixin (frame:standard-menus<%>) (basics<%>) args
+        (mixin (frame:standard-menus<%>) (basics<%>)
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
-          (private
-            [get-menu-bindings
-             (lambda ()
-               (let ([name-ht (make-hash-table)]
-                     [fun-ht (make-hash-table)])
-                 (let loop ([menu-container (get-menu-bar)])
-                   (for-each
-                    (lambda (item)
-                      (when (is-a? item selectable-menu-item<%>)
-                        (let ([short-cut (send item get-shortcut)])
-                          (when short-cut
-                            (let ([keyname
-                                   (keymap:canonicalize-keybinding-string
-                                    (string-append
-                                     (case (system-type)
-                                       [(windows) "c:"]
-                                       [(macos) "d:"]
-                                       [(unix)
-                                        (case (send item get-x-shortcut-prefix)
-                                          [(meta) "m:"]
-                                          [(alt) "a:"]
-                                          [(ctl) "c:"]
-                                          [(ctl-m) "c:m;"])]
-                                       [else ""])
-                                     (string short-cut)))])
-                              (hash-table-put! name-ht keyname (send item get-plain-label))
-                              (hash-table-put! fun-ht keyname
-                                               (lambda ()
-                                                 (let ([evt (make-object control-event% 'menu)])
-                                                   (send evt set-time-stamp (current-milliseconds))
-                                                   (send item command evt))))))))
-                      (when (is-a? item menu-item-container<%>)
-                        (loop item)))
-                    (send menu-container get-items)))
-                 (values name-ht fun-ht)))]
+          [define get-menu-bindings
+            (lambda ()
+              (let ([name-ht (make-hash-table)]
+                    [fun-ht (make-hash-table)])
+                (let loop ([menu-container (get-menu-bar)])
+                  (for-each
+                   (lambda (item)
+                     (when (is-a? item selectable-menu-item<%>)
+                       (let ([short-cut (send item get-shortcut)])
+                         (when short-cut
+                           (let ([keyname
+                                  (keymap:canonicalize-keybinding-string
+                                   (string-append
+                                    (case (system-type)
+                                      [(windows) "c:"]
+                                      [(macos) "d:"]
+                                      [(unix)
+                                       (case (send item get-x-shortcut-prefix)
+                                         [(meta) "m:"]
+                                         [(alt) "a:"]
+                                         [(ctl) "c:"]
+                                         [(ctl-m) "c:m;"])]
+                                      [else ""])
+                                    (string short-cut)))])
+                             (hash-table-put! name-ht keyname (send item get-plain-label))
+                             (hash-table-put! fun-ht keyname
+                                              (lambda ()
+                                                (let ([evt (make-object control-event% 'menu)])
+                                                  (send evt set-time-stamp (current-milliseconds))
+                                                  (send item command evt))))))))
+                     (when (is-a? item menu-item-container<%>)
+                       (loop item)))
+                   (send menu-container get-items)))
+                (values name-ht fun-ht)))]
             
-            [copy-hash-table
-             (lambda (ht)
-               (let ([res (make-hash-table)])
-                 (hash-table-for-each
-                  ht
-                  (lambda (x y) (hash-table-put! res x y)))
-                 res))]
-            [can-show-keybindings?
-             (lambda ()
-               (let ([edit-object (get-edit-target-object)])
-                 (and edit-object
-                      (is-a? edit-object editor<%>)
-                      (let ([keymap (send edit-object get-keymap)])
-                        (is-a? keymap keymap:aug-keymap<%>)))))]
-            
-            [show-keybindings
-             (lambda ()
-               (if (can-show-keybindings?)
-                   (let ([edit-object (get-edit-target-object)])
+          [define copy-hash-table
+            (lambda (ht)
+              (let ([res (make-hash-table)])
+                (hash-table-for-each
+                 ht
+                 (lambda (x y) (hash-table-put! res x y)))
+                res))]
+          [define can-show-keybindings?
+            (lambda ()
+              (let ([edit-object (get-edit-target-object)])
+                (and edit-object
+                     (is-a? edit-object editor<%>)
                      (let ([keymap (send edit-object get-keymap)])
-                       (let*-values ([(menu-names menu-funs) (get-menu-bindings)])
-                         (let* ([table (send keymap get-map-function-table/ht
-                                             (copy-hash-table menu-names))]
-                                [structured-list
-                                 (mzlib:list:quicksort
-                                  (hash-table-map table list)
-                                  (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
-                           (show-keybindings-to-user structured-list this)))))
-                   (bell)))])
+                       (is-a? keymap keymap:aug-keymap<%>)))))]
+            
+          [define show-keybindings
+           (lambda ()
+             (if (can-show-keybindings?)
+                 (let ([edit-object (get-edit-target-object)])
+                   (let ([keymap (send edit-object get-keymap)])
+                     (let*-values ([(menu-names menu-funs) (get-menu-bindings)])
+                       (let* ([table (send keymap get-map-function-table/ht
+                                           (copy-hash-table menu-names))]
+                              [structured-list
+                               (mzlib:list:quicksort
+                                (hash-table-map table list)
+                                (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
+                         (show-keybindings-to-user structured-list this)))))
+                 (bell)))]
           
-          (override
-            [help-menu:before-about
-             (lambda (help-menu)
-               (make-object menu-item%
-                 "Help Desk"
-                 help-menu
-                 (lambda (item evt)
-                   (help:help-desk)))
-               (make-object menu-item%
-                 "Welcome to DrScheme"
-                 help-menu
-                 (lambda (item evt)
-                   (drscheme:app:invite-tour))))]
+          (override help-menu:before-about help-menu:about-callback help-menu:about-string help-menu:create-about?
+                    file-menu:new-string file-menu:new-callback file-menu:create-new?
+                    file-menu:open-callback file-menu:open-string file-menu:create-open?
+                    file-menu:between-open-and-revert edit-menu:between-find-and-preferences)
+          [define help-menu:before-about
+            (lambda (help-menu)
+              (make-object menu-item%
+                "Help Desk"
+                help-menu
+                (lambda (item evt)
+                  (help:help-desk)))
+              (make-object menu-item%
+                "Welcome to DrScheme"
+                help-menu
+                (lambda (item evt)
+                  (drscheme:app:invite-tour))))]
             
-            [help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-            [help-menu:about-string (lambda () "DrScheme")]
-            [help-menu:create-about? (lambda () #t)]
+            [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
+            [define help-menu:about-string (lambda () "DrScheme")]
+            [define help-menu:create-about? (lambda () #t)]
             
             
-            [file-menu:new-string (lambda () "")]
-            [file-menu:new-callback
+            [define file-menu:new-string (lambda () "")]
+            [define file-menu:new-callback
              (lambda (item evt)
                (drscheme:unit:open-drscheme-window))]
-            [file-menu:create-new? (lambda () #t)]
+            [define file-menu:create-new? (lambda () #t)]
             
-            [file-menu:open-callback (lambda (item evt) (handler:open-file) #t)]
-            [file-menu:open-string (lambda () "")]
-            [file-menu:create-open? (lambda () #t)]
+            [define file-menu:open-callback (lambda (item evt) (handler:open-file) #t)]
+            [define file-menu:open-string (lambda () "")]
+            [define file-menu:create-open? (lambda () #t)]
             
-            [file-menu:between-open-and-revert
+            [define file-menu:between-open-and-revert
              (lambda (file-menu) 
                (make-object menu-item% 
                  "Open URL..."
@@ -358,91 +360,82 @@
                  (lambda (item evt)
                    (help:open-users-url this))))]
             
-            [edit-menu:between-find-and-preferences
-             (lambda (menu)
-               (make-object separator-menu-item% menu)
-               (let ([keybindings-menu-item%
-                      (class100 menu-item% args
-                        (inherit enable)
-                        (override
-                          [on-demand
-                           (lambda ()
-                             (let ([last-edit-object
-                                    (get-edit-target-window)])
-                               (enable (can-show-keybindings?))))])
-                        (sequence (apply super-init args)))])
-                 (make-object keybindings-menu-item% "Keybindings" menu
-                   (lambda x (show-keybindings))
-                   #f
-                   "Show the currently active keybindings"))
-               (make-object separator-menu-item% menu))])
+          [define edit-menu:between-find-and-preferences
+            (lambda (menu)
+              (make-object separator-menu-item% menu)
+              (let ([keybindings-on-demand
+                     (lambda (menu-item)
+                       (let ([last-edit-object (get-edit-target-window)])
+                         (send menu-item enable (can-show-keybindings?))))])
+                (make-object menu-item% "Keybindings" menu
+                  (lambda x (show-keybindings))
+                  #f
+                  "Show the currently active keybindings"
+                  #f
+                  keybindings-on-demand))
+              (make-object separator-menu-item% menu))]
           
-          (sequence 
-            (apply super-init args))))
+          (super-instantiate ())))
       
       (define <%> (interface (frame:editor<%> basics<%> frame:text-info<%>)))
       
       (define -mixin
-        (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>) (name . args)
-          
-          
+        (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
           (inherit get-editor)
           (rename [super-file-menu:print-callback file-menu:print-callback])
-          (override
-            [file-menu:create-print? (lambda () #t)]
-            [file-menu:print-callback
-             (lambda (item control)
-               (let ([ps-setup (make-object ps-setup%)])
-                 (send ps-setup copy-from (current-ps-setup))
-                 (parameterize ([current-ps-setup ps-setup])
-                   (send (get-editor) print))))])
+          (override file-menu:create-print? file-menu:print-callback)
+          [define file-menu:create-print? (lambda () #t)]
+          [define file-menu:print-callback
+            (lambda (item control)
+              (let ([ps-setup (make-object ps-setup%)])
+                (send ps-setup copy-from (current-ps-setup))
+                (parameterize ([current-ps-setup ps-setup])
+                  (send (get-editor) print))))]
           
           (rename [super-make-root-area-container make-root-area-container])
           (inherit get-info-panel)
-          (private-field
+          (field
             [root-panel #f])
-          (override
-            [make-root-area-container
-             (lambda (% parent)
-               (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
-                      [root (make-object % s-root)])
-                 (set! root-panel s-root)
-                 root))])
+          (override make-root-area-container)
+          [define make-root-area-container
+            (lambda (% parent)
+              (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
+                     [root (make-object % s-root)])
+                (set! root-panel s-root)
+                root))]
           
-          (private-field
+          (field
            [show-menu #f])
-          (public
-            [get-show-menu (lambda () show-menu)]
-            [update-shown (lambda () (void))])
+          (public get-show-menu update-shown)
+          [define get-show-menu (lambda () show-menu)]
+          [define update-shown (lambda () (void))]
           
-          (private
-            [get-bitmap/string
-             (lambda (icon string)
-               (let ([p (build-path (collection-path "icons") icon)])
-                 (if (file-exists? p)
-                     (make-object bitmap% p 'gif)
-                     string)))])
-          (private-field
+          [define get-bitmap/string
+           (lambda (icon string)
+             (let ([p (build-path (collection-path "icons") icon)])
+               (if (file-exists? p)
+                   (make-object bitmap% p 'gif)
+                   string)))]
+          (field
            [currently-running? #f]
            [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" "not running")]
            [active-bitmap (get-bitmap/string "snoopy-active.gif" "running")])
-          (public
-            [running
-             (lambda ()
-               (unless currently-running?
-                 (set! currently-running? #t)
-                 (send running-message set-label active-bitmap)))]
-            [not-running
-             (lambda ()
-               (when currently-running?
-                 (set! currently-running? #f)
-                 (send running-message set-label sleepy-bitmap)))])
+          (public running not-running)
+          [define running
+            (lambda ()
+              (unless currently-running?
+                (set! currently-running? #t)
+                (send running-message set-label active-bitmap)))]
+          [define not-running
+            (lambda ()
+              (when currently-running?
+                (set! currently-running? #f)
+                (send running-message set-label sleepy-bitmap)))]
           
           (inherit get-menu% get-menu-bar)
-          (sequence 
-            (apply super-init name args)
-            (set! show-menu (make-object (get-menu%) "&Show" (get-menu-bar))))
+          (super-instantiate ())
+          (set! show-menu (make-object (get-menu%) "&Show" (get-menu-bar)))
           
-          (private-field
+          (field
            [running-message
             (make-object message% sleepy-bitmap (get-info-panel))]))))))

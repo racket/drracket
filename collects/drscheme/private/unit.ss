@@ -1043,27 +1043,24 @@
             [add-edit-menu-snip-items
              (lambda (edit-menu)
                (super-add-edit-menu-snip-items edit-menu)
-               (let ([c% (class100 (get-menu-item%) args
-                           (inherit enable)
-                           (rename [super-on-demand on-demand])
-                           (override
-                             [on-demand
-                              (lambda ()
-                                (let ([edit (get-edit-target-object)])
-                                  (enable (and edit (is-a? edit editor<%>)))))])
-                           (sequence 
-                             (apply super-init args)))])
-                 (make-object c% (string-constant insert-fraction-menu-item-label) edit-menu
-                   (lambda (menu evt)
-                     (let ([edit (get-edit-target-object)])
-                       (when (and edit
-                                  (is-a? edit editor<%>))
-                         (let ([number (get-fraction-from-user)])
-                           (when number
-                             (send edit insert
-                                   (make-object drscheme:snip:whole/part-number-snip%
-                                     number)))))
-                       #t)))))])
+               (let ([on-demand
+                      (lambda (menu-item)
+                        (let ([edit (get-edit-target-object)])
+                          (send menu-item enable (and edit (is-a? edit editor<%>)))))]
+                     [callback
+                      (lambda (menu evt)
+                        (let ([edit (get-edit-target-object)])
+                          (when (and edit
+                                     (is-a? edit editor<%>))
+                            (let ([number (get-fraction-from-user)])
+                              (when number
+                                (send edit insert
+                                      (make-object drscheme:snip:whole/part-number-snip%
+                                        number)))))
+                          #t))]
+                     [c% (get-menu-item%)])
+                 (make-object c% (string-constant insert-fraction-menu-item-label)
+                   edit-menu callback #f #f on-demand)))])
           (private
             [item->children
              (lambda (item)
@@ -1204,17 +1201,7 @@
                                   (drscheme:teachpack:teachpack-cache-filenames
                                    (preferences:get 'drscheme:teachpacks)))))))
                           (drscheme:teachpack:teachpack-cache-filenames
-                           (preferences:get 'drscheme:teachpacks)))))]
-            [language-menu-mixin
-             (lambda (class%)
-               (class class% 
-                 (init-rest args)
-                 (override on-demand)
-                 (rename [super-on-demand on-demand])
-                 (define (on-demand)
-                   (update-teachpack-menu)
-                   (super-on-demand))
-                 (apply super-make-object args)))])
+                           (preferences:get 'drscheme:teachpacks)))))])
           
           (sequence
             (super-init filename
@@ -1223,9 +1210,14 @@
                         (preferences:get 'drscheme:unit-window-height))
             
             (let* ([mb (get-menu-bar)]
-                   [_ (set! language-menu (make-object (language-menu-mixin (get-menu%)) 
+                   [language-menu-on-demand
+                    (lambda (menu-item)
+                      (update-teachpack-menu))]
+                   [_ (set! language-menu (make-object (get-menu%) 
                                             (string-constant language-menu-name)
-                                            mb))]
+                                            mb
+                                            #f
+                                            language-menu-on-demand))]
                    [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
                    [send-method
                     (lambda (method)

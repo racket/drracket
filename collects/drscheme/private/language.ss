@@ -47,10 +47,14 @@
       ;; add-language : (instanceof language%) -> void
       ;; checks can-still-add-languages? before adding the language
       ;; effect: updates `languages'
-      (define (add-language language)
-	(unless can-still-add-languages?
-	  (error 'add-language "too late to add a new language: ~e" language))
-	(set! languages (append languages (list language))))
+      (define add-language
+        (opt-lambda (language [front? #f])
+          (unless can-still-add-languages?
+            (error 'add-language "too late to add a new language: ~e" language))
+          (set! languages 
+                (if front? 
+                    (cons language languages)
+                    (append languages (list language))))))
       
       ;; get-languages : -> (listof languages)
       ;; effect: sets can-still-add-languages? to #f
@@ -417,16 +421,15 @@
           language-menu
           (lambda (_1 _2)
             (add-new-teachpack frame)))
-        (make-object (class100 menu:can-restore-menu-item% args
-                       (inherit enable)
-                       (rename [super-on-demand on-demand])
-                       (override
-                         [on-demand
-                          (lambda ()
-                            (enable (not (null? (drscheme:teachpack:teachpack-cache-filenames
-                                                 (preferences:get 'drscheme:teachpacks)))))
-                            (super-on-demand))])
-                       (sequence (apply super-init args)))
-          (string-constant clear-all-teachpacks-menu-item-label)
-          language-menu
-          (lambda (_1 _2) (clear-all-teachpacks)))))))
+        (let ([clear-all-on-demand
+               (lambda (menu-item)
+                 (send menu-item enable
+                       (not (null? (drscheme:teachpack:teachpack-cache-filenames
+                                    (preferences:get 'drscheme:teachpacks))))))])
+          (make-object menu:can-restore-menu-item% 
+            (string-constant clear-all-teachpacks-menu-item-label)
+            language-menu
+            (lambda (_1 _2) (clear-all-teachpacks))
+            #f
+            #f
+            clear-all-on-demand))))))

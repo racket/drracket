@@ -44,8 +44,6 @@
 	  ;; for use in pretty printing the snip.
 	  get-character-width))
 
-      (define primitive-eval (current-eval))
-      
       ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
       (define current-language-settings (make-parameter #f))
@@ -70,16 +68,13 @@
                [language (drscheme:language:language-settings-language ls)]
                [settings (drscheme:language:language-settings-settings ls)]
                [thnk (send language front-end input settings)])
-          (let ([first-exp (thnk)])
-            (if (eof-object? first-exp)
-                (void)
-                (let loop ([last-exp first-exp])
-                  (let ([next-exp (thnk)])
-                    (if (eof-object? next-exp)
-                        (eval last-exp)
-                        (begin
-                          (eval last-exp)
-                          (loop next-exp)))))))))
+          (let loop ([last-time-values (list (void))])
+            (let ([exp (thnk)])
+              (if (eof-object? exp)
+                  (apply values last-time-values)
+                  (call-with-values
+                   (lambda () (eval exp))
+                   loop))))))
       
       ;; build-input : string[file-exists?] -> input
       ;; returns an input to be used with a language's `front-end' method
@@ -121,13 +116,12 @@
               (when module
                 (let ([pos (send rep last-position)])
                   (send rep insert docs-icon pos pos)
-                  (send rep insert docs-icon (+ pos 1) (+ pos 1))
+                  (send rep insert #\space (+ pos 1) (+ pos 1))
                   (send rep set-clickback pos (+ pos 1)
                         (lambda (txt start end)
                           (show-documentation module form)))))
               (send rep lock locked?))
-              
-	    
+            
 	    (display msg (current-error-port))
 	    
 	    (when (and (object? src) (is-a? src text:basic%))
@@ -219,18 +213,6 @@
                         (loop (sub1 i)))))
                   short-string)))))
 
-      (define raw-symbol-chars "a-z/!>:%\\+\\*\\?-")
-      (define symbol-chars (format "[~a]" raw-symbol-chars))
-      (define not-symbol-chars (format "[^~a]" raw-symbol-chars))
-      (define fallthru-regexp-str (format "^()(~a*): " symbol-chars))
-      (define fallthru-regexp (regexp fallthru-regexp-str))
-      (define class-regexp-str (format "^(.*~a)(~a+(<%>|%)).*$" not-symbol-chars symbol-chars))
-      (define class-regexp (regexp class-regexp-str))
-      (define ivar-regexp-str (format
-                               "^(ivar: instance variable not found: )(~a*)"
-                               symbol-chars))
-      (define ivar-regexp (regexp ivar-regexp-str))
-      
       (define drs-bindings-keymap (make-object keymap%))
       (send drs-bindings-keymap add-function
             "execute"
@@ -294,7 +276,6 @@
       
       (define drs-font-delta (make-object style-delta% 'change-family 'decorative))
       
-      (define modern-style-delta (make-object style-delta% 'change-family 'modern))
       (define output-delta (make-object style-delta%
                              'change-weight
                              'bold))
@@ -334,8 +315,6 @@
         (car (last-pair (send (drscheme:language:language-settings-language language-settings)
                               get-language-position))))
 
-      (define current-rep-text (make-parameter #f))
-      
       (define-struct sexp (left right prompt))
       
       (define newline-string (string #\newline))
@@ -380,17 +359,6 @@
       
       (define error-color (make-object color% "PINK"))
       (define color? ((get-display-depth) . > . 8))
-      
-      (define (quote-regexp-specials s)
-        (list->string
-         (let loop ([chars (string->list s)])
-           (cond
-             [(null? chars) null]
-             [else
-              (case (car chars)
-                [(#\( #\) #\* #\+ #\? #\[ #\] #\. #\^ #\$ #\\)
-                 (cons #\\ (cons (car chars) (loop (cdr chars))))]
-                [else (cons (car chars) (loop (cdr chars)))])]))))
       
       (define (in-canvas? text)
         (let ([editor-admin (send text get-admin)])
@@ -479,271 +447,6 @@
       (define busy-cursor (make-object cursor% 'watch))
       (unless (send busy-cursor ok?)
         (set! busy-cursor #f))
-      
-      (define current-backtrace-window #f)
-      (define (kill-backtrace-window)
-        (when current-backtrace-window
-          (send current-backtrace-window close)
-          (set! current-backtrace-window #f)))
-      (define (show-backtrace-window dis error-text)
-        (kill-backtrace-window)
-        (set! current-backtrace-window 
-              (make-object (class100 (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%)) args
-                             (rename [super-on-size on-size])
-                             (override
-                               [on-size
-                                (lambda (x y)
-                                  (preferences:set 'drscheme:backtrace-window-width x)
-                                  (preferences:set 'drscheme:backtrace-window-height y)
-                                  (super-on-size x y))])
-                             (override
-                               [file-menu:between-print-and-close
-                                (lambda (file-menu)
-                                  (void))])
-                             (override
-                               [edit-menu:between-find-and-preferences
-                                (lambda (file-menu)
-                                  (void))])
-                             (sequence (apply super-init args)))
-                "Backtrace - DrScheme" #f
-                (preferences:get 'drscheme:backtrace-window-width)
-                (preferences:get 'drscheme:backtrace-window-height)))
-        (letrec ([text (make-object text:basic%)]
-                 [ec (make-object canvas:wide-snip% 
-                       (send current-backtrace-window get-area-container)
-                       text)]
-                 [di-vec (list->vector dis)]
-                 [index 0]
-                 [how-many-at-once 100]
-                 [show-next-dis
-                  (lambda ()
-                    (let ([start-pos (send text get-start-position)]
-                          [end-pos (send text get-end-position)])
-                      (send text begin-edit-sequence)
-                      (send text set-position (send text last-position))
-                      (let loop ([n index])
-                        (cond
-                          [(and (< n (vector-length di-vec))
-                                (< n (+ index how-many-at-once)))
-                           (show-di ec text (vector-ref di-vec n))
-                           (loop (+ n 1))]
-                          [else
-                           (set! index n)]))
-                      
-                  ;; add continuation link
-                      (when (< index (vector-length di-vec))
-                        (let ([end-of-current (send text last-position)])
-                          (send text insert #\newline)
-                          (let ([hyper-start (send text last-position)])
-                            (send text insert 
-                                  (let* ([num-left
-                                          (- (vector-length di-vec)
-                                             index)]
-                                         [num-to-show
-                                          (min how-many-at-once
-                                               num-left)])
-                                    (if (= num-left 1)
-                                        (string-constant last-stack-frame)
-                                        (format (string-constant more-stack-frames) 
-                                                (if (<= num-left num-to-show)
-                                                    'last
-                                                    'next)
-                                                num-to-show))))
-                            (let ([hyper-end (send text last-position)])
-                              (send text change-style click-delta hyper-start hyper-end)
-                              (send text set-clickback
-                                    hyper-start hyper-end
-                                    (lambda x
-                                      (send text begin-edit-sequence)
-                                      (send text lock #f)
-                                      (send text delete end-of-current (send text last-position))
-                                      (show-next-dis)
-                                      (send text lock #t)
-                                      (send text end-edit-sequence)))
-                              
-                              (send text insert #\newline)
-                              (send text set-paragraph-alignment (send text last-paragraph) 'center)))))
-                      
-                      (send text set-position start-pos end-pos)
-                      (send text end-edit-sequence)))])
-          (send current-backtrace-window reflow-container)
-          (send text auto-wrap #t)
-          (send text set-autowrap-bitmap #f)
-          (send text insert error-text)
-          (send text insert #\newline)
-          (send text insert #\newline)
-          (send text change-style error-delta 0 (- (send text last-position) 1))
-          (show-next-dis)
-          (send text set-position 0 0)
-          (send text lock #t)
-          (send current-backtrace-window show #t)))
-      (define (show-di ec text di)
-        (error 'show-di "not yet implemented")
-        '(let* ([start (zodiac:zodiac-start di)]
-               [finish (zodiac:zodiac-finish di)]
-               [file (zodiac:location-file start)]
-               [untitled "<<unknown>>"]
-               [fn (cond
-                     [(string? file)
-                      file]
-                     [(is-a? file text%)
-                      (let ([c (send file get-canvas)])
-                        (if c
-                            (let* ([win (send c get-top-level-window)]
-                                   [def-filename (send win get-filename)])
-                              (if def-filename
-                                  (format "~a's interactions" def-filename)
-                                  "interactions"))
-                            untitled))]
-                     [(is-a? file editor<%>)
-                      (or (send file get-filename)
-                          (let ([canvas (send file get-canvas)])
-                            (if canvas
-                                (let ([frame (send canvas get-top-level-window)])
-                                  (if frame
-                                      (send frame get-label)
-                                      untitled))
-                                untitled)))]
-                     [else untitled])]
-               [start-pos (send text last-position)])
-          
-         ;; make hyper link to the file
-          (send text insert (format "~a: ~a.~a - ~a.~a" 
-                                    fn
-                                    (zodiac:location-line start)
-                                    (zodiac:location-column start)
-                                    (zodiac:location-line finish)
-                                    (+ 1 (zodiac:location-column finish))))
-          (let ([end-pos (send text last-position)])
-            (send text insert #\newline)
-            (send text change-style click-delta start-pos end-pos)
-            (send text set-clickback
-                  start-pos end-pos
-                  (lambda x
-                    (open-and-highlight-in-file di))))
-          
-          ; show context
-          (when (or (and (string? file)
-                         (file-exists? file))
-                    (is-a? file text%))
-            (let ([context-text (make-object text:basic%)])
-              (let-values ([(from-text close-text)
-                            (cond
-                              [(string? file)
-                               (let ([text (make-object text:basic%)])
-                                 (send text load-file file)
-                                 (values text
-                                         (lambda ()
-                                           (send text on-close))))]
-                              [(is-a? file text%) (values file void)])])
-                (let* ([start-pos (send from-text paragraph-start-position 
-                                        (send from-text position-paragraph (zodiac:location-offset start)))]
-                       [from-start (- (zodiac:location-offset start) start-pos)]
-                       [end-pos (send from-text paragraph-end-position
-                                      (send from-text position-paragraph (zodiac:location-offset finish)))]
-                       [from-end (+ 1 from-start (- (zodiac:location-offset finish) (zodiac:location-offset start)))])
-                  (send from-text split-snip start-pos)
-                  (send from-text split-snip end-pos)
-                  (lambda (di)
-                    (let* ([start (zodiac:zodiac-start di)]
-                           [finish (zodiac:zodiac-finish di)]
-                           [file (zodiac:location-file start)]
-                           [untitled "<<unknown>>"]
-                           [fn (cond
-                                 [(string? file)
-                                  file]
-                                 [(is-a? file text%)
-                                  (let ([c (send file get-canvas)])
-                                    (if c
-                                        (let* ([win (send c get-top-level-window)]
-                                               [def-filename (send (send win get-definitions-text) get-filename)])
-                                          (if def-filename
-                                              (format "~a's interactions" def-filename)
-                                              "interactions"))
-                                        untitled))]
-                                 [(is-a? file editor<%>)
-                                  (or (send file get-filename)
-                                      (let ([canvas (send file get-canvas)])
-                                        (if canvas
-                                            (let ([frame (send canvas get-top-level-window)])
-                                              (if frame
-                                                  (send frame get-label)
-                                                  untitled))
-                                            untitled)))]
-                                 [else untitled])]
-                           [start-pos (send text last-position)])
-                      
-                    ;; make hyper link to the file
-                      (send text insert (format "~a: ~a.~a - ~a.~a" 
-                                                fn
-                                                (zodiac:location-line start)
-                                                (zodiac:location-column start)
-                                                (zodiac:location-line finish)
-                                                (+ 1 (zodiac:location-column finish))))
-                      (let ([end-pos (send text last-position)])
-                        (send text insert #\newline)
-                        (send text change-style click-delta start-pos end-pos)
-                        (send text set-clickback
-                              start-pos end-pos
-                              (lambda x
-                                (open-and-highlight-in-file di))))
-                      
-                    ;; show context
-                      (when (or (and (string? file)
-                                     (file-exists? file))
-                                (is-a? file text%))
-                        (let ([context-text (make-object text:basic%)])
-                          (let-values ([(from-text close-text)
-                                        (cond
-                                          [(string? file)
-                                           (let ([text (make-object text:basic%)])
-                                             (send text load-file file)
-                                             (values text
-                                                     (lambda ()
-                                                       (send text on-close))))]
-                                          [(is-a? file text%) (values file void)])])
-                            (let* ([start-pos (send from-text paragraph-start-position 
-                                                    (send from-text position-paragraph (zodiac:location-offset start)))]
-                                   [from-start (- (zodiac:location-offset start) start-pos)]
-                                   [end-pos (send from-text paragraph-end-position
-                                                  (send from-text position-paragraph (zodiac:location-offset finish)))]
-                                   [from-end (+ 1 from-start (- (zodiac:location-offset finish) (zodiac:location-offset start)))])
-                              (send from-text split-snip start-pos)
-                              (send from-text split-snip end-pos)
-                              (let loop ([snip (send from-text find-snip start-pos 'after-or-none)])
-                                (when (and snip
-                                           (< (send from-text get-snip-position snip) end-pos))
-                                  (send context-text insert (send snip copy))
-                                  (loop (send snip next))))
-                              (send context-text change-style modern-style-delta 0 (send context-text last-position))
-                              (send context-text highlight-range from-start from-end error-color #f #f 'high)
-                              (send text insert "  ")
-                              (let ([snip (make-object editor-snip% context-text)])
-                                (send ec add-wide-snip snip)
-                                (send text insert snip))
-                              (send text insert #\newline))
-                            (close-text))))
-                      (send text insert #\newline)))
-                  (let loop ([snip (send from-text find-snip start-pos 'after-or-none)])
-                    (when (and snip
-                               (< (send from-text get-snip-position snip) end-pos))
-                      (send context-text insert (send snip copy))
-                      (loop (send snip next))))
-                  (send context-text change-style modern-style-delta 0 (send context-text last-position))
-                  (send context-text highlight-range from-start from-end error-color #f #f 'high)
-                  (send text insert "  ")
-                  (let ([snip (make-object editor-snip% context-text)])
-                    (send ec add-wide-snip snip)
-                    (send text insert snip))
-                  (send text insert #\newline))
-                (close-text))))
-          (send text insert #\newline)))
-      
-      ;; open-and-highlight-in-file : syntax -> void
-      ;; opens the window displaying this piece of syntax (if there is one)
-      ;; and highlights the right position in the file
-      (define (open-and-highlight-in-file stx)
-        (void))
       
       (define arrow-cursor (make-object cursor% 'arrow))
       (define eof-icon-snip%
@@ -1534,7 +1237,7 @@
                            (lambda ()
                              (call-with-values
                               (lambda ()
-                                (primitive-eval sexp/syntax/eof))
+                                (eval sexp/syntax/eof))
                               (lambda x (display-results x)))))
                           (loop)])))))))
             
@@ -1548,7 +1251,6 @@
               (lambda (run-loop)  ;; (((-> void) -> void) -> void)
                 (send context disable-evaluation)
                 (cleanup-transparent-io)
-                (kill-backtrace-window)
                 (reset-pretty-print-width)
                 (ready-non-prompt)
                 (set! saved-cursor (send (get-canvas) get-cursor))
@@ -1833,8 +1535,6 @@
     
                 (error-print-width 250)
                 
-                (current-rep-text this)
-
                 (print-convert:current-print-convert-hook
                  (lambda (expr basic-convert sub-convert)
                    (let ([ans (if (is-a? expr snip%)

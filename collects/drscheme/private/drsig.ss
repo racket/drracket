@@ -20,7 +20,8 @@
 	   drscheme:load-handler^
            drscheme:help-interface^
            drscheme:language-tower^
-           drscheme:teachpack^)
+           drscheme:teachpack^
+           drscheme:tool^)
   
   (define-signature drscheme:get-collection^
     (get-file/collection))
@@ -102,6 +103,7 @@
   (define-signature drscheme:rep^
     ((struct text/pos (text start end))
      drs-bindings-keymap-mixin
+     current-rep
      text%
      context<%>
      show-interactions-history))
@@ -147,4 +149,12 @@
      new-teachpack-cache
      teachpack-cache?
      teachpack-cache-filenames
-     set-teachpack-cache-filenames!)))
+     set-teachpack-cache-filenames!))
+  
+  (define-signature drscheme:tool^
+    ((unit drscheme:frame : drscheme:frame^)
+     (unit drscheme:unit : drscheme:unit^)
+     (unit drscheme:rep : drscheme:rep^)
+     (unit drscheme:get/extend : drscheme:get/extend^)
+     (unit drscheme:language-tower : drscheme:language-tower^)
+     (unit drscheme:language : drscheme:language^))))
