@@ -104,14 +104,14 @@
               (unless (= (length tools) (length tool-icons))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-icons-same-length)
-                                     tools tool-icons)
+                                     coll tools tool-icons)
                              #f
                              '(ok stop))
                 (set! tool-icons (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-names))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-names-same-length)
-                                     tools tool-names)
+                                     coll tools tool-names)
                              #f
                              '(ok stop))
                 (set! tool-names (map (lambda (x) #f) tools)))
