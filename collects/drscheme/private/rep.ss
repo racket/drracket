@@ -468,6 +468,7 @@ TODO
                    get-top-level-window
                    get-unread-start-point
                    get-value-port
+                   in-edit-sequence?
                    insert
                    insert-between
                    invalidate-bitmap-cache
@@ -686,6 +687,20 @@ TODO
           
           (define/augment (after-insert start len)
             (inner (void) after-insert start len)
+            (cond
+              [(in-edit-sequence?) (set! had-an-insert? (cons start len))]
+              [else (update-after-insert)]))
+          
+          (define had-an-insert? #f)
+          
+          (define/augment (on-edit-sequence)
+            (set! had-an-insert? #f))
+          
+          (define/augment (after-edit-sequence)
+            (when had-an-insert?
+              (update-after-insert (car had-an-insert?) (cdr had-an-insert?))))
+          
+          (define/private (update-after-insert start len)
             (unless inserting-prompt?
               (reset-highlighting))
             (when (and prompt-position (< start prompt-position))
@@ -704,6 +719,7 @@ TODO
               
               (set! prompt-position (get-unread-start-point))
               (reset-region prompt-position 'end)))
+          
           (define/augment after-delete
             (lambda (x y)
               (unless inserting-prompt?

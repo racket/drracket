@@ -77,7 +77,9 @@ If the namespace does not, they are colored the unbound color.
                       end-text end-pos-left end-pos-right))
       (define-struct (tail-arrow arrow) (from-text from-pos to-text to-pos))
       
-      (define-struct def-link (syntax filename) (make-inspector))
+      ;; id : symbol  --  the nominal-source-id from identifier-binding
+      ;; filename : path
+      (define-struct def-link (id filename) (make-inspector))
       
       (define tacked-var-brush (send the-brush-list find-or-create-brush "BLUE" 'solid))
       (define var-pen (send the-pen-list find-or-create-pen "BLUE" 1 'solid))
@@ -337,9 +339,9 @@ If the namespace does not, they are colored the unbound color.
                   (add-to-range/key from-text from-pos (+ from-pos 1) tail-arrow #f #f)
                   (add-to-range/key from-text to-pos (+ to-pos 1) tail-arrow #f #f)))
               
-              ;; syncheck:add-jump-to-definition : text start end syntax filename -> void
-              (define/public (syncheck:add-jump-to-definition text start end stx filename)
-                (add-to-range/key text start end (make-def-link stx filename) #f #f))
+              ;; syncheck:add-jump-to-definition : text start end id filename -> void
+              (define/public (syncheck:add-jump-to-definition text start end id filename)
+                (add-to-range/key text start end (make-def-link id filename) #f #f))
               
               ;; syncheck:add-mouse-over-status : text pos-left pos-right string -> void
               (define/public (syncheck:add-mouse-over-status text pos-left pos-right str)
@@ -742,10 +744,10 @@ If the namespace does not, they are colored the unbound color.
               
               (define/private (jump-to-definition-callback def-link)
                 (let* ([filename (def-link-filename def-link)]
-                       [stx (def-link-syntax def-link)]
+                       [id-from-def (def-link-id def-link)]
                        [frame (fw:handler:edit-file filename)])
                   (when (is-a? frame syncheck-frame<%>)
-                    (send frame syncheck:button-callback (syntax-e stx)))))
+                    (send frame syncheck:button-callback id-from-def))))
               
               (super-new)))))
       
@@ -1281,10 +1283,12 @@ If the namespace does not, they are colored the unbound color.
               [maybe-jump
                (λ (vars)
                  (when jump-to-id
-                   (for-each (λ (id) 
-                               (when (and (syntax-original? id)
-                                          (eq? jump-to-id (syntax-e id)))
-                                 (jump-to id)))
+                   (for-each (λ (id)
+                               (let ([binding (identifier-binding id)])
+                                 (when (pair? binding)
+                                   (let ([nominal-source-id (list-ref binding 3)])
+                                     (when (eq? nominal-source-id jump-to-id)
+                                       (jump-to id))))))
                              (syntax->list vars))))])
                  
           (let level-loop ([sexp sexp]
@@ -1626,15 +1630,18 @@ If the namespace does not, they are colored the unbound color.
                       binders))
           
           (when (and unused requires)
-            (let ([req-path (get-module-req-path (get-binding var))])
-              (when req-path
-                (let ([req-stxes (hash-table-get requires req-path (λ () #f))])
+            (let ([req-path/pr (get-module-req-path (get-binding var))])
+              (when req-path/pr
+                (let* ([req-path (car req-path/pr)]
+                       [id (cdr req-path/pr)]
+                       [req-stxes (hash-table-get requires req-path (λ () #f))])
                   (when req-stxes
                     (hash-table-remove! unused req-path)
                     (for-each (λ (req-stx) 
-                                (unless (symbol? req-path)
-                                  (add-jump-to-definition 
-                                   var 
+                                (when id
+                                  (add-jump-to-definition
+                                   var
+                                   id
                                    (get-require-filename req-path user-namespace user-directory)))
                                 (add-mouse-over var (format (string-constant cs-mouse-over-import)
                                                             (syntax-e var)
@@ -1642,17 +1649,17 @@ If the namespace does not, they are colored the unbound color.
                                 (connect-syntaxes req-stx var))
                               req-stxes))))))))
           
-      ;; get-module-req-path : binding -> (union #f require-sexp)
+      ;; get-module-req-path : binding -> (union #f (cons require-sexp sym))
       ;; argument is the result of identifier-binding or identifier-transformer-binding
       (define (get-module-req-path binding)
         (and (pair? binding)
-             (let ([mod-path (caddr binding)])
+             (let ([mod-path (list-ref binding 2)])
                (cond
                  [(module-path-index? mod-path)
                   (let-values ([(base offset) (module-path-index-split mod-path)])
-                    base)]
+                    (cons base (list-ref binding 3)))]
                  [(symbol? mod-path)
-                  mod-path]))))
+                  (cons mod-path #f)]))))
       
       ;; color/connect-top : namespace directory id-set syntax -> void
       (define (color/connect-top user-namespace user-directory binders var id-sets)
@@ -1730,11 +1737,11 @@ If the namespace does not, they are colored the unbound color.
                   (send syncheck-text syncheck:add-mouse-over-status
                         source pos-left pos-right str)))))))
       
-      ;; add-jump-to-definition : syntax[original] path -> void
+      ;; add-jump-to-definition : syntax symbol path -> void
       ;; registers the range in the editor so that a mouse over
       ;; this area shows up in the status line.
-      (define (add-jump-to-definition stx filename)
-        (let* ([source (syntax-source stx)])
+      (define (add-jump-to-definition stx id filename)
+        (let ([source (syntax-source stx)])
           (when (is-a? source text%)
             (let ([syncheck-text (find-syncheck-text source)])
               (when (and syncheck-text
@@ -1746,7 +1753,7 @@ If the namespace does not, they are colored the unbound color.
                         source
                         pos-left
                         pos-right
-                        stx
+                        id
                         filename)))))))
       
       ;; find-syncheck-text : text% -> (union #f (is-a?/c syncheck-text<%>))

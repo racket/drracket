@@ -13,6 +13,9 @@
    See doc.txt in the parser-tools collection.
    (This isn't a DrScheme change per se.)
 
+ - Check syntax can (when using modules) go to the
+   definition site of an imported variable.
+
  - the PLTDRDEBUG environment variable now works much
    better. Thanks to improvements in cm, setting it now
    builds .zos with errortrace and should make porting tools
