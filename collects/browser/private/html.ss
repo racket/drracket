@@ -539,23 +539,26 @@
 						     (make-object style-delta% 'change-bigger (- n 2))]
 						    [else #f])]))))]
 				    [face (and face-string
-					       (let ([f (let loop ([f face-string])
-							  (let ([m (regexp-match face-regexp f)]
-								[try-face (lambda (s)
-									    (unless face-list
-									      (set! face-list (get-face-list)))
-									    (ormap
-									     (lambda (s-norm)
-									       (and (string-ci=? s s-norm)
-										    s-norm))
-									     face-list))])
-							    (if m
-								(or (try-face (cadr m))
-								    (loop (caddr m)))
-								(try-face f))))])
-						 (and f
-						      (let ([d (make-object style-delta%)])
-							(send d set-delta-face f)))))]
+					       (or
+						(and (string=? face-string "monospace")
+						     (make-object style-delta% 'change-family 'modern))
+						(let ([f (let loop ([f face-string])
+							   (let ([m (regexp-match face-regexp f)]
+								 [try-face (lambda (s)
+									     (unless face-list
+									       (set! face-list (get-face-list)))
+									     (ormap
+									      (lambda (s-norm)
+										(and (string-ci=? s s-norm)
+										     s-norm))
+									      face-list))])
+							     (if m
+								 (or (try-face (cadr m))
+								     (loop (caddr m)))
+								 (try-face f))))])
+						  (and f
+						       (let ([d (make-object style-delta%)])
+							 (send d set-delta-face f))))))]
 				    [color (let ([clr (and color-string (color-string->color color-string))])
 					     (and clr
 						  (let ([d (make-object style-delta%)])

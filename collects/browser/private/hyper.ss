@@ -692,12 +692,14 @@
       (send browser-keymap map-function "d:left" "rewind")
       (send browser-keymap map-function "a:left" "rewind")
       (send browser-keymap map-function "c:left" "rewind")
+      (send browser-keymap map-function "m:left" "rewind")
       (send browser-keymap map-function "d:]" "forward")
       (send browser-keymap map-function "a:]" "forward")
       (send browser-keymap map-function "c:]" "forward")
       (send browser-keymap map-function "d:right" "forward")
       (send browser-keymap map-function "a:right" "forward")
       (send browser-keymap map-function "c:right" "forward")
+      (send browser-keymap map-function "m:right" "forward")
       
       ;; call-with-hyper-panel : object ((is-a?/c hyper-panel<%>) -> void) -> void
       (define (call-with-hyper-panel text f)
