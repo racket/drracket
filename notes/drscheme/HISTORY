@@ -13,6 +13,24 @@
    type; use flat-contract-predicate rather than
    flat-named-contract.
 
+   |==============================================|
+   |                                              |
+   |               announced above                |
+   |                                              |
+   |==============================================|
+
+ - struct printing in the DrScheme REPL does not use a more
+   powerful inspector that just `write' (same for
+   `print'). DrScheme now behaves more like MzScheme for
+   this case.
+
+ - font smoothing in drscheme defaults to the system-wide
+   default now.
+
+ - Help Desk's browser now supports image maps
+
+ - multi file search works much better now.
+
 ------------------------------
         Version 205
 ------------------------------

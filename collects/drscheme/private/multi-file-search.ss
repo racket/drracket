@@ -10,13 +10,6 @@
            (lib "string-constant.ss" "string-constants")
            "drsig.ss")
   
-  #|
-  
-  The calls to `sleep' here should all be eliminiated,
-  when a mzscheme bug is fixed(?)
-  
-  |#
-  
   (provide multi-file-search@)
   
   (define multi-file-search@
@@ -125,8 +118,14 @@
         (define (open-file-callback)
           (send results-text open-file))
         
+	;; sometimes, breaking the other thread puts
+	;; the break message in the channel behind
+	;; many many requests. Rather than show those,
+	;; we use the `broken?' flag as a shortcut.
+	(define broken? #f)
         (define (stop-callback)
           (break-thread search-thd)
+	  (set! broken? #t)
           (send stop-button enable #f))
         
         ;; channel : async-channel[(union 'done search-entry)]
@@ -148,7 +147,7 @@
               [(eq? match 'done)
                (send results-text search-complete)
                (send stop-button enable #f)]
-              [(eq? match 'break) 
+              [(or broken? (eq? match 'break))
                (send results-text search-interrupted)]
               [else
                (send results-text add-match
@@ -190,7 +189,11 @@
           
           [define filename-delta (make-object style-delta% 'change-bold)]
           [define match-delta (let ([d (make-object style-delta%)])
-                                (send d set-delta-foreground "forest green")
+                                (send d set-delta-foreground
+				      (make-object color%
+					0
+					160
+					0))
                                 d)]
           [define hilite-line-delta (make-object style-delta% 'change-style 'italic)]
           [define unhilite-line-delta (make-object style-delta% 'change-style 'normal)]
