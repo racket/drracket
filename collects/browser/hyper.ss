@@ -132,9 +132,7 @@
 			      (with-handlers ([void (lambda (x) (values (get-pure-port url) null))])
 				(let ([p (get-impure-port url)])
 				  (let ([headers (purify-port p)])
-				    (values p headers)))))]
-			 [(mime-header-name) (lambda (x) (struct-ref x 0))]
-			 [(mime-header-value) (lambda (x) (struct-ref x 1))])
+				    (values p headers)))))])
 	      (dynamic-wind (lambda ()
 			      (begin-busy-cursor)
 			      (begin-edit-sequence #f))
