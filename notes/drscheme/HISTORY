@@ -1,3 +1,22 @@
+101d10
+
+ - PRS: 1203
+ 
+ FUNCTIONALITY CHANGES
+   
+ MINOR CHANGES AND BUG FIXES
+ 
+ - when the framework collection has a "CVS" subdirectory, 
+   drscheme shows the current memory usage in the info panel.
+   Clicking the button performs three gcs and updates the memory count.
+
+ - bug submission form's severity choice now defaults to "serious"
+   instead of "critical".
+
+ - bug submission form now inclues the installed manuals.
+
+; ------------------------------------------------------------
+
 101d9
 
  - PRS: 1183
