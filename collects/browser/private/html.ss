@@ -463,7 +463,12 @@
 			(let ([get-src (make-get-field "alt")])
 			  (lambda (s)
 			    (get-src s)))]
-		       
+		       [unescape 
+			(lambda (s)
+			  (apply string-append 
+				 (map pcdata-string 
+				      (read-html-as-xml 
+				       (open-input-string s)))))]
 		       [parse-href
 			(let ([href-error
 			       (lambda (s)
@@ -476,7 +481,7 @@
 					   (if (string=? str "")
 					       (begin (href-error s)
 						      #f)
-					       str))]
+					       (unescape str)))]
 				     [else #f])]
 				   [label (get-field s 'name)]
 				   [scheme (let ([v (get-field s 'mzscheme)])
