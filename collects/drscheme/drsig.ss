@@ -49,8 +49,7 @@
 	  definitions-canvas%))
 
 (define-signature drscheme:frame^
-  (group
-   frame%))
+  (frame%))
 
 (define-signature drscheme:compound-unit^
   (frame% snip%))

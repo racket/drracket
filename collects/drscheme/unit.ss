@@ -179,9 +179,9 @@
 		    (and (not (null? m)) (send m modified?)))))))
 
     (define frame%
-      (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip arg-group [show? #t])
+      (class (mred:make-searchable-frame% drscheme:frame:frame%) (filename snip [show? #t])
 	(inherit get-canvas get-edit imports-panel
-		 set-title-prefix show-menu group
+		 set-title-prefix show-menu
 		 show menu-bar% make-menu
 		 active-edit active-canvas panel 
 		 file-menu file-menu:open-id file-menu:new-id file-menu:save-id 
@@ -377,8 +377,7 @@
 			[snip (ivar snip name)]
 			[filename filename]
 			[else "Untitled"])
-		      snip
-		      arg-group)
+		      snip)
 	  (mred:debug:printf 'super-init "after drscheme:unit-frame%"))
 	
 	(private
@@ -512,7 +511,6 @@
 	  (set-title-prefix "DrScheme")
 
 	  (send definitions-canvas set-focus)
-	  (send group insert-frame this)
 	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
@@ -678,7 +676,8 @@
 
     (define unit-snipclass (make-object snip-class%))
 
-  (mred:insert-format-handler "Units"
-                              (list "ss" "scm" "sch" "mredrc")
-				(opt-lambda (name group)
-				  (make-object (drscheme:parameters:current-frame%) name #f group))))
+    (mred:insert-format-handler 
+     "Units"
+     (list "ss" "scm" "sch" "mredrc")
+     (opt-lambda (name)
+       (make-object (drscheme:parameters:current-frame%) name #f))))
