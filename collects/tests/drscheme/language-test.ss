@@ -27,12 +27,8 @@
  ; ; ;   ;     ;      ;   ; 
  ; ; ;   ;     ;   ;  ;   ; 
 ;; ; ;; ;;;;    ;;;    ;;; ;
-                            
-                            
-                            
   
-  
-  
+
   (define (mred)
     (parameterize ([language (list "PLT" (regexp "Graphical"))])
       (check-top-of-repl)
@@ -44,6 +40,8 @@
       (test-error-after-definition)
       
       (prepare-for-test-expression)
+      
+      (test-expression "(define x 1)(define x 2)" "")
       
       (test-expression 'xml "(a () (b ()))")
 
@@ -134,6 +132,8 @@
       
       (prepare-for-test-expression)
       
+      (test-expression "(define x 1)(define x 2)" "")
+      
       (test-expression "(define-struct spider (legs))(make-spider 4)" "#<struct:spider>")
       
       (test-expression "(sqrt -1)" "0+1i")
@@ -221,37 +221,58 @@
       
       (prepare-for-test-expression)
       
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      (test-expression "(define x 1)(define x 2)"
+                       "x: this name was defined previously and cannot be re-defined"
+                       "define: cannot redefine name: x")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" 
+                       "(make-spider 4)"
+                       "define-struct: cannot redefine name: spider")
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
+      (test-expression "class" 
+                       "class: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: class")
+      (test-expression "shared"
+                       "shared: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: shared")
 
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
-      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      (test-expression "call/cc"
+                       "call/cc: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
       (test-expression "(error \"a\" \"a\")"
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
-      (test-expression "(time 1)" "reference to undefined identifier: time")
+      (test-expression "(time 1)"
+                       "time: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: time")
       
       (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "mred^" 
+                       "mred^: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(set! x 1)"
+                       "set!: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: set!")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "quote: expected a name after a ', found something else")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(cons (cons 1 empty) (cons (cons 1 empty) empty))")
+                       "(cons (cons 1 empty) (cons (cons 1 empty) empty))"
+                       "define: cannot redefine name: shrd")
       (test-expression "(local ((define x x)) 1)"
+                       "local: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(letrec ([x x]) 1)"
+                       "letrec: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
       (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
@@ -271,13 +292,16 @@
       (test-expression "779625/32258" "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
       (test-expression "(exact? 1.5)" "true")
       
-      (test-expression "(let ([f (lambda (x) x)]) f)" 
+      (test-expression "(let ([f (lambda (x) x)]) f)"
+                       "let: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression ",1"
                        "read: illegal use of `,'")
 
       (test-expression "(list 1)" "(cons 1 empty)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
+      (test-expression "argv" 
+                       "argv: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: argv")))
   
 
                                                                
@@ -305,21 +329,34 @@
       (teaching-language-fraction-output)
       
       (test-hash-bang)
+      
       (test-error-after-definition)
       
       (prepare-for-test-expression)
       
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      (test-expression "(define x 1)(define x 2)"
+                       "x: this name was defined previously and cannot be re-defined"
+                       "define: cannot redefine name: x")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)"
+                       "(make-spider 4)"
+                       "define-struct: cannot redefine name: spider")
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
+      (test-expression "class"
+                       "class: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: class")
+      (test-expression "shared"
+                       "shared: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: shared")
 
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
-      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      (test-expression "call/cc"
+                       "call/cc: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
@@ -329,17 +366,23 @@
       (test-expression "(time 1)" "reference to undefined identifier: time")
       
       (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "mred^" 
+                       "mred^: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(set! x 1)"
+                       "set!: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: set!")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
                        "(list (list 1) (list 1))")
       (test-expression "(local ((define x x)) 1)"
+                       "local: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(letrec ([x x]) 1)"
+                       "letrec: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
       (test-expression "(+ 1)" "procedure +: expects at least 2 arguments, given 1: 1")
@@ -360,12 +403,15 @@
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
+                       "let: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression ",1"
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
+      (test-expression "argv" 
+                       "argv: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: argv")))
 
 
                                                                                     
@@ -396,17 +442,29 @@
       
       (prepare-for-test-expression)
 
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      (test-expression "(define x 1)(define x 2)"
+                       "x: this name was defined previously and cannot be re-defined"
+                       "define: cannot redefine name: x")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)"
+                       "(make-spider 4)"
+                       "define-struct: cannot redefine name: spider")
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
+      (test-expression "class" 
+                       "class: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: class")
+      (test-expression "shared"
+                       "shared: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
-      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      (test-expression "call/cc"
+                       "call/cc: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
@@ -417,9 +475,13 @@
                        (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
             
       (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "mred^" 
+                       "mred^: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(set! x 1)"
+                       "set!: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: set!")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
@@ -450,7 +512,9 @@
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
+      (test-expression "argv" 
+                       "argv: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: argv")))
 
 
                                                                       
@@ -482,17 +546,29 @@
       
       (prepare-for-test-expression)
       
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      (test-expression "(define x 1)(define x 2)"
+                       "x: this name was defined previously and cannot be re-defined"
+                       "define: cannot redefine name: x")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)"
+                       "(make-spider 4)"
+                       "define-struct: cannot redefine name: spider")
       
       (test-expression "(sqrt -1)" "0+1i")
       
-      (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
+      (test-expression "class"
+                       "class: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: class")
+      (test-expression "shared" 
+                       "shared: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
-      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      (test-expression "call/cc"
+                       "call/cc: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
@@ -503,9 +579,13 @@
                        (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
             
       (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "mred^" 
+                       "mred^: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+      (test-expression "(set! x 1)"
+                       "set!: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: set!")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
@@ -536,7 +616,9 @@
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
+      (test-expression "argv" 
+                       "argv: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: argv")))
   
 
                                                         
@@ -567,18 +649,28 @@
       
       (prepare-for-test-expression)
       
-      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
+      (test-expression "(define x 1)(define x 2)"
+                       "x: this name was defined previously and cannot be re-defined"
+                       "define: cannot redefine name: x")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)"
+                       "(make-spider 4)"
+                       "define-struct: cannot redefine name: spider")
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "reference to undefined identifier: class")
+      (test-expression "class"
+                       "class: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: class")
 
       (test-expression "shared" "shared: found a use of `shared' that does not follow an open parenthesis")
       
       (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
-      (test-expression "call/cc" "reference to undefined identifier: call/cc")
+      (test-expression "call/cc" 
+                       "call/cc: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
@@ -589,7 +681,9 @@
                        (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
             
       (test-expression "true" "true")
-      (test-expression "mred^" "reference to undefined identifier: mred^")
+      (test-expression "mred^" 
+                       "mred^: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
       (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
@@ -622,7 +716,9 @@
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
-      (test-expression "argv" "reference to undefined identifier: argv")))
+      (test-expression "argv"
+                       "argv: name is not defined, not an argument, and not a primitive name"
+                       "reference to undefined identifier: argv")))
 
                                                  
                                                  
@@ -861,7 +957,6 @@
                 (send interactions-text paragraph-start-position (+ last-para 1))
                 (send interactions-text paragraph-end-position
                       (- (send interactions-text last-paragraph) 1)))])
-          (printf "got: ~s\n" got)
           (unless (equal? got "0")
             (printf "FAILED: test-error-after-definition failed, expected 0, got ~s\n" got))))))
 
@@ -871,69 +966,74 @@
   ;;                -> void
   ;; types an expression in the definitions window, executes it and tests the output
   ;; types an expression in the REPL and tests the output from the REPL.
-  (define (test-expression expression expected)
-    (let* ([drs (wait-for-drscheme-frame)]
-           [interactions-text (send drs get-interactions-text)]
-           [definitions-text (send drs get-definitions-text)]
-           [check-expectation
-            (lambda (got)
-              (cond
-                [(string? expected)
-                 (whitespace-string=? expected got)]
-                [(regexp? expected)
-                 (regexp-match expected got)]
-                [(procedure? expected)
-                 (expected got)]))]
-           [err-msg
-            (cond
-              [(string? expected)
-               "FAILED: ~s ~s expected ~s to produce:\n  ~s\ngot:\n  ~s\ninstead~n"]
-              [(regexp? expected)
-               "FAILED: ~s ~s expected ~s to match ~s, got ~s instead~n"]
-              [(procedure? expected)
-               "FAILED: ~s ~s expected ~s to pass predicate ~s, got ~s~n"])])
-      (clear-definitions drs)
-      (cond
-        [(string? expression)
-         (type-in-definitions drs expression)]
-        [(eq? expression 'xml)
-         (fw:test:menu-select "Special" "Insert XML Box")
-         (for-each fw:test:keystroke (string->list "<a><b>"))])
-      (do-execute drs)
-      
-      (let ([got
-             (fetch-output
-              drs
-              (send interactions-text paragraph-start-position 2)
-              (send interactions-text paragraph-end-position
-                    (- (send interactions-text last-paragraph) 1)))])
-        (when (regexp-match re:out-of-sync got)
-          (error 'text-expression "got out of sync message"))
-        (unless (check-expectation got)
-          (printf err-msg 'definitions (language) expression expected got)))
-
-      (send definitions-text select-all)
-      (send definitions-text copy)
-      
-      (send interactions-text set-position
-            (send interactions-text last-position)
-            (send interactions-text last-position))
-      
-      (send interactions-text paste)
-      
-      (let ([last-para (send interactions-text last-paragraph)])
-        (type-in-interactions drs (string #\newline))
-        (wait-for-computation drs)
-        (let ([got
-               (fetch-output
-                drs
-                (send interactions-text paragraph-start-position (+ last-para 1))
-                (send interactions-text paragraph-end-position
-                      (- (send interactions-text last-paragraph) 1)))])
-          (when (regexp-match re:out-of-sync got)
-            (error 'text-expression "got out of sync message"))
-          (unless (check-expectation got)
-            (printf err-msg 'interactions (language) expression expected got))))))
+  (define test-expression
+    (case-lambda 
+      [(expression expected) (test-expression expression expected expected)]
+      [(expression defs-expected repl-expected)
+       (let* ([drs (wait-for-drscheme-frame)]
+              [interactions-text (send drs get-interactions-text)]
+              [definitions-text (send drs get-definitions-text)]
+              [check-expectation
+               (lambda (expected got)
+                 (cond
+                   [(string? expected)
+                    (whitespace-string=? expected got)]
+                   [(regexp? expected)
+                    (regexp-match expected got)]
+                   [(procedure? expected)
+                    (expected got)]))]
+              [make-err-msg
+               (lambda (expected)
+                 (cond
+                   [(string? expected)
+                    "FAILED: ~s ~s expected ~s to produce:\n  ~s\ngot:\n  ~s\ninstead~n"]
+                   [(regexp? expected)
+                    "FAILED: ~s ~s expected ~s to match ~s, got ~s instead~n"]
+                   [(procedure? expected)
+                    "FAILED: ~s ~s expected ~s to pass predicate ~s, got ~s~n"]))])
+         (clear-definitions drs)
+         (cond
+           [(string? expression)
+            (type-in-definitions drs expression)]
+           [(eq? expression 'xml)
+            (fw:test:menu-select "Special" "Insert XML Box")
+            (for-each fw:test:keystroke (string->list "<a><b>"))])
+         (do-execute drs)
+         
+         (let ([got
+                (fetch-output
+                 drs
+                 (send interactions-text paragraph-start-position 2)
+                 (send interactions-text paragraph-end-position
+                       (- (send interactions-text last-paragraph) 1)))])
+           (when (regexp-match re:out-of-sync got)
+             (error 'text-expression "got out of sync message"))
+           (unless (check-expectation defs-expected got)
+             (printf (make-err-msg defs-expected) 
+                     'definitions (language) expression defs-expected got)))
+         
+         (send definitions-text select-all)
+         (send definitions-text copy)
+         
+         (send interactions-text set-position
+               (send interactions-text last-position)
+               (send interactions-text last-position))
+         
+         (send interactions-text paste)
+         
+         (let ([last-para (send interactions-text last-paragraph)])
+           (type-in-interactions drs (string #\newline))
+           (wait-for-computation drs)
+           (let ([got
+                  (fetch-output
+                   drs
+                   (send interactions-text paragraph-start-position (+ last-para 1))
+                   (send interactions-text paragraph-end-position
+                         (- (send interactions-text last-paragraph) 1)))])
+             (when (regexp-match re:out-of-sync got)
+               (error 'text-expression "got out of sync message"))
+             (unless (check-expectation repl-expected got)
+               (printf (make-err-msg repl-expected) 'interactions (language) expression defs-expected got)))))]))
   
   
   (define-syntax (go stx)
