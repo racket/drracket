@@ -663,6 +663,7 @@
                   (language) setting-name expression result got)))))
   
   (define (test-hash-bang)
+    '
     (let* ([expression (format "#!~n1")]
            [result "1"]
            [drs (get-top-level-focus-window)]
@@ -704,12 +705,12 @@
   ;; teaching-language-fraction-output
   ;; tests that the teaching langauges properly handle repeating decimals
   (define (teaching-language-fraction-output)
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Mixed fractions"))
      "Fraction Style -- Mixed fractions"
      "4/3"
      "{number 4/3 \"1 1/3\" mixed}")
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Repeating decimals"))
      "Fraction Style -- Repeating decimals"
      "4/3"
@@ -718,28 +719,29 @@
   ;; plt-language-fraction-output : -> void
   ;; tests that the PLT languages properly handle repeating decimals
   (define (plt-language-fraction-output)
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #f))
      "Use decimal notation for rationals -- #f"
      "4/3 1/2 -1/3"
      "{number 4/3 \"1 1/3\" mixed}\n{number 1/2 \"1/2\" mixed}\n{number -1/3 \"- 1/3\" mixed}")
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #t))
      "Use decimal notation for rationals -- #t"
      "4/3 1/2 -1/3"
      "{number 4/3 \"#e1.3\" decimal}\n{number 1/2 \"#e0.5\" decimal}\n{number -1/3 \"#e-0.3\" decimal}"))
   
   (define (generic-settings false/true?)
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-check-box! "Case sensitive" #t))
      "Case sensitive -- #t"
      "(eq? 'g 'G)" (if false/true? "false" "#f"))
-    (test-setting
+    '(test-setting
      (lambda () (fw:test:set-check-box! "Case sensitive" #f))
      "Case sensitive -- #f"
      "(eq? 'g 'G)" (if false/true? "true" "#t")))
   
   (define (generic-output list? quasi-quote? has-sharing?)
+    '
     (let* ([drs (wait-for-drscheme-frame)]
            [expression (format "(define x (list 2))~n(list x x)")]
            [set-output-choice
@@ -840,11 +842,12 @@
   ;; test-expression : (union string 'xml)
   ;;                   (union string regexp (string -> boolean)) 
   ;;                -> void
+  ;; types an expression in the definitions window, executes it and tests the output
   ;; types an expression in the REPL and tests the output from the REPL.
   (define (test-expression expression expected)
     (let* ([drs (wait-for-drscheme-frame)]
            [interactions-text (send drs get-interactions-text)]
-           [last-para (send interactions-text last-paragraph)]
+           [definitions-text (send drs get-definitions-text)]
            [check-expectation
             (lambda (got)
               (cond
@@ -857,34 +860,53 @@
            [err-msg
             (cond
               [(string? expected)
-               "FAILED: ~s expected ~s to produce:\n  ~s\ngot:\n  ~s\ninstead~n"]
+               "FAILED: ~s ~s expected ~s to produce:\n  ~s\ngot:\n  ~s\ninstead~n"]
               [(regexp? expected)
-               "FAILED: ~s expected ~s to match ~s, got ~s instead~n"]
+               "FAILED: ~s ~s expected ~s to match ~s, got ~s instead~n"]
               [(procedure? expected)
-               "FAILED: ~s expected ~s to pass predicate ~s, got ~s~n"])])
-      (send interactions-text set-position
-            (send interactions-text last-position)
-            (send interactions-text last-position))
-      
+               "FAILED: ~s ~s expected ~s to pass predicate ~s, got ~s~n"])])
+      (clear-definitions drs)
       (cond
         [(string? expression)
-         (type-in-interactions drs expression)]
+         (type-in-definitions drs expression)]
         [(eq? expression 'xml)
          (fw:test:menu-select "Special" "Insert XML Box")
          (for-each fw:test:keystroke (string->list "<a><b>"))])
+      (do-execute drs)
       
-      (type-in-interactions drs (string #\newline))
-      (wait-for-computation drs)
       (let ([got
              (fetch-output
               drs
-              (send interactions-text paragraph-start-position (+ last-para 1))
+              (send interactions-text paragraph-start-position 2)
               (send interactions-text paragraph-end-position
                     (- (send interactions-text last-paragraph) 1)))])
         (when (regexp-match re:out-of-sync got)
           (error 'text-expression "got out of sync message"))
         (unless (check-expectation got)
-          (printf err-msg (language) expression expected got)))))
+          (printf err-msg 'definitions (language) expression expected got)))
+
+      (send definitions-text select-all)
+      (send definitions-text copy)
+      
+      (send interactions-text set-position
+            (send interactions-text last-position)
+            (send interactions-text last-position))
+      
+      (send interactions-text paste)
+      
+      (let ([last-para (send interactions-text last-paragraph)])
+        (type-in-interactions drs (string #\newline))
+        (wait-for-computation drs)
+        (let ([got
+               (fetch-output
+                drs
+                (send interactions-text paragraph-start-position (+ last-para 1))
+                (send interactions-text paragraph-end-position
+                      (- (send interactions-text last-paragraph) 1)))])
+          (when (regexp-match re:out-of-sync got)
+            (error 'text-expression "got out of sync message"))
+          (unless (check-expectation got)
+            (printf err-msg 'interactions (language) expression expected got))))))
   
   
   (define-syntax (go stx)

@@ -247,6 +247,7 @@
      new-teachpack-cache
      teachpack-cache?
      teachpack-cache-filenames
+     teachpack-cache-require-specs
      set-teachpack-cache-filenames!))
 
   (define-signature drscheme:multi-file-search^
