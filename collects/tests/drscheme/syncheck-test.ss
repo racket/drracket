@@ -79,7 +79,7 @@
                    (") "          #f)
                    ("x"           lexically-bound-variable)
                    ("])"          #f))
-                 (list '((15 15) (18 19))))
+                 (list '((15 16) (18 19))))
      
      (build-test "(if 1 2 3)"
                 '(("("  #f)
