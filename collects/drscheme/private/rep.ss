@@ -1,3 +1,5 @@
+;; should a GC should happen on each execution? (or perhaps better, each kill?)
+
 ; =Kernel= means in DrScheme's thread and parameterization
 ; 
 ; =User= means the user's thread and parameterization
@@ -101,7 +103,7 @@
               [user-dir (current-directory)])
           (cond
             [(and (is-a? rep -text<%>)
-                  (eq? (current-error-port) (send rep get-this-err)))
+                  (eq? (current-error-port) (send rep get-err-port)))
              (send rep queue-output
                    (lambda ()  ;; =Kernel=, =Handler=
                      (insert-error-in-text rep rep msg exn user-dir)
@@ -527,26 +529,6 @@
       (unless (send busy-cursor ok?)
         (set! busy-cursor #f))
       
-      (define arrow-cursor (make-object cursor% 'arrow))
-      (define eof-icon-snip%
-        (class image-snip% 
-          (init-field rep)
-          (rename [super-get-extent get-extent])
-          (define/override (get-extent dc x y w h descent space lspace rspace)
-            (super-get-extent dc x y w h descent space lspace rspace)
-            (when (box? descent) (set-box! descent 7)))
-          (rename [super-on-event on-event])
-          (define/override (on-event dc x y editor-x editor-y evt)
-            (cond
-              [(send evt get-left-down) 
-               (send rep submit-eof)]
-              [else (super-on-event dc x y editor-x editor-y evt)]))
-          (define/override (adjust-cursor dc x y editorx editory evt)
-            arrow-cursor)
-          (inherit get-flags set-flags)
-          (super-make-object (build-path (collection-path "icons") "eof.gif"))
-          (set-flags (cons 'handles-events (get-flags)))))
-      
       ;; error-ranges : (union false? (cons (list file number number) (listof (list file number number))))
       (define error-ranges #f)
       ;; error-arrows : (union #f (listof (cons editor<%> number)))
@@ -625,32 +607,21 @@
           
           run-in-evaluation-thread
           do-many-evals
-          do-many-text-evals
+          do-many-language-evals
           after-many-evals
           
           shutdown
           
-          cleanup-transparent-io
-          get-this-err
-          this-err-write
-          get-this-out
-          this-out-write
-          get-this-result
-          this-result-write
-          
-          get-this-in
-          submit-eof
-          show-eof-icon
-          hide-eof-icon
-          
-          wait-for-io-to-complete/user
-          wait-for-io-to-complete
-          queue-output
-          
           get-error-ranges))
 
       (define text-mixin
-        (mixin ((class->interface text%) editor:file<%> scheme:text<%> console-text<%> color:text<%>) (-text<%>)
+        (mixin ((class->interface text%)
+                editor:file<%>
+                scheme:text<%>
+                console-text<%>
+                color:text<%>
+                text:ports<%>)
+                (-text<%>)
           (init-field context)
           (inherit insert change-style
                    get-active-canvas
@@ -680,7 +651,11 @@
                    set-prompt-position
                    get-canvases find-snip
                    release-snip
-                   reset-region update-region-end)
+                   reset-region update-region-end
+                   get-out-port
+                   get-in-port
+                   get-value-port
+                   get-err-port)
           (rename [super-initialize-console initialize-console]
                   [super-reset-console reset-console])
           
@@ -693,29 +668,13 @@
             highlight-error
             highlight-error/forward-sexp
             
-            
             kill-evaluation
             
             display-results
             
             run-in-evaluation-thread
-            do-many-evals
-            do-many-text-evals
             
-            shutdown
-            
-            cleanup-transparent-io
-            get-this-err
-            this-err-write
-            get-this-out
-            this-out-write
-            get-this-result
-            this-result-write
-            
-            get-this-in
-            submit-eof
-            show-eof-icon
-            hide-eof-icon)
+            shutdown)
           
           (unless (is-a? context context<%>)
             (error 'drscheme:rep:text% 
@@ -729,16 +688,6 @@
           ;;;            User -> Kernel                ;;;
           ;;;					       ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          
-          (define protect
-            (lambda (proc)
-              (let ([ut (get-user-thread)]
-		    [breaks-on? (break-enabled)])
-                (call-in-nested-thread
-                 (lambda ()
-                   (break-enabled #f)
-                   (proc ut breaks-on?))
-                 drscheme:init:system-custodian))))
           
           ;; =User= (probably doesn't matter)
           (define queue-system-callback
@@ -763,512 +712,6 @@
                  #t)
                 (semaphore-wait s))))
           
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;;                                          ;;;
-          ;;;                  I/O                     ;;;
-          ;;;                                          ;;;
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          
-          (field (transparent-text #f)
-                 (transparent-snip #f))
-          
-          (define (cleanup-transparent-io) ; =Kernel=, =Handler=
-            (when transparent-text
-              (set! saved-newline? #f) 
-              (hide-eof-icon)
-              (send transparent-text shutdown)
-              (set-position (last-position))
-              (set-caret-owner #f)
-              (let ([a (get-admin)])
-                (when a
-                  (send a grab-caret)))
-              (send transparent-text lock #t)
-		(set! transparent-text #f)
-		(drop-fetcher)))
-          
-          (define init-transparent-io ; =Kernel=, =Handler=
-            (lambda (grab-focus?)
-              (begin-edit-sequence)
-              (if transparent-text
-                  (when grab-focus?
-                    (let ([a (send transparent-text get-admin)])
-                      (when a
-                        (send a grab-caret))))
-                  (init-transparent-io-do-work grab-focus?))
-              (when  (eq? (current-thread) (get-user-thread))
-                (set-caret-owner transparent-snip 'display))
-              (end-edit-sequence)
-              transparent-text))
-          
-          (define (init-transparent-input) ; =Kernel=, =Handler=
-            (let ([text (init-transparent-io #t)])
-              (yield) ; to flush output and set `saved-newline?'
-              (when saved-newline?
-                (this-out-write "")
-                (yield)) ; flush output again
-              text))
-          
-          (field (eof-received? #f)
-                 (eof-snip #f))
-          (define (show-eof-icon) 
-            (unless eof-snip
-              (set! eof-snip (make-object eof-icon-snip% this))
-              (let ([c-locked? (is-locked?)])
-                (begin-edit-sequence)
-                (lock #f)
-                (insert eof-snip
-                        (- (last-position) 1)
-                        (- (last-position) 1))
-                (lock c-locked?)
-                (for-each (lambda (c) (send c recalc-snips))
-                          (get-canvases))
-                (end-edit-sequence))))
-          (define (hide-eof-icon) 
-            (when eof-snip
-              (let ([c-locked? (is-locked?)])
-                (begin-edit-sequence)
-                (lock #f)
-                (release-snip eof-snip)
-                (for-each (lambda (c) (send c recalc-snips))
-                          (get-canvases))
-                (lock c-locked?)
-                (end-edit-sequence)
-                (set! eof-snip #f))))
-          (define (submit-eof)
-            (when transparent-text
-              (send transparent-text eof-received))
-            (hide-eof-icon))
-          
-          (define init-transparent-io-do-work  ; =Kernel=, =Handler=
-            (lambda (grab-focus?)
-              (let ([c-locked? (is-locked?)])
-                (begin-edit-sequence)
-                (lock #f)
-                (let ([starting-at-prompt-mode? (get-prompt-mode)])
-                  (set! transparent-text (make-object transparent-io-text% this))
-                  
-                  (send transparent-text auto-wrap #t)
-                  (send transparent-text balance-required #f)
-                  (send transparent-text set-styles-fixed #t)
-                  
-                  ;; ensure that there is a newline before the snip is inserted
-                  (unless (member 'hard-newline
-                                  (send (find-snip (last-position) 'before) get-flags))
-                    (insert newline-string (last-position) (last-position) #f))
-                  
-                  (when starting-at-prompt-mode?
-                    (set-prompt-mode #f))
-                  
-                  (let ([snip (make-object editor-snip% transparent-text)])
-                    (set! transparent-snip snip)
-                    (insert snip (last-position) (last-position) #f)
-                    (insert newline-string (last-position) (last-position) #f)
-                    (for-each (lambda (c) (send c add-wide-snip snip))
-                              (get-canvases)))
-                  (when grab-focus?
-                    (let ([a (send transparent-text get-admin)])
-                      (when a
-                        (send a grab-caret)))))
-                (lock c-locked?)
-                (end-edit-sequence)))) 
-          
-          (define (make-fetcher)
-            (make-object
-                (class object%
-                  (field
-                   [fetch-char-sema (make-semaphore 1)]
-                   [fetcher-spawned? #f]
-                   [char-fetched-sema (make-semaphore)]
-                   [char-fetched #f]
-		   [prefetched (cons 'dummy null)]) ; for peek lookaheads
-                  [define/public fetch ; =Protected-User=
-		     ;; Returns one of:
-		     ;;   - character (for success)
-		     ;;   - #f (nothing ready, wait on maybe-char-ready-sema)
-		     ;;   - a semaphore (nothing ready, wait on the given semaphore)
-                     (lambda (ut peek? skip)
-		       ;; Only one reader at a time:
-                       (if (semaphore-try-wait? fetch-char-sema)
-			   ;; Now we're the active reader...
-			   ;; First look for a pre-fetched char:
-			   (let ([prefetched-char
-				  (if (not peek?)
-				      ;; No peek, so skip is 0
-				      (if (pair? (cdr prefetched))
-					  (begin0
-					   (cadr prefetched)
-					   (set-cdr! prefetched (cddr prefetched))
-					   ;; If prefetched went empty, then an in-progress
-					   ;; spawned fetcher is now fetching a normal
-					   ;; character, instead of a pre-character;
-					   ;; set up a thread to propagate the sema post:
-					   (when fetcher-spawned?
-					     (thread
-					      (lambda ()
-						;; Wait until lookahead done
-						(semaphore-wait maybe-later-char-ready-sema)
-						;; Let others know that the lookahead is done
-						(semaphore-post maybe-later-char-ready-sema)
-						;; Let others know that an immediate char is ready
-						(semaphore-post maybe-char-ready-sema)))))
-					  #f)
-				      ;; Peeking...
-				      (let loop ([prefetched (cdr prefetched)]
-						 [skip skip])
-					(cond
-					 [(null? prefetched) #f]
-					 [(zero? skip) (car prefetched)]
-					 [else (loop (cdr prefetched) (sub1 skip))])))])
-			     (if prefetched-char
-				 ;; Got our char; let another reader go and return
-				 (begin
-				   (semaphore-post fetch-char-sema)
-				   prefetched-char)
-				 ;; Need to work with a fetcher...
-				 (begin
-				   (unless fetcher-spawned?
-				     ;; Need to give the fetched a sema to post when it's done;
-				     ;; this semaphore is the one attached to the port,
-				     ;; or returned by the peek-char function.
-				     (let ([maybe-ready-sema (if (zero? skip)
-								 ;; Normal sema:
-								 maybe-char-ready-sema
-								 ;; New sema for this look-ahead:
-								 (let ([s (make-semaphore 1)])
-								   (set! maybe-later-char-ready-sema s)
-								   s))])
-				       ;; Going to spawn a catcher; no new chars
-				       ;; ready until the fetcher succeeds.
-				       (semaphore-wait maybe-ready-sema)
-				       (set! fetcher-spawned? #t)
-				       ;; Spawn a fetcher:
-				       (queue-system-callback
-					ut
-					(lambda () ; =Kernel=, =Handler=
-					  (if eof-received?
-					      (begin 
-						(set! char-fetched eof)
-						(set! eof-received? #t))
-					      (let ([text (init-transparent-input)])
-						(set! char-fetched (send text fetch-char))
-						;; fetch-char might return void
-						(when (eof-object? char-fetched)
-						  (set! eof-received? #t))))
-					  (semaphore-post maybe-ready-sema)
-					  (semaphore-post char-fetched-sema)))))
-				   ;; Look for a char
-				   (if (semaphore-try-wait? char-fetched-sema)
-				       ;; Got a char from the most recent fetcher
-				       (begin
-					 ;; Next reader'll have to spawn a fetcher
-					 ;; for new chars.
-					 (set! fetcher-spawned? #f)
-					 (begin0
-					  (if (not peek?)
-					      ;; Return the result
-					      char-fetched
-					      ;; Enqueue the char, then return #f so
-					      ;; another call will check the queue:
-					      (begin
-						(let loop ([pf prefetched])
-						  (if (null? (cdr pf))
-						      (set-cdr! pf (cons char-fetched null))
-						      (loop (cdr pf))))
-						#f))
-					  ;; Got our char; let another reader go
-					  (semaphore-post fetch-char-sema)))
-				       ;; No char
-				       (begin0
-					(if (and peek? (positive? skip))
-					    ;; Return a sema to block on; this
-					    ;; will get posted when a lookahead succeeds
-					    maybe-later-char-ready-sema
-					    ;; Not peeking: just return #f
-					    #f)
-					;; let another reader go
-					(semaphore-post fetch-char-sema))))))
-			   ;; No char -- couldn't even check for one
-			   #f))]
-                  (super-instantiate ()))))
-          (field (fetcher #f)
-                 (fetcher-semaphore (make-semaphore 1))
-		 (maybe-char-ready-sema (make-semaphore 1))
-		 (maybe-later-char-ready-sema #f)) ; generated as it's needed
-          (define drop-fetcher ; =Kernel=, =Handler=
-            (lambda ()
-              (semaphore-wait fetcher-semaphore)
-              (set! fetcher #f)
-	      (semaphore-post fetcher-semaphore)))
-          (define this-in-fetch-byte ; =User=
-            (lambda (peek? skip)
-              (protect
-               (lambda (ut breaks-on?) ; =Protected-User=
-                 (semaphore-wait fetcher-semaphore)
-                 (unless fetcher (set! fetcher (make-fetcher)))
-                 (semaphore-post fetcher-semaphore)
-                 (send fetcher fetch ut peek? skip)))))
-
-	  (define this-in-read-byte ; =User=
-            (lambda ()
-	      (this-in-fetch-byte #f 0)))
-	  (define this-in-peek-byte ; =User=
-            (lambda (skip)
-	      (this-in-fetch-byte #t skip)))
-          
-          (field (flushing-event-running (make-semaphore 1))
-                 (limiting-sema (make-semaphore output-limit-size))) ; waited once foreach in io-collected-thunks
-          
-          (field (io-semaphore (make-semaphore 1))
-                 (io-collected-thunks null) ; protected by semaphore
-                 (io-collected-texts null)) ; always set in the kernel's handler thread
-          
-          (define (run-io-collected-thunks) ; =Kernel=, =Handler=
-            ; also need to start edit-sequence in any affected
-            ; transparent io boxes.
-            (semaphore-wait io-semaphore)
-            (let ([io-thunks io-collected-thunks])
-              (set! io-collected-thunks null)
-              (semaphore-post io-semaphore)
-              (unless (null? io-thunks)
-                (begin-edit-sequence)
-                (for-each (lambda (t) (semaphore-post limiting-sema) (t))
-                          (reverse io-thunks))
-                (for-each (lambda (e) (send e end-edit-sequence)) io-collected-texts)
-                (set! io-collected-texts null)
-                (scroll-to-position (last-position))
-                (end-edit-sequence))))
-          
-          (define (clear-io-collected-thunks)
-            (semaphore-wait io-semaphore)
-            (set! io-collected-thunks null)
-            (semaphore-post io-semaphore))
-          
-          (define/public (wait-for-io-to-complete) ; =Kernel=, =Handler=
-            (let ([semaphore (make-semaphore 0)])
-              (queue-callback
-               (lambda () ; =Kernel=, =Handler=
-                 (run-io-collected-thunks)
-                 (semaphore-post semaphore))
-               #f)
-              (yield semaphore)))
-          
-          (define/public (wait-for-io-to-complete/user) ; =User=, =Handler=
-            (queue-system-callback/sync
-             (lambda () ; =Kernel=, =Handler=
-               (run-io-collected-thunks))
-             (get-user-thread)))
-          
-          (define/public queue-output
-	    (opt-lambda (thunk [nonblock? #f]) ; =User=
-	      (protect
-	       (lambda (ut breaks-on?) ; =Protected-User=
-					; limiting-sema prevents queueing too much output from the user
-		 (and ((if nonblock?
-			   semaphore-try-wait? 
-			   (if breaks-on? 
-			       semaphore-wait/enable-break 
-			       semaphore-wait))
-		       limiting-sema)
-		      (begin
-					; Queue the output:
-			(semaphore-wait io-semaphore)
-			(if (eq? ut (get-user-thread))
-					; Queue output:
-			    (set! io-collected-thunks (cons thunk io-collected-thunks))
-					; Release limit allocation, instead:
-			    (semaphore-post limiting-sema))
-			(semaphore-post io-semaphore)
-					; If there's not one, queue an event that will flush the output queue
-			(when (semaphore-try-wait? flushing-event-running)
-					; Unlike most callbacks, this one has to run always, even if
-					;   the user thread changes.
-			  (queue-system-callback
-			   ut
-			   (lambda () ; =Kernel=, =Handler=
-			     (semaphore-post flushing-event-running)
-			     (if (eq? ut (get-user-thread))
-				 (run-io-collected-thunks)
-				 (clear-io-collected-thunks)))
-			   #t))
-			#t))))))
-          
-            (define generic-write ; =Kernel=, =Handler=
-              (lambda (text s style-func)
-                (let ([add-text
-                       (lambda (text)
-                         (unless (or (eq? this text)
-                                     (member text io-collected-texts))
-                           (set! io-collected-texts (cons text io-collected-texts))
-                           (send text begin-edit-sequence)))])
-                  (add-text text))
-                
-                (when (get-prompt-mode)
-                  (insert newline-string (last-position) (last-position) #f))
-                
-                (let* ([start (if (is-a? text transparent-io-text<%>)
-                                  (send text get-insertion-point)
-                                  (send text last-position))]
-                       [c-locked? (send text is-locked?)])
-                  (send text begin-edit-sequence)
-                  (send text lock #f)
-                  (when (is-a? text transparent-io-text<%>)
-                    (send text set-program-output #t))
-                  (let ([to-be-inserted
-                         (cond
-                           [(is-a? s snip%) (send s copy)]
-                           [else s])])
-                    (send text insert to-be-inserted start start #t)
-                    (let ([end (+ start (cond
-                                          [(string? to-be-inserted)
-                                           (string-length to-be-inserted)]
-                                          [(is-a? to-be-inserted snip%)
-                                           (send to-be-inserted get-count)]))])
-                      (style-func start end)
-                      (send text set-prompt-position end)))
-                  
-                  (when (is-a? text transparent-io-text<%>)
-                    (send text set-program-output #f))
-                  
-                  (set-prompt-mode #f)
-                  
-                  (send text lock c-locked?)
-                  (send text end-edit-sequence))))
-          
-          ;; this-result-write : (union string (instanceof snip%)) [bool] -> void
-          ;; writes `s' as a value produced by the REPL.
-          (define this-result-write 
-            (opt-lambda (s [nonblock? #f]) ; =User=
-              (queue-output
-               (lambda () ; =Kernel=, =Handler=
-                 (cleanup-transparent-io)
-                 (generic-write this
-                                s
-                                (lambda (start end)
-                                  (change-style result-delta
-                                                start end))))
-	       nonblock?)))
-          
-          (field (saved-newline? #f))
-          ;; this-out-write : (union string snip%) [bool] -> void
-          (define this-out-write
-            (opt-lambda (s [nonblock? #f]) ; = User=
-              (queue-output
-               (lambda () ; =Kernel=, =Handler=
-                 (let* ([text (init-transparent-io #f)]
-                        [old-saved-newline? saved-newline?]
-                        [len (and (string? s)
-                                  (string-length s))]
-                        [s1 (if (and len
-                                     (> len 0)
-                                     (char=? (string-ref s (- len 1)) #\newline))
-                                (begin 
-                                  (set! saved-newline? #t)
-                                  (substring s 0 (- len 1)))
-                                (begin
-                                  (set! saved-newline? #f)
-                                  s))]
-                        [gw
-                         (lambda (s)
-                           (generic-write
-                            text
-                            s
-                            (lambda (start end)
-                              (send text change-style output-delta start end))))])
-                   (when old-saved-newline?
-                     (gw newline-string))
-                   (gw s1)))
-	       nonblock?)))
-          
-          ;; this-err-write : (union string (instanceof snip%)) [bool] -> void
-          (define this-err-write 
-	    (opt-lambda (s [nonblock? #f]) ; =User=
-            (queue-output
-             (lambda () ; =Kernel=, =Handler=
-               (cleanup-transparent-io)
-               (generic-write
-                this
-                s
-                (lambda (start end)
-                  (change-style error-delta start end))))
-	     nonblock?)))
-          
-          (field (this-err (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
-						    (lambda (s start end flush?) 
-						      (if (this-err-write (substring s start end) flush?)
-							  (- end start)
-							  0))
-						    void
-						    void))
-                 (this-out (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
-						    (lambda (s start end flush?) 
-						      (if (this-out-write (subbytes s start end) flush?)
-							  (- end start)
-							  0))
-						    void
-						    void))
-                 (this-in (make-custom-input-port (lambda (s) 
-						    (let ([c (this-in-read-byte)])
-						      (cond
-						       [(byte? c)
-							(bytes-set! s 0 c)
-							1]
-						       [(not c) (make-semaphore-peek maybe-char-ready-sema)]
-						       [else c])))
-						  (lambda (s skip) 
-						    (let ([c (this-in-peek-byte skip)])
-						      (cond
-						       [(char? c)
-							(string-set! s 0 c)
-							1]
-						       [(not c) (make-semaphore-peek maybe-char-ready-sema)]
-						       [else c])))
-						  void))
-                 (this-result (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
-						       (lambda (s start end flush?) 
-							 (if (this-result-write (subbytes s start end) flush?)
-							     (- end start)
-							     0))
-						       void
-						       void)))
-          
-          (define (get-this-err) this-err)
-          (define (get-this-out) this-out)
-          (define (get-this-in) this-in)
-          (define (get-this-result) this-result)
-          
-          ;; setup-display/write-handlers : -> void
-          ;; sets the port-display-handler and the port-write-handler
-          ;; for the initial output port, initial error port and the
-          ;; value port.
-          (define (setup-display/write-handlers)
-            (let* ([make-setup-handler
-                    (lambda (port port-out-write)
-                      (lambda (port-handler pretty)
-                        (let ([original-handler (port-handler port)])
-                          (port-handler
-                           port
-                           (rec drscheme-port-handler
-                             (lambda (v p)
-                               ;; avoid looping by calling original-handler
-                               ;; for strings, since `pretty' calls write/display with
-                               ;; strings
-                               (if (string? v)
-                                   (original-handler v p)
-                                   (parameterize ([pretty-print-columns 'infinity])
-                                     (pretty v p)))))))))]
-                   
-                   [setup-handlers
-                    (lambda (setup-handler)
-                      (setup-handler port-display-handler pretty-display)
-                      (setup-handler port-write-handler pretty-print))]
-                   
-                   [setup-out-handler (make-setup-handler this-out (lambda (x) (this-out-write x)))]
-                   [setup-err-handler (make-setup-handler this-err (lambda (x) (this-err-write x)))]
-                   [setup-value-handler (make-setup-handler this-result (lambda (x) (this-result-write x)))])
-              (setup-handlers setup-out-handler)
-              (setup-handlers setup-err-handler)
-              (setup-handlers setup-value-handler)))
-          
           ;; display-results : (listof TST) -> void
           ;; prints each element of anss that is not void as values in the REPL.
           (define (display-results anss) ; =User=, =Handler=, =Breaks=
@@ -1281,8 +724,8 @@
                    (send lang render-value/format
                          v
                          settings
-                         this-result
-                         (lambda (x) (this-result-write x))
+                         (get-value-port)
+                         (lambda (x) (error))
 			 (get-repl-char-width)))))
              anss))
 
@@ -1582,22 +1025,6 @@
           
           (field (already-warned? #f))
           
-          (field (eval-count 0))
-          (define (do-eval start end)
-            (update-region-end end)
-            (set! eval-count (add1 eval-count))
-            (when (5 . <= . eval-count)
-              (collect-garbage)
-              (set! eval-count 0))
-            (let* ([needs-execution? (send context needs-execution?)])
-              (when (if (preferences:get 'drscheme:execute-warning-once)
-                        (and (not already-warned?)
-                             needs-execution?)
-                        needs-execution?)
-                (set! already-warned? #t)
-                (insert-warning)))
-            (do-many-text-evals this start end #f))
-          
           (define (cleanup)
             (set! in-evaluation? #f)
             (update-running #f)
@@ -1613,8 +1040,6 @@
           (define (cleanup-interaction) ; =Kernel=, =Handler=
             (set! need-interaction-cleanup? #f)
             (begin-edit-sequence)
-            (wait-for-io-to-complete)
-            (cleanup-transparent-io)
             (set-caret-owner #f 'display)
             (when (and (get-user-thread) (thread-running? (get-user-thread)))
               (let ([c-locked? (is-locked?)])
@@ -1626,18 +1051,19 @@
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
+          (define/override (on-submit) (do-many-language-evals (get-in-port) #f))
+          
           ; =Kernel, =Handler=
-          (define (do-many-text-evals text start end complete-program?)
+          (define/public (do-many-language-evals port complete-program?)
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
-               (let* ([text/pos (drscheme:language:make-text/pos text start end)]
-                      [settings (current-language-settings)]
+               (let* ([settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
                        (if complete-program?
-                           (send lang front-end/complete-program text/pos settings user-teachpack-cache)
-                           (send lang front-end/interaction text/pos settings user-teachpack-cache))])
+                           (send lang front-end/complete-program port settings user-teachpack-cache)
+                           (send lang front-end/interaction port settings user-teachpack-cache))])
                  (let loop () 
                    (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                      (cond
@@ -1650,11 +1076,11 @@
                             (lambda ()
                               (eval-syntax sexp/syntax/eof))
                             (lambda x (display-results x)))
-                           (wait-for-io-to-complete/user)))
+                           (flush-output (get-value-port))))
                         (loop)])))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
-          (define do-many-evals ; =Kernel=, =Handler=
+          (define/public do-many-evals ; =Kernel=, =Handler=
             
             ;; run-loop has the loop. It expects one argument, a procedure that
             ;; can be called with a thunk. The argument to run-loop maintains the right
@@ -1662,7 +1088,6 @@
             (lambda (run-loop)  ;; (((-> void) -> void) -> void)
               (send context disable-evaluation)
               (send context set-breakables (get-user-thread) (get-user-custodian))
-              (cleanup-transparent-io)
               (reset-pretty-print-width)
               (ready-non-prompt)
               (when should-collect-garbage?
@@ -2055,11 +1480,8 @@
             (send context clear-annotations)
             (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
-            (cleanup-transparent-io)
             (clear-previous-expr-positions)
             (set! should-collect-garbage? #t)
-            
-            (set! eof-received? #f)
             
             ;; in case the last evaluation thread was killed, clean up some state.
             (lock #f)
@@ -2572,155 +1994,6 @@
       
       (define input-delta (make-object style-delta%))
       (send input-delta set-delta-foreground (make-object color% 0 150 0))
-      (define transparent-io-text<%> 
-        (interface ()
-          set-program-output
-          get-insertion-point))
-      
-      (define transparent-io-super% 
-        (console-text-mixin
-         (scheme:text-mixin
-          (color:text-mixin
-           (mode:host-text-mixin
-            (text:searching-mixin
-             text:autowrap%))))))
-      
-      (define consumed-delta (make-object style-delta%))
-      (send (send consumed-delta get-foreground-mult) set 0.75 0.75 0.75)
-	   
-      (define transparent-io-text%
-        (class* transparent-io-super% (transparent-io-text<%>) 
-          (init-field _rep-text)
-          (inherit change-style
-                   get-resetting set-resetting lock get-text
-                   set-position last-position get-character
-                   clear-undos
-                   do-pre-eval do-post-eval balance-required)
-          (rename [super-after-insert after-insert]
-                  [super-on-local-char on-local-char])
-          (field
-	   [rep-text _rep-text]
-           [data null]
-           [old-stream-sections null]
-           [new-stream-start 0]
-           [new-stream-end 0]
-           [shutdown? #f])
-
-          (field
-           [stream-start/end-protect (make-semaphore 1)]
-           [wait-for-sexp (make-semaphore 0)]
-           [eof-submitted? #f])
-
-          [define/public get-insertion-point
-            (lambda ()
-              new-stream-start)]
-          [define/public shutdown
-            (lambda ()
-              (set! shutdown? #t)
-              (semaphore-post wait-for-sexp)
-              (lock #t))]
-          [define/public mark-consumed
-            (lambda (start end)
-              (let ([old-resetting (get-resetting)])
-                (set-resetting #t)
-                (change-style consumed-delta start end)
-                (set-resetting old-resetting)))]
-	    
-          [define/public eof-received
-            (lambda () ; =Kernel=, =Handler=
-              (set! eof-submitted? #t)
-              (unless (= new-stream-start (last-position))
-                (set! old-stream-sections 
-		      (append old-stream-sections 
-			      (list (cons new-stream-start (last-position))))))
-              (set! new-stream-start (last-position))
-              (set! new-stream-end (last-position))
-              (semaphore-post wait-for-sexp))]
-          
-          [define/public fetch-char ; =Kernel=, =Handler=, =Non-Reentrant= (queue requests externally)
-            (lambda ()
-              (send rep-text show-eof-icon)
-              (let* ([ready-char #f])
-                (let loop ()
-                  (semaphore-wait stream-start/end-protect)
-                  (cond
-                    [(not (null? old-stream-sections))
-                     (let* ([old-section (car old-stream-sections)]
-                            [old-section-start (car old-section)]
-                            [old-section-end (cdr old-section)])
-                       (set! ready-char (get-character old-section-start))
-                       (mark-consumed old-section-start (add1 old-section-start))
-                       (if (= (+ 1 old-section-start) old-section-end)
-                           (set! old-stream-sections (cdr old-stream-sections))
-                           (set-car! old-section (+ old-section-start 1))))]
-                    [eof-submitted?
-                     (set! ready-char eof)]
-                    [else (void)])
-                  (semaphore-post stream-start/end-protect)
-                  (or ready-char
-                      (begin
-                        (yield wait-for-sexp)
-                        (if shutdown? 
-                            (void)
-                            (loop)))))))]
-          [define/override get-prompt (lambda () "")]
-          (field
-           [program-output? #f])
-          [define/public set-program-output
-            (lambda (_program-output?)
-              (set! program-output? _program-output?))]
-          (rename [super-can-insert? can-insert?]
-                  [super-can-change-style? can-change-style?]
-                  [super-after-delete after-delete])
-          (define/override can-insert?
-            (lambda (start len)
-              (or program-output?
-                  (super-can-insert? start len))))
-          [define/override can-change-style?
-            (lambda (start len)
-              (let ([super? (super-can-change-style? start len)])
-                (or program-output? super?)))]
-          (define/override (after-delete start len)
-            (super-after-delete start len)
-            ;; assume that when start is in the stream
-            ;; is the only case of interest and that
-            ;; (in that case) start+len is also inside the range
-            (when (<= new-stream-start start new-stream-end)
-              (set! new-stream-end (- new-stream-end len))))
-          [define/override after-insert
-            (lambda (start len)
-              (super-after-insert start len)
-              (cond
-                [program-output?
-                 (when (start . <= . new-stream-start)
-                   (change-style output-delta start (+ start len))
-                   (set! new-stream-start (+ new-stream-start len))
-                   (set! new-stream-end (+ new-stream-end len)))]
-                [else
-                 (when (<= new-stream-start start new-stream-end)
-                   (set! new-stream-end (+ new-stream-end len)))
-                 (let ([old-r (get-resetting)])
-                   (set-resetting #t)
-                   (change-style input-delta start (+ start len))
-                   (set-resetting old-r))]))]
-          [define/override do-eval
-            (lambda (start end)
-              (do-pre-eval)
-              (set! old-stream-sections
-		    (append old-stream-sections
-			    (list (cons new-stream-start new-stream-end))))
-              (set! new-stream-start (+ end 1))
-              (set! new-stream-end (+ end 1))
-              (semaphore-post wait-for-sexp)
-              (do-post-eval))]
-          (inherit insert-prompt)
-          (super-make-object)
-          (insert-prompt)
-          (inherit start-colorer)
-          (start-colorer symbol->string default-lexer '((|(| |)|)
-                                                        (|[| |]|)
-                                                        (|{| |}|)))))
-          
           
       (define -text% 
         (drs-bindings-keymap-mixin
