@@ -370,7 +370,7 @@
                 (drscheme:debug:make-debug-error-display-handler
                  (error-display-handler))))
              (drscheme:debug:profiling-enabled (eq? annotations 'debug/profile)))
-           (current-inspector (make-inspector))
+           ;(current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
       ;; simple-module-based-language-get-init-code : setting -> sexp[module]
