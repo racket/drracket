@@ -271,7 +271,7 @@
 	    ;; add these in here so the code is `read' with
 	    ;; drs's reader settings, not the reader settings
 	    ;; of the language.
-	    (dynamic-require module-spec #f)
+            (dynamic-require module-spec #f)
 	    (dynamic-require transformer-module-spec #f)
 
             (run-in-user-thread
@@ -283,10 +283,13 @@
                  (for-each (lambda (x) 
                              (namespace-attach-module orig-namespace x))
                            to-be-copied-names)
-                 (if use-copy?
-                     (namespace-require/copy module-spec)
-                     (namespace-require module-spec))
-                 (namespace-transformer-require transformer-module-spec)))))))
+                 
+                 ;; this parameterize is here to hack around the way mz works.
+                 (parameterize ([read-dot-as-symbol #f])
+                   (if use-copy?
+                       (namespace-require/copy module-spec)
+                       (namespace-require module-spec))
+                   (namespace-transformer-require transformer-module-spec))))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)

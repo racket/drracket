@@ -1232,6 +1232,7 @@
                              language-menu
                              (lambda (item evt)
                                (drscheme:teachpack:set-teachpack-cache-filenames!
+                                (preferences:get 'drscheme:teachpacks)
                                 (mzlib:list:remove
                                  name
                                  (drscheme:teachpack:teachpack-cache-filenames
