@@ -1,6 +1,2 @@
 (module info (lib "infotab.ss" "setup")
-  (define name "Version")
-  (define mzscheme-launcher-libraries (list "check-text.ss"))
-  (define mzscheme-launcher-names (list "Check Version-nw"))
-  (define mred-launcher-libraries (list "check-gui.ss"))
-  (define mred-launcher-names (list "Check Version")))
+  (define name "Version"))
