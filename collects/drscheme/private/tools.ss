@@ -38,18 +38,43 @@
       
       ;; successful-tool = (make-successful-tool module-spec (union #f (instanceof bitmap%)) (union #f string))
       (define-struct successful-tool (spec bitmap name))
-                     
-      ;; successful-tools : (listof successful-tool)
-      ;; this list contains the tools that sucessfully were loaded
-      ;; it is updated in load/invoke-tool
-      (define successful-tools null)
       
-      ;; get-successful-tools : -> (listof sucessful-tool)
+      ;; successful-tools : (listof successful-tool)
+      (define successful-tools null)
+
+      ;; get-successful-tools : -> (listof successful-tool)
       (define (get-successful-tools) successful-tools)
+
+      ;; successfully-loaded-tool = 
+      ;; (make-successfully-loaded-tool 
+      ;;    module-spec (union #f (instanceof bitmap%)) (union #f string)
+      ;;    (-> void) (-> void))
+      (define-struct successfully-loaded-tool (spec bitmap name phase1 phase2))
+                     
+      ;; successfully-loaded-tools : (listof successfully-loaded-tool)
+      ;; this list contains the tools that successfully were loaded
+      ;; it is updated in load/invoke-tool. 
+      (define successfully-loaded-tools null)
 
       ;; loads the the tools in each collection
       (define (load/invoke-all-tools collections)
-        (for-each load/invoke-tools collections))
+        (for-each load/invoke-tools collections)
+        (run-phases))
+
+      
+                                                                             
+ ;;;                     ;;       ;   ;                        ;;            
+   ;                      ;      ;                              ;            
+   ;                      ;      ;                              ;            
+   ;     ;;;   ;;;;    ;;;;     ;   ;;;   ; ;;;  ;;; ;;;  ;;;   ;  ;;   ;;;  
+   ;    ;   ;      ;  ;   ;     ;     ;    ;;  ;  ;   ;  ;   ;  ; ;    ;   ; 
+   ;    ;   ;   ;;;;  ;   ;    ;      ;    ;   ;  ;   ;  ;   ;  ;;     ;;;;; 
+   ;    ;   ;  ;   ;  ;   ;    ;      ;    ;   ;   ; ;   ;   ;  ; ;    ;     
+   ;    ;   ;  ;   ;  ;   ;   ;       ;    ;   ;   ;;;   ;   ;  ;  ;   ;   ; 
+ ;;;;;;  ;;;    ;;; ;  ;;; ;  ;     ;;;;; ;;;  ;;   ;     ;;;  ;;   ;;  ;;;  
+                             ;                                               
+                                                                             
+                                                                             
 
       
       ;; load/invoke-tools : string[collection-name] -> void
@@ -121,27 +146,26 @@
                                     (format (string-constant error-invoking-tool-title)
                                             coll in-path)
                                     x))])
-                  (let ([_____phase-thunks (invoke-tool unit name)])
-                    ;; maybe too early to do that.
-                    (set! successful-tools 
-                          (cons (make-successful-tool tool-path tool-bitmap name)
-                                successful-tools))
-                    ;(list* coll in-path phase-thunks)
-		    (void)
-		    )))))))
+                  (let-values ([(phase1-thunk phase2-thunk) (invoke-tool unit name)])
+                    (set! successfully-loaded-tools 
+                          (cons (make-successfully-loaded-tool
+                                 tool-path
+                                 tool-bitmap 
+                                 name 
+                                 phase1-thunk
+                                 phase2-thunk)
+                                successfully-loaded-tools)))))))))
 
-      ;; invoke-tool : unit/sig string -> (list (-> void) (-> void))
+      ;; invoke-tool : unit/sig string -> (values (-> void) (-> void))
       ;; invokes the tools and returns the two phase thunks.
       (define (invoke-tool unit tool-name)
 	(wrap-tool-inputs 
          (let ()
-           ;(define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
-           ;(cons phase1 phase2)
-           (define-values/invoke-unit/sig () unit #f drscheme:tool^)
-	   (void))
+           (define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
+           (values phase1 phase2))
          'drscheme))
 
-      ;; show-error : string exn -> void
+      ;; show-error : string (union exn TST) -> void
       (define (show-error title x)
         (parameterize ([drscheme:init:error-display-handler-message-box-title
                         title])
@@ -214,5 +238,75 @@
       (define tool-bitmap-x tool-bitmap-gap)
       (define tool-bitmap-y tool-bitmap-gap)
       (define tool-bitmap-size 32)
+
+      
+                                                                      
+       ;;                             ;                          ;;;  
+        ;                           ;;;            ;;;          ;   ; 
+        ;                             ;           ;  ;          ;   ; 
+; ;;;   ; ;;   ;;;;    ;;;    ;;;     ;           ;             ;   ; 
+ ;   ;  ;;  ;      ;  ;   ;  ;   ;    ;            ;   ;           ;  
+ ;   ;  ;   ;   ;;;;   ;;;   ;;;;;    ;           ;;; ;           ;   
+ ;   ;  ;   ;  ;   ;      ;  ;        ;          ;   ;           ;    
+ ;   ;  ;   ;  ;   ;  ;   ;  ;   ;    ;          ;   ;;         ;   ; 
+ ;;;;  ;;; ;;;  ;;; ;  ;;;    ;;;   ;;;;;         ;;;  ;        ;;;;; 
+ ;                                                                    
+ ;                                                                    
+;;;                                                                   
+
+
+      ;; run-phases : -> void
+      (define (run-phases)
+        (let* ([after-phase1 (run-one-phase (string-constant tool-error-phase1)
+                                            successfully-loaded-tool-phase1
+                                            successfully-loaded-tools)]
+               [after-phase2 (run-one-phase (string-constant tool-error-phase2)
+                                            successfully-loaded-tool-phase2
+                                            after-phase1)])
+          (set! successful-tools
+                (map (lambda (x) (make-successful-tool
+                                  (successfully-loaded-tool-spec x)
+                                  (successfully-loaded-tool-bitmap x)
+                                  (successfully-loaded-tool-name x)))
+                     after-phase2))))
+      
+      ;; run-one-phase : string 
+      ;;                 (successfully-loaded-tool -> (-> void))
+      ;;                 (listof successfully-loaded-tool)
+      ;;              -> (listof successfully-loaded-tool)
+      ;; filters out the tools that raise exceptions during the phase.
+      (define (run-one-phase err-fmt selector tools)
+        (let loop ([tools tools])
+          (cond
+            [(null? tools) null]
+            [else 
+             (let ([tool (car tools)])
+               (let ([phase-thunk (selector tool)])
+                 (with-handlers ([not-break-exn?
+                                  (lambda (exn) 
+                                    (show-error
+                                     (format err-fmt 
+                                             (successfully-loaded-tool-spec tool)
+                                             (successfully-loaded-tool-name tool))
+                                     exn)
+                                    (loop (cdr tools)))])
+                   (phase-thunk)
+                   (cons tool (loop (cdr tools))))))])))
+      
+      
+                            
+                 ;          
+                            
+                            
+;;; ;   ;;;;   ;;;   ; ;;;  
+ ; ; ;      ;    ;    ;;  ; 
+ ; ; ;   ;;;;    ;    ;   ; 
+ ; ; ;  ;   ;    ;    ;   ; 
+ ; ; ;  ;   ;    ;    ;   ; 
+;; ; ;;  ;;; ; ;;;;; ;;;  ;;
+                            
+                            
+                            
+
       
       (load/invoke-all-tools (drscheme:init:all-toplevel-collections)))))
