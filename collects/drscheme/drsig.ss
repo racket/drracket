@@ -1,5 +1,6 @@
 (module drsig mzscheme
-  (require (lib "unitsig.ss"))
+  (require (lib "unitsig.ss")
+           (lib "sig.ss" "userspce"))
   
   (provide drscheme:get-collection^
            drscheme:main^
@@ -118,6 +119,18 @@
   (define-signature drscheme:draw-arrow^
     (draw-arrow))
   
+  (define-signature drscheme:load-handler^
+    (provide
+     process-text/zodiac
+     process-text/no-zodiac
+     process-text
+     drscheme-load-handler))
+ 
+  (define-signature drscheme:help-interface^
+    (help-desk
+     open-url
+     open-users-url))
+  
   (define-signature drscheme:export^
     ((unit snip : drscheme:snip^)
      (unit basis : plt:basis^)
@@ -128,7 +141,7 @@
      (unit load-handler : drscheme:load-handler^)
      (unit rep : drscheme:rep^)
      (unit language : drscheme:language^)
-     (unit help-desk : help:drscheme-interface^)
+     (unit help-desk : drscheme:help-interface^)
      (unit help-info : help:get-info^)))
   
   (define-signature drscheme^
