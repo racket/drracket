@@ -197,8 +197,8 @@
       (define face-list #f)
       
       (define latin-1-symbols
-        '(("amp" 38)
-          ("gt" 62) ("lt" 60) ("quot" 34) ("nbsp" 160) ("iexcl" 161)
+        '(("middot" 46)
+	  ("amp" 38) ("gt" 62) ("lt" 60) ("quot" 34) ("nbsp" 160) ("iexcl" 161)
           ("cent" 162) ("pound" 163) ("curren" 164) ("yen" 165) ("brvbar" 166) ("sect" 167)
           ("uml" 168) ("copy" 169) ("ordf" 170) ("laquo" 171) ("not" 172) ("shy" 173)
           ("reg" 174) ("macr" 175) ("deg" 176) ("plusmn" 177) ("sup2" 178) ("sup3" 179)
