@@ -236,7 +236,7 @@
       ;;   search-complete : -> void
       ;;      inserts a message saying "no matches found" if none were reported
       (define results-text%
-        (class text% 
+        (class (editor:standard-style-list-mixin text%)
           (init-field zoom-text)
           (inherit insert last-paragraph erase
                    paragraph-start-position paragraph-end-position
@@ -379,7 +379,6 @@
           (super-instantiate ())
           (send zoom-text lock #t)
           (set-styles-sticky #f)
-          (set-style-list (scheme:get-style-list))
           (insert (string-constant mfs-searching...))))
       
       ;; collaborates with search-size-frame%

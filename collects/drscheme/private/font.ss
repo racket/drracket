@@ -44,30 +44,29 @@
         (get-family-builtin-face 'modern))
       
       (define (set-font-size size)
-        (let* ([scheme-standard (send (scheme:get-style-list)
-                                      find-named-style "Standard")]
-               [scheme-delta (make-object style-delta%)])
-          (send scheme-standard get-delta scheme-delta)
-          (send scheme-delta set-size-mult 0)
-          (send scheme-delta set-size-add size)
-          (send scheme-standard set-delta scheme-delta)))
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-size-mult 0)
+           (send scheme-delta set-size-add size))))
       
       (define (set-font-name name)
-        (let* ([scheme-standard (send (scheme:get-style-list)
-                                      find-named-style "Standard")]
-               [scheme-delta (make-object style-delta%)])
-          (send scheme-standard get-delta scheme-delta)
-          (send scheme-delta set-delta-face name)
-          (send scheme-delta set-family 'modern)
-          (send scheme-standard set-delta scheme-delta)))
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-delta-face name)
+           (send scheme-delta set-family 'modern))))
       
       (define (set-font-smoothing sym)
-        (let* ([scheme-standard (send (scheme:get-style-list)
-                                      find-named-style "Standard")]
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-smoothing-on sym))))
+      
+      (define (update-standard-style cng-delta)
+        (let* ([scheme-standard (send (editor:get-standard-style-list) find-named-style "Standard")]
                [scheme-delta (make-object style-delta%)])
           (send scheme-standard get-delta scheme-delta)
-          (send scheme-delta set-smoothing-on sym)
+          (cng-delta scheme-delta)
           (send scheme-standard set-delta scheme-delta)))
+        
       
       (define (setup-preferences)
         (set-font-size (preferences:get 'drscheme:font-size))
@@ -158,7 +157,7 @@
                                        [(1) 'partly-smoothed]
                                        [(2) 'smoothed])))))]
                   
-                  [text (make-object text%)]
+                  [text (make-object (editor:standard-style-list-mixin text%))]
                   [ex-panel (make-object horizontal-panel% main)]
                   [msg (make-object message% (string-constant example-text) ex-panel)]
                   [canvas (make-object editor-canvas% main text)]
@@ -201,6 +200,5 @@
              (send canvas allow-tab-exit #t)
              (send options-panel stretchable-height #f)
              (send options-panel set-alignment 'center 'top)
-             (send text set-style-list (scheme:get-style-list))
              (send text lock #t)
              main)))))))
