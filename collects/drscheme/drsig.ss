@@ -102,14 +102,18 @@
   (text%
    context<%>
    show-interactions-history
-   invoke-teachpack
-   process-text/zodiac
-   process-text/no-zodiac))
+   invoke-teachpack))
 
 (define-signature drscheme:app^
   (check-new-version
    invite-tour
    about-drscheme))
+
+(define-signature drscheme:load-handler^
+  (process-text/zodiac
+   process-text/no-zodiac
+   process-text
+   drscheme-load-handler))
 
 (define-signature drscheme:export^
   ((unit interface : drscheme:interface^)
