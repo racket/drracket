@@ -611,22 +611,21 @@ tab panels new behavior:
         
       (define func-defs-canvas%
         (class canvas%
-	  (init parent)
-          (init-field frame)
+	  (init-field frame)
 	  (init-field fallback-text)
-          (override on-paint on-event)
 	  (inherit get-client-size get-dc popup-menu min-height min-width
 		   stretchable-width
 		   stretchable-height)
                     
-          (define inverted? #f)
+          (define grabbed? #f)
+          (define mouse-over? #f)
           
           (define label "(define ...)")
           
-          (define (on-paint)
+          (define/override (on-paint)
             (let ([dc (get-dc)])
               (let-values ([(w h) (get-client-size)])
-                (draw-button-label dc label w h inverted? #f))))
+                (draw-button-label dc label w h mouse-over? grabbed?))))
           
           (define sort-by-name? #f)
           (define sorting-name (string-constant sort-by-name))
@@ -636,74 +635,86 @@ tab panels new behavior:
                                    (string-constant sort-by-position) 
                                    (string-constant sort-by-name))))
           
-          (define (on-event evt)
-            (cond
-              [(send evt button-down?)
-               (set! inverted? #t)
-               (on-paint)
-               (let* ([text (let ([active-text (send frame get-edit-target-object)])
-                              (if (and (object? active-text)
-                                       (is-a? active-text definitions-text<%>))
-                                  active-text
-                                  fallback-text))]
-                      [menu (make-object popup-menu% #f
-                              (lambda x
-                                (set! inverted? #f)
-                                (on-paint)))]
-                      [unsorted-defns (get-definitions (not sort-by-name?) text)]
-                      [defns (if sort-by-name?
-                                 (quicksort 
-                                  unsorted-defns
-                                  (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
-                                 unsorted-defns)])
-                 (make-object menu:can-restore-menu-item% sorting-name
-                   menu
-                   (lambda x
-                     (change-sorting-order)))
-                 (make-object separator-menu-item% menu)
-                 (if (null? defns)
-                     (send (make-object menu:can-restore-menu-item%
-                             (string-constant no-definitions-found)
-                             menu
-                             void)
-                           enable #f)
-                     (let loop ([defns defns])
-                       (unless (null? defns)
-                         (let* ([defn (car defns)]
-                                [checked? 
-                                 (let ([t-start (send text get-start-position)]
-                                       [t-end (send text get-end-position)]
-                                       [d-start (defn-start-pos defn)]
-                                       [d-end (defn-end-pos defn)])
-                                   (or (<= t-start d-start t-end)
-                                       (<= t-start d-end t-end)
-                                       (<= d-start t-start t-end d-end)))]
-                                [item
-                                 (make-object (if checked?
-                                                  menu:can-restore-checkable-menu-item%
-                                                  menu:can-restore-menu-item%)
-                                   (gui-utils:trim-string (defn-name defn) 200)
-                                   menu
-                                   (lambda x
-                                     (set! inverted? #f)
-                                     (on-paint)
-                                     (send text set-position (defn-start-pos defn) (defn-start-pos defn))
-                                     (let ([canvas (send text get-canvas)])
-                                       (when canvas
-                                         (send canvas focus)))))])
-                           (when checked?
-                             (send item check #t))
-                           (loop (cdr defns))))))
-                 (popup-menu menu
-                             0
-                             height))]
-              [else (super on-event evt)]))
+          (inherit get-size)
+          (define/override (on-event evt)
+            (let* ([new-mouse-over?
+                    (let-values ([(max-x max-y) (get-size)])
+                      (and (not (send evt leaving?))
+                           (<= 0 (send evt get-x) max-x)
+                           (<= 0 (send evt get-y) max-y)))]
+                   [needs-update? (not (eq? new-mouse-over? mouse-over?))])
+              (set! mouse-over? new-mouse-over?)
+              (cond
+                [(send evt button-down?)
+                 (set! grabbed? #t)
+                 (on-paint)
+                 (let* ([text (let ([active-text (send frame get-edit-target-object)])
+                                (if (and (object? active-text)
+                                         (is-a? active-text definitions-text<%>))
+                                    active-text
+                                    fallback-text))]
+                        [menu (make-object popup-menu% #f
+                                (lambda x
+                                  (set! grabbed? #f)
+                                  (on-paint)))]
+                        [unsorted-defns (get-definitions (not sort-by-name?) text)]
+                        [defns (if sort-by-name?
+                                   (quicksort 
+                                    unsorted-defns
+                                    (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
+                                   unsorted-defns)])
+                   (make-object menu:can-restore-menu-item% sorting-name
+                     menu
+                     (lambda x
+                       (change-sorting-order)))
+                   (make-object separator-menu-item% menu)
+                   (if (null? defns)
+                       (send (make-object menu:can-restore-menu-item%
+                               (string-constant no-definitions-found)
+                               menu
+                               void)
+                             enable #f)
+                       (let loop ([defns defns])
+                         (unless (null? defns)
+                           (let* ([defn (car defns)]
+                                  [checked? 
+                                   (let ([t-start (send text get-start-position)]
+                                         [t-end (send text get-end-position)]
+                                         [d-start (defn-start-pos defn)]
+                                         [d-end (defn-end-pos defn)])
+                                     (or (<= t-start d-start t-end)
+                                         (<= t-start d-end t-end)
+                                         (<= d-start t-start t-end d-end)))]
+                                  [item
+                                   (make-object (if checked?
+                                                    menu:can-restore-checkable-menu-item%
+                                                    menu:can-restore-menu-item%)
+                                     (gui-utils:trim-string (defn-name defn) 200)
+                                     menu
+                                     (lambda x
+                                       (set! grabbed? #f)
+                                       (on-paint)
+                                       (send text set-position (defn-start-pos defn) (defn-start-pos defn))
+                                       (let ([canvas (send text get-canvas)])
+                                         (when canvas
+                                           (send canvas focus)))))])
+                             (when checked?
+                               (send item check #t))
+                             (loop (cdr defns))))))
+                   (let-values ([(width height) (get-size)])
+                     (popup-menu menu
+                                 0
+                                 height)))]
+                [else 
+                 (when needs-update?
+                   (on-paint))
+                 (super on-event evt)])))
           
-          (super-make-object parent)
+          (super-new (style '(transparent)))
           
-          (define-values (width height) (calc-button-min-sizes (get-dc) label))
-          (min-width width)
-          (min-height height)
+          (let-values ([(width height) (calc-button-min-sizes (get-dc) label)])
+            (min-width width)
+            (min-height height))
           (stretchable-width #f)
           (stretchable-height #f)))
 
@@ -1391,7 +1402,6 @@ tab panels new behavior:
                                     (get-visible-region canvas-to-be-split)])
                         (let ([orig-percentages (send resizable-panel get-percentages)]
                               [orig-canvases (send resizable-panel get-children)]
-                              [_ (printf "new canvas%\n")]
                               [new-canvas (new canvas% 
                                             (parent resizable-panel)
                                             (editor text)
@@ -2222,9 +2232,7 @@ tab panels new behavior:
           
           (super-new
             (filename filename)
-            (style (case (system-type)
-                     [(macosx) '(toolbar-button metal)]
-                     [else '(toolbar-button)]))
+            (style '(toolbar-button))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
 
@@ -2595,7 +2603,10 @@ tab panels new behavior:
             (make-object message% (string-constant not-running) (get-info-panel)))
 
           
-          [define func-defs-canvas (make-object func-defs-canvas% name-panel this definitions-text)]
+          [define func-defs-canvas (new func-defs-canvas% 
+                                        (parent name-panel)
+                                        (frame this)
+                                        (fallback-text definitions-text))]
           
           (set! execute-button
                 (make-object button%
