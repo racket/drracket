@@ -325,9 +325,6 @@
       (preferences:set-default 'drscheme:last-version #f (λ (x) (or (string? x) (not x))))
       (preferences:set-default 'drscheme:last-language #f (λ (x) (or (symbol? x) (not x))))
 
-      ;; no more preferences defaults can be set after this
-      (preferences:read)
-      
       (cond
         [(current-eventspace-has-menu-root?)
          (drscheme:frame:create-root-menubar)
