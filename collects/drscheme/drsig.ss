@@ -23,7 +23,8 @@
    primitive-eval
    primitive-load
    system-custodian
-   system-eventspace))
+   system-eventspace
+   first-dir))
 
 (define-signature drscheme:prefs^ ())
 
