@@ -1802,11 +1802,12 @@ tab panels new behavior:
                                (send definitions-text paragraph-start-position 1)
                                0)])
                 (send definitions-text split-snip start)
-                (send interactions-text evaluate-from-port
-                      (open-input-text-editor definitions-text start)
-                      #t
-                      (lambda ()
-                        (send interactions-text clear-undos))))))
+                (let ([prt (open-input-text-editor definitions-text start)])
+                  (send interactions-text evaluate-from-port
+                        prt
+                        #t
+                        (lambda ()
+                          (send interactions-text clear-undos)))))))
           
           (inherit revert save)
           (define/private (check-if-save-file-up-to-date)

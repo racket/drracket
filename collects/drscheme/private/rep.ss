@@ -104,17 +104,15 @@ TODO
       ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
-        #;(printf "msg: ~s\n" msg)
-        (let ([rep (current-rep)]
-              [user-dir (current-directory)])
-          (cond
-            [(and (is-a? rep -text<%>)
-                  (eq? (current-error-port) (send rep get-err-port)))
-             (display msg (current-error-port))
-             (newline (current-error-port))]
-            [else
-             (display msg (current-error-port))
-             (newline (current-error-port))])))
+        (display msg (current-error-port))
+        (newline (current-error-port))
+        (let ([rep (current-rep)])
+          (when (and (is-a? rep -text<%>)
+                     (eq? (current-error-port) (send rep get-err-port)))
+            (parameterize ([current-eventspace drscheme:init:system-eventspace])
+              (queue-callback
+               (lambda ()
+                 (send rep highlight-errors/exn exn)))))))
 
 
       ;; insert-error-in-text : (is-a?/c text%)
@@ -532,8 +530,6 @@ TODO
         (internal-reset-callback)
         (internal-reset-error-arrows-callback))
       
-      (define error-range/reset-callback-semaphore (make-semaphore 1))
-      
       ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%) *-> (values number number)
       ;; inserts the string/stnip into the text at the end and changes the
       ;; style of the newly inserted text based on the style deltas.
@@ -731,7 +727,6 @@ TODO
           
           (define/public (get-error-ranges) error-ranges)
           
-          ;; =User= and =Kernel=
           (define/public (highlight-error/forward-sexp text start)
             (let ([end (if (is-a? text scheme:text<%>)
                            (or (send text get-forward-sexp start)
@@ -739,7 +734,6 @@ TODO
                            (+ start 1))])
               (highlight-error text start end)))
           
-          ;; =User= and =Kernel=
           (define/public (highlight-error/line-col text start-line start-col span)
             (let ([start
                    (+ (send text paragraph-start-position start-line)
@@ -751,17 +745,36 @@ TODO
           
           ;; highlight-error : file number number -> void
           (define/public (highlight-error file start end)
-            (highlight-errors (list (list file start end))))
+            (highlight-errors (list (make-srcloc file #f #f start (- end start))) #f))
           
-          ;; =User= and =Kernel= (maybe simultaneously)
-          ;; highlight-errors :    (cons (list file number number) (listof (list file number number)))
+          ;; highlight-errors/exn : exn -> void
+          ;; highlights all of the errors associated with the exn (incl. arrows)
+          (define/public (highlight-errors/exn exn)
+            (let ([locs (cond
+                          [(exn:fail:read? exn) 
+                           (exn:fail:read-srclocs exn)]
+                          [(exn:fail:syntax? exn)
+                           (map (lambda (stx)
+                                  (make-srcloc (syntax-source stx)
+                                               (syntax-line stx)
+                                               (syntax-column stx)
+                                               (syntax-position stx)
+                                               (syntax-span stx)))
+                                (exn:fail:syntax-exprs exn))]
+                          [else '()])])
+              (highlight-errors locs #f)))
+          
+          ;; =Kernel= =handler=
+          ;; highlight-errors :    (listof srcloc)
           ;;                       (union #f (listof (list (is-a?/c text:basic<%>) number number)))
           ;;                    -> (void)
-          (define/public highlight-errors
-            (opt-lambda (locs [error-arrows #f])
-              (reset-highlighting)  ;; grabs error-range/reset-callback-sempahore
+          (define/public (highlight-errors raw-locs error-arrows)
+            (let ([locs (filter (lambda (loc) (and (is-a? (srcloc-source loc) text:basic<%>)
+                                                   (number? (srcloc-position loc))
+                                                   (number? (srcloc-span loc))))
+                                raw-locs)])
+              (reset-highlighting)
               
-              (semaphore-wait error-range/reset-callback-semaphore)
               (set! error-ranges locs)
               
               (let ([defs               
@@ -769,58 +782,50 @@ TODO
                        (and f
                             (is-a? f drscheme:unit:frame<%>)
                             (send f get-definitions-text)))])
-                (when locs
-                  (let* ([first-error-range (car locs)]
-                         [first-file (car first-error-range)]
-                         [first-start (cadr first-error-range)]
-                         [first-finish (caddr first-error-range)])
-                    (for-each (lambda (loc) 
-                                (let ([file (car loc)])
-                                  (when (is-a? file text:basic<%>)
-                                    (send file begin-edit-sequence))))
-                              locs)
+                
+                (for-each (lambda (loc) (send (srcloc-source loc) begin-edit-sequence)) locs)
+                
+                (when color?
+                  (let ([resets
+                         (map (lambda (loc)
+                                (let* ([file (srcloc-source loc)]
+                                       [start (- (srcloc-position loc) 1)]
+                                       [span (srcloc-span loc)]
+                                       [finish (+ start span)])
+                                  (send file highlight-range start finish error-color #f #f 'high)))
+                              locs)])
                     
-                    (when color?
-                      (let ([resets
-                             (map (lambda (loc)
-                                    (let ([file (car loc)]
-                                          [start (cadr loc)]
-                                          [finish (caddr loc)])
-                                      (if (is-a? file text:basic<%>)
-                                          (send file highlight-range start finish error-color #f #f 'high)
-                                          void)))
-                                  locs)])
-                        
-                        (when (and defs error-arrows)
-                          (let ([filtered-arrows
-                                 (remove-duplicate-error-arrows
-				  (filter
-				   (lambda (arr)
-				     (embedded-in? (car arr) defs))
-				   error-arrows))])
-                            (send defs set-error-arrows filtered-arrows)))
-                        
-                        (set! internal-reset-callback
-                              (lambda ()
-                                (semaphore-wait error-range/reset-callback-semaphore)
-                                (set! error-ranges #f)
-                                (when defs
-                                  (send defs set-error-arrows #f))
-                                (set! internal-reset-callback void)
-                                (for-each (lambda (x) (x)) resets)
-                                (semaphore-post error-range/reset-callback-semaphore)))))
+                    (when (and defs error-arrows)
+                      (let ([filtered-arrows
+                             (remove-duplicate-error-arrows
+                              (filter
+                               (lambda (arr)
+                                 (embedded-in? (car arr) defs))
+                               error-arrows))])
+                        (send defs set-error-arrows filtered-arrows)))
                     
-                    (unless (is-a? first-file -text<%>)
+                    (set! internal-reset-callback
+                          (lambda ()
+                            (set! error-ranges #f)
+                            (when defs
+                              (send defs set-error-arrows #f))
+                            (set! internal-reset-callback void)
+                            (for-each (lambda (x) (x)) resets)))))
+                
+                (let* ([first-loc (and (pair? locs) (car locs))]
+                       [first-file (and first-loc (srcloc-source first-loc))]
+                       [first-start (and first-loc (- (srcloc-position first-loc) 1))]
+                       [first-span (and first-loc (srcloc-span first-loc))])
+                  
+                  (when first-loc
+                    (let ([first-finish (+ first-start first-span)])
                       (send first-file set-position first-start first-start)
-                      (send first-file scroll-to-position first-start #f first-finish))
-                    (for-each (lambda (loc)
-                                (let ([file (car loc)])
-                                  (when (is-a? file text:basic<%>)
-                                    (send file end-edit-sequence))))
-                              locs)
-                    (send first-file set-caret-owner #f 'global))))
-              
-              (semaphore-post error-range/reset-callback-semaphore)))
+                      (send first-file scroll-to-position first-start #f first-finish)))
+                  
+                  (for-each (lambda (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
+                  
+                  (when first-loc
+                    (send first-file set-caret-owner #f 'global))))))
           
           (define/public (reset-highlighting)
             (reset-error-ranges))

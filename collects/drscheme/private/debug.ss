@@ -27,7 +27,8 @@ profile todo:
               [drscheme:frame : drscheme:frame^]
               [drscheme:unit : drscheme:unit^]
               [drscheme:language : drscheme:language^]
-              [drscheme:language-configuration : drscheme:language-configuration/internal^])
+              [drscheme:language-configuration : drscheme:language-configuration/internal^]
+              [drscheme:init : drscheme:init^])
 
       (define (oprintf . args) (apply fprintf orig args))
       
@@ -202,9 +203,8 @@ profile todo:
 	  debug-tool-eval-handler))
       
       ;; make-debug-error-display-handler/text  : (-> (union #f (is-a?/c text%)))
-      ;;                                                ((is-a?/c rep:text%) (-> void) -> void)
-      ;;                                                ((listof (list text% number number)) -> void)
-      ;;                                                (string (union TST exn) -> void)
+      ;;                                              ((listof (list text% number number)) -> void)
+      ;;                                              (string (union TST exn) -> void)
       ;;                                             -> string (union TST exn)
       ;;                                             -> void
       (define (make-debug-error-display-handler/text get-text 
@@ -213,8 +213,11 @@ profile todo:
         (define (debug-error-display-handler msg exn)
           (let ([text (get-text)])
             (cond
-              [text ;; should make sure whe have the right error port before continuing here...
-	       (let* ([cms (and (exn? exn) 
+              [(and text
+                    (let ([rep (drscheme:rep:current-rep)])
+                      (and rep
+                           (eq? (current-error-port) (send rep get-err-port)))))
+               (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
 				(continuation-mark-set->list 
                                  (exn-continuation-marks exn)
@@ -238,30 +241,32 @@ profile todo:
                            (send note set-callback 
                                  (lambda () (open-and-highlight-in-file src-to-display)))
                            (write-special note (current-error-port))
-                           (display #\space (current-error-port)))))))
-                 
-                 (orig-error-display-handler msg exn)
-                 
-                 ;; not sure how the syncronization should work here...
-                 '(queue-output
-                  text
-                  (lambda ()
-                    (when src-to-display
-                      (let* ([src (car src-to-display)]
-                             [position (cadr src-to-display)]
-                             [span (cddr src-to-display)])
-                        (when (and (object? src)
-                                   (is-a? src text:basic%))
-                          (highlight-errors text 
-                                            (list (list src position (+ position span)))
-                                            (filter 
-                                             (lambda (x)
-                                               (and (pair? x)
-                                                    (is-a? (car x) text:basic<%>)
-                                                    (pair? (cdr x))
-                                                    (number? (cadr x))
-                                                    (number? (cddr x))))
-                                             cms))))))))]
+                           (display #\space (current-error-port))))))
+                   
+                   (display msg (current-error-port))
+                   (newline (current-error-port))
+                   
+                   (parameterize ([current-eventspace drscheme:init:system-eventspace])
+                     (queue-callback
+                      (lambda ()
+                        ;; need to make sure that the user's eventspace is still the same
+                        ;; and still running here?
+                        (when src-to-display
+                          (let* ([src (car src-to-display)]
+                                 [position (cadr src-to-display)]
+                                 [span (cddr src-to-display)])
+                            (when (and (object? src)
+                                       (is-a? src text:basic%))
+                              (highlight-errors text 
+                                                (list (make-srcloc src #f #f position (+ position span)))
+                                                (filter 
+                                                 (lambda (x)
+                                                   (and (pair? x)
+                                                        (is-a? (car x) text:basic<%>)
+                                                        (pair? (cdr x))
+                                                        (number? (cadr x))
+                                                        (number? (cddr x))))
+                                                 cms))))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
@@ -290,8 +295,9 @@ profile todo:
            ;; assume that the original error-display-handler displays the 
            ;; error in this case.
            #f]
-	  [else (and (pair? cms)
-                     (car cms))]))
+	  [else 
+           (and (pair? cms)
+                (car cms))]))
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
