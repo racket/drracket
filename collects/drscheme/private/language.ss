@@ -480,10 +480,10 @@
                                               (get-module)
                                               (get-transformer-module)
                                               run-in-user-thread))
-          (define/public (front-end/complete-program input settings teachpack-cache)
-            (module-based-language-front-end input (get-reader)))
-          (define/public (front-end/interaction input settings teachpack-cache)
-            (module-based-language-front-end input (get-reader)))
+          (define/public (front-end/complete-program port source settings teachpack-cache)
+            (module-based-language-front-end port source (get-reader)))
+          (define/public (front-end/interaction port source settings teachpack-cache)
+            (module-based-language-front-end port source (get-reader)))
           (define/public (create-executable setting parent program-filename)
             (create-module-based-language-executable parent 
                                                      program-filename
@@ -950,71 +950,20 @@
 		 (namespace-require module-spec))
 	     (namespace-transformer-require transformer-module-spec)))))
 
-      ;; module-based-language-front-end : (input reader -> (-> (union sexp syntax eof)))
+      ;; module-based-language-front-end : (port source reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
-      (define (module-based-language-front-end input reader)
-        (let-values ([(port source offset line col) (open-program-for-reading input)])
-          (let ([closed? #f])
-            (lambda ()
-              (if closed?
-                  eof
-                  (let ([result (reader source port (list line col offset))])
-                    (if (eof-object? result)
-                        (begin
-                          (set! closed? #t)
-                          (close-input-port port)
-                          eof)
-                        result)))))))
-      
-      ;; open-program-for-reading : (union string? (is-a?/c text%)) -> (values port source offset line col)
-      (define (open-program-for-reading input)
-        (cond
-          [(string? input)
-           (let ([skip-first-line? 
-                  (let* ([tmp (open-input-file input)]
-                         [c1 (read-char tmp)]
-                         [c2 (read-char tmp)])
-                    (begin0
-                      (and (char=? c1 #\#)
-                           (char=? c2 #\!))
-                      (close-input-port tmp)))])
-             (let ([port (open-input-file input)])
-               (port-count-lines! port)
-               (if skip-first-line?
-                   (begin (read-line port 'any)
-                          (values port input (file-position port) 1 0))
-                   (values port input 0 0 0))))]
-          [else 
-           (let* ([text (text/pos-text input)]
-                  [pre-start (text/pos-start input)]
-                  [start (if (= pre-start 0)
-                             (get-post-hash-bang-start text)
-                             pre-start)]
-                  [end (text/pos-end input)]
-                  [start-line (send text position-paragraph start)]
-                  [start-col (- start (send text paragraph-start-position start-line))])
-             (let ([port (open-input-text-editor text start end)])
-               (port-count-lines! port)
-               (values port
-                       text
-                       start
-                       start-line
-                       start-col)))]))
-      
-      ;; get-post-hash-bang-start : text -> number
-      ;; returns the beginning of the line after #! if there
-      ;; is a #! or `pos'.
-      (define (get-post-hash-bang-start text)
-        (if (1 . < . (send text last-position))
-            (let ([c1 (send text get-character 0)]
-                  [c2 (send text get-character 1)])
-              (if (and (char=? c1 #\#)
-                       (char=? c2 #\!))
-                  (if (1 . <= . (send text last-paragraph))
-                      (send text paragraph-start-position 1)
-                      (send text last-position))
-                  0))
-            0))
+      (define (module-based-language-front-end port source reader)
+        (let ([closed? #f])
+          (lambda ()
+            (if closed?
+                eof
+                (let ([result (reader source port (list 1 0 0))])
+                  (if (eof-object? result)
+                      (begin
+                        (set! closed? #t)
+                        (close-input-port port)
+                        eof)
+                      result))))))
 
                                                                       
                                              ;                        

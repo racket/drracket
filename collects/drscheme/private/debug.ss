@@ -150,7 +150,6 @@ profile todo:
       ;;                                             -> string (union TST exn)
       ;;                                             -> void
       (define (make-debug-error-display-handler/text get-text 
-                                                     queue-output
                                                      highlight-errors
                                                      orig-error-display-handler)
         (define (debug-error-display-handler msg exn)
@@ -169,30 +168,32 @@ profile todo:
 		      [src-to-display (find-src-to-display exn 
                                                            (and cms
                                                                 (map st-mark-source cms)))])
-                 
-                 (queue-output
-                  text
-                  (lambda ()
-                    (let ([locked? (send text is-locked?)])
-                      (send text begin-edit-sequence)
-                      (send text lock #f)
-                      (when (and cms
-                                 (not (null? cms)))
-                        (insert/clickback text
-                                          (if (mf-bday?) mf-note bug-note)
-                                          (lambda ()
-                                            (show-backtrace-window msg cms k))))
-                      (when src-to-display
-                        (let ([src (car src-to-display)])
-                          (when (symbol? src)
-                            (insert/clickback 
-                             text file-note
-                             (lambda ()
-                               (open-and-highlight-in-file src-to-display))))))
-                      (send text lock locked?)
-                      (send text end-edit-sequence))))
+                 ;; should send the snip directly into the port!
+                 '(queue-output
+                   text
+                   (lambda ()
+                     (let ([locked? (send text is-locked?)])
+                       (send text begin-edit-sequence)
+                       (send text lock #f)
+                       (when (and cms
+                                  (not (null? cms)))
+                         (insert/clickback text
+                                           (if (mf-bday?) mf-note bug-note)
+                                           (lambda ()
+                                             (show-backtrace-window msg cms k))))
+                       (when src-to-display
+                         (let ([src (car src-to-display)])
+                           (when (symbol? src)
+                             (insert/clickback 
+                              text file-note
+                              (lambda ()
+                                (open-and-highlight-in-file src-to-display))))))
+                       (send text lock locked?)
+                       (send text end-edit-sequence))))
                  (orig-error-display-handler msg exn)
-                 (queue-output
+                 
+                 ;; not sure how the syncronization should work here...
+                 '(queue-output
                   text
                   (lambda ()
                     (when src-to-display
@@ -222,9 +223,8 @@ profile todo:
          (lambda ()
            (let ([rep (drscheme:rep:current-rep)])
              (and (is-a? rep drscheme:rep:text<%>)
-                  (eq? (send rep get-this-err) (current-error-port))
+                  (eq? (send rep get-err-port) (current-error-port))
                   rep)))
-         (lambda (rep t) (send rep queue-output t))
          (lambda (rep x y) (send rep highlight-errors x y))
          orig-error-display-handler))
 

@@ -1,5 +1,11 @@
-;; should a GC should happen on each execution? (or perhaps better, each kill?)
+#|
 
+TODO
+- should a GC should happen on each execution? (or perhaps better, each kill?)
+- front-end methods have new signature
+
+
+|#
 ; =Kernel= means in DrScheme's thread and parameterization
 ; 
 ; =User= means the user's thread and parameterization
@@ -100,17 +106,16 @@
       (define (drscheme-error-display-handler msg exn)
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
-          (cond
-            [(and (is-a? rep -text<%>)
-                  (eq? (current-error-port) (send rep get-err-port)))
-             (send rep queue-output
-                   (lambda ()  ;; =Kernel=, =Handler=
-                     (insert-error-in-text rep rep msg exn user-dir)
-                     (let ([context (send rep get-context)])
-                       (send context ensure-rep-shown rep))))]
-            [else
-             (display msg (current-error-port))
-             (newline (current-error-port))])))
+          (printf "msg: ~s\n" msg)
+          (display msg (current-error-port))
+          (newline (current-error-port))
+          (when (and (is-a? rep -text<%>)
+                     (eq? (current-error-port) (send rep get-err-port)))
+            (parameterize ([current-eventspace drscheme:init:system-eventspace])
+              (queue-callback
+               (lambda ()
+                 (let ([context (send rep get-context)])
+                   (send context ensure-rep-shown rep))))))))
 
       ;; insert-error-in-text : (is-a?/c text%)
       ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
@@ -956,10 +961,11 @@
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
-          (define/override (on-submit) (do-many-language-evals (get-in-port) #f))
+          (define/override (on-submit)
+            (do-many-language-evals (get-in-port) this #f))
           
           ; =Kernel, =Handler=
-          (define/public (do-many-language-evals port complete-program?)
+          (define/public (do-many-language-evals port source complete-program?)
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([settings (current-language-settings)]
@@ -967,10 +973,11 @@
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
                        (if complete-program?
-                           (send lang front-end/complete-program port settings user-teachpack-cache)
-                           (send lang front-end/interaction port settings user-teachpack-cache))])
+                           (send lang front-end/complete-program port source settings user-teachpack-cache)
+                           (send lang front-end/interaction port source settings user-teachpack-cache))])
                  (let loop () 
                    (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                     (printf "do-many.1 ~s\n" sexp/syntax/eof)
                      (cond
                        [(eof-object? sexp/syntax/eof)
                         (void)]
@@ -980,7 +987,9 @@
                            (call-with-values
                             (lambda ()
                               (eval-syntax sexp/syntax/eof))
-                            (lambda x (display-results x)))
+                            (lambda x 
+                              (printf "do-many.2 ~s\n" x)
+                              (display-results x)))
                            (flush-output (get-value-port))))
                         (loop)])))))))
           
@@ -1480,8 +1489,7 @@
                    erase
                    invalidate-bitmap-cache
                    get-extent get-style-list)
-          (rename [super-on-local-char on-local-char]
-                  [super-after-set-size-constraint after-set-size-constraint]
+          (rename [super-after-set-size-constraint after-set-size-constraint]
                   [super-get-keymaps get-keymaps])
           (rename [super-can-insert? can-insert?]
                   [super-after-insert after-insert]
@@ -1505,8 +1513,7 @@
                     after-change-style
                     on-edit-sequence
                     after-edit-sequence
-                    after-set-position
-                    on-local-char)
+                    after-set-position)
           
           (public set-resetting
                   get-resetting
@@ -1741,27 +1748,7 @@
                                              (floor (/ width char-width)))])
                       (send dc set-font old-font)
                       (pretty-print-columns new-columns)))))))
-          (define do-eval
-            (lambda (start end)
-              (error 'do-eval "abstract method")))
-          (define do-pre-eval
-            (lambda ()
-              (ready-non-prompt)))
-          (define do-post-eval
-            (lambda ()
-              (insert-prompt)))
-          
-          (define only-spaces-after
-            (lambda (pos)
-              (let ([last (last-position)])
-                (let loop ([pos pos])
-                  (if (= pos last)
-                      #t
-                      (let ([c (get-character pos)])
-                        (if (char-whitespace? c)
-                            (loop (add1 pos))
-                            #f)))))))
-          
+                    
           (define eval-busy? (lambda () #f))
           
           (field [submit-predicate
@@ -1769,77 +1756,6 @@
                     #t)])
           (define/public (set-submit-predicate p)
             (set! submit-predicate p))
-
-          (inherit backward-match)
-          (define on-local-char
-            (lambda (key)
-              (let ([start (get-start-position)]
-                    [end (get-end-position)]
-                    [last (last-position)]
-                    [code (send key get-key-code)]
-                    [copy-to-end/set-position
-                     (lambda (start end)
-                       (split-snip start)
-                       (split-snip end)
-                       (let loop ([snip (find-snip start 'after)])
-                         (cond
-                           [(not snip) (void)]
-                           [(< (get-snip-position snip) end)
-                            (insert (send snip copy) (last-position))
-                            (loop (send snip next))]
-                           [else (void)]))
-                       (set-position (last-position)))])
-                
-                (cond
-                  [(not (or (eq? code 'numpad-enter)
-                            (equal? code #\return)
-                            (equal? code #\newline)))
-                   (super-on-local-char key)]
-                  [(and (< start end) (< end prompt-position)
-                        (not (eval-busy?)))
-                   (begin-edit-sequence)
-                   (when (not prompt-mode?)
-                     (insert-prompt))
-                   (copy-to-end/set-position start end)
-                   (end-edit-sequence)]
-                  [(and (= start last) 
-                        (not prompt-mode?)
-                        (not (eval-busy?)))
-                   (insert-prompt)]
-                  [(and (prompt-position . <= . start)
-                        (not (eval-busy?)))
-                   (if (and (balance-required)
-                            (not (or (send key get-alt-down)
-				     (send key get-meta-down))))
-                       (let ([at-end-of-expression? 
-                              (and (only-spaces-after start)
-                                   (submit-predicate this prompt-position))])
-                         (cond
-                           [at-end-of-expression?
-                            (delete start last)
-                            (do-save-and-eval prompt-position start)]
-                           [(eq? 'numpad-enter code)
-                            (begin-edit-sequence)
-                            (set-position (last-position))
-                            (end-edit-sequence)
-                            (do-save-and-eval prompt-position (last-position))]
-                           [else
-                            (super-on-local-char key)]))
-                       (begin
-                         (delete start last)
-                         (do-save-and-eval prompt-position start)))]
-
-;; need to change this case to bring down entire interaction always.
-                  [(start . < . prompt-position)
-                   (let ([match (backward-match start 0)])
-                     (if match
-                         (begin
-                           (begin-edit-sequence)
-                           (copy-to-end/set-position match start)
-                           (end-edit-sequence))
-                         (super-on-local-char key)))]
-                  [else
-                   (super-on-local-char key)]))))
           
           (field (inserting-prompt #f))
           (define (get-inserting-prompt) inserting-prompt)

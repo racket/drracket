@@ -210,8 +210,6 @@
      create-executable-gui
      put-executable
      
-     get-post-hash-bang-start
-
      ;(struct loc (source position line column span) -setters)
 
      (struct text/pos (text start end) -setters)
@@ -231,9 +229,7 @@
      simple-module-based-language<%>
      simple-module-based-language%
      simple-module-based-language->module-based-language-mixin
-     module-based-language->language-mixin
-     
-     open-program-for-reading))
+     module-based-language->language-mixin))
 
   (define-signature drscheme:teachpack^
     (install-teachpacks
