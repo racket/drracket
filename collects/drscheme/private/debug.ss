@@ -1,8 +1,7 @@
 #|
 
 profile todo:
-
-   - document drscheme:debug stuff for other languages
+  - use origin fields
    
 |#
 
