@@ -182,7 +182,7 @@
                                             coll in-path)
                                     x))])
                   (let-values ([(phase1-thunk phase2-thunk) 
-                                (invoke-tool unit (string->symbol (or name coll)))])
+                                (invoke-tool unit (string->symbol (or name (path->string coll))))])
                     (set! successfully-loaded-tools 
                           (cons (make-successfully-loaded-tool
                                  tool-path

@@ -71,11 +71,6 @@ profile todo:
       ;; error-color : (instanceof color%)
       (define error-color (make-object color% "PINK"))
       
-      ;; bug-note : (union string (instanceof snip%))
-      (define bug-bitmap 
-        (make-object bitmap% 
-          (build-path (collection-path "icons") "bug09.gif")))
-      
       (define clickable-image-snip%
         (class image-snip%
           (init-rest args)
@@ -139,29 +134,24 @@ profile todo:
           (apply super-make-object args)
           (set-flags (cons 'handles-events (get-flags)))))
       
-      (define bug-note%
-        (class clickable-image-snip%
-          (inherit get-callback)
-          (define/override (copy) 
-            (let ([n (new bug-note%)])
-              (send n set-callback (get-callback))))
-          (super-make-object bug-bitmap)))
+      ;; make-note% : string -> (union class #f)
+      (define (make-note% filename)
+        (let ([bitmap (make-object bitmap% 
+                        (build-path (collection-path "icons") filename))])
+          (and (send bitmap ok?)
+               (letrec ([note%
+                         (class clickable-image-snip%
+                           (inherit get-callback)
+                           (define/override (copy) 
+                             (let ([n (new note%)])
+                               (send n set-callback (get-callback))
+                               n))
+                           (super-make-object bitmap))])
+                 note%))))
       
-      ;; mf-note : (union string (instanceof snip%))
-      (define mf-note
-        (let ([bitmap
-               (make-object bitmap%
-                 (build-path (collection-path "icons") "mf.gif"))])
-          (if (send bitmap ok?)
-              (make-object image-snip% bitmap)
-              "[err trace]")))
-      
-      ;; file-note : (union string (instanceof snip%))
-      (define file-note (let ([b (make-object bitmap% 
-                                  (build-path (collection-path "icons") "file.gif"))])
-                         (if (send b ok?)
-                             (make-object image-snip% b)
-                             "[file]")))
+      (define bug-note% (make-note% "bug09.gif"))
+      (define mf-note% (make-note% "mf.gif"))
+      (define file-note% (make-note% "file.gif"))
       
       ;; display-stats : (syntax -> syntax)
       ;; count the number of syntax expressions & number of with-continuation-marks in an 
@@ -223,41 +213,30 @@ profile todo:
         (define (debug-error-display-handler msg exn)
           (let ([text (get-text)])
             (cond
-              [text
+              [text ;; should make sure whe have the right error port before continuing here...
 	       (let* ([cms (and (exn? exn) 
 				(continuation-mark-set? (exn-continuation-marks exn))
 				(continuation-mark-set->list 
                                  (exn-continuation-marks exn)
-                                 cm-key))]
-                      [k #f; no continuing from exceptions for the moment.
-			   ;(and (exn:break? exn)
-			   ;     (exn:break-continuation exn))
-			 ]
-		      [src-to-display 
-                       (find-src-to-display exn 
-                                            (and cms
-                                                 (map st-mark-source cms)))])
-                 (let ([note (new bug-note%)])
-                   (send note set-callback (lambda () (show-backtrace-window msg cms k)))
-                   (write-special note (current-error-port)))
+                                 cm-key))])
                  
-                 (display #\space (current-error-port))
+                 (let ([note% (if (mf-bday?) mf-note% bug-note%)])
+                   (when note%
+                     (let ([note (new note%)])
+                       (send note set-callback (lambda () (show-backtrace-window msg cms)))
+                       (write-special note (current-error-port))
+                       (display #\space (current-error-port)))))
                  
-                 #;
-                 (when (and cms
-                            (not (null? cms)))
-                   (insert/clickback text
-                                     (if (mf-bday?) mf-note bug-note)
-                                     (lambda ()
-                                       (show-backtrace-window msg cms k))))
-                 #;
-                 (when src-to-display
-                   (let ([src (car src-to-display)])
-                     (when (symbol? src)
-                       (insert/clickback 
-                        text file-note
-                        (lambda ()
-                          (open-and-highlight-in-file src-to-display))))))
+                 (let ([src-to-display (find-src-to-display exn cms)])
+                   (when src-to-display
+                     (let ([src (car src-to-display)])
+                       (when (and (symbol? src)
+                                  file-note%)
+                         (let ([note (new file-note%)])
+                           (send note set-callback 
+                                 (lambda () (open-and-highlight-in-file src-to-display)))
+                           (write-special note (current-error-port))
+                           (display #\space (current-error-port)))))))
                  
                  (orig-error-display-handler msg exn)
                  
@@ -280,7 +259,7 @@ profile todo:
                                                     (pair? (cdr x))
                                                     (number? (cadr x))
                                                     (number? (cddr x))))
-                                             (map st-mark-source cms)))))))))]
+                                             cms))))))))]
               [else 
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
@@ -332,24 +311,20 @@ profile todo:
       ;; guarantees that the continuation marks associated with cm-key are
       ;; members of the debug-source type, after unwrapped with st-mark-source
       (define (with-mark src-stx mark-maker expr)
-        (let (#;
-              [source (cond
+        (let ([source (cond
                         [(string? (syntax-source src-stx))
                          (string->symbol (syntax-source src-stx))]
                         [(is-a? (syntax-source src-stx) editor<%>)
                          (syntax-source src-stx)]
                         [else #f])]
-              #;
               [position (syntax-position src-stx)]
-              #;
-              [span (syntax-span src-stx)]
-              )
+              [span (syntax-span src-stx)])
           (with-syntax ([expr expr]
-                        [mark (mark-maker expr)]
+                        [mark (list* source position span)]
                         [cm-key cm-key])
             (syntax
              (with-continuation-mark 'cm-key
-               mark
+               'mark
                expr)))))
 
     
@@ -394,28 +369,23 @@ profile todo:
           (define/override (edit-menu:between-find-and-preferences edit-menu) (void))
           (define/override (edit-menu:between-select-all-and-find edit-menu) (void))
           (define/override (file-menu:between-save-as-and-print file-menu) (void))
-          (define/override (on-close) 
+          (define/augment (on-close) 
             (set! current-backtrace-window #f)
-            (super on-close))
-          (super-instantiate ())))
+            (inner (void) on-close))
+          (super-new)))
             
       ;; show-backtrace-window : string
       ;;                         (listof mark?)
-      ;;                         (union continuation? #f)
       ;;                         -> 
       ;;                         void
-      (define (show-backtrace-window error-text dis k)
+      (define (show-backtrace-window error-text dis)
+        (printf "~s\n" (list 'show-backtrace-window error-text dis))
         (reset-backtrace-window)
         (letrec ([text (make-object text:hide-caret/selection%)]
                  [mf-bday-note (when (mf-bday?)
                                  (instantiate message% ()
                                    (label (string-constant happy-birthday-matthias))
                                    (parent (send current-backtrace-window get-area-container))))]
-                 [k-button (when k
-                             (make-object button%
-                               "Continue"
-                               (send current-backtrace-window get-area-container)
-                               (lambda (a b) (k (void)))))] ; should also foreground DrS window?
                  [ec (make-object canvas:wide-snip% 
                        (send current-backtrace-window get-area-container)
                        text)]
@@ -496,10 +466,9 @@ profile todo:
       ;;              void 
       ;; shows one frame of the continuation
       (define (show-frame editor-canvas text di)
-        (let* ([di-source-info (st-mark-source di)]
-               [start (cadr di-source-info)]
-               [span (cddr di-source-info)]
-               [debug-source (car di-source-info)]
+        (let* ([debug-source (car di)]
+               [start (cadr di)]
+               [span (cddr di)]
                [fn (get-filename debug-source)]
                [start-pos (send text last-position)])
           
@@ -511,7 +480,7 @@ profile todo:
             (send text set-clickback
                   start-pos end-pos
                   (lambda x
-                    (open-and-highlight-in-file di-source-info))))
+                    (open-and-highlight-in-file di))))
           
           ;; make bindings hier-list
           (let ([bindings (st-mark-bindings di)])

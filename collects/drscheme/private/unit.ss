@@ -1725,14 +1725,14 @@ tab panels new behavior:
 		   (lambda () (file-menu:get-print-item))))
 	    (send file-menu:print-transcript-item enable interactions-shown?))
           
-          (define/override (on-close)
+          (define/augment (on-close)
+            (inner (void) on-close)
             (when (eq? this created-frame)
               (set! created-frame #f))
             (when logging
               (stop-logging))
             (remove-logging-pref-callback)
-            (send interactions-text on-close)
-            (super on-close))
+            (send interactions-text on-close))
           
           (field [thread-to-break-box (make-weak-box #f)]
                  [custodian-to-kill-box (make-weak-box #f)]
