@@ -108,7 +108,7 @@ If the namespace does not, they are colored the unbound color.
       ;;  to ensure that the on-change method isn't called until after
       ;;  the arrows are cleared.
       (define clearing-text-mixin
-        (fw:mixin ((class->interface text%)) ()
+        (mixin ((class->interface text%)) ()
           
           (inherit begin-edit-sequence end-edit-sequence)
           (define/augment (on-delete start len)

@@ -550,6 +550,18 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
                 void
                 void)
      
+     ;; should produce a syntax object with a turn-down triangle.
+     (make-test "(write (list (syntax x)))" 
+                "({syntax-snip})"
+                "({syntax-snip})"
+                #f
+                'interactions
+                #f
+                #f
+                #f
+                void
+                void)
+     
      (make-test
       ;; the begin/void combo is to make sure that no value printout
       ;; comes and messes up the source location for the error.

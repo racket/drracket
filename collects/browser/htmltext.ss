@@ -9,8 +9,7 @@
 	   (lib "url-sig.ss" "net")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
-	   (lib "external.ss" "browser")
-           (lib "macro.ss" "framework"))
+	   (lib "external.ss" "browser"))
            
   (define-values/invoke-unit/sig 
      html^
