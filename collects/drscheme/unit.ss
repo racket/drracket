@@ -379,7 +379,8 @@
 		  (send interactions-edit do-many-buffer-evals
 			definitions-edit 0
 			(send definitions-edit last-position)))
-		(lambda () (send interactions-edit end-edit-sequence)))))])
+		(lambda () (send interactions-edit end-edit-sequence)))
+	       (send interactions-canvas set-focus)))])
 	(sequence
 	  (mred:debug:printf 'super-init "before drscheme:unit-frame%")
 	  (super-init (cond 
