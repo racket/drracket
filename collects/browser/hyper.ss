@@ -573,7 +573,12 @@
 	       (send e set-position tag-pos))
 	     (unless (and tag-pos (positive? tag-pos))
 	       (send e hide-caret #t))
-	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
+	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+	     (send (get-parent) update-url-display
+		       (format "~s"
+			       (if (url? url)
+				   (list (url->string url) (url-fragment url))
+				   url)))))]
 	[set-page
 	 (lambda (page notify?)
            (let ([e (car page)]
@@ -644,6 +649,21 @@
     (class super% (info-line? . args)
       (inherit reflow-container)
       (sequence (apply super-init args))
+
+      (private
+	[url-message (and (directory-exists? (build-path (collection-path "mzlib")
+							 "CVS"))
+			  (make-object message% "" this))])
+      (sequence
+	(when url-message
+	  (send url-message stretchable-width #t)))
+      (public
+	[update-url-display
+	 (lambda (str)
+	   (when url-message
+	     (send url-message set-label str)))])
+
+
       (private
 	[clear-info (lambda () 
 		      (when info 

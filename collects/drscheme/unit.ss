@@ -335,7 +335,7 @@
 	    (mred:message-box "Full Name" label)
 	    (mred:message-box
 	     "Full Name"
-	     "The file does not have a full name because it has not yet been saved")))
+	     "The file does not have a full name because it has not yet been saved.")))
 
       (define mouse-grabbed? #f)
       (define (on-event evt)
