@@ -196,12 +196,16 @@
 	  [(exn:syntax? exn)
            (let ([stx (exn:syntax-expr exn)])
              (if stx
-                 (values (syntax-source stx)
-                         (and (syntax-position stx)
-                              (- (syntax-position stx) 1))
-                         #f
-                         (exn:syntax-module exn)
-                         (exn:syntax-form exn))
+                 (let* ([start (and (syntax-position stx)
+                                    (- (syntax-position stx) 1))]
+                        [end (and (syntax-span stx)
+                                  start
+                                  (+ start (syntax-span stx)))])
+                   (values (syntax-source stx)
+                           start
+                           end
+                           (exn:syntax-module exn)
+                           (exn:syntax-form exn)))
                  (values #f #f #f
                          (exn:syntax-module exn)
                          (exn:syntax-form exn))))]
@@ -1055,6 +1059,8 @@
 		(set! error-range (cons start finish))
 		(if color?
 		    (let ([reset (send file highlight-range start finish error-color #f #f 'high)])
+                      (when (is-a? file drscheme:unit:definitions-text<%>)
+                        (send file set-position start start))
 		      (set! reset-callback
 			    (lambda ()
                               (unless (get-inserting-prompt)
@@ -1213,12 +1219,15 @@
                         (lambda ()
                           (send language front-end input settings)))])
                   (let loop ()
-                    (let ([in (run-in-eventspace
-                               (lambda ()
-                                 (let ([rd (read-thnk)])
-                                   (if (eof-object? rd)
-                                       rd
-                                       (expand rd)))))])
+                    (let ([in (time
+                               (begin0 
+                                 (run-in-eventspace
+                                  (lambda ()
+                                    (let ([rd (read-thnk)])
+                                      (if (eof-object? rd)
+                                          rd
+                                          (expand rd)))))
+                                 (printf "expand~n")))])
                       (unless (eof-object? in)
                         (iter
                          exn-raised?

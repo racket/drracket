@@ -384,97 +384,89 @@
           (drscheme:rep:drs-bindings-keymap-mixin
            text:info%))))
       
+      (define definitions-text<%> (interface ()))
+
       (define definitions-text%
-        (class100 definitions-super% args
+        (class* definitions-super% (definitions-text<%>)
           (inherit get-top-level-window)
           (rename
            [super-set-modified set-modified]
            [super-set-filename set-filename])
           (inherit is-modified? run-after-edit-sequence)
-          (override
-            [set-modified
-             (lambda (mod?)
-               (super-set-modified mod?)
-               (run-after-edit-sequence
-                (lambda ()
-                  (let ([f (get-top-level-window)])
-                    (when f
-                      (send f update-save-button (is-modified?)))))))]
-            [set-filename
-             (case-lambda
-              [(fn) (set-filename fn #f)]
-              [(fn tmp?)
+          (define/override
+            (set-modified mod?)
+            (super-set-modified mod?)
+            (run-after-edit-sequence
+             (lambda ()
                (let ([f (get-top-level-window)])
                  (when f
-                   (send f update-save-message fn)))
-               (super-set-filename fn tmp?)])])
+                   (send f update-save-button (is-modified?)))))))
+          (define/override set-filename
+            (case-lambda
+             [(fn) (set-filename fn #f)]
+             [(fn tmp?)
+              (let ([f (get-top-level-window)])
+                (when f
+                  (send f update-save-message fn)))
+              (super-set-filename fn tmp?)]))
           
           (rename [super-after-insert after-insert]
                   [super-after-delete after-delete])
-          (private-field
+          (field
             [needs-execution-state #f]
             [already-warned-state #f]
             [execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol)])
-          (public
-            [needs-execution? 
-             (lambda ()
-               (or needs-execution-state
-                   (not (equal? execute-language
-                                (preferences:get drscheme:language-configuration:settings-preferences-symbol)))))]
-            [teachpack-changed
-             (lambda ()
-               (set! needs-execution-state #t))]
-            [just-executed
-             (lambda ()
-               (set! execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol))
-               (set! needs-execution-state #f)
-               (set! already-warned-state #f))]
-            [already-warned? (lambda () already-warned-state)]
-            [already-warned
-             (lambda ()
-               (set! already-warned-state #t))])
-          (override
-            [after-insert
-             (lambda (x y)
-               (set! needs-execution-state #t)
-               (super-after-insert x y))]
-            [after-delete
-             (lambda (x y)
-               (set! needs-execution-state #t)
-               (super-after-delete x y))])
+          (define/public (needs-execution?)
+            (or needs-execution-state
+                (not (equal? execute-language
+                             (preferences:get 
+                              drscheme:language-configuration:settings-preferences-symbol)))))
+
+          (define/public (teachpack-changed)
+            (set! needs-execution-state #t))
+          (define/public (just-executed)
+            (set! execute-language (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+            (set! needs-execution-state #f)
+            (set! already-warned-state #f))
+          (define/public (already-warned?)
+            already-warned-state)
+          (define/public (already-warned)
+            (set! already-warned-state #t))
+          (define/override (after-insert x y)
+            (set! needs-execution-state #t)
+            (super-after-insert x y))
+          (define/override (after-delete x y)
+            (set! needs-execution-state #t)
+            (super-after-delete x y))
           
           (inherit get-filename)
-          (private-field
+          (field
             [tmp-date-string #f])
-	  (private
-            [get-date-string
-             (lambda ()
-               (string-append
-                (mzlib:date:date->string (seconds->date (current-seconds)))
-                " "
-                (let ([fn (get-filename)])
-                  (if (string? fn)
-                      fn
-                      (string-constant untitled)))))])
+
+          (define (get-date-string)
+            (string-append
+             (mzlib:date:date->string (seconds->date (current-seconds)))
+             " "
+             (let ([fn (get-filename)])
+               (if (string? fn)
+                   fn
+                   (string-constant untitled)))))
           
           (rename [super-on-paint on-paint])
-          (override
-            [on-paint
-             (lambda (before dc left top right bottom dx dy draw-caret)
-               (when (and before
-                          (or (is-a? dc post-script-dc%)
-                              (is-a? dc printer-dc%)))
-                 (set! tmp-date-string (get-date-string))
-                 (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
-                   (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
-               (super-on-paint before dc left top right bottom dx dy draw-caret)
-               (when (and (not before)
-                          (or (is-a? dc post-script-dc%)
-                              (is-a? dc printer-dc%)))
-                 (send dc draw-text (get-date-string) 0 0)
-                 (void)))])
-          (sequence
-            (apply super-init args))))
+          (define/override (on-paint before dc left top right bottom dx dy draw-caret)
+            (when (and before
+                       (or (is-a? dc post-script-dc%)
+                           (is-a? dc printer-dc%)))
+              (set! tmp-date-string (get-date-string))
+              (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
+                (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
+            (super-on-paint before dc left top right bottom dx dy draw-caret)
+            (when (and (not before)
+                       (or (is-a? dc post-script-dc%)
+                           (is-a? dc printer-dc%)))
+              (send dc draw-text (get-date-string) 0 0)
+              (void)))
+          (super-instantiate ())))
       
       (define func-defs-canvas%
         (class canvas%

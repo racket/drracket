@@ -78,6 +78,7 @@
      make-bitmap
      definitions-canvas%
      definitions-text%
+     definitions-text<%>
      interactions-canvas%
      program-editor-mixin
      open-drscheme-window))
