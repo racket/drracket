@@ -40,8 +40,7 @@
              (- make-mode))))
   
   (define-signature drscheme:font^
-    (setup-preferences
-     get-default-font-name))
+    (setup-preferences))
   
   (define-signature drscheme:debug^
     (make-debug-error-display-handler

@@ -2477,14 +2477,10 @@
           (init-field symbol one-char-string)
           (define/public (read-one-special index source line column position)
             (values symbol 1 #t))
-          
-          (define/private (get-normal-font)
-            (send the-font-list find-or-create-font
-                  (preferences:get 'drscheme:font-size)
-                  'modern 'normal 'normal #f))
+
           (define/private (get-greek-font)
             (send the-font-list find-or-create-font 
-                  (preferences:get 'drscheme:font-size)
+                  (preferences:get 'framework:standard-style-list:font-size)
                   'symbol 'normal 'normal #f))
           (define/public (get-string) (string->symbol symbol))
           (define/override get-text

@@ -428,7 +428,7 @@
 		       
 		       [whitespaces (string #\space #\tab #\newline #\return)]
 		       
-                       [delta:swiss (make-object style-delta% 'change-family 'swiss)]
+                       [delta:fixed (make-object style-delta% 'change-family 'modern)]
                        [delta:default-face (make-object style-delta% 'change-family 'default)]
 		       [delta:bold (make-object style-delta% 'change-bold)] 
 		       [delta:underline (make-object style-delta% 'change-underline #t)]
@@ -613,7 +613,7 @@
 				       (r))
 				     rfl)))]
 
-		       [styler (opt-lambda (style/delta rest [drop-empty? #f])
+		       [styler (opt-lambda (delta rest [drop-empty? #f])
 				 (let*-values ([(start-pos) (current-pos)]
 					       [(r rfl) (rest)]
 					       [(end-pos) (current-pos)])
@@ -624,7 +624,7 @@
 					 (values void rfl))
 				       (values
 					(lambda ()
-					  (change-style style/delta start-pos end-pos)
+                                          (change-style delta start-pos end-pos)
 					  (r))
 					rfl))))]
 		       
@@ -675,39 +675,36 @@
                        ;; in the table `latin-1-symbols' above
                        [translate-number
                         (lambda (e)
-                          (let* ([lp (current-pos)]
-                                 [swiss
-                                  (lambda ()
-                                    (change-style delta:default-face lp (+ lp 1)))])
-                            (cond
-                              [(<= 0 e 255)
-                               (insert (or (latin-1-integer->char e) #\?))
-                               swiss]
-                              [(<= 913 e 969)
+                          (cond
+                            [(<= 0 e 255)
+                             (insert (or (latin-1-integer->char e) #\?))
+                             void]
+                            [(<= 913 e 969)
+                             (let ([lp (current-pos)])
                                (insert (string (integer->char (+ (- e 913) (char->integer #\A)))))
                                (lambda ()
-                                 (change-style delta:symbol lp (+ lp 1)))]
-                              
-                              ;; poor ascii approximaions. probably these
-                              ;; (and other) characters exist somewhere,
-                              ;; but I don't know where.
-                              [(= e 338) (insert "OE") swiss]
-                              [(= e 339) (insert "oe") swiss]
-                              [(= e 732) (insert "~") swiss]
-                              [(= e 710) (insert "^") swiss]
-                              [(= e 8242) (insert "'") swiss]
-                              [(= e 8243) (insert "''") swiss]
-                              [(= e 8260) (insert "/") swiss]
-                              [(= e 8722) (insert "-") swiss]
-                              [(= e 8727) (insert "*") swiss]
-                              [(= e 8764) (insert "~") swiss]
-                              [(= e 8804) (insert "<") swiss]
-                              [(= e 8805) (insert ">") swiss]
-                              [(= e 8211) (insert "--") swiss]
-                              [(= e 8212) (insert "---") swiss]
-                              
-                              [else (insert (format "&#~a;" e))
-                                    swiss])))]
+                                 (change-style delta:symbol lp (+ lp 1))))]
+                            
+                            ;; poor ascii approximations. probably these
+                            ;; (and other) characters exist somewhere,
+                            ;; but I don't know where.
+                            [(= e 338) (insert "OE") void]
+                            [(= e 339) (insert "oe") void]
+                            [(= e 732) (insert "~") void]
+                            [(= e 710) (insert "^") void]
+                            [(= e 8242) (insert "'") void]
+                            [(= e 8243) (insert "''") void]
+                            [(= e 8260) (insert "/") void]
+                            [(= e 8722) (insert "-") void]
+                            [(= e 8727) (insert "*") void]
+                            [(= e 8764) (insert "~") void]
+                            [(= e 8804) (insert "<") void]
+                            [(= e 8805) (insert ">") void]
+                            [(= e 8211) (insert "--") void]
+                            [(= e 8212) (insert "---") void]
+                            
+                            [else (insert (format "&#~a;" e))
+                                  void]))]
 
 		       ;; ========================================
 		       ;; This is the main formatting function.
@@ -1074,9 +1071,6 @@
                                                (send select set-value val)))
                                            (values r rfl)))]
                                       [(tt code samp kbd pre)
-                                       ;; here we assume that the standard style is
-                                       ;; a fixed width style, presumably due to the
-                                       ;; editor:standard-style-list-mixin
                                        (when (memq tag '(pre))
                                          (insert-newlines 2 forced-lines para-base))
                                        (let-values ([(r rfl)
@@ -1085,12 +1079,13 @@
                                                        (with-style-class
                                                         class
                                                         (lambda ()
-                                                          (let* ([style-list (send a-text get-style-list)]
-                                                                 [style (send style-list find-named-style "Standard")])
-                                                            (styler (if delta
-                                                                        (send style-list find-or-create-style style delta)
-                                                                        style)
-                                                                    rest)))))])
+                                                          (styler (if delta
+                                                                      (let ([d (make-object style-delta% 'change-nothing)])
+                                                                        (send d copy delta)
+                                                                        (send d collapse delta:fixed)
+                                                                        d)
+                                                                      delta:fixed)
+                                                                  rest))))])
                                          (when (memq tag '(pre))
                                            (insert-newlines 2 rfl para-base))
                                          (values r rfl))]

@@ -613,6 +613,7 @@
             (super-instantiate ())
             ;; load url, but the user might break:
             (with-handlers ([exn:break? void])
+              ;(printf "url: ~a\n" (url->string url)) ;; handy for debugging help desk
               (reload progress)))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))

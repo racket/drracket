@@ -129,24 +129,6 @@
        drscheme:teachpack:marshall-teachpack-cache
        drscheme:teachpack:unmarshall-teachpack-cache)
       
-      (preferences:set-default 'drscheme:font-name (drscheme:font:get-default-font-name) string?)
-      
-      (preferences:set-default
-       'drscheme:font-size
-       (send (send (send (make-object text%) 
-                         get-style-list)
-                   basic-style)
-             get-size)
-       (lambda (x) (and (number? x) (exact? x) (= x (floor x)))))
-      
-      (preferences:set-default
-       'drscheme:font-smoothing
-       (case (system-type)
-         [(macosx) 'partly-smoothed]
-         [else 'unsmoothed])
-       (lambda (x) 
-         (memq x '(unsmoothed partly-smoothed smoothed))))
-      
       (drscheme:font:setup-preferences)
       
       (scheme:add-preferences-panel)
