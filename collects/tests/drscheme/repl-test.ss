@@ -424,7 +424,7 @@
 	   (lambda (mred?)
 	     (let ([level (if mred? "MrEd" "R4RS+")])
 	       (printf "running ~a tests~n" level)
-	       (set-language-level! level drscheme-frame)
+	       (set-language-level! level)
 	       (fw:test:new-window definitions-canvas)
 	       (fw:test:menu-select "Edit" "Select All")
 	       (fw:test:menu-select "Edit" (if (eq? (system-type) 'macintosh)

@@ -39,7 +39,7 @@
 	  (printf "Select DrScheme frame~n")
 	  (poll-until pred)))))
 
-(define (wait-for-new-drscheme-frame old-frame)
+(define (wait-for-new-frame old-frame)
   (poll-until 
    (lambda ()
      (let ([active (get-top-level-focus-window)])
@@ -132,14 +132,12 @@
 
 ; set language level in a given DrScheme frame
 
-(define (set-language-level! level drs-frame)
+(define (set-language-level! level)
   (fw:test:menu-select "Language" "Configure Language...")
-  (fw:test:new-window (wx:find-window-by-name "Language" null))
-  (let* ([frame (wait-for-new-drscheme-frame drs-frame)]
-	 [o-panel (send frame get-top-panel)]
-	 [o-children (ivar o-panel children)]
+  (let* ([frame (wait-for-new-frame (mred:get-top-level-focus-window))]
+	 [o-children (send frame get-children)]
 	 [i-panel (car o-children)]
-	 [i-children (ivar i-panel children)]
+	 [i-children (send i-panel children)]
 	 [choice (cadr i-children)])
     (fw:test:set-choice! choice level)
     (fw:test:button-push "OK")))
