@@ -1537,10 +1537,9 @@
                 
                 (print-convert:current-print-convert-hook
                  (lambda (expr basic-convert sub-convert)
-                   (let ([ans (if (is-a? expr snip%)
-                                  expr
-                                  (basic-convert expr))])
-                     ans)))
+		   (if (is-a? expr snip%)
+		       expr
+		       (basic-convert expr))))
                 
                 (current-load drscheme-load-handler)
                 

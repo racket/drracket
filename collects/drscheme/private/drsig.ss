@@ -82,13 +82,13 @@
      open-drscheme-window))
   
   (define-signature drscheme:frame^
-    (name-message%
-     draw-button-label
-     calc-button-min-sizes
+    (name-message%       ;; documented
+     draw-button-label   ;; documented
+     calc-button-min-sizes ;; documented
      <%>
      mixin
-     basics-mixin
-     basics<%>))
+     basics-mixin      ;; documented
+     basics<%>))        ;; documented
   
   (define-signature drscheme:program^
     (frame%))
