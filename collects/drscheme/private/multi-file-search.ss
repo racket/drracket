@@ -143,6 +143,7 @@
         
         (let loop ()
           (let ([match (yield channel)])
+            (yield)
             (cond
               [(eq? match 'done)
                (send results-text search-complete)
@@ -586,7 +587,6 @@
                                 line-number
                                 col-number
                                 match-length))))
-                  (sleep 1/10) ;; shouldn't be necessary
                   (loop))))
             (async-channel-put channel 'done))))
       
@@ -657,7 +657,6 @@
             (let ([text (make-object text:basic%)])
               (send text load-file filename)
               (let loop ([pos 0])
-                (sleep 1/10)
                 (let ([found (send text find-string key 'forward pos 'eof #t case-sensitive?)])
                   (when found
                     (let* ([para (send text position-paragraph found)]
@@ -683,7 +682,6 @@
                 (call-with-input-file filename
                   (lambda (port)
                     (let loop ([line-number 0])
-                      (sleep 1/10)
                       (let ([line (read-line port)])
                         (cond
                           [(eof-object? line) (void)]
