@@ -1835,6 +1835,7 @@ tab panels new behavior:
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab) 
+            (error 'create-new-tab "not yet implemented")
             (when evaluation-enabled?
               (let* ([b #&1]
                      [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
