@@ -3,6 +3,7 @@
   
   (require "drscheme-test-util.ss"
            (lib "gui.ss" "tests" "utils")
+           (lib "etc.ss")
            (lib "class.ss")
            (lib "list.ss")
            (lib "mred.ss" "mred")
@@ -12,18 +13,24 @@
   (provide run-test)
   
   ;; type str/ann = (list (union symbol string) symbol)
-  ;; type test = (make-test string (listof str/ann))
-  (define-struct test (input expected))
+  ;; type test = (make-test string
+  ;;                        (listof str/ann)
+  ;;                        (listof (cons (list number number) (listof (list number number)))))
+  (define-struct test (input expected arrows))
+  
+  (define build-test
+    (opt-lambda (input expected [arrow-table '()])
+      (make-test input expected arrow-table)))
   
   ;; tests : (listof test)
   (define tests
     (list 
-     (make-test "12345"
+     (build-test "12345"
                 '(("12345" constant)))
-     (make-test "'abcdef"
+     (build-test "'abcdef"
                 '(("'" imported-syntax)
                   ("abcdef" constant)))
-     (make-test "(define f 1)"
+     (build-test "(define f 1)"
                 '(("("      #f)
                   ("define" imported-syntax)
                   (" "      #f)
@@ -31,23 +38,25 @@
                   (" "      #f)
                   ("1"      constant)
                   (")"      #f)))
-     (make-test "(lambda (x) x)"
+     (build-test "(lambda (x) x)"
                 '(("("      #f)
                   ("lambda" imported-syntax)
                   (" ("     #f)
                   ("x"      lexically-bound-variable)
                   (") "     #f)
                   ("x"      lexically-bound-variable)
-                  (")"      #f)))
-     (make-test "(lambda x x)"
+                  (")"      #f))
+                (list '((9 10) (12 13))))
+     (build-test "(lambda x x)"
                 '(("("      #f)
                   ("lambda" imported-syntax)
                   (" "      #f)
                   ("x"      lexically-bound-variable)
                   (" "      #f)
                   ("x"      lexically-bound-variable)
-                  (")"      #f)))
-     (make-test "(lambda (x . y) x y)"
+                  (")"      #f))
+                (list '((8 9) (10 11))))
+     (build-test "(lambda (x . y) x y)"
                 '(("("      #f)
                   ("lambda" imported-syntax)
                   (" ("     #f)
@@ -58,17 +67,21 @@
                   ("x"      lexically-bound-variable)
                   (" "      #f)
                   ("y"      lexically-bound-variable)
-                  (")"      #f)))
+                  (")"      #f))
+                (list '((9 10) (16 17))
+                      '((13 14) (18 19))))
      
-     (make-test "(case-lambda [(x) x])"
-                '(("("           #f)
-                  ("case-lambda" imported-syntax)
-                  (" [("         #f)
-                  ("x"           lexically-bound-variable)
-                  (") "          #f)
-                  ("x"           lexically-bound-variable)
-                  ("])"          #f)))
-     (make-test "(if 1 2 3)"
+     (build-test "(case-lambda [(x) x])"
+                 '(("("           #f)
+                   ("case-lambda" imported-syntax)
+                   (" [("         #f)
+                   ("x"           lexically-bound-variable)
+                   (") "          #f)
+                   ("x"           lexically-bound-variable)
+                   ("])"          #f))
+                 (list '((15 15) (18 19))))
+     
+     (build-test "(if 1 2 3)"
                 '(("("  #f)
                   ("if" imported-syntax)
                   (" "  #f)
@@ -78,7 +91,7 @@
                   (" "  #f)
                   ("3"  constant)
                   (")"  #f)))
-     (make-test "(if 1 2)"
+     (build-test "(if 1 2)"
                 '(("("  #f)
                   ("if" imported-syntax)
                   (" "  #f)
@@ -87,7 +100,7 @@
                   ("2"  constant)
                   (")"  #f)))
      
-     (make-test "(begin 1 2)"
+     (build-test "(begin 1 2)"
                 '(("("     #f)
                   ("begin" imported-syntax)
                   (" "     #f)
@@ -95,7 +108,7 @@
                   (" "     #f)
                   ("2"     constant)
                   (")"     #f)))
-     (make-test "(begin0 1 2)"
+     (build-test "(begin0 1 2)"
                 '(("("      #f)
                   ("begin0" imported-syntax)
                   (" "      #f)
@@ -103,7 +116,7 @@
                   (" "      #f)
                   ("2"      constant)
                   (")"      #f)))
-     (make-test "(let ([x x]) x)"
+     (build-test "(let ([x x]) x)"
                 '(("("   #f)
                   ("let" imported-syntax)
                   (" ([" #f)
@@ -112,8 +125,9 @@
                   ("x"   error)
                   ("]) " #f)
                   ("x"   lexically-bound-variable)
-                  (")"   #f)))
-     (make-test "(letrec ([x x]) x)"
+                  (")"   #f))
+                (list '((7 8) (13 14))))
+     (build-test "(letrec ([x x]) x)"
                 '(("("      #f)
                   ("letrec" imported-syntax)
                   (" (["    #f)
@@ -122,8 +136,9 @@
                   ("x"      lexically-bound-variable)
                   ("]) "    #f)
                   ("x"      lexically-bound-variable)
-                  (")"      #f)))
-     (make-test "(set! x 1)"
+                  (")"      #f))
+                (list '((10 11) (12 13) (16 17))))
+     (build-test "(set! x 1)"
                 '(("("    #f)
                   ("set!" imported-syntax)
                   (" "    #f)
@@ -131,7 +146,7 @@
                   (" "    #f)
                   ("1"    constant)
                   (")"    #f)))
-     (make-test "(let ([x 1]) (set! x 2))"
+     (build-test "(let ([x 1]) (set! x 2))"
                 '(("("    #f)
                   ("let"   imported-syntax)
                   (" (["   #f)
@@ -144,12 +159,13 @@
                   ("x"     lexically-bound-variable)
                   (" "     #f)
                   ("2"     constant)
-                  ("))"    #f)))
-     (make-test "object%"
+                  ("))"    #f))
+                (list '((7 8) (19 20))))
+     (build-test "object%"
                 '(("object%" lexically-bound-variable)))
-     (make-test "unbound-id"
+     (build-test "unbound-id"
                 '(("unbound-id" error)))
-     (make-test "(define bd 1) bd"
+     (build-test "(define bd 1) bd"
                 '(("("       #f)
                   ("define"  imported-syntax)
                   (" "       #f)
@@ -157,11 +173,12 @@
                   (" "       #f)
                   ("1"       constant)
                   (") "      #f)
-                  ("bd"      lexically-bound-variable)))
-     (make-test "#'abc"
+                  ("bd"      lexically-bound-variable))
+                (list '((8 10) (14 16))))
+     (build-test "#'abc"
                 '(("#'"  imported-syntax)
                   ("abc" constant)))
-     (make-test "(with-continuation-mark 1 2 3)"
+     (build-test "(with-continuation-mark 1 2 3)"
                 '(("("                      #f)
                   ("with-continuation-mark" imported-syntax)
                   (" "                      #f)
@@ -171,13 +188,13 @@
                   (" "                      #f)
                   ("3"                      constant)
                   (")"                      #f)))
-     (make-test "(f x)"
+     (build-test "(f x)"
                 '(("(" #f)
                   ("f" error)
                   (" " #f)
                   ("x" error)
                   (")" #f)))
-     (make-test "(define-syntax (f stx) (syntax 1))"
+     (build-test "(define-syntax (f stx) (syntax 1))"
                 '(("("             #f)
                   ("define-syntax" imported-syntax)
                   (" ("            #f)
@@ -189,25 +206,25 @@
                   (" "             #f)
                   ("1"             constant)
                   ("))"            #f)))
-     (make-test "(module m mzscheme)"
+     (build-test "(module m mzscheme)"
                 '(("("        #f)
                   ("module"   imported-syntax)
                   (" m "      #f)
                   ("mzscheme" error)
                   (")"        #f)))
-     (make-test "(require-for-syntax mzscheme)"
+     (build-test "(require-for-syntax mzscheme)"
                 '(("("                  #f)
                   ("require-for-syntax" imported-syntax)
                   (" "          #f)
                   ("mzscheme"   error)
                   (")"          #f)))
-     (make-test "(require (lib \"list.ss\"))"
+     (build-test "(require (lib \"list.ss\"))"
                 '(("("                   #f)
                   ("require"             imported-syntax)
                   (" "                   #f)
                   ("(lib \"list.ss\")"   error)
                   (")"                   #f)))
-     (make-test "(module m mzscheme (provide x) (define x 1))"
+     (build-test "(module m mzscheme (provide x) (define x 1))"
                 '(("("             #f)
                   ("module"        imported-syntax)
                   (" m mzscheme (" #f)
@@ -220,9 +237,11 @@
                   ("x"             lexically-bound-variable)
                   (" "             #f)
                   ("1"             constant)
-                  ("))"            #f)))
+                  ("))"            #f))
+                (list '((10 18) (20 27) (32 38))
+                      '((39 40) (28 29))))
      
-     (make-test "(module m mzscheme (+ 1 2))"
+     (build-test "(module m mzscheme (+ 1 2))"
                 '(("("             #f)
                   ("module"        imported-syntax)
                   (" m mzscheme (" #f)
@@ -231,18 +250,20 @@
 		  ("1"             constant)
 		  (" "             #f)
 		  ("2"             constant)
-                  ("))"            #f)))
+                  ("))"            #f))
+                (list '((10 18) (20 21))))
      
-     (make-test "(module m mzscheme (require (lib \"list.ss\")))"
+     (build-test "(module m mzscheme (require (lib \"list.ss\")))"
                 '(("("                 #f)
                   ("module"            imported-syntax)
                   (" m mzscheme ("     #f)
                   ("require"           imported-syntax)
                   (" "                 #f)
                   ("(lib \"list.ss\")" error)
-                  ("))"                #f)))
+                  ("))"                #f))
+                (list '((10 18) (20 27))))
      
-     (make-test "(module m mzscheme (require-for-syntax (lib \"list.ss\")) (define-syntax s foldl))"
+     (build-test "(module m mzscheme (require-for-syntax (lib \"list.ss\")) (define-syntax s foldl))"
                 '(("("                     #f)
                   ("module"                imported-syntax)
                   (" m mzscheme ("         #f)
@@ -253,9 +274,11 @@
                   ("s"                     lexically-bound-syntax)
                   (" "                     #f)
                   ("foldl"                 imported-variable)
-                  ("))"                    #f)))
+                  ("))"                    #f))
+                (list '((10 18) (20 38) (57 70))
+                      '((39 54) (73 78))))
      
-     (make-test "(module m mzscheme (require-for-syntax (lib \"etc.ss\")) (define-syntax s (rec f 1)))"
+     (build-test "(module m mzscheme (require-for-syntax (lib \"etc.ss\")) (define-syntax s (rec f 1)))"
                 '(("("                     #f)
                   ("module"                imported-syntax)
                   (" m mzscheme ("         #f)
@@ -270,9 +293,11 @@
                   ("f"                     lexically-bound-variable)
                   (" "                     #f)
                   ("1"                     constant)
-                  (")))"                   #f)))
+                  (")))"                   #f))
+                (list '((10 18) (20 38) (56 69))
+                      '((39 53) (73 76))))
 
-     (make-test "(define-syntax s (lambda (stx) (syntax-case stx () (_ 123))))"
+     (build-test "(define-syntax s (lambda (stx) (syntax-case stx () (_ 123))))"
                 '(("("             #f)
                   ("define-syntax" imported-syntax)
                   (" "             #f)
@@ -287,15 +312,17 @@
                   ("stx"           lexically-bound-variable)
                   (" () (_ "       #f)
                   ("123"           constant)
-                  ("))))"          #f)))
+                  ("))))"          #f))
+                (list '((26 29) (44 47))))
 
-     (make-test "(require (lib \"list.ss\")) first"
+     (build-test "(require (lib \"list.ss\")) first"
                 '(("("                    #f)
                   ("require"              imported-syntax)
                   (" (lib \"list.ss\")) " #f)
-                  ("first"                imported-variable)))
+                  ("first"                imported-variable))
+                (list '((9 24) (26 31))))
      
-     (make-test "(require (lib \"etc.ss\")) (rec f 1)"
+     (build-test "(require (lib \"etc.ss\")) (rec f 1)"
                 '(("("                    #f)
                   ("require"              imported-syntax)
                   (" (lib \"etc.ss\")) (" #f)
@@ -304,9 +331,10 @@
                   ("f"                    lexically-bound-variable)
                   (" "                    #f)
                   ("1"                    constant)
-                  (")"                    #f)))
+                  (")"                    #f))
+                (list '((9 23) (26 29))))
      
-     (make-test "(define-struct s ())"
+     (build-test "(define-struct s ())"
                 '(("("             #f)
                   ("define-struct" imported-syntax)
                   (" "             #f)
@@ -317,7 +345,7 @@
      ;; sure would be nice if `s' in the second instance came
      ;; out as lexically bound syntax and were bound to the 
      ;; first s...
-     (make-test "(define-struct s ()) (define-struct (t s) ())"
+     (build-test "(define-struct s ()) (define-struct (t s) ())"
                 '(("("             #f)
                   ("define-struct" imported-syntax)
                   (" "             #f)
@@ -328,7 +356,7 @@
                   ("t"             lexically-bound-syntax)
                   (" s) ())"       #f))) 
      
-     (make-test "`(1 ,x 2)"
+     (build-test "`(1 ,x 2)"
                 '(("`"        imported-syntax)
                   ("("        #f)
                   ("1"        constant)
@@ -338,7 +366,7 @@
                   ("2"        constant)
                   (")"        #f)))
 
-     (make-test "`(a ,2 b c d)"
+     (build-test "`(a ,2 b c d)"
                 `(("`"  imported-syntax)
                   ("("  #f)
                   ("a"  constant)
@@ -352,23 +380,23 @@
                   ("d"  constant)
                   (")"  #f)))
      
-     (make-test "#!"
+     (build-test "#!"
                 '(("#!" #f)))
      
-     (make-test "#!\n"
+     (build-test "#!\n"
                 '(("#!\n" #f)))
      
-     (make-test "#!\n1"
+     (build-test "#!\n1"
                 '(("#!\n" #f)
                   ("1"    constant)))
      
-     (make-test "#!\n1\n1"
+     (build-test "#!\n1\n1"
                 '(("#!\n" #f)
                   ("1"    constant)
                   ("\n"   #f)
                   ("1"    constant)))
      
-     (make-test "(module m mzscheme (lambda (x) x) (provide))"
+     (build-test "(module m mzscheme (lambda (x) x) (provide))"
                 '(("("             #f)
                   ("module"        imported-syntax)
                   (" m mzscheme (" #f)
@@ -379,9 +407,11 @@
                   ("x"             lexically-bound-variable)
                   (") ("           #f)
                   ("provide"       imported-syntax)
-                  ("))"            #f)))
+                  ("))"            #f))
+                (list '((10 18) (20 26) (35 42))
+                      '((28 29) (31 32))))
      
-     (make-test "(module m mzscheme (define-struct s (a)) s-a make-s s? set-s-a!)"
+     (build-test "(module m mzscheme (define-struct s (a)) s-a make-s s? set-s-a!)"
                 '(("("             #f)
                   ("module"        imported-syntax)
                   (" m mzscheme (" #f)
@@ -396,9 +426,10 @@
                   ("s?"            lexically-bound-identifier)
                   (" "             #f)
                   ("set-s-a!"      lexically-bound-identifier)
-                  (")"             #f)))
+                  (")"             #f))
+                (list '((10 18) (20 33))))
      
-     (make-test "(define tordu3 '(a . #0=(b c d . #0#)))"
+     (build-test "(define tordu3 '(a . #0=(b c d . #0#)))"
                 '(("("        #f)
                   ("define"   imported-syntax)
                   (" "        #f)
@@ -408,25 +439,7 @@
                   ("(a . #0=(b c d . #0#))" constant)
                   (")"        #f)))
 
-                  
-
-                                                                             
-                                          ;;             ;;;                 
-                                           ;               ;                 
-                                           ;               ;                 
- ;;;;   ; ;;;  ; ;;;   ;;;  ;;; ;;;        ;;;;    ;;;     ;     ;;;  ;;; ;;;
-     ;   ;      ;     ;   ;  ;   ;         ;   ;  ;   ;    ;    ;   ;  ;   ; 
-  ;;;;   ;      ;     ;   ;  ; ; ;         ;   ;  ;;;;;    ;    ;   ;  ; ; ; 
- ;   ;   ;      ;     ;   ;  ; ; ;         ;   ;  ;        ;    ;   ;  ; ; ; 
- ;   ;   ;      ;     ;   ;   ; ;          ;   ;  ;   ;    ;    ;   ;   ; ;  
-  ;;; ; ;;;;   ;;;;    ;;;    ; ;         ; ;;;    ;;;   ;;;;;;  ;;;    ; ;  
-                                                                             
-                                                                             
-                                                                             
-     ;; the tests below should also be part of arrow-based test suite.
-
-
-     (make-test "(let l () l l)"
+     (build-test "(let l () l l)"
                 '(("("    #f)
                   ("let"  imported-syntax)
                   (" "    #f)
@@ -435,8 +448,9 @@
                   ("l"    lexically-bound-variable)
                   (" "    #f)
                   ("l"    lexically-bound-variable)
-                  (")"    #f)))
-     (make-test "(class object% this)"
+                  (")"    #f))
+                (list '((5 6) (10 11) (12 13))))
+     (build-test "(class object% this)"
                 '(("("       #f)
                   ("class"   imported-syntax)
                   (" "       #f)
@@ -444,30 +458,49 @@
                   (" "       #f)
                   ("this"    lexically-bound-syntax)
                   (")"       #f)))
-     
-     (make-test "(module m mzscheme (require (lib \"list.ss\")) foldl)"
+     (build-test "(module m mzscheme (require (lib \"list.ss\")) foldl)"
                 '(("("                    #f)
                   ("module"               imported-syntax)
                   (" m mzscheme ("        #f)
                   ("require"              imported-syntax)
                   (" (lib \"list.ss\")) " #f)
                   ("foldl"                imported-variable)
-                  (")"                    #f)))
-     (make-test "(module m (lib \"htdp-beginner.ss\" \"lang\") empty)"
+                  (")"                    #f))
+                (list '((10 18) (20 27))
+                      '((28 43) (45 50))))
+     (build-test "(module m (lib \"htdp-beginner.ss\" \"lang\") empty)"
                 '(("("                                         #f)
                   ("module"                                    imported-syntax)
                   (" m (lib \"htdp-beginner.ss\" \"lang\") "   #f)
                   ("empty"                                     imported-variable)
-                  (")"                                         #f)))
-     (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\"))) x:foldl)"
+                  (")"                                         #f))
+                (list '((10 41) (42 47))))
+     (build-test "(module m mzscheme (require (prefix x: (lib \"list.ss\"))) x:foldl)"
                 '(("("                                #f)
                   ("module"                           imported-syntax)
                   (" m mzscheme ("                    #f)
                   ("require"                          imported-syntax)
                   (" (prefix x: (lib \"list.ss\"))) " #f)
                   ("x:foldl"                          imported-variable)
-                  (")"                                #f)))
-     (make-test "(module m mzscheme (require (lib \"etc.ss\")) (rec f 1))"
+                  (")"                                #f))
+                (list '((10 18) (20 27))
+                      '((28 55) (57 64))))
+     
+     (build-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")) x:foldl foldl)"
+                '(("("                                                  #f)
+                  ("module"                                             imported-syntax)
+                  (" m mzscheme ("                                      #f)
+                  ("require"                                            imported-syntax)
+                  (" (prefix x: (lib \"list.ss\")) (lib \"list.ss\")) " #f)
+                  ("x:foldl"                                            imported-variable)
+                  (" "                                                  #f)
+                  ("foldl"                                              imported-variable)
+                  (")"                                                  #f))
+                (list '((10 18) (20 27))
+                      '((28 55) (73 80) (81 86))
+                      '((56 71) (73 80) (81 86))))
+                      
+     (build-test "(module m mzscheme (require (lib \"etc.ss\")) (rec f 1))"
                 '(("("                     #f)
                   ("module"                imported-syntax)
                   (" m mzscheme ("         #f)
@@ -478,9 +511,11 @@
                   ("f"                     lexically-bound-variable)
                   (" "                     #f)
                   ("1"                     constant)
-                  ("))"                    #f)))
+                  ("))"                    #f))
+                (list '((10 18) (20 27))
+                      '((28 42) (45 48))))
      
-     (make-test "(module m (lib \"htdp-intermediate.ss\" \"lang\") (local ((define x x)) x))"
+     (build-test "(module m (lib \"htdp-intermediate.ss\" \"lang\") (local ((define x x)) x))"
                 '(("("                                            #f)
                   ("module"                                       imported-syntax)
                   (" m (lib \"htdp-intermediate.ss\" \"lang\") (" #f)
@@ -491,26 +526,33 @@
                   ("x"                                            lexically-bound-variable)
                   (")) "                                          #f)
                   ("x"                                            lexically-bound-variable)
-                  ("))"                                           #f)))
-     ))
+                  ("))"                                           #f))
+                (list '((10 45) (47 52))
+                      '((62 63) (64 65) (68 69))))))
   
   (define (run-test)
-    (set-language-level! (list "PLT" (regexp "Graphical")))
+    (check-language-level #rx"Graphical")
     (let* ([drs (wait-for-drscheme-frame)]
            [defs (send drs get-definitions-text)])
       (send defs force-stop-colorer #t))
     (for-each run-one-test tests))
   
   (define (run-one-test test)
-    (let ([drs (wait-for-drscheme-frame)]
-          [input (test-input test)]
-          [expected (test-expected test)])
+    (let* ([drs (wait-for-drscheme-frame)]
+           [defs (send drs get-definitions-text)]
+           [input (test-input test)]
+           [expected (test-expected test)]
+           [arrows (test-arrows test)])
       (clear-definitions drs)
       (type-in-definitions drs input)
       (test:button-push (send drs syncheck:get-button))
       (wait-for-computation drs)
       (let ([got (get-annotated-output drs)])
-        (compare-output expected got input))))
+        (compare-output expected
+                        got
+                        arrows 
+                        (send defs syncheck:get-bindings-table)
+                        input))))
   
   (define remappings
     '((constant #f)))
@@ -535,15 +577,59 @@
                       (loop (cons (list (string-append (car fst) (car snd)) (cadr fst))
                                   (cddr ids)))
                       (cons fst (loop (cdr ids)))))]))))
-                 
+    
+  ;; compare-arrows : (listof (cons (list number number) (listof (list number number))))
+  ;;                  hash-table[(list text number number) -o> (listof (list text number number))]
+  ;;               -> void
+  (define (compare-arrows test-exp expected raw-actual)
+    (define already-checked (make-hash-table 'equal))
+    
+    (define actual-ht (make-hash-table 'equal))
+    (define stupid-internal-define-syntax1
+      (hash-table-for-each raw-actual
+                           (lambda (k v)
+                             (hash-table-put! actual-ht
+                                              (cdr k) 
+                                              (quicksort
+                                               (map cdr v)
+                                               (lambda (x y) (< (car x) (car y))))))))
+    (define expected-ht (make-hash-table 'equal))
+    (define stupid-internal-define-syntax2
+      (for-each (lambda (binding) (hash-table-put! expected-ht (car binding) (cdr binding)))
+                expected))
+    ;; binding-in-ht? : hash-table (list number number) (listof (list number number)) -> boolean
+    (define (test-binding expected? ht)
+      (lambda (pr)
+        (let ([frm (car pr)]
+              [to (cdr pr)])
+          (hash-table-get
+           already-checked
+           frm
+           (lambda ()
+             (hash-table-put! already-checked frm #t)
+             (let ([ht-ent (hash-table-get ht frm (lambda () 'nothing-there))])
+               (unless (equal? ht-ent to)
+                 (printf (if expected? 
+                             "FAILED arrow test ~s from ~s\n  expected ~s\n    actual ~s\n"
+                             "FAILED arrow test ~s from ~s\n    actual ~s\n  expected ~s\n")
+                         test-exp
+                         frm
+                         ht-ent
+                         to))))))))
+    
+    (for-each (test-binding #t expected-ht) (hash-table-map actual-ht cons))
+    (for-each (test-binding #f actual-ht) (hash-table-map expected-ht cons)))
   
   ;; compare-output 
   ;; should show first difference.
-  (define (compare-output raw-expected got input)
+  (define (compare-output raw-expected got arrows arrows-got input)
     (let ([expected (collapse-and-rename raw-expected)])
-      (unless (equal? got expected)
-        (printf "FAILED: ~s\n      expected: ~s\n           got: ~s\n"
-                input expected got))))
+      (cond
+        [(equal? got expected)
+         (compare-arrows input arrows arrows-got)]
+        [else
+         (printf "FAILED: ~s\n      expected: ~s\n           got: ~s\n"
+                 input expected got)])))
   
   ;; get-annotate-output : drscheme-frame -> (listof str/ann)
   (define (get-annotated-output drs)

@@ -10,6 +10,7 @@
            (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "list.ss")
+           (lib "contract.ss")
            (lib "etc.ss")
            (lib "gui.ss" "tests" "utils"))
   
@@ -352,7 +353,23 @@
               (unless (eq? new-frame drs-frame)
                 (error 'set-language-level! "didn't get drscheme frame back, got: ~s\n" new-frame)))))))) 
 
-
+  (provide/contract [check-language-level ((union string? regexp?) . -> . void?)])
+  ;; checks that the language in the drscheme window is set to the given one.
+  ;; clears the definitions, clicks execute and checks the interactions window.
+  (define (check-language-level lang-spec)
+    (let* ([drs-frame (get-top-level-focus-window)]
+           [interactions (send drs-frame get-interactions-text)])
+      (fw:test:menu-select "Edit" "Select All")
+      (fw:test:menu-select "Edit" "Delete")
+      (do-execute drs-frame)
+      (let ([lang-line (send interactions get-text
+                             (send interactions line-start-position 1)
+                             (send interactions line-end-position 1))])
+        (unless (regexp-match lang-spec lang-line)
+          (error 'check-language-level "expected ~s to match ~s"
+                 lang-line lang-spec)))))
+  
+  
   (define (repl-in-edit-sequence?)
     (send (send (wait-for-drscheme-frame) get-interactions-text) refresh-delayed?))
  
