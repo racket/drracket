@@ -3,6 +3,8 @@ Version 53:
 General
 -------
 
+ - view menu items now have accelerators
+
  - (<= exp) isn't allowed in beginner. (same for <, >, and >=)
 
  - print primitive is now setup correctly to print based on the language level
