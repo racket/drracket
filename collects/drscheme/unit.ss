@@ -388,8 +388,12 @@
 
 	  [on-close
 	   (lambda ()
+	     (remove-library-callback)
+	     (when (eq? this created-frame)
+	       (set! created-frame #f))
              (when snip
 	       (send snip on-close-frame (send definitions-edit get-filename)))
+	     (send interactions-edit shutdown)
 	     (super-on-close))]
 	  
 	  [running? #t]; is this necessary?
@@ -524,26 +528,28 @@
 	  (send scheme-only-panel stretchable-in-y #f)
 	  (send button-panel stretchable-in-y #f)
 	  (send button-panel stretchable-in-x #f) 
-	  (send top-panel stretchable-in-y #f)
+	  (send top-panel stretchable-in-y #f))
 	  
-	  (mred:add-preference-callback
-	   'drscheme:library-file
-	   (let ([last-one (mred:get-preference 'drscheme:library-file)])
-	     (lambda (p v)
-	       (unless (or (and (not last-one) (not v))
-			   (and last-one v
-				(string=? v last-one)))
-		 (set! last-one v)
-		 (set! scheme-only-library-msg
-		       (make-library-name-msg scheme-only-panel v))
-		 (set! library-msg (make-library-name-msg top-panel v))
-		 (send scheme-only-panel change-children
-		       (lambda (l) (list scheme-only-library-msg
-					 scheme-only-space
-					 scheme-only-stop-executing
-					 scheme-only-help)))
-		 (send top-panel change-children 
-		       (lambda (l) (build-top-panel-children))))))))
+	 (private
+	   [remove-library-callback
+	    (mred:add-preference-callback
+	     'drscheme:library-file
+	     (let ([last-one (mred:get-preference 'drscheme:library-file)])
+	       (lambda (p v)
+		 (unless (or (and (not last-one) (not v))
+			     (and last-one v
+				  (string=? v last-one)))
+		   (set! last-one v)
+		   (set! scheme-only-library-msg
+			 (make-library-name-msg scheme-only-panel v))
+		   (set! library-msg (make-library-name-msg top-panel v))
+		   (send scheme-only-panel change-children
+			 (lambda (l) (list scheme-only-library-msg
+					   scheme-only-space
+					   scheme-only-stop-executing
+					   scheme-only-help)))
+		   (send top-panel change-children 
+			 (lambda (l) (build-top-panel-children)))))))])
 		     
 	(private
 	  [build-top-panel-children
@@ -564,7 +570,8 @@
 	  (set-title-prefix "DrScheme")
 
 	  (send definitions-canvas set-focus)
-	  (set! created-frame this)
+	  (unless created-frame
+	    (set! created-frame this))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
     (define snip%
@@ -735,9 +742,9 @@
      "Units"
      (list "ss" "scm" "sch" "mredrc")
      (opt-lambda (name)
-       (if (and (eq? created-frame drscheme:app:console)
-		(send drscheme:app:console still-untouched?))
-	   (send drscheme:app:console change-to-file name)
+       (if (and created-frame
+		(send created-frame still-untouched?))
+	   (send created-frame change-to-file name)
 	   (let ([f (make-object (drscheme:parameters:current-frame%) name #f)])
 	     (send f show #t)
 	     f)))))
