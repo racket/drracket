@@ -9,6 +9,7 @@
   
   (provide run-test)
   
+  (define next-button-label "Step >")
   (define no-more-steps-message "evaluation of program is complete.")
   
   ;; type contents = (listof (union snip string contents))
@@ -528,7 +529,7 @@
   ;; get-more-steps : stepper-frame -> (listof step)
   ;; repeatedly push the next button to get out all of the steps
   (define (get-more-steps stepper-frame)
-    (let ([next-button (find-labelled-window "Next >>" button% stepper-frame)]
+    (let ([next-button (find-labelled-window next-button-label button% stepper-frame)]
           [stepper-canvas (find-labelled-window #f editor-canvas% stepper-frame)])
       
       ;; wait until we are in a "ready" state.

@@ -54,7 +54,7 @@
       (test-expression "class" (regexp "class: bad syntax in: class"))
       (test-expression "shared" "{image} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
+      (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
       (test-expression "'(1 . 2)" "(1 . 2)")
       
       (test-expression "(define (f define) 1)" "")
@@ -79,7 +79,7 @@
                        "(#&1 #&1)")
       (test-expression 
        "(local ((define x x)) 1)"
-       (regexp "define: allowed only in definition contexts"))
+       #rx"define: not allowed in an expression context")
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
@@ -145,7 +145,7 @@
       (test-expression "class" "{image} reference to undefined identifier: class")
       (test-expression "shared" "{image} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
+      (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
       (test-expression "'(1 . 2)" "(1 . 2)")
       
       (test-expression "(define (f define) 1)" "")
@@ -170,7 +170,7 @@
                        "(#&1 #&1)")
       (test-expression 
        "(local ((define x x)) 1)"
-       (regexp "define: allowed only in definition contexts"))
+       #rx"define: not allowed in an expression context")
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
@@ -245,7 +245,7 @@
                        "shared: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: shared")
 
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "(define (. x y) (* x y))" "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc"
@@ -362,7 +362,7 @@
                        "shared: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: shared")
 
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "(define (. x y) (* x y))" "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc"
@@ -476,7 +476,7 @@
                        "shared: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "(define (. x y) (* x y))" "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc"
@@ -583,7 +583,7 @@
                        "shared: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "(define (. x y) (* x y))" "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc"
@@ -688,7 +688,7 @@
 
       (test-expression "shared" "shared: found a use of `shared' that does not follow an open parenthesis")
       
-      (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\"")
+      (test-expression "(define (. x y) (* x y))" "read: illegal use of \".\"")
       (test-expression "'(1 . 2)" "read: illegal use of \".\"")
       
       (test-expression "call/cc" 
@@ -789,7 +789,6 @@
                   (language) setting-name expression result got)))))
   
   (define (test-hash-bang)
-    '
     (let* ([expression (format "#!~n1")]
            [result "1"]
            [drs (get-top-level-focus-window)]
@@ -831,12 +830,12 @@
   ;; teaching-language-fraction-output
   ;; tests that the teaching langauges properly handle repeating decimals
   (define (teaching-language-fraction-output)
-    '(test-setting
+    (test-setting
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Mixed fractions"))
      "Fraction Style -- Mixed fractions"
      "4/3"
      "{number 4/3 \"1 1/3\" mixed}")
-    '(test-setting
+    (test-setting
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Repeating decimals"))
      "Fraction Style -- Repeating decimals"
      "4/3"
@@ -845,29 +844,28 @@
   ;; plt-language-fraction-output : -> void
   ;; tests that the PLT languages properly handle repeating decimals
   (define (plt-language-fraction-output)
-    '(test-setting
+    (test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #f))
      "Use decimal notation for rationals -- #f"
      "4/3 1/2 -1/3"
      "{number 4/3 \"1 1/3\" mixed}\n{number 1/2 \"1/2\" mixed}\n{number -1/3 \"- 1/3\" mixed}")
-    '(test-setting
+    (test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #t))
      "Use decimal notation for rationals -- #t"
      "4/3 1/2 -1/3"
      "{number 4/3 \"#e1.3\" decimal}\n{number 1/2 \"#e0.5\" decimal}\n{number -1/3 \"#e-0.3\" decimal}"))
   
   (define (generic-settings false/true?)
-    '(test-setting
-     (lambda () (fw:test:set-check-box! "Case sensitive" #t))
+    (test-setting
+      (lambda () (fw:test:set-check-box! "Case sensitive" #t))
      "Case sensitive -- #t"
      "(eq? 'g 'G)" (if false/true? "false" "#f"))
-    '(test-setting
+    (test-setting
      (lambda () (fw:test:set-check-box! "Case sensitive" #f))
      "Case sensitive -- #f"
      "(eq? 'g 'G)" (if false/true? "true" "#t")))
   
   (define (generic-output list? quasi-quote? has-sharing?)
-    '
     (let* ([drs (wait-for-drscheme-frame)]
            [expression (format "(define x (list 2))~n(list x x)")]
            [set-output-choice
@@ -927,18 +925,7 @@
               (if list?
                   "(shared ((-1- (list 2))) (list -1- -1-))"
                   "(shared ((-1- (cons 2 empty))) (cons -1- (cons -1- empty)))")))
-      
-;      ;; setup comment box
-;      (clear-definitions drs)
-;      (fw:test:menu-select "Special" "Insert Text Box")
-;      (fw:test:keystroke #\a)
-;      (fw:test:keystroke #\b)
-;      (fw:test:keystroke #\c)
-;      
-;      ;; test comment box in print-convert and print-convert-less settings
-;      (test "Constructor" #f #t "{embedded \"abc\"}")
-;      (test "write" #f #t "{embedded \"abc\"}")
-
+ 
       ;; setup write / pretty-print difference
       (clear-definitions drs)
       (for-each fw:test:keystroke
@@ -1083,12 +1070,9 @@
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
     (go beginner)
-    #|
     (go beginner/abbrev)
     (go intermediate)
     (go intermediate/lambda)
     (go advanced)
     (go mred)
-    (go mzscheme)
-    |#
-    ))
+    (go mzscheme)))
