@@ -657,7 +657,11 @@
 					    (let ([last-para (send a-text position-paragraph 
 								   (backover-newlines end-pos start-pos))])
 					      (let loop ([para (send a-text position-paragraph start-pos)])
-						(send a-text set-paragraph-alignment para alignment)
+						(if (eq? alignment 'left-outdent)
+						    (begin
+						      (send a-text set-paragraph-alignment para 'left)
+						      (send a-text set-paragraph-margins para 0 20 0))
+						    (send a-text set-paragraph-alignment para alignment))
 						(when delta
 						  (change-style delta start-pos end-pos))
 						(unless (= para last-para)
@@ -886,6 +890,8 @@
 							   (para-aligner 'center delta rest)]
 							  [(and (string? align) (string-ci=? align "left"))
 							   (para-aligner 'left delta rest)]
+							  [(and (string? align) (string-ci=? align "left-outdent"))
+							   (para-aligner 'left-outdent delta rest)]
 							  [(or (and (string? align) (string-ci=? align "right"))
 							       (and (string? class) (string-ci=? class "navigation")))
 							   (para-aligner 'right delta rest)]
