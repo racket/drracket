@@ -67,9 +67,6 @@ profile todo:
       (define error-delta (make-object style-delta% 'change-style 'slant))
       (send error-delta set-delta-foreground (make-object color% 255 0 0))
       
-      ;; modern-style-delta : (instanceof style-delta%)
-      (define modern-style-delta (make-object style-delta% 'change-family 'modern))
-
       ;; error-color : (instanceof color%)
       (define error-color (make-object color% "PINK"))
       
@@ -141,15 +138,6 @@ profile todo:
                                     (annotate-top (expand top-e) #f))])
                           (oe annotated))]))))])
           debug-tool-eval-handler))
-      
-      
-
-      (define (set-scheme-mode-mixin %)
-        (class %
-          (super-new)
-          (inherit set-surrogate)
-          (set-surrogate (new scheme:text-mode%))))
-      
       
       ;; make-debug-error-display-handler/text  : (-> (union #f (is-a?/c text%)))
       ;;                                                ((is-a?/c rep:text%) (-> void) -> void)
@@ -467,7 +455,7 @@ profile todo:
         (let-values ([(from-text close-text)
                       (cond
                         [(symbol? file)
-                         (let ([text (make-object scheme:text%)])
+                         (let ([text (new text:basic%)])
                            (if (send text load-file (symbol->string file))
 			       (values text 
 				       (lambda () (send text on-close)))
@@ -477,7 +465,6 @@ profile todo:
 	  (when from-text
 	    (let* ([finish (+ start span)]
 		   [context-text (copy/highlight-text from-text start finish)])
-	      (send context-text change-style modern-style-delta 0 (send context-text last-position))
 	      (send context-text lock #t)
 	      (send context-text hide-caret #t)
 	      (send text insert "  ")
@@ -487,12 +474,12 @@ profile todo:
 	      (send text insert #\newline))
 	    (close-text))))
 
-      ;; copy/highlight-text : (instanceof scheme:text<%>) number number -> (instanceof scheme:text<%>)
+      ;; copy/highlight-text : text number number -> text
       ;; copies the range from `start' to `finish', including the entire paragraph at
       ;; each end and highlights the characters corresponding the original range,
       ;; in the resulting text
       (define (copy/highlight-text from-text start finish)
-        (let* ([to-text (make-object scheme:text%)]
+        (let* ([to-text (new text:standard-style-list%)]
                [para-start-pos (send from-text paragraph-start-position 
                                      (send from-text position-paragraph start))]
                [para-end-pos (send from-text paragraph-end-position
@@ -1461,9 +1448,7 @@ profile todo:
         (cond
           [name
            (let ([before (send editor last-position)])
-             (send editor insert (format "~a" name))
-             (let ([after (send editor last-position)])
-               '(send editor change-style modern-style-delta before after)))]
+             (send editor insert (format "~a" name)))]
           [else
            (let* ([src (syntax-source stx)]
                   [filename 
