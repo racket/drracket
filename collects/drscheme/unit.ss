@@ -714,17 +714,23 @@
 	
 	(set! name-message (make-object mred:message% "" top-panel)))
       (private 
-	[make-teachpack-name-msg
-	 (lambda (panel n)
-	   (make-object mred:message%
-	     (if n
-		 (let-values ([(base name must-be-dir) (split-path n)])
-		   name)
-		 "") 
-	     panel))]
-	[teachpack-msg (make-teachpack-name-msg
-			top-panel
-			(fw:preferences:get 'drscheme:teachpack-file))])
+	[update-teachpack-panel
+	 (lambda (pack)
+	   (let ([names (cond
+			 [(string? pack) (list pack)]
+			 [(not pack) null]
+			 [else pack])])
+	     (send teachpack-panel change-children (lambda (l) null))
+	     (for-each
+	      (lambda (name)
+		(let-values ([(base short-name must-be-dir) (split-path name)])
+		  (make-object mred:message% short-name teachpack-panel)))
+	      names)))]
+	[teachpack-panel (make-object mred:vertical-panel% top-panel)])
+      (sequence
+	(send teachpack-panel set-alignment 'left 'center)
+	(update-teachpack-panel
+	 (fw:preferences:get 'drscheme:teachpack-file)))
       
       (public
 	[stop-execute-button (void)]
@@ -755,21 +761,16 @@
 	  'drscheme:teachpack-file
 	  (let ([last-one (fw:preferences:get 'drscheme:teachpack-file)])
 	    (lambda (p v)
-	      (unless (or (and (not last-one) (not v))
-			  (and last-one v
-			       (string=? v last-one)))
+	      (unless (equal? v last-one)
 		(set! last-one v)
-		; (send top-panel change-children (lambda (l) (mzlib:function:remq teachpack-msg l)))
-		(set! teachpack-msg (make-teachpack-name-msg top-panel v))
-		(send definitions-text teachpack-changed)
-		(send top-panel change-children 
-		      (lambda (l) (build-top-panel-children)))))))])
+		(update-teachpack-panel v)
+		(send definitions-text teachpack-changed)))))])
       
       (private
 	[build-top-panel-children
 	 (lambda ()
 	   (list name-message save-button
-		 teachpack-msg
+		 teachpack-panel
 		 button-panel))])
       
       (inherit get-label)
