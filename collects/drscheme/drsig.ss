@@ -8,11 +8,11 @@
 
 	))
 
-(reference (begin-elaboration-time (build-path 'up "zodiac" "sigs.ss")))
-(reference (begin-elaboration-time (build-path 'up "zodiac" "zsigs.ss")))
-(reference (begin-elaboration-time (build-path 'up "lib" "sparams.ss")))
-(reference (begin-elaboration-time (build-path 'up "lib" "ariess.ss")))
-(reference (begin-elaboration-time (build-path 'up "lib" "gusrspcs.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "sigs.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "lib" "sparams.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "lib" "ariess.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "lib" "gusrspcs.ss")))
 
 (reference-library "pconvers.ss")
 
