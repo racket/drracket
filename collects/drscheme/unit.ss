@@ -684,6 +684,11 @@
         [needs-execution?
          (lambda ()
            (send definitions-text needs-execution?))])
+      
+      (public
+        [clear-annotations
+         (lambda ()
+           (send definitions-text clear-annotations))])
 
       (public
 	[definitions-item #f]
@@ -744,9 +749,7 @@
 	[update-save-message
 	 (lambda (name)
 	   (when name-message
-	     (let* ([long-name (mzlib:file:normalize-path name)]
-		    [short-name (mzlib:file:file-name-from-path long-name)])
-	       (send name-message set-message long-name short-name))))])
+	     (send name-message set-message #t name)))])
       (override
        [get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
@@ -938,17 +941,7 @@
 			      (send child focus)
 			      (loop (cdr children))))])))
 	     
-	     ;; these should not be necessary anymore?
-	     '(send interactions-text scroll-to-position 
-		   (send interactions-text get-end-position)
-		   #f
-		   (send interactions-text get-start-position)
-		   'start)
-	     '(send definitions-text scroll-to-position 
-		   (send definitions-text get-end-position)
-		   #f
-		   (send definitions-text get-start-position)	
-		   'start)
+             
 	     (let ([defs-show? (not (hidden? definitions-item))])
 	       (for-each
 		(lambda (get-item)
@@ -1189,10 +1182,8 @@
 
 	;; (get-label) shouldn't be #f, but I'm not sure....
 	(send name-message set-message
-	      (if filename
-		  (mzlib:file:normalize-path filename)
-		  #f)
-	      (or (get-label) "Untitled"))
+	      (if filename #t #f)
+              (or filename (get-label) "Untitled"))
 
 	(update-save-button #f)
 

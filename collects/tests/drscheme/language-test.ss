@@ -39,28 +39,29 @@
   (test-setting "Teaching language primitives and syntax" #f
 		"make-posn"
 		"reference to undefined identifier: make-posn")
-  (set-language #f)
-  (test-setting "Teaching language primitives and syntax" #f
-		"first"
-		"reference to undefined identifier: first")
-  (set-language #f)
-  (test-setting "Teaching language primitives and syntax" #f
-		"turtles"
-		"reference to undefined identifier: turtles")
-
-  (set-language #f)
-  (test-setting "Teaching language primitives and syntax" #f
-		"(define (. x y) (* x y)) ."
-		(if debug?
-		    "syntax error: can't put `.' as first item in list"
-		    "read: illegal use of \".\" at position 10 in USERPORT"))
+  (test-expression "first" "reference to undefined identifier: first")
+  (test-expression "turtles" "reference to undefined identifier: turtles")
+  (test-expression "(define (. x y) (* x y)) ."
+                   (if debug?
+                       "syntax error: can't put `.' as first item in list"
+                       "read: illegal use of \".\" at position 10 in USERPORT"))
+  (test-expression "local" "reference to undefined identifier: local")
+  (test-expression "nand" "reference to undefined identifier: nand")
+  
 
   (set-language #f)
   (test-setting
    "Teaching language primitives and syntax" #t
    (format "make-posn first turtles~n(define (. x y) (* x y)) .")
    (format "#<struct-procedure:make-posn>~n#<procedure:first>~n#<procedure:turtles>~
-          ~n#<procedure:.>")))
+          ~n#<procedure:.>"))
+  
+  (test-expression "local" (if debug? 
+                               "compile: illegal use of a macro name in: local" 
+                               "keyword: invalid use of keyword local"))  
+  (test-expression "nand" (if debug? 
+                              "compile: illegal use of a macro name in: nand" 
+                              "keyword: invalid use of keyword nand")))
 
 (define (mred)
   (parameterize ([language "Graphical without Debugging (MrEd)"])
