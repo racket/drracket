@@ -5,7 +5,7 @@
 	   [(null? dirs) null]
 	   [else
 	    (let* ([dir (car dirs)]
-		   [full-dir (collection-path "drscheme" "tools" dir)])
+		   [full-dir (build-path (collection-path "drscheme" "tools") dir)])
 	      (if (and (directory-exists? full-dir)
 		       (not (string=? "CVS" dir)))
 		  (cons dir (loop (cdr dirs)))
