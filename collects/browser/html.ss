@@ -407,6 +407,10 @@
 					   "BUTTON")])))))]
 	   
 	   ;; Make sure newline strength before pos is count; returns number inserted
+           [try-newline-whitespace? (lambda (x)
+                                      (and (char-whitespace? x)
+                                           ;; exclude &nbsp; from this test
+                                           (not (= (char->latin-1-integer x) 160))))]
 	   [try-newline
 	    (lambda (pos count maybe-tabbed?)
 	      (cond
@@ -416,12 +420,13 @@
 		       (cond
 			[(eq? #\newline c)
 			 (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
-			[(and maybe-tabbed? (char-whitespace? c))
+			[(and maybe-tabbed? 
+                              (try-newline-whitespace? c)) 
 			 ; Some whitespace is messing up the newlines (perhaps added
 			 ; by a spurious <P> in a list item); delete non-newlines
 			 (let loop ([p (sub1 pos)][nl 0])
 			   (cond
-			    [(or (zero? p) (not (char-whitespace? (get-character (sub1 p)))))
+			    [(or (zero? p) (not (try-newline-whitespace? (get-character (sub1 p)))))
 			     (delete p pos)
 			     (insert (make-string nl #\newline) p)
 			     (+ (- p pos) nl (try-newline (+ p nl) count #f))]
@@ -649,7 +654,8 @@
 			 (when note
 			   (add-document-note note)))
 		       (atomic-values (if skip-one? (add1 pos) pos) (or del-white? skip-one?)))]
-		    [(br) (break #f 1)]
+		    [(br) 
+                     (break #f 1)]
 		    [(p hr) (break #f (if dewhite? 2 1))] ; dewhite? = #f => <P> in <PRE>
 		    [(li) (break #t 1)]
 		    [(dt) (break #f 2)]
