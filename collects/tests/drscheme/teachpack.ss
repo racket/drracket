@@ -207,3 +207,11 @@
           (define m (lambda (x) `(+ ,x 1)))))"
  "(let ([x 2]) (m x))"
  "2")
+
+(test-good-teachpack
+ "(cons (unit/sig (mo) (import plt:userspace^) (define (mo x) (ivar (make-object x) x)))
+        (unit/sig (m) 
+          (import plt:userspace^)
+          (define m (lambda (x) `(class object% (public [x ,x]))))))"
+ "(mo (m 11))"
+ "11")
