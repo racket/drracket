@@ -23,8 +23,8 @@
       
       ;; CACHE
       (define NUM-CACHED 10)
-      (define cached (make-vector 10 null))
-      (define cached-name (make-vector 10 ""))
+      (define cached (make-vector 10 'no-image))
+      (define cached-name (make-vector 10 #f)) ; string or #f
       (define cached-use (make-vector 10 0))
       
       (define html-status-handler
