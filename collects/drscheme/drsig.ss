@@ -4,9 +4,10 @@
    load/invoke-tool))
 
 (define-signature drscheme:basis^
-  ((open plt:aries:predicates^)
-   level->number level-symbols level-strings
-   build-basis))
+  (level->number
+   level-symbols
+   level-strings
+   add-basis))
 
 (define-signature drscheme:export^
   (console))
@@ -18,7 +19,7 @@
   (snip-class% snip%))
 
 (define-signature drscheme:frame^
-  (frame%))
+  (frame% unit-frame%))
 
 (define-signature drscheme:compound-unit^
   (frame% snip%))
@@ -36,6 +37,9 @@
 (define-signature drscheme:setup^ 
   (do-setup))
 
-(define-signature drscheme:spawn^
-  (spawned-process-console-frame%
-   spawned-process-console-edit%))
+(define-signature drscheme:rep^
+  (edit%))
+
+(define-signature drscheme:app^
+  ((open mred:application^)
+   about-drscheme))
