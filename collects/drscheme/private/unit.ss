@@ -378,7 +378,9 @@ tab panels todo:
         (class (make-searchable-canvas% (canvas:delegate-mixin canvas:info%))
           (super-new)))
       
-      (define definitions-text<%> (interface ()))
+      (define definitions-text<%> 
+        (interface ()
+          change-mode-to-match))
       
       (define get-definitions-text%
         (let ([definitions-text% #f])
@@ -402,6 +404,41 @@ tab panels todo:
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
               
+            (inherit get-surrogate set-surrogate)
+            (define/public (set-current-mode mode)
+              (let ([surrogate (drscheme:modes:mode-surrogate mode)])
+                (set-surrogate surrogate)
+                (let ([fr (get-top-level-window)])
+                  (when fr
+                    (let ([interactions-text (send fr get-interactions-text)])
+                      (send interactions-text set-surrogate surrogate)
+                      (send interactions-text set-submit-predicate
+                            (drscheme:modes:mode-repl-submit mode)))))))
+
+            (define/public (is-current-mode? mode)
+              (let ([surrogate (drscheme:modes:mode-surrogate mode)])
+                (eq? surrogate (get-surrogate))))
+            
+            (define/public (change-mode-to-match)
+              (let* ([language-settings (get-next-settings)]
+                     [language-name (and language-settings
+                                         (send (drscheme:language-configuration:language-settings-language
+                                                language-settings)
+                                               get-language-position))])
+                (let loop ([modes (drscheme:modes:get-modes)])
+                  (cond
+                    [(null? modes) (error 'change-mode-to-match-filename
+                                          "didn't find a matching mode")]
+                    [else (let ([mode (car modes)])
+                            (if ((drscheme:modes:mode-matches-language mode) language-name)
+                                (unless (is-current-mode? mode)
+                                  (set-current-mode mode))
+                                (loop (cdr modes))))]))))
+            
+            (define/private (set-initial-mode)
+              (set-current-mode (car (last-pair (drscheme:modes:get-modes))))
+              (change-mode-to-match))
+            
             (rename [super-after-save-file after-save-file])
             (define/override (after-save-file success?)
               (when success?
@@ -447,9 +484,7 @@ tab panels todo:
             (define/public (get-next-settings) next-settings)
             (define/public (set-next-settings _next-settings)
               (set! next-settings _next-settings)
-              (let ([frame (get-top-level-window)])
-                (when frame
-                  (send frame change-mode-to-match))))
+              (change-mode-to-match))
             
             (define/public (needs-execution?)
               (or needs-execution-state
@@ -540,7 +575,8 @@ tab panels todo:
             
             (field [error-arrows #f])
             
-            (super-new))))
+            (super-new)
+            (set-initial-mode))))
       
       
                                                        
@@ -878,8 +914,7 @@ tab panels todo:
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
-          execute-callback
-          change-mode-to-match))
+          execute-callback))
 
       (define-struct tab (defs ints))
       
@@ -1164,7 +1199,20 @@ tab panels todo:
               (let ([filename (send definitions-text get-filename)])
                 (send name-message set-message 
                       (if filename #t #f)
-                      (send definitions-text get-filename/untitled-name)))))
+                      (send definitions-text get-filename/untitled-name))))
+            (update-tabs-labels))
+          
+          (define/private (update-tabs-labels)
+            ;; need better C-level support before I can call this one.
+            '(let loop ()
+               (unless (zero? (send tabs-panel get-number))
+                 (send tabs-panel delete 0)
+                 (loop)))
+            '(for-each
+              (lambda (tab)
+                (let ([defs (tab-defs tab)])
+                  (send tabs-panel append (send defs get-filename/untitled-name))))
+              tabs))
 
           [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           
@@ -1319,17 +1367,6 @@ tab panels todo:
 ;                                            
 ;                                            
 
-
-          (define/public (set-current-mode mode)
-            (let ([surrogate (drscheme:modes:mode-surrogate mode)])
-              (send definitions-text set-surrogate surrogate)
-              (send interactions-text set-surrogate surrogate)
-              (send interactions-text set-submit-predicate
-                    (drscheme:modes:mode-repl-submit mode))))
-
-          (define/public (is-current-mode? mode)
-            (let ([surrogate (drscheme:modes:mode-surrogate mode)])
-              (eq? surrogate (send definitions-text get-surrogate))))
           
           (define/private (add-modes-submenu edit-menu)
             (new menu%
@@ -1345,30 +1382,12 @@ tab panels todo:
                                              (label (drscheme:modes:mode-name mode))
                                              (parent menu)
                                              (callback 
-                                              (lambda (_1 _2) (set-current-mode mode))))])
-                                  (when (is-current-mode? mode)
+                                              (lambda (_1 _2) (send definitions-text set-current-mode mode))))])
+                                  (when (send definitions-text is-current-mode? mode)
                                     (send item check #t))))
                               (drscheme:modes:get-modes))))))
           
-          (define/public (change-mode-to-match)
-            (let* ([language-settings (send definitions-text get-next-settings)]
-                   [language-name (and language-settings
-                                       (send (drscheme:language-configuration:language-settings-language
-                                              language-settings)
-                                             get-language-position))])
-              (let loop ([modes (drscheme:modes:get-modes)])
-                (cond
-                  [(null? modes) (error 'change-mode-to-match-filename
-                                        "didn't find a matching mode")]
-                  [else (let ([mode (car modes)])
-                          (if ((drscheme:modes:mode-matches-language mode) language-name)
-                              (unless (is-current-mode? mode)
-                                (set-current-mode mode))
-                              (loop (cdr modes))))]))))
           
-          (define/private (set-initial-mode)
-            (set-current-mode (car (last-pair (drscheme:modes:get-modes))))
-            (change-mode-to-match))
 
           
 ;                                                                                         
@@ -2530,7 +2549,6 @@ tab panels todo:
           (set-label-prefix (string-constant drscheme))
           
           (update-toolbar-visiblity)
-          (set-initial-mode)
           
           (send definitions-canvas focus)
           (cond
