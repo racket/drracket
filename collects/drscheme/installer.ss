@@ -16,4 +16,6 @@
       (make-mred-launcher
        (list "-ZmvqL" "drscheme.ss" "drscheme")
        (mred-program-launcher-path "DrScheme")
-       (build-aux-from-path (build-path (collection-path "drscheme") "drscheme"))))))
+       (cons
+        `(exe-name . "DrScheme")
+        (build-aux-from-path (build-path (collection-path "drscheme") "drscheme")))))))
