@@ -219,8 +219,10 @@
 		(let ([src (get-src s)])
 		  (and src
 		       (with-handlers ([not-break (lambda (x) #f)])
-			 (combine-url/relative base-path src))))))]
-
+			 (if base-path
+			     (combine-url/relative base-path src)
+			     (string->url src)))))))]
+	   
 	   [parse-image-alt
 	    (let ([get-src (make-get-field "alt")])
 	      (lambda (s)
@@ -552,17 +554,21 @@
 						 #t)))])
 		  (case tag
 		    [(!--)
-		     (let ([code (parse-mzscheme args)])
-		       (when code
-			 (let ([s (with-handlers ([not-break void])
-				    (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
-			   (when (string? s)
-			     ; Put result back into the input stream:
-			     (set! inserted-chars (append (string->list s) inserted-chars))))))
-		     (let ([note (parse-docnote args)])
-		       (when note
-			 (add-document-note note)))
-		     (atomic-values pos del-white?)]
+		     (let ([skip-one? #f])
+		       (let ([code (parse-mzscheme args)])
+			 (when code
+			   (let ([s (with-handlers ([not-break void])
+				      (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
+			     (when (string? s)
+			       ; Put result back into the input stream:
+			       (set! inserted-chars (append (string->list s) inserted-chars)))
+			     (when (is-a? s snip%)
+			       (insert s pos)
+			       (set! skip-one? #t)))))
+		       (let ([note (parse-docnote args)])
+			 (when note
+			   (add-document-note note)))
+		       (atomic-values (if skip-one? (add1 pos) pos) (or del-white? skip-one?)))]
 		    [(br) (break #f 1)]
 		    [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
 		    [(li) (break #t 1)]
@@ -727,11 +733,11 @@
 	   (let ([depth (max 0 (car data))]
 		 [bullet? (cadr data)])
 	     (set-paragraph-margins (position-paragraph pos)
-				    (max 0 (- (* 2 bullet-width depth)
+				    (max 0 (- (* 2 (get-bullet-width) depth)
 					      (if bullet?
-						  bullet-width
+						  (get-bullet-width)
 						  0)))
-				    (* 2 bullet-width depth)
+				    (* 2 (get-bullet-width) depth)
 				    0))))
 
 	(set-position 0)))))

@@ -2,10 +2,14 @@
 (unit/sig bullet-snip^
   (import mred^)
 
-  (define bullet-size (let ([s (send (send (send (make-object text%) get-style-list) basic-style)
-				     get-size)])
-			(max 7 (quotient s 2))))
-  (define bullet-width (* 2 bullet-size))
+  (define bullet-size 
+    (make-parameter
+     (let ([s (send (send (send (make-object text%) get-style-list) basic-style)
+		    get-size)])
+       (max 7 (quotient s 2)))))
+
+  (define (get-bullet-width)
+    (* 2 (bullet-size)))
 
   (define transparent-brush (make-object brush% "WHITE" 'transparent))
   
@@ -16,8 +20,8 @@
 	[zero (lambda (b) (when b (set-box! b 0)))]
 	[get-height (lambda (dc)
 		      (let ([s (get-style)])
-			(max bullet-size (- (send s get-text-height dc)
-					    (send s get-text-descent dc)))))])
+			(max (bullet-size) (- (send s get-text-height dc)
+					      (send s get-text-descent dc)))))])
       (override
 	[get-extent
 	 (lambda (dc x y wbox hbox descentbox spacebox
@@ -25,14 +29,14 @@
 	   (when hbox
 	     (set-box! hbox (get-height dc)))
 	   (when wbox
-	     (set-box! wbox bullet-width))
+	     (set-box! wbox (* 2 (bullet-size))))
 	   (zero descentbox)
 	   (zero spacebox)
 	   (zero rspacebox)
 	   (zero lspacebox))]
 	[draw
 	 (lambda (dc x y . other)
-	   (let ([y (+ y (ceiling (/ (- (get-height dc) bullet-size) 2)))])
+	   (let ([y (+ y (ceiling (/ (- (get-height dc) (bullet-size)) 2)))])
 	     (let-values ([(draw solid?)
 			   (case depth
 			     [(0) (values (ivar dc draw-ellipse) #t)]
@@ -46,7 +50,7 @@
 				 (send (send dc get-pen) get-color)
 				 'solid)
 			   transparent-brush))
-		 (draw x y bullet-size bullet-size)
+		 (draw x y (bullet-size) (bullet-size))
 		 (send dc set-brush b)))))]
 	[copy
 	 (lambda ()

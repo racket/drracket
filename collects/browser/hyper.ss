@@ -5,7 +5,10 @@
 	  mzlib:file^
 	  mzlib:string^
 	  mzlib:url^
+	  (bullet : bullet-snip^)
 	  mred^)
+
+  (define bullet-size bullet:bullet-size)
 
   (define-struct (exn:file-saved-instead struct:exn) (pathname))
   (define-struct (exn:cancelled struct:exn) ())
