@@ -497,7 +497,6 @@
       
       (define busy-cursor (make-object cursor% 'watch))
       (unless (send busy-cursor ok?)
-        (printf "WARNING: could not make busy cursor~n")
         (set! busy-cursor #f))
       
       (define current-backtrace-window #f)
@@ -1865,19 +1864,6 @@
                      ans)))
                 
                 (current-load drscheme-load-handler)
-                
-                (error-display-handler
-                 (rec drscheme-error-display-handler
-                   (lambda (msg)
-		     (fprintf (current-error-port) msg)
-		     '(message-box
-		       "Uncaught Error"
-		       msg
-		       (let ([rep (current-rep-text)])
-			 (and rep
-			      (let ([canvas (send rep get-active-canvas)])
-				(and canvas
-				     (send canvas get-top-level-window)))))))))
                 
                 (let ([dir (or (send context get-directory)
                                drscheme:init:first-dir)])
