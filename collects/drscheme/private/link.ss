@@ -40,7 +40,8 @@
                  (rep@ init number-snip language-configuration language app 
                      frame unit text help-desk teachpack debug eval)]
             [language : drscheme:language^ (language@ rep debug teachpack tools help-desk)]
-            [module-overview : drscheme:module-overview^ (module-overview@ frame)]
+            [module-overview : drscheme:module-overview^ 
+                             (module-overview@ frame eval language-configuration language)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration language
                        get/extend number-snip teachpack module-overview tools eval init
