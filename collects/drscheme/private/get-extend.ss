@@ -48,6 +48,12 @@
                  (set! built (extensions (get-base%))))
                built)))))
       
+      (define (get-base-tab%)
+        (drscheme:debug:test-coverage-tab-mixin
+         drscheme:unit:tab%))
+      
+      (define-values (extend-tab get-tab) (make-extender get-base-tab% 'tab%))
+
       (define (get-base-interactions-canvas%)
         drscheme:unit:interactions-canvas%)
       
@@ -60,10 +66,9 @@
       (define-values (extend-definitions-canvas get-definitions-canvas)
         (make-extender get-base-definitions-canvas% 'definitions-canvas%))  
       
-      (define (get-base-unit-frame%)
-        (drscheme:debug:test-coverage-unit-frame-mixin
-         (drscheme:debug:profile-unit-frame-mixin
-          drscheme:unit:frame%)))
+      (define (get-base-unit-frame%) 
+        (drscheme:debug:profile-unit-frame-mixin
+         drscheme:unit:frame%))
 
       (define-values (extend-unit-frame get-unit-frame)
         (make-extender get-base-unit-frame% 'drscheme:unit:frame))

@@ -46,16 +46,17 @@
      make-debug-error-display-handler/text
      make-debug-eval-handler
      hide-backtrace-window
-     profile-unit-frame-mixin
+     
      profile-definitions-text-mixin
      profile-interactions-text-mixin
+     profile-unit-frame-mixin
      profiling-enabled
 
      test-coverage-enabled
-     test-coverage-unit-frame-mixin
      test-coverage-interactions-text-mixin
      test-coverage-definitions-text-mixin
-
+     test-coverage-tab-mixin
+     
      add-prefs-panel
      
      show-error-and-highlight
@@ -112,11 +113,13 @@
      load/invoke-all-tools))
 
   (define-signature drscheme:get/extend^
-    (extend-interactions-text
+    (extend-tab
+     extend-interactions-text
      extend-definitions-text
      extend-interactions-canvas
      extend-definitions-canvas
      extend-unit-frame
+     get-tab
      get-interactions-text
      get-definitions-text
      get-interactions-canvas
@@ -124,7 +127,8 @@
      get-unit-frame))
     
   (define-signature drscheme:unit^
-    (frame% 
+    (tab%
+     frame% 
      frame<%>
      definitions-canvas%
      get-definitions-text%

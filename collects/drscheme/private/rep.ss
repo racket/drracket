@@ -450,7 +450,8 @@ TODO
           reset-pretty-print-width
           
           get-prompt
-          insert-prompt))
+          insert-prompt
+          get-context))
       
       (define text-mixin
         (mixin ((class->interface text%)

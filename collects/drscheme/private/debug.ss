@@ -2,7 +2,11 @@
 
 profile todo:
   - use origin fields
-   
+
+clearing the test coverage should go thru the tab, not the frame.
+
+clearing annotations in profiler broken (needs tabs)
+
 |#
 
 (module debug mzscheme
@@ -695,6 +699,7 @@ profile todo:
       
       (define test-coverage-interactions-text-mixin
         (mixin (drscheme:rep:text<%> text:basic<%>) (test-coverage-interactions-text<%>)
+          (inherit get-context)
           (field [test-coverage-info #f]
                  [test-coverage-on-style #f]
                  [test-coverage-off-style #f]
@@ -709,21 +714,18 @@ profile todo:
           
           (inherit get-top-level-window)
           (define/augment (after-many-evals)
-            (let ([tlw (get-top-level-window)])
-              (when (and (is-a? tlw test-coverage-frame<%>)
-                         test-coverage-info)
-                (send tlw show-test-coverage-annotations 
-                      test-coverage-info
-                      test-coverage-on-style
-                      test-coverage-off-style
-                      ask-about-reset?)))
+            (send (get-context) show-test-coverage-annotations 
+                  test-coverage-info
+                  test-coverage-on-style
+                  test-coverage-off-style
+                  ask-about-reset?)
             (inner (void) after-many-evals))
           
-          (super-instantiate ())))
+          (super-new)))
       
       (define test-coverage-definitions-text-mixin
         (mixin ((class->interface text%) drscheme:unit:definitions-text<%>) ()
-          (inherit get-canvas)
+          (inherit get-canvas get-tab)
           
           (define/private (clear-test-coverage?)
             (if (preferences:get 'drscheme:test-coverage-ask-about-clearing?)
@@ -746,22 +748,18 @@ profile todo:
                 #t))
           
           (define/private (clear-test-coverage)
-            (let ([canvas (get-canvas)])
-              (when canvas
-                (let ([frame (send canvas get-top-level-window)])
-                  (when (send frame get-test-coverage-info-visible?)
-                    (send frame clear-test-coverage-display)
-                    (let ([it (send frame get-interactions-text)])
-                      (when (is-a? it test-coverage-interactions-text<%>)
-                        (send it set-test-coverage-info #f))))))))
+            (let ([tab (get-tab)])
+              (when (send tab get-test-coverage-info-visible?)
+                (send tab clear-test-coverage-display)
+                (let ([it (send tab get-interactions-text)])
+                  (when (is-a? it test-coverage-interactions-text<%>)
+                    (send it set-test-coverage-info #f))))))
           
           (define/private (can-clear-coverage?)
-            (let ([canvas (get-canvas)])
-              (or (not canvas)
-                  (let ([frame (send canvas get-top-level-window)])
-                    (or (not (send frame get-test-coverage-info-visible?))
-                        (not (send frame ask-about-clearing-test-coverage?))
-                        (clear-test-coverage?))))))
+            (let ([tab (get-tab)])
+              (or (not (send tab get-test-coverage-info-visible?))
+                  (not (send tab ask-about-clearing-test-coverage?))
+                  (clear-test-coverage?))))
             
           (define/augment (can-insert? x y)
             (and (inner #t can-insert? x y)
@@ -792,9 +790,8 @@ profile todo:
       
       (define erase-test-coverage-style-delta (make-object style-delta% 'change-normal-color))
       
-      ;; test-coverage-unit-frame-mixin
-      (define test-coverage-unit-frame-mixin
-        (mixin (drscheme:unit:frame<%>) (test-coverage-frame<%>)
+      (define test-coverage-tab-mixin
+        (mixin (drscheme:rep:context<%>) (test-coverage-frame<%>)
           
           (field [internal-clear-test-coverage-display #f])
           
@@ -969,8 +966,8 @@ profile todo:
             (super clear-annotations)
             (clear-test-coverage-display))
           
-          (super-instantiate ())))
-      
+          (super-new)))
+          
  
       
       
@@ -1214,16 +1211,17 @@ profile todo:
                      (esc-k #t))))
                 #f)))
 
+          ;; clear-annotations
+          #;
+          (define/override (clear-annotations)
+            (super clear-annotations)
+            (clear-profile-display))
+          
           ;; execute-callback : -> void
           (define/override (execute-callback)
             (send (get-interactions-text) set-profile-info (make-hash-table))
             (super execute-callback))
 
-          ;; clear-annotations
-          (define/override (clear-annotations)
-            (super clear-annotations)
-            (clear-profile-display))
-          
           ;; update-shown : -> void
           ;; updates the state of the profile item's show menu
           (define/override (update-shown)
@@ -1249,12 +1247,12 @@ profile todo:
           (define/private (toggle-profile-visible)
             (cond
               [profile-info-visible?
-               (clear-annotations)]
+               '(clear-annotations)]
               [(not profile-info-visible?)
                (cond
                  [(can-show-profile?)
 		  (construct-profile-gui)
-                  (clear-annotations)
+                  '(clear-annotations)
                   (send profile-info-text refresh-profile)
                   (set! profile-info-visible? #t)
                   (send profile-info-outer-panel change-children
@@ -1281,7 +1279,7 @@ profile todo:
                    parent))
             (make-object % profile-info-outer-panel))
           
-          (super-instantiate ())
+          (super-new)
           
 	  (define profile-info-panel #f)
 	  (define profile-info-text #f)

@@ -345,6 +345,7 @@ module browser threading seems wrong.
 
       (define definitions-text<%> 
         (interface ()
+          get-tab
           change-mode-to-match))
       
       (define get-definitions-text%
@@ -374,6 +375,10 @@ module browser threading seems wrong.
             (define/public (set-interactions-text it)
               (set! interactions-text it))
               
+            (define tab #f)
+            (define (get-tab) tab)
+            (define (set-tab t) (set! tab t))
+            
             (inherit get-surrogate set-surrogate)
             (define/public (set-current-mode mode)
               (let ([surrogate (drscheme:modes:mode-surrogate mode)])
@@ -1916,6 +1921,7 @@ module browser threading seems wrong.
                    [tab-count (length tabs)]
                    [new-tab (new tab% (defs defs) (i tab-count))]
                    [ints (make-object (drscheme:get/extend:get-interactions-text) new-tab)])
+              (send defs set-tab new-tab)
               (send new-tab set-ints ints)
               (set! tabs (append tabs (list new-tab)))
               (send tabs-panel append (get-defs-tab-label defs))
