@@ -90,9 +90,11 @@
                                       (syntax name))])
                (with-syntax ([s-prefixed-name prefixed-name]
                              [(to-provide-specs ...)
-                              (get-provide-specs
-                               (syntax->list
-                                (syntax (bodies ...))))]
+                              (cons
+                               (syntax (all-from lang))
+                               (get-provide-specs
+                                (syntax->list
+                                 (syntax (bodies ...)))))]
                              [(no-provide-bodies ...)
                               (filter
                                not-provide?
