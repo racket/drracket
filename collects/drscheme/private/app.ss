@@ -355,8 +355,7 @@
           
           (send e insert " by ")
           
-          (insert-url "PLT"
-                      "http://www.cs.rice.edu/CS/PLT/")
+          (insert-url "PLT" "http://www.plt-scheme.org/")
           
           (send* e
             (insert ".")
