@@ -1,0 +1,13 @@
+This collection is used only for CVS. It is not
+included in normal releases.
+
+The file make-time-stamp-tool.ss creates the stamp.ss file.
+It is run by a cron script each night and a new copy of
+stamp.ss is checked in each night.
+
+The stamp.ss module provides on definition: `stamp'
+that is bound to a symbol representing the current
+day. 
+
+The time-stamp.ss file is a tool, used by drscheme
+to set the version based on the time stamp.
