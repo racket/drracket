@@ -181,8 +181,8 @@
                 (k (void)))
               (let* ([tool-path
                       (if (string? in-path) 
-                          `(file ,(path->string (build-path coll-dir in-path)))
-                          `(file ,(path->string (apply build-path coll-dir (append (cdr in-path) (list (car in-path)))))))]
+                          (build-path coll-dir in-path)
+                          (apply build-path coll-dir (append (cdr in-path) (list (car in-path)))))]
                      [unit 
                        (with-handlers ([exn:fail? 
                                         (lambda (x)
