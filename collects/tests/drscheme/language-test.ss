@@ -35,7 +35,7 @@
 (define (mzscheme)
   (parameterize ([language "MzScheme"])
     (generic-settings)
-    (generic-output #t)
+    (generic-output #t #t)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
     
@@ -44,7 +44,7 @@
       (set-language #t)
       (do-execute drs))
     
-    (test-expression "(eq? 'a 'A)" "#f")
+    (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "")
     (test-expression "(cons 1 2)" "(1 . 2)")
@@ -65,7 +65,7 @@
 (define (mzscheme-debug)
   (parameterize ([language "MzScheme Debug"])
     (generic-settings)
-    (generic-output #t)
+    (generic-output #t #t)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "no matching cond clause")
     (set-language #f)
@@ -79,7 +79,7 @@
       (set-language #t)
       (do-execute drs))
     
-    (test-expression "(eq? 'a 'A)" "#f")
+    (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
     (test-expression "(cond [(= 1 2) 3])" "")
     (test-expression "(cons 1 2)" "(1 . 2)")
@@ -100,7 +100,7 @@
 (define (zodiac-beginner)
   (parameterize ([language "Beginner"])
     (zodiac "Beginner")
-    (generic-output #f)
+    (generic-output #f #f)
     
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
@@ -128,7 +128,7 @@
 (define (zodiac-intermediate)
   (parameterize ([language "Intermediate"])
     (zodiac "Intermediate")
-    (generic-output #f)
+    (generic-output #t #f)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
 		  "Variable x referenced before definition or initialization")
@@ -146,7 +146,7 @@
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "Misuse of quote: '(1) is not a symbol")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
-		     "(cons (box 1) (cons (box 1) empty))")
+		     "(list (box 1) (box 1))")
     (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "Condition value is neither #t nor #f: 1")
@@ -155,13 +155,13 @@
     (test-expression "1.0" "#i1.0")
     (test-expression "#i1.0" "#i1.0")
     (test-expression "3/2" "3/2")
-    (test-expression "(list 1)" "(cons 1 empty)")
+    (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
 (define (zodiac-advanced)
   (parameterize ([language "Advanced"])
     (zodiac "Advanced")
-    (generic-output #t)
+    (generic-output #t #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
 		  "Variable x referenced before definition or initialization")
@@ -204,7 +204,7 @@
   (set-language #f)
   (test-setting "Unmatched cond/case is an error" #f "(cond [#f 1])" ""))
 
-(define (generic-output list?)
+(define (generic-output list? quasi-quote?)
   (let* ([drs (wait-for-drscheme-frame)]
 	 [expression (format "(define x (box 3/2))~n(list x x)")]
 	 [set-output-choice
@@ -236,10 +236,11 @@
 
     (test "R4RS" 'off #f "(#&3/2 #&3/2)")    
     (test "R4RS" 'on #f "(#0=#&3/2 #0#)")
-    (test "Quasiquote" 'off 'off "`(,(box 3/2) ,(box 3/2))")
-    (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/2)) ,(box (+ 1 1/2)))")
-    (test "Quasiquote" 'on 'off "(shared ((-1- (box 3/2))) `(,-1- ,-1-))")
-    (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/2)))) `(,-1- ,-1-))")
+    (when quasi-quote?
+      (test "Quasiquote" 'off 'off "`(,(box 3/2) ,(box 3/2))")
+      (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/2)) ,(box (+ 1 1/2)))")
+      (test "Quasiquote" 'on 'off "(shared ((-1- (box 3/2))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/2)))) `(,-1- ,-1-))"))
     (test "Constructor" 'off 'off (if list?
 				      "(list (box 3/2) (box 3/2))"
 				      "(cons (box 3/2) (cons (box 3/2) empty))"))
