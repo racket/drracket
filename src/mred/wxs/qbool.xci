@@ -1,6 +1,0 @@
-
-// Quasi-booleans; nominally Bool, but really ints
-
-@MACRO cQBool = objscheme_istype_number({x}, NULL)
-@MACRO bQBool = objscheme_bundle_integer({x})
-@MACRO ubQBool = objscheme_unbundle_integer({x}, NULL)
