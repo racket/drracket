@@ -132,6 +132,7 @@
     ((struct text/pos (text start end))
      (struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
      simple-settings->vector
+     open-input-text
      make-simple-settings/parse
      language<%>
      module-based-language<%>
