@@ -356,6 +356,9 @@
                   ("t"             lexically-bound-syntax)
                   (" s) ())"       #f))) 
      
+     (build-test "(let () (define-struct s (x)) 1)"
+                 '())
+     
      (build-test "`(1 ,x 2)"
                 '(("`"        imported-syntax)
                   ("("        #f)
