@@ -796,6 +796,7 @@
           (field [logging #f]
                  [definitions-log-counter 0]  ;; number
                  [interactions-log-counter 0] ;; number
+                 [logging-parent-panel #f]    ;; panel (unitialized short time only)
                  [logging-panel #f]           ;; panel (unitialized short time only)
                  [logging-menu-item #f])      ;; menu-item (unitialized short time only)
           ;; log-definitions : -> void
@@ -828,7 +829,7 @@
                                   this)])
               (when (and log-directory
                          (ensure-empty log-directory))
-                (send logging-menu-item enable #f)
+                (send logging-menu-item set-label (string-constant stop-logging))
                 (set! logging log-directory)
                 (set! definitions-log-counter 0)
                 (set! interactions-log-counter 0)
@@ -839,7 +840,7 @@
           ;; turns off the logging procedure
           (define (stop-logging)
             (log-interactions)
-            (send logging-menu-item enable #t)
+            (send logging-menu-item set-label (string-constant log-definitions-and-interactions))
             (set! logging #f)
             (send logging-panel change-children (lambda (l) null)))
           
@@ -850,6 +851,19 @@
             (make-object message% (string-constant logging-to) hp)
             (send (make-object message% logging hp) stretchable-width #t)
             (make-object button% (string-constant stop-logging) hp (lambda (x y) (stop-logging))))
+          
+          ;; remove-logging-pref-callback : -> void
+          ;; removes the callback that shows and hides the logging panel
+          (field [remove-logging-pref-callback
+                  (preferences:add-callback
+                   'framework:show-status-line
+                   (lambda (p v)
+                     (when (is-a? logging-parent-panel panel%)
+                       (send logging-parent-panel change-children
+                             (lambda (l)
+                               (if v 
+                                   (list logging-panel)
+                                   null))))))])
           
           ;; ensure-empty : string[directory] -> boolean
           ;; if the log-directory is empty, just return #t
@@ -888,8 +902,11 @@
           (define/override (make-root-area-container cls parent)
             (let* ([outer-panel (super-make-root-area-container vertical-panel% parent)]
                    [root (make-object cls outer-panel)])
-              (set! logging-panel (make-object horizontal-panel% outer-panel))
-              (send logging-panel stretchable-height #f)
+              (set! logging-parent-panel (make-object horizontal-panel% outer-panel))
+              (send logging-parent-panel stretchable-height #f)
+              (set! logging-panel (make-object horizontal-panel% logging-parent-panel))
+              (unless (preferences:get 'framework:show-status-line)
+                (send logging-parent-panel change-children (lambda (l) null)))
               root))
           
           (public clear-annotations)
@@ -1087,7 +1104,10 @@
                       (make-object menu:can-restore-menu-item%
                         (string-constant log-definitions-and-interactions)
                         file-menu
-                        (lambda (x y) (start-logging))))
+                        (lambda (x y)
+                          (if logging
+                              (stop-logging)
+                              (start-logging)))))
                 (make-object separator-menu-item% file-menu)))]
           [define file-menu:print-string (lambda () (string-constant print-definitions))]
           [define file-menu:between-print-and-close
@@ -1398,6 +1418,7 @@
                  (set! created-frame #f))
                (when logging
                  (stop-logging))
+               (remove-logging-pref-callback)
                (send interactions-text shutdown)
                (send interactions-text on-close)
                (super-on-close))]
