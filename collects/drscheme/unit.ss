@@ -788,10 +788,19 @@
 
     (define created-frame #f)
 
+    (mred:set-preference-default 'drscheme:open-all-files-in-scheme-mode
+				 #t
+				 boolean?)
     (mred:insert-format-handler 
      "Units"
-     (list "ss" "scm" "sch" "mredrc")
-     (opt-lambda (name)
+     (lambda (filename)
+       (or (mred:get-preference 'drscheme:open-all-files-in-scheme-mode)
+	   (let ([filename-ext (mzlib:file@:filename-extension filename)])
+	     (and filename-ext
+		  (ormap (lambda (extension) 
+			   (string=? filename-ext extension))
+			 (list "ss" "scm" "sch" "mredrc"))))))
+     (lambda (name)
        (if (and created-frame
 		(send created-frame still-untouched?))
 	   (send created-frame change-to-file name)
