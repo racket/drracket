@@ -555,8 +555,33 @@
 
   (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
 
+  (define info-canvas%
+    (class canvas% (parent)
+      (inherit min-client-height get-dc stretchable-height enable)
+      (private
+	[text ""])
+      (override
+	[on-paint
+	 (lambda ()
+	   (let ([dc (get-dc)])
+	     (send dc clear)
+	     (send dc draw-text text 1 1)))])
+      (sequence 
+	(super-init parent)
+	(stretchable-height #f)
+	(enable #f)
+	(let ([font (make-object font% 
+				 (send (send parent get-label-font) get-point-size) 
+				 'default 'normal 'bold)]
+	      [dc (get-dc)])
+	  (send dc set-font font)
+	  (send dc set-text-foreground (make-object color% "RED"))
+	  (send dc set-background (make-object color% "GRAY"))
+	  (let-values ([(w h d a) (send dc get-text-extent "X" font)])
+	    (min-client-height (+ 2 (inexact->exact (ceiling h)))))))))
+
   (define (hyper-panel-mixin super%)
-    (class super% args
+    (class super% (info-line? . args)
       (inherit reflow-container)
       (sequence (apply super-init args))
       (public
@@ -629,6 +654,8 @@
 						(cons (car l) pre)
 						(sub1 pos))])))))]
 	; [progress (make-object scrolling-canvas% bitmaps hp)]
+	[info (and info-line?
+		   (make-object info-canvas% this))]
 	[c (make-canvas)])
       (public
 	; [get-progress (lambda () progress)]
