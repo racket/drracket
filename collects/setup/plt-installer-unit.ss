@@ -43,14 +43,22 @@
                  [e (make-object text%)]
                  [s (make-semaphore)]
                  [done (make-object button% "Close" frame (lambda (b e) (semaphore-post s)))]
-                 [output (make-output-port
-                          (lambda (s)
-                            (send e lock #f)
-                            (send e insert s (send e last-position) 'same 
-                                  ; Scroll on newlines only:
-                                  (regexp-match re:newline s))
-                            (send e lock #t))
-                          void)]
+                 [output (let ([orig-eventspace (current-eventspace)])
+			   (make-custom-output-port
+			    #f
+			    (lambda (s start end flush?)
+			      (queue-callback
+			       (lambda ()
+				 (let ([s (substring s start end)])
+				   (send e lock #f)
+				   (send e insert s (send e last-position) 'same 
+					; Scroll on newlines only:
+					 (regexp-match re:newline s))
+				   (send e lock #t)))
+			       orig-eventspace)
+			      (- end start))
+			    void
+			    void))]
                  [cust (make-custodian)])
           (send done enable #f)
 	  ((current-text-keymap-initializer) (send e get-keymap))
