@@ -71,7 +71,7 @@
 		     (list "execute" "help" "save" "break"))))
 
     (define interactions-canvas%
-      (class-asi mred:console-canvas% ; to match rep-new.ss, inherit from wrapping-canvas%
+      (class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
 	(inherit get-media)
 	(rename [super-on-size on-size]
 		[super-set-media set-media])
@@ -129,15 +129,15 @@
 	   (lambda (x)
 	     (super-set-media x)
 	     (send x on-set-media this))]
-	  [wrap-snips
+	  [NO-GOOD-wrap-snips
 	   (lambda (x)
 	     (set! autowrap-snips? x)
 	     (for-each update-snip-size snips))]
-	  [add-wide-snip
+	  [NOGOOD-add-wide-snip
 	   (lambda (snip)
 	     (set! snips (cons snip snips))
 	     (update-snip-size snip))]
-	  [on-size
+	  [NOGOOD-on-size
 	   (lambda (width height)
 	     (super-on-size width height)
 	     (for-each update-snip-size snips))])))
@@ -386,7 +386,6 @@
 		       (send (send interactions-edit get-canvas) set-focus)
 		       (send interactions-edit insert-prompt) ; rep-new.ss -- get rid of this 
 		       ))))])
-	
 	(sequence
 	  (mred:debug:printf 'super-init "before drscheme:unit-frame%")
 	  (super-init (cond 
@@ -529,8 +528,7 @@
 
 	  (send interactions-canvas set-focus)
 	  (send group insert-frame this)
-	  (when show?
-	    (show #t))
+	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
     (define current-frame%
