@@ -434,9 +434,9 @@
            (teachpack-names null))
          #t))
 
-      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant full-languages)
+      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant r5rs-like-languages)
                                                          (string-constant r5rs-w/debug)))
-      (add-debug-lang '(lib "full-mzscheme.ss" "lang") (list (string-constant full-languages)
+      (add-debug-lang '(lib "full-mzscheme.ss" "lang") (list (string-constant r5rs-like-languages)
                                                              (string-constant mzscheme-w/debug)))
-      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant full-languages)
+      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant r5rs-like-languages)
                                                          (string-constant mred-w/debug))))))

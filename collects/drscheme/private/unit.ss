@@ -958,9 +958,9 @@
               (let ([nx x]
                     [ny (- (+ y (/ h 2)) (/ (unbox hb) 2))]
                     [nw (unbox wb)]
-                    [nh (unbox hb)])
-                (printf "moving from (~a, ~a) to (~a, ~a)~n" x y nx ny)
-                (send admin scroll-to nx ny nw nh))))
+                    [nh (- (unbox hb) 5)])
+                (printf "moving from (~a, ~a) to (~a, ~a) ~a~n" x y nx ny
+                        (send admin scroll-to nx ny nw nh)))))
           
           [define (collapse)
             (let* ([target (get-edit-target-window)]
