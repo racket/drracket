@@ -1,3 +1,4 @@
+
 (unit/sig drscheme:unit^
   (import [wx : wx^]
 	  [mred : mred^]
@@ -228,12 +229,14 @@
       (sequence
 	(apply super-init args))))
   
-  (define super-frame% (mred:make-searchable-frame%
-			(mred:make-edit-info-frame%
-			 (mred:make-info-frame%
-			  (mred:make-file-frame%
-			   (drscheme:frame:make-frame%
+  (define super-frame% (drscheme:frame:make-frame%
+			(mred:make-searchable-frame%
+			 (mred:make-edit-info-frame%
+			  (mred:make-info-frame%
+			   (mred:make-file-frame%
 			    mred:simple-menu-frame%))))))
+  (printf "(ivar-in-class info-panel super-frame%): ~a~n" (ivar-in-class? 'info-panel super-frame%))
+  
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
       (inherit get-canvas
