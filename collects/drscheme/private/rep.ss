@@ -81,7 +81,7 @@
       (define current-rep (make-parameter #f))
 
       ;; a port that accepts values for printing in the repl
-      (define current-value-port (make-parameter 'uninitialized-value-port))
+      (define current-value-port (make-parameter #f))
 
       ;; an error escape continuation that the user program can't
       ;; change; DrScheme sets it, we use a parameter instead of an

@@ -946,39 +946,7 @@
       ;; module-based-language-front-end : (input reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
       (define (module-based-language-front-end input reader)
-        (let-values ([(port source offset line col)
-                      (cond
-                        [(string? input)
-                         (let ([skip-first-line? 
-                                (let* ([tmp (open-input-file input)]
-                                       [c1 (read-char tmp)]
-                                       [c2 (read-char tmp)])
-                                  (begin0
-                                    (and (char=? c1 #\#)
-                                         (char=? c2 #\!))
-                                    (close-input-port tmp)))])
-                           (let ([port (open-input-file input)])
-                             (port-count-lines! port)
-                             (if skip-first-line?
-                                 (begin (read-line port 'any)
-                                        (values port input (file-position port) 1 0))
-                                 (values port input 0 0 0))))]
-                        [else 
-                         (let* ([text (text/pos-text input)]
-                                [pre-start (text/pos-start input)]
-                                [start (if (= pre-start 0)
-                                           (get-post-hash-bang-start text)
-                                           pre-start)]
-                                [end (text/pos-end input)]
-                                [start-line (send text position-paragraph start)]
-                                [start-col (- start (send text paragraph-start-position start-line))])
-                           (let ([port (open-input-text-editor text start end)])
-                             (port-count-lines! port)
-                             (values port
-                                     text
-                                     start
-                                     start-line
-                                     start-col)))])])
+        (let-values ([(port source offset line col) (open-program-for-reading input)])
           (let ([closed? #f])
             (lambda ()
               (if closed?
@@ -990,6 +958,41 @@
                           (close-input-port port)
                           eof)
                         result)))))))
+      
+      ;; open-program-for-reading : (union string? (is-a?/c text%)) -> (values port source offset line col)
+      (define (open-program-for-reading input)
+        (cond
+          [(string? input)
+           (let ([skip-first-line? 
+                  (let* ([tmp (open-input-file input)]
+                         [c1 (read-char tmp)]
+                         [c2 (read-char tmp)])
+                    (begin0
+                      (and (char=? c1 #\#)
+                           (char=? c2 #\!))
+                      (close-input-port tmp)))])
+             (let ([port (open-input-file input)])
+               (port-count-lines! port)
+               (if skip-first-line?
+                   (begin (read-line port 'any)
+                          (values port input (file-position port) 1 0))
+                   (values port input 0 0 0))))]
+          [else 
+           (let* ([text (text/pos-text input)]
+                  [pre-start (text/pos-start input)]
+                  [start (if (= pre-start 0)
+                             (get-post-hash-bang-start text)
+                             pre-start)]
+                  [end (text/pos-end input)]
+                  [start-line (send text position-paragraph start)]
+                  [start-col (- start (send text paragraph-start-position start-line))])
+             (let ([port (open-input-text-editor text start end)])
+               (port-count-lines! port)
+               (values port
+                       text
+                       start
+                       start-line
+                       start-col)))]))
       
       ;; get-post-hash-bang-start : text -> number
       ;; returns the beginning of the line after #! if there

@@ -175,6 +175,7 @@
      drs-bindings-keymap-mixin
      current-rep
      current-language-settings
+     current-value-port
      get-drs-bindings-keymap
      (struct exn:locs (locs))
      text%
@@ -233,7 +234,9 @@
      simple-module-based-language<%>
      simple-module-based-language%
      simple-module-based-language->module-based-language-mixin
-     module-based-language->language-mixin))
+     module-based-language->language-mixin
+     
+     open-program-for-reading))
 
   (define-signature drscheme:teachpack^
     (install-teachpacks
