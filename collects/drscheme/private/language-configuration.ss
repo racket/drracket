@@ -844,6 +844,13 @@
                       (language-position position)
                       (language-numbers numbers))))])
           (add-language
+           (make-simple '(lib "plt-mzscheme.ss" "lang") 
+                        (list (string-constant plt)
+                              (string-constant mzscheme-w/debug))
+                        (list -10 2)
+                        #f
+                        (string-constant mzscheme-one-line-summary)))
+          (add-language
            (make-simple '(lib "plt-mred.ss" "lang")
                         (list (string-constant plt)
                               (string-constant mred-w/debug))
@@ -851,12 +858,12 @@
                         #t
                         (string-constant mred-one-line-summary)))
           (add-language
-           (make-simple '(lib "plt-mzscheme.ss" "lang") 
+           (make-simple '(lib "htdp-full-graphics.ss" "lang")
                         (list (string-constant plt)
-                              (string-constant mzscheme-w/debug))
-                        (list -10 2)
-                        #f
-                        (string-constant mzscheme-one-line-summary)))
+                              (string-constant pretty-big-scheme))
+                        (list -10 3)
+                        #t
+                        (string-constant pretty-big-scheme-one-line-summary)))
           (add-language
            (make-simple '(lib "r5rs.ss" "lang")
                         (list (string-constant r5rs-lang-name))
