@@ -53,6 +53,11 @@
       (define drscheme-help-desk-mixin
         (mixin (frame:standard-menus<%>) ()
           (define/override (file-menu:create-open-recent?) #t)
+          
+          (define/override (file-menu:new-callback x y)
+            (handler:edit-file #f)
+            #t)
+          
           (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
             (instantiate menu:can-restore-menu-item% ()
