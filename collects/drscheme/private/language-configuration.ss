@@ -1075,9 +1075,9 @@
               (let ([res (thnk)])
                 (cond
                   [(syntax? res) (with-syntax ([res res]
-                                               [expand-top-level-with-compile-time-evals
-                                                expand-top-level-with-compile-time-evals])
-                                   #'(expand-top-level-with-compile-time-evals #'res))]
+                                               [expand-syntax-top-level-with-compile-time-evals
+                                                expand-syntax-top-level-with-compile-time-evals])
+                                   #'(expand-syntax-top-level-with-compile-time-evals #'res))]
                   [(eof-object? res) res]
                   [else `(expand ',res)]))))
           (super-instantiate ())))

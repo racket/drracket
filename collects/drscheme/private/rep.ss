@@ -1656,7 +1656,7 @@
                          (lambda ()
                            (call-with-values
                             (lambda ()
-                              (eval sexp/syntax/eof))
+                              (eval-syntax sexp/syntax/eof))
                             (lambda x (display-results x)))
                            (wait-for-io-to-complete/user)))
                         (loop)])))))))
