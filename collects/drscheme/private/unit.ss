@@ -93,7 +93,7 @@
             str
             (substring str 0 len)))
       
-      (define (get-fraction-from-user)
+      (define (get-fraction-from-user parent)
         (let* ([dlg (make-object dialog% (string-constant enter-fraction))]
                [hp (make-object horizontal-panel% dlg)]
                [_1 (make-object message% (string-constant whole-part) hp)]
@@ -131,7 +131,8 @@
                          [else 
                           (message-box
                            (string-constant drscheme)
-                           (string-constant invalid-number))]))
+                           (string-constant invalid-number)
+                           parent)]))
                      '(border))]
                [cancel (make-object button% (string-constant cancel) bp (lambda x (send dlg show #f)))])
           (let ([mw (max (send den-m get-width) (send num-m get-width))])
@@ -395,7 +396,8 @@
         (program-editor-mixin
          (scheme:text-mixin
           (drscheme:rep:drs-bindings-keymap-mixin
-           text:info%))))
+           (text:delegate-mixin
+            text:info%)))))
       
       (define definitions-text<%> (interface ()))
       
@@ -680,7 +682,16 @@
       (define super-frame%
         (drscheme:frame:mixin
          (drscheme:frame:basics-mixin 
-          frame:searchable%)))
+          (frame:searchable-text-mixin 
+           (frame:searchable-mixin
+            (frame:file-mixin
+             (frame:text-info-mixin 
+              (frame:info-mixin
+               (frame:delegate-mixin
+                (frame:text-mixin
+                 (frame:editor-mixin
+                  (frame:standard-menus-mixin
+                   frame:basic%))))))))))))
       
       (define -frame%
         (class* super-frame% (drscheme:rep:context<%>)
@@ -1104,7 +1115,7 @@
                        (let ([edit (get-edit-target-object)])
                          (when (and edit
                                     (is-a? edit editor<%>))
-                           (let ([number (get-fraction-from-user)])
+                           (let ([number (get-fraction-from-user this)])
                              (when number
                                (send edit insert
                                      (make-object drscheme:snip:whole/part-number-snip%
@@ -1194,7 +1205,8 @@
               [(send definitions-text save-file-out-of-date?)
                (message-box 
                 (string-constant drscheme)
-                (string-constant definitions-modified))]
+                (string-constant definitions-modified)
+                this)]
               [else
                (ensure-rep-shown)
                (send definitions-text just-executed)
@@ -1228,6 +1240,8 @@
           (override get-editor get-canvas)
           [define get-editor (lambda () definitions-text)]
           [define get-canvas (lambda () definitions-canvas)]
+
+          (define/override (get-delegated-text) definitions-text)
           
           [define definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
           [define interactions-text (make-object 
@@ -1376,6 +1390,25 @@
                     (update-shown))
                   #\e
                   (string-constant interactions-menu-item-help-string)))
+          
+          (inherit delegated-text-shown? hide-delegated-text show-delegated-text)
+          (instantiate menu:can-restore-menu-item% ()
+            (label 
+             (if (delegated-text-shown?)
+                 (string-constant hide-overview)
+                 (string-constant show-overview)))
+            (parent (get-show-menu))
+            (callback
+             (lambda (menu evt)
+               (if (delegated-text-shown?)
+                   (begin
+                     (send menu set-label (string-constant show-overview))
+                     (preferences:set 'framework:show-delegate? #f)
+                     (hide-delegated-text))
+                   (begin
+                     (send menu set-label (string-constant hide-overview))
+                     (preferences:set 'framework:show-delegate? #t)
+                     (show-delegated-text))))))
           
           (make-object separator-menu-item% (get-show-menu))
           

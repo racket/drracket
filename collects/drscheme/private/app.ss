@@ -49,8 +49,6 @@
                     (not last-language)
                     (not (equal? last-version this-version))
                     (not (equal? last-language (this-language))))
-            (printf "last-version ~a this-version ~a\nlast-language ~a this-language ~a\n"
-                    last-version this-version last-language (this-language))
             (preferences:set 'drscheme:last-version this-version)
             (preferences:set 'drscheme:last-language (this-language))
             (let ([new-settings (drscheme:language-configuration:language-dialog

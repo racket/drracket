@@ -40,7 +40,7 @@
             [debug : drscheme:debug^
                    (debug@ rep frame unit language language-configuration)]
             [module-language : drscheme:module-language^ 
-                             (module-language@ language-configuration language unit)]
+                             (module-language@ language-configuration language unit rep)]
             [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
 	    [app : drscheme:app^ (app@ unit frame language-configuration help-desk tool)]
             [main-before : () (main-before@ 

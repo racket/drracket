@@ -180,7 +180,8 @@
                      (on-paint)
                      (message-box 
                       (string-constant drscheme)
-                      (string-constant no-full-name-since-not-saved))]
+                      (string-constant no-full-name-since-not-saved)
+                      (get-top-level-window))]
                     [else
                      (void)])]
                  [(send evt button-down? 'left)

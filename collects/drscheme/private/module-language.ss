@@ -11,7 +11,8 @@
     (unit/sig drscheme:module-language^
       (import [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:language : drscheme:language^]
-              [drscheme:unit : drscheme:unit^])
+              [drscheme:unit : drscheme:unit^]
+              [drscheme:rep : drscheme:rep^])
       
       ;; add-module-language : -> void
       ;; adds the special module-only language to drscheme
@@ -51,7 +52,8 @@
 			      "the definitions window must contain a module")
 			     (let-values ([(name new-module)
 					   (transform-module-to-export-everything
-					    (expand super-result))])
+					    (expand super-result)
+                                            super-result)])
 			       (set! module-name name)
 			       new-module))]
                         [(= 2 iteration-number)
@@ -71,12 +73,14 @@
       ;; module-language-style-delta : (instanceof style-delta%)
       (define module-language-style-delta (make-object style-delta% 'change-family 'modern))
 
-      ;; transform-module-to-export-everything : syntax -> syntax
-      (define (transform-module-to-export-everything filename stx)
+      ;; transform-module-to-export-everything : syntax syntax -> syntax
+      (define (transform-module-to-export-everything stx unexpanded-stx)
         (syntax-case stx (module #%plain-module-begin)
           [(module name lang (#%plain-module-begin bodies ...))
-           (when filename
-             (check-filename-matches filename (syntax-object->datum (syntax name)) stx))
+           (let ([filename (get-definitions-filename)])
+             (when filename
+               (check-filename-matches filename (syntax-object->datum (syntax name)) 
+                                       unexpanded-stx)))
            (with-syntax ([(to-provide-specs ...)
                           (get-provide-specs
                            (syntax->list
@@ -94,20 +98,45 @@
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
-                               stx)]))
+                               unexpanded-stx)]))
+
+      ;; get-definitions-filename : -> (union string #f)
+      ;; extracts the file the definitions window is being saved in, if any.
+      (define (get-definitions-filename)
+        (let ([rep (drscheme:rep:current-rep)])
+          (and rep
+               (let ([canvas (send rep get-canvas)])
+                 (and canvas
+                      (let ([frame (send canvas get-top-level-window)])
+                        (and (is-a? frame drscheme:unit:frame%)
+                             (let* ([b (box #f)]
+                                    [filename (send (send frame get-definitions-text)
+                                                    get-filename
+                                                    b)])
+                               (if (unbox b)
+                                   #f
+                                   filename)))))))))
 
       ;; check-filename-matches : string datum syntax -> void
-      (define re:check-filename-matches (regexp "^(.*).[^.]*"))
-      (define (check-filename-matches filename datum stx)
+      (define re:check-filename-matches (regexp "^(.*)\\.[^.]*$"))
+      (define (check-filename-matches filename datum unexpanded-stx)
         (unless (symbol? datum)
-          (raise-syntax-error 'module-language "unexpected object in name position of module" stx))
+          (raise-syntax-error 'module-language "unexpected object in name position of module" 
+                              unexpanded-stx))
         (let-values ([(base name dir?) (split-path filename)])
-          (let ([m (regexp-match re:check-filename-matches name)]
-                [matches?
-                 (if m
-                     (equal? (string->symbol (cadr m))
+          (let* ([m (regexp-match re:check-filename-matches name)]
+                 [matches?
+                  (if m
+                      (equal? (string->symbol (cadr m)) datum)
+                      (equal? (string->symbol name) datum))])
+            (unless matches?
+              (raise-syntax-error
+               'module-language
+               (format "module name doesn't match saved filename, ~s and ~e"
+                       datum
+                       filename)
+               unexpanded-stx)))))
 
-      
       ;; get-provide-spec : syntax -> (union (listof syntax) #f)
       ;; given a top-level module expression, returns #f if it
       ;; doesn't indtrouce any identifiers to the top-level scope

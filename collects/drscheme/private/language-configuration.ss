@@ -411,18 +411,76 @@
                (get/set-selected-language-settings)))))
 
       (define (add-welcome dialog welcome-before-panel welcome-after-panel)
-        (let* ([before-msg (instantiate message%  ()
-                             (label (make-object bitmap% (build-path (collection-path "icons") "plt-small-shield.gif")))
-                             (parent welcome-before-panel))]
+        (let* ([outer-pb%
+                (class pasteboard%
+                  (define/override (can-interactive-move? evt)
+                    #f)
+                  (super-instantiate ()))]
+               [outer-pb (make-object outer-pb%)]
+               [bitmap 
+                (make-object bitmap%
+                  (build-path (collection-path "icons") 
+                              "plt-small-shield.gif"))]
+               [image-snip
+                (make-object image-snip% 
+                  (build-path (collection-path "icons") 
+                              "plt-small-shield.gif"))]
                [before-text (make-object text%)]
-               [before-ec (instantiate editor-canvas% ()
+               [before-snip (make-object editor-snip% before-text #f)]
+               [before-ec%
+                (class editor-canvas% 
+                  (inherit get-client-size)
+                  (define (update-size)
+                    (let-values ([(cw ch) (get-client-size)])
+                      (unless (or (zero? cw)
+                                  (zero? ch))
+                        (let ([image-l-box (box 0)]
+                              [image-r-box (box 0)])
+                          (send before-text get-snip-location image-snip image-l-box #f #f)
+                          (send before-text get-snip-location image-snip image-r-box #f #t)
+                          (let* ([image-w (send bitmap get-width)]
+                                 [before-snip-space (- cw image-w)]
+                                 [before-snip-w (- before-snip-space
+                                                   5 5 ;; space before and after inside snip 
+                                                   2   ;; space at end of outer editor
+                                                   1   ;; space at beginning of outer editor
+                                                   1   ;; space between image and snip
+                                                   -5  ;; unknown space
+                                                   )])
+                            (send before-text set-max-width (max 0 before-snip-w)))))))
+                  (rename [super-on-superwindow-show on-superwindow-show])
+                  (define/override (on-superwindow-show shown?)
+                    (update-size)
+                    (super-on-superwindow-show shown?))
+                  (rename [super-on-size on-size])
+                  (define/override (on-size w h)
+                    (update-size)
+                    (super-on-size w h))
+                  (super-instantiate ()))]
+               [before-ec (instantiate before-ec% ()
                             (parent welcome-before-panel)
-                            (editor before-text)
+                            (editor outer-pb)
                             (stretchable-height #f)
-                            (style '(hide-hscroll)))]
+                            (style '(no-vscroll no-hscroll)))]
                [first-line-style-delta (make-object style-delta% 'change-bold)])
           (send first-line-style-delta set-delta-foreground (make-object color% 150 0 150))
           (send before-ec min-width 500)
+
+          (let-values ([(cw ch) (send before-ec get-client-size)]
+                       [(w h) (send before-ec get-size)])
+            (send before-ec min-height 
+                  (+ (send bitmap get-height) 
+                     8  ;; pasteboards apparently want some space here....
+                     (- h ch))))
+
+          (send outer-pb insert image-snip)
+          (send outer-pb insert before-snip)
+          (send outer-pb move image-snip 0 0)
+          (send outer-pb move before-snip (send bitmap get-width) 0)
+          (send outer-pb set-selection-visible #f)
+          (send outer-pb lock #t)
+
+          ;(send before-snip set-align-top-line #t)
           (send before-text insert 
                 (format (string-constant welcome-to-drscheme-version/language)
                         (version:version)
@@ -434,8 +492,10 @@
                 0
                 (send before-text paragraph-end-position 0))
           (send before-text auto-wrap #t)
-          (send before-ec set-line-count 3)
-          
+
+          (send before-text lock #t)
+          (send before-text hide-caret #t)
+
           (for-each (lambda (native-lang-string language)
                       (unless (equal? (this-language) language)
                         (instantiate button% ()
