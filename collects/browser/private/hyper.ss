@@ -53,9 +53,12 @@
 		 ;; fragment can be different
 		 (equal? (url-scheme a) (url-scheme b))
 		 (equal? (url-host a) (url-host b))
-		 (equal? (url-path a) (url-path b))
-		 (equal? (url-params a) (url-params b))
-		 (equal? (url-query a) (url-query b)))))
+		 
+                 ;; assume that url-paths are all strings 
+                 ;; (other wise the pages are treated as different)
+                 (equal? (url-path a) (url-path b))
+		 
+                 (equal? (url-query a) (url-query b)))))
 		 
 
       (define hyper-text<%>
