@@ -281,7 +281,7 @@
           (when sucess?
             (message-box 
              "Bug Report Sent"
-             "Thanks for the report. You should recieve a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."))))
+             "Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."))))
       
       (define (get-strings t)
         (let loop ([n 0])
