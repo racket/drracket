@@ -53,6 +53,7 @@
 	  default-settings?
 
           get-module
+          get-transformer-module
 	  config-panel
 	  on-execute
           get-teachpack-names
@@ -83,7 +84,10 @@
 	  (public config-panel on-execute 
                   render-value/format render-value
                   default-settings? default-settings marshall-settings unmarshall-settings)
+
           (inherit get-module)
+          (define/public (get-transformer-module) 'mzscheme)
+
           (define (marshall-settings settings)
 	    (simple-settings->vector settings))
           (define (unmarshall-settings printable)
@@ -239,31 +243,35 @@
       ;; given a module-based-language, implements a language
       (define module-based-language->language-mixin
 	(mixin (module-based-language<%>) (language<%>)
-	  (public front-end)
-	  (inherit get-module)
-	  (override on-execute)
+	  (inherit get-module get-transformer-module)
 	  (rename [super-on-execute on-execute])
-	  (define (on-execute setting run-in-user-thread)
+	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)
-	    (initialize-module-based-language (get-module) run-in-user-thread))
-          (define (front-end input settings)
+	    (initialize-module-based-language (get-module) (get-transformer-module) run-in-user-thread))
+          (define/public (front-end input settings)
             (module-based-language-front-end input))
           (super-instantiate ())))
       
-      ;; initialize-simple-module-based-language : module-spec ((-> void) -> void)
-      (define (initialize-module-based-language module-spec run-in-user-thread)
+      ;; initialize-module-based-language : module-spec module-spec ((-> void) -> void)
+      (define (initialize-module-based-language module-spec transformer-module-spec run-in-user-thread)
         ;; must call the resolver before setting the namespace
         (dynamic-require module-spec #f)
-        (let ([orig-namespace (current-namespace)]
-              [lang-name (if (symbol? module-spec)
-			     module-spec
-			     ((current-module-name-resolver) module-spec #f #f))])
+        (dynamic-require transformer-module-spec #f)
+        (let* ([orig-namespace (current-namespace)]
+               [get-name
+                (lambda (spec)
+                  (if (symbol? module-spec)
+                      module-spec
+                      ((current-module-name-resolver) module-spec #f #f)))]
+               [lang-name (get-name module-spec)]
+               [transformer-lang-name (get-name transformer-module-spec)])
           (run-in-user-thread
 	   (let ([o (current-output-port)])
 	     (lambda ()
 	       (namespace-attach-module orig-namespace lang-name)
+               (namespace-attach-module orig-namespace transformer-lang-name)
 	       (namespace-require module-spec)
-               (namespace-transformer-require 'mzscheme))))))
+               (namespace-transformer-require transformer-module-spec))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)

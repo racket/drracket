@@ -113,7 +113,17 @@
                 #f
                 #f)
      
-   ;; leading comment test
+     ;; top-level semantics test
+     (make-test "(define (f) (+ 1 1)) (define + -) (f)"
+                "0"
+                "0"
+                #f
+		'interactions
+                #f
+                #f
+                #f)
+     
+     ;; leading comment test
      (make-test "#!\n1"
                 "1"
                 "1"

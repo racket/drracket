@@ -10,16 +10,14 @@
   (provide tools@)
 
   (define-syntax wrap-tool
-    (begin
-      (printf "wrap-tool read~n")
-      (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
-						     "tool-info.ss")
-		     read)])
-	(lambda (stx)
-	  (syntax-case stx ()
-	    [(_ name)
-	     (with-syntax ([type (assoc (syntax name) table)])
-	       (syntax name)]))))))
+    (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
+                                                   "tool-info.ss")
+                   read)])
+      (lambda (stx)
+        (syntax-case stx ()
+          [(_ name)
+           (with-syntax ([type (assoc (syntax name) table)])
+             (syntax name))]))))
 
   (define tools@
     (unit/sig drscheme:tools^

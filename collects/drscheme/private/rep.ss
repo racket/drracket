@@ -837,7 +837,7 @@
                   (scroll-to-position (last-position))
                   (end-edit-sequence))))
             
-            (define (wait-for-io-to-complete) ; =Kernel=, =Handler=
+            (define/public (wait-for-io-to-complete) ; =Kernel=, =Handler=
               (let ([semaphore (make-semaphore 0)])
                 (queue-callback
                  (lambda () ; =Kernel=, =Handler=
@@ -846,7 +846,7 @@
                  #f)
                 (yield semaphore)))
             
-            (define (wait-for-io-to-complete/user) ; =User=, =Handler=
+            (define/public (wait-for-io-to-complete/user) ; =User=, =Handler=
               (queue-system-callback/sync
                (lambda () ; =Kernel=, =Handler=
                  (run-io-collected-thunks))
