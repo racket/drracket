@@ -23,8 +23,7 @@
 
   (define language@
     (unit/sig drscheme:language^
-      (import [drscheme:rep : drscheme:rep^]
-              [drscheme:debug : drscheme:debug^]
+      (import [drscheme:debug : drscheme:debug^]
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:tools : drscheme:tools^]
               [drscheme:help-desk : drscheme:help-desk^])

@@ -2222,7 +2222,9 @@ tab panels new behavior:
           
           (super-new
             (filename filename)
-            (style '(toolbar-button))
+            (style (case (system-type)
+                     [(macosx) '(toolbar-button #;metal)]
+                     [else '(toolbar-button)]))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
 

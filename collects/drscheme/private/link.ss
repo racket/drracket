@@ -39,7 +39,7 @@
             [rep : drscheme:rep^
                  (rep@ init language-configuration language app 
                      frame unit text help-desk teachpack debug eval)]
-            [language : drscheme:language^ (language@ rep debug teachpack tools help-desk)]
+            [language : drscheme:language^ (language@ debug teachpack tools help-desk)]
             [module-overview : drscheme:module-overview^ 
                              (module-overview@ frame eval language-configuration language)]
             [unit : drscheme:unit^ 
