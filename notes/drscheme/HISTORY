@@ -1,3 +1,23 @@
+Version 53:
+
+General
+-------
+
+ - (<= exp) isn't allowed in beginner. (same for <, >, and >=)
+
+ - print primitive is now setup correctly to print based on the language level
+
+ - paren-matching in semi-colon comments is disabled
+
+ - info panel "running" message is now aligned correctly 
+ 
+ - The check synatax and analyze buttons are now disabled during evaluation
+
+ - library directory now starts in "MZLIB_COLLECTS_DIR/../../lib"
+   which is our best approximation to "PLTHOME/lib"
+ 
+ - elevator library can now select more than one floor at a time
+
 Version 52:
 
 General
