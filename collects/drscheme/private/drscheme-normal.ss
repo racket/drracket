@@ -2,23 +2,17 @@
 (module drscheme-normal mzscheme
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
-
-  '(let ([addl-load-handler
-         (and (not (getenv "PLTDRDEBUG"))
-              (getenv "PLTDRCM")
-              (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))])
-    
-    ;; this used to be done by mred, but
-    ;; since drscheme uses the -Z flag now,
-    ;; we have to do it explicitly.
-    (current-load text-editor-load-handler)
   
-    ;; abstraction breaking -- matthew will change cm
-    ;; so that I don't need this here.
-    (when addl-load-handler
-      (printf "PLTDRCM: reinstalling CM load handler after setting mred load handler\n")
-      (current-load/use-compiled (addl-load-handler)))
-    (printf "four\n"))
+  ;; this used to be done by mred, but
+  ;; since drscheme uses the -Z flag now,
+  ;; we have to do it explicitly.
+  (current-load text-editor-load-handler)
+  
+  ;; abstraction breaking -- matthew will change cm
+  ;; so that I don't need this here (?)
+  (when addl-load-handler
+    (printf "PLTDRCM: reinstalling CM load handler after setting mred load handler\n")
+    (current-load/use-compiled (addl-load-handler)))
   
   (define texas-independence-day?
     (let ([date (seconds->date (current-seconds))])
@@ -37,7 +31,7 @@
     (unless no-larval-bitmap
       (set! no-larval-bitmap  (make-object bitmap% (build-path (collection-path "icons") "PLTnolarval.jpg"))))
     no-larval-bitmap)
-
+  
   ;; reversed version of the actual string we care about
   (define magic-string (list->string (reverse (string->list "larval"))))
   
@@ -56,7 +50,7 @@
     ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-char-observer)
      (lambda (evt)
        (add-key-code (send evt get-key-code))
-
+       
        ;; as soon as something is typed, load the bitmaps
        (get-larval-bitmap)
        (get-no-larval-bitmap)
@@ -69,7 +63,7 @@
           (if larval-state?
               (get-larval-bitmap)
               (get-no-larval-bitmap)))))))
-   
+  
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
    (build-path (collection-path "icons") 
                (cond
