@@ -1957,8 +1957,8 @@
               (current-rep this)
               (let ([dir (or (send context get-directory)
                            drscheme:init:first-dir)])
-              (current-directory dir)
-              (current-load-relative-directory dir))
+                (current-directory dir)
+                (current-load-relative-directory dir))
               
               (set! user-namespace-box (make-weak-box (current-namespace)))
               
