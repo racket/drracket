@@ -11,11 +11,13 @@
            (rename raw:external-browser external-browser)
            (rename raw:browser-preference? browser-preference?)
            update-browser-preference
+	   install-help-browser-preference-panel
            tool@)
   
   ; : -> bool
   (define (unix-browser?)
-    (and (eq? (system-type) 'unix) (not (equal? "ppc-macosxonx" (system-library-subpath)))))
+    (and (eq? (system-type) 'unix)
+	 (not (equal? "ppc-macosxonx" (system-library-subpath)))))
   
   (fw:preferences:set-default
    'external-browser
@@ -26,7 +28,6 @@
   (define (help-browser-preference? x)
     (or (eq? x 'plt) (eq? x 'external)))
 
-  ; FIX - abstract with drscheme/private/help-desk
   (define help-browser-preference 'plt:help-browser)
   
   (fw:preferences:set-default
@@ -54,16 +55,7 @@
   ; : (U symbol #f) -> void
   ; to set the default browser
   (define (set-browser! browser)
-    (put-preferences '(external-browser) (list browser))
     (fw:preferences:set 'external-browser browser))
-  
-  ; : sym -> void
-  ; FIX - check preference name
-  ; FIX - see if put-preferences is needed
-  ; FIX - redo dynamic listener/observer to use this preference to restart help-desk
-  (define (set-help-browser! browser)
-    (put-preferences (list help-browser-preference) (list browser))
-    (fw:preferences:set help-browser-preference browser))
   
   ; : str -> (U symbol #f)
   ; to prompt the user for a browser preference
@@ -104,6 +96,122 @@
       (send d show #t)
       (unbox choice)))
   
+  (define prefs-installed? #f)
+
+  (define (install-help-browser-preference-panel)
+    (unless prefs-installed?
+      (set! prefs-installed? #t)
+
+      ;; Keep low-level pref in sync. Yes, this is clumsy and bad.
+      ;; At start-up, let low-level preference dominate if it has
+      ;; a value and is different, because Help Desk might have set it.
+      (let ([low-level (get-preference help-browser-preference (lambda () #f))])
+	(when (and low-level
+		   (not (equal? low-level (fw:preferences:get help-browser-preference))))
+	  (fw:preferences:set help-browser-preference low-level)))
+      (fw:preferences:add-callback help-browser-preference
+				   (lambda (name browser)
+				     (put-preferences (list help-browser-preference) (list browser))))
+      
+      (fw:preferences:add-panel
+       ;; FIX - string constant
+       "Help"
+       (lambda (parent)
+	 (let* ([help-desk-panel (instantiate vertical-panel% ()
+					      (parent parent) (alignment '(center center)))]
+		[help-desk-radio
+		 (instantiate radio-box% ()
+			      (label #f)
+			      ;; FIX - string constants
+			      (choices `("Read help with internal PLT browser" "Use external web browser"))
+			      (parent help-desk-panel)
+			      (callback
+			       (lambda (radio event)
+				 (fw:preferences:set help-browser-preference
+						     (case (send radio get-selection)
+						       [(0) 'plt]
+						       [(1) 'external])))))]
+		[refresh-control (lambda (name val)
+				   (send help-desk-radio set-selection
+					 (if (eq? val 'plt) 0 1)))])
+	   (fw:preferences:add-callback help-browser-preference refresh-control)
+	   (refresh-control #f (fw:preferences:get help-browser-preference))
+	   help-desk-panel)))
+
+      (when (unix-browser?)
+	;; Keep 'external-browser in sync, too
+	(fw:preferences:add-callback 'external-browser
+				     (lambda (name browser)
+				       (put-preferences (list 'external-browser) (list browser))))
+
+	(fw:preferences:add-panel
+	 (string-constant browser)
+	 (lambda (parent)
+	   (let* ([v (instantiate vertical-panel% ()
+				  (parent parent) (alignment '(center center)))])
+	     ;; FIX - use string constant
+             (letrec ([external-message (instantiate message% () (label "External Browser") (parent v))]
+		      [h-panel (instantiate horizontal-panel% ()
+					    (parent v)
+					    (alignment '(center bottom))
+					    (stretchable-height #f))]
+                      [plt-index (length raw:unix-browser-list)]
+                      [none-index (add1 plt-index)]
+                      [custom-index (add1 none-index)]
+                      [r (instantiate radio-box% ()
+				      (label "")
+				      (choices (append (map symbol->string raw:unix-browser-list)
+						       (list "PLT"
+							     (string-constant no-browser)
+							     (string-constant custom))))
+				      (parent h-panel)
+				      (callback
+				       (lambda (radio event)
+					 ;; This leaks. Each radio button should have its own callback.
+					 (let ([n (send radio get-selection)])
+					   (set-browser!
+					    (cond
+					     [(= n plt-index) 'plt]
+					     [(= n none-index) #f]
+					     [(= n custom-index) (get-custom)]
+					     [else (list-ref raw:unix-browser-list n)]))))))]
+                      [select-custom
+                       (lambda (_ __)
+                         (send r set-selection custom-index)
+                         (set-browser! (get-custom)))]
+                      [get-custom
+                       (lambda () (cons (send pre get-value) (send post get-value)))]
+                      [pre (instantiate text-field% ()
+					(label "") (parent h-panel) (callback select-custom))]
+                      [mess (instantiate message% () (label "URL") (parent h-panel))]
+                      [post (instantiate text-field% ()
+					 (label "") (parent h-panel) (callback select-custom))]
+		      [refresh-controls (lambda (pref)
+					  (if (pair? pref)
+					      (begin
+						(send r set-selection custom-index)
+						(send pre set-value (car pref))
+						(send post set-value (cdr pref)))
+					      (let init ([x raw:unix-browser-list] [n 0])
+						(cond
+						 [(null? x) (send r set-selection n)]
+						 [else (if (eq? pref (car x))
+							   (send r set-selection n)
+							   (init (cdr x) (add1 n)))]))))])
+
+	       (refresh-controls (fw:preferences:get 'external-browser))
+	       (fw:preferences:add-callback 'external-browser
+					    (lambda (name browser)
+					      (refresh-controls browser)))
+
+               (let disable ([x raw:unix-browser-list] [n 0])
+                 (cond
+		  [(null? x) (void)]
+		  [else (unless (find-executable-path (symbol->string (car x)) #f)
+			  (send r enable n #f))
+			(disable (cdr x) (add1 n))])))
+	     v))))))
+
   ; to add a preference pannel to drscheme that sets the browser preference
   (define tool@
     (unit/sig drscheme:tool-exports^
@@ -112,80 +220,4 @@
       (define phase1 void)
       (define phase2 void)
       
-      (fw:preferences:add-panel
-       (string-constant browser)
-       (lambda (parent)
-         (let* ([v (instantiate vertical-panel% ()
-                     (parent parent) (alignment '(center center)))]
-                ; FIX - string constant
-                [help-desk-title (instantiate message% () (label "Help Desk") (parent v))]
-                [help-desk-panel
-                 (instantiate horizontal-panel% () (parent v) (alignment '(center top)))]
-                [help-desk-radio
-                 (instantiate radio-box% ()
-                   (label "")
-                   ; FIX - string constants
-                   (choices `("PLT Internal Browser" "External Browser"))
-                   (parent help-desk-panel)
-                   (callback
-                    (lambda (radio event)
-                      (case (send radio get-selection)
-                        [(0) (set-help-browser! 'plt)]
-                        [(1) (set-help-browser! 'external)]))))])
-           (when (unix-browser?)
-	      ; FIX - use string constant
-             (letrec ([external-message (instantiate message% () (label "External Browser") (parent v))]
-		         [h-panel (instantiate horizontal-panel% ()
-                                 (parent v)
-                                 (alignment '(center bottom))
-                                 (stretchable-height #f))]
-                      [plt-index (length raw:unix-browser-list)]
-                      [none-index (add1 plt-index)]
-                      [custom-index (add1 none-index)]
-                      [r (instantiate radio-box% ()
-                           (label "")
-                           (choices (append (map symbol->string raw:unix-browser-list)
-                                            (list "PLT"
-                                                  (string-constant no-browser)
-                                                  (string-constant custom))))
-                           (parent h-panel)
-                           (callback
-                            (lambda (radio event)
-                              ; This leaks. Each radio button should have its own callback.
-                              (let ([n (send radio get-selection)])
-                                (set-browser!
-                                 (cond
-                                   [(= n plt-index) 'plt]
-                                   [(= n none-index) #f]
-                                   [(= n custom-index) (get-custom)]
-                                   [else (list-ref raw:unix-browser-list n)]))))))]
-                      [select-custom
-                       (lambda (_ __)
-                         (send r set-selection custom-index)
-                         (set-browser! (get-custom)))]
-                      [get-custom
-                       (lambda () (cons (send pre get-value) (send post get-value)))]
-                      [pre (instantiate text-field% ()
-                             (label "") (parent h-panel) (callback select-custom))]
-                      [mess (instantiate message% () (label "URL") (parent h-panel))]
-                      [post (instantiate text-field% ()
-                              (label "") (parent h-panel) (callback select-custom))]
-                      [pref (get-preference 'external-browser (lambda () #f))])
-               (if (pair? pref)
-                   (begin
-                     (send r set-selection custom-index)
-                     (send pre set-value (car pref))
-                     (send post set-value (cdr pref)))
-                   (let init ([x raw:unix-browser-list] [n 0])
-                     (cond
-                       [(null? x) (send r set-selection n)]
-                       [else (if (eq? pref (car x))
-                                 (send r set-selection n)
-                                 (init (cdr x) (add1 n)))])))
-               (let disable ([x raw:unix-browser-list] [n 0])
-                 (cond
-                   [(null? x) (void)]
-                   [else (unless (find-executable-path (symbol->string (car x)) #f)
-                           (send r enable n #f))
-                         (disable (cdr x) (add1 n))]))))
-           v))))))
+      (install-help-browser-preference-panel))))
