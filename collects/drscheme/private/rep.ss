@@ -114,7 +114,7 @@
       ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
       ;;                        string?
       ;;                        exn?
-      ;;                        (union false? (and/f string? directory-exists?))
+      ;;                        (union false? (and/c string? directory-exists?))
       ;;                        ->
       ;;                        void?
       (define (insert-error-in-text text interactions-text msg exn user-dir)
@@ -129,7 +129,7 @@
       ;;                                         ((listof (list text% number number)) -> void)
       ;;                                         string?
       ;;                                         exn?
-      ;;                                         (union false? (and/f string? directory-exists?))
+      ;;                                         (union false? (and/c string? directory-exists?))
       ;;                                         ->
       ;;                                         void?
       (define (insert-error-in-text/highlight-errors text highlight-errors msg exn user-dir)
@@ -1291,7 +1291,7 @@
 			 (get-repl-char-width)))))
              anss))
 
-        ;; get-repl-char-width : -> (and/f exact? integer?)
+        ;; get-repl-char-width : -> (and/c exact? integer?)
         ;; returns the width of the repl in characters, or 80 if the
         ;; answer cannot be found.
         (define/private (get-repl-char-width)

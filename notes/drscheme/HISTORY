@@ -1,4 +1,19 @@
 ------------------------------
+        Version 300
+------------------------------
+
+ - contracts internal interface changed; much faster now (3x
+   speedup for checking the contract (any? . -> . any?) for
+   example).
+
+ - contracts interface changed slightly: and/f is now and/c
+   (and takes arbitrary contracts not just predicate
+   functions) and or/f is deprecated. Use union instead. In
+   addition, flat-contracts (without names) are a separate
+   type; use flat-contract-predicate rather than
+   flat-named-contract.
+
+------------------------------
         Version 205
 ------------------------------
 
