@@ -391,7 +391,7 @@
 			(parameterize ([smtp-sending-end-of-message
 					(lambda ()
 					  (send button enable #f))])
-			  ;(smtp-send-bug-report)
+			  (smtp-send-bug-report)
 			  (set! sucess? #t)
 			  (send f show #f))))]
 		    [sucess? #f])
