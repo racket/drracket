@@ -96,22 +96,6 @@
 
       (define (lookup-span-class-delta class) (lookup-class-delta class))
 
-      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;; Another hack: font changes are applied inside-out
-      (define (change-from-black a-text delta pos end-pos)
-	(let loop ([p pos])
-	  (unless (>= p end-pos)
-	    (send a-text split-snip p)
-	    (let* ([snip (send a-text find-snip p 'after)]
-		   [color (send (send snip get-style) get-foreground)]
-		   [size (send snip get-count)])
-	      (when (= 0 
-		       (send color red)
-		       (send color blue)
-		       (send color green))
-		(send a-text change-style delta p (min (+ p size) end-pos)))
-	      (loop (+ p size))))))
-      
       (define (call-with-output-file* file proc flag)
         ;; Closes on escape
         (let ([p (open-output-file file flag)])
@@ -307,466 +291,463 @@
       (define html-convert
         (lambda (a-port a-text)	    
 	  (let ([content (parse-html a-port)])
-	    (letrec ([normal-style (send (send a-text get-style-list)
-					 find-named-style
-					 "Standard")]
-		     [current-pos
-		      (lambda ()
-			(send a-text last-position))]
-
-		     [insert 
-		      (lambda (what)
-			(send a-text insert what (send a-text last-position)))]
-		     
-		     [insert-newlines
-		      (lambda (num para-base)
-			(unless (zero? num)
-			  (let loop ([pos (send a-text last-position)][num num])
-			    (unless (or (zero? num) (<= pos para-base))
-			      (let ([c (send a-text get-character (sub1 pos))])
+	    (with-method ([a-text-insert (a-text insert)]
+			  [current-pos (a-text last-position)]
+			  [delete (a-text delete)]
+			  [get-character (a-text get-character)]
+			  [change-style (a-text change-style)])
+	      (letrec ([normal-style (send (send a-text get-style-list)
+					   find-named-style
+					   "Standard")]
+		       [insert 
+			(lambda (what)
+			  (a-text-insert what (current-pos)))]
+		       
+		       [insert-newlines
+			(lambda (num para-base)
+			  (unless (zero? num)
+			    (let loop ([pos (current-pos)][num num])
+			      (unless (or (zero? num) (<= pos para-base))
+				(let ([c (get-character (sub1 pos))])
+				  (if (eq? c #\newline)
+				      (loop (sub1 pos) (sub1 num))
+				      (insert (make-string num #\newline))))))))]
+		       
+		       [backover-newlines
+			(lambda (pos base)
+			  (if (= pos base)
+			      base
+			      (let ([c (get-character (sub1 pos))])
 				(if (eq? c #\newline)
-				    (loop (sub1 pos) (sub1 num))
-				    (insert (make-string num #\newline))))))))]
-			    
-		     [delete 
-		      (lambda (start end)
-			(send a-text delete start end))]
-		     
-		     [backover-newlines
-		      (lambda (pos base)
-			(if (= pos base)
-			    base
-			    (let ([c (send a-text get-character (sub1 pos))])
-			      (if (eq? c #\newline)
-				  (backover-newlines (sub1 pos) base)
-				  pos))))]
-		     
-		     [base-path (send a-text get-url)]
-		     
-		     [whitespaces (string #\space #\tab #\newline #\return)]
-		     
-		     [delta:fixed (make-object style-delta% 'change-family 'modern)]
-		     [delta:bold (make-object style-delta% 'change-bold)] 
-		     [delta:underline (make-object style-delta% 'change-underline #t)]
-		     [delta:italic (make-object style-delta% 'change-italic)]
-		     [delta:h1 (let ([d (make-object style-delta% 'change-bold)])
-				 (send d set-size-mult 2.0)
-				 d)]
-		     [delta:h2 (let ([d (make-object style-delta% 'change-bold)])
-				 (send d set-size-mult 1.5)
-				 d)]
-		     [delta:h3 (let ([d (make-object style-delta% 'change-bold)])
-				 (send d set-size-mult 1.2)
-				 d)]
-		     [delta:h4 (make-object style-delta% 'change-bold)]
-		     [delta:subscript (let ([d (make-object style-delta%)])
-					(send d set-alignment-on 'bottom)
-					(send d set-size-mult 0.8)
-					d)]
-		     [delta:superscript (let ([d (make-object style-delta%)])
-					  (send d set-alignment-on 'top)
+				    (backover-newlines (sub1 pos) base)
+				    pos))))]
+		       
+		       [base-path (send a-text get-url)]
+		       
+		       [whitespaces (string #\space #\tab #\newline #\return)]
+		       
+		       [delta:fixed (make-object style-delta% 'change-family 'modern)]
+		       [delta:bold (make-object style-delta% 'change-bold)] 
+		       [delta:underline (make-object style-delta% 'change-underline #t)]
+		       [delta:italic (make-object style-delta% 'change-italic)]
+		       [delta:h1 (let ([d (make-object style-delta% 'change-bold)])
+				   (send d set-size-mult 2.0)
+				   d)]
+		       [delta:h2 (let ([d (make-object style-delta% 'change-bold)])
+				   (send d set-size-mult 1.5)
+				   d)]
+		       [delta:h3 (let ([d (make-object style-delta% 'change-bold)])
+				   (send d set-size-mult 1.2)
+				   d)]
+		       [delta:h4 (make-object style-delta% 'change-bold)]
+		       [delta:subscript (let ([d (make-object style-delta%)])
+					  (send d set-alignment-on 'bottom)
 					  (send d set-size-mult 0.8)
 					  d)]
-		     [delta:small (let ([d (make-object style-delta%)])
-				    (send d set-size-mult 0.75)
-				    d)]
+		       [delta:superscript (let ([d (make-object style-delta%)])
+					    (send d set-alignment-on 'top)
+					    (send d set-size-mult 0.8)
+					    d)]
+		       [delta:small (let ([d (make-object style-delta%)])
+				      (send d set-size-mult 0.75)
+				      d)]
 
-		     [delta:center (make-object style-delta% 'change-alignment 'center)]
+		       [delta:center (make-object style-delta% 'change-alignment 'center)]
 
-		     [html-error
-		      (lambda args
-			(when #f ; treat them all as ignored warnings
-			  (apply error 'html args)))]
-		     
-		     [get-field (lambda (e name)
-				  (let ([a (assq name (cadr e))])
-				    (and a (cadr a))))]
+		       [html-error
+			(lambda args
+			  (when #f ; treat them all as ignored warnings
+			    (apply error 'html args)))]
+		       
+		       [get-field (lambda (e name)
+				    (let ([a (assq name (cadr e))])
+				      (and a (cadr a))))]
 
-		     [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
-		     
-		     [parse-image-source
-		      (lambda (s)
-			(let ([src (get-field s 'src)])
-			  (and src
-			       (with-handlers ([not-break-exn? (lambda (x) #f)])
-				 (if base-path
-				     (combine-url/relative base-path src)
-				     (string->url src))))))]
-		     
-		     [parse-image-alt
-		      (let ([get-src (make-get-field "alt")])
+		       [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
+		       
+		       [parse-image-source
 			(lambda (s)
-			  (get-src s)))]
-		     
-		     [filter-mzscheme (lambda (v)
-					 (regexp-replace* "[|]" v "\""))]
+			  (let ([src (get-field s 'src)])
+			    (and src
+				 (with-handlers ([not-break-exn? (lambda (x) #f)])
+				   (if base-path
+				       (combine-url/relative base-path src)
+				       (string->url src))))))]
+		       
+		       [parse-image-alt
+			(let ([get-src (make-get-field "alt")])
+			  (lambda (s)
+			    (get-src s)))]
+		       
+		       [filter-mzscheme (lambda (v)
+					  (regexp-replace* "[|]" v "\""))]
 
-		      [get-mzscheme-arg
-		      (let ([get-mz (make-get-field "mzscheme")])
-			(lambda (str)
-			  (let ([v (get-mz str)])
-			    (and v (filter-mzscheme v)))))]
-		     
-		     [parse-href
-		      (let ([href-error
-			     (lambda (s)
-			       (html-error "bad reference in ~s" s))])
-			(lambda (s)
-			  (let* ([url-string
-				  (cond 
-				   [(get-field s 'href)
-				    => (lambda (str)
-					 (if (string=? str "")
-					     (begin (href-error s)
-						    #f)
-					     str))]
-				   [else #f])]
-				 [label (get-field s 'name)]
-				 [scheme (let ([v (get-field s 'mzscheme)])
-					   (and v (filter-mzscheme v)))])
-			    (values url-string label scheme))))]
-		     
-		     [parse-docnote (make-get-field "docnote")]
-		     
-		     [parse-name (make-get-field "name")]
-		     
-		     [parse-type (make-get-field "type")]
-		     
-		     [parse-font
-		      (let ([color-string->color
-			     (lambda (str)
-			       (or (send the-color-database find-color str)
-				   (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
-						   extra-colors-table)])
-				     (and pr
-					  (cadr pr)))))]
-			    [face-regexp (regexp "([^,]*), *(.*)")])
-			(lambda (args)
-			  (let ([size-string (get-field args 'size)]
-				[face-string (get-field args 'face)]
-				[color-string (get-field args 'color)]
-				[bg-color-string (get-field args 'bgcolor)])
-			    (let ([size
-				   (and size-string
-					(let* ([n (string->number size-string)])
-					  (and n
-					       (integer? n)
-					       (<= -127 n 127)
-					       (cond
-						[(char=? #\+ (string-ref size-string 0))
-						 (make-object style-delta% 'change-bigger n)]
-						[(negative? n)
-						 (make-object style-delta% 'change-smaller (- n))]
-						[else
-						 (make-object style-delta% 'change-size n)]))))]
-				  [face (and face-string
-					     (let ([f (let loop ([f face-string])
-							(let ([m (regexp-match face-regexp f)]
-							      [try-face (lambda (s)
-									  (unless face-list
-									    (set! face-list (get-face-list)))
-									  (ormap
-									   (lambda (s-norm)
-									     (and (string-ci=? s s-norm)
-										  s-norm))
-									   face-list))])
-							  (if m
-							      (or (try-face (cadr m))
-								  (loop (caddr m)))
-							      (try-face f))))])
-					       (and f
-						    (let ([d (make-object style-delta%)])
-						      (send d set-delta-face f)))))]
-				  [color (let ([clr (and color-string (color-string->color color-string))])
-					   (and clr
-						(let ([d (make-object style-delta%)])
-						  (send d set-delta-foreground clr))))]
-				  [bg-color (let ([bg-clr (and bg-color-string
-							       (color-string->color bg-color-string))])
-					      (and bg-clr
-						   (let ([d (make-object style-delta%)])
-						     (send d set-delta-background bg-clr))))])
-			      (let loop ([delta #f][l (list size face color bg-color)])
-				(cond
-				 [(null? l) delta]
-				 [(not (car l)) (loop delta (cdr l))]
-				 [else (if delta
-					   (loop (begin
-						   (send delta collapse (car l))
-						   delta)
-						 (cdr l))
-					   (loop (car l) (cdr l)))]))))))]
-		     
-		     [make-unsupported
-		      (lambda (tag args)
-			(let ([name (get-field args 'name)]
-			      [type (get-field args 'type)])
-			  (if (and (eq? tag 'input) type (string=? type "hidden"))
-			      "" ; hidden input
-			      (format "[~a~a NOT SUPPORTED]"
-				      (if name
-					  (format "~a " name)
-					  "")
-				      (case tag
-					[(select) "POPUP MENU"]
-					[(textarea) "TEXT AREA"]
-					[(input) (if type
-						     (case (string->symbol type)
-						       [(text) "TEXT FIELD"]
-						       [else "BUTTON"])
-						     "BUTTON")])))))]
+		       [get-mzscheme-arg
+			(let ([get-mz (make-get-field "mzscheme")])
+			  (lambda (str)
+			    (let ([v (get-mz str)])
+			      (and v (filter-mzscheme v)))))]
+		       
+		       [parse-href
+			(let ([href-error
+			       (lambda (s)
+				 (html-error "bad reference in ~s" s))])
+			  (lambda (s)
+			    (let* ([url-string
+				    (cond 
+				     [(get-field s 'href)
+				      => (lambda (str)
+					   (if (string=? str "")
+					       (begin (href-error s)
+						      #f)
+					       str))]
+				     [else #f])]
+				   [label (get-field s 'name)]
+				   [scheme (let ([v (get-field s 'mzscheme)])
+					     (and v (filter-mzscheme v)))])
+			      (values url-string label scheme))))]
+		       
+		       [parse-docnote (make-get-field "docnote")]
+		       
+		       [parse-name (make-get-field "name")]
+		       
+		       [parse-type (make-get-field "type")]
+		       
+		       [parse-font
+			(let ([color-string->color
+			       (lambda (str)
+				 (or (send the-color-database find-color str)
+				     (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
+						     extra-colors-table)])
+				       (and pr
+					    (cadr pr)))))]
+			      [face-regexp (regexp "([^,]*), *(.*)")])
+			  (lambda (args)
+			    (let ([size-string (get-field args 'size)]
+				  [face-string (get-field args 'face)]
+				  [color-string (get-field args 'color)]
+				  [bg-color-string (get-field args 'bgcolor)])
+			      (let ([size
+				     (and size-string
+					  (let* ([n (string->number size-string)])
+					    (and n
+						 (integer? n)
+						 (<= -127 n 127)
+						 (cond
+						  [(char=? #\+ (string-ref size-string 0))
+						   (make-object style-delta% 'change-bigger n)]
+						  [(negative? n)
+						   (make-object style-delta% 'change-smaller (- n))]
+						  [else
+						   (make-object style-delta% 'change-size n)]))))]
+				    [face (and face-string
+					       (let ([f (let loop ([f face-string])
+							  (let ([m (regexp-match face-regexp f)]
+								[try-face (lambda (s)
+									    (unless face-list
+									      (set! face-list (get-face-list)))
+									    (ormap
+									     (lambda (s-norm)
+									       (and (string-ci=? s s-norm)
+										    s-norm))
+									     face-list))])
+							    (if m
+								(or (try-face (cadr m))
+								    (loop (caddr m)))
+								(try-face f))))])
+						 (and f
+						      (let ([d (make-object style-delta%)])
+							(send d set-delta-face f)))))]
+				    [color (let ([clr (and color-string (color-string->color color-string))])
+					     (and clr
+						  (let ([d (make-object style-delta%)])
+						    (send d set-delta-foreground clr))))]
+				    [bg-color (let ([bg-clr (and bg-color-string
+								 (color-string->color bg-color-string))])
+						(and bg-clr
+						     (let ([d (make-object style-delta%)])
+						       (send d set-delta-background bg-clr))))])
+				(let loop ([delta #f][l (list size face color bg-color)])
+				  (cond
+				   [(null? l) delta]
+				   [(not (car l)) (loop delta (cdr l))]
+				   [else (if delta
+					     (loop (begin
+						     (send delta collapse (car l))
+						     delta)
+						   (cdr l))
+					     (loop (car l) (cdr l)))]))))))]
+		       
+		       [make-unsupported
+			(lambda (tag args)
+			  (let ([name (get-field args 'name)]
+				[type (get-field args 'type)])
+			    (if (and (eq? tag 'input) type (string=? type "hidden"))
+				"" ; hidden input
+				(format "[~a~a NOT SUPPORTED]"
+					(if name
+					    (format "~a " name)
+					    "")
+					(case tag
+					  [(select) "POPUP MENU"]
+					  [(textarea) "TEXT AREA"]
+					  [(input) (if type
+						       (case (string->symbol type)
+							 [(text) "TEXT FIELD"]
+							 [else "BUTTON"])
+						       "BUTTON")])))))]
 
-		     [heading (lambda (delta rest para-base)
-				(insert-newlines 2 para-base)
-				(let ([start-pos (current-pos)]
-				      [r (rest)]
-				      [end-pos (current-pos)])
+		       [heading (lambda (delta rest para-base)
 				  (insert-newlines 2 para-base)
-				  (lambda ()
-				    (send a-text change-style delta start-pos end-pos)
-				    (r))))]
+				  (let ([start-pos (current-pos)]
+					[r (rest)]
+					[end-pos (current-pos)])
+				    (insert-newlines 2 para-base)
+				    (lambda ()
+				      (change-style delta start-pos end-pos)
+				      (r))))]
 
-		     [styler (lambda (delta rest)
-			       (let* ([start-pos (current-pos)]
-				      [r (rest)]
-				      [end-pos (current-pos)])
-				 (lambda ()
-				   (send a-text change-style delta start-pos end-pos)
-				   (r))))]
-		     
-		     [para-aligner (lambda (alignment delta rest)
-				     (let* ([start-pos (current-pos)]
-					    [r (rest)]
-					    [end-pos (current-pos)])
-				       (lambda ()
-					 (let ([last-para (send a-text position-paragraph 
-								(backover-newlines end-pos start-pos))])
-					   (let loop ([para (send a-text position-paragraph start-pos)])
-					     (send a-text set-paragraph-alignment para alignment)
-					     (when delta
-					       (send a-text change-style delta start-pos end-pos))
-					     (unless (= para last-para)
-					       (loop (add1 para)))))
-					 (r))))]
+		       [styler (lambda (delta rest)
+				 (let* ([start-pos (current-pos)]
+					[r (rest)]
+					[end-pos (current-pos)])
+				   (lambda ()
+				     (change-style delta start-pos end-pos)
+				     (r))))]
+		       
+		       [para-aligner (lambda (alignment delta rest)
+				       (let* ([start-pos (current-pos)]
+					      [r (rest)]
+					      [end-pos (current-pos)])
+					 (lambda ()
+					   (let ([last-para (send a-text position-paragraph 
+								  (backover-newlines end-pos start-pos))])
+					     (let loop ([para (send a-text position-paragraph start-pos)])
+					       (send a-text set-paragraph-alignment para alignment)
+					       (when delta
+						 (change-style delta start-pos end-pos))
+					       (unless (= para last-para)
+						 (loop (add1 para)))))
+					   (r))))]
 
-		     ;; ========================================
-		     ;; This is the main formatting function.
-		     ;; It consumes:
-		     ;;   e : xexpr - the HTML content
-		     ;;   para-base : num - a marker for a paragraph start (e.g.,
-		     ;;                     the bullet for <li>), though the actual
-		     ;;                     paragraph start may be later
-		     ;;   enum-depth : num - current depth of enumerations
-		     ;; The result is a function of no arguments that finalizes
-		     ;;  the region for `e', which normally means applying font changes.
-		     ;;  (The changes have to be applied outside-in, so that local
-		     ;;  specifications override enclosing ones.)
-		     ;; Translate must not modify any existing text, and the
-		     ;;  result function must not move any items.
-		     [translate
-		      (lambda (e para-base enum-depth)
-			(cond
-			 [(string? e) (insert e) void]
-			 [(symbol? e) (let ([a (assq e latin-1-symbols)])
-					(if a
-					    (insert (latin-1-integer->char (cadr a)))
-					    (insert (format "&~a;" e)))
-					void)]
-			 [(number? e) 
-			  (if (<= 0 e 255)
-			      (insert (latin-1-integer->char e))
-			      (insert (format "&~a;" e)))
-			  void]
-			 [else (let* ([tag (car e)]
-				      [rest/base/depth 
-				       (lambda (para-base enum-depth)
-					 (let ([l (map (lambda (x) (translate x para-base enum-depth))
-						       (cddr e))])
-					   (lambda ()
-					     (map (lambda (f) (f)) l))))]
-				      [rest (lambda () (rest/base/depth para-base enum-depth))])
-				 (case tag
-				   [(title)
-				    (let ([pos (current-pos)])
-				      ;; Render content
-				      (rest)
-				      (send a-text set-title (send a-text get-text pos (current-pos)))
-				      (delete pos (current-pos)))
-				    void]
-				   [(a)
-				    (let-values ([(url-string label scheme) (parse-href e)])
-				      (let* ([style (get-field e 'style)]
-					     [pos (current-pos)]
-					     [r (rest)]
-					     [end-pos (current-pos)])
-					(cond
-					 [url-string
-					  (send a-text add-link pos end-pos url-string)
-					  ;; might have a label, too:
-					  (when label
-					    (send a-text add-tag label pos))
+		       ;; ========================================
+		       ;; This is the main formatting function.
+		       ;; It consumes:
+		       ;;   e : xexpr - the HTML content
+		       ;;   para-base : num - a marker for a paragraph start (e.g.,
+		       ;;                     the bullet for <li>), though the actual
+		       ;;                     paragraph start may be later
+		       ;;   enum-depth : num - current depth of enumerations
+		       ;; The result is a function of no arguments that finalizes
+		       ;;  the region for `e', which normally means applying font changes.
+		       ;;  (The changes have to be applied outside-in, so that local
+		       ;;  specifications override enclosing ones.)
+		       ;; Translate must not modify any existing text, and the
+		       ;;  result function must not move any items.
+		       [translate
+			(lambda (e para-base enum-depth)
+			  (cond
+			   [(string? e) (insert e) void]
+			   [(symbol? e) (let ([a (assq e latin-1-symbols)])
+					  (if a
+					      (insert (latin-1-integer->char (cadr a)))
+					      (insert (format "&~a;" e)))
+					  void)]
+			   [(number? e) 
+			    (if (<= 0 e 255)
+				(insert (latin-1-integer->char e))
+				(insert (format "&~a;" e)))
+			    void]
+			   [else (let* ([tag (car e)]
+					[rest/base/depth 
+					 (lambda (para-base enum-depth)
+					   (let ([l (map (lambda (x) (translate x para-base enum-depth))
+							 (cddr e))])
+					     (lambda ()
+					       (map (lambda (f) (f)) l))))]
+					[rest (lambda () (rest/base/depth para-base enum-depth))])
+				   (case tag
+				     [(title)
+				      (let ([pos (current-pos)])
+					;; Render content
+					(rest)
+					(send a-text set-title (send a-text get-text pos (current-pos)))
+					(delete pos (current-pos)))
+				      void]
+				     [(a)
+				      (let-values ([(url-string label scheme) (parse-href e)])
+					(let* ([style (get-field e 'style)]
+					       [pos (current-pos)]
+					       [r (rest)]
+					       [end-pos (current-pos)])
+					  (cond
+					   [url-string
+					    (send a-text add-link pos end-pos url-string)
+					    ;; might have a label, too:
+					    (when label
+					      (send a-text add-tag label pos))
+					    (lambda ()
+					      (when (or (not style)
+							(not (regexp-match re:transparent style)))
+						(send a-text make-link-style pos end-pos))
+					      (r))]
+					   [label
+					    (send a-text add-tag label pos)
+					    r]
+					   [scheme
+					    (send a-text add-scheme-callback pos end-pos scheme)
+					    (lambda ()
+					      (when (or (not style)
+							(not (regexp-match re:transparent style)))
+						(send a-text make-link-style pos end-pos))
+					      (r))]
+					   [else r])))]
+				     [(|Comment|)
+				      (let ([code (get-mzscheme-arg (caddr e))])
+					(if code
+					    (let ([s (with-handlers ([not-break-exn?
+								      (lambda (exn)
+									(format
+									 "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
+									 (if (exn? exn)
+									     (exn-message exn)
+									     (format "~s" exn))))])
+						       (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
+					      (if (string? s)
+						  (let ([content (parse-html (open-input-string s))])
+						    (translate content para-base enum-depth))
+						  void))
+					    void))]
+				     [(style) void]
+				     [(h1) (heading delta:h1 rest para-base)]
+				     [(h2) (heading delta:h2 rest para-base)]
+				     [(h3) (heading delta:h3 rest para-base)]
+				     [(h4) (heading delta:h4 rest para-base)]
+				     [(b strong) (styler delta:bold rest)]
+				     [(i em var dfn cite) (styler delta:italic rest)]
+				     [(u) (styler delta:underline rest)]
+				     [(sup) (styler delta:superscript rest)]
+				     [(sub) (styler delta:subscript rest)]
+				     [(small) (styler delta:small rest)]
+				     [(font)
+				      (let ([delta (parse-font e)])
+					(if delta
+					    (styler delta rest)
+					    (rest)))]
+				     [(li dd dt)
+				      (insert-newlines 1 para-base)
+				      (let ([pos (current-pos)]
+					    [bullet? (eq? tag 'li)])
+					(when bullet?
+					  (insert (make-object bullet-snip% (sub1 enum-depth))))
+					(let* ([r (rest/base/depth (add1 pos) enum-depth)]
+					       [end-pos (current-pos)])
 					  (lambda ()
-					    (when (or (not style)
-						      (not (regexp-match re:transparent style)))
-					      (send a-text make-link-style pos end-pos))
-					    (r))]
-					 [label
-					  (send a-text add-tag label pos)
-					  r]
-					 [scheme
-					  (send a-text add-scheme-callback pos end-pos scheme)
-					  (lambda ()
-					    (when (or (not style)
-						      (not (regexp-match re:transparent style)))
-					      (send a-text make-link-style pos end-pos))
-					    (r))]
-					 [else r])))]
-				   [(|Comment|)
-				    (let ([code (get-mzscheme-arg (caddr e))])
-				      (if code
-					  (let ([s (with-handlers ([not-break-exn?
-								    (lambda (exn)
-								      (format
-								       "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
-								       (if (exn? exn)
-									   (exn-message exn)
-									   (format "~s" exn))))])
-						     (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
-					    (if (string? s)
-						(let ([content (parse-html (open-input-string s))])
-						  (translate content para-base enum-depth))
-						void))
-					  void))]
-				   [(style) void]
-				   [(h1) (heading delta:h1 rest para-base)]
-				   [(h2) (heading delta:h2 rest para-base)]
-				   [(h3) (heading delta:h3 rest para-base)]
-				   [(h4) (heading delta:h4 rest para-base)]
-				   [(b strong) (styler delta:bold rest)]
-				   [(i em var dfn cite) (styler delta:italic rest)]
-				   [(u) (styler delta:underline rest)]
-				   [(sup) (styler delta:superscript rest)]
-				   [(sub) (styler delta:subscript rest)]
-				   [(small) (styler delta:small rest)]
-				   [(font)
-				    (let ([delta (parse-font e)])
-				      (if delta
-					  (styler delta rest)
-					  (rest)))]
-				   [(li dd dt)
-				    (insert-newlines 1 para-base)
-				    (let ([pos (current-pos)]
-					  [bullet? (eq? tag 'li)])
-				      (when bullet?
-					(insert (make-object bullet-snip% (sub1 enum-depth))))
-				      (let* ([r (rest/base/depth (add1 pos) enum-depth)]
-					     [end-pos (current-pos)])
-					(lambda ()
-					  (send a-text change-style normal-style pos (+ 1 pos))
-					  (send a-text set-paragraph-margins
-						(send a-text position-paragraph pos)
-						(max 0 (- (* 2 (get-bullet-width) enum-depth)
-							  (if bullet?
-							      (get-bullet-width)
-							      0)))
-						(* 2 (get-bullet-width) enum-depth)
-						0)
-					  (r))))]
-				   [(ul ol dl)
-				    (insert-newlines 2 para-base)
-				    (begin0
-				     (rest/base/depth para-base (add1 enum-depth))
-				     (insert-newlines 2 para-base))]
-				   [(p)
-				    (insert-newlines 2 para-base)
-				    (begin0
-				     (rest)
-				     (insert-newlines 2 para-base))]
-				   [(center)
-				    (insert-newlines 2 para-base)
-				    (begin0
-				     (para-aligner 'center #f rest)
-				     (insert-newlines 2 para-base))]
-				   [(div)
-				    (insert-newlines 2 para-base)
-				    (let* ([align (get-field e 'align)]
-					   [class (get-field e 'class)]
-					   [delta (and class (lookup-class-delta class))])
+					    (change-style normal-style pos (+ 1 pos))
+					    (send a-text set-paragraph-margins
+						  (send a-text position-paragraph pos)
+						  (max 0 (- (* 2 (get-bullet-width) enum-depth)
+							    (if bullet?
+								(get-bullet-width)
+								0)))
+						  (* 2 (get-bullet-width) enum-depth)
+						  0)
+					    (r))))]
+				     [(ul ol dl)
+				      (insert-newlines 2 para-base)
 				      (begin0
-				       (cond
-					[(and (string? align) (string-ci=? align "center"))
-					 (para-aligner 'center delta rest)]
-					[(and (string? align) (string-ci=? align "left"))
-					 (para-aligner 'left delta rest)]
-					[(or (and (string? align) (string-ci=? align "right"))
-					     (and (string? class) (string-ci=? class "navigation")))
-					 (para-aligner 'right delta rest)]
-					[else
-					 (rest)])
-				       (insert-newlines 2 para-base)))]
-				   [(br)
-				    (insert-newlines 1 para-base)
-				    (rest)]
-				   [(table)
-				    (insert-newlines 2 para-base)
-				    (begin0
-				     (rest)
-				     (insert-newlines 2 para-base))]
-				   [(tr)
-				    (insert-newlines 1 para-base)
-				    (begin0
-				     (rest)
-				     (insert-newlines 1 para-base))]
-				   [(td)
-				    (insert " ")
-				    (begin0
-				     (rest)
-				     (insert " "))]
-				   [(img)
-				    (let* ([url (parse-image-source e)]
-					   [alt (get-field e 'alt)]
-					   [b (and url (cache-image url))])
-				      (cond
-				       [(or b (not alt))
-					(let ([pos (current-pos)])
-					  (insert (or b (make-object image-snip%)))
-					  (send a-text change-style delta:center pos (add1 pos)))]
-				       [else
-					(insert alt)])
-				      (rest))]
-				   [(input select textarea)
-				    (let ([unsupported (make-unsupported tag e)]
-					  [pos (current-pos)])
-				      (insert unsupported)
-				      (let ([r (rest)]
-					    [end-pos (current-pos)])
-					(lambda ()
-					  (send a-text change-style normal-style pos end-pos)
-					  (r))))]
-				   [(tt code samp kbd pre blockquote)
-				    (when (memq tag '(pre blockquote))
-				      (insert-newlines 2 para-base))
-				    (let* ([class (get-field e 'class)]
-					   [delta (and class (lookup-class-delta class))])
-				      (styler (if delta
-						  (let ([d (make-object style-delta% 'change-nothing)])
-						    (send d copy delta)
-						    (send d collapse delta:fixed)
-						    d)
-						  delta:fixed)
-					      rest))]
-				   [(span)
-				    (let* ([class (get-field e 'class)]
-					   [delta (and class (lookup-class-delta class))])
-				      (if delta
-					  (styler delta rest)
-					  (rest)))]
-				   [else (rest)]))]))])
-	      
-	      (load-status #f "page" base-path)
-	      
-	      ((translate content 0 0))
+				       (rest/base/depth para-base (add1 enum-depth))
+				       (insert-newlines 2 para-base))]
+				     [(p)
+				      (insert-newlines 2 para-base)
+				      (begin0
+				       (rest)
+				       (insert-newlines 2 para-base))]
+				     [(center)
+				      (insert-newlines 2 para-base)
+				      (begin0
+				       (para-aligner 'center #f rest)
+				       (insert-newlines 2 para-base))]
+				     [(div)
+				      (insert-newlines 2 para-base)
+				      (let* ([align (get-field e 'align)]
+					     [class (get-field e 'class)]
+					     [delta (and class (lookup-class-delta class))])
+					(begin0
+					 (cond
+					  [(and (string? align) (string-ci=? align "center"))
+					   (para-aligner 'center delta rest)]
+					  [(and (string? align) (string-ci=? align "left"))
+					   (para-aligner 'left delta rest)]
+					  [(or (and (string? align) (string-ci=? align "right"))
+					       (and (string? class) (string-ci=? class "navigation")))
+					   (para-aligner 'right delta rest)]
+					  [else
+					   (rest)])
+					 (insert-newlines 2 para-base)))]
+				     [(br)
+				      (insert-newlines 1 para-base)
+				      (rest)]
+				     [(table)
+				      (insert-newlines 2 para-base)
+				      (begin0
+				       (rest)
+				       (insert-newlines 2 para-base))]
+				     [(tr)
+				      (insert-newlines 1 para-base)
+				      (begin0
+				       (rest)
+				       (insert-newlines 1 para-base))]
+				     [(td)
+				      (insert " ")
+				      (begin0
+				       (rest)
+				       (insert " "))]
+				     [(img)
+				      (let* ([url (parse-image-source e)]
+					     [alt (get-field e 'alt)]
+					     [b (and url (cache-image url))])
+					(cond
+					 [(or b (not alt))
+					  (let ([pos (current-pos)])
+					    (insert (or b (make-object image-snip%)))
+					    (change-style delta:center pos (add1 pos)))]
+					 [else
+					  (insert alt)])
+					(rest))]
+				     [(input select textarea)
+				      (let ([unsupported (make-unsupported tag e)]
+					    [pos (current-pos)])
+					(insert unsupported)
+					(let ([r (rest)]
+					      [end-pos (current-pos)])
+					  (lambda ()
+					    (change-style normal-style pos end-pos)
+					    (r))))]
+				     [(tt code samp kbd pre blockquote)
+				      (when (memq tag '(pre blockquote))
+					(insert-newlines 2 para-base))
+				      (let* ([class (get-field e 'class)]
+					     [delta (and class (lookup-class-delta class))])
+					(styler (if delta
+						    (let ([d (make-object style-delta% 'change-nothing)])
+						      (send d copy delta)
+						      (send d collapse delta:fixed)
+						      d)
+						    delta:fixed)
+						rest))]
+				     [(span)
+				      (let* ([class (get-field e 'class)]
+					     [delta (and class (lookup-class-delta class))])
+					(if delta
+					    (styler delta rest)
+					    (rest)))]
+				     [else (rest)]))]))])
+		
+		(load-status #f "page" base-path)
+		
+		((translate content 0 0))
 
-	      (send a-text add-tag "top" 0)
+		(send a-text add-tag "top" 0)
 
-	      (send a-text set-position 0))))))))
+		(send a-text set-position 0)))))))))
