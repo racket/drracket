@@ -235,7 +235,6 @@
 			  (mred:make-info-frame%
 			   (mred:make-file-frame%
 			    mred:simple-menu-frame%))))))
-  (printf "(ivar-in-class info-panel super-frame%): ~a~n" (ivar-in-class? 'info-panel super-frame%))
   
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
