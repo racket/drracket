@@ -1,30 +1,4 @@
-#|
-enable-evaluation: (-> void)
 
-(send (get-top-level-window) enable-evaluation)
-
-disable-evaluation: (-> void)
-
-(send (get-top-level-window) disable-evaluation)
-
-running, not-running: (-> void)
-
-(send context running)
-(send context not-running)
-
-get-directory: (-> (union string #f))
-
-(if (get-top-level-window)
-    (let-values ([(filename) (send (ivar (get-top-level-window) definitions-text)
-                                   get-filename)]
-                 [(normalized) (if (string? filename)
-                                   (mzlib:file:normalize-path filename)
-                                   (k drscheme:init:first-dir))]
-                 [(base _1 _2) (split-path normalized)])
-      base)
-    #f)
-
-|#
 (unit/sig drscheme:unit^
   (import [mred : mred^]
 	  [mzlib : mzlib:core^]
@@ -556,8 +530,10 @@ get-directory: (-> (union string #f))
 			    (set! inverted? #f)
 			    (on-paint)
 			    (send text set-position (defn-pos defn) (defn-pos defn))
-			    (when (send text get-canvas)
-			      (send (send text get-canvas) focus))))])
+                            (let ([canvas (send text get-canvas)])
+                              (printf "canvas: ~s~n" canvas)
+                              (when canvas
+                                (send canvas focus)))))])
 		  (when checked?
 		    (send item check #t))
 		  (loop (cdr defns)))))
