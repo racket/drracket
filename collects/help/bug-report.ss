@@ -195,9 +195,9 @@
     (define synthesized-dialog (make-object dialog% (string-constant bug-report-synthesized-information)))
     (define synthesized-panel (make-object vertical-panel% synthesized-dialog))
     (define synthesized-button-panel (make-object horizontal-panel% synthesized-dialog))
-    (define ok-button (make-object button% (string-constant ok) synthesized-button-panel
-                        (lambda (x y)
-                          (send synthesized-dialog show #f))))
+    (define synthesized-ok-button (make-object button% (string-constant ok) synthesized-button-panel
+					       (lambda (x y)
+						 (send synthesized-dialog show #f))))
     (define synthesized-info-shown? #t)
     (define (show-synthesized-info)
       (send synthesized-dialog show #t))
