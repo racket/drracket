@@ -121,7 +121,7 @@
 	    (insert #\newline)
 	    (insert "  MrEd version ")
 	    (insert (mred:version))
-	    (insert ", Copyright (c) 1995-1997 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
+	    (insert ", Copyright (c) 1995-1998 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
 	    (insert #\newline)
 	    (insert (mred:credits-proc "  "))
 	    (lock #t))
