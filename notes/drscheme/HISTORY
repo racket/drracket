@@ -2,6 +2,8 @@ Version 51:
 
 General 
 -------
+- fixed error message for "eq?" and "cons" at beginner level.
+
 - check syntax does not work with an unitialized repl when:
   the source contains define-macro. (won't be fixed in the release)
 
