@@ -6,7 +6,7 @@
            (lib "class.ss")
            (lib "list.ss")
            "drsig.ss"
-           (lib "specs.ss" "framework")
+           (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants"))
   
   (provide tools@)
@@ -15,14 +15,20 @@
     (lambda (stx)
       (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
                                                      "tool-info.ss")
-                     read)])
+                     (lambda (port)
+                       (let loop ()
+                         (let ([ent (read port)])
+                           (if (eof-object? ent)
+                               null
+                               (cons ent (loop)))))))])
         (syntax-case stx ()
           [(_ body tool-name)
-           (with-syntax ([(types ...) (map cadr table)]
-                         [(names ...) (map (lambda (x) (datum->syntax-object stx (car x))) table)])
+           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object stx (cadr x))) table)]
+                         [(name ...) (map (lambda (x) (datum->syntax-object stx (car x))) table)])
              (syntax
-              (let ([names (contract types names 'drscheme tool-name)] ...)
+              (let ([name (contract type name 'drscheme tool-name 'name)] ...)
                 body)))]))))
+  
 
   (define tools@
     (unit/sig drscheme:tools^
@@ -155,7 +161,8 @@
                                     (format (string-constant error-invoking-tool-title)
                                             coll in-path)
                                     x))])
-                  (let-values ([(phase1-thunk phase2-thunk) (invoke-tool unit name)])
+                  (let-values ([(phase1-thunk phase2-thunk) 
+                                (invoke-tool unit (string->symbol (or name coll)))])
                     (set! successfully-loaded-tools 
                           (cons (make-successfully-loaded-tool
                                  tool-path
@@ -172,7 +179,7 @@
          (let ()
            (define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
            (values phase1 phase2))
-         'drscheme))
+         tool-name))
 
       ;; show-error : string (union exn TST) -> void
       (define (show-error title x)
@@ -322,5 +329,4 @@
           (error func "can only be called in phase: ~a"
                  (apply string-append 
                         (map (lambda (x) (format "~a " x))
-                             (filter (lambda (x) x) phases))))))
-      )))
+                             (filter (lambda (x) x) phases)))))))))

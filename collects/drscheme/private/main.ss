@@ -300,11 +300,11 @@
          (drscheme:language-configuration:add-info-specified-languages)))
       
       ;; no more extension after this point
-      (drscheme:get/extend:get-interactions-canvas%)
-      (drscheme:get/extend:get-definitions-canvas%)
-      (drscheme:get/extend:get-unit-frame%)
-      (drscheme:get/extend:get-interactions-text%)
-      (drscheme:get/extend:get-definitions-text%)
+      (drscheme:get/extend:get-interactions-canvas)
+      (drscheme:get/extend:get-definitions-canvas)
+      (drscheme:get/extend:get-unit-frame)
+      (drscheme:get/extend:get-interactions-text)
+      (drscheme:get/extend:get-definitions-text)
       (drscheme:language-configuration:get-languages)
       
       (scheme:set-sexp-snip-class

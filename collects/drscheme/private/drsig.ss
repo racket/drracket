@@ -62,12 +62,11 @@
   
   (define-signature drscheme:language-configuration^
     (add-language
+     (struct language-settings (language settings))
      get-settings-preferences-symbol))
   
   (define-signature drscheme:language-configuration/internal^
-    ((struct language-settings (language settings))
-     
-     add-info-specified-languages
+    (add-info-specified-languages
      get-default-language-settings
      (open drscheme:language-configuration^)
      get-languages
@@ -92,11 +91,11 @@
      extend-interactions-canvas
      extend-definitions-canvas
      extend-unit-frame
-     get-interactions-text%
-     get-definitions-text%
-     get-interactions-canvas%
-     get-definitions-canvas%
-     get-unit-frame%))
+     get-interactions-text
+     get-definitions-text
+     get-interactions-canvas
+     get-definitions-canvas
+     get-unit-frame))
     
   (define-signature drscheme:unit^
     (frame% 

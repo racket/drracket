@@ -213,66 +213,66 @@
 
       (define make-bitmap 
         (case-lambda 
-         [(button-name) (make-bitmap 
-                         (let ([capd (string-copy button-name)])
-                           (string-set! capd 0 (char-upcase (string-ref capd 0)))
-                           capd)
-                         (build-path
-                          (collection-path "icons")
-                          (string-append button-name ".bmp")))]
-         [(text filename)
-          (lambda (area-container-window)
-            (let*-values ([(outside-margin) 2]
-                          [(middle-margin) 3]
-                          [(font) (send area-container-window get-control-font)]
-                          [(img-bitmap-dc img-width img-height)
-                           (let ([mdc (make-object bitmap-dc%)]
-                                 [q (make-object bitmap% filename)])
-                             (if (send q ok?)
-                                 (begin (send mdc set-bitmap q)
-                                        (values mdc
-                                                (send q get-width)
-                                                (send q get-height)))
-                                 (let ([b (make-object bitmap% 1 1)])
-                                   (send mdc set-bitmap b)
-                                   (send mdc clear)
-                                   (values mdc 0 0))))]
-                          [(width height descent leading)
-                           (begin (send img-bitmap-dc set-scale 1 1)
-                                  (send img-bitmap-dc get-text-extent text font))]
-                          [(new-width) (inexact->exact
-                                        (floor
-                                         (+ outside-margin
-                                            img-width
-                                            middle-margin
-                                            width
-                                            outside-margin)))]
-                          [(new-height) (inexact->exact
-                                         (floor (+ outside-margin
-                                                   (max img-height height)
-                                                   outside-margin)))]
-                          [(bitmap-dc) (make-object bitmap-dc%)]
-                          [(new-bitmap) (make-object bitmap% new-width new-height)])
-              (cond
-                [(or (= img-width 0)
-                     (= img-height 0))
-                 text]
-                [else
-                 (send* bitmap-dc
-                   (set-bitmap new-bitmap)
-                   (set-scale 1 1)
-                   (set-font font)
-                   (clear)
-                   (draw-text text (+ outside-margin img-width middle-margin)
-                              (- (/ new-height 2) (/ height 2))))
-                 (let ([bm (send img-bitmap-dc get-bitmap)])
-                   (send img-bitmap-dc set-bitmap #f)
-                   (send bitmap-dc draw-bitmap
-                         bm
-                         outside-margin
-                         (- (/ new-height 2) (/ img-height 2)))
-                   (send bitmap-dc set-bitmap #f)
-                   new-bitmap)])))]))
+          [(button-name) (make-bitmap 
+                          (let ([capd (string-copy button-name)])
+                            (string-set! capd 0 (char-upcase (string-ref capd 0)))
+                            capd)
+                          (build-path
+                           (collection-path "icons")
+                           (string-append button-name ".bmp")))]
+          [(text filename)
+           (lambda (area-container-window)
+             (let*-values ([(outside-margin) 2]
+                           [(middle-margin) 3]
+                           [(font) (send area-container-window get-control-font)]
+                           [(img-bitmap-dc img-width img-height)
+                            (let ([mdc (make-object bitmap-dc%)]
+                                  [q (make-object bitmap% filename)])
+                              (if (send q ok?)
+                                  (begin (send mdc set-bitmap q)
+                                         (values mdc
+                                                 (send q get-width)
+                                                 (send q get-height)))
+                                  (let ([b (make-object bitmap% 1 1)])
+                                    (send mdc set-bitmap b)
+                                    (send mdc clear)
+                                    (values mdc 0 0))))]
+                           [(width height descent leading)
+                            (begin (send img-bitmap-dc set-scale 1 1)
+                                   (send img-bitmap-dc get-text-extent text font))]
+                           [(new-width) (inexact->exact
+                                         (floor
+                                          (+ outside-margin
+                                             img-width
+                                             middle-margin
+                                             width
+                                             outside-margin)))]
+                           [(new-height) (inexact->exact
+                                          (floor (+ outside-margin
+                                                    (max img-height height)
+                                                    outside-margin)))]
+                           [(bitmap-dc) (make-object bitmap-dc%)]
+                           [(new-bitmap) (make-object bitmap% new-width new-height)])
+               (cond
+                 [(or (= img-width 0)
+                      (= img-height 0))
+                  text]
+                 [else
+                  (send* bitmap-dc
+                    (set-bitmap new-bitmap)
+                    (set-scale 1 1)
+                    (set-font font)
+                    (clear)
+                    (draw-text text (+ outside-margin img-width middle-margin)
+                               (- (/ new-height 2) (/ height 2))))
+                  (let ([bm (send img-bitmap-dc get-bitmap)])
+                    (send img-bitmap-dc set-bitmap #f)
+                    (send bitmap-dc draw-bitmap
+                          bm
+                          outside-margin
+                          (- (/ new-height 2) (/ img-height 2)))
+                    (send bitmap-dc set-bitmap #f)
+                    new-bitmap)])))]))
       
       (define make-execute-bitmap 
         (make-bitmap (string-constant execute-button-label) 
@@ -789,7 +789,7 @@
               (when name-message
                 (send name-message set-message #t name)))]
           (override get-canvas%)
-          [define get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))]
+          [define get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           (public ensure-defs-shown ensure-rep-shown)
           [define ensure-defs-shown
             (lambda ()
@@ -803,7 +803,7 @@
                 (update-shown)))]
           
           (override get-editor%)
-          [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))]
+          [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text))]
           (define/public (still-untouched?)
             (and (= (send definitions-text last-position) 0)
                  (not (send definitions-text is-modified?))
@@ -1326,9 +1326,9 @@
 
           (define/override (get-delegated-text) definitions-text)
           
-          [define definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
+          [define definitions-text (make-object (drscheme:get/extend:get-definitions-text))]
           [define interactions-text (make-object 
-                                        (drscheme:get/extend:get-interactions-text%)
+                                        (drscheme:get/extend:get-interactions-text)
                                       this)]
           (public get-definitions-text get-interactions-text)
           [define get-definitions-text (lambda () definitions-text)]
@@ -1525,10 +1525,10 @@
           (send name-panel stretchable-width #f)
           (send name-panel stretchable-height #f)
           
-          [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
+          [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas)
                                        resizable-panel)]
           [define definitions-canvases (list definitions-canvas)]
-          [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
+          [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas)
                                         resizable-panel)]
           [define interactions-canvases (list interactions-canvas)]
           
@@ -1644,7 +1644,7 @@
               (begin (send created-frame change-to-file name)
                      (send created-frame show #t)
                      created-frame)
-              (let* ([drs-frame% (drscheme:get/extend:get-unit-frame%)]
+              (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
 		     [frame (instantiate drs-frame% () (filename name))])
                 (send frame show #t)
                 frame))]))

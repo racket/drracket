@@ -73,7 +73,7 @@
          (lambda (x)
            (and (number? x)
                 (exact? x)
-                (real? x)
+                (rational? x)
                 (not (integer? x))))))
 
       ;; which-number-snip : (parameter

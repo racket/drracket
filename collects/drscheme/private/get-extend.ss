@@ -47,17 +47,17 @@
                  (set! built (extensions base%)))
                built)))))
       
-      (define-values (extend-interactions-canvas get-interactions-canvas%)
+      (define-values (extend-interactions-canvas get-interactions-canvas)
         (make-extender drscheme:unit:interactions-canvas%))
       
-      (define-values (extend-definitions-canvas get-definitions-canvas%)
+      (define-values (extend-definitions-canvas get-definitions-canvas)
         (make-extender drscheme:unit:definitions-canvas%))  
       
-      (define-values (extend-unit-frame get-unit-frame%)
+      (define-values (extend-unit-frame get-unit-frame)
         (make-extender drscheme:unit:frame%))
       
-      (define-values (extend-interactions-text get-interactions-text%)
+      (define-values (extend-interactions-text get-interactions-text)
         (make-extender drscheme:rep:text%))
       
-      (define-values (extend-definitions-text get-definitions-text%)
+      (define-values (extend-definitions-text get-definitions-text)
         (make-extender drscheme:unit:definitions-text%)))))
