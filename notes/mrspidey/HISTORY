@@ -1,0 +1,24 @@
+Version 102:
+
+Added column numbers for checks in summary window
+Added Beginning Student primitives 
+ empty, empty?, rest, false, true, boolean=?,
+ symbol=?
+Componential analysis works again
+Infinite loops on certain kinds
+ of internal Spidey errors eliminated
+Internal calls to message-box fixed
+
+Version 101:
+
+Fixed preferences dialogs, had not
+ been fully ported from MrEd 53   
+Fonts in Spidey window can be changed 
+ using the fonts preference dialog
+Classes with override clauses now 
+ properly handled
+Path-to-source works again
+
+Version 100:
+
+Ported to MrEd 100

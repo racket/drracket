@@ -1,0 +1,115 @@
+
+srcdir = @srcdir@
+
+WXDIR = $(srcdir)/../wxxt
+
+PLTSRCDIR = $(srcdir)/..
+include Make.env
+
+# system name for installation
+INSTALLSYS = `$(srcdir)/../../bin/archsys`
+
+MREDLDFLAGS = -L../wxxt/utils/image/src  -L../wxxt/contrib/xpm/lib $(LDFLAGS) -L../mzscheme -Lwxs -Lwxme -L../wxxt/src
+MREDLDLIBS = -lmzscheme -lgc -lwxscheme -lwxme -lwx_xt -lXpm -limage_xt $(LDLIBS) $(LDNONSTATICLIBS)
+
+MREDOBJECTS = mred.o mredx.o wxGC.o
+
+MZSCHEME = ../mzscheme/libmzscheme.a ../mzscheme/libgc.a
+WXSCHEME = wxs/libwxscheme.a
+WXME = wxme/libwxme.a
+
+INSTALLDEST=/home/scheme/plt
+
+MRSTATIC = 
+MRSTATIC_STUB =
+
+WXINCDEP = $(WXDIR)/src/Windows/Window.h
+
+# For SGIs and gcc 2.7.2, I needed a hack
+# (not needed with CC)
+SGILINKHACK =
+# SGILINKHACK = sgilinkhack.o
+
+MZEXTRAEXPORT='GCDIR=$(GCDIRECTORY)'
+
+all:
+	$(MAKE) wx
+	if [ -f wrap/wrap.ss ] ; then $(MAKE) mred-wrap ; fi
+	cd wxs; $(MAKE)
+	cd wxme; $(MAKE)
+	$(MAKE) mred
+
+mred-wrap:
+	cd wrap; $(MAKE)
+
+bin:
+	$(MAKE) mred
+
+mred : $(WXME) $(WXSCHEME) $(MZSCHEME) $(MREDOBJECTS) \
+          ../wxxt/src/libwx$(GUISUFFIX).a \
+          ../wxxt/utils/image/src/libimage_xt.a \
+          ../wxxt/contrib/xpm/lib/libXpm.a \
+          $(MRSTATIC_STUB)
+	$(LINKER) $(MREDLDFLAGS) $(MRSTATIC) -o mred $(LDSTARTERS) $(MREDOBJECTS) $(MREDLDLIBS) $(MRSTATIC_STUB) $(SGILINKHACK) $(LDENDERS)
+
+ee-app: mred mred_ee.o
+	if [ "$(EEAPP)" = '' ] ; then echo "ERROR: You must specify EEAPP" ; else $(LINKER) $(MREDLDFLAGS) $(MRSTATIC) -o $(EEAPP) $(LDSTARTERS) mred_ee.o mredx.o $(EEOBJECTS) $(MREDLDLIBS) $(MRSTATIC_STUB) $(SGILINKHACK) $(LDENDERS) ; fi
+
+sunos4-static: dl_stub.o
+	$(MAKE) mred MRSTATIC=-static  MRSTATIC_STUB='dl_stub.o' LDNONSTATICLIBS=''
+
+solaris-static:
+	$(MAKE) mred MRSTATIC="-Wl,-Bstatic" LDNONSTATICLIBS='-Wl,-Bdynamic -ldl -Wl,-Bstatic'
+
+linux-static:
+	$(MAKE) mred MRSTATIC=--static LDNONSTATICLIBS='-ldl'
+
+wx:
+	cd ../wxxt/src/x; $(MAKE)
+
+mred.o :  $(srcdir)/mred.cxx $(srcdir)/wxme/wx_media.h $(srcdir)/wxme/wx_medad.h \
+          $(srcdir)/wxs/wxscheme.h $(srcdir)/../mzscheme/cmdline.inc $(srcdir)/mred.h \
+          $(srcdir)/../mzscheme/include/scheme.h $(srcdir)/../mzscheme/src/schvers.h \
+          $(WXINCDEP) $(WXDIR)/src/Windows/Frame.h \
+          $(WXDIR)/src/DataStructures/Object.h $(srcdir)/../wxcommon/wxGC.h \
+          $(srcdir)/../wxcommon/wx_list.h
+	$(CXX) $(CPPFLAGS) $(LOCALFLAGS) -c $(srcdir)/mred.cxx -o mred.o
+
+mred_ee.o : mred.o
+	$(CXX) $(CPPFLAGS) $(LOCALFLAGS) -DSTANDALONE_WITH_EMBEDDED_EXTENSION -c $(srcdir)/mred.cxx -o mred_ee.o
+
+ee-main:
+	$(MAKE) mred_ee.o
+
+mredx.o : $(srcdir)/mredx.cxx $(srcdir)/../mzscheme/include/scheme.h $(srcdir)/mred.h \
+          $(WXDIR)/src/Windows/Frame.h $(WXDIR)/src/DataStructures/Object.h \
+          $(srcdir)/../wxcommon/wxGC.h $(srcdir)/../wxcommon/wx_list.h
+	$(CXX) $(CPPFLAGS) $(LOCALFLAGS) -c $(srcdir)/mredx.cxx -o mredx.o
+
+wxGC.o : $(srcdir)/../wxcommon/wxGC.cxx $(srcdir)/../wxcommon/wxGC.h
+	$(CXX) $(CPPFLAGS) $(LOCALFLAGS) -c $(srcdir)/../wxcommon/wxGC.cxx -o wxGC.o
+
+dl_stub.o: $(srcdir)/misc/dl_stub.c
+	$(CC) $(CPPFLAGS) $(LOCALFLAGS) -c $(srcdir)/misc/dl_stub.c -o dl_stub.o
+
+sgilinkhack.o:
+	$(CXX) $(CPPFLAGS) $(LOCALFLAGS) -c $(srcdir)/misc/sgilinkhack.cxx -o sgilinkhack.o
+
+$(WXDIR)/libwx_xt.a:
+	$(MAKE) wx
+
+clean:
+	cd ../wxxt/src/x; $(MAKE) clean
+	rm -f *.o core
+	rm -f gc2/*.o gc2/xsrc/*.c gc2/xsrc/*.cc
+	cd wxme; $(MAKE) clean
+	cd wxs; $(MAKE) clean
+
+install:
+	if [ ! -d $(srcdir)/../../.bin ] ; then mkdir $(srcdir)/../../.bin ; fi
+	if [ ! -d $(srcdir)/../../.bin/$(INSTALLSYS) ] ; then mkdir $(srcdir)/../../.bin/$(INSTALLSYS) ; fi
+	rm -f $(srcdir)/../../.bin/$(INSTALLSYS)/mred
+	cp mred $(srcdir)/../../.bin/$(INSTALLSYS)/mred
+
+# Precise GC:
+include gc2/GNUmakefile

@@ -1,0 +1,39 @@
+
+Bugs
+----
+
+* MacOS: bitmaps don't print (with MacOS-specific printing)
+
+* Windows and MacOS: "primitive" dialogs don't get closed by
+  custodian-shutdown-all
+
+* MacOS: std file dialog and print dialogs block MzScheme threads
+
+* Unix: Clipboard client is invoked in the wrong thread/eventspace
+
+* Need to penalize the current thread more (i.e., swap it out sooner)
+  after certain primitive operations that can take a long time (e.g.,
+  loading a bitmap or saving a file)
+
+* Updating bug? (hard to reproduce): long flash, not on same line,
+  update on focus-in
+
+Possible Features
+-----------------
+
+* Need directory-selection dialog
+
+* X Keys such as KP_end are not currently accessible
+
+* Editor: the full width for non-wrapped lines need not include the
+  autowrap bitmap
+
+* Editor: should use a guaranteed offset for stippling in buffer
+  redraws
+
+* Optimization: dragging selection shouldn't keep changing the
+  auto-X-selection
+
+* Background color for buffers
+
+* Paragraph styles: more and dynamic

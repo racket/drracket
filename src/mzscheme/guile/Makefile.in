@@ -1,0 +1,51 @@
+
+srcdir = @srcdir@
+
+CC = @CC@
+RANLIB = @RANLIB@
+AR = @AR@
+ARFLAGS = @ARFLAGS@
+
+CFLAGS = @CFLAGS@ @OPTIONS@
+
+OBJECTS = guile.o
+
+HEADERS =  gh.h
+
+libguile: ../libguile.a
+
+../libguile.a: $(OBJECTS) ../libmzscheme.a ../libgc.a tmp
+	@echo repackaging libmzscheme.a and libgc.a into libguile.a...
+	cd tmp; $(AR) x ../../libmzscheme.a
+	cd tmp; $(AR) x ../../libgc.a
+	$(AR) $(ARFLAGS) ../libguile.a $(OBJECTS) tmp/*.o
+	$(RANLIB) ../libguile.a
+	rm -rf tmp/*.o
+
+tmp:
+	mkdir tmp
+
+test: ../$(LIBDIR)/libguile.a test.o
+	$(CC) -o test test.o ../libguile.a @LIBS@
+
+guile.o: $(srcdir)/guile.c guileinc.c wrap.inc $(HEADERS)
+
+guile.o: $(srcdir)/guile.c
+	$(CC) $(CFLAGS) -c $(srcdir)/guile.c -I$(srcdir)/../include -o guile.o
+
+test.o: $(srcdir)/test.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $(srcdir)/test.c -o test.o
+
+guileinc.c: $(srcdir)/mkghsrc
+	$(srcdir)/mkghsrc
+
+gh.h: $(srcdir)/ghbase.h $(srcdir)/mkghsrc
+	$(srcdir)/mkghsrc
+
+wrap.inc: $(srcdir)/mkghsrc
+	$(srcdir)/mkghsrc
+
+clean:
+	rm -rf *.o *~ #*#
+	rm -rf test
+	rm -rf tmp/*.o tmp/*.a

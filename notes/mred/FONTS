@@ -1,0 +1,410 @@
+
+This file describes how to set up mappings for PostScript fonts and
+complex X fonts for MrEd within a configuration file. However, you
+will probably find that it's much easier to use the set-screen-name,
+set-post-script-name, and set-afm-name methods provided by
+the-font-name-directory.
+
+---------------------------------------------------
+    1. Welcome to the Weird World of MrEd Fonts
+---------------------------------------------------
+
+MrEd's font system is designed to appear to work gracefully across
+platforms to a naive MrEd user. It is also designed to provide
+complete configuration control to a knowledgeable user (this may be
+especially necessary under X Windows). These are somewhat
+contradictory goals, and they leave MrEd with a somewhat complex font
+system.
+
+We'll develop terminology here to explain the working of the font
+system, but don't expect these terms to be used by the MrEd
+toolbox. The toolbox is designed to do what a programmer or user
+probably wanted using names that a programmer or user would probably
+understand intuitively.
+
+A "real font" is a device-speicific font used to draw or measure text
+for a screen or a printer. MrEd handles three kinds of real fonts:
+
+  * Screen fonts
+  * PostScript font names
+  * AFM font files
+
+An "abstract font" is a platform- and device-independent entity that
+describes a font. MrEd uses 7 abstract fonts:
+
+  * "Default"
+  * "Decorative"
+  * "Roman"
+  * "Script"
+  * "Swiss"
+  * "Modern"
+  * "System"
+
+The "System" abstract font is intended only for use with screen-based
+controls.
+
+There are two basic problems:
+
+ * Mapping abstract fonts to real fonts
+ * Specifying a real font without a corresponding abstract font
+
+The solution in the latter case is simply to let the user or
+programmer invent new abstract fonts. However, the new abstract font
+is associated with a core abstract font so that a suitable default
+real font can be selected when no information about the new abstract
+font is available.
+
+Abstract fonts are mapped to real fonts via the low-level setup
+resource file read by MrEd at startup time. (Under X Windows, X
+resources can be specified in any way, but specifying X resources
+through the startup file is the preferred mechanism.)
+
+In the case of real fonts for an X Windows screen, it is necssary to
+map not only an abstract font to a real font, but an abstract font
+combined with a weight, style, and size to a real font --- hence the
+insane complexity of MrEd's font system.
+
+---------------------------
+    1. Resource Entries
+---------------------------
+
+First, we consider the mechanism that maps abstract fonts to real
+fonts in the case that the information is provided via resources.
+
+To find a font name in the resource, MrEd looks for a resource item
+named by:
+
+  <dest><type><weight><style>
+
+Where
+
+  <dest> is either "Screen", "PostScript", or "AFM"
+  <type> is either "Default", "Decorative", "Roman", "Script",
+         "Swiss", "Modern"", "System", or a programmer- or
+         user-generated abstract font name prefixed with
+         "@"
+  <weight> is either "Medium", "Bold", or "Light"
+  <style> is either "Straight", "Italic", or "Slant"
+
+Once the resource value is obtained, the way in which is it used is
+destination- and platform-specific:
+
+ * A PostScript name value is always used as a PostScript font name
+   (the preceeding slash is added automatically).
+
+ * An AFM name is used as the base file name.  The ".afm" extension is
+   added automatically. The AFM file is found according to the path
+   maintained by the ps-setup% methods get-afm-path and set-afm-path.
+
+ * A screen name is interpreted in a platform-specific way:
+ 
+   - Under Windows and MacOS, the name is used directly as the
+     font name.
+
+   - Under X-Windows, the name is either:
+
+       - a full X Windows font name (including style information), 
+         with a "%d" in place of the point-size field, and 
+         prefixed with a "+"; or
+
+       - a partial X Windows font name, matching one of the 
+         following regexp replacements:
+
+          -([^-]*) 
+            => -*-\1-<weight>-<style>-normal-*-*-%d-*-*-*-*-*-*
+	  -([^-]*)-(.*) 
+            => -\1-\2-<weight>-<style>-normal-*-*-%d-*-*-*-*-*-*
+	  ([^-].*[^-]) 
+            => \1
+
+         Note that the absence of a leading "+" triggers the 
+         regexp-replace attempt
+
+For example, under X Windows, this X resource entry specifies the
+Default, medium-weight, unslanted font:
+
+ mred.ScreenDefaultMediumStraight: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+
+and this is equivalent:
+
+ mred.ScreenDefaultMediumStraight: -*-*
+
+or even this:
+
+ mred.ScreenDefaultMediumStraight: -*
+
+
+A non-core abstract font <x> is associated with core abstract fonts
+with a resource item named by Family<x> where the value is the name
+of a core abstract font. For example, the new abstract font "Century" 
+might be asscoaited with the "Roman" core abstract class:
+
+  mred.Family@Century: Roman
+
+
+1.1. Wildcards
+--------------
+
+It has probably not escpaed the reader's attention that building
+items names by <dest><type><weight><style> will creates a rather
+large number of resource entires. Furthermore, the <weight><style>
+part is only useful for X Windows screen fonts. To avoid an
+explosion of resource entires, MrEd actually finds resource items
+via a wildcarding search.
+
+The <type>, <weight>, and <style> parts of a resource name can
+be wildcarded by using "_". Thus, to set the default font for all
+types, weights, and styles, use this X resource entry:
+
+ mred.Screen___: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+
+Wildcarded resource entires are used only when un-wildcarded values
+cannot be found. If two resource names both match for some search,
+then the one with the "earliest" (i.e., closest to the beginning of
+the resource name) non-wildcarded part will prevail.
+
+The default MrEd resource file for Windows uses wildcarding to
+specify the basic font mapping:
+
+ [mred]
+ defaultFontSize=10
+ ScreenDefault__=MS Sans Serif
+ ScreenRoman__=Times New Roman
+ ScreenDecorative__=Modern
+ ScreenModern__=Courier New
+ ScreenSwiss__=Arial
+ ScreenScript__=Script
+
+Wildcarding by itself is altogether too simple, so we add more
+power/confusion with References, Parameterizations, and Wildcarding
+References. Non-masochists may consider skipping to section 1.2.
+
+1.1.1 References
+- - - - - - - - 
+
+Suppose we define the default font for all of "Default", and then
+we want "Roman" to use this setting, too. We could copy the
+resource entry, like this:
+
+ mred.ScreenDefault__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+ mred.ScreenRoman__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+
+but the MrEd font-reading system provides a better syntax for
+referencing another resource entry. When a resource value contains
+"${x}", then the "${x}" fragment is replaced by the resource value of
+"x". Thus, the above could be re-written:
+
+ mred.ScreenDefault__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+ mred.ScreenRoman__: ${ScreenDefault__}
+
+But wait, there's more...
+
+1.1.2 Parameterizations
+- - - - - - - - - - - -
+
+Parameterization can be used with referencing to parameterize default
+values based on the weight and style that is needed.  When a resource
+value contains "$[weight]", then "$[weight]" is replaced with a string
+for the desired font weight. Similarly, "$[style]" is replaced with
+the desired style. Parameterizing expressions can be embedded in 
+referencing expressions, like this:
+
+  mred.ScreenDefault__: +-*-*-${Def$[weight]}-r-normal-*-*-%d-*-*-*-*-*-*
+  mred.DefMedium: medium
+  mred.DefBold: bold
+  mred.DefLight: medium
+
+Now, when the "ScreenDefault__" resource is used for different weights,
+it will return different values; the "${Def$[weight]}~ expression will
+turn into "${DefMedium}" for a medium-weight lookup, or "${DefBold}"
+for a bold-weight lookup. These references will in turn give either
+"medium" or "bold".
+
+We're not done, yet...
+
+1.1.3 Wildcarding References
+- - - - - - - - - - - - - - 
+
+Consider the following resource configuration:
+
+  MrEd.ScreenDefault__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenDefaultBold_: +-*-*-bold-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenRoman__: ${ScreenDefault__}
+
+The effect of this statement is probably not what was intended; when
+a bold version of the "Roman" font is needed, "ScreenRoman__"
+references "ScreenDefault__", which does not specify a bold font.
+We could try to remedy the situation this way:
+
+  MrEd.ScreenDefault__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenDefaultBold_: +-*-*-bold-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenRoman__: ${ScreenDefault$[weight]_}
+
+but this does not work either. It works fine for bold "Roman", now, 
+but medium "Roman" will cause a reference to "ScreenDefaultMedium_",
+which doesn't exist. The problem is that our reference does not use
+wildcarding like the original medium "Roman" lookup did.
+
+Wildcarding can be specified in a reference by separating each
+wildcardable field with a comma. This resource specification does
+what we want:
+
+  MrEd.ScreenDefault__: +-*-*-medium-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenDefaultBold_: +-*-*-bold-r-normal-*-*-%d-*-*-*-*-*-*
+  MrEd.ScreenRoman__: ${ScreenDefault,$[weight],_}
+
+Since "$[weight]" is set off by commas, it can be wildcarded if no
+name excatly matching "SchemeDefault$[weight]_" is found. In this case
+"SchemeDefault" and "_" can also be wildcarded, but this will have no
+effect.
+
+
+1.2 Internal Resources
+----------------------
+
+The initial font setup is built into MrEd through a built-in resource
+table. This table is shown in the appendix. When font information is
+looked up, it is *almost* as if this table were installed into your
+resources file; the difference is that resource specifications in your
+file can override specifications in the built-in table, even when the
+wildcarding of your resource provides a weaker match.
+
+
+1.3 Lookup Failures
+-------------------
+
+When no information is available mapping a non-core abstract font to a
+real font for the screen, the abstract font name is used as the font
+name. This heuristic means that MrEd generally does the expected thing
+when a program provides an arbitrary platform-specific face name to a
+font constructor (see section 2.).
+
+The core abstract fonts all have defaults screen real fonts used as a
+last resort. Under Windows and MacOS, these real fonts correspond to
+the default font suggested by the font's abstract font (or associated
+abstract font in the case of non-core abstract fonts).
+
+
+-----------------------------------------------
+    2. font%
+-----------------------------------------------
+
+The remaining question is how MrEd maps information specified in font%
+constructions to obtain real fonts via the abstract font mapping:
+
+ * If only a "family" is supplied to font%, the corresponding core
+   abstract font is used.
+
+ * If a "face name" is supplied to font%, then the face name is used
+   as a new abstract font name. The provided "family" specifies the
+   associated core abstract font.
+
+That's it. Sounds too easy? Then you didn't read the preceding
+sections closely enough.
+
+------------------------------------
+    Appendix: Built-in Resources
+------------------------------------
+ 
+ FamilyDefault: Default
+ FamilyRoman: Roman
+ FamilyDecorative: Decorative
+ FamilyModern: Modern
+ FamilySwiss: Swiss
+ FamilyScript: Script
+ FamilySystem: System
+
+ AfmMedium: 
+ AfmLight: 
+ AfmStraight: 
+ AfmItalic: ${AfmSlant}
+ 
+ Afm___: ${AfmTimes,$[weight],$[style]}
+ 
+ AfmTimes__: ${AfmTimes}${Afm$[weight]}${Afm$[style]}
+ AfmTimesMediumStraight: ${AfmTimes}${AfmRoman}
+ AfmTimesLightStraight: ${AfmTimes}${AfmRoman}
+ AfmTimes_Italic: ${AfmTimes}$[weight]${AfmItalic}
+ AfmTimes_Slant: ${AfmTimes}$[weight]${AfmItalic}
+ 
+ AfmSwiss__: ${AfmHelvetica}${Afm$[weight]}${Afm$[style]}
+ AfmModern__: ${AfmCourier}${Afm$[weight]}${Afm$[style]}
+ 
+ 
+ PostScriptMediumStraight: 
+ PostScriptMediumItalic: -Oblique
+ PostScriptMediumSlant: -Oblique
+ PostScriptLightStraight: 
+ PostScriptLightItalic: -Oblique
+ PostScriptLightSlant: -Oblique
+ PostScriptBoldStraight: -Bold
+ PostScriptBoldItalic: -BoldOblique
+ PostScriptBoldSlant: -BoldOblique
+
+ PostScriptTimesMedium: 
+ PostScriptTimesLight: 
+ PostScriptTimesBold: Bold
+
+ PostScriptTimes__: Times${PostScript$[weight]$[style]}
+ PostScriptTimesMediumStraight: Times-Roman
+ PostScriptTimesLightStraight: Times-Roman
+ PostScriptTimes_Slant: Times-${PostScriptTimes$[weight]}Italic
+ PostScriptTimes_Italic: Times-${PostScriptTimes$[weight]}Italic
+ 
+ PostScriptSwiss__: Helvetica${PostScript$[weight]$[style]}
+ PostScriptModern__: Courier${PostScript$[weight]$[style]}
+ 
+ PostScript___: ${PostScriptTimes,$[weight],$[style]} 
+
+ AfmBold: bo
+ AfmSlant: ob
+ AfmRoman: ro
+ AfmTimes: time
+ AfmHelvetica: helv
+ AfmCourier: cour   
+
+X Windows only:
+
+ ScreenMedium: medium
+ ScreenBold: bold
+ ScreenLight: light
+ ScreenStraight: r
+ ScreenItalic: i
+ ScreenSlant: o
+ 
+ ScreenDefaultBase: *-lucida
+ ScreenRomanBase: *-times
+ ScreenDecorativeBase: *-helvetica
+ ScreenModernBase: *-courier
+ ScreenSwissBase: *-lucida
+ ScreenScriptBase: *-zapfchancery
+
+ ScreenStdSuffix: -${Screen$[weight]}-${Screen$[style]}-normal-*-*-%d-*-*-*-*-*-*
+
+ ScreenDefault__: +-${ScreenDefaultBase}${ScreenStdSuffix}
+ ScreenRoman__: +-${ScreenRomanBase}${ScreenStdSuffix}
+ ScreenDecorative__: +-${ScreenDecorativeBase}${ScreenStdSuffix}
+ ScreenModern__: +-${ScreenModernBase}${ScreenStdSuffix}
+ ScreenSwiss__: +-${ScreenSwissBase}${ScreenStdSuffix}
+ ScreenScript__: +-${ScreenScriptBase}${ScreenStdSuffix}
+ 
+
+Windows only:
+
+ ScreenSystem__: MS Sans Serif
+ ScreenDefault__: MS Sans Serif
+ ScreenRoman__: Times New Roman
+ ScreenDecorative__: Arial
+ ScreenModern__: Courier New
+ ScreenSwiss__: Arial
+ ScreenScript__: Script
+ 
+MacOS only:
+
+ ScreenDefault__: applicationfont
+ ScreenSystem__: systemfont
+ ScreenRoman__: times
+ ScreenDecorative__: geneva
+ ScreenModern__: monaco
+ ScreenSwiss__  helvetica
+ ScreenScript__: geneva

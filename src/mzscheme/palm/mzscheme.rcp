@@ -1,0 +1,12 @@
+#include "resnum.h"
+
+FORM MainForm 1 1 158 158
+BEGIN
+    TITLE "MzScheme"
+    FIELD ID OutputText AT (0 16 158 158) HASSCROLLBAR
+END
+
+APPLICATIONICONNAME 1000 "MzScheme"
+ICON "mzscheme.pbm"
+
+VERSION 1 "0.0.1"

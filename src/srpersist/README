@@ -1,0 +1,112 @@
+Instructions for building SrPersist
+-----------------------------------
+
+Because SrPersist can be used with any ODBC driver manager, we do not 
+supply it in compiled form.  You'll need to edit the supplied Makefile 
+(Unix), srpersist.mak (Windows), or srpersist.mac-make (Macintosh) as 
+described below.
+
+Once you have built SrPersist, look in plt/collects/srpersist/doc.txt
+for information on how to load and run the extension.
+
+Header files
+------------
+
+SrPersist relies on definitions in ODBC C header files supplied by 
+Microsoft, or by vendors of ODBC Driver Managers.  Since those files are 
+copyrighted, PLT cannot distribute them.
+
+If you are using Microsoft Visual C++ to compile SrPersist, the necessary 
+files are downloadable from the Web.  You'll need to download the Microsoft 
+Data Access Components (MDAC), available at http://www.microsoft.com/data/.  
+We used version 2.0; we expect later versions will work.  After downloading 
+MDAC, copy the files sql.h, sqlext.h, sqltypes.h, and sqlucode.h to this 
+directory, plt/src/srpersist/.
+
+For other platforms, the Driver Manager library you choose should provide 
+ODBC header files with similar names.
+
+Windows compilation
+-------------------
+
+You'll probably need Visual C++ 6.0 installed, although other versions may 
+work.
+
+Most likely, you'll be using the Microsoft ODBC driver manager.  In that 
+case, you can run
+
+	nmake /f srpersist.mak
+	nmake install /f srpersist.mak
+
+In the file srpersist.mak, change the variable for MZC to point 
+to your installed copy of mzc, if necessary.
+
+If you want to link to another driver manager, you may need to change
+the variable ODBCVER to indicate the ODBC version supported by that
+manager, and you will need to change ODBC_LIBS to indicate the 
+libraries that implement the manager.  ODBC versions are indicated 
+using C-style hexadecimal numbers.  Thus, ODBC 1.0 is indicated by
+0x0100, ODBC 2.0 is 0x0200, ODBC 3.5 is 0x0350, and so on.
+
+Unix compilation
+----------------
+
+For Unix, unlike Windows, there is no standard driver manager.
+Therefore, you will definitely need to modify the Makefile
+in order to compile SrPersist.  Change DRIVER_MSG_LIB to the
+name of the static library that implements the driver manager 
+you wish to use.  By convention, Unix static libraries are named 
+lib<name>.a.  So if the library file is libdrivermanager.a, you
+would have
+
+	DRIVER_MSG_LIB=drivermanager
+
+in the Makefile.  You need to set the variable ODBCVER to the version of 
+ODBC supported by your driver manager.  ODBC versions are indicated using 
+C-style hexadecimal numbers.  Thus, ODBC 1.0 is indicated by 0x0100, ODBC 
+2.0 is 0x0200, ODBC 3.5 is 0x0350, and so on.  To compile for ODBC 2.0, for 
+instance, you'd have
+
+	ODBCVER=0x0200
+
+in the Makefile.  Finally, you may want to change the of the SrPersist 
+dynamic library.  The variable LIBDIR indicates that location.
+
+Once you've made these changes, you can compile everything by
+running 
+
+	make
+	make install
+
+Macintosh compilation
+---------------------
+
+On the Macintosh, we supply a Metrowerks Codewarrior project file, called
+srpersist.mac-make.  The following directions assume the use of this compiler.
+
+1) The first step is to unpack the project file itself; the package includes
+srpersist.mac-make.hqx, a binhexed version of the project file.  Most 
+expansion utilities for the Macintosh will unpack these files, including 
+Stuffit Expander.
+
+Like the other platforms, the principal concern in compiling srpersist is
+adding the driver manager to the project before compiling.
+
+2) Open the srpersist.mac-make file
+
+3) Add your ODBC driver manager to the project.  The desired file is generally 
+in the extensions folder of the system folder; the one supplied with Microsoft
+Office 98, for example, is named "ODBC Driver Manager PPC".  Add this file 
+to the project by dropping it on the project window or by choosing the 
+"Add Files..." option in the "Project" menu.
+
+4) Modify the file srpersist.pch to define the ODBC version used by 
+your driver manager.  Version 2.0 is specified as 0x0200, version
+3.5 as 0x0350, and so forth.
+
+5) Compile by choosing the "Make" option from the "Project" menu.  The project
+will by default place the resulting "srpmain.so" library in the proper 
+subdirectory of plt/collects/srpersist (not to be confused with 
+plt/src/srpersist).  You may change the target location in the 
+"Target Settings" panel of the Project preferences.
+

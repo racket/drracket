@@ -1,0 +1,7 @@
+
+This directory contains support files for a libguile implementation
+using MzScheme. Libguile implements GNU's emerging high-level GUILE
+interface specification. This work is still experimental.
+
+To compile libguile, go to the directory above this one and run
+`make libguile'.

@@ -1,0 +1,263 @@
+#!/bin/sh
+string=? ; exec /home/mflatt/bin/mzscheme -rg $0 "$@"
+
+;; Generates the most machanical parts of gh_ -> scheme_ for MzScheme
+;; Writes gh.h (copying from ghbase.h), guileinc.c, and wrap.inc
+;;
+;; Matthew 08/10/96
+;; Revised 04/30/97
+
+(define
+  GUILE_HIGH_LEVEL
+  `((void gh_enter ([int argc][ char **argv][SCM_MAIN_FN prc]))
+
+    (SCM gh_eval_str ([char* s]) (scheme_eval_string s scheme_env))
+    (SCM gh_eval_file ([char* file]) (scheme_load file))
+    
+    (void gh_new_procedure ([char* name] 
+			    [SCM_FN fn]
+			    [int required]
+			    [int optional]
+			    [int restp])
+	  (scheme_add_global 
+	   name 
+	   (gh_make_subr fn required optional restp NULL)
+	   scheme_env))
+
+    (SCM gh_bool ([int x]) (? x scheme_true scheme_false))
+    (SCM gh_long2scm ([long x]) (scheme_make_integer_value x))
+    (SCM gh_ulong2scm ([unsigned long x]) (scheme_make_integer_value_from_unsigned x))
+    (SCM gh_double2scm ([double x]) (scheme_make_double x))
+    (SCM gh_char2scm ([char x]) (scheme_make_char x))
+    (SCM gh_str2scm ([char* x][int len]) (scheme_make_sized_string x len 1))
+    (SCM gh_str02scm ([char* x]) (scheme_make_string x))
+
+    (void gh_set_substr ([char* x][SCM dst][int start][int len])
+	  (if (>= (+ start len) (SCHEME_STRTAG_VAL dst))
+	      (scheme_signal_error "\"gh_set_substr: out-of-range\"")
+	      (memcpy (+ (SCHEME_STR_VAL dst) start) x len)))
+
+    (SCM gh_symbol2scm ([char* x]) (scheme_intern_symbol x))
+
+    (int gh_scm2bool ([SCM x]) (SCHEME_TRUEP x))
+    (int gh_scm2char ([SCM x]) (SCHEME_CHAR_VAL x))
+
+    ("unsigned long" gh_scm2ulong ([SCM x]))
+    (long gh_scm2long ([SCM x]))
+    (double gh_scm2double ([SCM x]))
+
+    (char* gh_scm2newstr ([SCM x][int* len])
+	   (begin
+	     (= *len (SCHEME_STRTAG_VAL x))
+	     (strdup_sized (SCHEME_STR_VAL x) *len)))
+
+    (void gh_get_substr ([SCM s][char* x][int start][int len])
+	  (if (>= (+ start len) (SCHEME_STRTAG_VAL s))
+	      (scheme_signal_error "\"gh_get_substr: out-of-range\"")
+	      (memcpy x (+ (SCHEME_STR_VAL s) start) len)))
+
+    (char* gh_symbol2newstr ([SCM x][int* len])
+	   (begin
+	     (= *len (SCHEME_SYM_LEN x))
+	     (strdup_sized (SCHEME_STR_VAL x) *len)))
+
+    (int gh_boolean_p ([SCM x]) (SCHEME_BOOLP x)) 
+    (int gh_symbol_p ([SCM x]) (SCHEME_SYMBOLP x)) 
+    (int gh_char_p ([SCM x]) (SCHEME_CHARP x)) 
+    (int gh_vector_p ([SCM x]) (SCHEME_VECTORP x)) 
+    (int gh_pair_p ([SCM x]) (SCHEME_PAIRP x)) 
+    (int gh_procedure_p ([SCM x]) (SCHEME_PROCP x)) 
+    (int gh_string_p ([SCM x]) (SCHEME_STRINGP x)) 
+    (int gh_exact_p ([SCM x]) (scheme_is_exact x))
+    (int gh_inexact_p ([SCM x]) (scheme_is_inexact x))
+
+    (int gh_eq_p ([SCM x][SCM y]) (scheme_eq x y))
+    (int gh_eqv_p ([SCM x][SCM y]) (scheme_eqv x y))
+    (int gh_equal_p ([SCM x][SCM y]) (scheme_equal x y))
+
+    (void gh_define ([char* name][SCM v]) (scheme_add_global name v scheme_env))
+    (SCM gh_cons ([SCM car][SCM cdr]) (scheme_make_pair car cdr))
+    (SCM gh_list ([SCM v] ...))
+    (int gh_ilength ([SCM ls]) (scheme_proper_list_length ls))
+    (void gh_set_car ([SCM pr][SCM val]) (= (SCHEME_CAR pr) val))
+    (void gh_set_cdr ([SCM pr][SCM val]) (= (SCHEME_CDR pr) val))
+
+    ,@(let loop ([n 4])
+	(if (zero? n)
+	    null
+	    (let ([l (loop (sub1 n))]
+		  [add-layer
+		   (lambda (letter op)
+		     (lambda (proto)
+		       (let* ([old-name (symbol->string (cadr proto))]
+			      [new-name (string->symbol
+					 (string-append
+					  "gh_c"
+					  letter
+					  (substring old-name
+						     4
+						     (string-length old-name))))]
+			      [old-body (cadddr proto)])
+			 (list 'SCM new-name (caddr proto)
+			       (list op old-body)))))])
+	      (append
+	       (map (add-layer "a" 'SCHEME_CAR) l)
+	       (map (add-layer "d" 'SCHEME_CDR) l)
+	       '((SCM gh_car ([SCM pr]) (SCHEME_CAR pr))
+		 (SCM gh_cdr ([SCM pr]) (SCHEME_CDR pr)))))))
+
+    (SCM gh_vector ([int len][SCM fill]) (scheme_make_vector len fill))
+    (SCM gh_vref ([SCM v][int i]) (@ (SCHEME_VEC_ELS v) i))
+    (SCM gh_vset ([SCM v][int i][SCM x]) (= (@ (SCHEME_VEC_ELS v) i) x))
+    (int gh_vector_length ([SCM v]) (SCHEME_VEC_SIZE v))
+
+    (SCM gh_make_subr ([SCM_FN fn]
+		       [int required]
+		       [int optional]
+		       [int varp]
+		       [char* doc]))
+
+    (SCM gh_apply ([SCM rator][SCM rands]) (scheme_apply_to_list rator rands))
+
+    (SCM gh_call0 ([SCM proc]) (_scheme_apply proc 0 NULL))
+    (SCM gh_call1 ([SCM proc][SCM arg]))
+    (SCM gh_call2 ([SCM proc][SCM arg1][SCM arg2]))
+    (SCM gh_call3 ([SCM proc][SCM arg1][SCM arg2][SCM arg3]))
+
+    (int lgh_obj_length ([SCM obj]) -1)
+
+    (SCM gh_catch ([SCM key][SCM thunk][SCM handler]))
+    (SCM gh_throw ([SCM key][SCM args]))
+
+    ;; Non-standard:
+
+    (SCM gh_curry ([SCM proc][SCM first]))
+
+    (void gh_new_argv_procedure ([char* name] 
+				 [SCM_ARGV_FN fn]
+				 [int required]
+				 [int optional])
+	  (scheme_add_global
+	   name
+	   (scheme_make_prim_w_arity fn name required optional)
+	   scheme_env))
+    (SCM gh_make_argv_subr ([SCM_ARGV_FN fn]
+			    [int required]
+			    [int optional]
+			    [char* doc])
+	 (scheme_make_prim_w_arity fn NULL required optional))
+    (SCM gh_apply_argv ([SCM rator][int argc][SCM* argv]) (_scheme_apply rator argc argv))
+
+    (void gh_lock ([SCM v]) (scheme_dont_gc_ptr v))
+    (void gh_unlock ([SCM v]) (scheme_gc_ptr_ok v))
+
+    (int gh_fits_C_long_p ([SCM x]))
+    (int gh_fits_C_unsigned_long_p ([SCM x]))))
+
+(define (write-proto f)
+  (let ([first-done? #f])
+    (printf "~a ~a(" (car f) (cadr f))
+    (for-each
+     (lambda (arg)
+       (when first-done? (display ", "))
+       (set! first-done? #t)
+       (if (pair? arg)
+	   (for-each (lambda (x) (display x) (display " ")) arg)
+	   (display arg)))
+     (caddr f))
+    (printf ")")))
+
+(with-output-to-file "gh.h"
+  (lambda ()
+    (with-input-from-file 
+	(build-path (current-load-relative-directory) "ghbase.h")
+      (lambda ()
+	(let loop ()
+	  (let ([v (read-line)])
+	    (unless (eof-object? v) (display v) (newline) (loop))))))
+    (for-each
+     (lambda (f)
+       (write-proto f)
+       (printf ";~n"))
+     GUILE_HIGH_LEVEL))
+  'replace)
+
+(define (write-body b)
+  (cond
+   [(pair? b)
+    (case (car b)
+      [(begin) (display "(")
+	     (write-body (cadr b))
+	     (for-each (lambda (e)
+			 (printf ", ")
+			 (write-body e))
+		       (cddr b))
+	     (display ")")]
+      [(begin-with)
+       (printf "~s ~s;~n" (caadr b) (cadadr b))
+       (write-body (cons 'begin (cddr b)))]
+      [(=) (write-bin " = " b)]
+      [(>=) (write-bin " >= " b)]
+      [(+) (write-bin " + " b)]
+      [(@) (write-body (cadr b))
+	   (display "[")
+	   (write-body (caddr b))
+	   (display "]")]
+      [(if) (display "if (")
+	    (write-body (cadr b))
+	    (display ") { ")
+	    (write-body (caddr b))
+	    (display "; } {")
+	    (write-body (cadddr b))
+	    (display "; }")]
+      [(?) (write-body (cadr b))
+	   (display " ? ")
+	   (write-body (caddr b))
+	   (display " : ")
+	   (write-body (cadddr b))]
+      [(void) (void)]
+      [else (write-body (car b))
+	    (display "(")
+	    (unless (null? (cdr b))
+		    (write-body (cadr b))
+		    (for-each
+		     (lambda (e)
+		       (display ", ")
+		       (write-body e))
+		     (cddr b)))
+	    (display ")")])]
+   [else (display b)]))
+
+(define (write-bin str b)
+  (write-body (cadr b))
+  (display str)
+  (write-body (caddr b)))
+
+(with-output-to-file "guileinc.c"
+  (lambda ()
+    (for-each
+     (lambda (f)
+       (unless (null? (cdddr f))
+	       (write-proto f)
+	       (printf "~n{~n  ")
+	       (unless (eq? (car f) 'void)
+		       (display "return "))
+	       (write-body (cadddr f))
+	       (printf ";~n}~n~n")))
+     GUILE_HIGH_LEVEL))
+  'replace)
+
+(define MAX-DIRECT-ARGS 10)
+
+(with-output-to-file "wrap.inc"
+  (lambda ()
+    (let loop ([n 0])
+      (printf "  case ~s:~n    return f(" n)
+      (let loop ([i 0])
+	(unless (= i n)
+		(printf "argv[~s], " i)
+		(loop (add1 i))))
+      (printf "rest);~n")
+      (unless (= n MAX-DIRECT-ARGS)
+	      (loop (add1 n)))))
+  'replace)

@@ -1,0 +1,26 @@
+
+@BOOLEAN Bool
+@CLASSSUFFIX "%"
+@IDFIELD __type
+
+@MACRO NOZERO[p] = if (!x<p>) x<p> = -1;
+@MACRO CHECKDCOK[p.who] = if (x<p> && !x<p>->Ok()) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bad device context: ", p[<p>]));
+@MACRO CHECKVOIDABLEOK[p] = if (x<p> && !x<p>->Ok()) return scheme_void;
+
+#ifdef wx_x
+# define BM_SELECTED(map) ((map)->selectedTo)
+#endif
+#if defined(wx_mac) || defined(wx_msw)
+# define BM_SELECTED(map) ((map)->selectedInto)
+#endif
+# define BM_IN_USE(map) ((map)->selectedIntoDC)
+
+
+@MACRO CHECKOK[p.who] = { if (x<p> && !x<p>->Ok()) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bad bitmap: ", p[<p>])); if (x<p> && BM_SELECTED(x<p>)) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bitmap is currently installed into a bitmap-dc%: ", p[<p>])); }
+
+@MACRO CHECKOKFORDC[p.who] = if (x<p>) { if (!x<p>->Ok()) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bad bitmap: ", p[<p>])); if (BM_SELECTED(x<p>)) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bitmap is already installed into a bitmap-dc%: ", p[<p>])); if (BM_IN_USE(x<p>)) WITH_VAR_STACK(scheme_arg_mismatch(<who>, "bitmap is currently installed as a control label or pen/brush stipple: ", p[<p>])); }
+
+@MACRO JMPDECL = mz_jmp_buf savebuf;
+@MACRO SETJMP = COPY_JMPBUF(savebuf, scheme_error_buf); if (scheme_setjmp(scheme_error_buf)) { COPY_JMPBUF(scheme_error_buf, savebuf); return; }
+@MACRO SETJMPV[rv] = COPY_JMPBUF(savebuf, scheme_error_buf); if (scheme_setjmp(scheme_error_buf)) { COPY_JMPBUF(scheme_error_buf, savebuf); return <rv>; }
+@MACRO RESETJMP = COPY_JMPBUF(scheme_error_buf, savebuf);

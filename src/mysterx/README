@@ -1,0 +1,13 @@
+This is the source code for MysterX.  Compilation requires 
+Visual C++ 6.0.
+
+	nmake clean
+
+gets rid of existing binaries, while 
+
+	nmake
+
+compiles all the binaries.
+
+
+

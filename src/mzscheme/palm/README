@@ -1,0 +1,31 @@
+This directory contains experiments towards building MzScheme for
+PalmOS.  It doesn't work; we overlooked an important feature of the
+Palm memory system, which is that only 96k of a Pilot's memeory is
+available for dynamic allocation. Of course, MzScheme doesn't get very
+far on 96k. It looks like future versions of PalmOS will lift this
+limit, so we wait.
+
+The port uses PRC-Tools (available from www.palm.com) installed on
+your machine, including pilrc. The Makefile currently expects the
+PalmOS headers to be in /usr/local/palmdev/include/. The build process
+is complex because the MzScheme code has to be annotated with section
+information, so that the resulting binary is split into multiple code
+resources. The partition.ss script performs some of that work.
+
+Here's the part I always forget, how to debug with POSE:
+
+     Shell #1                      Shell #2
+     --------                      --------
+  m68k-palmos-gdb mzscheme
+                                    pose
+                                    load gdbpanel.prc
+                                      enable debugging
+                                    load mzscheme.prc
+
+  target pilot localhost:2000
+                                    start mzscheme
+
+At the time of our experiment, the debugger didn't handle
+multi-segment programs very well. The debuginfo.ss extracts
+information from the input assembly and disassembled output to
+reconstruct useful process-address information.

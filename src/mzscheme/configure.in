@@ -1,0 +1,352 @@
+
+#################################################################
+# This is the source for the `configure' script, to be compiled #
+# by autoconf.                                                  #
+#################################################################
+
+AC_INIT(mzscheme/src/bignum.c)
+
+AC_ARG_ENABLE(mred, ""  feature: mred           compile MrEd as well as MzScheme (enabled by default), , enable_mred=yes )
+
+AC_ARG_ENABLE(sgc, ""  feature: sgc            use Senora GC instead of the Boehm GC)
+AC_ARG_ENABLE(sgcdebug, ""  feature: sgcdebug       use Senora GC for debugging)
+AC_ARG_ENABLE(osthreads, ""  feature: osthreads      use OS threads to implement MzScheme threads)
+
+AC_ARG_ENABLE(oskit, ""  feature: oskit          compile OSKit-based MzScheme kernel)
+AC_ARG_ENABLE(smalloskit, ""  feature: smalloskit     compile small OSKit-based MzScheme kernel)
+
+AC_ARG_ENABLE(wbuild, ""  feature: wbuild         compile and use wbuild for .w sources)
+
+AC_ARG_ENABLE(gprof, ""  feature: gprof          compile for profiling with gprof (gcc only))
+AC_ARG_ENABLE(gcov, ""  feature: gcov           compile to gather gcov statistics (gcc only))
+
+###### Some flags imply other flags #######
+
+if test "${enable_smalloskit}" = "yes" ; then
+  enable_oskit=yes
+fi
+
+if test "${enable_oskit}" = "yes" ; then
+  enable_mred=no
+fi
+
+if test "${enable_osthreads}" = "yes" ; then
+  enable_mred=no
+fi
+
+if test "${enable_mred}" = "no" ; then
+  enable_wbuild=no
+fi
+
+###### Make sure MrEd is really there ######
+
+if test "${enable_mred}" = "yes" ; then
+  if test ! -d $srcdir/mred ; then
+    enable_mred=no
+  fi
+fi
+
+###### Some defaults #######
+
+# Other options; mainly used to import other options
+#  Add -DUSE_SENORA_GC for SenoraGC
+#  Add -DSOLARIS_THREADS for Solaris threads
+#  Add -DIRIX_SPROCS for Irix sprocs
+OPTIONS=
+
+# GC Directory
+GCDIR=gc
+
+MZBINTARGET=normal-bin
+MZINSTALLTARGET=normal-install
+
+LIBS=
+
+###### OSKit stuff #######
+
+if test "${enable_oskit}" = "yes" ; then
+  OSKHOME=${OSKHOME:-/usr/local/oskit}
+
+  if test ! -d ${OSKHOME}/bin ; then
+    AC_MSG_ERROR(cannot find OSKit support; try defining OSKHOME)
+  fi
+
+  CC=`(ls ${OSKHOME}/bin/*-oskit-gcc | head -1) 2> /dev/null`
+  if test ! -x "${CC}" ; then
+    AC_MSG_ERROR(can't find *-oskit-gcc compiler script in ${OSKHOME}/bin)
+  fi
+
+  CFLAGS="-nostdinc -I${OSKHOME}/include/oskit -I${OSKHOME}/include/oskit/freebsd "
+  CFLAGS="$CFLAGS -I${OSKHOME}/include/oskit/c -I${OSKHOME}/include -I${STDINC}"
+
+  GCDIR=sgc
+  OPTIONS="-DOSKIT -DUSE_SENORA_GC -DSGC_AUTO_ROOTS=0"
+
+  if test "${enable_smalloskit}" = "yes" ; then
+    EXTRA_OSK_LIBS=
+  else
+    EXTRA_OSK_LIBS="-loskit_linux_dev -loskit_linux_fs -loskit_diskpart -loskit_freebsd_net"
+    OPTIONS="$OPTIONS -DOSK_FILESYSTEMS_AND_ETHERNET"
+  fi
+
+  MZBINTARGET=oskit
+fi
+
+###### Autoconfigure #######
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_CXX
+if test "$AS" = '' ; then 
+  AS=as
+fi
+AC_PROG_RANLIB
+if test "$AR" = '' ; then 
+  AR=ar
+fi
+if test "$ARFLAGS" = '' ; then 
+  ARFLAGS=ruv
+fi
+
+# If using gcc, we want all warnings:
+if test "$CC" = "gcc" ; then 
+  CFLAGS="$CFLAGS -Wall"
+fi
+
+AC_PATH_PROG(PERL,perl)
+
+if test "${enable_mred}" = "yes" ; then
+  AC_PATH_XTRA
+
+  MAKE_MRED=mr
+  MAKE_MRED2K=mr2k
+  MAKE_MREDINSTALL=mrinstall
+else
+  MAKE_MRED=
+  MAKE_MRED2K=
+  MAKE_MREDINSTALL=
+fi
+
+AC_CHECK_LIB(m, cos)
+AC_CHECK_LIB(dl, dlopen)
+
+if test "${enable_gprof}" = "yes" ; then
+  CFLAGS="$CFLAGS -pg"
+  LIBS="$LIBS -pg"
+fi
+
+if test "${enable_gcov}" = "yes" ; then
+  CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+fi
+
+if test "${enable_wbuild}" = "yes" ; then
+  MAKE_WBUILD=wb
+  WBUILD="x/wbuild/src/wbuild"
+  WBUILD="$WBUILD --no-init-file --no-lines -i \$(srcdir)/XWidgets"
+  WBUILD="$WBUILD -c \$(srcdir)/XWidgets -d \$(srcdir)/XWidgets"
+  WBUILD="$WBUILD -p . \$(srcdir)/x/wbuild/wbuild.cfg"
+else
+  MAKE_WBUILD=
+  WBUILD="sh \$(PLTSRCDIR)/wxxt/src/XWidgets/dummy.wbuild"
+fi
+
+############## platform tests ################
+
+# for flags we don't want to use in config tests:
+EXTRALIBS=
+
+OS=`uname -s`
+case $OS in
+  SunOS)
+    case `uname -r` in
+      5.*)
+       if test "${enable_osthreads}" = "yes" ; then
+	 OPTIONS="${OPTIONS} -DSOLARIS_THREADS"
+	 LIBS="$LIBS -lthread"
+       fi
+       STATICLINK="-Wl,-Bstatic" # after -ldl
+       LIBS="$LIBS -lsocket -lnsl -lintl"
+       ;;
+      *)
+       ;;
+    esac
+    ;;
+  AIX)
+    EXTRALIBS="-Wl,-brtl,-bE:\$(srcdir)/../mzscheme/include/mzscheme.exp"
+    ;;
+  FreeBSD)
+    LIBS="$LIBS -rdynamic"
+    ;;
+  OpenBSD)
+    ;;
+  IRIX)
+    if test "${enable_osthreads}" = "yes" ; then
+      OPTIONS="$OPTIONS -DIRIX_SPROCS"
+      EXTRALIBS="sproc.o"
+    fi
+    STATICLINK="/usr/lib/libC.a /usr/lib/libmalloc.a"
+    ;;
+  Linux)
+    if test "${enable_osthreads}" = "yes" ; then
+      OPTIONS="$OPTIONS -DLINUX_THREADS -D_REENTRANT"
+      LIBS="$LIBS -lpthread"
+    fi
+    LIBS="$LIBS -rdynamic"
+    ;;
+  OSF1)
+    if test "$CC" = "cc" ; then 
+      CFLAGS="$CFLAGS -iee_with_inexact"
+    fi
+    ;;
+  HP-UX)
+    if test "$CC" = "gcc"; then
+      CFLAGS="$CFLAGS -fPIC"
+    else
+      CFLAGS="$CFLAGS -Wp,-H,64000 -Aa -D_HPUX_SOURCE +Z"
+    fi
+    LIBS="$LIBS -Wl,-E"
+    # For -lXaw and -lXmu
+    X_LIBS="-L/usr/contrib/X11R6/lib/ $X_LIBS"
+    ;;
+  SCO) # How do you really recognize SCO?
+    LIBS="$LIBS -lc -lsocket"
+    ;;
+  CYGWIN*)
+    MZBINTARGET=cygwin-bin
+    MZINSTALLTARGET=cygwin-install
+    EXTRALIBS="$LIBS gmzwin.exp"
+    ;;
+  BeOS)
+    if test "${enable_sgcdebug}" = "yes" ; then
+      dummyvar=""
+    else
+      enable_sgc=yes
+    fi
+    ;;
+  *)
+    echo "Warning: Unknown OS"
+    ;;
+esac
+
+############## SGC ################
+
+if test "${enable_sgc}" = "yes" ; then
+  GCDIR=sgc
+  OPTIONS="$OPTIONS -DUSE_SENORA_GC"
+fi
+
+if test "${enable_sgcdebug}" = "yes" ; then
+  GCDIR=sgc
+  OPTIONS="$OPTIONS -DSGC_STD_DEBUGGING=1"
+fi
+
+
+############## C++ grunge ################
+
+MROPTIONS=
+
+if test "${enable_mred}" = "yes" ; then
+  CXXFLAGS="$CXXFLAGS $X_CFLAGS"
+  AC_LANG_CPLUSPLUS 
+
+[ msg="whether new and new[] are different"   ]
+  AC_MSG_CHECKING($msg)
+  AC_TRY_RUN(
+[  #include <stddef.h> ]
+   inline void *operator new(size_t size) { return (void *)0x1; }
+[  inline void *operator new[](size_t size) { return (void *)0x2; }  ]
+   class C { int x; };
+   int main() {
+[    return (new C) == (new C[10]);       ]
+   }, different=yes, different=no)
+  if test "$different" = "yes" ; then
+    MROPTIONS="$MROPTIONS -DOPERATOR_NEW_ARRAY"
+  fi
+  AC_MSG_RESULT($different) 
+
+  # If we're using gcc and including X11/Intrinsic doesn't work
+  #  then try adding -fpermissive
+  if test "$CC" = "gcc" ; then
+    AC_MSG_CHECKING(whether need to use -fpermissive)
+    AC_TRY_COMPILE([#]include "X11/Intrinsic.h", , addperm=no, addperm=yes)
+    if test "$addperm" = "yes" ; then
+      MROPTIONS="$MROPTIONS  -fpermissive"
+    fi
+    AC_MSG_RESULT($addperm) 
+  fi
+fi
+
+############## final output ################
+
+LIBS="$LIBS $EXTRALIBS"
+
+AC_SUBST(CC)
+AC_SUBST(CFLAGS)
+AC_SUBST(CPP)
+AC_SUBST(PERL)
+AC_SUBST(AS)
+AC_SUBST(RANLIB)
+AC_SUBST(AR)
+AC_SUBST(ARFLAGS)
+AC_SUBST(WBUILD)
+
+AC_SUBST(x_includes)
+AC_SUBST(x_libraries)
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
+AC_SUBST(X_PRE_LIBS)
+AC_SUBST(X_EXTRA_LIBS)
+
+AC_SUBST(OPTIONS)
+AC_SUBST(MROPTIONS)
+AC_SUBST(GCDIR)
+AC_SUBST(MZBINTARGET)
+AC_SUBST(MZINSTALLTARGET)
+
+AC_SUBST(MAKE_MRED)
+AC_SUBST(MAKE_MRED2K)
+AC_SUBST(MAKE_MREDINSTALL)
+AC_SUBST(MAKE_WBUILD)
+
+AC_SUBST(OSKHOME)
+AC_SUBST(EXTRA_OSK_LIBS)
+
+mk_needed_dir()
+{
+  if test ! -d "$1" ; then
+    mkdir "$1"
+  fi
+}
+
+makefiles="Makefile
+           mzscheme/Makefile
+             mzscheme/src/Makefile mzscheme/dynsrc/Makefile
+             mzscheme/gc/Makefile mzscheme/sgc/Makefile
+             mzscheme/gc2/Makefile mzscheme/guile/Makefile
+             mzscheme/palm/Makefile"
+
+if test "${enable_mred}" = "yes" ; then
+  mk_needed_dir wxxt
+  mk_needed_dir wxxt/utils
+  mk_needed_dir wxxt/utils/image
+  mk_needed_dir wxxt/contrib
+  mk_needed_dir wxxt/contrib/xpm
+
+  makefiles="$makefiles
+             mred/GNUmakefile mred/Make.env
+               mred/wxs/GNUmakefile mred/wxme/GNUmakefile
+               mred/gc2/GNUmakefile mred/wrap/Makefile
+             wxxt/src/GNUmakefile wxxt/src/x/GNUmakefile
+               wxxt/utils/image/src/GNUmakefile
+               wxxt/contrib/xpm/lib/GNUmakefile"
+fi
+
+if test "${enable_wbuild}" = "yes" ; then
+ subbuilds=wxxt/src/x/wbuild
+ AC_CONFIG_AUX_DIR( wxxt/src/x/wbuild ) 
+ AC_CONFIG_SUBDIRS( $subbuilds )
+else
+ subbuilds= 
+fi
+
+AC_OUTPUT($makefiles)

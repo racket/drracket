@@ -1,0 +1,90 @@
+#!/usr/local/bin/perl
+
+$ready = 0;
+$n = 1;
+
+while (<>)
+{
+    chop;
+
+    if ((substr($_, 0, 6) eq '> stop')
+	|| (substr($_, 0, 7) eq '> kstop')
+	|| (substr($_, 0, 7) eq '> fstop')
+	|| (substr($_, 0, 7) eq '> qstop')
+	|| (substr($_, 0, 7) eq '> cstop')) {
+
+	# strip " <" at end:
+	$_ = substr($_, 0, length($_) - 2); 
+
+	$is_key = (substr($_, 0, 7) eq '> kstop');
+	$is_cond = (substr($_, 0, 7) eq '> cstop');
+	$is_func = (substr($_, 0, 7) eq '> fstop');
+	$is_qq = (substr($_, 0, 7) eq '> qstop');
+	
+	print ");\n";
+
+	if ($is_key || $is_cond || $is_func || $is_qq) { 
+	    $pos = 8; 
+	} else { 
+	    $pos = 7; 
+	}
+
+	@defined = split(/ /, substr($_, $pos));
+	foreach $def (@defined) {
+	    if ($is_key) {
+		print "  JUST_DEFINED_KEY($def);\n";
+	    } elsif ($is_cond) {
+		print "  JUST_DEFINED_COND($def);\n";
+	    } elsif ($is_func) {
+		print "  JUST_DEFINED_FUNC($def);\n";
+	    } elsif ($is_qq) {
+		print "  JUST_DEFINED_QQ($def);\n";
+	    } else {
+		print "  JUST_DEFINED($def);\n";
+	    }
+	}
+
+	$ready = 0;
+	
+    } elsif (substr($_, 0, 9) eq '> literal') {
+	print substr(substr($_, 0, length($_) - 1), 11);
+	print "\n";
+    } elsif ($_ =~ /^ *$/) {
+	# Just spaces; do nothing
+    } elsif ($_ =~ /^\s*;/) {
+	# comment; do nothing
+    } else {
+
+	if (!$ready) {
+	    print '  EVAL_ONE_STR(';
+	    print "\n";
+	    $ready = 1;
+	}
+
+	if ($_ =~ /\"[^"]*\[[^"]*\"/) {
+	} else {
+	    $_ =~ tr/\[/\(/;
+	    $_ =~ tr/\]/\)/;
+	}
+
+	$_ =~ s/\\/\\\\/g;
+	$_ =~ s/\"/\\\"/g;
+	
+	$_ =~ s/\t/ /g;
+	$_ =~ s/  */ /g;
+
+        if ($_ =~ /\"/) {
+	    # Has a string - can't safely delete more spaces
+	} else {
+	    $_ =~ s/ \(/\(/g;
+	}
+
+	print '"' . $_ . '"';
+	print "\n";
+    }
+}
+
+if ($ready) {
+    print ');';
+    print "\n";
+}

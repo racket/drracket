@@ -1,0 +1,233 @@
+\input tex2html
+
+
+\htmlonly
+
+\htmlstylesheet{tex2html.css}
+
+\gifpreamble
+\magnification\magstep1
+\endgifpreamble
+
+\let\byline\leftline
+
+\endhtmlonly
+
+
+\let\n\noindent
+
+%%%
+
+\subject{SLaTeX}
+
+\byline{\urlh{slatex.tar.gz}{[Download version \input version ]}}
+
+\smallskip
+
+\byline{\urlh{http://www.cs.rice.edu/~dorai}{Dorai Sitaram}}
+\byline{\urlh{mailto:ds26@gte.com}{ds26@gte.com}}
+
+\bigskip
+
+\section{Introduction}
+
+SLaTeX is a Scheme program that allows you to write
+program code (or code fragments) ``as is'' in your
+LaTeX or plain TeX source.  SLaTeX will typeset the
+code with appropriate fonts for the various token
+categories --- e.g., {\bf boldface} for keywords and
+{\em italics} for variables ---, at the same time
+retaining the proper indentations and vertical
+alignments in TeX's non-monospace fonts.
+
+\subsection{SLaTeX for LaTeX users}
+
+For example, consider a LaTeX file \p{example.tex}
+with the following contents:
+
+\verb+
+\documentclass{article}
+\usepackage{slatex}
+\begin{document}
+
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\begin{schemedisplay}
+(define-syntax setq
+  (syntax-rules ()
+    [(setq var val)
+     (begin (set! var val)
+            var)]))
+\end{schemedisplay}
+
+\end{document}
++
+
+When run through SLaTeX, the resulting \p{example.dvi} file
+looks as follows:
+
+---
+
+\htmlgif
+\input slatex.sty
+\input margins
+\sidemargin 1.75 true in
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\schemedisplay
+(define-syntax setq
+  (syntax-rules ()
+    [(setq var val)
+     (begin (set! var val)
+            var)]))
+\endschemedisplay
+\endhtmlgif
+
+---
+
+As the example shows, {\em in-text} code is introduced by
+the control sequence \p{\scheme} and is flanked by either
+identical characters or by matching braces.  Code meant for
+{\em display} is presented between
+\p{\begin{schemedisplay}} and
+\p{\end{schemedisplay}}.  Note that you write the code
+as you would when writing a program  --- no special
+annotation is needed to get the typeset version.
+
+\subsection{SLaTeX for plain TeX users}
+
+SLaTeX works much the same way with plain TeX as with
+LaTeX, but for only two exceptions.  First, since plain
+TeX doesn't have \p{\documentstyle}, the file
+\p{slatex.sty} must be introduced via an \p{\input}
+statement before its commands can be used in the plain
+TeX source.
+
+Second, since plain TeX does not have LaTeX's
+\p|\begin{|{\em env}\p|} ... \end{|{\em env}\p|}|
+style of environments, any
+environment commands in SLaTeX are invoked with the
+opening \p{\}{\em env} and the closing
+\p{\end}{\it env}.
+
+The plain TeX version of \p{quick.tex} looks like:
+
+---
+
+\verb+
+% quick.tex
+\input slatex.sty
+
+In Scheme, the expression
+\scheme|(set! x 42)| returns
+an unspecified value, rather
+than \scheme'42'.  However,
+one could get a \scheme{set!}
+of the latter style with:
+
+\schemedisplay
+(define-syntax setq
+  (syntax-rules ()
+    [(setq x a)
+     (begin (set! x a)
+            x)]))
+\endschemedisplay
+\bye
++
+
+---
+
+The file is now SLaTeX'd by invoking \p{slatex} as
+before --- SLaTeX is clever enough to figure out
+whether the file it operates on should later be sent to
+LaTeX or plain TeX.
+
+\section{Automatic token recognition}
+
+By default, SLaTeX recognizes the tokens of Scheme.
+This default can be changed with the commands
+\p{\setkeyword}, \p{\setvariable},
+\p{\setconstant}, and \p{\setdata}.  The arguments of
+these commands is a space-separated list enclosed in
+braces.  E.g.,
+
+\p{
+\setconstant{infinity -infinity}
+}
+
+\n tells SLaTeX that \scheme{infinity} and
+\scheme{-infinity} are to be typeset as constants.
+The file \p{cltl.sty} uses these commands to modify
+SLaTeX's default so that it recognizes the tokens of
+Common Lisp rather than Scheme.  You may fashion your
+own \p{.sty} files on the model of
+\p{cltl.sty}. 
+
+The user need not use \p{\setkeyword} to specify such
+new keywords as are introduced by Scheme's (or Common
+Lisp's) macro definition facilities.  SLaTeX will
+automatically recognize new macros and auxiliary
+keywords, as in the example above, where \p{setq} is
+recognized as a keyword because of the context in which
+it occurs, although it is not normally a keyword in
+Scheme.  No special treatment is needed to ensure that
+it will continue to be treated as a keyword in any
+subsequent Scheme code in the document.
+
+In addition, quoted material is recognized as
+``constant'', and strings, numbers, booleans and
+characters are recognized as ``data'' without the need
+to identify them with \p{\setconstant} and \p{\setdata}
+respectively. 
+
+\subsection{Tokens as arbitrary symbols}
+
+Although your program code is naturally restricted to
+using ascii identifiers that follow some convention,
+the corresponding typeset code could be more mnemonic
+and utilize the full suite of mathematical and other
+symbols provided by TeX.  This of course should not
+require you to interfere with your code itself, which
+should run in its ascii representation.  It is only the
+typeset version that has the new look.  For instance,
+if you want all occurrences of the ascii token
+\p{lambda} to be typeset as the Greek letter $\lambda$,
+you could say
+
+\p{
+\setspecialsymbol{lambda}{$\lambda$}
+}
+
+You can use \p{\unsetspecialsymbol} on a token to have
+it revert to its default behavior.
+
+In effect, \p{\setspecialsymbol} generalizes the act of
+``fonting'' a token to converting it into any arbitrary
+symbol.  
+
+\section{Additional documentation}
+
+More comprehensive documentation of all that
+is possible with SLaTeX is provided in the
+distribution.
+
+Although SLaTeX is written in Scheme, a configuration
+option is provided to make it run on Common Lisp.
+SLaTeX has tested successfully on many different Scheme
+and Common Lisp dialects, viz., Allegro Common Lisp,
+Austin Kyoto Common Lisp, Bigloo, Chez Scheme, CLISP,
+Elk, Gambit, Gnu Common Lisp, Guile, Ibuki Common Lisp,
+Macintosh Common Lisp, MIT Scheme, MzScheme,
+Scheme{\tt->}C, SCM, UMB Scheme, and VSCM.
+
+\bye

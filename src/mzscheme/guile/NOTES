@@ -1,0 +1,72 @@
+
+Additions/deviations from the current libguile spec:
+----------------------------------------------------
+
+   void gh_new_argv_procedure(char* name,
+	 		  SCM (*fn)(int argc, SCM argv[]),
+			  int required,
+			  int optional)
+
+    fn receives args in an array. optional < 0 => no maximum number
+    of arguments.
+
+   void gh_make_argv_subr(SCM (*fn)(int argc, SCM argv[]),
+			   int required,
+			   int optional,
+			   int varp,
+			   char* doc)
+
+    fn receives args in an array. optional < 0 => no maximum number
+    of arguments.
+
+
+   SCM gh_apply_argv(SCM rator, int num_rands, SCM rands[])
+
+    Applies `rator' to the `num_rands' arguments in the `rands'
+    array.
+
+   int gh_obj_length(SCM obj)
+
+    Always returns -1.
+
+   int gh_string_p(SCM x)
+
+     Predicate.
+
+   void gh_lock(SCM v)
+
+    Keeps v from begin GCed. Can be applied any number of times to
+    the same v, but gc_unlock() must be called once per gc_lock().
+
+   void gh_unlock(SCM v)
+
+    Undoes one gc_lock() on v.
+
+   SCM gh_catch(SCM key, SCM thunk, SCM handler)
+   SCM gh_throw(SCM key, SCM args)
+
+    Not yet implemented.
+
+   int gh_fits_C_long_p(SCM x)
+   int gh_fits_C_unsigned_long_p(SCM x)
+
+     Predicates.
+
+Memory
+------
+
+   All SCM values are garbage-collected. References to gc'ed memory
+   from registers or from the stack are recognized by the collector.
+   Static variables and malloc'ed memory are not. All collection is
+   "conservative": the collector does not know which memory locations
+   hold pointers and which hold non-pointers, so all word-aligned
+   locations are assumed to hold pointers. GC'ed values are never
+   relocated by the collector.
+
+SCM -> X conversion
+-------------------
+
+   No typechecks are performed by the gh_scm2X() procedures. For
+   example, the argument to gh_scm2long() must be a value that fits
+   into a signed long int.
+

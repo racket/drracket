@@ -1,0 +1,9 @@
+#ifdef powerc
+  #pragma precompile_target ":mzpre.ppc"
+#else
+  #pragma precompile_target ":mzpre.68k"
+#endif
+
+#include "macconf.h"
+#include "schpriv.h"
+

@@ -1,0 +1,195 @@
+
+Using _Zodiac_
+--------------
+
+The top-level way:
+
+   (require-library "invoke.ss" "zodiac")
+   ; binds global names prefixed with `zodiac:';
+   ; zodiac:internal-error and zodiac:static-error
+   ;  can be redefined afterwards.
+
+The unit/sig way:
+
+  Elaboration time:
+   (require-library "zsigs.ss" "zodiac")
+   (require-library "sigs.ss" "zodiac")
+
+  Link time:
+   (require-library-unit/sig "link.ss" "zodiac")
+   Imports:
+      zodiac:interface^ ; see "Error Handlers" below
+      mzlib:pretty-print^
+      mzlib:file^
+   Exports:
+      zodiac:system^ ; no `zodiac:' prefix
+
+Reader Procedures
+-----------------
+
+> (zodiac:read p (zodiac:make-location 1 1 0 filename)) - reads from
+  the port `p', which represents the file indicated by the `filename'
+  string.  Returns a PROCEDURE that gets each expression as a zodiac
+  AST. When the reader encounters an eof-of-file, it returns an
+  instance of zodiac:eof.
+
+Expander Procedures
+-------------------
+
+> (zodiac:scheme-expand expr [attr 'previous] [vocab #f]) - expands
+  one expression, reprsented as a zodiac AST, returning a zodiac AST.
+
+> (zodiac:scheme-expand-program exprs [attr 'previous] [vocab #f]) -
+  expands several expressions, reprsented as a list of zodiac ASTs,
+  returning a list of zodiac ASTs.
+
+Zodiac AST -> S-Expression
+--------------------------
+
+> (zodiac:parsed->raw expr) - converts a zodiac AST to an S-expression
+   (losing location information, obviously).
+
+Vocabularies
+------------
+
+> beginner-vocabulary
+> intermediate-vocabulary
+> advanced-vocabulary
+> full-vocabulary - advanced + units and objects
+> scheme-vocabulary - MzScheme (unlike full-vocabulary, local, send*,
+                     etc. are not present until the correcponding
+                     `define-macro' expression in MzLib is evaluated
+                     at elaboration time)
+
+Handler Parameters
+------------------
+
+> (elaboration-evaluator [proc]) - parameter for the evaluatotr used
+  to evaluate begin-elaboration-time bodies and the RHS of a macro
+  definition.
+
+ default: (lambda (expr parsed->raw phase)
+            (eval (parsed->raw expr)))
+
+> (user-macro-body-evaluator [proc]) - parameter for the evaluator
+  used to evaluate macro applications.
+
+ default: (lambda (x . args)
+            (eval `(,x ,@(map (lambda (x) `(#%quote ,x)) args))))
+
+Error Handlers
+--------------
+
+Zodiac relies on two error handlers that are provided by its
+>     zodiac:interface^
+import: 
+>   internal-error - for when things go wrong in zodiac that should
+                     never go wrong
+>   static-error - for input errors during read or expand.
+
+A zodiac error handler takes a zodiac AST followed by format-style
+ arguments. For example:
+
+ (define (static-error where fmt-spec . args)
+    (printf "Error at: ~s~n" where) ; or, pull location out of `where'
+    (apply error 'syntax-error fmt-spec args))
+
+Example
+-------
+
+  (require-library "invoke.ss" "zodiac")
+  (let ([r ((zodiac:read (open-input-string "(cons 1 null)")
+                         (zodiac:make-location 1 1 0 "string")))])
+    (eval (zodiac:parsed->raw (zodiac:scheme-expand r))))
+  = (list 1)
+
+
+Correlating Source
+------------------
+
+Quickref:
+
+    who           how     principal to a source expression?
+    ---           ---     ---------------------------------
+    'source       ...     yes
+    'reader       ...     yes
+    'duplicate    ...     no
+    'micro        expr    iff expr is principal
+    'macro        expr    iff expr is principal
+    'non-source   ...     no
+
+Details:
+
+Zodiac's start and end locations provide a client with a mapping from
+fully elaborated "E-expressions" to source S-expressions. For example,
+Aries relies on the E->S mapping to hilite a specific S-expression in
+response to a run-time error for a particular E-expression. Certain
+tools, such as DrScheme's syntax checker, require an S->E mapping,
+instead. However, the inverse of the E->S relation is not a mapping,
+because E->S can map many E-expressions to one S-expression, and it
+can map zero E-expressions to some S-expressions. For example, (cond
+[#f 5][#t 6]) expands to (if #f 5 (if #t 6)), where the `cond'
+S-expression is identified as the source of both `if'
+E-expressions. Other elaborations drop an S-expression entirely, such
+that an S-expression has no reprentative in the final E-expression.
+
+The `origin' field of an E-expression provides information
+for approximating an S->E function by dropping E-expression elements
+from the E->S domain before inverting the relation. More specifically,
+the `origin' field identifies each E-expression as either the
+principal representative of its source expression or not. Zodiac
+guarantees that at most one E-expression is a principal expression for
+each S-expression in the source.
+
+Principal E-Expressions
+- - - - - - - - - - - -
+
+A principal E-expression is not chosen arbitrarily. In the case of
+'source, 'reader, 'macro, and 'micro principals, the E-expression is
+equivalent to its S-expression in the sense that it encapsulates the
+entire original expression. Thus, in the elaboration from (cond [#f
+5][#t 6]) to (if #f 5 (if #t 6)), the outer `if' is identified as the
+principal E-expression. The inner `if' encapsulates only a part of the
+original `cond' expression (and it does not encapsulate any complete
+expression from the source).
+
+Here's a more complete dissection of a slightly larger example:
+
+  (cond [#f 5][#t (+ 3 3)]) 
+    => (if #f 5 (if #t (+ 3 3)))
+       ^   ^  ^ ^   ^  ^^ ^-^- 'reader
+       |   |  | |   |  |`- 'source
+       |   |  | |   |  `- 'source
+       |   |  | |   `- 'reader 
+       |   |  | `- 'non-source
+       |   |  `- 'reader
+       |   `- 'reader
+       `- 'micro; the how field points to the `cond' expression, which
+          has a source-who value of 'source
+
+Macros/micros that expand to macros/micros produce chains of origin
+records. For example, (or a b) expands to (let ([g a]) ...) which
+expands to (let-values ([(g) a]) ...). The source for the final
+`letrec-values' expression is 'macro; the source-how field points to
+the `let' expression, whose source is also 'macro. Finally, the
+source-how field for the `let' expression is the `or' expression,
+which has a 'source origin.
+
+Non-principal E-Expressions
+- - - - - - - - - - - - - -
+
+The 'duplicate who value is used when a macro/micro duplcates a source
+expression in its output, such as the `loop' in `(let loop () (loop))'
+=> `(letrec ([loop (lambda () (loop))]) (loop))'). All but the first
+instance of the duplicated expression get a 'duplcate source-who
+annotation. (The source-how field contains the original source
+record.)
+
+The 'non-source value for the who field indicates that there is no
+source expression that is equivalent to the expanded expression.  In
+this case, a macro or micro must have manufactured the syntax; for
+example, the `this' binding intoroduced by class* -> class*/names has
+source-who value 'non-source. Of course, the location field of
+"non-source" syntax still matches the syntax to a particular source
+expression. Similarly, the nested `if' in the expansion of `cons'
+contains a manufactured `if' expression.

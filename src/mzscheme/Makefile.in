@@ -1,0 +1,226 @@
+#
+# Makefile for mzscheme
+#
+
+srcdir = @srcdir@
+
+CC = @CC@
+CPP = @CPP@
+PERL = @PERL@
+
+AR = @AR@
+ARFLAGS = @ARFLAGS@
+RANLIB = @RANLIB@
+
+# GC Directory
+# sgc for SenoraGC
+GCDIR = gc
+
+# system name for installation
+INSTALLSYS = `$(srcdir)/../../bin/archsys`
+
+################################################################################
+
+bin: 
+	$(MAKE) g-c
+	$(MAKE) @MZBINTARGET@
+
+normal-bin:
+	$(MAKE) dynlib
+	$(MAKE) mzlibrary
+	$(MAKE) mzscheme 
+
+cygwin-bin:
+	$(MAKE) cygwin-dll-setup
+	$(MAKE) starter
+	$(MAKE) normal-bin
+
+oskit: 
+	$(MAKE) mzlibrary
+	$(MAKE) mzscheme.multiboot
+
+mzschemelib: 
+	$(MAKE) g-c 
+	$(MAKE) mzlibrary 
+
+libguile:
+	$(MAKE) mzschemelib
+	cd guile; make
+
+dynlib:
+	cd src; $(MAKE) mzheaders
+	cd dynsrc; $(MAKE) dynlib 
+
+dynexample:
+	$(MAKE) dynlib
+	cd dynsrc; $(MAKE) dynexample 
+
+oe:
+	$(MAKE) dynlib
+	cd dynsrc; $(MAKE) oe
+
+cygwin-dll-setup:
+	cd src; $(MAKE) mzheaders
+	$(MAKE) gmzwin.exp
+
+gmzwin.exp: $(srcdir)/include/gmzwin.def
+	dlltool --def $(srcdir)/include/gmzwin.def --output-exp gmzwin.exp --output-lib gmzwin.a --dllname mzscheme.exe
+
+g-c:
+	cd @GCDIR@; $(MAKE) gc.a 
+	$(MAKE) libgc.a
+
+sproc-extra-lib:
+	cd @GCDIR@; $(MAKE) sproc.o
+	$(MAKE) sproc.o
+
+gc.a: @GCDIR@/*.o
+	$(AR) $(ARFLAGS) @GCDIR@/gc.a @GCDIR@/*.o  
+
+mzlibrary:
+	cd src; $(MAKE) all 
+	$(MAKE) libmzscheme.a
+
+libmzscheme.a: src/*.o
+	$(AR) $(ARFLAGS) libmzscheme.a src/*.o
+	$(RANLIB) libmzscheme.a
+
+libgc.a: @GCDIR@/gc.a
+	cp @GCDIR@/gc.a libgc.a
+	$(RANLIB) libgc.a
+
+# Irix sproc, only
+sproc.o: @GCDIR@/sproc.o
+	cp @GCDIR@/sproc.o sproc.o
+
+mzscheme: libmzscheme.a libgc.a main.o $(SPECIALIZINGOBJECTS)
+	$(CC) -o mzscheme main.o $(SPECIALIZINGOBJECTS) -L. -lmzscheme -lgc @LIBS@
+
+# OSKit-based MzScheme
+mzscheme.multiboot : libmzscheme.a libgc.a main.o
+	$(LD) -Ttext 100000 $(LDFLAGS) @OSKHOME@/lib/oskit/multiboot.o \
+		-o mzscheme.multiboot main.o -L. -lmzscheme -lgc \
+                -L@OSKHOME@/lib -loskit_kern -loskit_clientos @EXTRA_OSK_LIBS@ \
+                -loskit_freebsd_c -loskit_c -loskit_lmm \
+                -loskit_freebsd_m -loskit_memfs -loskit_fsnamespace  \
+                -loskit_dev -loskit_com \
+                -loskit_kern -loskit_freebsd_c -loskit_c \
+		@OSKHOME@/lib/oskit/crtn.o
+
+main.o: $(srcdir)/main.c $(srcdir)/include/scheme.h $(srcdir)/sconfig.h $(srcdir)/cmdline.inc $(srcdir)/oskglue.inc
+	$(CC) @CFLAGS@ @OPTIONS@ -I$(srcdir)/include -c $(srcdir)/main.c -o main.o
+
+main_ee.o: main.o
+	$(CC) @CFLAGS@ @OPTIONS@ -DSTANDALONE_WITH_EMBEDDED_EXTENSION -c $(srcdir)/main.c -o main_ee.o
+
+ee-main:
+	$(MAKE) main_ee.o
+
+ee-app: $(MZSCHEME) main_ee.o
+	if [ "$(EEAPP)" = '' ] ; then echo "ERROR: You must specify EEAPP" ; else $(CC) $(MAIN_CFLAGS_NODBG) -o $(EEAPP) $(OBJDIR)/main_ee.o $(EEOBJECTS) $(SPECIALIZINGOBJECTS) -L$(LIBDIR)/ -lmzscheme -lgc $(LIBS) ; fi
+
+testext.o: testext.c
+	$(CC) $(MAIN_CFLAGS) -I/home/scheme/plt/compiler/ -c testext.c -o testext.o
+
+mzstart.exe: $(srcdir)/dynsrc/start.c
+	$(CC) -o mzstart.exe $(srcdir)/dynsrc/start.c
+
+starter: mzstart.exe
+
+exn:
+	$(MAKE) $(srcdir)/src/schexn.h
+
+CMACRODEST = cmacro.inc
+
+cmacro:
+	$(MAKE) $(srcdir)/src/$(CMACRODEST)
+	$(MAKE) $(srcdir)/src/cunitsig.inc
+	$(MAKE) $(srcdir)/src/mzmark.c
+
+headers:
+	$(MAKE) $(srcdir)/../../collects/mzscheme/include/scheme.h
+	$(MAKE) $(srcdir)/../../collects/mzscheme/lib/mzdyn.c
+
+# Needed for extension compilation when MzScheme headers change
+$(srcdir)/../../collects/mzscheme/include/scheme.h: \
+          $(srcdir)/sconfig.h $(srcdir)/uconfig.h $(srcdir)/include/escheme.h $(srcdir)/src/schemef.h \
+          $(srcdir)/src/stypes.h $(srcdir)/src/schemex.h $(srcdir)/src/schemexm.h $(srcdir)/src/schexn.h \
+          $(srcdir)/include/ext.exp $(srcdir)/include/mzscheme.exp $(srcdir)/include/scheme.h \
+          $(srcdir)/src/schvers.h
+	rm -rf $(srcdir)/../../collects/mzscheme/include/*.* # avoid CVS
+	cp $(srcdir)/sconfig.h $(srcdir)/uconfig.h $(srcdir)/include/escheme.h $(srcdir)/src/schemef.h $(srcdir)/src/schvers.h \
+          $(srcdir)/src/stypes.h $(srcdir)/src/schemex.h $(srcdir)/src/schemexm.h $(srcdir)/src/schexn.h \
+          $(srcdir)/include/ext.exp $(srcdir)/include/mzscheme.exp $(srcdir)/../../collects/mzscheme/include 
+	$(PERL) -ne 's/\/\*III\*\//\#define INCLUDE_WITHOUT_PATHS/; print' \
+          < $(srcdir)/include/scheme.h > $(srcdir)/../../collects/mzscheme/include/scheme.h
+
+# mzdyn.c, used for MacOS "library"
+$(srcdir)/../../collects/mzscheme/lib/mzdyn.c: $(srcdir)/dynsrc/mzdyn.c
+	rm -rf $(srcdir)/../../collects/mzscheme/lib/mzdyn.c
+	cp $(srcdir)/dynsrc/mzdyn.c $(srcdir)/../../collects/mzscheme/lib/mzdyn.c
+
+$(srcdir)/src/schexn.h: $(srcdir)/src/exnsrc.ss $(srcdir)/src/makeexn
+	mzscheme -gqr $(srcdir)/src/makeexn < $(srcdir)/src/exnsrc.ss > $(srcdir)/src/schexn.h
+
+$(srcdir)/src/$(CMACRODEST): $(srcdir)/src/macro.ss $(srcdir)/src/schvers.h
+	mzscheme -gqrna $(srcdir)/src/sstoinc.ss $(CMACROEXTRA) < $(srcdir)/src/macro.ss > $(srcdir)/src/$(CMACRODEST)
+
+$(srcdir)/src/cunitsig.inc: $(srcdir)/src/unitsig.ss $(srcdir)/src/schvers.h
+	mzscheme -gqrna $(srcdir)/src/sstoinc.ss < $(srcdir)/src/unitsig.ss > $(srcdir)/src/cunitsig.inc
+
+$(srcdir)/src/mzmark.c: $(srcdir)/src/mzmarksrc.c $(srcdir)/src/mkmark.ss
+	mzscheme -qr $(srcdir)/src/mkmark.ss < $(srcdir)/src/mzmarksrc.c > $(srcdir)/src/mzmark.c
+
+cmacro.zo:
+	$(MAKE) cmacro CMACROEXTRA='zo' CMACRODEST="../cmacro.zo"
+
+zo:
+	rm -f ../collects/mzlib/compiled/*.zo
+	rm -f ../collects/mzlib/compiled/*/*.so
+	$(MZSCHEME) -qf mkmzlib.ss -e '(make-zo)' -e '(exit)'
+
+2k:
+	$(MAKE) bin
+	cd gc2; $(MAKE) all
+	cd dynsrc; $(MAKE) LIBDIR='$(LIBDIR)' dynlib2k
+	cd gc2; $(MAKE) ../mzscheme2k
+
+palmos:
+#	$(MAKE) bin
+	cd palm; $(MAKE) all
+
+clean:
+	/bin/rm -rf tmp[123456789] tests/tmp[123456789] tests/sub[123]
+	/bin/rm -f tests/*~
+	/bin/rm -f *.o core
+	/bin/rm -f mzdyn.o libgc.a libmzscheme.a libdl.a mzscheme mzscheme.multiboot
+	cd gc; $(MAKE) clean
+	cd gc2; $(MAKE) clean
+	cd sgc; $(MAKE) clean
+	cd src; $(MAKE) clean
+	cd dynsrc; $(MAKE) clean
+	cd guile; $(MAKE) clean
+
+install:
+	$(MAKE) @MZINSTALLTARGET@
+
+normal-install:
+	if [ ! -d $(srcdir)/../../.bin ] ; then mkdir $(srcdir)/../../.bin ; fi
+	if [ ! -d $(srcdir)/../../.bin/$(INSTALLSYS) ] ; then mkdir $(srcdir)/../../.bin/$(INSTALLSYS) ; fi
+	rm -f $(srcdir)/../../.bin/$(INSTALLSYS)/mzscheme
+	cp mzscheme $(srcdir)/../../.bin/$(INSTALLSYS)/mzscheme
+	if [ ! -d $(srcdir)/../../collects/mzscheme/lib/$(INSTALLSYS) ] ; then mkdir $(srcdir)/../../collects/mzscheme/lib/$(INSTALLSYS) ; fi
+	cp mzdyn.o $(srcdir)/../../collects/mzscheme/lib/$(INSTALLSYS)/mzdyn.o
+	cp libgc.a $(srcdir)/../../collects/mzscheme/lib/$(INSTALLSYS)/libgc.a
+	cp libmzscheme.a $(srcdir)/../../collects/mzscheme/lib/$(INSTALLSYS)/libmzscheme.a
+
+cygwin-install:
+	rm -f $(srcdir)/../../mzscheme.exe
+	cp mzscheme.exe $(srcdir)/../../mzscheme.exe
+	cd $(srcdir)/dynsrc; command ./gmkmzdyn.bat
+	cp mzstart.exe $(srcdir)/../../collects/launcher/mzstart.exe
+	cp libgc.a $(srcdir)/../../collects/mzscheme/lib/win32/i386/libgc.a
+	cp libmzscheme.a $(srcdir)/../../collects/mzscheme/lib/win32/i386/libmzscheme.a
+
+config:
+	autoconf $(srcdir)/configure.in | mzscheme -qr $(srcdir)/clean_ac.ss > $(srcdir)/../configure

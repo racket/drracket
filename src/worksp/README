@@ -1,0 +1,106 @@
+This directory contains makefiles and projects files for building
+MzScheme and MrEd with Microsoft Visual C++ (MSVC) version 6. 
+If you have downloaded MzCOM, the directory also contains an 
+MSVC makefile and project file for MzCOM. 
+
+MzScheme (but not MzCOM and MrEd) also compiles with Cygwin gcc (a
+free compiler from GNU and Cygnus Solutions); to compile with gcc,
+follow the instructions in plt\src\README (there is a short
+Windows-specific section in that file.)
+
+
+As always, please report bugs via one of the following:
+  - Help Desk's "submit bug report" link  (preferred)
+  - http://www.cs.rice.edu/CS/PLT/Bugs/
+  - plt-bugs@cs.rice.edu                  (last resort)
+
+-Matthew Flatt
+ PLT
+ mflatt@cs.utah.edu
+
+----------------------------------------------------------------------
+Building MzScheme, MzCOM, and MrEd
+----------------------------------------------------------------------
+
+The source code for MzScheme, MzCOM, and MrEd is split into several
+projects. To make the project named `X', either open the file
+plt\src\worksp\X\X.dsw with MSVC, or go into plt\src\worksp\X\ and
+execute `nmake -f X.mak' (assuming the MSVC programs are in your
+path).
+
+ NOTE: The makefiles as distributed do not contain dependencies (which
+ are kept in .dep files). Thus, if you modify a header file and
+ recompile using `nmake', some files may not be recompiled as they
+ should be. To get makefiles with dependencies, open the X.dsw files
+ in MSVC and export new makefiles.
+
+To build MzScheme, make the MzScheme project in
+   plt\src\worksp\mzscheme - makes plt\mzscheme.exe
+
+To build MzCOM, make the MzCOM project in
+   plt\src\worksp\mzcom - makes plt\collects\mzcom\mzcom.exe
+
+To build MrEd, make the MrEd project:
+   plt\src\worksp\mred - makes plt\mred.exe
+
+The make processes for MzScheme and MzCOM automatically build the following:
+   gc - makes plt\src\worksp\gc\Release\gc.lib
+   mzsrc - makes plt\src\worksp\mzsrc\Release\mzsrc.lib
+
+The make process for MrEd automatically builds the following:
+   gc - makes plt\src\worksp\gc\Release\gc.lib
+   mzsrc - makes plt\src\worksp\mzsrc\Release\mzsrc.lib
+   wxutils - makes ... you get the idea
+   wxwin
+   wxs
+
+----------------------------------------------------------------------
+Extra stuff for MzScheme and MrEd
+----------------------------------------------------------------------
+
+If you're building from scratch, you'll also want the starter
+programs used by the launcher collection to make drscheme.exe
+and mzc.exe:
+   mzstart - makes plt\collects\launcher\mzstart.exe
+   mrstart - makes plt\collects\launcher\mrstart.exe
+You'll also want to install the libraries and object files
+for creating MzScheme extensions (or using mzc):
+   cd plt\src\mzscheme\dynsrc
+   mkmzdyn.bat (requires cl.exe and lib.exe in your path)
+Then, set up all the other executables (besides mred.exe
+and mzscheme.exe) by running
+   mzscheme.exe -mvqL- setup.ss setup
+(This makes the .zo files, too. To skip compiling .zos, 
+add -n to the end of the above command.)
+
+----------------------------------------------------------------------
+Embedding MzScheme
+----------------------------------------------------------------------
+
+The libraries
+    plt\src\worksp\mzsrc\Release\mzsrc.lib
+    plt\src\worksp\gc\Release\gc.lib
+which are created by the mzsrc and gc projects, correspond to the
+libmzscheme.a and libgc.a libraries under Unix. See the "Inside PLT
+MzScheme" manual for more information about using these libraries
+to embed MzScheme in another application.
+
+----------------------------------------------------------------------
+Project Configurations
+----------------------------------------------------------------------
+
+The MzScheme, MzCOM, and MrEd projects are distributed to compile using
+"Release" as the default configuration.  Most of the projects support
+several configurations:
+
+  * Debug - less optimization to make debugging easier
+  * Threads - use Windows threads to implement MzScheme threads
+  * SGC - debugging with the SGC collector; links to SGC's
+          Debug library, not its Release library
+  * MT DLL - links to the standard C library as a DLL, rather than
+             statically
+
+Of course, the mzscheme Debug configuration works with the Debug
+configurations of mzsrc and gc, etc.  MzCOM has only a Release
+and Debug configuration.
+

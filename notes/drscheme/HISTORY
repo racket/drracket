@@ -1,5 +1,76 @@
 Version 102:
 
+102d10:
+
+102d10. 
+
+ PRS:
+
+  1461: Kill menu problems
+  1460: Help Desk has empty preferences
+  1459: search menu items work on empty search text
+  1455: project windows never leave `Windows' menu
+  1456: teachpacks don't add
+  1428: setup -c deletes files for all platforms
+  1424: long (list ...) displays don't display correctly
+  1405: memory usage box should be read only
+  1398: Downloading doc files requires restart
+  1377: replacing by empty string loops
+  1330: killing repl, then check-syntax hangs
+  1144: match docs not setup right in Help Desk
+   737: mred:preferences library too global
+   599: mac: can't double click to open files while mred starts up
+   406: bad error message for sixlib op
+
+ FUNCTIONALITY CHANGES
+
+ - the framework now imports a definition of the preferences
+   file location. Use this to have a separate preferences file
+   for each different application.
+
+ - do not use 'drscheme:settings anymore to get the current
+   language settings from drscheme. Now, use
+
+      drscheme:language:settings-preferences-symbol
+
+   (which is bound to the right symbol) instead.
+
+ - setup plt's ``clean'' info.ss flag does not recur
+   into subdirectories anymore.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - Added Replace and Find again to edit menu
+ 
+ - changed `h' shortcut to find and replace again. show keybindings
+   has no shortcut anymore.
+
+ * Moved the filename and (define ...) popups to the left, swapping with
+   the Save button. (The popups in the middle of space look strange.)
+
+ * Merged the Project menu with the File menu.
+
+ * Changed the "Configure Language" menu item in the project window to
+   "Choose Language", to match the menu item in the file window.
+
+ * Add "..." to "Open Project" menu item.
+
+ * Got rid of "Insert Lambda". It's not nearly useful enough to be
+   worth all the bugs it creates. (Try inserting a lambda by itself and
+   hit return --- nothing happens. Try (<lambda>) --- bad selection for
+   the error message.)
+
+ * Give windows for untitled files/projects unique names: "Untitled 1",
+   "Untitled 2", etc.
+
+ * Fix multiple adjacent separators in the project window's File and
+   Edit menus.
+
+ * Dropped the old "platform independent" file dialogs, and use
+   get-file-list for projects.
+
+ * Disabled "Keybindings" menu item when not applicable.
+
 102d9:
 
   NEW DIRECTORY: plt/collects/defaults
