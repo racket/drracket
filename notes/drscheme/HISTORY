@@ -2,6 +2,8 @@
         Version 300
 ------------------------------
 
+ - added command-line specs to the module language details.
+
 *'d items have been revoked.
 
  * the preferences in DrScheme, Help Desk, and SirMail are

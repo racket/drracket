@@ -38,8 +38,10 @@
         (drscheme:language-configuration:add-language
          (instantiate module-language% ())))
       
+      ;; collection-paths : (listof (union 'default string))
+      ;; command-line-args : (vectorof string)
       (define-struct (module-language-settings drscheme:language:simple-settings)
-                     (collection-paths))
+                     (collection-paths command-line-args))
       
       ;; module-mixin : (implements drscheme:language:language<%>)
       ;;             -> (implements drscheme:language:language<%>)
@@ -62,27 +64,34 @@
               (apply make-module-language-settings
                      (append
                       (vector->list (drscheme:language:simple-settings->vector super-defaults))
-                      (list '(default))))))
+                      (list '(default)
+                            #())))))
           
           ;; default-settings? : -> boolean
           (rename [super-default-settings? default-settings?])
           (define/override (default-settings? settings)
             (and (super-default-settings? settings)
-                 (equal? (module-language-settings-collection-paths settings)
-                         '(default))))
+                 (and (equal? (module-language-settings-collection-paths settings)
+                              '(default))
+                      (eq? (module-language-settings-command-line-args settings)
+                           #()))))
           
           (rename [super-marshall-settings marshall-settings])
           (define/override (marshall-settings settings)
             (let ([super-marshalled (super-marshall-settings settings)])
               (list super-marshalled
-                    (module-language-settings-collection-paths settings))))
+                    (module-language-settings-collection-paths settings)
+                    (module-language-settings-command-line-args settings))))
           
           (rename [super-unmarshall-settings unmarshall-settings])
           (define/override (unmarshall-settings marshalled)
             (and (pair? marshalled)
                  (pair? (cdr marshalled))
-                 (null? (cddr marshalled))
+                 (pair? (cddr marshalled))
+                 (null? (cdddr marshalled))
                  (list? (cadr marshalled))
+                 (vector? (caddr marshalled))
+                 (andmap string? (vector->list (caddr marshalled)))
                  (andmap (lambda (x) (or (string? x) (symbol? x)))
                          (cadr marshalled))
                  (let ([super (super-unmarshall-settings (car marshalled))])
@@ -90,13 +99,15 @@
                         (apply make-module-language-settings
                                (append 
                                 (vector->list (drscheme:language:simple-settings->vector super))
-                                (list (cadr marshalled))))))))
+                                (list (cadr marshalled)
+                                      (caddr marshalled))))))))
           
           (define/override (on-execute settings run-in-user-thread)
             (set! iteration-number 0)
             (super-on-execute settings run-in-user-thread)
             (run-in-user-thread
              (lambda ()
+               (current-command-line-arguments (module-language-settings-command-line-args settings))
                (let ([default (current-library-collection-paths)])
                  (current-library-collection-paths
                   (apply 
@@ -203,6 +214,15 @@
                            (parent new-parent)
                            (label (string-constant ml-cp-collection-paths))))
         
+        (define args-panel (instantiate group-box-panel% ()
+                             (parent new-parent)
+                             (label (string-constant ml-command-line-arguments))))
+        (define args-text-box (new text-field%
+                                   (parent args-panel)
+                                   (label #f)
+                                   (init-value "#()")
+                                   (callback void)))
+        
         ;; data associated with each item in listbox : boolean
         ;; indicates if the entry is the default paths.
         (define lb (instantiate list-box% ()
@@ -210,23 +230,19 @@
                      (choices '("a" "b" "c"))
                      (label #f)
                      (callback (lambda (x y) (update-buttons)))))
-        (define top-button-panel (instantiate horizontal-panel% ()
-                                   (parent cp-panel)
-                                   (alignment '(center center))
-                                   (stretchable-height #f)))
-        (define bottom-button-panel (instantiate horizontal-panel% ()
-                                      (parent cp-panel)
-                                      (alignment '(center center))
-                                      (stretchable-height #f)))
-        (define add-button (make-object button% (string-constant ml-cp-add) bottom-button-panel
+        (define button-panel (instantiate horizontal-panel% ()
+                               (parent cp-panel)
+                               (alignment '(center center))
+                               (stretchable-height #f)))
+        (define add-button (make-object button% (string-constant ml-cp-add) button-panel
                              (lambda (x y) (add-callback))))
-        (define add-default-button (make-object button% (string-constant ml-cp-add-default) bottom-button-panel
+        (define add-default-button (make-object button% (string-constant ml-cp-add-default) button-panel
                                      (lambda (x y) (add-default-callback))))
-        (define remove-button (make-object button% (string-constant ml-cp-remove) bottom-button-panel
+        (define remove-button (make-object button% (string-constant ml-cp-remove) button-panel
                                 (lambda (x y) (remove-callback))))
-        (define raise-button (make-object button% (string-constant ml-cp-raise) top-button-panel
+        (define raise-button (make-object button% (string-constant ml-cp-raise) button-panel
                                (lambda (x y) (raise-callback))))
-        (define lower-button (make-object button% (string-constant ml-cp-lower) top-button-panel
+        (define lower-button (make-object button% (string-constant ml-cp-lower) button-panel
                                (lambda (x y) (lower-callback))))
         
         (define (update-buttons)
@@ -334,6 +350,23 @@
                           (send lb append cp #f)))
                     paths))
         
+        (define (get-command-line-args)
+          (let ([str (send args-text-box get-value)])
+            (let ([read-res (parameterize ([read-accept-graph #f])
+                              (with-handlers ([not-break-exn? 
+                                               (lambda (x) #())])
+                                (read (open-input-string str))))])
+              (cond
+                [(and (vector? read-res)
+                      (andmap string? (vector->list read-res)))
+                 read-res]
+                [else #()]))))
+        
+        (define (install-command-line-args vec)
+          (send args-text-box set-value 
+                (parameterize ([print-vector-length #f])
+                  (format "~s" vec))))
+        
         (send lb set '())
         (update-buttons)
         
@@ -343,10 +376,12 @@
              (apply make-module-language-settings
                     (append
                      (vector->list (drscheme:language:simple-settings->vector simple-settings))
-                     (list (get-collection-paths)))))]
+                     (list (get-collection-paths)
+                           (get-command-line-args)))))]
           [(settings) 
            (simple-case-lambda settings)
            (install-collection-paths (module-language-settings-collection-paths settings))
+           (install-command-line-args (module-language-settings-command-line-args settings))
            (update-buttons)]))
       
       ;; module-language-style-delta : (instanceof style-delta%)
