@@ -2730,8 +2730,8 @@ tab panels new behavior:
       (define greek-char-snip% 
         (class* snip% (readable-snip<%>)
           (init-field symbol one-char-string)
-          (define/public (read-one-special index source line column position)
-            (values (datum->syntax-object #'here symbol) #t))
+          (define/public (read-special source line column position)
+	    (datum->syntax-object #'here symbol))
 
           (define/private (get-greek-font)
             (send the-font-list find-or-create-font 
