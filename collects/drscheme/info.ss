@@ -21,6 +21,5 @@
 		  (require-library "refer.ss"))]
 	      [(compile-elaboration-zos)
 	       (list "drsig.ss")]
-	      [(project-filename) "drscheme.proj"]
 	      [else (failure)]))])
   drscheme-info)
