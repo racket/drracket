@@ -106,7 +106,7 @@
                    (lambda ()  ;; =Kernel=, =Handler=
                      (insert-error-in-text rep rep msg exn user-dir)
                      (let ([context (send rep get-context)])
-                       (send context ensure-rep-shown))))]
+                       (send context ensure-rep-shown rep))))]
             [else
              (display msg (current-error-port))
              (newline (current-error-port))])))
@@ -446,7 +446,7 @@
       ;; through an instance of this interface.
       (define context<%>
         (interface ()
-          ensure-rep-shown   ;; (-> void)
+          ensure-rep-shown   ;; (interactions-text -> void)
 	  ;; make the rep visible in the frame
 
           needs-execution?   ;; (-> boolean)

@@ -1,17 +1,14 @@
 #|
 
-wierdness:
- - set pref to open new tabs
- - open tmp.ss (in initial window)
- - create new empty tab (cmd =)
- - open tmp2.ss
-now there should be 3 open tabs, but there are only 2.
-
 tab panels bug fixes:
   - can-close? needs to account for all tabs
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
-  - ensure-rep-shown message must manipulate the tabs
+
+waiting for matthew:
+  - tabs don't have the right names when files are opened
+  - when switching tabs automatically (say for an error) the tab bar doesn't update
+  - when creating a new tab, the tab bar doesn't update
 
 tab panels new behavior:
   - closing a single tab
@@ -41,7 +38,6 @@ tab panels new behavior:
   
   (provide unit@)
   
-  (define sc-new-tab (string-constant new-tab))
   (define module-browser-progress-constant (string-constant module-browser-progress))
   (define status-compiling-definitions (string-constant module-browser-compiling-defns))
   (define show-lib-paths (string-constant module-browser-show-lib-paths/short))
@@ -1252,7 +1248,14 @@ tab panels new behavior:
             (unless definitions-shown?
               (toggle-show/hide-definitions)
               (update-shown)))
-          (define/public (ensure-rep-shown)
+          (define/public (ensure-rep-shown rep)
+            (unless (eq? rep interactions-text)
+              (let loop ([tabs tabs])
+                (unless (null? tabs)
+                  (let ([tab (car tabs)])
+                    (if (eq? (tab-ints tab) rep)
+                        (change-to-tab tab)
+                        (loop (cdr tabs)))))))
             (unless interactions-shown?
               (toggle-show/hide-interactions)
               (update-shown)))
@@ -1264,7 +1267,8 @@ tab panels new behavior:
           (override get-editor%)
           [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text))]
           (define/public (still-untouched?)
-            (and (= (send definitions-text last-position) 0)
+            (and (and (pair? tabs) (null? (cdr tabs))) ;; aka only one tab
+                 (= (send definitions-text last-position) 0)
                  (not (send definitions-text is-modified?))
                  (not (send definitions-text get-filename))
                  (let* ([prompt (send interactions-text get-prompt)]
@@ -1309,7 +1313,7 @@ tab panels new behavior:
           (define/override (file-menu:between-new-and-open file-menu)
             (set! file-menu:create-new-tab-item
                   (new menu-item%
-                       (label sc-new-tab)
+                       (label (string-constant new-tab))
                        (shortcut #\=)
                        (parent file-menu)
                        (callback
@@ -1825,7 +1829,7 @@ tab panels new behavior:
           (define/public (execute-callback)
             (when (send execute-button is-enabled?)
               (check-if-save-file-up-to-date)
-              (ensure-rep-shown)
+              (ensure-rep-shown interactions-text)
               (when logging
                 (log-definitions)
                 (log-interactions))
@@ -1913,11 +1917,13 @@ tab panels new behavior:
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab) 
             (when evaluation-enabled?
-              (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+              (let* ([b #&1]
+                     [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                      [defs (new (drscheme:get/extend:get-definitions-text))]
                      [new-tab (make-tab defs ints #f #f)])
                 (set! tabs (append tabs (list new-tab)))
-                (send tabs-panel append "new name")
+                (send tabs-panel append (format "tab ~a" (unbox b)))
+                (set-box! b (+ (unbox b) 1))
                 (send (send tabs-panel get-parent)
                       change-children
                       (lambda (l)
@@ -1947,8 +1953,11 @@ tab panels new behavior:
             (send definitions-text update-frame-filename))
           
           (define/public (open-in-new-tab filename)
-            (create-new-tab)
-            (send definitions-text load-file filename))
+            (if evaluation-enabled?
+                (begin
+                  (create-new-tab)
+                  (send definitions-text load-file filename))
+                (open-drscheme-window filename)))
           
           (define/private (change-to-nth-tab n)
             (unless (< n (length tabs))
