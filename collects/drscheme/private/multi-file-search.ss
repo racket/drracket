@@ -651,12 +651,10 @@
                        (k)]
                       [else 
                        (let ([file/dir (car contents)])
-                         (printf "considering: ~s\n" file/dir)
                          (cond
                            [(and (file-exists? file/dir)
                                  (or (not filter)
                                      (regexp-match filter file/dir)))
-                            (printf "included\n")
                             (set! next-thunk
                                   (lambda ()
                                     (process-dir-contents (cdr contents) k)))
@@ -667,7 +665,6 @@
                              (lambda ()
                                (process-dir file/dir k)))]
                            [else 
-                            (printf "not included\n")
                             (process-dir-contents (cdr contents) k)]))]))])
           (lambda () (next-thunk))))
       
