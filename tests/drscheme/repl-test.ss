@@ -164,7 +164,7 @@
 		       (mred:test:keystroke c)))
 		 (loop (+ n 1)))))]
 	  [wait-for-execute (lambda () (wait-for-button execute-button))]
-	  [get-int-pos (lambda () (get-start-of-last-line interactions-edit))]
+	  [get-int-pos (lambda () (get-text-pos interactions-edit))]
 
 
 	  [do-execute 
