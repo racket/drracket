@@ -156,7 +156,7 @@
   
   (define lookup-binding
     (contract 
-     (-> mark-list? syntax? any)
+     (-> mark-list? identifier? any)
      (lambda (mark-list binding)
        (if (null? mark-list)
            (error 'lookup-binding "variable not found in environment: ~a~n" (syntax-e binding))
