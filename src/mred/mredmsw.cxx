@@ -38,6 +38,8 @@ typedef struct LeaveEvent {
   struct LeaveEvent *next;
 } LeaveEvent;
 
+# define WM_MRED_LEAVE (WM_USER + 0x111)
+
 void MrEdInitFirstContext(MrEdContext *c)
 {
 }
@@ -157,7 +159,7 @@ static BOOL CALLBACK CheckWindow(HWND wnd, LPARAM param)
       if (info->remove) {
 	info->wnd = wnd;
 	info->c_return = c;
-	info->msg->message = WM_USER + 1;
+	info->msg->message = WM_MRED_LEAVE;
 	info->msg->lParam = (long)c->queued_leaves;
 	c->queued_leaves = c->queued_leaves->next;
       }
@@ -221,7 +223,7 @@ int MrEdGetNextEvent(int check_only, int current_only,
 
 void MrEdDispatchEvent(MSG *msg)
 {
-  if (msg->message == WM_USER + 1) {
+  if (msg->message == WM_MRED_LEAVE) {
     /* Queued leave event */
     LeaveEvent *e = (LeaveEvent *)msg->lParam;
     wxDoLeaveEvent(e->wnd, e->x, e->y, e->flags);

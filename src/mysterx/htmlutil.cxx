@@ -181,6 +181,8 @@ Scheme_Object *mx_element_focus(int argc,Scheme_Object **argv) {
   // if recent Platform SDK not available, comment out code
   // from HERE
 
+#if NEWMSHTML
+
   HRESULT hr;
   IHTMLElement *pIHTMLElement;
   IHTMLElement2 *pIHTMLElement2;
@@ -201,6 +203,8 @@ Scheme_Object *mx_element_focus(int argc,Scheme_Object **argv) {
   pIHTMLElement2->focus();
 
   pIHTMLElement2->Release();
+
+#endif
 
   // to HERE 
 

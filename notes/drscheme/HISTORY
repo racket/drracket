@@ -11,6 +11,17 @@ Version 102:
 
  MINOR CHANGES AND BUG FIXES
 
+ - added parents for these dialogs:
+
+     Keybindings 
+     Choose Language...
+     Add Teachpack...
+     Create Launcher -> "you must save before creating a launcher" message box
+     "The thread has been killed" message box
+     "Uncaught Error"
+     Break, Break -> "do you want to kill it?" message box
+     Click unbound id in DrScheme -> "nothing found for <id>" message box
+
  - Only the platform-specific dialogs are used in drscheme now, on
    all platforms. The preference has been removed from the dialog.
 

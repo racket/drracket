@@ -63,6 +63,8 @@
  register-collecting-blit
  unregister-collecting-blit
  bitmap-dc%
+ post-script-dc%
+ printer-dc%
  current-text-keymap-initializer
  sleep/yield
  get-window-text-extent

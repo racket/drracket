@@ -2151,10 +2151,12 @@ static Scheme_Object *os_wxMediaBufferPrint(Scheme_Object *obj, int n,  Scheme_O
   Bool x0;
   Bool x1;
   int x2;
+  class wxWindow* x3 INIT_NULLED_OUT;
 
-  SETUP_VAR_STACK_REMEMBERED(2);
+  SETUP_VAR_STACK_REMEMBERED(3);
   VAR_STACK_PUSH(0, p);
   VAR_STACK_PUSH(1, obj);
+  VAR_STACK_PUSH(2, x3);
 
   
   if (n > 0) {
@@ -2169,9 +2171,13 @@ static Scheme_Object *os_wxMediaBufferPrint(Scheme_Object *obj, int n,  Scheme_O
     x2 = WITH_VAR_STACK(unbundle_symset_printMethod(p[2], "print in editor<%>"));
   } else
     x2 = 0;
+  if (n > 3) {
+    x3 = WITH_VAR_STACK(objscheme_unbundle_wxWindow(p[3], "print in editor<%>", 1));
+  } else
+    x3 = NULL;
 
   
-  WITH_VAR_STACK(((wxMediaBuffer *)((Scheme_Class_Object *)obj)->primdata)->Print(x0, x1, x2));
+  WITH_VAR_STACK(((wxMediaBuffer *)((Scheme_Class_Object *)obj)->primdata)->Print(x0, x1, x2, x3));
 
   
   
@@ -4988,7 +4994,7 @@ void objscheme_setup_wxMediaBuffer(void *env)
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "get-focus-snip", os_wxMediaBufferGetFocusSnip, 0, 0));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "end-write-header-footer-to-file", os_wxMediaBufferEndWriteHeaderFooterToFile, 2, 2));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "begin-write-header-footer-to-file", os_wxMediaBufferBeginWriteHeaderFooterToFile, 3, 3));
-  WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "print", os_wxMediaBufferPrint, 0, 3));
+  WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "print", os_wxMediaBufferPrint, 0, 4));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "insert-image", os_wxMediaBufferInsertImage, 0, 4));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "insert-box", os_wxMediaBufferInsertBox, 0, 1));
   WITH_VAR_STACK(scheme_add_method_w_arity(os_wxMediaBuffer_class, "get-filename", os_wxMediaBufferGetFilename, 0, 1));

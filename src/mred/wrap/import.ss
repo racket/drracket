@@ -35,6 +35,8 @@
  register-collecting-blit
  unregister-collecting-blit
  bitmap-dc%
+ post-script-dc%
+ printer-dc%
  shortcut-visible-in-label?
  in-atomic-region
  set-editor-snip-maker

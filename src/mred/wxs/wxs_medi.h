@@ -28,6 +28,7 @@ extern class wxMediaBuffer *objscheme_unbundle_wxMediaBuffer(Scheme_Object *, co
 extern Scheme_Object *objscheme_bundle_wxSnip(class wxSnip *);
 extern class wxMediaStreamOut *objscheme_unbundle_wxMediaStreamOut(Scheme_Object *, const char *, int);
 extern class wxMediaStreamOut *objscheme_unbundle_wxMediaStreamOut(Scheme_Object *, const char *, int);
+extern class wxWindow *objscheme_unbundle_wxWindow(Scheme_Object *, const char *, int);
 extern class wxCursor *objscheme_unbundle_wxCursor(Scheme_Object *, const char *, int);
 extern class wxStyleList *objscheme_unbundle_wxStyleList(Scheme_Object *, const char *, int);
 extern Scheme_Object *objscheme_bundle_wxStyleList(class wxStyleList *);

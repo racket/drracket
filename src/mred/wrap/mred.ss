@@ -1661,7 +1661,8 @@
 	     get-keymap get-style-list)
     (rename [super-on-display-size on-display-size]
 	    [super-get-view-size get-view-size]
-	    [super-copy-self-to copy-self-to])
+	    [super-copy-self-to copy-self-to]
+	    [super-print print])
     (private
       [canvases null]
       [active-canvas #f]
@@ -1747,6 +1748,22 @@
 		(when (and (not (= current-width new-width))
 			   (< 0 new-width))
 		  (as-exit (lambda () (set-max-width new-width)))))))))]
+
+      [print
+       (let ([sp (lambda (x y z f)
+		   ;; let super method report z errors:
+		   (let ([zok? (memq z '(standard postscript))])
+		     (when zok?
+		       (check-top-level-parent/false '(method editor<%> print) f))
+		     (let ([p (and zok? f (mred->wx f))])
+		       (as-exit (lambda () (super-print x y z p))))))])
+	 (entry-point-0-1-2-3-4
+	  (case-lambda 
+	   [() (sp #t #t 'standard #f)]
+	   [(x) (sp x #t 'standard #f)]
+	   [(x y) (sp x y 'standard #f)]
+	   [(x y z) (sp x y z #f)]
+	   [(x y z f) (sp x y z f)])))]
 
       [on-new-box
        (entry-point-1
@@ -4524,12 +4541,15 @@
     (define _
       (begin
 	(check-string/false 'get-ps-setup-from-user message)
-	(check-top-level-parent/false 'get-ps-setup-from-user parent)
+	(unless (is-a? parent wx:window%)
+	  (check-top-level-parent/false 'get-ps-setup-from-user parent))
 	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup% #t pss-in)
 	(check-style 'get-ps-setup-from-user #f null style)))
     
     (define pss (or pss-in (wx:current-ps-setup)))
-    (define f (make-object dialog% "PostScript Setup" parent))
+    (define f (make-object dialog% "PostScript Setup" (if (is-a? parent wx:window%)
+							  (wx->mred parent)
+							  parent)))
     (define papers 
       '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
     (define p (make-object horizontal-pane% f))
@@ -5034,6 +5054,24 @@
       (super-init)
       (when bm
 	(set-bitmap bm)))))
+
+(define post-script-dc%
+  (class wx:post-script-dc% ([i? #t][parent #f])
+    (sequence
+      (check-top-level-parent/false '(constructor post-script-dc) parent)
+      (as-entry
+       (lambda ()
+	 (let ([p (and parent (mred->wx parent))])
+	   (as-exit (lambda () (super-init i? p)))))))))
+
+(define printer-dc%
+  (class wx:printer-dc% ([parent #f])
+    (sequence
+      (check-top-level-parent/false '(constructor printer-dc) parent)
+      (as-entry
+       (lambda ()
+	 (let ([p (and parent (mred->wx parent))])
+	   (as-exit (lambda () (super-init p)))))))))
 
 (define (find-item-frame item)
   (let loop ([i item])

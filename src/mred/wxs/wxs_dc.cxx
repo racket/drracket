@@ -1667,7 +1667,7 @@ static Scheme_Object *os_wxMemoryDCSelectObject(Scheme_Object *obj, int n,  Sche
   
   x0 = WITH_VAR_STACK(objscheme_unbundle_wxBitmap(p[0], "set-bitmap in bitmap-dc%", 1));
 
-  if (x0) { if (!x0->Ok()) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc","set-bitmap"), "bad bitmap: ", p[0])); if (BM_SELECTED(x0)) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc","set-bitmap"), "bitmap is already installed into a bitmap-dc%: ", p[0])); if (BM_IN_USE(x0)) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc","set-bitmap"), "bitmap is currently installed as a control label or pen/brush stipple: ", p[0])); }
+  if (x0) { if (!x0->Ok()) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc%","set-bitmap"), "bad bitmap: ", p[0])); if (BM_SELECTED(x0)) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc%","set-bitmap"), "bitmap is already installed into a bitmap-dc%: ", p[0])); if (BM_IN_USE(x0)) WITH_VAR_STACK(scheme_arg_mismatch(METHODNAME("memory-dc%","set-bitmap"), "bitmap is currently installed as a control label or pen/brush stipple: ", p[0])); }
   WITH_VAR_STACK(((wxMemoryDC *)((Scheme_Class_Object *)obj)->primdata)->SelectObject(x0));
 
   
@@ -1847,7 +1847,7 @@ class wxMemoryDC *objscheme_unbundle_wxMemoryDC(Scheme_Object *obj, const char *
 class os_wxPostScriptDC : public wxPostScriptDC {
  public:
 
-  os_wxPostScriptDC CONSTRUCTOR_ARGS((Bool x0 = TRUE));
+  os_wxPostScriptDC CONSTRUCTOR_ARGS((Bool x0 = TRUE, class wxWindow* x1 = NULL));
   ~os_wxPostScriptDC();
 #ifdef MZ_PRECISE_GC
   void gcMark();
@@ -1866,8 +1866,8 @@ void os_wxPostScriptDC::gcFixup() {
 
 static Scheme_Object *os_wxPostScriptDC_class;
 
-os_wxPostScriptDC::os_wxPostScriptDC CONSTRUCTOR_ARGS((Bool x0))
-CONSTRUCTOR_INIT(: wxPostScriptDC(x0))
+os_wxPostScriptDC::os_wxPostScriptDC CONSTRUCTOR_ARGS((Bool x0, class wxWindow* x1))
+CONSTRUCTOR_INIT(: wxPostScriptDC(x0, x1))
 {
 }
 
@@ -1883,24 +1883,30 @@ static Scheme_Object *os_wxPostScriptDC_ConstructScheme(Scheme_Object *obj, int 
   os_wxPostScriptDC *realobj INIT_NULLED_OUT;
   REMEMBER_VAR_STACK();
   Bool x0;
+  class wxWindow* x1 INIT_NULLED_OUT;
 
-  SETUP_VAR_STACK_PRE_REMEMBERED(3);
+  SETUP_VAR_STACK_PRE_REMEMBERED(4);
   VAR_STACK_PUSH(0, p);
   VAR_STACK_PUSH(1, obj);
   VAR_STACK_PUSH(2, realobj);
+  VAR_STACK_PUSH(3, x1);
 
   
-  if ((n > 1)) 
-    WITH_VAR_STACK(scheme_wrong_count("initialization in post-script-dc%", 0, 1, n, p));
+  if ((n > 2)) 
+    WITH_VAR_STACK(scheme_wrong_count("initialization in post-script-dc%", 0, 2, n, p));
   if (n > 0) {
     x0 = WITH_VAR_STACK(objscheme_unbundle_bool(p[0], "initialization in post-script-dc%"));
   } else
     x0 = TRUE;
+  if (n > 1) {
+    x1 = WITH_VAR_STACK(objscheme_unbundle_wxWindow(p[1], "initialization in post-script-dc%", 1));
+  } else
+    x1 = NULL;
 
-  
-  realobj = WITH_VAR_STACK(new os_wxPostScriptDC CONSTRUCTOR_ARGS((x0)));
+  if (x1 && !wxSubType(((wxObject *)x1)->__type, wxTYPE_FRAME) && !wxSubType(((wxObject *)x1)->__type, wxTYPE_DIALOG_BOX)) scheme_wrong_type(METHODNAME("post-script-dc%","initialization"), "frame or dialog box", 1, n, p);
+  realobj = WITH_VAR_STACK(new os_wxPostScriptDC CONSTRUCTOR_ARGS((x0, x1)));
 #ifdef MZ_PRECISE_GC
-  WITH_VAR_STACK(realobj->gcInit_wxPostScriptDC(x0));
+  WITH_VAR_STACK(realobj->gcInit_wxPostScriptDC(x0, x1));
 #endif
   realobj->__gc_external = (void *)obj;
   objscheme_note_creation(obj);
@@ -1995,10 +2001,10 @@ END_XFORM_SKIP;
 class basePrinterDC : public wxObject
 {
 public:
-  basePrinterDC();
+  basePrinterDC(wxWindow *w);
 };
 
-basePrinterDC::basePrinterDC()
+basePrinterDC::basePrinterDC(wxWindow *)
 {
   scheme_raise_exn(MZEXN_MISC_UNSUPPORTED,
 		   "%s", 
@@ -2010,10 +2016,10 @@ basePrinterDC::basePrinterDC()
 class basePrinterDC : public wxPrinterDC
 {
 public:
-  basePrinterDC();
+  basePrinterDC(wxWindow *w);
 };
 
-basePrinterDC::basePrinterDC() 
+basePrinterDC::basePrinterDC(wxWindow *w) 
 : wxPrinterDC( )
 {
 }
@@ -2030,7 +2036,7 @@ START_XFORM_SKIP;
 class os_basePrinterDC : public basePrinterDC {
  public:
 
-  os_basePrinterDC CONSTRUCTOR_ARGS(());
+  os_basePrinterDC CONSTRUCTOR_ARGS((class wxWindow* x0 = NULL));
   ~os_basePrinterDC();
 #ifdef MZ_PRECISE_GC
   void gcMark();
@@ -2049,8 +2055,8 @@ void os_basePrinterDC::gcFixup() {
 
 static Scheme_Object *os_basePrinterDC_class;
 
-os_basePrinterDC::os_basePrinterDC CONSTRUCTOR_ARGS(())
-CONSTRUCTOR_INIT(: basePrinterDC())
+os_basePrinterDC::os_basePrinterDC CONSTRUCTOR_ARGS((class wxWindow* x0))
+CONSTRUCTOR_INIT(: basePrinterDC(x0))
 {
 }
 
@@ -2065,20 +2071,26 @@ static Scheme_Object *os_basePrinterDC_ConstructScheme(Scheme_Object *obj, int n
   PRE_VAR_STACK_PUSH(0, obj);
   os_basePrinterDC *realobj INIT_NULLED_OUT;
   REMEMBER_VAR_STACK();
+  class wxWindow* x0 INIT_NULLED_OUT;
 
-  SETUP_VAR_STACK_PRE_REMEMBERED(3);
+  SETUP_VAR_STACK_PRE_REMEMBERED(4);
   VAR_STACK_PUSH(0, p);
   VAR_STACK_PUSH(1, obj);
   VAR_STACK_PUSH(2, realobj);
+  VAR_STACK_PUSH(3, x0);
 
   
-  if (n != 0) 
-    WITH_VAR_STACK(scheme_wrong_count("initialization in printer-dc%", 0, 0, n, p));
+  if ((n > 1)) 
+    WITH_VAR_STACK(scheme_wrong_count("initialization in printer-dc%", 0, 1, n, p));
+  if (n > 0) {
+    x0 = WITH_VAR_STACK(objscheme_unbundle_wxWindow(p[0], "initialization in printer-dc%", 1));
+  } else
+    x0 = NULL;
 
-  
-  realobj = WITH_VAR_STACK(new os_basePrinterDC CONSTRUCTOR_ARGS(()));
+  if (x0 && !wxSubType(((wxObject *)x0)->__type, wxTYPE_FRAME) && !wxSubType(((wxObject *)x0)->__type, wxTYPE_DIALOG_BOX)) scheme_wrong_type(METHODNAME("printer-dc%","initialization"), "frame or dialog box", 0, n, p);
+  realobj = WITH_VAR_STACK(new os_basePrinterDC CONSTRUCTOR_ARGS((x0)));
 #ifdef MZ_PRECISE_GC
-  WITH_VAR_STACK(realobj->gcInit_basePrinterDC());
+  WITH_VAR_STACK(realobj->gcInit_basePrinterDC(x0));
 #endif
   realobj->__gc_external = (void *)obj;
   objscheme_note_creation(obj);

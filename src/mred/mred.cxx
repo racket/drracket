@@ -1809,16 +1809,17 @@ static void MrEdSchemeMessages(char *msg, ...)
 #if WINDOW_STDIO
   if (!msg) {
     char *s;
-    long l;
+    long d, l;
     
     s = va_arg(args, char*);
+    d = va_arg(args, long);
     l = va_arg(args, long);
 
     if (!ioFrame->beginEditSeq) {
       ioFrame->media->BeginEditSequence();
       ioFrame->beginEditSeq = 1;
     }
-    ioFrame->media->Insert(l, s, ioFrame->endpos);
+    ioFrame->media->Insert(l, s + d, ioFrame->endpos);
     ioFrame->endpos += l;
 
     if (l != 1 || s[0] == '\n') {
@@ -1862,7 +1863,7 @@ static void MrEdSchemeMessages(char *msg, ...)
 
 static void MrEdSchemeMessagesOutput(char *s, long l)
 {
-  MrEdSchemeMessages(NULL, s, l);
+  MrEdSchemeMessages(NULL, s, 0, l);
 }
 #endif
 
@@ -1919,7 +1920,7 @@ static Scheme_Object *MrEdMakeStdIn(void)
 static void stdout_write(char *s, long d, long l, Scheme_Output_Port*)
 {
 #if WINDOW_STDIO || WCONSOLE_STDIO
-  MrEdSchemeMessages(NULL, s, l);
+  MrEdSchemeMessages(NULL, s, d, l);
 #else
   static FILE *out = NULL;
 

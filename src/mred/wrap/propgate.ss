@@ -56,8 +56,6 @@
  pen%
  pen-list%
  point%
- post-script-dc%
- printer-dc%
  ps-setup%
  read-editor-global-footer
  read-editor-global-header

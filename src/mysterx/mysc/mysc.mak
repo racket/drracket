@@ -1,4 +1,4 @@
-# mysterx.mak
+# mysc.mak
 
 all : mysc.lib
 
@@ -15,8 +15,6 @@ CPP_FLAGS=/I"../../../collects/mzscheme/include" /I"$(SHELL32)\Include" \
 .cxx.obj::
    $(CPP) $(CPP_FLAGS) $< 
 
-MZC="C:\Program Files\PLT\mzc"
-        
 LINK32=$(MZC)
 LINK32_LIBS= \
 	kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib \

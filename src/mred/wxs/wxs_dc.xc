@@ -192,7 +192,7 @@ static void* MyGetSize(wxDC *dc)
 @ "get-pixel" : bool GetPixel(float,float,wxColour^)
 @ "set-pixel" : void SetPixel(float,float,wxColour^)
 
-@ "set-bitmap" : void SelectObject(wxBitmap^);  : : /CHECKOKFORDC[0.METHODNAME("memory-dc","set-bitmap")]
+@ "set-bitmap" : void SelectObject(wxBitmap^);  : : /CHECKOKFORDC[0.METHODNAME("memory-dc%","set-bitmap")]
 @ "get-bitmap" : wxBitmap^ GetObject();
 
 @END
@@ -203,7 +203,7 @@ static void* MyGetSize(wxDC *dc)
 
 @INCLUDE wxs_dorf.xci
 
-@CREATOR (bool=TRUE)
+@CREATOR (bool=TRUE,wxWindow^=NULL) : : /DLGORFRAME[1.METHODNAME("post-script-dc%","initialization")]
 
 @END
 
@@ -216,10 +216,10 @@ END_XFORM_SKIP;
 class basePrinterDC : public wxObject
 {
 public:
-  basePrinterDC();
+  basePrinterDC(wxWindow *w);
 };
 
-basePrinterDC::basePrinterDC()
+basePrinterDC::basePrinterDC(wxWindow *)
 {
   scheme_raise_exn(MZEXN_MISC_UNSUPPORTED,
 		   "%s", 
@@ -231,10 +231,10 @@ basePrinterDC::basePrinterDC()
 class basePrinterDC : public wxPrinterDC
 {
 public:
-  basePrinterDC();
+  basePrinterDC(wxWindow *w);
 };
 
-basePrinterDC::basePrinterDC() 
+basePrinterDC::basePrinterDC(wxWindow *w) 
 : wxPrinterDC( )
 {
 }
@@ -249,7 +249,7 @@ START_XFORM_SKIP;
 
 @CLASSID wxTYPE_DC_PRINTER
 
-@CREATOR ();
+@CREATOR (wxWindow^=NULL); : : /DLGORFRAME[0.METHODNAME("printer-dc%","initialization")]
 
 @END
 

@@ -17,7 +17,9 @@
     (let ([program-filename (send (ivar frame definitions-text) get-filename)])
       (cond
        [(not program-filename)
-	(mred:message-box "Create Launcher" "You must save your program before creating a launcher")]
+	(mred:message-box "Create Launcher"
+			  "You must save your program before creating a launcher"
+			  frame)]
        [else
 	(let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
 	       [v-settings (struct->vector settings)]
@@ -957,7 +959,7 @@
 				(eq? text interactions-text))
 			((ivar/proc text method))))))])
 	  
-	  (drscheme:language:fill-language-menu language-menu)
+	  (drscheme:language:fill-language-menu this language-menu)
 	  
 	  (set! execute-menu-item
 		(make-object mred:menu-item%

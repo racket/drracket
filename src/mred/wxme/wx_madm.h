@@ -15,6 +15,7 @@ class wxMediaAdmin : public wxObject
  private:
   friend class wxMediaCanvas;
   friend class wxMediaEdit;
+  friend class wxMediaBuffer;
   friend class wxCanvasMediaAdmin;
   int standard; /* Used to recognize standard display. Hack. */
   

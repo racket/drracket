@@ -39,12 +39,15 @@
 	 ((inherit get-area-container close)
 	  (override can-close?))
 		    
+	 (define ok-to-close? #f)
+
 	 (define (can-close?)
-	   (eq? 'yes
-		(message-box "Cancel Bug Report?"
-			     "Are you sure that you want to cancel sending this bug report?"
-			     this
-			     '(yes-no))))
+	   (or ok-to-close?
+	       (eq? 'yes
+		    (message-box "Cancel Bug Report?"
+				 "Are you sure that you want to cancel sending this bug report?"
+				 this
+				 '(yes-no)))))
 
 	 (super-init title)
 
@@ -350,9 +353,10 @@
 	   (letrec ([f (make-object dialog% "Sending Bug Report" this)]
 		    [sema (make-semaphore 0)]
 		    [msg (make-object message% "Sending Bug Report" f)]
-		    [button (make-object button% "Cancel" f (lambda (x y)
-							      (break-thread smtp-thread)
-							      (send f show #f)))]
+		    [button (make-object button% "Cancel" f
+					 (lambda (x y)
+					   (break-thread smtp-thread)
+					   (send f show #f)))]
 		    [smtp-thread
 		     (thread
 		      (lambda ()
@@ -372,7 +376,9 @@
 	     (when sucess?
 	       (message-box 
 		"Bug Report Sent"
-		"Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."))))
+		"Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."
+		this))
+	     sucess?))
 	 
 	 (define (get-strings canvas)
 	   (let ([t (send canvas get-editor)])
@@ -387,8 +393,10 @@
 	 (toggle-synthesized-info)
 
 	 (define (ok)
-	   (when (send-bug-report)
-	     (cleanup-frame)))
+	   (let ([submitted? (send-bug-report)])
+	     (when submitted?
+	       (set! ok-to-close? #t)
+	       (cleanup-frame))))
 	 
 	 (define (cancel)
 	   (cleanup-frame))

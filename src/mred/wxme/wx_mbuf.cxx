@@ -29,6 +29,9 @@
 # include "wx_cmdlg.h"
 #endif
 #include "wx_print.h"
+#ifdef wx_xt
+# include "wx_types.h"
+#endif
 
 #include "wx_media.h"
 #ifndef OLD_WXWINDOWS
@@ -711,7 +714,6 @@ Bool wxMediaBuffer::ReadHeaderFromFile(wxMediaStreamIn *, char *headerName)
 Bool wxMediaBuffer::ReadFooterFromFile(wxMediaStreamIn *, char *headerName)
 {
   char buffer[256];
-  int i;
 
   sprintf(buffer, "Unknown header data: \"%.100s\"."
 	  " The file will be loaded anyway.", headerName);
@@ -1259,7 +1261,7 @@ void wxMediaPrintout::OnEndDocument()
 # define WXUNUSED_X(x) x
 #endif
 
-void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(output_mode))
+void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(output_mode), wxWindow *parent)
 {
   int ps;
 
@@ -1269,11 +1271,24 @@ void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(outpu
   ps = 1;
 #endif
 
+  if (!parent) {
+    if (admin && (admin->standard > 0)) {
+      wxWindow *w = ((wxCanvasMediaAdmin *)admin)->GetCanvas();
+
+      while (w && !wxSubType(w->__type, wxTYPE_FRAME)
+	     && !wxSubType(w->__type, wxTYPE_DIALOG_BOX))
+	w = w->GetParent();
+
+      if (w)
+	parent = w;
+    }
+  }
+
   if (ps) {
     wxDC *dc;
     void *data;
     
-    dc = new wxPostScriptDC(interactive);
+    dc = new wxPostScriptDC(interactive, parent);
 
     if (dc->Ok()) { 
       dc->StartDoc("Printing buffer");
@@ -1300,7 +1315,7 @@ void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(outpu
   wxPrinter *p = new wxPrinter();
   wxPrintout *o = new wxMediaPrintout(this, fitToPage);
   
-  p->Print(NULL, o, interactive);
+  p->Print(parent, o, interactive);
 
   DELETE_OBJ o;
   DELETE_OBJ p;

@@ -7,7 +7,6 @@ MTL=midl.exe
 MTL_SWITCHES=/tlb myssink.tlb /h myssink.h /iid myssink_i.c /Oicf 
 RSC=rc.exe
 RSC_PROJ=/l 0x409 /fo"myssink.res"
-REGSVR32=regsvr32	
 
 LINK32=link.exe
 LINK32_FLAGS=..\..\..\collects\mzscheme\lib\win32\i386\msvc\mzdyn.obj kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib \
