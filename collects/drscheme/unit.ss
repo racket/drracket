@@ -1038,21 +1038,27 @@
 	[running? #t]; is this necessary?
 	[execute-callback
 	 (lambda ()
-	   (ensure-rep-shown)
-	   (send definitions-text just-executed)
-	   (send interactions-canvas focus)
-	   (send interactions-text reset-console)
-	   (send interactions-text clear-undos)
-           
-	   (let ([start (if (and (>= (send definitions-text last-position) 2)
-				 (char=? (send definitions-text get-character 0) #\#)
-				 (char=? (send definitions-text get-character 1) #\!))
-			    (send definitions-text paragraph-start-position 1)
-			    0)])
-	     (send interactions-text do-many-text-evals
-		   definitions-text start
-		   (send definitions-text last-position)))
-	   (send interactions-text clear-undos))])
+           (cond
+             [#f 
+              (message-box 
+               "DrScheme"
+               "The definitions text has been modified in the file-system; please save or revert the definitions text")]
+             [else
+              (ensure-rep-shown)
+              (send definitions-text just-executed)
+              (send interactions-canvas focus)
+              (send interactions-text reset-console)
+              (send interactions-text clear-undos)
+              
+              (let ([start (if (and (>= (send definitions-text last-position) 2)
+                                    (char=? (send definitions-text get-character 0) #\#)
+                                    (char=? (send definitions-text get-character 1) #\!))
+                               (send definitions-text paragraph-start-position 1)
+                               0)])
+                (send interactions-text do-many-text-evals
+                      definitions-text start
+                      (send definitions-text last-position)))
+              (send interactions-text clear-undos)]))])
       
       (public
 	[after-change-name void])
