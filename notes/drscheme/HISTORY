@@ -2,6 +2,17 @@
         Version 300
 ------------------------------
 
+ - added flat-rec-contract, for specifying recursive flat
+   contracts. For example, to specify (a simplified form of)
+   s-expressions you can now write:
+
+   (flat-rec-contract sexp
+     (cons/c sexp sexp)
+     (box/c sexp)
+     (vectorof sexp)
+     number?
+     symbol?)
+
  - modes are now based on the language settings, rather than
    the filename
 
