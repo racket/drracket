@@ -1,4 +1,3 @@
-;; change this to _save_ files instead of creating a file directly.
 
 (define-struct test (program
 		     r4rs-load-answer

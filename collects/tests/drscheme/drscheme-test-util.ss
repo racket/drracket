@@ -157,18 +157,23 @@
 		       (write str/sexp port))
 		     (get-output-string port)))])
       (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
-      (let ([len (string-length str)]
-	    [canvas (ivar/proc frame canvas-ivar)])
+      (let ([canvas (ivar/proc frame canvas-ivar)])
 	(fw:test:new-window canvas)
 	(send (send canvas get-editor) set-caret-owner #f)
-	(let loop ([i 0])
-	  (unless (>= i len)
-	    (let ([c (string-ref str i)])
-	      (fw:test:keystroke
-	       (if (char=? c #\newline)
-		   #\return
-		   c)))
-	    (loop (+ i 1)))))))
+	(type-string str))))
+  
+  ;; type-string : string -> void
+  ;; to call test:keystroke repeatedly with the characters
+  (define (type-string str)
+    (let ([len (string-length str)])
+      (let loop ([i 0])
+        (unless (>= i len)
+          (let ([c (string-ref str i)])
+            (fw:test:keystroke
+             (if (char=? c #\newline)
+                 #\return
+                 c)))
+          (loop (+ i 1))))))
   
   (define wait
     (case-lambda 
