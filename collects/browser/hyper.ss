@@ -14,6 +14,7 @@
 
   (define-struct hypertag (name position))
 
+#|
   (define scrolling-canvas%
     (class canvas% (loi frame)
       (private
@@ -100,9 +101,11 @@
 	   'gif))
        images)))
 
+|#
+
   (define hyper-text-mixin
     (lambda (super%)
-      (class super% (progress url top-level-window . args)
+      (class super% (url top-level-window . args)
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 		 change-style get-style-list set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
@@ -230,7 +233,7 @@
 				    (values p headers)))))])
 	      (dynamic-wind (lambda ()
 			      (begin-busy-cursor)
-			      (send progress start)
+			      ; (send progress start)
 			      (begin-edit-sequence #f))
 			    (lambda () 
 			      (set! htmling? #t)
@@ -294,7 +297,9 @@
 				      (and mime-type
 					   (regexp-match "text/html" mime-type)))
 				  ; HTML
-				  (let* ([d (make-object dialog% "Getting Page" top-level-window 400)]
+				  (let* ([es (make-eventspace)]
+					 [d (parameterize ([current-eventspace es])
+					      (make-object dialog% "Getting Page" top-level-window 400))]
 					 [c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))]
 					 [e (make-object text%)]
 					 [exn #f]
@@ -343,7 +348,7 @@
 			    (lambda ()
 			      (end-edit-sequence)
 			      (end-busy-cursor)
-			      (send progress stop)
+			      ; (send progress stop)
 			      (set! htmling? #f)
 			      (close-input-port p)))
 	      (set-modified #f)
@@ -353,10 +358,10 @@
   (define hyper-text% (hyper-text-mixin text%))
 
   (define (hyper-canvas-mixin super%)
-    (class super% (progress . args)
+    (class super% args
       (inherit get-editor set-editor refresh get-parent get-top-level-window)
       (public
-	[make-editor (lambda (url) (make-object hyper-text% progress url (get-top-level-window)))]
+	[make-editor (lambda (url) (make-object hyper-text% url (get-top-level-window)))]
 	[current-page
 	 (lambda ()
 	   (let ([e (get-editor)])
@@ -430,7 +435,7 @@
 	       (update-buttons page)
 	       (send c set-page page #f)
 	       (on-navigate))))]
-	[make-canvas (lambda () (make-object hyper-canvas% progress this))])
+	[make-canvas (lambda () (make-object hyper-canvas% this))])
       (private
 	[past null] [future null] [init-page #f]
 	[hp (make-object horizontal-panel% this)]
@@ -480,10 +485,10 @@
 				    [else (loop (cdr l)
 						(cons (car l) pre)
 						(sub1 pos))])))))]
-	[progress (make-object scrolling-canvas% bitmaps hp)]
+	; [progress (make-object scrolling-canvas% bitmaps hp)]
 	[c (make-canvas)])
       (public
-	[get-progress (lambda () progress)]
+	; [get-progress (lambda () progress)]
 	[get-canvas (lambda () c)]
 	[on-navigate void]
 	[leaving-page (lambda (page new-page)

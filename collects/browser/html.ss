@@ -677,7 +677,8 @@
 			[(select textarea)
 			 (let* ([unsupported (make-unsupported tag args)]
 				[len (string-length unsupported)])
-			   (insert unsupported pos end-pos)
+			   (delete pos end-pos)
+			   (insert unsupported pos)
 			   (change-style normal-style pos (+ pos len))
 			   (result (+ pos len) #f))]
 			[else 
