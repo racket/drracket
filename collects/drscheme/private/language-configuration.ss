@@ -199,7 +199,7 @@
             (add-welcome dialog welcome-before-panel welcome-after-panel))
 
           (send dialog stretchable-width #f)
-          (send dialog stretchable-height #f)
+          (send dialog stretchable-height #t)
 
           (unless parent
             (send dialog center 'both))
@@ -267,7 +267,8 @@
 				    (lambda (child)
 				      (send fst-selected select #f)
 				      (send child select #t)
-				      (open-parents child))]
+				      (open-parents child)
+                                      (make-visible child))]
 				   [else (sibling-loop (inc index))]))]
 			      [else (loop parent)]))))))))
               
@@ -288,7 +289,7 @@
                     [(send item get-allow-selection?)
                      item]
                     [else #f])))
-              
+
               ;; find-index : tst (vectorof tst) -> int
               ;; returns the index of `item' in `vec'
               (define/private (find-index item vec)
@@ -307,7 +308,15 @@
                   (when item
                     (send item open)
                     (loop (send item get-parent)))))
-              
+
+              (define/private (make-visible item)
+                (let loop ([item item])
+                  (let ([parent (send item get-parent)])
+                    (if parent
+                      (loop parent)
+                      (send item scroll-to))))
+                (send item scroll-to))
+
               (define/override (on-select i)
                 (cond
 		  [(and i (is-a? i hieritem-language<%>))
@@ -680,10 +689,10 @@
 	  (send languages-hier-list stretchable-width #t)
 	  (send languages-hier-list stretchable-height #t)
 	  (send parent reflow-container)
-          (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
-	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (close-all-languages)
 	  (open-current-language)
+          (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
+	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
           (when get/set-selected-language-settings
             (get/set-selected-language-settings settings-to-show))
           (send languages-hier-list focus)
