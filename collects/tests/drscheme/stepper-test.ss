@@ -26,7 +26,7 @@
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    '(for-each
+    (for-each
       (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
       (directory-list sample-solutions-directory))
     
@@ -195,7 +195,8 @@
   ;; get-more-steps : stepper-frame -> (listof step)
   ;; repeatedly push the next button to get out all of the steps
   (define (get-more-steps stepper-frame)
-    (let ([next-button (find-labelled-window "Next >>" button% stepper-frame)])
+    (let ([next-button (find-labelled-window "Next >>" button% stepper-frame)]
+          [stepper-canvas (find-labelled-window #f editor-canvas% stepper-frame)])
       
       ;; just make sure we are in a ready state.
       (poll-until (lambda () (send next-button is-enabled?)) 1 void)
@@ -210,13 +211,21 @@
            ;; indicate a new step is rendered
            (poll-until
             (lambda () (send next-button is-enabled?))
-            2
+            1
             void)
            
-           (let ([step (get-step stepper-frame)])
-             (if step
-                 (cons step (loop (- n 1)))
-                 (loop (- n 1))))]
+           ;; wait for the stepper-canvas to have an editor
+           (poll-until
+            (lambda () (send stepper-canvas get-editor))
+            1
+            void)
+           
+           (if (send stepper-canvas get-editor)
+               (let ([step (get-step stepper-frame)])
+                 (if step
+                     (cons step (loop (- n 1)))
+                     (loop (- n 1))))
+               null)]
           [else null]))))
   
   ;; get-step : frame -> (union step #f)
