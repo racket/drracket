@@ -25,7 +25,7 @@
               (drscheme:language-configuration : drscheme:language-configuration/internal^))
       
       
-  ;; no more extension after this point
+      ;; no more extension after this point
       (drscheme:get/extend:get-interactions-canvas%)
       (drscheme:get/extend:get-definitions-canvas%)
       (drscheme:get/extend:get-unit-frame%)

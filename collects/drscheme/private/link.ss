@@ -1,5 +1,6 @@
 (module link mzscheme
-  (require "teachpack.ss"
+  (require "module-language.ss"
+           "teachpack.ss"
 	   "tools.ss"
            (lib "unitsig.ss")
 	   "language.ss"
@@ -33,10 +34,14 @@
                   (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
             [language-configuration : drscheme:language-configuration/internal^ 
-                                    (language-configuration@ unit rep teachpack)]            
+                                    (language-configuration@ unit rep teachpack)]
+            [module-language : drscheme:module-language^ 
+                             (module-language@ language-configuration language unit)]
             [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
 	    [app : drscheme:app^ (app@ unit frame help-desk tool)]
-            [main-before : () (main-before@ app unit get/extend language-configuration language teachpack)]
+            [main-before : () (main-before@ 
+                               app unit get/extend language-configuration language teachpack
+                               module-language)]
             [tool : drscheme:tools^ (tools@ frame unit rep get/extend language
                                           (language-configuration : drscheme:language-configuration^)
                                           help-desk init snip)]

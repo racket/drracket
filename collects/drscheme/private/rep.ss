@@ -46,7 +46,7 @@
         (list 'mzscheme
               '(lib "mred.ss" "mred")))
       ;; just double check that they are all here.
-      (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-specs)
+      (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-module-specs)
       ;; get the names of those modules.
       (define to-be-copied-module-names
         (let ([get-name
@@ -54,7 +54,7 @@
                  (if (symbol? spec)
                      spec
                      ((current-module-name-resolver) spec #f #f)))])
-          (map get-name to-be-copied-specs)))
+          (map get-name to-be-copied-module-specs)))
 
       (define sized-snip<%>
 	(interface ((class->interface snip%))
@@ -368,9 +368,13 @@
         (send (drscheme:language-configuration:language-settings-language language-settings)
               default-settings?
               (drscheme:language-configuration:language-settings-settings language-settings)))
+
       (define (extract-language-name language-settings)
         (car (last-pair (send (drscheme:language-configuration:language-settings-language language-settings)
                               get-language-position))))
+      (define (extract-language-style-delta language-settings)
+        (send (drscheme:language-configuration:language-settings-language language-settings)
+              get-style-delta))
 
       (define-struct sexp (left right prompt))
       
@@ -1790,7 +1794,9 @@
 	      (set-position (last-position) (last-position))
 	      
 	      (insert-delta (string-append (string-constant language) ": ") welcome-delta)
-	      (insert-delta (extract-language-name user-language-settings) dark-green-delta)
+	      (insert-delta (extract-language-name user-language-settings)
+                            dark-green-delta
+                            (extract-language-style-delta user-language-settings))
 	      (unless (is-default-settings? user-language-settings)
 		(insert-delta (string-append " " (string-constant custom)) dark-green-delta))
 	      (insert-delta (format ".~n") welcome-delta)

@@ -2,7 +2,8 @@
   (require (lib "unitsig.ss")
 	   (lib "framework-sig.ss" "framework"))
   
-  (provide drscheme:get-collection^
+  (provide drscheme:module-language^
+           drscheme:get-collection^
            drscheme:main^
            drscheme:init^
            drscheme:snip^
@@ -23,6 +24,9 @@
            drscheme:teachpack^
            drscheme:tool^
 	   drscheme^)
+
+  (define-signature drscheme:module-language^
+    (add-module-language))
   
   (define-signature drscheme:get-collection^
     (get-file/collection))

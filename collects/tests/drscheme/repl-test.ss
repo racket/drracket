@@ -16,14 +16,14 @@
   (define-struct test (program               ;; : (union string 'abc-text-box 'fraction-sum)
                        execute-answer        ;; : string
                        load-answer           ;; : (union #f string)
-
+                       
                        has-backtrace?        ;; : boolean
                        ;; indicates if the backtrace icon should appear for this test
                        ;; only applies to the debug tests
                        
                        source-location ;; : (union 'definitions
-                                       ;;          'interactions
-                                       ;;          (cons loc loc))
+                       ;;          'interactions
+                       ;;          (cons loc loc))
 		       ;; if cons, the car and cdr are the start and end positions resp.
 		       ;; if 'interactions, no source location and
 		       ;;    the focus must be in the interactions window
@@ -133,7 +133,7 @@
                 #f
                 #f)
      
-   ;; eval tests
+     ;; eval tests
      (make-test "    (eval '(values 1 2))"
                 "1\n2"
                 "1\n2"
@@ -254,7 +254,7 @@
                 'expand
                 #t
                 #f)
-
+     
      (make-test "(current-namespace (make-namespace 'empty))\nif"
                 "~a: compile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in: if"
                 #f
@@ -263,7 +263,7 @@
                 'expand
                 #t
                 #f)
-
+     
      ;; macro tests
      (make-test "(define-syntax (c stx) (syntax-case stx () [(_ p q r) (syntax (+ p q r))]))"
 		""
@@ -273,10 +273,10 @@
 		#f
                 #f
 		#f)
-
-
      
-   ;; error escape handler test
+     
+     
+     ;; error escape handler test
      (make-test
       "(let ([old (error-escape-handler)])\n(+ (let/ec k\n(dynamic-wind\n(lambda () (error-escape-handler (lambda () (k 5))))\n(lambda () (car))\n(lambda () (error-escape-handler old))))\n10))"
       "car: expects 1 argument, given 0\n15"
@@ -307,7 +307,7 @@
                 #f
                 #f)
      
-
+     
      
      (make-test
       "(define s (make-semaphore 0))\n(queue-callback\n(lambda ()\n(dynamic-wind\nvoid\n(lambda () (car))\n(lambda () (semaphore-post s)))))\n(yield s)"
@@ -319,7 +319,7 @@
       #f
       #f)
      
-   ;; breaking tests
+     ;; breaking tests
      (make-test "(semaphore-wait (make-semaphore 0))"
                 "user break"
                 "user break"
@@ -405,7 +405,7 @@
     (let-values ([(base name dir?) (split-path tmp-load-filename)])
       name))
   
-
+  
   ;; setup-fraction-sum-interactions : -> void 
   ;; clears the definitions window, and executes `1/2' to
   ;; get a fraction snip in the interactions window.
@@ -417,9 +417,9 @@
     (do-execute drscheme-frame)
     (let* ([start (send interactions-text paragraph-start-position 2)]
            
-          ;; since the fraction is supposed to be one char wide, we just
-          ;; select one char, so that, if the regular number prints out,
-          ;; this test will fail.
+           ;; since the fraction is supposed to be one char wide, we just
+           ;; select one char, so that, if the regular number prints out,
+           ;; this test will fail.
            [end (+ start 1)])
       (send interactions-text set-position start end)
       (fw:test:menu-select "Edit" "Copy"))
@@ -429,11 +429,11 @@
     (type-in-definitions drscheme-frame " 1/3)"))
   
   
-    ; given a filename "foo", we perform two operations on the contents 
-    ; of the file "foo.ss".  First, we insert its contents into the REPL
-    ; directly, and second, we use the load command.  We compare the
-    ; the results of these operations against expected results.
-    (define run-single-test
+  ; given a filename "foo", we perform two operations on the contents 
+  ; of the file "foo.ss".  First, we insert its contents into the REPL
+  ; directly, and second, we use the load command.  We compare the
+  ; the results of these operations against expected results.
+  (define run-single-test
     (lambda (execute-text-start escape raw?)
       (lambda (in-vector)
         (let* ([program (test-program in-vector)]
@@ -592,7 +592,7 @@
                   (unless (string=? received-load formatted-load-answer)
                     (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
                             program formatted-load-answer received-load)))))
-                
+            
             ; check for edit-sequence
             (when (repl-in-edit-sequence?)
               (printf "FAILED: repl in edit-sequence")

@@ -39,11 +39,11 @@
           front-end
 	  config-panel
 	  on-execute
-          get-teachpack-names
           render-value/format
           render-value
           
-          get-language-position))
+          get-language-position
+          get-style-delta))
       
       (define module-based-language<%>
 	(interface ()
@@ -57,7 +57,6 @@
           use-namespace-require/copy?
 	  config-panel
 	  on-execute
-          get-teachpack-names
           render-value/format
           render-value
           
@@ -66,16 +65,14 @@
       (define simple-module-based-language<%>
 	(interface ()
 	  get-module
-          get-language-position
-          get-teachpack-names))
+          get-language-position))
       
       (define simple-module-based-language%
         (class* object% (simple-module-based-language<%>)
-          (init-field module language-position teachpack-names)
-          (public get-module get-language-position get-teachpack-names)
+          (init-field module language-position)
+          (public get-module get-language-position)
           (define (get-module) module)
 	  (define (get-language-position) language-position)
-          (define (get-teachpack-names) teachpack-names)
 	  (super-instantiate ())))
       
       ;; simple-module-based-language->module-based-language : module-based-language<%>
@@ -237,12 +234,13 @@
          (current-inspector (make-inspector))
 	 (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
-      ;; module-based-language->language : language<%>
+      ;; module-based-language->language : module-based-language -> language<%>
       ;; given a module-based-language, implements a language
       (define module-based-language->language-mixin
 	(mixin (module-based-language<%>) (language<%>)
 	  (inherit get-module get-transformer-module use-namespace-require/copy?)
 	  (rename [super-on-execute on-execute])
+          (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)
 	    (initialize-module-based-language (use-namespace-require/copy?)
@@ -252,7 +250,7 @@
           (define/public (front-end input settings)
             (module-based-language-front-end input))
           (super-instantiate ())))
-      
+
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy?
                                                 module-spec

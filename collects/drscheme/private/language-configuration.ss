@@ -189,7 +189,16 @@
                    (let ([item
                           (send hier-list new-item
                                 (language-mixin language language-details-panel get/set-settings))])
-                     (send (send item get-editor) insert (car lng))
+                     
+                     (let ([text (send item get-editor)]
+                           [delta (send language get-style-delta)])
+                       (send text insert (car lng))
+                       (when delta
+                         (send text change-style 
+                               (send language get-style-delta)
+                               0
+                               (send text last-position))))
+                     
                      (cond
                        [(equal? (send language-to-show get-language-position)
                                 (send language get-language-position))

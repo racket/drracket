@@ -72,13 +72,24 @@
                  (unless (string=? str "")
                    (make-object separator-menu-item% menu)
                    (make-object menu-item%
-                     (format (string-constant search-help-desk-for) str)
+                     (format (string-constant search-help-desk-for) 
+                             (shorten-str 
+                              str 
+                              (- 200 (string-length (string-constant search-help-desk-for)))))
                      menu
                      (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
                    (make-object menu-item%
-                     (format (string-constant exact-lucky-search-help-desk-for) str)
+                     (format (string-constant exact-lucky-search-help-desk-for) 
+                             (shorten-str 
+                              str 
+                              (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
                      menu
                      (lambda x (help-desk:help-desk str #t 'keyword+index 'exact))))))))))
+      
+      (define (shorten-str str len)
+        (if ((string-length str) . <= . len)
+            str
+            (substring str 0 len)))
       
       (define (get-fraction-from-user)
         (let* ([dlg (make-object dialog% (string-constant enter-fraction))]

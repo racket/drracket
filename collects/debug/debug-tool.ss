@@ -430,8 +430,7 @@
         (drscheme:language-configuration:add-language
          (instantiate debug-lang% ()
            (module module)
-           (language-position position)
-           (teachpack-names null))
+           (language-position position))
          #t))
 
       (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant r5rs-like-languages)
