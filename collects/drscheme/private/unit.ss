@@ -9,6 +9,7 @@
            (lib "framework.ss" "framework")
            (prefix launcher: (lib "launcher.ss" "launcher"))
            (lib "etc.ss")
+           (lib "name-message.ss" "mrlib")
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
            (prefix mzlib:date: (lib "date.ss")))
@@ -528,7 +529,7 @@
           (define (on-paint)
             (let ([dc (get-dc)])
               (let-values ([(w h) (get-client-size)])
-                (drscheme:frame:draw-button-label dc label w h inverted?))))
+                (draw-button-label dc label w h inverted?))))
           
           (define sort-by-name? #f)
           (define sorting-name (string-constant sort-by-name))
@@ -603,7 +604,7 @@
           
           (super-make-object parent)
           
-          (define-values (width height) (drscheme:frame:calc-button-min-sizes (get-dc) label))
+          (define-values (width height) (calc-button-min-sizes (get-dc) label))
           (min-width width)
           (min-height height)
           (stretchable-width #f)
@@ -1798,12 +1799,13 @@
             (demand-callback (lambda (item) (collapse-demand item))))
           
           [define top-panel (make-object horizontal-panel% (get-area-container))]
-          [define name-panel (make-object vertical-panel% top-panel)]
+          [define name-panel (instantiate vertical-panel% ()
+                               (parent top-panel)
+                               (stretchable-width #f)
+                               (stretchable-height #f))]
           [define resizable-panel (instantiate vertical-dragable/def-int% ()
                                     (unit-frame this)
                                     (parent (get-definitions/interactions-panel-parent)))]
-          (send name-panel stretchable-width #f)
-          (send name-panel stretchable-height #f)
           
           [define definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas)
                                        resizable-panel)]
@@ -1841,7 +1843,7 @@
                       (save)
                       (send definitions-canvas focus)))))
           
-          (set! name-message (make-object drscheme:frame:name-message% name-panel))
+          (set! name-message (make-object name-message% name-panel))
           [define teachpack-items null]
           [define break-button (void)]
           [define execute-button (void)]

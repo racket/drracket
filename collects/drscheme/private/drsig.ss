@@ -125,10 +125,7 @@
      add-to-program-editor-mixin))
   
   (define-signature drscheme:frame^
-    (name-message%
-     draw-button-label
-     calc-button-min-sizes
-     <%>
+    (<%>
      mixin
      basics-mixin
      basics<%>))
