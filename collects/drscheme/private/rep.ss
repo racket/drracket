@@ -1558,21 +1558,20 @@
 
                                   
                   ;; re-loads any teachpacks that have changed
-                  ;; re-invokes all of the teachpacks
-                  ;; must happen after user-namespace is initialized (in initialize-parameters)
                   (drscheme:teachpack:load-teachpacks user-namespace (preferences:get 'drscheme:teachpacks))
 	      
-                  ;; installs the teachpacks
-                  (queue-user/wait
-                   (lambda () ; =User=, =No-Breaks=
-                     (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))))
-                  
 		  ;; initialize the language
 		  (send (drscheme:language-configuration:language-settings-language user-language-settings)
 			on-execute
 			(drscheme:language-configuration:language-settings-settings user-language-settings)
 			queue-user/wait)
 
+                  ;; installs the teachpacks
+                  ;; must happen after language is initialized.
+                  (queue-user/wait
+                   (lambda () ; =User=, =No-Breaks=
+                     (drscheme:teachpack:install-teachpacks (preferences:get 'drscheme:teachpacks))))
+                  
 		  (parameterize ([current-eventspace user-eventspace])
 		    (queue-callback
 		     (lambda ()
@@ -1774,15 +1773,12 @@
 	      (insert-delta (format ".~n") welcome-delta)
 	      
 	      (for-each
-	       (lambda (fn applies?)
+	       (lambda (fn)
 		 (insert-delta (string-append (string-constant teachpack) ": ")
-                               (if applies? welcome-delta grey-delta))
-		 (insert-delta fn
-                               (if applies? dark-green-delta grey-delta))
-		 (insert-delta (format ".~n") 
-                               (if applies? welcome-delta grey-delta)))
-	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks))
-               (drscheme:teachpack:teachpack-cache-applies (preferences:get 'drscheme:teachpacks)))
+                               welcome-delta)
+		 (insert-delta fn dark-green-delta)
+		 (insert-delta (format ".~n") welcome-delta))
+	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
 	      
 	      (set! repl-initially-active? #t)
 	      (end-edit-sequence)
