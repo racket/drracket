@@ -430,6 +430,15 @@
                 #f
                 #f)
      
+     (make-test "(define x 1)\n(begin (set! x (call/cc (lambda (x) x)))\n(x 3))"
+		"procedure application: expected procedure, given: 3; arguments were: 3"
+                "procedure application: expected procedure, given: 3; arguments were: 3"
+                #t
+		(cons (make-loc 3 7 61) (make-loc 3 12 66))
+		#f
+                #f
+                #f)
+     
      ;; thread tests
      (make-test "(begin (thread (lambda () x)) (sleep 1/10))"
                 "reference to undefined identifier: x"
