@@ -12,7 +12,11 @@
            (lib "etc.ss")
            (lib "file.ss")
            (lib "pconvert.ss")
-           (lib "getinfo.ss" "setup"))
+           (lib "getinfo.ss" "setup")
+           (lib "toplevel.ss" "syntax"))
+  
+  (define original-output (current-output-port))
+  (define (printfo . args) (apply printf args))
   
   (provide language-configuration@)
   
@@ -930,6 +934,25 @@
 
 
       
+      ;; add-expand-to-front-end : mixin
+      ;; overrides front-end to make the language a language that expands its arguments
+      (define (add-expand-to-front-end %)
+        (class %
+          (rename [super-front-end front-end])
+          (define/override (front-end input settings)
+            (let ([thnk (super-front-end input settings)])
+              (lambda ()
+                (let ([res (thnk)])
+                  (cond
+                    [(syntax? res) (with-syntax ([res res]
+                                                 [expand-top-level-with-compile-time-evals
+                                                  expand-top-level-with-compile-time-evals])
+                                     #'(expand-top-level-with-compile-time-evals #'res))]
+                    [(eof-object? res) res]
+                    [else `(expand ',res)])))))
+          (super-instantiate ())))
+                                       
+      
       ;; add-built-in-languages : -> void
       (define (add-built-in-languages)
         (let* ([extras-mixin
@@ -961,13 +984,14 @@
                              (use-namespace-require/copy?)))))
                       (super-instantiate ()))))]
                [make-simple
-                (lambda (module position numbers mred-launcher? one-line-summary)
+                (lambda (module position numbers mred-launcher? one-line-summary extra-mixin)
                   (let ([%
-                         ((extras-mixin mred-launcher? one-line-summary)
-                          ((drscheme:language:get-default-mixin)
-                           (drscheme:language:module-based-language->language-mixin
-                            (drscheme:language:simple-module-based-language->module-based-language-mixin
-                             drscheme:language:simple-module-based-language%))))])
+                         (extra-mixin
+                          ((extras-mixin mred-launcher? one-line-summary)
+                           ((drscheme:language:get-default-mixin)
+                            (drscheme:language:module-based-language->language-mixin
+                             (drscheme:language:simple-module-based-language->module-based-language-mixin
+                              drscheme:language:simple-module-based-language%)))))])
                     (instantiate % ()
                       (module module)
                       (language-position position)
@@ -978,24 +1002,36 @@
                               (string-constant mzscheme-w/debug))
                         (list -10 1)
                         #f
-                        (string-constant mzscheme-one-line-summary)))
+                        (string-constant mzscheme-one-line-summary)
+                        (lambda (x) x)))
           (add-language
            (make-simple '(lib "plt-mred.ss" "lang")
                         (list (string-constant plt)
                               (string-constant mred-w/debug))
                         (list -10 2)
                         #t
-                        (string-constant mred-one-line-summary)))
+                        (string-constant mred-one-line-summary)
+                        (lambda (x) x)))
           (add-language
            (make-simple '(lib "plt-pretty-big.ss" "lang")
                         (list (string-constant plt)
                               (string-constant pretty-big-scheme))
                         (list -10 3)
                         #t
-                        (string-constant pretty-big-scheme-one-line-summary)))
+                        (string-constant pretty-big-scheme-one-line-summary)
+                        (lambda (x) x)))
+          (add-language
+           (make-simple '(lib "plt-mzscheme.ss" "lang")
+                        (list (string-constant plt)
+                              "Expander")
+                        (list -10 4)
+                        #t
+                        "Expands, rather than evaluates expressions"
+                        add-expand-to-front-end))
           (add-language
            (make-simple '(lib "r5rs.ss" "lang")
                         (list (string-constant r5rs-lang-name))
                         (list -1000)
                         #f
-                        (string-constant r5rs-one-line-summary))))))))
+                        (string-constant r5rs-one-line-summary)
+                        (lambda (x) x))))))))
