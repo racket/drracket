@@ -2,7 +2,7 @@
         Version 299
 ------------------------------
 
-- The regular expression language for the lexer has changed.
+ - The regular expression language for the lexer has changed.
    See doc.txt in the parser-tools collection.
    (This isn't a DrScheme change per se.)
 
@@ -19,6 +19,10 @@
    PLTDRDEBUG
 
  - tool & framework interface changes:
+
+   . render-value and render-value/format no longer take the
+     put-snip argument. Use write-special on the port
+     instead.
 
    . order-manuals in
      drscheme:tool:language-configuration<%> now accepts

@@ -626,6 +626,29 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
                 #f
                 void
                 void)
+
+     ;; graphical lambda tests
+     (make-test (list "((" '("Special" "Insert Lambda") "(x) x) 1)")
+                "1"
+                "1"
+                #f
+                'interactions
+		#f
+                #f
+                #f
+                void
+                void)
+     
+     (make-test (list "(" '("Special" "Insert Lambda") "())")
+                "~alambda: bad syntax in: (lambda ())"
+                "~alambda: bad syntax in: (lambda ())"
+                #t
+                (cons (make-loc 0 0 0) (make-loc 0 11 11))
+		'expand
+                #t
+                #f
+                void
+                void)
      
      ;; thread tests
      (make-test "(begin (thread (lambda () x)) (sleep 1/10))"
