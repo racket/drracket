@@ -123,8 +123,7 @@
     (draw-arrow))
   
   (define-signature drscheme:load-handler^
-    (provide
-     process-text
+    (process-text
      drscheme-load-handler))
  
   (define-signature drscheme:help-interface^
