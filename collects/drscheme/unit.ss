@@ -14,7 +14,7 @@
     
     (define make-bitmap
       (let* ([font (send wx:the-font-list find-or-create-font
-			 12
+			 (if (eq? wx:platform 'windows) 8 12)
 			 wx:const-system
 			 wx:const-normal
 			 wx:const-normal)]
