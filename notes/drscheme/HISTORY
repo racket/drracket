@@ -1,4 +1,17 @@
 ------------------------------
+        Version 203
+------------------------------
+
+GENERAL
+-------
+
+- added test suite support for use with the How to Design
+  Programs
+
+- added support for recovering autosave files when DrScheme
+  crashes.
+
+------------------------------
         Version 202
 ------------------------------
 
