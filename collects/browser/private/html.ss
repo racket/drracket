@@ -686,7 +686,7 @@
                             [(= e 8211) (insert "--") void]
                             [(= e 8212) (insert "---") void]
 
-                            [else (insert (format "&#~a;" e))]))]
+                            [else (insert (format "&#~a;" e)) void]))]
 
 		       ;; ========================================
 		       ;; This is the main formatting function.
