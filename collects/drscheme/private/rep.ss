@@ -1567,7 +1567,7 @@
 			       (lambda ()
 				 (thnk)
 				 (semaphore-post wait))))
-			    (semaphore-wait wait)))])
+			    (semaphore-wait wait)))]) 
 
 		  ; setup standard parameters
                   (let ([snip-classes
@@ -1579,7 +1579,6 @@
                        (break-enabled #f)
                        (set! user-thread (current-thread))
                        (initialize-parameters snip-classes))))
-
                                   
                   ;; re-loads any teachpacks that have changed
                   (drscheme:teachpack:load-teachpacks user-namespace (preferences:get 'drscheme:teachpacks))
