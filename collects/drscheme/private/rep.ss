@@ -32,6 +32,13 @@
               (drscheme:load-handler : drscheme:load-handler^)
               (drscheme:help : drscheme:help-interface^))
       
+      (define sized-snip<%>
+	(interface ((class->interface snip%))
+	  ;; get-character-width : -> number
+	  ;; returns the number of characters wide the snip is,
+	  ;; for use in pretty printing the snip.
+	  get-character-width))
+
       (define (format-source-loc x) (format "~s" x))
       
       (define primitive-eval (current-eval))
@@ -1040,7 +1047,8 @@
                   (send text lock c-locked?)
                   (send text end-edit-sequence))))
             
-            (field (saved-newline? #f))
+	    ;; this-result-write : (union string (instanceof snip%)) -> void
+	    ;; writes `s' as a value produced by the REPL.
             (define this-result-write 
               (lambda (s) ; =User=
                 (queue-output
@@ -1051,6 +1059,9 @@
                                   (lambda (start end)
                                     (change-style result-delta
                                                   start end)))))))
+
+            (field (saved-newline? #f))
+	    ;; this-out-write : (union string snip%) -> void
             (define this-out-write
               (lambda (s) ; = User=
                 (queue-output
@@ -1079,7 +1090,11 @@
                        (gw (string #\newline)))
                      (gw s1))))))
             
-            (define (this-err-write/exn s exn) ; =User=
+	    ;; this-err-write/exn : (union string snip) (union exn #f) -> void
+	    ;; writes the string to the console error and highlights the
+	    ;; variable portion of the message if the second argument is
+	    ;; a variable:exn. 
+	    (define (this-err-write/exn s exn) ; =User=
               (queue-output
                (lambda () ; =Kernel=, =Handler=
                  (cleanup-transparent-io)
@@ -1127,6 +1142,8 @@
                              (loop (bind-to-help class-regexp s))))
                          (bind-to-help ivar-regexp s)
                          (bind-to-help fallthru-regexp s))]))))))
+
+	    ;; this-err-write : (union string (instanceof snip%)) -> void
             (define this-err-write ; =User=
               (lambda (s)
                 (this-err-write/exn s #f)))
@@ -1161,8 +1178,8 @@
                      [pretty-print-size-hook
                       (lambda (x _ port)
                         (cond
-                          ;; is get-count the right thing?
-                          [(is-a? x snip%) (send x get-count)]
+			  [(is-a? x sized-snip<%>) (send x get-character-width)]
+                          [(is-a? x snip%) 1]
                           [(use-number-snip? x)
                            (+ (string-length (number->string (floor x)))
                               (max (string-length
@@ -1172,6 +1189,15 @@
                                     (number->string 
                                      (numerator (- x (floor x)))))))]
                           [else #f]))]
+		     [pretty-print-print-hook
+		      ;; port and port-out-write must match at this point.
+		      (lambda (x _ port)
+			(let ([snip/str
+			       (cond
+				 [(use-number-snip? x)
+				  (make-object drscheme:snip:whole/part-number-snip% x)]
+				 [else x])])
+			  (port-out-write snip/str)))]
                      [make-setup-handler
                       (lambda (port port-out-write)
                         (lambda (port-handler pretty)
@@ -1188,8 +1214,7 @@
                                      (parameterize ([mzlib:pretty-print:pretty-print-size-hook
                                                      pretty-print-size-hook]
                                                     [mzlib:pretty-print:pretty-print-print-hook
-                                                     (lambda (x _ port)
-                                                       (port-out-write x))]
+						     pretty-print-print-hook]
                                                     [mzlib:pretty-print:pretty-print-columns
                                                      'infinity])
                                        (pretty v p)))))))))]

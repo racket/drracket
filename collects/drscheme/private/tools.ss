@@ -25,8 +25,10 @@
          (lambda (d) 
            (when (and (directory-exists? (build-path path d))
                       (not (string-ci=? d "CVS")))
-             (hash-table-put! collections-hash-table (string->symbol d) d))) 
-         (directory-list path)))
+             (hash-table-put! collections-hash-table (string->symbol d) d)))
+         (with-handlers ([not-break-exn?
+			  (lambda (x) null)])
+	   (directory-list path))))
       
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
@@ -34,7 +36,7 @@
         (let ([table (with-handlers ([not-break-exn? (lambda (x) #f)])
                        (get-info (list coll)))])
           (when table
-            (let ([tools (table 'tools null)])
+            (let ([tools (table 'tools (lambda () null))])
               (for-each (load/invoke-tool coll) tools)))))
       
       ;; load/invoke-tool : string[collection-name] -> (listof string[sub-collection-names]) -> void
