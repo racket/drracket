@@ -13,20 +13,27 @@
 
   (define-syntax wrap-tool-inputs
     (lambda (stx)
-      (let ([table (call-with-input-file (build-path (collection-path "drscheme"
-                                                                      "private")
-                                                     "tool-info.ss")
-                     (lambda (port)
-                       (let loop ()
-                         (let ([ent (read port)])
-                           (if (eof-object? ent)
-                               null
-                               (cons ent (loop)))))))])
+      (let ([table 
+             (call-with-input-file (build-path (collection-path "drscheme"
+                                                                "private")
+                                               "tool-info.ss")
+               (lambda (port)
+                 (let loop ()
+                   (let ([ent (read port)])
+                     (if (eof-object? ent)
+                         null
+                         (cons ent (loop)))))))])
         (syntax-case stx ()
           [(_ body tool-name)
-           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object stx (cadr x)))
+           (with-syntax ([(type ...) (map (lambda (x) (datum->syntax-object 
+                                                       stx 
+                                                       (cadr x)
+                                                       (list "tool-info.ss" #f #f #f #f)))
                                           table)]
-                         [(name ...) (map (lambda (x) (datum->syntax-object stx (car x)))
+                         [(name ...) (map (lambda (x) (datum->syntax-object 
+                                                       stx
+                                                       (car x)
+                                                       (list "tool-info.ss" #f #f #f #f)))
                                           table)]
                          [src-info (datum->syntax-object stx 'name)])
              (syntax
