@@ -467,6 +467,7 @@
 			 (change-style delta:fixed pos end-pos)
 			 (normal)]
 			[(pre)
+			 (change-style delta:fixed pos end-pos)
 			 (result (+ end-pos (try-newline end-pos 2 #t)) #t)]
 			[(h1) (heading delta:h1)]
 			[(h2) (heading delta:h2)]

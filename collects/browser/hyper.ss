@@ -141,7 +141,7 @@
 				  (begin
 				    (begin-edit-sequence)
 				    (let loop ()
-				      (let ([r (read-line p)])
+				      (let ([r (read-line p 'any)])
 					(unless (eof-object? r)
 					  (insert r)
 					  (insert #\newline)
