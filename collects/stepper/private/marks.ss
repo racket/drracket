@@ -5,15 +5,17 @@
            "my-macros.ss"
            "shared.ss")
 
+  (define-struct full-mark-struct (source label-num bindings))
+
   ; CONTRACTS
   (define mark? (-> ; no args  
-                 full-mark-struct?)
-  (define mark-list? (listof mark?))
+                 full-mark-struct?))
+  (define mark-list? (listof procedure?))
 
   (provide/contract 
    [make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
    [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any?)]
-   [expose-mark (-> mark? (list/n syntax? symbol? (listof (list/n indentifier? any?))))])
+   [expose-mark (-> mark? (list/p syntax? symbol? (listof (list/p identifier? any?))))])
   
   (provide
    skipto-mark?
@@ -29,7 +31,6 @@
    mark-label
    mark-binding-value
    mark-binding-binding
-   expose-mark
    display-mark
    lookup-binding
    lookup-binding-list
@@ -88,7 +89,6 @@
 ;         (get-label-num 'quux))
 ;   '(0 1 2 1 0 2 3))
   
-  (define-struct full-mark-struct (source label-num bindings))
   ; the 'varargs' creator is used to avoid an extra cons cell in every mark:
   (define (make-full-mark-varargs source label-num . bindings)
     (make-full-mark-struct source label-num bindings))
