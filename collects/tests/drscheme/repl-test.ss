@@ -272,11 +272,6 @@
 
 (define drscheme-frame (wait-for-drscheme-frame))
 
-(define user-directory
-  (normalize-path
-   ((in-parameterization (ivar (ivar drscheme-frame interactions-edit) user-param)
-			 current-directory))))
-
 (define interactions-edit (ivar drscheme-frame interactions-edit))
 (define interactions-canvas (ivar drscheme-frame interactions-canvas))
 (define definitions-edit (ivar drscheme-frame definitions-edit))
@@ -382,10 +377,7 @@
 	  ; stuff the load command into the REPL 
 	  
 	  (for-each fw:test:keystroke
-		    (string->list (format "(load ~s)"
-					  (find-relative-path
-					   user-directory
-					   tmp-load-filename))))
+		    (string->list (format "(load ~s)" tmp-load-filename)))
 	  
 	  ; record current text position, then stuff a CR into the REPL
 	  
@@ -419,7 +411,7 @@
 
 (define run-test-in-language-level
   (lambda (raw?)
-    (let ([level (if raw? "MzScheme" "MzSchemeDebug")])
+    (let ([level (if raw? "MzScheme" "MzScheme Debug")])
       (printf "running ~a tests~n" level)
       (set-language-level! level)
       (fw:test:new-window definitions-canvas)

@@ -10,16 +10,6 @@
 	  [fw : framework^]
 	  test-utils:gui^)
   
-  ;; HACK!
-  (define (get-drscheme-eventspace)
-    (if (defined? 'drscheme-eventspace)
-	(global-defined-value 'drscheme-eventspace)
-	(error 'get-drscheme-eventspace "drscheme-eventspace is not bound...")))
-  
-  (define (get-top-level-drscheme-focus-window)
-    (parameterize ([mred:current-eventspace (get-drscheme-eventspace)])
-      (mred:get-top-level-focus-window)))
-  
   ;; -> eventspace
   ;; returns the eventspace used by the program in the current drscheme window
   (define (get-user-eventspace)
@@ -48,8 +38,7 @@
   (define (wait-for-drscheme-frame)
     (let* ([pred (lambda ()
 		   (mred:yield)
-		   (let ([active (get-top-level-drscheme-focus-window)])
-		     (printf "active: ~a~n" active)
+		   (let ([active (mred:get-top-level-focus-window)])
 		     (if (and active
 			      (begin
 				(ivar-in-class? 'execute-button (object-class active))))
@@ -63,7 +52,7 @@
   (define (wait-for-new-frame old-frame)
     (poll-until
      (lambda ()
-       (let ([active (get-top-level-drscheme-focus-window)])
+       (let ([active (mred:get-top-level-focus-window)])
 	 (if (and active
 		  (not (eq? active old-frame)))
 	     active
@@ -153,14 +142,19 @@
   
   ; set language level in the frontmost DrScheme frame
   (define (set-language-level! level)
-    (let ([frame (get-top-level-drscheme-focus-window)])
+    (printf "getting frame ~n")
+    (let ([frame (mred:get-top-level-focus-window)])
+      (printf "selecting menu~n")
       (fw:test:menu-select "Language" "Configure Language...")
+      (printf "waiting for frame~n")
       (wait-for-new-frame frame)
+      (printf "got frame~n")
       (fw:test:set-choice! (find-labelled-window "Language" mred:choice%) level)
       (fw:test:button-push "OK")))
   
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
   
+  ;; to be written, still
   (define (fetch-output)
-    (get-top-level-drscheme-focus-window)))
+    (mred:get-top-level-focus-window)))
