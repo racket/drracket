@@ -538,7 +538,7 @@
 			   (update-shown))
 			 "Show the interactions window"
 			 #f
-			 "n"))
+			 "e"))
 	     mb))]
 	
 	[do-close
