@@ -644,14 +644,23 @@
 					       [end-pos (current-pos)])
 					  (lambda ()
 					    (change-style normal-style pos (+ 1 pos))
-					    (send a-text set-paragraph-margins
-						  (send a-text position-paragraph pos)
-						  (max 0 (- (* 2 (get-bullet-width) enum-depth)
-							    (if bullet?
-								(get-bullet-width)
-								0)))
-						  (* 2 (get-bullet-width) enum-depth)
-						  0)
+					    (let ([end-para (send a-text position-paragraph 
+								  (backover-newlines end-pos pos))]
+						  [left-margin (* 2 (get-bullet-width) enum-depth)])
+					      (let loop ([para (send a-text position-paragraph pos)]
+							 [first? #t])
+						(send a-text set-paragraph-margins
+						      para
+						      (if first?
+							  (max 0 (- left-margin
+								    (if bullet?
+									(get-bullet-width)
+									0)))
+							  left-margin)
+						      left-margin
+						      0)
+						(unless (= para end-para)
+						  (loop (add1 para) #f))))
 					    (r))))]
 				     [(ul ol dl)
 				      (insert-newlines 2 para-base)
