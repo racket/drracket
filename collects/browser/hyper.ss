@@ -814,11 +814,12 @@
       (private
         [p #f])
       (public
+	[get-hyper-panel% (lambda () hyper-panel%)]
         [get-hyper-panel (lambda () p)])
       (inherit show)
       (sequence 
 	(apply super-init args)
-	(set! p (make-object hyper-panel% #f this))
+	(set! p (make-object (get-hyper-panel%) #f this))
         (show #t)
         (send (send p get-canvas) goto-url start-url #f))))
 
