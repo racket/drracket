@@ -1,3 +1,47 @@
+Version 102:
+
+102d1
+
+ PRS: 1274, 1280, 1264, 1260, 1239, 1225, 1220, 1268, 1209, 1208,
+      1196, 1180, 1096, 1088, 1043, 771, 752, 846
+
+ FUNCTIONALITY CHANGES
+
+ - New project manager. The manual is not yet available, so
+   you will have to play with the Project menu yourself. I hope that
+   things are self-explanatory. There is no REPL support. Any repl
+   support that comes will be part of the debugger.
+
+   *** WARNING: NEW DIRECTORY ***
+
+   To get it, run these simple commands:
+
+    % cd PLTHOME/collects/drscheme
+    % cvs update -r exp -d
+
+ - added class/d macro. It's syntax is like that for a unit, but it
+   defines a class. Roughly:
+
+   (class/d
+    super-expresion
+    init-args
+    ((public var ...)
+     (override var ...)
+     (inherit var ...)
+     (rename (var var) ...))
+ 
+     definitions-and-expressions ...)
+
+ - the drscheme:get/extend:extend-* functions no longer haver %s at
+   the end of their names.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - bug report form cleaned up.
+
+ - improved the welcome window (merged with about box)
+
+
 Version 101:
 
 General
