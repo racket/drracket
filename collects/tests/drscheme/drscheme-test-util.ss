@@ -175,7 +175,6 @@
   
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
-  
  
   (define fetch-output
     (case-lambda
