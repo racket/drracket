@@ -9,7 +9,27 @@ GENERAL
   Programs
 
 - added support for recovering autosave files when DrScheme
-  crashes.
+  crashes
+
+- the draw.ss teachpack now provides the function 
+
+     get-key-event : -> Key 
+
+   This function enables programmers who use the draw.ss
+   teachpack to write interactive drawing games.
+   Warning: The function fails intermittently on Mac OS X. We intend 
+   to fix this problem in a future release.
+
+- Help Desk users can choose whether they wish to use a
+  frame-based version.  A toggle switch for this choice (in the
+  form of a link) appears on the Help Desk home page.  It can
+  also be changed in the Help Desk configuration.
+
+- Help Desk users can once again use the PLT internal browser;
+  look for the browser preference in DrScheme's preferences panel
+
+- removed an error in MrEd for Windows that was a frequent source of 
+  instability
 
 ------------------------------
         Version 202
