@@ -123,6 +123,7 @@
               (send rep lock locked?))
             
 	    (display msg (current-error-port))
+            (newline (current-error-port))
 	    
 	    (when (and (object? src) (is-a? src text:basic%))
 	      (if other-position
@@ -479,6 +480,7 @@
                      last-position
                      set-resetting
                      position-line
+                     position-paragraph
                      set-position
                      begin-edit-sequence
                      end-edit-sequence
@@ -1001,6 +1003,8 @@
 	    (inherit get-inserting-prompt)
 	    (field (error-range #f)
 		   (reset-callback void))
+            (public get-error-range)
+            (define (get-error-range) error-range)
 	    (define (highlight-error/forward-sexp text start)
 	      (let ([end (if (is-a? text scheme:text<%>)
                              (or (send text get-forward-sexp start)

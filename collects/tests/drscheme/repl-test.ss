@@ -1,4 +1,5 @@
->(module repl-test mzscheme
+
+(module repl-test mzscheme
   (require "drscheme-test-util.ss"
            (lib "class.ss")
            (lib "file.ss")
@@ -8,19 +9,22 @@
   
   (provide run-test)
   
+  (define-struct loc (line col offset))
+  ;; loc = (make-loc number number number)
+  ;; numbers in loc structs start at zero.
+  
   (define-struct test (program               ;; : (union string 'abc-text-box)
                        execute-answer        ;; : string
-                       load-answer           ;; : string
+                       load-answer           ;; : (union #f string)
 
                        has-backtrace?        ;; : boolean
+                       ;; indicates if the backtrace icon should appear for this test
+                       ;; only applies to the debug tests
                        
                        source-location ;; : (union 'definitions
                                        ;;          'interactions
-                                       ;;          (cons (vector number number number)
-                                       ;;                (vector number number number)))
-		       ;; if cons, the car and cdr are the start and end positions resp, and
-		       ;;    the numbers are the line, column and offset of the source location, resp.
-		       ;;    these numbers start at zero.
+                                       ;;          (cons loc loc))
+		       ;; if cons, the car and cdr are the start and end positions resp.
 		       ;; if 'interactions, no source location and
 		       ;;    the focus must be in the interactions window
 		       ;; if 'definitions, no source location and
@@ -32,7 +36,12 @@
 		       ;; that the error messsage is an expansion time error, so the
 		       ;; the source location is the repl.
 		       ;; #f indicates no source location error message
-
+                       ;; if this field is not #f, the execute-answer and load-answer fields
+                       ;; are expected to be `format'able strings with one ~a in them.
+                       
+                       docs-icon?                  ;; : boolean 
+                       ;; true if this should have a docs icon in front of the response.
+                       
                        breaking-test?))            ;; : boolean
   
   (define test-data
@@ -40,38 +49,43 @@
      
      ;; basic tests
      (make-test "("
-                "read: expected a ')'; started in "
-                "read: expected a ')'; started in "
+                "read: expected a ')'; started in~a"
+                "read: expected a ')'; started in~a"
                 #f
-                (cons (vector 0 0 0) (vector 0 1 1))
+                (cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
+                #f
                 #f)
      (make-test "."
-                "read: illegal use of \".\" in "
-                "read: illegal use of \".\" in "
+                "read: illegal use of \".\" in~a"
+                "read: illegal use of \".\" in~a"
                 #f
-		(cons (vector 0 0 0) (vector 0 1 1))
+		(cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
+                #f
                 #f)
      (make-test "(lambda ())"
-                "lambda: bad syntax in: (lambda ())"
-                "lambda: bad syntax in: (lambda ())"
+                "lambda: bad syntax in~a: (lambda ())"
+                "lambda: bad syntax in~a: (lambda ())"
                 #f
-                (cons (vector 0 0 0) (vector 0 11 11))
+                (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand
+                #t
                 #f)
      (make-test "xx"
                 "reference to undefined identifier: xx"
                 "reference to undefined identifier: xx"
+                #t
+                (cons (make-loc 0 0 0) (make-loc 0 2 2))
+		#f
                 #f
-                (cons (vector 0 0 0) (vector 0 2 2))
-		'expand
                 #f)
      (make-test "(raise 1)"
                 "uncaught exception: 1"
                 "uncaught exception: 1"
                 #f
                 'interactions
+                #f
                 #f
                 #f)
      (make-test "(raise #f)"
@@ -80,6 +94,7 @@
                 #f
 		'interactions
                 #f
+                #f
                 #f)
      (make-test "(values 1 2)"
                 "1\n2"
@@ -87,12 +102,14 @@
                 #f
 		'interactions
                 #f
+                #f
                 #f)
      (make-test "(list 1 2)"
                 "(1 2)"
                 "(1 2)"
                 #f
 		'interactions
+                #f
                 #f
                 #f)
      
@@ -103,6 +120,7 @@
                 #f
 		'interactions
                 #f
+                #f
                 #f)
      
    ;; eval tests
@@ -112,6 +130,7 @@
 		#f
 		'interactions
                 #f
+                #f
                 #f)
      (make-test "    (eval '(list 1 2))"
                 "(1 2)"
@@ -119,19 +138,22 @@
                 #f
 		'interactions
                 #f
+                #f
                 #f)
      (make-test "    (eval '(lambda ()))"
                 "lambda: bad syntax in: (lambda ())"
                 "lambda: bad syntax in: (lambda ())"
                 2
-		(cons (vector 0 4 4) (vector 0 23 23))
+		(cons (make-loc 0 4 4) (make-loc 0 23 23))
                 #f
+                #t
                 #f)
      (make-test "    (eval 'x)"
                 "reference to undefined identifier: x"
                 "reference to undefined identifier: x"
                 2
-		(cons (vector 0 4 4) (vector 0 13 13))
+		(cons (make-loc 0 4 4) (make-loc 0 13 13))
+                #f
                 #f
                 #f)
      
@@ -141,6 +163,7 @@
                 #f
 		'interactions
 		#f
+                #f
 		#f)
      
      (make-test "(eval '(box 1))"
@@ -149,6 +172,7 @@
                 #f
 		'interactions
 		#f
+                #f
 		#f)
      
    ;; printer setup test
@@ -156,31 +180,43 @@
                 "car: expects argument of type <pair>; given #<void>"
                 "car: expects argument of type <pair>; given #<void>"
                 2
-		(cons (vector 0 0 0) (vector 0 12 12))
+		(cons (make-loc 0 0 0) (make-loc 0 12 12))
+                #f
                 #f
                 #f)
      
      
    ;; error in the middle
      (make-test "1 2 ( 3 4"
-                "1\n2\nread: expected a ')'; started at position 5 in "
-                "read: expected a ')'; started at position 5 in "
+                "1\n2\nread: expected a ')'; started in~a"
+                "read: expected a ')'; started in~a"
 		2
-		(cons (vector 0 5 4) (vector 0 5 5))
-                #t
+		(cons (make-loc 0 5 4) (make-loc 0 5 5))
+                'read
+                #f
                 #f)
      (make-test "1 2 . 3 4"
-                "1\n2\nread: illegal use of \".\" at position 5 in "
-                "read: illegal use of \".\" at position 5 in "
+                "1\n2\nread: illegal use of \".\" in~a"
+                "read: illegal use of \".\" in~a"
 		2
-		(cons (vector 0 4 4) (vector 0 5 5))
+		(cons (make-loc 0 4 4) (make-loc 0 5 5))
+                'read
+                #f
+                #f)
+     (make-test "1 2 (lambda ()) 3 4"
+                "1\n2\nlambda: bad syntax in~a: (lambda ())"
+                "lambda: bad syntax in~a: (lambda ())"
+		2
+		(cons (make-loc 0 4 4) (make-loc 0 5 5))
+                'expand
                 #t
                 #f)
      (make-test "1 2 x 3 4"
                 "1\n2\nreference to undefined identifier: x"
                 "reference to undefined identifier: x"
 		2
-		(cons (vector 0 4 4) (vector 0 5 5))
+		(cons (make-loc 0 4 4) (make-loc 0 5 5))
+                #f
                 #f
                 #f)
      (make-test "1 2 (raise 1) 3 4"
@@ -189,6 +225,7 @@
 		#f
 		'interactions
                 #f
+                #f
                 #f)
      (make-test "1 2 (raise #f) 3 4"
                 "1\n2\nuncaught exception: #f"
@@ -196,24 +233,26 @@
 		#f
 		'interactions
                 #f
+                #f
                 #f)
      
-   ;; new namespace test
+     ;; new namespace test
      (make-test "(current-namespace (make-namespace))\nif"
-                "compile: illegal use of a syntactic form name in: if"
-                "compile: illegal use of a syntactic form name in: if"
-                
-                2
-		(cons (vector 0 37 37) (vector 0 39 39))
+                "compile: bad syntax in~a: if"
+                "compile: bad syntax in~a: if"
                 #f
+		(cons (make-loc 0 37 37) (make-loc 0 39 39))
+                'expand
+                #t
                 #f)
 
      (make-test "(current-namespace (make-namespace 'empty))\nif"
-                "compile: illegal use of a syntactic form name in: if"
-                "compile: illegal use of a syntactic form name in: if"
-                2
-		(cons (vector 0 37 37) (vector 0 39 39))
+                "compile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in~a: if"
                 #f
+                #f
+		(cons (make-loc 0 44 44) (make-loc 0 46 46))
+                'expand
+                #t
                 #f)
      
    ;; error escape handler test
@@ -221,8 +260,9 @@
       "(let ([old (error-escape-handler)])\n(+ (let/ec k\n(dynamic-wind\n(lambda () (error-escape-handler (lambda () (k 5))))\n(lambda () (car))\n(lambda () (error-escape-handler old))))\n10))"
       "car: expects 1 argument, given 0\n15"
       "car: expects 1 argument, given 0\n15"
-      2
+      #f
       'definitions
+      #f
       #f
       #f)
      
@@ -233,6 +273,7 @@
                 #f
 		'interactions
                 #f
+                #f
                 #f)
      
      (make-test
@@ -240,7 +281,8 @@
       "car: expects 1 argument, given 0"
       "car: expects 1 argument, given 0"
       2
-      (cons (vector 0 99 99) (vector 0 104 104))
+      (cons (make-loc 0 99 99) (make-loc 0 104 104))
+      #f
       #f
       #f)
      
@@ -249,7 +291,8 @@
                 "user break"
                 "user break"
                 2
-		(cons (vector 0 0 0) (vector 0 35 35))
+		(cons (make-loc 0 0 0) (make-loc 0 35 35))
+                #f
                 #f
                 #t)
      
@@ -257,7 +300,8 @@
                 "user break"
                 "user break"
                 2
-		(cons (vector 0 8 8) (vector 0 11 11))
+		(cons (make-loc 0 8 8) (make-loc 0 11 11))
+                #f
                 #f
                 #t)
      
@@ -267,24 +311,30 @@
                 #f
 		'interactions
 		#f
+                #f
 		#f)
      (make-test "(define v (vector (call/cc (lambda (x) x))))\n((vector-ref v 0) 2)\nv"
 		"#1(2)" "#1(2)"
                 #f
 		'interactions
-		#f #f)
+		#f
+                #f
+                #f)
      (make-test "(define v (vector (eval '(call/cc (lambda (x) x)))))\n((vector-ref v 0) 2)\nv"
 		"#1(2)" "#1(2)"
                 #f
 		'interactions
-		#f #f)
+		#f
+                #f
+                #f)
      
      ;; thread tests
      (make-test "(begin (thread (lambda () x)) (sleep 1/10))"
                 "reference to undefined identifier: x"
                 "reference to undefined identifier: x"
                 #t
-		(cons (vector 0 26 26) (vector 0 27 27))
+		(cons (make-loc 0 26 26) (make-loc 0 27 27))
+                #f
                 #f
                 #f)))
   
@@ -307,8 +357,14 @@
   (define wait-for-execute (lambda () (wait-for-button execute-button)))
   (define get-int-pos (lambda () (get-text-pos interactions-text)))
   
+  (define tmp-load-short-filename "repl-test-tmp.ss")
   (define tmp-load-filename
-    (normalize-path (build-path (collection-path "tests" "drscheme") "repl-test-tmp.ss")))
+    (normal-case-path
+     (normalize-path 
+      (build-path (collection-path "tests" "drscheme")
+                  tmp-load-short-filename))))
+  
+  
   
 ;; given a filename "foo", we perform two operations on the contents 
 ;; of the file "foo.ss".  First, we insert its contents into the REPL
@@ -323,16 +379,20 @@
 	       [source-location (test-source-location in-vector)]
 	       [source-location-in-message (test-source-location-in-message in-vector)]
 	       [error-start (and source-location-in-message
-				 (number->string (+ 1 (vector-ref (car source-location) 2))))]
+				 (number->string (+ 1 (loc-offset (car source-location)))))]
 	       [formatted-execute-answer
 		(let* ([pre
 			(if source-location-in-message
-			    (string-append execute-answer
-					   (case source-location-in-message
-					     [(read) "USERPORT"]
-					     [(expand) "#<struct:object:definitions-text%>"])
-					   ":"
-					   error-start)
+			    (format execute-answer
+                                    (string-append
+                                     " "
+                                     (case source-location-in-message
+                                       [(read) "USERPORT"]
+                                       [(expand) "#<struct:object:definitions-text%>"]
+                                       [else (error 'source-location-in-message "unk: ~s" 
+                                                    source-location-in-message)])
+                                     ":"
+                                     error-start))
 			    execute-answer)]
 		       [w/backtrace
 			(if (and (test-has-backtrace? in-vector)
@@ -340,23 +400,32 @@
 			    (string-append "{image} " pre)
 			    pre)]
 		       [w/docs-icon
-			(if (eq? source-location-in-message 'expand)
+			(if (test-docs-icon? in-vector)
 			    (string-append "{image} " w/backtrace)
 			    w/backtrace)])
 		  w/docs-icon)]
                [load-answer (test-load-answer in-vector)]
                [formatted-load-answer
-		(let* ([w/backtrace/file-icon
-			(if raw?
-			    (string-append "{image} " load-answer)
-			    (string-append "{image} {image} " load-answer))]
-		       [w/docs-icon
-			(if (eq? source-location-in-message 'expand)
-			    (string-append "{image} " w/backtrace/file-icon)
-			    w/backtrace/file-icon)])
-		  (if source-location-in-message
-		      (string-append w/docs-icon tmp-load-filename ":" error-start)
-		      w/docs-icon))]
+		(and load-answer
+                     (let* ([w/backtrace
+                             (if (and (not raw?)
+                                      (test-has-backtrace? in-vector))
+                                 (string-append "{image} " load-answer)
+                                 load-answer)]
+                            [w/file-icon
+                             (if raw?
+                                 w/backtrace
+                                 (if (or (eq? source-location 'definitions)
+                                         (pair? source-location))
+                                     (string-append "{image} " w/backtrace)
+                                     w/backtrace))]
+                            [w/docs-icon
+                             (if (test-docs-icon? in-vector)
+                                 (string-append "{image} " w/file-icon)
+                                 w/file-icon)])
+                       (if source-location-in-message
+                           (format w/docs-icon (string-append " " tmp-load-filename ":" error-start))
+                           w/docs-icon)))]
                [breaking-test? (test-breaking-test? in-vector)])
           
           (clear-definitions drscheme-frame)
@@ -397,13 +466,13 @@
 		       [finish (cdr source-location)])
 		   (let ([error-range (send interactions-text get-error-range)])
 		     (unless (and error-range
-				  (= (car error-range) (vector-ref start 0))
-				  (= (cdr error-range) (vector-ref finish 0)))
+				  (= (car error-range) (loc-offset start))
+				  (= (cdr error-range) (loc-offset finish)))
 		       (printf "FAILED execute test for ~s\n  error-range is ~s\n  expected ~a ~a\n"
 			       program
 			       error-range
-			       (vector-ref start 0)
-			       (vector-ref finish 0)))))]))
+			       (loc-offset start)
+			       (loc-offset finish)))))]))
             
             ; check text for execute test
 	    (unless (string=? received-execute formatted-execute-answer)
@@ -428,7 +497,7 @@
             
             ; stuff the load command into the REPL 
             (for-each fw:test:keystroke
-                      (string->list (format "(load ~s)" tmp-load-filename)))
+                      (string->list (format "(load ~s)" tmp-load-short-filename)))
             
             ; record current text position, then stuff a CR into the REPL
             (let ([load-text-start (+ 1 (send interactions-text last-position))])
@@ -439,26 +508,27 @@
                 (fw:test:button-push (send drscheme-frame get-break-button)))
               (wait-for-execute)
               
-              (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
-                     [received-load 
-                      (fetch-output drscheme-frame load-text-start load-text-end)])
+              (when load-answer
+                (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
+                       [received-load 
+                        (fetch-output drscheme-frame load-text-start load-text-end)])
+                  
+                  ; check load text 
+                  (unless (string=? received-load formatted-load-answer)
+                    (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
+                            program formatted-load-answer received-load)))))
                 
-                ; check load text 
-		(unless (string=? received-load formatted-load-answer)
-		  (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
-			  program formatted-load-answer received-load))
-                
-                ; check for edit-sequence
-                (when (repl-in-edit-sequence?)
-                  (printf "FAILED: repl in edit-sequence")
-                  (escape)))))))))
+            ; check for edit-sequence
+            (when (repl-in-edit-sequence?)
+              (printf "FAILED: repl in edit-sequence")
+              (escape)))))))
   
   (define (run-test-in-language-level raw?)
     (let ([level (if raw?
                      (list "Full" "Graphical without debugging (MrEd)")
                      (list "Full" "Graphical (MrEd)"))]
           [drs (wait-for-drscheme-frame)])
-      (printf "running ~a tests\n" level)
+      (printf "running ~s tests\n" level)
       (set-language-level! level)
       (fw:test:new-window definitions-canvas)
       (clear-definitions drscheme-frame)
@@ -494,5 +564,5 @@
     
     ;(set-language-level! (list "Full" "Graphical (MrEd)")) (kill-tests)
     
-    (run-test-in-language-level #t)
-    (run-test-in-language-level #f)))
+    (run-test-in-language-level #f)
+    (run-test-in-language-level #t)))
