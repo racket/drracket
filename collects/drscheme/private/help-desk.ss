@@ -151,24 +151,27 @@
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
           [(key lucky? type) (help-desk key lucky? type 'contins)]
           [(key lucky? type mode) 
-	   (when (get-hd-cookie)
-	     (search-for-docs
-	      (get-hd-cookie)
-	      key
-	      (case type
-		[(keyword) "keyword"]
-		[(keyword+index) "keyword-index"]
-		[(keyword+index+text) "keyword-index-text"]
-		[else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
-	      (case mode
-		[(exact) "exact-match"]
-		[(contains) "containing-match"]
-		[(regexp) "regexp-match"]
-		[else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
-	      lucky?
-              '()
-              #t
-              #f))]))
+           (let ([hd-cookie (get-hd-cookie)])
+             (when hd-cookie
+               (let ([browser (hd-cookie->browser hd-cookie)])
+                 (let-values ([(manuals doc.txt?) (send browser order-manuals (map car (get-docs)))])
+                   (search-for-docs
+                    hd-cookie
+                    key
+                    (case type
+                      [(keyword) "keyword"]
+                      [(keyword+index) "keyword-index"]
+                      [(keyword+index+text) "keyword-index-text"]
+                      [else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
+                    (case mode
+                      [(exact) "exact-match"]
+                      [(contains) "containing-match"]
+                      [(regexp) "regexp-match"]
+                      [else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
+                    lucky?
+                    (map string->symbol manuals)
+                    doc.txt?
+                    (send browser get-language-name))))))]))
       
       ;; open-url : string -> void
       (define (open-url x) (send-url x)))))
