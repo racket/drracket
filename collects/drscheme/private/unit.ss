@@ -2558,6 +2558,7 @@ tab panels new behavior:
           (define panel-with-tabs (new vertical-panel%
                                        (parent (get-definitions/interactions-panel-parent))))
           (define tabs-panel (new tab-panel% 
+                                  (font small-control-font)
                                   (parent panel-with-tabs)
                                   (stretchable-height #f)
                                   (style '(deleted no-border))
