@@ -836,7 +836,7 @@
                            [(eq? v c) (next)]
                            [(eq? v #\\)
                             (display v o)
-                            (display v (read-char i))
+                            (display (read-char i) o)
                             (loop)]
                            [else (display v o)
                                  (loop)])))]
