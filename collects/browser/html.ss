@@ -82,11 +82,16 @@
 	   [get-url (ivar b get-url)]
 	   [set-modified (ivar b set-modified)]
 
-	   [get-char (lambda () 
-		       (let ([v (read-char p)])
-			 (if (eof-object? v)
-			     #\null
-			     v)))]
+	   [inserted-chars #f]
+	   [get-char (lambda ()
+		       (if inserted-chars
+			   (begin0
+			    (car inserted-chars)
+			    (set! inserted-chars (cdr inserted-chars)))
+			   (let ([v (read-char p)])
+			     (if (eof-object? v)
+				 #\null
+				 v))))]
 
 	   [base-path (get-url)]
 	   
@@ -141,12 +146,13 @@
 			(combine-url/relative base-path (cadr m)))
 		      null))))]
 	   
+	   [re:quote-scheme (regexp "[Mm][Zz][sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
+		  
 	   [parse-href
 	    (let ([re:quote-href (regexp "[hH][rR][eE][fF][ ]*=[ ]*\"([^\"]*)\"")]
 		  [re:href (regexp "[hH][rR][eE][fF][ ]*=[ ]*([^ ]*)")]
 		  [re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")]
-		  [re:quote-scheme (regexp "[Mm][Zz][sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		  [href-error
 		   (lambda (s)
 		     (html-error "bad reference in ~s" s))])
@@ -173,6 +179,11 @@
 				 (and m (regexp-replace* "[|]" (cadr m) "\"")))])
 		  (values url-string label scheme))))]
 
+	   [parse-mzscheme
+	    (lambda (args)
+	      (let ([m (regexp-match re:quote-scheme args)])
+		(and m (cadr m))))]
+	    
 	   [parse-name
 	    (let ([re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")])
@@ -337,15 +348,18 @@
 	    (lambda ()
 	      (let ([first (get-char)])
 		(if (char=? #\! first)
-		    ;; comment - special parsing
-		    (let loop ()
+		    ;; Assume comment - special parsing
+		    (let loop ([l (list #\space #\!)][dash-count 0])
 		      (let ([ch (get-char)])
 			(cond
 			 [(char=? #\null ch)
 			  (html-error "end-of-file looking for closing angle-bracket")
-			  "!"]
-			 [(char=? #\> ch) "!"]
-			 [else (loop)])))
+			  (list->string (reverse! l))]
+			 [(and (char=? #\> ch) (>= dash-count 2))
+			  (list->string (reverse! l))]
+			 [(char=? #\- ch)
+			  (loop (cons ch l) (add1 dash-count))]
+			 [else (loop (cons ch l) 0)])))
 		    ;; Not a comment - parse with attention to quotes
 		    (let ([done (lambda (name)
 				  (list->string (reverse! name)))])
@@ -425,7 +439,15 @@
 						  (if bullet? 2 0))
 					       #t))])
 		  (case tag
-		    [(!) (atomic-values pos del-white?)]
+		    [(!)
+		     (let ([code (parse-mzscheme args)])
+		       (when code
+			 (let ([s (with-handlers ([void void])
+				    (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
+			   (when (string? s)
+			     ; Put result back into the input stream:
+			     (set! inserted-chars (append (string->list s) inserted-chars))))))
+		     (atomic-values pos del-white?)]
 		    [(br) (break #f 1)]
 		    [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
 		    [(li) (break #t 1)]
