@@ -94,6 +94,7 @@
 
 (define-signature drscheme:rep^
   (text%
+   invoke-library
    process-text/zodiac
    process-text/no-zodiac
    show-interactions-history))
