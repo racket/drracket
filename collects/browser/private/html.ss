@@ -14,10 +14,11 @@
 	   (rename (lib "html.ss" "html") use-html-spec use-html-spec)
 	   (all-except (lib "xml.ss" "xml") read-comments)
            (lib "class.ss")
-	   "option-snip.ss")
+	   "option-snip.ss"
+	   "entity-names.ss")
 
   (provide html@)
-  
+
   (define html@
     (unit/sig html^
       (import bullet^
@@ -223,7 +224,7 @@
               (pop-status)
               (let* ([upath (url-path url)]
                      [bitmap (make-object bitmap% tmp-filename)])
-                (with-handlers ([(lambda (x) #t)
+                (with-handlers ([exn:fail?
                                  (lambda (x)
                                    (message-box "Warning"
                                                 (format "Could not delete file ~s~n~n~a"
@@ -377,44 +378,8 @@
 	  (regexp-replace* "[|]" v "\"")))
 		      		       
       (define face-list #f)
-      
-      (define latin-1-symbols
-        '#cs((middot 46)
-	     (amp 38) (gt 62) (lt 60) (quot 34) (nbsp 160) (iexcl 161)
-	     (cent 162) (pound 163) (curren 164) (yen 165) (brvbar 166) (sect 167)
-	     (uml 168) (copy 169) (ordf 170) (laquo 171) (not 172) (shy 173)
-	     (reg 174) (macr 175) (deg 176) (plusmn 177) (sup2 178) (sup3 179)
-	     (acute 180) (micro 181) (para 182) (middot 183) (cedil 184) (sup1 185)
-	     (ordm 186) (raquo 187) (frac14 188) (frac12 189) (frac34 190) (iquest 191)
-	     (Agrave 192) (Aacute 193) (Acirc 194) (Atilde 195) (Auml 196) (Aring 197)
-	     (AElig 198) (Ccedil 199) (Egrave 200) (Eacute 201) (Ecirc 202) (Euml 203)
-	     (Igrave 204) (Iacute 205) (Icirc 206) (Iuml 207) (ETH 208) (Ntilde 209)
-	     (Ograve 210) (Oacute 211) (Ocirc 212) (Otilde 213) (Ouml 214) (times 215)
-	     (Oslash 216) (Ugrave 217) (Uacute 218) (Ucirc 219) (Uuml 220) (Yacute 221)
-	     (THORN 222) (szlig 223) (agrave 224) (aacute 225) (acirc 226) (atilde 227)
-	     (auml 228) (aring 229) (aelig 230) (ccedil 231) (egrave 232) (eacute 233)
-	     (ecirc 234) (euml 235) (igrave 236) (iacute 237) (icirc 238) (iuml 239)
-	     (eth 240) (ntilde 241) (ograve 242) (oacute 243) (ocirc 244) (otilde 245)
-	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
-	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)
-             (OElig 338) (oelig 339)
-             (tilde 732) (circ 710)
-             (Alpha    913) (Beta     914) (Gamma    915) (Delta    916) (Epsilon  917)
-             (Zeta     918) (Eta      919) (Theta    920) (Iota     921) (Kappa    922)
-             (Lambda   923) (Mu       924) (Nu       925) (Xi       926) (Omicron  927)
-             (Pi       928) (Rho      929) (Sigma    931) (Tau      932) (Upsilon  933)
-             (Phi      934) (Chi      935) (Psi      936) (Omega    937) (alpha    945)
-             (beta     946) (gamma    947) (delta    948) (epsilon  949) (zeta     950)
-             (eta      951) (theta    952) (iota     953) (kappa    954) (lambda   955)
-             (mu       956) (nu       957) (xi       958) (omicron  959) (pi       960)
-             (rho      961) (sigmaf   962) (sigma    963) (tau      964) (upsilon  965)
-             (phi      966) (chi      967) (psi      968) (omega    969)
-             
-             (prime 8242) (Prime 8243) (frasl 8260) (minus 8722) (lowast 8727) (sim 8764)
-             (le 8804) (ge 8805)
-             (ndash 8211) (mdash 8212) 
-             
-             ))
+
+      (define default-font (make-object font% 12 'default))
       
       (define re:quot (regexp "[&][qQ][uU][oO][tT][;]"))
       (define re:amp (regexp "[&][aA][mM][pP][;]"))
@@ -829,14 +794,17 @@
 					  rfl)))]
 				     
                        ;; translate-number : number -> void
-                       ;; input number must be between 0 and 255 or
-                       ;; in the table `latin-1-symbols' above
                        [translate-number
                         (lambda (e)
                           (cond
-                            [(<= 0 e 255)
-                             (insert (or (integer->char e) #\?))
-                             void]
+                            [(and (not (= e #xFFFF))
+				  (not (= e #xFFFE))
+				  (not (<= #xD800 e #xDFFF))
+				  (send default-font screen-glyph-exists? (integer->char e)))
+			     ;; The call to `string' here should be removed. It
+			     ;; was here to avoid a v299.6 bug.
+			     (insert (string (integer->char e)))
+			     void]
                             [(<= 913 e 969)
                              (let ([lp (current-pos)])
                                (insert (string (integer->char (+ (- e 913) (char->integer #\A)))))
@@ -893,9 +861,9 @@
                                (values void
                                        0))]
                             [(symbol? e) 
-                             (let ([a (assq e latin-1-symbols)])
+                             (let ([a (entity-name->integer e)])
                                (if a
-                                   (values (translate-number (cadr a)) 0)
+                                   (values (translate-number a) 0)
                                    (begin
                                      (insert (format "&~a;" e))
                                      (values void 0))))]
