@@ -64,7 +64,8 @@
 
 (define-signature drscheme:unit^
   (frame% 
-   snip-class% snip% make-bitmap
+   ;snip-class% snip%
+   ;make-bitmap
    definitions-canvas%
    definitions-edit%
    interactions-canvas%
@@ -100,7 +101,8 @@
 (define-signature drscheme:rep^
   (edit%
    process-edit/zodiac
-   process-edit/no-zodiac))
+   process-edit/no-zodiac
+   show-interactions-history))
 
 (define-signature drscheme:app^
   (about-drscheme))

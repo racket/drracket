@@ -2,6 +2,7 @@
 (unit/sig drscheme:unit^
   (import [mred : mred^]
 	  [mzlib : mzlib:core^]
+	  [fw : framework^]
 	  [drscheme:app : drscheme:app^]
 	  [drscheme:compound-unit : drscheme:compound-unit^]
 	  [drscheme:frame : drscheme:frame^]
@@ -11,71 +12,67 @@
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:face : drscheme:face^])
   
-  (define make-bitmap
-    (let* ([font (send wx:the-font-list find-or-create-font
-		       (if (eq? wx:platform 'windows) 8 12)
-		       wx:const-system
-		       wx:const-normal
-		       wx:const-normal)]
-	   [outside-margin 2]
-	   [middle-margin 3])
-      (lambda (filename text)
-	(let* ([clear-bitmap? #f]
-	       [img-bitmap
-		(let ([q (make-object wx:bitmap% filename wx:const-bitmap-type-bmp)])
-		  (if (send q ok?)
-		      q
-		      (begin (set! clear-bitmap? #t)
-			     (make-object wx:bitmap% 1 1))))]
-	       [img-width (send img-bitmap get-width)]
-	       [img-height (send img-bitmap get-height)]
-	       [img-memory-dc (make-object wx:memory-dc%)]
-	       [width (box 0.)]
-	       [height (box 0.)]
-	       [descent (box 0.)]
-	       [leading (box 0.)])
-	  (send img-memory-dc select-object img-bitmap)
-	  (when clear-bitmap?
-	    (send img-memory-dc clear))
-	  (send img-memory-dc get-text-extent text width height descent leading font)
-	  (let* ([new-width (+ outside-margin
-			       img-width
-			       middle-margin
-			       (unbox width)
-			       outside-margin)]
-		 [new-height (+ outside-margin
-				(max img-height
-				     (unbox height))
-				outside-margin)]
-		 [memory-dc (make-object wx:memory-dc%)]
-		 [new-bitmap (make-object wx:bitmap% new-width new-height -1)])
-	    (send memory-dc select-object new-bitmap)
-	    (send memory-dc set-font font)
-	    (send memory-dc clear) 
-	    (send memory-dc set-font font)
-	    (send memory-dc draw-text text (+ outside-margin img-width middle-margin)
-		  (- (/ new-height 2) (/ (unbox height) 2)))
-	    (send memory-dc blit
-		  outside-margin
-		  (- (/ new-height 2) (/ img-height 2))
-		  img-width img-height
-		  img-memory-dc 0 0 wx:const-copy)
-	    (send memory-dc select-object null)
-	    new-bitmap)))))
+  (define (make-bitmap button-name)
+    (lambda (area-container-window)
+      (let*-values ([(outside-margin) 2]
+		    [(middle-margin) 3]
+
+		    [(text) (let ([capd (string-copy button-name)])
+			      (string-set! capd 0 (char-upcase (string-ref capd 0)))
+			      capd)]
+		    [(filename) (build-path
+				 (collection-path "icons")
+				 (string-append button-name ".bmp"))]
+		    [(font) (send area-container-window get-control-font)]
+		    [(img-bitmap-dc img-width img-height)
+		     (let ([mdc (make-object mred:bitmap-dc%)]
+			   [q (make-object mred:bitmap% filename 'bmp)])
+		       (if (send q ok?)
+			   (begin (send mdc set-bitmap q)
+				  (values mdc
+					  (send q get-width)
+					  (send q get-height)))
+			   (let ([b (make-object mred:bitmap% 1 1)])
+			     (send mdc set-bitmap b)
+			     (send mdc clear)
+			     (values mdc 0 0))))]
+		    [(width height descent leading)
+		     (begin (send img-bitmap-dc set-scale 1 1)
+			    (send img-bitmap-dc get-text-extent text font))]
+		    [(new-width) (+ outside-margin
+				    img-width
+				    middle-margin
+				    (unbox width)
+				    outside-margin)]
+		    [(new-height) (+ outside-margin
+				     (max img-height
+					  (unbox height))
+				     outside-margin)]
+		    [(bitmap-dc) (make-object mred:bitmap-dc%)]
+		    [(new-bitmap) (make-object mred:bitmap% new-width new-height -1)])
+	(send* bitmap-dc
+	       (select-object new-bitmap)
+	       (set-scale 1 1)
+	       (set-font font)
+	       (clear)
+	       (set-font font)
+	       (draw-text text (+ outside-margin img-width middle-margin)
+			  (- (/ new-height 2) (/ (unbox height) 2))))
+	(unless (or (= img-width 0)
+		    (= img-height 0))
+	  (send bitmap-dc draw-bitmap
+		(send img-bitmap-dc get-bitmap)
+		outside-margin
+		(- (/ new-height 2) (/ img-height 2))))
+	(send bitmap-dc select-object #f)
+	new-bitmap)))
   
-  (define-values (execute-bitmap save-bitmap break-bitmap)
-    (apply values (map 
-		   (lambda (filename)
-		     (let* ([capd (string-copy filename)]
-			    [path (build-path
-				   (collection-path "icons")
-				   (string-append filename ".bmp"))])
-		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
-		       (make-bitmap path capd)))
-		   (list "execute" "save" "break"))))
+  (define make-execute-bitmap (make-bitmap "execute"))
+  (define make-save-bitmap (make-bitmap "save"))
+  (define make-break-bitmap (make-bitmap "break"))
   
   ;; this is the old definition of the interactions canvas.
-  ;; It should be integrated into mred:wide-snip-canvas% 
+  ;; It should be integrated into fw:canvas:wide-snip% 
   ;; becuase it uses a better algorithm to find the snip
   ;; wdie widths.
   '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
@@ -85,10 +82,10 @@
      (public)
      (private
        [snips null]
-       [autowrap-snips? (mred:get-preference 'mred:auto-set-wrap?)]
+       [autowrap-snips? (fw:preferences:get 'mred:auto-set-wrap?)]
        [update-snip-size
 	(lambda (s)
-	  (if (is-a? s wx:media-snip%)
+	  (if (is-a? s mred:editor-snip%)
 	      (let* ([snip-x-pos&margins
 		      (let loop ([snip s])
 			(let* ([snip-x-pos (box 0)]
@@ -100,7 +97,7 @@
 				   [rmargin (box 0)])
 			       (send snip get-margin lmargin (box 0) rmargin (box 0))
 			       (+ (unbox lmargin) (unbox rmargin)))
-			     (if (is-a? containing-admin wx:media-snip-media-admin%)
+			     (if (is-a? containing-admin mred:editor-snip-editor-admin%)
 				 (+ (unbox snip-x-pos)
 				    (loop (send containing-admin get-snip)))
 				 (unbox snip-x-pos)))))]
@@ -108,7 +105,7 @@
 				   (let ([containing-admin
 					  (send (send (send snip get-admin)
 						      get-media) get-admin)])
-				     (if (is-a? containing-admin wx:media-snip-media-admin%)
+				     (if (is-a? containing-admin mred:editor-snip-editor-admin%)
 					 (loop (send containing-admin get-snip))
 					 snip)))]					
 		     [view-width (let* ([width (box 0)]
@@ -123,7 +120,7 @@
 		     [snip-width (- view-width snip-x-pos&margins)])
 		(send s set-min-width snip-width)
 		(send s set-max-width snip-width)
-		(when (is-a? s wx:media-snip%)
+		(when (is-a? s mred:editor-snip%)
 		  (let ([snip-media (send s get-this-media)])
 		    (unless (null? snip-media)
 		      (send snip-media set-max-width
@@ -161,10 +158,10 @@
 	     (send frame make-searchable this)
 	     (super-on-set-focus))]))))
   
-  (define interactions-canvas% (make-searchable-canvas% mred:wide-snip-canvas%))
+  (define interactions-canvas% (make-searchable-canvas% fw:canvas:wide-snip%))
   
   (define definitions-canvas%
-    (class (make-searchable-canvas% mred:frame-title-canvas%) args
+    (class (make-searchable-canvas% mred:editor-canvas%) args
       (inherit get-media frame)
       (rename [super-edit-modified edit-modified])
       (public
@@ -182,7 +179,7 @@
 		(and (not (null? m)) (send m modified?)))))))
   
   (define definitions-edit%
-    (class mred:backup-autosave-edit% (unit . args)
+    (class fw:scheme:text% (unit . args)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete])
       (public
@@ -212,12 +209,7 @@
       (sequence
 	(apply super-init args))))
   
-  (define super-frame% (drscheme:frame:make-frame%
-			(mred:make-searchable-frame%
-			 (mred:make-edit-info-frame%
-			  (mred:make-info-frame%
-			   (mred:make-file-frame%
-			    mred:simple-menu-frame%))))))
+  (define super-frame% (drscheme:frame:make-frame% fw:frame:text-info-file%))
   
   (define frame%
     (class* super-frame% (drscheme:face:unit-frameI) (unit)
@@ -295,7 +287,7 @@
 			 mred:message% top-panel
 			 (if (null? name)
 			     "Untitled" 
-			     (or (mzlib:file@:file-name-from-path name)
+			     (or (mzlib:file:file-name-from-path name)
 				 "Untitlesd")))])
 	       (set! name-message msg)
 	       (send top-panel change-children
@@ -340,8 +332,7 @@
 	 (lambda (win)
 	   (let ([file (mred:put-file)])
 	     (when file
-		   (send win save-file 
-			 file wx:const-media-ff-text))))])
+		   (send win save-file file 'text))))])
 
       (public
 	[toggle-show/hide
@@ -383,7 +374,7 @@
 		   (let ([file (mred:put-file)])
 		     (when file
 		       (send interactions-edit save-file 
-			     file wx:const-media-ff-std)))))
+			     file 'standard)))))
 	   (send file-menu append-item
 		 "Save Interactions As Text..."
 		 (lambda ()
@@ -391,7 +382,7 @@
 	   (send file-menu append-separator)
 	   (send file-menu append-item
 		 "Show Interactions History"
-		 mred:show-interactions-history)
+		 drscheme:rep:show-interactions-history)
 	   (send file-menu append-separator))]
 	[file-menu:print-string "Definitions"]
 	[file-menu:print-transcript-id #f]
@@ -402,7 +393,7 @@
 		       (lambda () (send interactions-edit print '()
 					#t 
 					#t
-					(mred:get-preference 'mred:print-output-mode)))))
+					(fw:preferences:get 'mred:print-output-mode)))))
 	   (send file-menu append-separator))]
 
 	[help-menu:compare
@@ -437,7 +428,7 @@
 	   (send panel change-children
 		 (lambda (l)
 		   (cons top-panel
-			 (mzlib:function@:foldl
+			 (mzlib:function:foldl
 			  (lambda (id sofar)
 			    (if (hidden? show-menu id)
 				sofar
@@ -447,14 +438,14 @@
 				;imports-id
 				)))))
 	   (when (ormap (lambda (child)
-			  (and (is-a? child wx:media-canvas%)
+			  (and (is-a? child mred:editor-canvas%)
 			       (not (send child is-focus-on?))))
 			(ivar panel children))
 	     (let loop ([children (ivar panel children)])
 	       (cond
 		[(null? children) (void)]
 		[else (let ([child (car children)])
-			(if (is-a? child wx:media-canvas%)
+			(if (is-a? child mred:editor-canvas%)
 			    (send child set-focus)
 			    (loop (cdr children))))])))
 	   
@@ -613,7 +604,6 @@
 			    (drscheme:get/extend:get-interactions-edit%))])
 
       (sequence
-	(send definitions-edit set-mode (make-object mred:scheme-mode%))
 	(send* interactions-canvas 
 	  ;(scroll-with-bottom-base #t)
 	  (set-media interactions-edit))
@@ -624,7 +614,7 @@
 			   (let ([fn (send definitions-edit get-filename)])
 			     (cond
 			       [(null? fn) "Untitled"]
-			       [(mzlib:file@:file-name-from-path fn)]
+			       [(mzlib:file:file-name-from-path fn)]
 			       [else "Untitled"]))))
 	
 	
@@ -636,7 +626,7 @@
 			       (unless (or (null? edit) (not edit))
 				 (send edit save-file)
 				 (send definitions-canvas set-focus))))
-			   save-bitmap))
+			   (make-save-bitmap)))
 	(update-save-button #f))
       (private 
 	[make-library-name-msg
@@ -648,7 +638,7 @@
 			    "")))]
 	[library-msg (make-library-name-msg
 		      top-panel
-		      (mred:get-preference 'drscheme:library-file))])
+		      (fw:preferences:get 'drscheme:library-file))])
       
       (public
 	[stop-execute-button (void)]
@@ -659,14 +649,14 @@
 	(set! execute-button
 	      (make-object mred:button% button-panel
 			   (lambda (button evt) (execute-callback))
-			   execute-bitmap))
+			   (make-execute-bitmap)))
 	(set! stop-execute-button
 	      (make-object mred:button% button-panel 
 			   (lambda args
 			     (send interactions-edit break)
 			     (ensure-interactions-shown)
 			     (send (send interactions-edit get-canvas) set-focus))
-			   break-bitmap))
+			   (make-break-bitmap)))
 	(send imports-panel stretchable-in-y #f)
 	(send button-panel stretchable-in-y #f)
 	(send button-panel stretchable-in-x #f) 
@@ -674,9 +664,9 @@
       
       (private
 	[remove-library-callback
-	 (mred:add-preference-callback
+	 (fw:preferences:add-callback
 	  'drscheme:library-file
-	  (let ([last-one (mred:get-preference 'drscheme:library-file)])
+	  (let ([last-one (fw:preferences:get 'drscheme:library-file)])
 	    (lambda (p v)
 	      (unless (or (and (not last-one) (not v))
 			  (and last-one v
@@ -698,7 +688,7 @@
 	(send interactions-edit initialize-console)
 
 	(when (or (ivar interactions-edit repl-initially-active?)
-		  (mred:get-preference 'drscheme:repl-always-active))
+		  (fw:preferences:get 'drscheme:repl-always-active))
 	  (toggle-show/hide show-menu interactions-id))
 	
 	(send interactions-edit enable-autoprompt)
@@ -718,6 +708,7 @@
 	   (set! created-frame #f)]
 	  [else (void)]))))
   
+#|
   (define snip%
     (class* mred:node-snip% (drscheme:face:unit-snipI) (unit)
       (inherit get-admin set-snipclass invalidate-to)
@@ -745,7 +736,7 @@
 
   (define snip-class%
     (let ([s% snip%])
-      (class wx:snip-class% args
+      (class mred:snip-class% args
 	(inherit set-classname set-version)
 	(public
 	  [snip% s%] 
@@ -759,13 +750,13 @@
 	     (send p get-string (box 0)))]
 	  [read
 	   (lambda (p)
-	     (let ([l (mzlib:string@:read-from-string (send p get-string null))])
+	     (let ([l (mzlib:string:read-from-string (send p get-string null))])
 	       (make-object snip% (car l) (cadr l))))])
 	(sequence
 	  (apply super-init args)
 	  (set-classname classname)
 	  (set-version version)
-	  (send (wx:get-the-snip-class-list) add this)))))
+	  (send (mred:get-the-snip-class-list) add this)))))
   
   (define unit-snipclass (make-object snip-class%))
   
@@ -804,14 +795,14 @@
 	  [remove-import
 	   (lambda (i)
 	     (when (member i imports)
-	       (set! imports (mzlib:function@:remq i imports))))]
+	       (set! imports (mzlib:function:remq i imports))))]
 	  [add-export 
 	   (lambda (e)
 	     (set! exports (cons e exports)))]
 	  [remove-export
 	   (lambda (e)
 	     (when (member e exports)
-	       (set! exports (mzlib:function@:remq e exports))))])
+	       (set! exports (mzlib:function:remq e exports))))])
 	
 	(private
 	  [snips null]
@@ -828,7 +819,7 @@
 	  [get-frame (lambda () frame)]
 	  [frame-closed (lambda () (set! frame #f))]
 	  [remove-snip (lambda (snip)
-			 (set! snips (mzlib:function@:remq snip snips)))] 
+			 (set! snips (mzlib:function:remq snip snips)))] 
 	  [create-frame (opt-lambda ([show? #t])
 			  (unless frame
 			    (set! frame (make-object frame% this))
@@ -862,13 +853,16 @@
 	  (set! buffer (make-object buffer% this))
 	  (apply set-filename filename-arg collections-arg)))))
 
+  |#
+
+
   (define make-unit
     (lambda (filename . collections)
       (apply make-object unit% filename collections)))
 
   (define created-frame 'nothing-yet)
   
-  (mred:set-preference-default 'drscheme:open-all-files-in-scheme-mode
+  (fw:preference:set-default 'drscheme:open-all-files-in-scheme-mode
 			       #t
 			       boolean?)
   
@@ -886,8 +880,8 @@
   (mred:insert-format-handler 
    "Units"
    (lambda (filename)
-     (or (mred:get-preference 'drscheme:open-all-files-in-scheme-mode)
-	 (let ([filename-ext (mzlib:file@:filename-extension filename)])
+     (or (fw:preferences:get 'drscheme:open-all-files-in-scheme-mode)
+	 (let ([filename-ext (mzlib:file:filename-extension filename)])
 	   (and filename-ext
 		(ormap (lambda (extension)
 			 (string=? filename-ext extension))

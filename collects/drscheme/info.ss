@@ -6,7 +6,7 @@
 	       (lambda(plt-dir)
 		 (require-library "launcher.ss" "launcher")
 		 (make-mred-launcher
-		  (list "-maqgvL" "drscheme.ss" "drscheme")
+		  (list "-maqgL" "drscheme.ss" "drscheme")
 		  (mred-program-launcher-path "DrScheme")))]
 ;	      [(splash-image-path)
 ;	       (with-handlers ([void (lambda (x) "mred.gif")]) 
