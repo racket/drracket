@@ -389,7 +389,9 @@
 						   (semaphore-wait wait-to-start)
 						   (with-handlers ([void
 								    (lambda (x) (when (not (exn:misc:user-break? x))
-										  (set! exn x)))])
+										  (set! exn x)))]
+								   [void ; throw away break exceptions
+								    void])
 						     (semaphore-post wait-to-break)
 						     (with-output-to-file f
 						       (lambda ()
@@ -724,7 +726,7 @@
       (inherit show)
       (sequence 
 	(apply super-init args)
-	(let ([p (make-object hyper-panel% this)])
+	(let ([p (make-object hyper-panel% #f this)])
 	  (show #t)
 	  (send (send p get-canvas) goto-url start-url #f)))))
 

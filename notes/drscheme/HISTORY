@@ -1,7 +1,9 @@
-Version 100alpha2:
+Version 100alpha3:
 
 General
 -------
+
+ - A test version of the expression stepper is included with DrScheme.
 
  - Graphics functions were removed from the teaching languages
    (Beginner, Intermediate, and Advanced), except Turtles in
@@ -14,14 +16,13 @@ General
  - The old viewport-based graphics library can be loaded into the MrEd
    Debug language via (require-library "graphic.ss" "graphics").
 
- - I/O within DrScheme is substantially improved, but not yet secure
-   when used by a program that kills its own threads.
+ - I/O within DrScheme is substantially improved and secure.
 
  - Beginner contains define-struct. Intermediate prints lists with the
    `list' abbreviation.
 
  - The library and tool interfaces for extended DrScheme have
-   changed. The revised tool interface is not yet documented.
+   changed.
 
 
 Version 53:
