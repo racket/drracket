@@ -651,9 +651,11 @@
       (sequence (apply super-init args))
 
       (private
-	[url-message (and (directory-exists? (build-path (collection-path "mzlib")
-							 "CVS"))
-			  (make-object message% "" this))])
+	[url-message ;; doesn't work for forwards and backwards in the history
+	 (and #f
+	      (directory-exists? (build-path (collection-path "mzlib")
+					     "CVS"))
+	      (make-object message% "" this))])
       (sequence
 	(when url-message
 	  (send url-message stretchable-width #t)))
