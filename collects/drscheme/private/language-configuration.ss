@@ -941,7 +941,7 @@
                    [reader-specs
                     (info-proc 'drscheme-language-readers
                                (lambda ()
-                                 (map (lambda (lang-position) 'mzscheme)
+                                 (map (lambda (lang-position) #f)
                                       lang-positions)))])
               (cond
                 [(and (list? lang-positions)
@@ -971,7 +971,7 @@
 				;; approximation (no good test, really)
 				;; since it depends on the value of a mz
 				;; parameter to interpret the module spec
-                                (or (symbol? x) (pair? x)))
+                                (or (eq? x #f) (symbol? x) (pair? x)))
                               reader-specs)
                       
                       (= (length lang-positions)
@@ -987,22 +987,24 @@
                              (drscheme:language:simple-module-based-language->module-based-language-mixin
                               drscheme:language:simple-module-based-language%)))]
                           [reader
-                           (with-handlers ([not-break-exn?
-                                            (lambda (x)
-                                              (message-box (string-constant drscheme)
-                                                           (if (exn? x)
-                                                               (exn-message x)
-                                                               (format "uncaught exception: ~s" x)))
-                                              read-syntax)])
-                             (contract
-                              (opt-> (any?)
-                                     (port? (list/p (and/c number? integer? exact? (>=/c 0))
-                                                    (and/c number? integer? exact? (>=/c 0))
-                                                    (and/c number? integer? exact? (>=/c 0))))
-                                     (union syntax? eof-object?))
-                              (dynamic-require reader-spec 'read-syntax)
-                              (string->symbol (format "~s" lang-position))
-                              'drscheme))])
+                           (if reader-spec
+                               (with-handlers ([not-break-exn?
+                                                (lambda (x)
+                                                  (message-box (string-constant drscheme)
+                                                               (if (exn? x)
+                                                                   (exn-message x)
+                                                                   (format "uncaught exception: ~s" x)))
+                                                  read-syntax/namespace-introduce)])
+                                 (contract
+                                  (opt-> (any?)
+                                         (port? (list/p (and/c number? integer? exact? (>=/c 0))
+                                                        (and/c number? integer? exact? (>=/c 0))
+                                                        (and/c number? integer? exact? (>=/c 0))))
+                                         (union syntax? eof-object?))
+                                  (dynamic-require reader-spec 'read-syntax)
+                                  (string->symbol (format "~s" lang-position))
+                                  'drscheme))
+                               read-syntax/namespace-introduce)])
                       (add-language (instantiate % ()
                                       (module `(lib ,@lang-module))
                                       (language-position lang-position)
@@ -1027,7 +1029,13 @@
 		  summaries
                   urls
 		  reader-specs))])))))
-      
+
+      (define read-syntax/namespace-introduce
+        (opt-lambda (source-name-v [input-port (current-input-port)] [offset-list (list 0 0 0)])
+          (let ([v (read-syntax source-name-v input-port offset-list)])
+            (if (syntax? v)
+                (namespace-syntax-introduce v)
+                v))))
       
 
                                                         

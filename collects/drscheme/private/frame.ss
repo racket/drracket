@@ -466,6 +466,12 @@
                 (lambda (x y)
                   (handler:open-file)
                   #t)))
+          (new menu%
+               (label (string-constant open-recent-menu-item))
+               (parent file-menu)
+               (demand-callback
+                (lambda (menu)
+                  (handler:install-recent-items menu))))
 	  (unless (current-eventspace-has-standard-menus?)
 	    (new separator-menu-item% (parent file-menu))
 	    (new menu-item%
