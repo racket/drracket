@@ -539,7 +539,6 @@
 
       (define -text<%>
         (interface ()
-          expand-program
           reset-highlighting
           highlight-error
           highlight-error/forward-sexp
@@ -623,7 +622,6 @@
                     reset-console)
           
           (public
-            expand-program
             reset-highlighting
             highlight-error
             highlight-error/forward-sexp
@@ -1382,9 +1380,6 @@
           ;;;                Evaluation                  ;;;
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          
-          (define (expand-program input language-settings iter)
-            (drscheme:eval:expand-program input language-settings iter))
           
           (define (get-prompt) "> ")
           (define (eval-busy?)

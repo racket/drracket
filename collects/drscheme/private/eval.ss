@@ -14,7 +14,7 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program input language-settings iter)
+      (define (expand-program input language-settings init error iter)
         (let* ([eventspace (make-eventspace)]
                [language (drscheme:language-configuration:language-settings-language
                           language-settings)]
@@ -54,29 +54,25 @@
            (lambda ()
              (error-display-handler
               (lambda (msg exn)
-                (set! err-msg msg)
-                (set! err-exn exn)))
+                (error msg exn)))
+             (init)
              (break-enabled #t)))
-          (let ([read-thnk
-                 (run-in-eventspace
-                  (lambda ()
-                    (send language front-end input settings)))])
-            (let loop ()
-              (let ([in (run-in-eventspace
-                         (lambda ()
-                           (let ([rd (read-thnk)])
-                             (if (eof-object? rd)
-                                 rd
-                                 (let ([expanded (expand rd)])
-                                   (eval-compile-time-part-of-top-level expanded)
-                                   expanded)))))])
-                (cond
-                  [(eof-object? in)
-                   (iter #f in run-in-eventspace (lambda () (void)))]
-                  [exn-raised?
-                   (iter #t (cons err-msg err-exn) run-in-eventspace (lambda () (void)))]
-                  [else
-                   (iter #f in run-in-eventspace (lambda () (loop)))]))))))
+          (parameterize ([current-eventspace eventspace])
+            (queue-callback
+             (lambda ()
+               (let ([read-thnk (send language front-end input settings)])
+                 (let loop ()
+                   (let ([in (let ([rd (read-thnk)])
+                               (if (eof-object? rd)
+                                   rd
+                                   (let ([expanded (expand rd)])
+                                     (eval-compile-time-part-of-top-level expanded)
+                                     expanded)))])
+                     (cond
+                       [(eof-object? in)
+                        (iter in (lambda () (void)))]
+                       [else
+                        (iter in (lambda () (loop)))])))))))))
       
       
       ;; get-snip-classes : -> (listof snipclass)
