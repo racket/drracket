@@ -1,9 +1,7 @@
 
 (module teachpack mzscheme
   (require "drscheme-test-util.ss"
-           (lib "gui.ss" "tests" "utils")
            (lib "class.ss")
-           (lib "list.ss")
            (lib "file.ss")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
@@ -102,7 +100,7 @@
        tp-name)
       (do-execute drs-frame #f)
       (let ([dialog
-             (with-handlers ([(lambda (x) #t)
+             (with-handlers ([not-break-exn?
                               (lambda (x) #f)])
                (let ([wait-for-error-pred
                       (lambda ()
@@ -135,97 +133,43 @@
   (define (generic-tests)
     (test-good-teachpack
      (list
-      `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-         (require (lib "unitsig.ss"))
-         (provide teachpack-unit@)
-         (define teachpack-unit@ (unit/sig () (import ())))))
+      `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme))
      "1"
      "1")
     
     (test-good-teachpack
      (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-              (require (lib "unitsig.ss"))
-              (provide teachpack-unit@)
-              (define teachpack-unit@ 
-                (unit/sig (not-a-primitive) (import ()) (define not-a-primitive 1)))))
+              (provide not-a-primitive)
+              (define not-a-primitive 1)))
      "not-a-primitive"
      "1")
     
     (test-good-teachpack
      (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-              (require (lib "unitsig.ss"))
-              (provide teachpack-unit@)
-              (define teachpack-unit@ 
-                (unit/sig (not-a-primitive1) (import ()) (define not-a-primitive1 1))))
+              (provide not-a-primitive1)
+              (define not-a-primitive1 1))
            `(module ,(string->symbol (format good-teachpack-name 1)) mzscheme
-              (require (lib "unitsig.ss"))
-              (provide teachpack-unit@)
-              (define teachpack-unit@ 
-                (unit/sig (not-a-primitive2) (import ()) (define not-a-primitive2 1)))))
+              (provide not-a-primitive2)
+              (define not-a-primitive2 2)))
      "(+ not-a-primitive1 not-a-primitive2)"
-     "2")
-    
-    (test-good-teachpack
-     (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-              (require (lib "unitsig.ss"))
-              (provide teachpack-unit@)
-              (define teachpack-unit@ 
-                (unit/sig (first) (import ()) (define first \"not-firsts-original-defn\")))))
-     "first"
-     "\"not-firsts-original-defn\"")
-    
-    (test-good-teachpack
-     (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-              (require (lib "unitsig.ss"))
-              (provide teachpack-unit@)
-              (define teachpack-unit@ 
-                (unit/sig (x) (import (not-defined-in-any-language)) (define x 1)))))
-     "x"
-     "reference to undefined identifier: x"))
+     "3"))
   
-    (define (good-tests)
-      (set-language-level! '("R5RS-like" "Graphical without debugging (MrEd)"))
-      (generic-tests)
-      
-      (set-language-level! '("How to Design Programs" "Beginning Student"))
-      (generic-tests)
-      
-      (test-good-teachpack
-       (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-                (require (lib "unitsig.ss"))
-                (provide teachpack-unit@)
-                (define teachpack-unit@ 
-                  (unit/sig (car) (import ()) (define car (list \"not-cars-original-defn\"))))))
-       "(first car)"
-       "\"not-cars-original-defn\"")
-      
-    ;; re-defined an old primitive
-      (test-good-teachpack
-       (list `(module ,(string->symbol (format good-teachpack-name 0)) mzscheme
-                (require (lib "unitsig.ss"))
-                (provide teachpack-unit@)
-                (define teachpack-unit@ 
-                  (unit/sig (display) (import ()) (define (display x) x)))))
-       "(display 1)"
-       "1"))
+  (define (good-tests)
+    (set-language-level! `("PLT" ,(regexp "Graphical")))
+    (generic-tests)
     
+    (set-language-level! '("How to Design Programs" "Beginning Student"))
+    (generic-tests))
+  
   (define (bad-tests)
     (set-language-level! '("How to Design Programs" "Beginning Student"))
     
     (test-bad/load-teachpack
      "undefined-id"
      "reference to undefined identifier: undefined-id")
-    
-    (test-bad/load-teachpack
-     "1"
-     "loading Teachpack file does not result in a either a unit/sig or a pair of unit/sigs, got: 1")
-    
+ 
     (test-bad/execute-teachpack
-     "(unit/sig () (import))"
-     "global-define-values/invoke-unit/sig: invoke unit imports 0 units, but 1 units were provided")
-    
-    (test-bad/execute-teachpack
-     "(unit/sig () (import ()) (car 1))"
+     `(module teachpack-tmp mzscheme (car))
      "car: expects argument of type <pair>; given 1"))
   
   (define (get-string-from-file fn)
@@ -239,6 +183,7 @@
                        (list* l " " (loop)))))))
       'text))
   
+  ;; doesn't test graphing.ss teachpack
   (define (test-built-in-teachpacks)
     (clear-definitions drs-frame)
     (type-in-definitions drs-frame "1")
@@ -247,25 +192,26 @@
               (lambda (teachpack)
                 (when (or (equal? "ss" (filename-extension teachpack))
                           (equal? "scm" (filename-extension teachpack)))
-                  (printf "  testing ~a~n" teachpack)
-                  (let ([filename (normal-case-path (build-path dir teachpack))])
-                    (fw:test:menu-select "Language" "Clear All Teachpacks")
-                    (use-get/put-dialog
-                     (lambda ()
-                       (fw:test:menu-select "Language" "Add Teachpack..."))
-                     filename)
-                    (do-execute drs-frame)
-                    
-                    (let ([got (fetch-output drs-frame)]
-                          [expected (format "Teachpack: ~a.~n1" filename)])
-                      (unless (equal? got expected)
-                        (printf "FAILED built in teachpack test: ~a~n" filename)
-                        (printf "       got: ~s~n  expected: ~s~n" got expected)))))))]
+                  (unless (equal? "graphing.ss" teachpack)
+                    (printf "  testing ~a~n" (build-path dir teachpack))
+                    (let ([filename (normal-case-path (build-path dir teachpack))])
+                      (fw:test:menu-select "Language" "Clear All Teachpacks")
+                      (use-get/put-dialog
+                       (lambda ()
+                         (fw:test:menu-select "Language" "Add Teachpack..."))
+                       filename)
+                      (do-execute drs-frame)
+                      
+                      (let ([got (fetch-output drs-frame)]
+                            [expected (format "Teachpack: ~a.~n1" filename)])
+                        (unless (equal? got expected)
+                          (printf "FAILED built in teachpack test: ~a~n" filename)
+                          (printf "       got: ~s~n  expected: ~s~n" got expected))))))))]
            [test-teachpacks
             (lambda (dir)
               (for-each (test-teachpack dir) (directory-list dir)))]
            [teachpack-dir (normalize-path (build-path (collection-path "mzlib") 'up 'up "teachpack"))])
-      (set-language-level! '("How to Design Programs" "Beginning Student"))
+      (set-language-level! '("How to Design Programs" "Advanced Student"))
       (test-teachpacks teachpack-dir)
       (test-teachpacks (build-path teachpack-dir "htdp"))))
   

@@ -755,7 +755,7 @@
                 [else
                  (let ([new-teachpacks 
                         (drscheme:teachpack:new-teachpack-cache
-                         (cons new-item tp-filenames))])
+                         (append tp-filenames (list new-item)))])
                    (send interactions-text set-user-teachpack-cache new-teachpacks)
                    (preferences:set 'drscheme:teachpacks new-teachpacks))]))
             (set! teachpack-directory (path-only lib-file)))))
