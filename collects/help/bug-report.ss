@@ -36,8 +36,16 @@
      (define bug-frame%
        (class/d (frame-mixin (frame:standard-menus-mixin frame:basic%)) (title)
 
-	 ((inherit get-area-container close))
+	 ((inherit get-area-container close)
+	  (override can-close?))
 		    
+	 (define (can-close?)
+	   (eq? 'yes
+		(message-box "Cancel Bug Report?"
+			     "Are you sure that you want to cancel sending this bug report?"
+			     this
+			     '(yes-no))))
+
 	 (super-init title)
 
 	 (define top-panel (make-object vertical-panel% (get-area-container)))
