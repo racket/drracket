@@ -11,13 +11,7 @@
 	      [(compile-prefix) 
 	       '(begin
 		  (require-library "refer.ss")
-		  (require-library "wxs.ss" "system")
-		  (require-library "invsig.ss" "system")
-		  (require-library "sig.ss" "userspce")
-		  (require-library "sig.ss" "mred")
-		  (require-library "debug.ss" "system")
 		  (require-library "drsig.ss" "drscheme")
-		  ; (require-library "hierlists.ss" "hierlist")
 		  )]
 	      [(compile-omit-files)
 	       (append
@@ -29,10 +23,7 @@
 	      [(compile-elaboration-zos-prefix)
 	       '(begin
 		  (require-library "refer.ss")
-		  (require-library "wxs.ss" "system")
-		  (require-library "invsig.ss" "system")
-		  (require-library "sig.ss" "mred")
-		  (require-library "debug.ss" "system"))]
+)]
 	      [(compile-elaboration-zos)
 	       (list "drsig.ss")]
 	      [else (failure)]))])
