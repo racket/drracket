@@ -41,7 +41,7 @@
       
       (prepare-for-test-expression)
 
-      (test-expression "'|.|" "'|.|")
+      (test-expression "'|.|" "|.|")
       
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "#f")
@@ -136,7 +136,7 @@
       
       (prepare-for-test-expression)
       
-      (test-expression "'|.|" "'|.|")
+      (test-expression "'|.|" "|.|")
       (test-expression '("(equal? (list " image ") (list " image "))") 
                        "#f")
       (test-expression "(define x 1)(define x 2)" "")
@@ -715,12 +715,15 @@
                        "mred^: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "false")
-      (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
+      (test-expression "(set! x 1)"
+                       "x: name is not defined"
+                       "set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list or cyclic list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(shared ((-1- (list 1))) (list -1- -1-))")
+                       "(shared ((-1- (list 1))) (list -1- -1-))"
+                       "define: cannot redefine name: shrd")
       (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")

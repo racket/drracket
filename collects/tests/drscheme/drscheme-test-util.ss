@@ -389,93 +389,116 @@
   ;; returns the error text of an error in the interactions window of the frame or #f if there is none.
   ;; ensures that frame is front most.
   (define (has-error? frame)
-    (verify-drscheme-frame-frontmost 'had-error? frame)
-    (let* ([interactions-text (send frame get-interactions-text)]
-	   [last-para (send interactions-text last-paragraph)])
-      (unless (>= last-para 2)
-	(error 'has-error? "expected at least 2 paragraphs in interactions window, found ~a"
-	       (+ last-para 1)))
-      (let ([start (send interactions-text paragraph-start-position 2)]
-	    [end (send interactions-text paragraph-end-position
-		       (- (send interactions-text last-paragraph) 1))])
-        (send interactions-text split-snip start)
-	(send interactions-text split-snip end)
-        (let loop ([pos start])
-	  (cond
-	   [(<= end pos) #f]
-	   [else
-	    (let ([snip (send interactions-text find-snip pos 'after-or-none)])
-	      (cond
-	       [(not snip) #f]
-	       [else
-		(let ([color (send (send snip get-style) get-foreground)])
-		  (if (and (= 255 (send color red))
-			   (= 0 (send color blue) (send color green)))
-		      
-		      ;; return the text of the entire line containing the red text
-                      (let ([para (send interactions-text position-paragraph pos)])
-                        (send interactions-text get-text
-                              (send interactions-text paragraph-start-position para)
-                              (send interactions-text paragraph-end-position para)))
-
-		      (loop (+ pos (send snip get-count)))))]))])))))
+    (run-one/sync
+     (lambda ()
+       (verify-drscheme-frame-frontmost 'had-error? frame)
+       (let* ([interactions-text (send frame get-interactions-text)]
+              [last-para (send interactions-text last-paragraph)])
+         (unless (>= last-para 2)
+           (error 'has-error? "expected at least 2 paragraphs in interactions window, found ~a"
+                  (+ last-para 1)))
+         (let ([start (send interactions-text paragraph-start-position 2)]
+               [end (send interactions-text paragraph-end-position
+                          (- (send interactions-text last-paragraph) 1))])
+           (send interactions-text split-snip start)
+           (send interactions-text split-snip end)
+           (let loop ([pos start])
+             (cond
+               [(<= end pos) #f]
+               [else
+                (let ([snip (send interactions-text find-snip pos 'after-or-none)])
+                  (cond
+                    [(not snip) #f]
+                    [else
+                     (let ([color (send (send snip get-style) get-foreground)])
+                       (if (and (= 255 (send color red))
+                                (= 0 (send color blue) (send color green)))
+                           
+                           ;; return the text of the entire line containing the red text
+                           (let ([para (send interactions-text position-paragraph pos)])
+                             (send interactions-text get-text
+                                   (send interactions-text paragraph-start-position para)
+                                   (send interactions-text paragraph-end-position para)))
+                           
+                           (loop (+ pos (send snip get-count)))))]))])))))))
 
   (define fetch-output
     (case-lambda
-     [(frame)
-      (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let* ([interactions-text (send frame get-interactions-text)]
-	     [last-para (send interactions-text last-paragraph)])
-	(unless (>= last-para 2)
-	  (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
-		 (+ last-para 1)))
-	(fetch-output frame
-		      (send interactions-text paragraph-start-position 2)
-		      (send interactions-text paragraph-end-position
-			    (- (send interactions-text last-paragraph) 1))))]
-     [(frame start end)
-      (verify-drscheme-frame-frontmost 'fetch-output frame)
-      (let ([interactions-text (send frame get-interactions-text)])
-
-        ;; this split-snip triggers a flow lock contract violation
-        (send interactions-text split-snip start)
-	
-        (send interactions-text split-snip end)
-        (let loop ([snip (send interactions-text find-snip end 'before)]
-		   [strings null])
-	  (cond
-	    [(< (send interactions-text get-snip-position snip) start)
-	     (apply string-append strings)]
-	    [else 
-	     (cond
-	       [(is-a? snip string-snip%)
-		(loop (send snip previous)
-		      (cons (send snip get-text 0 (send snip get-count)) strings))]
-	       [(is-a? snip editor-snip%)
-		(let ([editor (send snip get-editor)])
-		  (cond
-		   [(is-a? editor pasteboard%)
-		    (loop (send snip previous)
-			  (cons "<pasteboard>" strings))]
-		   [(is-a? editor text%)
-		    (loop (send snip previous)
-			  (list* "{embedded \""
-				 (send editor get-text)
-				 "\"}"
-				 strings))]))]
-	       [(is-a? snip image-snip%)
-		(loop (send snip previous)
-		      (cons (format "{image}")
-			    strings))]
-
-	       [;; this test is an approximation of
-                ;; (is-a? snip drscheme:snip:number-snip%)
-                (and (method-in-interface? 'get-fraction-view (object-interface snip)))
-		(loop (send snip previous)
-		      (cons (format "{number ~s ~s ~s}"
-				    (send snip get-number)
-				    (send snip get-text 0 (send snip get-count))
-                                    (send snip get-fraction-view))
-			    strings))]
-
-	       [else (error 'find-output "{unknown snip: ~e}~n" snip)])])))])))
+      [(frame) (fetch-output frame #f #f)]
+      [(frame _start _end)
+       (run-one/sync
+        (lambda ()
+          (verify-drscheme-frame-frontmost 'fetch-output frame)
+          (let-values ([(start end)
+                        (if (and _start _end)
+                            (values _start _end)
+                            (let* ([interactions-text (send frame get-interactions-text)]
+                                   [last-para (send interactions-text last-paragraph)])
+                              (unless (>= last-para 2)
+                                (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
+                                       (+ last-para 1)))
+                              (values (send interactions-text paragraph-start-position 2)
+                                      (send interactions-text paragraph-end-position
+                                            (- (send interactions-text last-paragraph) 1)))))])
+            (let ([interactions-text (send frame get-interactions-text)])
+              
+              (send interactions-text split-snip start)
+              (send interactions-text split-snip end)
+              (let loop ([snip (send interactions-text find-snip end 'before)]
+                         [strings null])
+                (cond
+                  [(< (send interactions-text get-snip-position snip) start)
+                   (apply string-append strings)]
+                  [else 
+                   (cond
+                     [(is-a? snip string-snip%)
+                      (loop (send snip previous)
+                            (cons (send snip get-text 0 (send snip get-count)) strings))]
+                     [(is-a? snip editor-snip%)
+                      (let ([editor (send snip get-editor)])
+                        (cond
+                          [(is-a? editor pasteboard%)
+                           (loop (send snip previous)
+                                 (cons "<pasteboard>" strings))]
+                          [(is-a? editor text%)
+                           (loop (send snip previous)
+                                 (list* "{embedded \""
+                                        (send editor get-text)
+                                        "\"}"
+                                        strings))]))]
+                     [(is-a? snip image-snip%)
+                      (loop (send snip previous)
+                            (cons (format "{image}")
+                                  strings))]
+                     
+                     [;; this test is an approximation of
+                      ;; (is-a? snip drscheme:snip:number-snip%)
+                      (and (method-in-interface? 'get-fraction-view (object-interface snip)))
+                      (loop (send snip previous)
+                            (cons (format "{number ~s ~s ~s}"
+                                          (send snip get-number)
+                                          (send snip get-text 0 (send snip get-count))
+                                          (send snip get-fraction-view))
+                                  strings))]
+                     
+                     [else (error 'find-output "{unknown snip: ~e}~n" snip)])]))))))]))
+  
+  ;; run-one/sync : (-> A) -> A
+  ;; runs the thunk `f' as a test action, and
+  ;; waits for it to complete. Also propogates
+  ;; exceptions.
+  (define (run-one/sync f)
+    (let ([s (make-semaphore 0)]
+          [exn #f]
+          [anss #f])
+      (fw:test:run-one
+       (lambda ()
+         (with-handlers ([not-break-exn?
+                          (lambda (exn)
+                            (set! exn exn))])
+           (call-with-values f (lambda x (set! anss x))))
+         (semaphore-post s)))
+      (semaphore-wait s)
+      (if anss
+          (apply values anss)
+          (raise exn)))))
