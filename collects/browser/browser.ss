@@ -6,8 +6,6 @@
 
 (require-library "url.ss" "net")
 
-(require-library "framework.ss" "framework")
-
 (require-library "plt-installer.ss" "setup")
 
 (begin-elaboration-time
@@ -21,5 +19,4 @@
   mzlib:file^
   mzlib:url^
   setup:plt-installer^
-  mred^
-  framework^)
+  mred^)

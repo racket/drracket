@@ -7,7 +7,6 @@
 	  mzlib:url^
 	  (bullet : bullet-snip^)
 	  mred^
-	  framework^
 	  setup:plt-installer^)
 
   (define bullet-size bullet:bullet-size)
@@ -517,14 +516,15 @@
 	  (add-h-link-style)
           (reload)))))
 
-  (define hyper-text% (hyper-text-mixin text:keymap%))
+  (define hyper-text% (hyper-text-mixin text%))
 
   (define (hyper-canvas-mixin super%)
     (class super% args
       (inherit get-editor set-editor refresh get-parent get-top-level-window)
 
       (public
-	[make-editor (lambda (url) (make-object hyper-text% url (get-top-level-window)))]
+	[get-editor% (lambda () hyper-text%)]
+	[make-editor (lambda (url) (make-object (get-editor%) url (get-top-level-window)))]
 	[current-page
 	 (lambda ()
 	   (let ([e (get-editor)])
@@ -672,7 +672,8 @@
 	       (set! past (cons (send c current-page) past))
 	       (set! future (cdr future))
 	       (go page))))]
-	[make-canvas (lambda (f) (make-object hyper-canvas% f))]
+	[get-canvas% (lambda () hyper-canvas%)]
+	[make-canvas (lambda (f) (make-object (get-canvas%) f))]
 	[make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
       (private
 	[past null]
