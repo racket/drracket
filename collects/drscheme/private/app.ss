@@ -744,7 +744,7 @@
              (lambda ()
                (when set-language?
                  (set-language-pref other-language))))
-            (exit:exit #t)
+            (exit:exit)
             (set! set-language? #f))))
       
       (define (add-important-urls-to-help-menu help-menu additional)
