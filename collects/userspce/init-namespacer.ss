@@ -23,7 +23,8 @@
   (define (build-gdvs exploded)
     (let ([flattened (exploded->flattened exploded)])
       (map
-       (lambda (x) `(global-defined-value ',x ,x))
+       (lambda (x)
+	 `(global-defined-value ',x ,x))
        flattened)))
 
   (define core-flat@ (require-library-unit/sig "coreflatr.ss"))
@@ -148,7 +149,7 @@
 	#t
 	#f))
 
-  (define namespace-thunk void)
+  (define namespace-thunk (build-namespace-thunk null))
   (define init-namespace (lambda () (namespace-thunk)))
 
   (define (teachpack-changed v)

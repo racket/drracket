@@ -1,4 +1,4 @@
-; $Id: invoke.ss,v 1.41 1999/06/01 16:55:18 mflatt Exp $
+; $Id: invoke.ss,v 1.42 2000/05/28 03:47:30 shriram Exp $
 
 (begin-elaboration-time
  (require-library "cores.ss"))
@@ -10,18 +10,19 @@
 (define zodiac:default-interface@
   (unit/sig zodiac:interface^
     (import)
-    (define default-error-handler
-      (lambda (keyword)
+    (define internal-error
 	(lambda (where fmt-spec . args)
 	  (printf "Error at: ~s~n" where)
-	  (apply error keyword fmt-spec args))))
-    (define internal-error
-      (default-error-handler 'internal-error))
-    (define static-error
-      (default-error-handler 'syntax-error))))
+	  (apply error 'internal-error fmt-spec args)))
+    (define (static-error link-text link-tag where fmt-spec . args)
+      (printf "Error tag: ~s~n" link-tag)
+      (printf "Error at: ~s~n" where)
+      (apply error 'static-error
+	(string-append link-text ": " fmt-spec)
+	args))))
 
 (define zodiac:system@
-  (require-library-unit/sig "link.ss" "zodiac"))
+  (require-library-unit/sig "link2.ss" "zodiac"))
 
 (begin-elaboration-time
  (require-library "invoke.ss"))

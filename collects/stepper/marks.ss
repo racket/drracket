@@ -34,17 +34,9 @@
   (define (mark-binding-value mark-binding)
     (car mark-binding))
   
-  (define (mark-binding-varref mark-binding)
+  (define (mark-binding-binding mark-binding)
     (cadr mark-binding))
 
-  (define (original-name varref)
-    (if (z:top-level-varref? varref)
-        (z:varref-var varref)
-        (let ([binding (z:bound-varref-binding varref)])
-          (if binding
-              (z:binding-orig-name binding)
-              (z:varref-var varref))))) ; this happens for application temps
-  
   (define (expose-mark mark)
     (let ([source (mark-source mark)]
           [label (mark-label mark)]
@@ -52,7 +44,7 @@
       (list source
             label
             (map (lambda (binding)
-                   (list (original-name (mark-binding-varref binding))
+                   (list (z:binding-orig-name (mark-binding-binding binding))
                          (mark-binding-value binding)))
                  bindings))))
   
@@ -67,23 +59,16 @@
                   (printf " ~a : ~a~n" (car binding-pair) (cadr binding-pair)))
                 (caddr exposed))))
   
-  (define (lookup-var-binding mark-list var)
-    (printf "entering lookup-var-binding~n")
+  (define (lookup-binding mark-list binding)
     (if (null? mark-list)
-        ; must be a primitive
-        (begin
-          (printf "going into error~n")
-          (error 'lookup-var-binding "variable not found in environment: ~a" var))
-	; (error var "no binding found for variable.")
+        (error 'lookup-binding "variable not found in environment: ~a" binding)
 	(let* ([bindings (mark-bindings (car mark-list))]
-               [_ (printf "bindings: ~a~n" bindings)]
-	       [matches (filter (lambda (mark-var)
-				  (eq? var (z:varref-var (mark-binding-varref mark-var))))
+	       [matches (filter (lambda (b)
+				  (eq? binding (mark-binding-binding b)))
                                 bindings)])
-          (printf "matches length: ~a~n" (length matches))
 	  (cond [(null? matches)
-		 (lookup-var-binding (cdr mark-list) var)]
+		 (lookup-binding (cdr mark-list) binding)]
 		[(> (length matches) 1)
-		 (error 'lookup-var-binding "more than one variable binding found for var: ~a" var)]
+		 (error 'lookup-binding "more than one variable binding found for binding: ~a" binding)]
 		[else ; (length matches) = 1
 		 (car matches)])))))

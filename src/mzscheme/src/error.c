@@ -22,6 +22,9 @@
 */
 
 #include "schpriv.h"
+#ifdef DOS_FILE_SYSTEM
+# include <windows.h>
+#endif
 
 /* globals */
 void (*scheme_console_printf)(char *str, ...);
@@ -121,7 +124,8 @@ void scheme_init_format_procedure(Scheme_Env *env)
   %V = scheme_value
 
   %L = line number, -1 means no line
-  %e = error number
+  %e = error number for strerror()
+  %E = error number for platform-specific error string
 */
 
 static long scheme_vsprintf(char *s, long maxlen, const char *msg, va_list args)
@@ -160,6 +164,7 @@ static long scheme_vsprintf(char *s, long maxlen, const char *msg, va_list args)
 	(void)va_arg(args2, long);
 	break;
       case 'e':	  
+      case 'E':
 	(void)va_arg(args2, int);
 	break;
       case 'S':
@@ -254,17 +259,44 @@ static long scheme_vsprintf(char *s, long maxlen, const char *msg, va_list args)
 	    }
 	  }
 	  break;
-	case 'e':	  
+	case 'e':
+	case 'E':
 	  {
 	    int en;
 	    en = va_arg(args, int);
 	    if (en) {
-	      t = strerror(en);
+	      char *es;
+#ifdef DOS_FILE_SYSTEM
+	      char mbuf[256];
+	      if (type == 'E') {
+		if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, 
+				  en, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				  mbuf, 255, NULL)) {
+		  int i;
+		  es = mbuf;
+		  /* Remove newlines: */
+		  for (i = strlen(es) - 1; i > 0; i--) {
+		    if (isspace(es[i]))
+		      es[i] = 0;
+		    else
+		      break;
+		  }
+		} else
+		  es = NULL;
+	      } else
+		es = NULL;
+	      if (!es)
+#endif
+		es = strerror(en);
+	      tlen = strlen(es) + 24;
+	      t = (const char *)scheme_malloc_atomic(tlen);
+	      sprintf((char *)t, "%s; errno=%d", es, en);
 	      tlen = strlen(t);
 	    } else {
-	      t = "-1";
-	      tlen = 2;
+	      t = "errno=?";
+	      tlen = 7;
 	    }
+	    
 	  }
 	  break;
 	case 'S':

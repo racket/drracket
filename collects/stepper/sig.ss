@@ -1,9 +1,5 @@
 (define-signature stepper:cogen-utils^
-  (get-binding-name
-   lookup-new-binding-name
-   set-new-binding-name!
-   
-   check-for-keyword
+  (check-for-keyword
    check-for-syntax-or-macro-keyword
    
    the-undefined-value
@@ -43,10 +39,10 @@
    mark-bindings
    mark-label
    mark-binding-value
-   mark-binding-varref
+   mark-binding-binding
    expose-mark
    display-mark
-   lookup-var-binding))
+   lookup-binding))
 
 (define-signature stepper:client-procs^
   (read-getter
@@ -73,18 +69,19 @@
    (struct before-error-result (finished-exprs exp redex err-msg))
    (struct error-result (finished-exprs err-msg))
    (struct finished-result (finished-exprs))
+   get-binding-name
+   ;lookup-new-binding-name
+   ;set-new-binding-name!
    list-take
    list-partition
    (struct closure-record (name mark constructor?))
-   create-bogus-bound-varref
-   create-bogus-top-level-varref
+   ;create-bogus-binding
    *unevaluated* 
    no-sexp
    if-temp
    struct-flag
    highlight-placeholder
-   get-arg-varref
-   top-level-exp-gensym-source
+   get-arg-binding
    expr-read
    set-expr-read!
    flatten-take

@@ -174,9 +174,9 @@
                      (set! packaged-envs envs)
                      (set! current-expr new-parsed)
                      (check-for-repeated-names new-parsed exception-handler)
-                     (current-exception-handler exception-handler)
                      (let ([expression-result
-                            (user-primitive-eval annotated)])
+                            (parameterize ([current-exception-handler exception-handler])
+                              (user-primitive-eval annotated))])
                        (send-to-drscheme-eventspace
                         (lambda ()
                           (add-finished-expr expression-result)

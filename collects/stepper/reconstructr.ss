@@ -85,8 +85,12 @@
       (string->symbol (string-append "~" (symbol->string binding-name) "~" (number->string free-num)))))
   
   (define (lookup-lifted-name binding)
-    (string->symbol (string-append "~" (symbol->string (z:binding-orig-name binding)) "~" 
-                                   (number->string (hash-table-get lifted-names-table binding)))))
+    (cond [(hash-table-get lifted-names-table binding (lambda () #f)) =>
+           (lambda (binding-number)
+             (string->symbol (string-append "~" (symbol->string (z:binding-orig-name binding)) "~" 
+                                            (number->string binding-number))))]
+          [else ; the user is about to get the undefined value in a letrec...
+           (z:binding-orig-name binding)]))
     
   (define (rectify-value val)
     (let ([closure-record (closure-table-lookup val (lambda () #f))])
@@ -132,30 +136,27 @@
                     (or (z:lambda-varref? expr)
                         (let ([var (z:varref-var expr)])
                           (with-handlers 
-                              ();[exn:variable? (lambda args (printf "c~n") #f)])
+                              ([exn:variable? (lambda args (printf "c~n") #f)])
                             (printf "a~n")
                             (or (and (printf "a.5~n")
                                      (s:check-pre-defined-var var)
-                                     (printf "result: ~a~n" (s:check-pre-defined-var var))
-                                     (printf "b~n")
                                      (or (procedure? (s:global-lookup var))
                                          (eq? var 'empty)))
                                 (let ([val (if (z:top-level-varref? expr)
                                                (s:global-lookup var)
                                                (begin
                                                  (printf "fkjd~n")
-                                                 (printf "~a~n" (lookup-var-binding mark-list var))
-                                                 (lookup-var-binding mark-list var)))])
-                                  (printf "past lookup-var-binding~n")
+                                                 (lookup-binding mark-list (z:bound-varref-binding expr))))])
+                                  (printf "past lookup-binding~n")
                                   (and (procedure? val)
                                        (not (continuation? val))
                                        (eq? var
                                             (closure-record-name 
                                              (closure-table-lookup val (lambda () #f)))))))))))
                (and (z:app? expr)
+                    (printf "into app~n")
                     (let ([fun-val (mark-binding-value
-                                    (lookup-var-binding mark-list 
-                                                      (z:varref-var (get-arg-varref 0))))])
+                                    (lookup-binding mark-list (get-arg-binding 0)))])
                       (and (procedure? fun-val)
                            (procedure-arity-includes? 
                             fun-val
@@ -176,7 +177,7 @@
                (in-inserted-else-clause mark-list)))))
   
   (define (second-arg-is-list? mark-list)
-    (let ([arg-val (mark-binding-value (lookup-var-binding mark-list (z:varref-var (get-arg-varref 2))))])
+    (let ([arg-val (mark-binding-value (lookup-binding mark-list (get-arg-binding 2)))])
       (list? arg-val)))  
   
   (define (in-inserted-else-clause mark-list)
@@ -198,7 +199,7 @@
                       (if (memq binding lexically-bound-bindings)
                           (z:binding-orig-name binding)
                           (if (z:lambda-binding? binding)
-                              (rectify-value (mark-binding-value (lookup-var-binding mark-list (z:varref-var expr))))
+                              (rectify-value (mark-binding-value (lookup-binding mark-list (z:bound-varref-binding expr))))
                               (lookup-lifted-name binding))))]
                    [(z:top-level-varref? expr)
                     (z:varref-var expr)])]
@@ -406,14 +407,15 @@
                    (lambda (expr)
                      (rectify-source-expr expr mark-list null))]
                   [rectify-let 
-                   (lambda (binding-sets letrec? vals body)
+                   (lambda (letrec? binding-sets vals body)
                      (let+ ([val binding-list (apply append binding-sets)]
                             [val binding-names (map (lambda (set) (map z:binding-orig-name set)) binding-sets)]
                             [val must-be-values? (ormap (lambda (n-list) (not (= (length n-list) 1))) binding-sets)]
-                            [val dummy-var-list (build-list (length binding-list) 
-                                                            (lambda (x) (z:varref-var (get-arg-varref x))))]
-                            [val rhs-vals (map (lambda (arg-sym) 
-                                                 (mark-binding-value (lookup-var-binding mark-list arg-sym)))
+                            [val dummy-var-list (if letrec?
+                                                    binding-list
+                                                    (build-list (length binding-list) get-arg-binding))]
+                            [val rhs-vals (map (lambda (arg-binding) 
+                                                 (mark-binding-value (lookup-binding mark-list arg-binding)))
                                                dummy-var-list)]
                             [val rhs-list
                                  (let loop ([binding-sets binding-sets] [rhs-vals rhs-vals] [rhs-sources vals])
@@ -436,8 +438,10 @@
                                              (loop (cdr binding-sets) remaining (cdr rhs-sources))))]))]
                             [val rectified-body (rectify-source-expr body mark-list binding-list)])
                        (if must-be-values?
-                           `(let-values ,(map list binding-names rhs-list) ,rectified-body)
-                           `(let ,(map list (map car binding-names) rhs-list) ,rectified-body))))]
+                           `(,(if letrec? 'letrec-values 'let-values) 
+                             ,(map list binding-names rhs-list) ,rectified-body)
+                           `(,(if letrec? 'letrec 'let)
+                             ,(map list (map car binding-names) rhs-list) ,rectified-body))))]
                   [top-mark (car mark-list)]
                   [expr (mark-source top-mark)])
              (cond 
@@ -452,16 +456,12 @@
                
                [(z:app? expr)
                 (let* ([sub-exprs (cons (z:app-fun expr) (z:app-args expr))]
-                       [arg-temps (build-list (length sub-exprs) get-arg-varref)]
-                       [arg-temp-syms (map z:varref-var arg-temps)]
-                       [arg-vals (map (lambda (arg-sym) 
-                                        (mark-binding-value (lookup-var-binding mark-list arg-sym)))
-                                      arg-temp-syms)])
+                       [arg-temps (build-list (length sub-exprs) get-arg-binding)]
+                       [arg-vals (map (lambda (arg-temp) 
+                                        (mark-binding-value (lookup-binding mark-list arg-temp)))
+                                      arg-temps)])
                   (case (mark-label (car mark-list))
                     ((not-yet-called)
-                     ;                         (printf "length of mark-list: ~s~n" (length mark-list))
-                     ;                         (printf "mark has binding for third arg: ~s~n" 
-                     ;                                 (lookup-var-binding (list (car mark-list)) (z:varref:var 
                      (letrec
                          ([split-lists
                            (lambda (exprs vals)
@@ -502,8 +502,7 @@
                
                [(z:if-form? expr)
                 (let ([test-exp (if (eq? so-far nothing-so-far)
-                                    (rectify-source-current-marks 
-                                     (create-bogus-bound-varref if-temp #f))
+                                    (rectify-value (mark-binding-value (lookup-binding mark-list if-temp)))
                                     so-far)])
                   (cond [(comes-from-cond? expr)
                          (let* ([clause (list test-exp (rectify-source-current-marks (z:if-form-then expr)))]
@@ -573,10 +572,9 @@
            (let* ([redex (rectify-inner mark-list #f)]
                   [binding-list (apply append binding-sets)]
                   [new-names (map insert-lifted-name binding-list)]
-                  [dummy-var-list (build-list (length binding-list) (lambda (x) 
-                                                                      (z:varref-var (get-arg-varref x))))]
-                  [rhs-vals (map (lambda (arg-sym) 
-                                   (mark-binding-value (lookup-var-binding mark-list arg-sym)))
+                  [dummy-var-list (build-list (length binding-list) get-arg-binding)]
+                  [rhs-vals (map (lambda (arg-temp) 
+                                   (mark-binding-value (lookup-binding mark-list arg-temp)))
                                  dummy-var-list)]
                   [before-step (current-def-rectifier redex (cdr mark-list) #f)]
                   [reduct (rectify-source-expr body mark-list null)]

@@ -1415,7 +1415,7 @@ static Scheme_Object *tcp_connect(int argc, Scheme_Object *argv[])
     dest_host = MALLOC_ONE_ATOMIC(struct hostInfo);
     if ((errNo = tcp_addr(address, dest_host))) {
       errpart = 1;
-      errmsg = " host not found";
+      errmsg = "; host not found";
       goto tcp_error;
     }
     
@@ -1510,6 +1510,7 @@ static Scheme_Object *tcp_connect(int argc, Scheme_Object *argv[])
 	  status = WSAGetLastError();
 
 	inprogress = (status == WSAEWOULDBLOCK);
+	errno = status;
 #endif
 
 	scheme_file_open_count++;
@@ -1563,14 +1564,14 @@ static Scheme_Object *tcp_connect(int argc, Scheme_Object *argv[])
 #else
     errid = 0;
 #endif
-    errmsg = " host not found";
+    errmsg = "; host not found";
   }
 #endif
 
 #ifdef USE_TCP
   scheme_raise_exn(MZEXN_I_O_TCP,
-		   "tcp-connect: connection to %s, port %d failed (%d%s%d%s)",
-		   address, origid, errpart, ":", errid, errmsg);
+		   "tcp-connect: connection to %s, port %d failed%s (at step %d: %E)",
+		   address, origid, errmsg, errpart, errid);
 #else
   scheme_raise_exn(MZEXN_MISC_UNSUPPORTED,
 		   "tcp-connect: not supported on this platform");

@@ -1,4 +1,4 @@
-; $Id: scm-main.ss,v 1.205 2000/04/30 22:31:01 clements Exp $
+; $Id: scm-main.ss,v 1.206 2000/05/28 03:47:31 shriram Exp $
 
 (unit/sig zodiac:scheme-main^
   (import zodiac:misc^ zodiac:structures^
@@ -1064,24 +1064,6 @@
 				       (make-ds-micro internal-handler #f))
 	  (add-primitivized-micro-form 'define-struct full-local-extract-vocab
 				       (make-ds-micro internal-handler #t)))))
-
-    (let* ((kwd '())
-	   (in-pattern '(_ (type-spec fields ...)))
-	   (out-pattern '(define-struct type-spec (fields ...)))
-	   (m&e (pat:make-match&env in-pattern kwd)))
-      (add-primitivized-macro-form 'define-structure intermediate-vocabulary
-	(lambda (expr env)
-	  (or (pat:match-and-rewrite expr m&e out-pattern kwd env)
-	      (static-error
-		"define-structure" 'kwd:define-structure
-		expr "malformed definition"))))
-      (let ([int-ds-macro (lambda (expr env)
-			    (or (pat:match-and-rewrite expr m&e out-pattern kwd env)
-				(static-error
-				  "define-structure" 'kwd:define-structure
-				  expr "malformed definition")))])
-	(add-primitivized-macro-form 'define-structure nobegin-local-extract-vocab int-ds-macro)
-	(add-primitivized-macro-form 'define-structure full-local-extract-vocab int-ds-macro)))
 
     (define (make-let-struct-micro begin? allow-supertype?)
       (let* ((kwd '())

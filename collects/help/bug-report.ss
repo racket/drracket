@@ -82,26 +82,32 @@
 	   (build/label 
 	    "Name"
 	    (lambda (panel)
-	      (make-object text-field% #f panel
-			   (lambda (text event)
-			     (preferences:set 'drscheme:full-name (send text get-value)))
-			   (preferences:get 'drscheme:full-name)))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel
+			      (lambda (text event)
+				(preferences:set 'drscheme:full-name (send text get-value)))
+			      (preferences:get 'drscheme:full-name)))))
 	    #f))
 	 
 	 (build/label
 	  "Email"
 	  (lambda (panel)
-	    (make-object text-field% #f panel
-			 (lambda (text event)
-			   (preferences:set 'drscheme:email (send text get-value)))
-			 (preferences:get 'drscheme:email)))
+	    (keymap:call/text-keymap-initializer
+	     (lambda ()
+	       (make-object text-field% #f panel
+			    (lambda (text event)
+			      (preferences:set 'drscheme:email (send text get-value)))
+			    (preferences:get 'drscheme:email)))))
 	  #f)
 	 
 	 (define summary
 	   (build/label
 	    "Summary" 
 	    (lambda (panel)
-	      (make-object text-field% #f panel void))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void))))
 	    #f))
 	 
 	 
@@ -199,7 +205,9 @@
 	   (build/label
 	    "Version"
 	    (lambda (panel)
-	      (make-object text-field% #f panel void ""))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void ""))))
 	    #f
 	    #f
 	    synthesized-panel))
@@ -210,7 +218,9 @@
 	   (build/label
 	    "Environment"
 	    (lambda (panel)
-	      (make-object text-field% #f panel void ""))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void ""))))
 	    #f
 	    #f
 	    synthesized-panel))
@@ -223,7 +233,9 @@
 	   (build/label
 	    "Tools"
 	    (lambda (panel)
-	      (make-object text-field% #f panel void ""))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void ""))))
 	    #f
 	    #f
 	    synthesized-panel))
@@ -233,8 +245,9 @@
 	   (build/label 
 	    "Docs Installed"
 	    (lambda (panel)            
-	      (make-object text-field% #f panel void
-			   ""))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void ""))))
 	    #f
 	    #f
 	    synthesized-panel))
@@ -247,8 +260,9 @@
 	   (build/label 
 	    "Collections"
 	    (lambda (panel)            
-	      (make-object text-field% #f panel void
-			   ""))
+	      (keymap:call/text-keymap-initializer
+	       (lambda ()
+		 (make-object text-field% #f panel void ""))))
 	    #f
 	    #f
 	    synthesized-panel))
