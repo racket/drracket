@@ -6,12 +6,14 @@
            "shared.ss")
 
   ; CONTRACTS
-  (define mark? procedure?)
+  (define mark? (-> ; no args  
+                 full-mark-struct?)
   (define mark-list? (listof mark?))
 
   (provide/contract 
    [make-full-mark (-> syntax? symbol? (listof syntax?) syntax?)] ; (location label bindings -> mark-stx)
-   [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any?)])
+   [make-debug-info (-> syntax? binding-set? varref-set? symbol? boolean? any?)]
+   [expose-mark (-> mark? (list/n syntax? symbol? (listof (list/n indentifier? any?))))])
   
   (provide
    skipto-mark?
@@ -140,7 +142,7 @@
       (list source
             label
             (map (lambda (binding)
-                   (list (syntax-e (mark-binding-binding binding))
+                   (list (mark-binding-binding binding)
                          (mark-binding-value binding)))
                  bindings))))
   
