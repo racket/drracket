@@ -20,36 +20,62 @@
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:language-tower : drscheme:language-tower^])
       
+      ;; settings-preferences-symbol : symbol
+      ;; the preferences key for the language settings.
+      ;; depends on the version number, so people can use multiple versions
+      ;; of drscheme and maintain separate language settings for each
+      ;; of them.
       (define settings-preferences-symbol 
         (string->symbol (format "drscheme:~a-settings" (version:version))))
       
-      (define re:mred (regexp "MrEd"))
+      ;; default-language-position : (listof string)
+      ;; if a language is registered with this position, it is
+      ;; considered the default language
+      (define default-language-position '("HtDP" "Beginning Student"))
+
+      ;; languages : (listof (instanceof language<%>))
+      ;; all of the languages supported in DrScheme
+      (define languages null)
       
-      ;; (union #f (listof (instanceof language<%>)))
-      ;; #f indicates uninitialized
-      (define available-languages #f)
+      ;; can-still-add-languages? : boolean
+      ;; invariant: addition of languages is only
+      ;;            allowed when this is #t
+      (define can-still-add-languages? #t)
+
+      ;; add-language : (instanceof language%) -> void
+      ;; checks can-still-add-languages? before adding the language
+      ;; effect: updates `languages'
+      (define (add-language language)
+	(unless can-still-add-languages?
+	  (error 'add-language "too late to add a new language: ~e" language))
+	(set! languages (cons language languages)))
       
-      (define (calculate-available-languages)
-        (let ([make-simple
-               (lambda (lang ps)
-                 (make-object drscheme:language-tower:module-based-language->language%
-		   (make-object drscheme:language-tower:simple-module-based-language->module-based-language%
-		     (make-object drscheme:language-tower:simple-module-based-language%
-		       `(lib ,lang "langs")
-		       ps))))])
-          (list (make-simple "full-mred.ss" '("Full" "Graphical (MrEd)"))
-                (make-simple "full-mzscheme.ss" '("Full" "Textual (MzScheme)")))))
+      ;; get-languages : -> (listof languages)
+      ;; effect: sets can-still-add-languages? to #f
+      (define (get-languages)
+	(set! can-still-add-languages? #f)
+        languages)
       
-      (define (get-available-languages)
-        (unless available-languages
-          (set! available-languages (calculate-available-languages)))
-        available-languages)
-      
-      ;; type language-setting = (make-language-setting (instanceof language<%>) setting)
-      (define-struct language-setting (language setting))
+      ;; get-default-language-settings : -> language-settings
+      ;; uses `default-language-position' to find the default language.
+      ;; if that language is not available, just takes the first language.
+      ;; if there are no languages defined yet, signal an error -- drscheme is screwed.
+      (define (get-default-language-settings)
+	(when (null? languages)
+	  (error 'get-default-language-settings "no languages registered!"))
+	(let ([lang (or (ormap (lambda (x)
+				 (equal? (send x get-language-position)
+					 default-language-position))
+			       (get-languages))
+			(first (get-languages)))])
+	  (make-language-settings lang (send lang default-settings))))
+
+      ;; type language-settings = (make-language-settings (instanceof language<%>) settings)
+      (define-struct language-settings (language settings))
        
       ;; language-dialog : (language-setting -> language-setting)
-      ;;                   (language-setting (union #f (instanceof top-level-window%)) -> language-setting
+      ;;                   (language-setting (union #f (instanceof top-level-window%))
+      ;;                    -> language-setting)
       ;; allows the user to configure their language. The input language-setting is used
       ;; as the defaults in the dialog and the output language setting is the user's choice
       (define language-dialog
@@ -80,7 +106,7 @@
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
 	  (define details-panel (make-object panel:single% outermost-panel))
           (define languages-table (make-hash-table))
-          (define languages (get-available-languages))
+          (define languages (get-languages))
 
 	  ;; details-panels-associations : (listof (list language panel (-> settings)))
 	  (define details-panels-associations
@@ -130,6 +156,9 @@
                                           (cdr lng)))])))
           
           (for-each add-language languages)
+	  (send dialog reflow-container)
+	  (send languages-hier-list stretchable-width #f)
+	  (send languages-hier-list min-width 500)
           (send dialog show #t)))
  
       

@@ -48,7 +48,10 @@
      whole/part-number-snip%))
   
   (define-signature drscheme:language^
-    ((struct language-setting (language setting))
+    ((struct language-settings (language settings))
+     get-default-language-settings
+     add-language
+     get-languages
      fill-language-menu
      settings-preferences-symbol
      language-dialog))

@@ -34,7 +34,7 @@
             [language : drscheme:language^ (language@ unit tower)]            
             [help-interface : drscheme:help-interface^ (help-interface@ frame language)]
 	    [app : drscheme:app^ (app@ unit frame help-interface)]
-            [main-before : () (main-before@ app unit get/extend language)]
+            [main-before : () (main-before@ app unit get/extend language tower)]
             [tool : () (tools@ frame unit rep get/extend)]
             [main : drscheme:main^ (main@ app unit get/extend language)])
       (export))))

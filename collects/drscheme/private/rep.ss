@@ -43,9 +43,9 @@
       
       (define primitive-eval (current-eval))
       
-      ;; current-language-setting : (parameter language-setting)
+      ;; current-language-settings : (parameter language-setting)
       ;; set to the current language and its setting on the user's thread.
-      (define current-language-setting (make-parameter #f))
+      (define current-language-settings (make-parameter #f))
       
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
@@ -681,7 +681,6 @@
               reset-highlighting
               format-source-loc
               
-              get-user-setting
               get-user-custodian
               get-user-eventspace
               get-user-thread
@@ -1189,15 +1188,16 @@
                                     (number->string 
                                      (numerator (- x (floor x)))))))]
                           [else #f]))]
-		     [pretty-print-print-hook
+		     [make-pretty-print-print-hook
+		      (lambda (port-out-write)
 		      ;; port and port-out-write must match at this point.
-		      (lambda (x _ port)
-			(let ([snip/str
-			       (cond
-				 [(use-number-snip? x)
-				  (make-object drscheme:snip:whole/part-number-snip% x)]
-				 [else x])])
-			  (port-out-write snip/str)))]
+			(lambda (x _ port)
+			  (let ([snip/str
+				 (cond
+				   [(use-number-snip? x)
+				    (make-object drscheme:snip:whole/part-number-snip% x)]
+				   [else x])])
+			    (port-out-write snip/str))))]
                      [make-setup-handler
                       (lambda (port port-out-write)
                         (lambda (port-handler pretty)
@@ -1214,7 +1214,7 @@
                                      (parameterize ([mzlib:pretty-print:pretty-print-size-hook
                                                      pretty-print-size-hook]
                                                     [mzlib:pretty-print:pretty-print-print-hook
-						     pretty-print-print-hook]
+						     (make-pretty-print-print-hook port-out-write)]
                                                     [mzlib:pretty-print:pretty-print-columns
                                                      'infinity])
                                        (pretty v p)))))))))]
@@ -1271,7 +1271,8 @@
             ;; effect: prints the value on the port
             ;; default setting for the behavior of the `print' primitive.
             (define (drscheme-port-print-handler value port)
-              (let ([language (drscheme:language:language-setting-language (current-language-setting))])
+              (let ([language (drscheme:language:language-settings-language
+			       (current-language-settings))])
                 (send language render-value value 
                       port 
                       (cond
@@ -1291,9 +1292,8 @@
               (not (and user-thread
                         (thread-running? user-thread))))
             
-            (define (get-user-setting) (preferences:get drscheme:language:settings-preferences-symbol))
-            (field (user-setting (get-user-setting))
-                   (user-custodian (make-custodian))
+            (field (user-language-settings 'uninitialized-user-language-settings)
+		   (user-custodian (make-custodian))
                    (user-eventspace #f)
                    (user-thread #f))
             
@@ -1540,6 +1540,8 @@
                 (semaphore-post eval-thread-queue-sema)))
             (define init-evaluation-thread ; =Kernel=
               (lambda ()
+                (set! user-language-settings
+		      (preferences:get drscheme:language:settings-preferences-symbol))
                 (set! user-custodian (make-custodian))
                 (set! user-eventspace (parameterize ([current-custodian user-custodian])
                                         (make-eventspace)))
@@ -1557,7 +1559,7 @@
                        ; No user code has been evaluated yet, so we're in the clear...
                        (break-enabled #f)
                        (set! user-thread (current-thread))
-		       (initialize-parameters user-setting)
+		       (initialize-parameters)
                        
                        (let ([drscheme-error-escape-handler
                               (lambda ()
@@ -1641,8 +1643,9 @@
             (field (repl-initially-active? #f))
             
             (define initialize-parameters ; =User=
-              (lambda (setting)
+              (lambda ()
                 
+		(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
                 (current-exception-handler drscheme-exception-handler)
                 (current-load-relative-directory #f)
@@ -1767,8 +1770,6 @@
                 (lock #f)
                 (set! in-evaluation? #f)
                 (update-running)
-                
-                (set! user-setting (get-user-setting))
                 
                 (begin-edit-sequence)
                 (set-resetting #t)

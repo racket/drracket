@@ -31,7 +31,14 @@
       (drscheme:get/extend:get-unit-frame%)
       (drscheme:get/extend:get-interactions-text%)
       (drscheme:get/extend:get-definitions-text%)
+      (drscheme:language:get-languages)
       
+      ;; this default can only be set *after* the
+      ;; languages have all be registered by tools
+      (preferences:set-default
+       drscheme:language:settings-preferences-symbol
+       (drscheme:language:get-default-language-settings)
+       drscheme:language:language-settings?)
       
   ;; the initial window doesn't set the 
   ;; unit object's state correctly, yet.
@@ -77,7 +84,6 @@
                                    f
                                    (lambda () (drscheme:unit:open-drscheme-window f))))
                       no-dups)))
-      
       
   ;;
   ;; Show about box when version changes
