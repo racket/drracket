@@ -48,7 +48,7 @@
   (load/link-tool))
 
 (define-signature drscheme:unit^
-  (frame% snip-class% snip%))
+  (frame% snip-class% snip% make-bitmap))
 
 (define-signature drscheme:frame^
   (group
