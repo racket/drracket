@@ -154,7 +154,8 @@ profile todo:
                                  (exn-continuation-marks exn)
                                  cm-key))]
 		      [src-to-display (find-src-to-display exn 
-                                                           (map mark-source cms))])
+                                                           (and cms
+                                                                (map mark-source cms)))])
                  
                  (queue-output
                   text
@@ -252,7 +253,7 @@ profile todo:
                (orig-error-display-handler msg exn)])))
         debug-error-display-handler)
 
-      ;; find-src-to-display : exn (listof (cons <src> (cons number number)))
+      ;; find-src-to-display : exn (union #f (listof (cons <src> (cons number number))))
       ;;                    -> (union #f (cons (union symbol <src>) (cons number number)))
       ;; finds the source location to display, choosing between
       ;; the stack trace and the exception record.
@@ -264,30 +265,6 @@ profile todo:
            ;; assume that the original error-display-handler displays the 
            ;; error in this case.
            #f]
-          [(exn:read? exn)
-	   (let ([src (exn:read-source exn)]
-		 [position (exn:read-position exn)]
-		 [span (exn:read-span exn)])
-	     (and src
-		  position
-		  span
-		  (cons (if (string? src)
-			    (string->symbol src)
-			    src)
-			(cons (- position 1) span))))]
-	  [(exn:syntax? exn)
-	   (let* ([stx (exn:syntax-expr exn)])
-	     (and (syntax? stx)
-		  (let ([src (syntax-source stx)]
-			[position (syntax-position stx)]
-			[span (syntax-span stx)])
-		    (and src
-			 position
-			 span
-			 (cons (if (string? src)
-				   (string->symbol src)
-				   src)
-			       (cons (- position 1) span))))))]
 	  [else (and (pair? cms)
                      (car cms))]))
 
