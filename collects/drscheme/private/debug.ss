@@ -185,7 +185,7 @@
               expr)))
 
       ;; an unused stacktrace-import^
-      (define (profile-point body name expr env trans?) body)
+      (define (profile-point body name expr trans?) body)
       
       (define-values/invoke-unit/sig stacktrace^ stacktrace@ #f stacktrace-imports^)
 
