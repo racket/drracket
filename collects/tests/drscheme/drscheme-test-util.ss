@@ -35,7 +35,8 @@
            set-language-level!
            repl-in-edit-sequence?
            fetch-output
-           has-error?)
+           has-error?
+           run-one/sync)
   
   ;; save-drscheme-window-as : string -> void
   ;; use the "save as" dialog in drscheme to save the definitions

@@ -66,6 +66,7 @@
   (define separator-sexp "should be")
   
   (define (test-single-file filename)
+    (printf "testing: ~s\n" filename)
     (let* ([toc-entry (let ([lookup (assoc (string->symbol filename) toc)])
                         (if lookup
                             (cdr lookup)
@@ -80,15 +81,19 @@
              [definitions-text (send drs-frame get-definitions-text)]
              [interactions-text (send drs-frame get-interactions-text)])
         
-        ;; update the program (cheat to hack around gc bug -- should really use file|open)
-        ;; (this is also much more efficient, tho)
-        (send definitions-text load-file (build-path sample-solutions-dir filename))
+        (run-one/sync
+         (lambda ()
+           ;; update the program (cheat to hack around gc bug -- should really use file|open)
+           ;; (this is also much more efficient, tho)
+           (send definitions-text load-file (build-path sample-solutions-dir filename))))
         
         ;; only bother changing the language dialog when necessary.
         (unless (string=?
-                 (send interactions-text get-text
-                       (send interactions-text paragraph-start-position 1)
-                       (send interactions-text paragraph-end-position 1))
+                 (run-one/sync
+                  (lambda ()
+                    (send interactions-text get-text
+                          (send interactions-text paragraph-start-position 1)
+                          (send interactions-text paragraph-end-position 1))))
                  (format "Language: ~a." (car (last-pair language))))
           (set-language-level! language))
         
@@ -113,10 +118,12 @@
                              sample-solutions-teachpack-filename
                              teachpacks)))]
                [teachpack-is
-                (send interactions-text get-text
-                      (send interactions-text paragraph-start-position 2)
-                      (send interactions-text paragraph-start-position 
-                            (+ 2 (length teachpacks) 1)))] ;; add 1 for the always there teachpack
+                (run-one/sync
+                 (lambda ()
+                   (send interactions-text get-text
+                         (send interactions-text paragraph-start-position 2)
+                         (send interactions-text paragraph-start-position 
+                               (+ 2 (length teachpacks) 1)))))] ;; add 1 for the always there teachpack
                [teachpacks-already-set? (string=? teachpack-should-be teachpack-is)])
           (unless teachpacks-already-set?
             (fw:test:menu-select "Language" "Clear All Teachpacks")
@@ -145,7 +152,7 @@
             (fw:test:button-push "OK")
             (wait-for-drscheme-frame #f)))
         
-        (check-for-red-text filename definitions-text)
+        (check-for-red-text filename drs-frame)
         
         ;; still check equal pairs when there is a sanctioned error.
         (cond
@@ -183,22 +190,46 @@
                         (loop after (+ equal-count 1)))]
                      [else (loop sexp equal-count)])))))]))))
   
-  (define (check-for-red-text filename definitions-text)
-    (let loop ([snip (send definitions-text find-first-snip)])
-      (when snip
-        (let* ([style (send snip get-style)]
-               [foreground (send style get-foreground)])
-          (if (black? foreground)
-              (loop (send snip next))
-              (let* ([pos (send definitions-text get-snip-position snip)]
-                     [para (send definitions-text position-paragraph pos)]
-                     [para-start (send definitions-text paragraph-start-position para)])
-                (printf "ERROR: ~a: found non-black snip at ~a:~a (pos ~a)\n"
-                        filename
-                        (+ para 1)
-                        (- pos para-start)
-                        pos)))))))
+  (define (check-for-red-text filename drs-frame)
+    (when (send drs-frame get-test-coverage-info-visible?)
+      (printf "ERROR: ~a: test coverage shows uncovered code\n"
+              filename)))
   
+  ;; has-test-coverage-annotations? : text -> (union (list ...) #f)
+  (define (has-test-coverage-annotations? definitions-text)
+    (let loop ([snip (send definitions-text find-first-snip)]
+               [black #f]
+               [red #f])
+      (cond
+        [snip
+         (let* ([style (send snip get-style)]
+                [foreground (send style get-foreground)])
+           (cond
+             [(black? foreground)
+              (if red
+                  (list (get-snip-info definitions-text snip) red)
+                  (loop (send snip next) (get-snip-info definitions-text snip) red))]
+             [(red? foreground)
+              (if black
+                  (list black (get-snip-info definitions-text snip))
+                  (loop (send snip next) black (get-snip-info definitions-text snip)))]
+             [else
+              (loop (send snip next) black red)]))]
+        [else #f])))
+  
+  (define (get-snip-info definitions-text snip)
+    (let* ([pos (send definitions-text get-snip-position snip)]
+           [para (send definitions-text position-paragraph pos)]
+           [para-start (send definitions-text paragraph-start-position para)])
+      (list (+ para 1)
+            (- pos para-start))))
+  
+  (define red-color (make-object color% "firebrick"))
+  (define (red? c)
+    (and (= (send c red) (send red-color red))
+         (= (send c green) (send red-color green))
+         (= (send c blue) (send red-color blue))))
+
   (define (black? c)
     (and (zero? (send c red))
          (zero? (send c green))
