@@ -1,11 +1,73 @@
-DRSCHEME TOOLS/LIBRARIES HISTORY
---------------------------------
 Version 51:
- - tools must now import wx names explicitly, as a new first import.
 
- - the parameters interface has changed. Instead getting and setting
-   the class, the tool programmer must register a function that
-   accepts a class and returns a class. See the manual for more
-   details.
+General 
+-------
+- check syntax does not work with an unitialized repl when:
+  the source contains define-macro. (won't be fixed in the release)
 
- - process/zodiac-finish has been renamed to process-finish
+- eval no longer loops forever in mred vocabulary 
+
+- searching keybindings have changed. There are four distinct actions:
+   action1: move keyboard focus to the searching window, opening it if necessary, 
+            or if already there search forward
+   action2: move keyboard focus to the searching window, opening it if necessary, 
+            or if already there search backward.
+   action3: search again, in the same direction
+   action4: move the focus between the main window, searching window and replacment window
+   action5: hide the searching window
+
+The actions are mapped to different keys, based on the platform. 
+
+On unix:
+ action1 => control-s, meta-%
+ action2 => control-r
+ action3 => f3
+ action4 => control-i
+ action5 => control-g
+
+On the macintosh:
+  action1 => command-f
+  action2 => command-r
+  action3 => command-g
+  action4 => command-o
+  action5 => command-.
+
+On windows:
+ action1 => control-f
+ action2 => control-r
+ action3 => f3, control-g
+ action4 => control-i
+ action5 => escape
+
+- turned off the file name printouts on splash screen
+
+  evaluate: 
+  (wx:write-resource "mred" "splashMessages" 1 (wx:find-path 'setup-file))
+  to turn them back on.
+
+- fixed a bug that caused error messages to be displayed in message
+  boxes more often than neccessary. (as opposed to printing in the
+  repl)
+
+- parenthesis matching is improved
+
+- The empty list is now called "empty" instead of "null" with the
+  constructor style printer.
+
+- The analyze button puts up a dialog saying "please wait, loading",
+  now.
+
+- the fonts dialog now shows previews of the selected fonts. You
+  still need to restart to see the changes, unfortunately.
+
+DrScheme Tools/Libraries
+------------------------
+
+- tools must now import wx names explicitly, as a new first import.
+
+- the parameters interface has changed. Instead getting and setting
+  the class, the tool programmer must register a function that
+  accepts a class and returns a class. See the manual for more
+  details.
+
+- process/zodiac-finish has been renamed to process-finish
