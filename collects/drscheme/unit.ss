@@ -979,8 +979,19 @@
       (inherit get-menu-bar get-focus-object get-edit-target-object)
       (private
 	[language-menu 'uninited-language-menu])
+
+      (rename [super-on-size on-size])
+      (override
+       [on-size
+	(lambda (w h)
+	  (fw:preferences:set 'drscheme:unit-window-width w)
+	  (fw:preferences:set 'drscheme:unit-window-height h)
+	  (super-on-size w h))])
       (sequence
-	(super-init filename)
+	(super-init filename
+		    #f
+		    (fw:preferences:get 'drscheme:unit-window-width)
+		    (fw:preferences:get 'drscheme:unit-window-height))
 
 	(let* ([mb (get-menu-bar)]
 	       [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]

@@ -230,9 +230,9 @@
    
    ;; non-strings snip test
    (make-test 'abc-text-box
-	      "[abc]"
+	      "{embedded \"abc\"}"
 	      #f
-	      "[abc]"
+	      "{embedded \"abc\"}"
 	      #f
 	      "non-string-snip"
 	      "non-string-snip"
@@ -570,6 +570,10 @@
   (delete-file tmp-load-filename))
 (save-drscheme-window-as tmp-load-filename)
 
+(set-language-level! "Graphical without Debugging (MrEd)")
 (kill-tests)
+(set-language-level! "Graphical (MrEd)")
+(kill-tests)
+
 (run-test-in-language-level #t)
 (run-test-in-language-level #f)
