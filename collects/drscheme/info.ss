@@ -1,6 +1,5 @@
 (module info (lib "infotab.ss" "setup")
   (define name "DrScheme")
+  (define install-collection "installer.ss")
   (define tools (list "syncheck.ss"))
-  (define tool-names (list "Check Syntax"))
-  (define mred-launcher-libraries (list "drscheme.ss"))
-  (define mred-launcher-names (list "DrScheme")))
+  (define tool-names (list "Check Syntax")))

@@ -1,260 +1,37 @@
-
 (module drscheme mzscheme
-
-  ;; except for the mred and class libraries
-  ;; (which should already be in this namespace anyway)
-  ;; this module only has dynamic-requires to
-  ;; get the timing right of the debug display, etc.
+  (define debugging? (getenv "PLTDRDEBUG"))
   
-  (require (lib "mred.ss" "mred")
-	   (lib "class.ss"))
+  (define profiling? (and debugging?
+                          (equal? (getenv "PLTDRDEBUG") "profile")))
   
-  (define (show-profiling-results)
-    (define f (make-object frame% "Profile Results" #f 400 600))
-    (define t (make-object text%))
-    (define ec (make-object editor-canvas% f t))
-    (define p (open-output-string))
-    
-    (parameterize ([current-output-port p])
-      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #t)
-      (newline)
-      (newline)
-      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'output-profile-results) #f #f))
-    (send t insert (get-output-string p))
-    (call-with-output-file "/home/robby/OUTPUT"
-      (lambda (op) (display (get-output-string p) op))
-      'truncate
-      'text)
-    (send t change-style (make-object style-delta% 'change-family 'modern) 0 (send t last-position))
-    (send t lock #t)
-    (send f show #t))
-
-  (define profiling? (equal? (getenv "PLTDRDEBUG") "profile"))
-
-  (when (getenv "PLTDRDEBUG")
+  (define install-cm? (and (not debugging?)
+                           (getenv "PLTDRCM")))
+  
+  (when debugging?
     (printf "PLTDRDEBUG: installing errortrace\n")
-    (let ([main-eventspace-thread (current-thread)]
-          [main-eventspace (current-eventspace)])
-      (let-values ([(sw sh) (get-display-size)])
-        (let* ([stack-frame (parameterize ([current-eventspace (make-eventspace)])
-                              (make-object frame% "Debugging Window" #f 500))]
-               [button-panel (make-object horizontal-panel% stack-frame)]
-               [messages-panel (make-object vertical-panel% stack-frame)])
-          
-          (letrec ([mem (make-object message% "000.000.000" button-panel)]
-                   [c (make-object canvas% button-panel)]
-                   [quit-button (make-object button% "Quit" button-panel (lambda (x y) (exit)))]
-                   [break-button (make-object button% "Break" button-panel 
-                                   (lambda (x y) (break-thread main-eventspace-thread)))]
-                   [profile-button (make-object button% "Profile Results" button-panel
-                                     (lambda (x y)
-                                       (show-profiling-results)))]
-                   [toggle-profile-button
-                    (make-object button% "Disable Profiling" button-panel
-                      (lambda (x y)
-                        (toggle-profiling-enabled)))]
-                   
-                   
-                   (profiling-enabled? #f)
-                   (toggle-profiling-enabled 
-                    (lambda ()
-                      (set! profiling-enabled? (not profiling-enabled?))
-                      (sync-profiling-state)))
-                   (sync-profiling-state
-                    (lambda ()
-                      (send toggle-profile-button set-label "Toggling...")
-                      (send toggle-profile-button enable #f)
-                      (parameterize ([current-eventspace main-eventspace])
-                        (queue-callback
-                         (lambda ()
-                           (sync-profiling-state/main-eventspace)
-                           (send toggle-profile-button enable #t))))))
-                   (sync-profiling-state/main-eventspace
-                    (lambda ()
-                      ((dynamic-require '(lib "errortrace.ss" "errortrace")  
-                                        'profiling-record-enabled)
-                       profiling-enabled?)
-                      (send toggle-profile-button set-label (if profiling-enabled? 
-                                                                "Disable Profiling"
-                                                                "Enable Profiling"))))
-                   
-                   
-                   [onb (make-object bitmap% (build-path (collection-path "icons")
-                                                         "recycle.gif"))]
-                   [offb
-                    (let ([bdc (make-object bitmap-dc%)]
-                          [bitmap (make-object bitmap%
-                                    (send onb get-width)
-                                    (send onb get-height))])
-                      (send bdc set-bitmap bitmap)
-                      (send bdc clear)
-                      (send bdc set-bitmap #f)
-                      bitmap)])
-            
-            (thread
-             (lambda ()
-               (let loop ()
-                 (sleep 1)
-                 (let* ([mem-usage (current-memory-use)]
-                        [spacer 1000]
-                        [pad (lambda (x)
-                               (cond
-                                 [(x . < . 10) (format "00~a" x)]
-                                 [(x . < . 100) (format "0~a" x)]
-                                 [else (number->string x)]))]
-                        [f1 (pad (modulo mem-usage spacer))]
-                        [f2 (pad (modulo (quotient mem-usage spacer) spacer))]
-                        [f3 (pad (quotient (quotient mem-usage spacer) spacer))])
-                   (send mem set-label (string-append f3 "." f2 "." f1)))
-                 (loop))))
-            
-            (register-collecting-blit c 0 0 (send onb get-width) (send onb get-height) onb offb)
-            (send c min-width (send onb get-width))
-            (send c min-height (send onb get-height))
-            (send c stretchable-width #f)
-            (send c stretchable-height #f)
-            (send button-panel set-alignment 'center 'center)
-            (unless profiling?
-              (send profile-button enable #f)
-              (send toggle-profile-button enable #f))
-            (send profile-button stretchable-height #t)
-            (send toggle-profile-button stretchable-height #t)
-            (send quit-button stretchable-height #t)
-            (send break-button stretchable-height #t)
-          
-            (let* ([new-message
-                    (lambda ()
-                      (let ([m (make-object message% "" messages-panel)])
-                        (send m stretchable-width #t)
-                        m))]
-                   [messages (list (new-message)
-                                   (new-message)
-                                   (new-message)
-                                   (new-message)
-                                   (new-message)
-                                   (new-message)
-                                   (new-message)
-                                   (new-message))]
-                   [stack null]
-                   [ol (current-load)]
-                   [update-messages
-                    (lambda ()
-                      (let ([new-messages-needed (- (length stack) (length messages))])
-                        (when (new-messages-needed . > . 0)
-                          (let loop ([n new-messages-needed])
-                            (unless (zero? n)
-                              (let ([m (new-message)])
-                                (set! messages (append messages (list m)))
-                                (loop (- n 1)))))))
-                      (let loop ([stack (reverse stack)]
-                                 [messages messages])
-                        (cond
-                          [(null? messages) (void)]
-                          [(null? stack) 
-                           (for-each (lambda (m)
-                                       (unless (equal? "" (send m get-label))
-                                         (send m set-label "")))
-                                     messages)]
-                          [else
-                           (let ([msg (car messages)]
-                                 [fn (car stack)])
-                             (unless (string=? (send msg get-label) fn)
-                               (send msg set-label fn)))
-                           (loop (cdr stack) (cdr messages))])))])
-              (send stack-frame reflow-container)
-              (send stack-frame move 
-                    (- sw (send stack-frame get-width))
-                    0)
-
-              (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
-              (when profiling?
-                (printf "PLTDRDEBUG: turning on profiling\n")
-                ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
-                (let ([enable-initially?
-                       (message-box
-                        "DrScheme"
-                        "Turn on profiling during startup?"
-                        #f
-                        '(yes-no))])
-                  (set! profiling-enabled? (eq? enable-initially? 'yes))
-                  (sync-profiling-state/main-eventspace)))
-
-              (send stack-frame show #t)
-              (current-load
-               (lambda (fn module)
-                 (set! stack (cons fn stack))
-                 (update-messages)
-                 (begin0 (ol fn module)
-                         (set! stack (cdr stack))
-                         (update-messages))))
-
-              (error-print-width 600)))))))
+    (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
+    (when profiling?
+      ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-enabled) #t)
+      (let ([enable-initially?
+             (with-handlers ([not-break-exn? (lambda (x) #f)])
+               (display "PLTDRDEBUG: Turn on profiling during startup? [Y/n] ")
+               (flush-output)
+               (let ([l (read-line)])
+                 (and (string? l)
+                      (regexp-match "[yY]" l))))])
+        (printf "PLTDRDEBUG: turning on profiling ")
+        (if enable-initially?
+            (printf "(not during startup)\n")
+            (printf "(initially recording)\n"))
+        ((dynamic-require '(lib "errortrace.ss" "errortrace") 'profiling-record-enabled) enable-initially?))))
   
-  (when (getenv "PLTDRCM")
+  (when install-cm?
     (printf "PLTDRCM: installing compilation manager\n")
     (current-load/use-compiled
      ((dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))))
 
-  (define texas-independence-day?
-    (let ([date (seconds->date (current-seconds))])
-      (and (= 3 (date-month date))
-           (= 2 (date-day date)))))
-  
-  (define high-color? ((get-display-depth) . > . 8))
-  (define larval-state? #f)
-  (define larval-bitmap #f)
-  (define (get-larval-bitmap)
-    (unless larval-bitmap
-      (set! larval-bitmap (make-object bitmap% (build-path (collection-path "icons") "PLTylarval.jpg"))))
-    larval-bitmap)
-  (define no-larval-bitmap #f)
-  (define (get-no-larval-bitmap)
-    (unless no-larval-bitmap
-      (set! no-larval-bitmap  (make-object bitmap% (build-path (collection-path "icons") "PLTnolarval.jpg"))))
-    no-larval-bitmap)
-
-  ;; reversed version of the actual string we care about
-  (define magic-string (list->string (reverse (string->list "larval"))))
-  
-  (define key-codes null)
-  (define (add-key-code new-code)
-    (when (char? new-code)
-      (set! key-codes (let loop ([n (string-length magic-string)]
-				 [l (cons new-code key-codes)])
-			(cond
-			  [(zero? n) null]
-			  [(null? l) null]
-			  [else (cons (car l) (loop (- n 1) (cdr l)))])))))
-  
-  (let ([set-splash-bitmap (dynamic-require '(lib "splash.ss" "framework") 'set-splash-bitmap)])
-    ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-char-observer)
-     (lambda (evt)
-       (add-key-code (send evt get-key-code))
-
-       ;; as soon as something is typed, load the bitmaps
-       (get-larval-bitmap)
-       (get-no-larval-bitmap)
-       
-       (when (and (andmap char? key-codes)
-                  (equal? (apply string key-codes) magic-string))
-         (set! key-codes null)
-         (set! larval-state? (not larval-state?))
-         (set-splash-bitmap
-          (if larval-state?
-              (get-larval-bitmap)
-              (get-no-larval-bitmap)))))))
-   
-  ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
-   (build-path (collection-path "icons") 
-               (cond
-                 [texas-independence-day?
-                  "texas-plt-bw.gif"]
-                 [high-color? "PLTnolarval.jpg"]
-                 [(= (get-display-depth) 1)
-                  "pltbw.gif"]
-                 [else
-                  "plt-flat.gif"]))
-   "DrScheme"
-   99)
-  
-  (dynamic-require '(lib "start.ss" "drscheme" "private") #f))
+  (cond
+    [debugging? 
+     (dynamic-require '(lib "drscheme-debug.ss" "drscheme" "private") #f)]
+    [else
+     (dynamic-require '(lib "drscheme-normal.ss" "drscheme" "private") #f)]))
