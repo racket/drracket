@@ -14,15 +14,15 @@
   ;; use the "save as" dialog in drscheme to save the definitions
   ;; window to a file.
   (define (save-drscheme-window-as filename)
-    (use-open/close-dialog
+    (use-get/put-dialog
      (lambda ()
        (fw:test:menu-select "File" "Save Definitions As..."))
      filename))
 
-  ;; use-open/save-dialog : (-> void) string -> void
+  ;; use-get/put-dialog : (-> void) string -> void
   ;; open-dialog is a thunk that should open the dialog
   ;; filename is a string naming a file that should be typed into the dialog
-  (define (use-open/close-dialog open-dialog filename)
+  (define (use-get/put-dialog open-dialog filename)
     (unless (procedure? open-dialog)
       (error 'use-open/close-dialog "expected procedure as first argument, got: ~e, other arg: ~e"
 	     open-dialog filename))
@@ -144,18 +144,24 @@
   (define (type-in-interactions frame str)
     (type-in-definitions/interactions 'interactions-canvas frame str))
 
-  (define (type-in-definitions/interactions canvas-ivar frame str)
-    (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
-    (let ([len (string-length str)])
-      (fw:test:new-window (ivar/proc frame canvas-ivar))
-      (let loop ([i 0])
-	(unless (>= i len)
-	  (let ([c (string-ref str i)])
-	    (fw:test:keystroke
-	     (if (char=? c #\newline)
-		 #\return
-		 c)))
-	  (loop (+ i 1))))))
+  (define (type-in-definitions/interactions canvas-ivar frame str/sexp)
+    (let ([str (if (string? str/sexp)
+		   str/sexp
+		   (let ([port (open-output-string)])
+		     (parameterize ([current-output-port port])
+		       (write str/sexp port))
+		     (get-output-string port)))])
+      (verify-drscheme-frame-frontmost 'type-in-definitions/interactions frame)
+      (let ([len (string-length str)])
+	(fw:test:new-window (ivar/proc frame canvas-ivar))
+	(let loop ([i 0])
+	  (unless (>= i len)
+	    (let ([c (string-ref str i)])
+	      (fw:test:keystroke
+	       (if (char=? c #\newline)
+		   #\return
+		   c)))
+	    (loop (+ i 1)))))))
   
   (define wait
     (case-lambda 
