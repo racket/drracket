@@ -1410,13 +1410,19 @@
                       [(eq? port this-result) (lambda (x) (this-result-write x))]
                       [else #f]))))
           
+          (inherit get-dc)
           (define (drscheme-pretty-print-size-hook x _ port)
             (and (or (eq? port this-out)
                      (eq? port this-err)
                      (eq? port this-result))
                  (cond
                    [(is-a? x sized-snip<%>) (send x get-character-width)]
-                   [(is-a? x snip%) 1]
+                   [(is-a? x snip%) 
+                    (let ([dc (get-dc)]
+                          [wbox (box 0)])
+                      (send x get-extent dc 0 0 wbox #f #f #f #f #f)
+                      (let-values ([(xw xh xa xd) (send dc get-text-extent "x")])
+                        (max 1 (inexact->exact (ceiling (/ (unbox wbox) xw))))))]
                    [((use-number-snip) x)
                     (let ([number-snip-type ((which-number-snip) x)])
                       (cond
