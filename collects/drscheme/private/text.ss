@@ -4,8 +4,7 @@
 	   (lib "class.ss")
 	   (lib "class100.ss")
            "drsig.ss"
-           (lib "framework.ss" "framework")
-           (lib "zodiac.ss" "syntax"))
+           (lib "framework.ss" "framework"))
   
   (provide text@)
   

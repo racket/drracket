@@ -53,7 +53,7 @@
       "(a ())"
       "(a ())"
       #f
-      'definitions
+      'interactions
       #f
       #f
       #f)
@@ -66,7 +66,7 @@
       "(a () 1)"
       "(a () 1)"
       #f
-      'definitions
+      'interactions
       #f
       #f
       #f)
@@ -79,7 +79,7 @@
       "(a () 1)"
       "(a () 1)"
       #f
-      'definitions
+      'interactions
       #f
       #f
       #f)
@@ -92,7 +92,7 @@
       "scheme-splice-box: expected a list, found: 1"
       "scheme-splice-box: expected a list, found: 1"
       #t
-      'interactions
+      'definitions
       #f
       #f
       #f)
@@ -206,7 +206,7 @@
                 2
 		(cons (make-loc 0 4 4) (make-loc 0 23 23))
                 #f
-                #t
+                #f
                 #f)
      (make-test "    (eval 'x)"
                 "reference to undefined identifier: x"
@@ -498,17 +498,13 @@
 				 (not raw?))
 			    (string-append backtrace-image-string " ")
 			    "")]
-		       [w/docs-icon
-			(if (and #f (test-docs-icon? in-vector))
-			    (string-append docs-image-string " " w/backtrace)
-			    w/backtrace)]
 		       [final
                         ;; if there is a source-location for the message, put the
                         ;; icons just before it. Otherwise, but the icons at
                         ;; the beginning of the entire string.
 			(if source-location-in-message
-			    (format execute-answer w/docs-icon)
-			    (string-append w/docs-icon execute-answer))])
+			    (format execute-answer w/backtrace)
+			    (string-append w/backtrace execute-answer))])
 		  final)]
                [load-answer (test-load-answer in-vector)]
                [formatted-load-answer
@@ -528,18 +524,14 @@
                                  (if (or (eq? source-location 'definitions)
                                          (pair? source-location))
                                      (string-append file-image-string " " w/backtrace)
-                                     w/backtrace))]
-                            [w/docs-icon
-                             (if (and #f (test-docs-icon? in-vector))
-                                 (string-append docs-image-string " " w/file-icon)
-                                 w/file-icon)])
+                                     w/backtrace))])
                        (if source-location-in-message
-                           (format w/docs-icon 
+                           (format w/file-icon 
                                    (format "~a:~a:~a: "
                                            short-tmp-load-filename
                                            start-line
                                            start-col))
-                           w/docs-icon)))]
+                           w/file-icon)))]
                [breaking-test? (test-breaking-test? in-vector)])
           
           (clear-definitions drscheme-frame)
@@ -592,10 +584,10 @@
                 [(send definitions-canvas has-focus?)
 		 (let ([start (car source-location)]
 		       [finish (cdr source-location)])
-		   (let ([error-ranges (send interactions-text get-error-range)]
-			 [error-range (and error-ranges
-					   (not (null? error-ranges))
-					   (car error-ranges))])
+		   (let* ([error-ranges (send interactions-text get-error-ranges)]
+                          [error-range (and error-ranges
+                                            (not (null? error-ranges))
+                                            (car error-ranges))])
 		     (unless (and error-range
 				  (= (cadr error-range) (loc-offset start))
 				  (= (caddr error-range) (loc-offset finish)))
@@ -655,9 +647,9 @@
               (escape)))))))
   
   (define (run-test-in-language-level raw?)
-    (let ([level (list "PLT" "Graphical (MrEd)")]
+    (let ([level (list "PLT" (regexp "Graphical"))]
           [drs (wait-for-drscheme-frame)])
-      (printf "running ~s tests\n" level)
+      (printf "running ~s (raw? ~a) tests\n" level raw?)
       (if raw?
           (begin
             (set-language-level! level #f)
@@ -720,6 +712,6 @@
     
     ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
-    (run-test-in-language-level #t)
-    ;(run-test-in-language-level #f)
+    ;(run-test-in-language-level #t)
+    (run-test-in-language-level #f)
     ))

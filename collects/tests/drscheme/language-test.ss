@@ -1020,7 +1020,7 @@
   (define (run-test)
     ;; clear teachpack
     (let ([drs (wait-for-drscheme-frame)])
-      (fw:test:menu-select "Language" "Clear All TeachPacks"))
+      (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
     (beginner)
     (beginner/abbrev)

@@ -1306,50 +1306,52 @@
           ;; =User= and =Kernel= (maybe simultaneously)
           ;; highlight-errors : (cons (list file number number) (listof (list file number number)))
           (define/public (highlight-errors locs)
-            (let* ([first-error-range (car locs)]
-                   [first-file (car first-error-range)]
-                   [first-start (cadr first-error-range)]
-                   [first-finish (caddr first-error-range)])
-              (reset-highlighting)  ;; grabs error-range/reset-callback-sempahore
-              (semaphore-wait error-range/reset-callback-semaphore)
-              (set! error-ranges locs)
-              
-              (for-each (lambda (loc) 
-                          (let ([file (car loc)])
-                            (when (is-a? file text:basic<%>)
-                              (send file begin-edit-sequence))))
-                        locs)
-              
-              (when color?
-                (let ([resets
-                       (map (lambda (loc)
-                              (let ([file (car loc)]
-                                    [start (cadr loc)]
-                                    [finish (caddr loc)])
-                                (if (is-a? file text:basic<%>)
-                                    (send file highlight-range start finish error-color #f #f 'high)
-                                    void)))
-                            locs)])
-                  (set! reset-callback
-                        (lambda ()
-                          (unless (get-inserting-prompt)
-                            (semaphore-wait error-range/reset-callback-semaphore)
-                            (set! error-ranges #f)
-                            (set! reset-callback void)
-                            (for-each (lambda (x) (x)) resets)
-                            (semaphore-post error-range/reset-callback-semaphore))))))
+            (reset-highlighting)  ;; grabs error-range/reset-callback-sempahore
 
-              (unless (is-a? first-file -text<%>)
-                (send first-file set-position first-start first-start)
-                (send first-file scroll-to-position first-start #f first-finish))
-              (for-each (lambda (loc)
-                          (let ([file (car loc)])
-                            (when (is-a? file text:basic<%>)
-                              (send file end-edit-sequence))))
-                        locs)
-              (send first-file set-caret-owner #f 'global)
-              
-              (semaphore-post error-range/reset-callback-semaphore)))
+            (semaphore-wait error-range/reset-callback-semaphore)
+            (set! error-ranges locs)
+            
+            (when locs
+              (let* ([first-error-range (car locs)]
+                     [first-file (car first-error-range)]
+                     [first-start (cadr first-error-range)]
+                     [first-finish (caddr first-error-range)])
+                (for-each (lambda (loc) 
+                            (let ([file (car loc)])
+                              (when (is-a? file text:basic<%>)
+                                (send file begin-edit-sequence))))
+                          locs)
+                
+                (when color?
+                  (let ([resets
+                         (map (lambda (loc)
+                                (let ([file (car loc)]
+                                      [start (cadr loc)]
+                                      [finish (caddr loc)])
+                                  (if (is-a? file text:basic<%>)
+                                      (send file highlight-range start finish error-color #f #f 'high)
+                                      void)))
+                              locs)])
+                    (set! reset-callback
+                          (lambda ()
+                            (unless (get-inserting-prompt)
+                              (semaphore-wait error-range/reset-callback-semaphore)
+                              (set! error-ranges #f)
+                              (set! reset-callback void)
+                              (for-each (lambda (x) (x)) resets)
+                              (semaphore-post error-range/reset-callback-semaphore))))))
+
+                (unless (is-a? first-file -text<%>)
+                  (send first-file set-position first-start first-start)
+                  (send first-file scroll-to-position first-start #f first-finish))
+                (for-each (lambda (loc)
+                            (let ([file (car loc)])
+                              (when (is-a? file text:basic<%>)
+                                (send file end-edit-sequence))))
+                          locs)
+                (send first-file set-caret-owner #f 'global)))
+            
+            (semaphore-post error-range/reset-callback-semaphore))
           
           (define (reset-highlighting)
             (reset-callback))

@@ -448,7 +448,7 @@
      ))
   
   (define (run-test)
-    (set-language-level! (list "PLT" "Graphical (MrEd)"))
+    (set-language-level! (list "PLT" (regexp "Graphical")))
     (for-each run-one-test tests))
   
   (define (run-one-test test)

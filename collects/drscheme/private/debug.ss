@@ -156,7 +156,7 @@ profile todo:
                  (orig-error-display-handler msg exn)
                  (send rep queue-output
                        (lambda ()
-			 (when src-to-display
+                         (when src-to-display
 			   (let* ([src (car src-to-display)]
 				  [position (cadr src-to-display)]
 				  [span (cddr src-to-display)])
@@ -174,7 +174,12 @@ profile todo:
       ;; returns #f if the source isn't a string.
       (define (find-src-to-display exn cms)
 	(cond
-	  [(exn:read? exn)
+	  [(or (exn:read? exn)
+               (exn:syntax? exn))
+           ;; assume that the original error-display-handler displays the 
+           ;; error in this case.
+           #f]
+          [(exn:read? exn)
 	   (let ([src (exn:read-source exn)]
 		 [position (exn:read-position exn)]
 		 [span (exn:read-span exn)])
@@ -198,8 +203,8 @@ profile todo:
 				   (string->symbol src)
 				   src)
 			       (cons (- position 1) span))))))]
-	  [else (and (not (null? cms))
-		     (car cms))]))
+	  [else (and (pair? cms)
+                     (car cms))]))
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'

@@ -100,7 +100,9 @@
           (set! open-url-from-user _open-url-from-user)
           (set! original-doc-collections-changed _doc-collections-changed)
           (set! set-font-size _set-font-size)
-          (set! load-help-desk void)))
+          (set! load-help-desk 
+                (lambda ()
+                  (void)))))
       
       (define open-url
         (opt-lambda (url [progress void])

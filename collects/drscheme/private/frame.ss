@@ -8,8 +8,7 @@
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
-           (prefix mzlib:list: (lib "list.ss"))
-           (prefix zodiac: (lib "zodiac.ss" "syntax")))
+           (prefix mzlib:list: (lib "list.ss")))
   
   (provide frame@)
   (define frame@

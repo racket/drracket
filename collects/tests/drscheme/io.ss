@@ -123,7 +123,7 @@
   
   (define drs-frame (wait-for-drscheme-frame))
   (define interactions-text (send drs-frame get-interactions-text))
-  (set-language-level! '("PLT" "Textual (MzScheme)"))
+  (set-language-level! (list "PLT" (regexp "Textual")))
   
   (define (run-test)
     (long-io/execute-test)

@@ -66,8 +66,10 @@
 	  (send (find-labelled-window "Full pathname") focus)
 	  (fw:test:keystroke #\a (list (case (system-type)
 					 [(windows) 'control]
-					 [(macos) 'meta]
-					 [(unix) 'meta])))
+					 [(macosx macos) 'meta]
+					 [(unix) 'meta]
+                                         [else (error 'use-get/put-dialog "unknown platform: ~s\n"
+                                                      (system-type))])))
 	  (for-each fw:test:keystroke (string->list filename))
 	  (fw:test:button-push "OK")
 	  (wait-for-new-frame dlg))
@@ -273,15 +275,15 @@
        button-push-and-wait-pred))
     (wait-for-button button))
   
-  ;; set-language-level! : (cons string (listof string)) boolean -> void
+  ;; set-language-level! : (cons (union regexp string) (listof (union regexp string))) boolean -> void
   ;; set language level in the frontmost DrScheme frame (resets settings to defaults)
   ;; If `close-dialog?' it #t,
   (define set-language-level! 
     (opt-lambda (in-language-spec [close-dialog? #t])
       (unless (and (pair? in-language-spec)
                    (list? in-language-spec)
-                   (andmap string? in-language-spec))
-        (error 'set-language-level! "expected a non-empty list for language, got: ~e" in-language-spec))
+                   (andmap (lambda (x) (or string? regexp?)) in-language-spec))
+        (error 'set-language-level! "expected a non-empty list of regexps and strings for language, got: ~e" in-language-spec))
       (let ([frame (get-top-level-focus-window)])
         (fw:test:menu-select "Language" "Choose Language...")
         (wait-for-new-frame frame)
@@ -304,9 +306,14 @@
                      [language-spec in-language-spec])
             (let* ([name (car language-spec)]
                    [which (filter (lambda (child)
-                                    (and (string=? (send (send child get-editor) get-text)
-                                                   name)
-                                         child))
+                                    (let* ([text (send (send child get-editor) get-text)]
+                                           [matches
+                                            (or (and (regexp? name)
+                                                     (regexp-match name text))
+                                                (and (string? name)
+                                                     (string=? name text)))])
+                                      (and matches
+                                           child)))
                                   (send list-item get-items))])
               (when (null? which)
                 (error 'set-language-level! "couldn't find language: ~e, no match at ~e"
