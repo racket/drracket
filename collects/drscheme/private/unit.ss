@@ -2003,7 +2003,7 @@
         (class* snip% (readable-snip<%>)
           (define/public (read-one-special index source line column position)
             (values
-             (datum->syntax-object #'here 'lambda (list source line column position 1))
+             'lambda;(datum->syntax-object #'here 'lambda (list source line column position 1))
              1
              #t))
           
