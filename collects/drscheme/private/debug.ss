@@ -150,14 +150,6 @@ profile todo:
           (inherit set-surrogate)
           (set-surrogate (new scheme:text-mode%))))
       
-      ;; simple-scheme-text% : (implements scheme:text<%>)
-      (define simple-scheme-text% 
-        (set-scheme-mode-mixin
-         (scheme:text-mixin
-          (mode:host-text-mixin
-           (text:hide-caret/selection-mixin
-            (editor:keymap-mixin 
-             text:basic%))))))
       
       ;; make-debug-error-display-handler/text  : (-> (union #f (is-a?/c text%)))
       ;;                                                ((is-a?/c rep:text%) (-> void) -> void)
@@ -475,7 +467,7 @@ profile todo:
         (let-values ([(from-text close-text)
                       (cond
                         [(symbol? file)
-                         (let ([text (make-object simple-scheme-text%)])
+                         (let ([text (make-object scheme:text%)])
                            (if (send text load-file (symbol->string file))
 			       (values text 
 				       (lambda () (send text on-close)))
@@ -500,7 +492,7 @@ profile todo:
       ;; each end and highlights the characters corresponding the original range,
       ;; in the resulting text
       (define (copy/highlight-text from-text start finish)
-        (let* ([to-text (make-object simple-scheme-text%)]
+        (let* ([to-text (make-object scheme:text%)]
                [para-start-pos (send from-text paragraph-start-position 
                                      (send from-text position-paragraph start))]
                [para-end-pos (send from-text paragraph-end-position
