@@ -434,7 +434,11 @@
                   (system-library-subpath)
                   (get-display-depth)))
     (send tools set-value 
-          (format "~s" (directory-list (collection-path "drscheme" "tools"))))
+          (format "~s"
+		  (with-handlers ([(lambda (x) #f)
+				   (lambda (x)
+				     (exn-message x))])
+		    (directory-list (collection-path "drscheme" "tools")))))
     
     (send collections set-value       
           (format "~s"
