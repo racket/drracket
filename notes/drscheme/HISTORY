@@ -2,6 +2,10 @@
         Version 299
 ------------------------------
 
+ - Added support for user-definable keybindings. See the new
+   menus at the bottom of the Edit menu (and their
+   documentation) for details.
+
  - DrScheme's background color for the definitions and
    interactions window is now configurable.
 
