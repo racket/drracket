@@ -524,7 +524,7 @@ A test case:
           
           ;; load url, but the user might break:
           (with-handlers ([exn:break? void])
-            (printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
+            ;(printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
             (reload progress))))
       
       ;; build-html-error-message : exn -> string[html]
