@@ -353,157 +353,6 @@
       (sequence
 	(super-init))))
 
-  (define button-label-inset 1)
-  (define drop-shadow-size 2)
-
-  (define black-color (make-object mred:color% "BLACK"))
-
-  (define button-label-font
-    (send mred:the-font-list find-or-create-font
-	  (case (system-type)
-	    [(windows) 8]
-	    [else 10])
-	  'decorative 'normal 'normal #f))
-
-  (define (calc-button-min-sizes dc label)
-    (send dc set-font button-label-font)
-    (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
-      (values
-       (+ button-label-inset button-label-inset
-	  drop-shadow-size
-	  1 ;; for the outer drop shadow
-	  1 ;; becuase "(define ...)" has the wrong size under windows
-	  (inexact->exact (ceiling w)))
-       (+ button-label-inset button-label-inset
-	  drop-shadow-size
-	  1 ;; for the outer drop shadow
-	  (inexact->exact (ceiling h))))))
-
-  (define (offset-color color offset-one)
-    (make-object mred:color%
-      (offset-one (send color red))
-      (offset-one (send color green))
-      (offset-one (send color blue))))
-
-  (define light-button-color (offset-color (mred:get-panel-background)
-					   (lambda (v) (floor (+ v (/ (- 255 v) 2))))))
-  (define dark-button-color (offset-color (mred:get-panel-background)
-					  (lambda (v) (floor (- v (/ v 2))))))
-
-  (define (draw-button-label dc label w h inverted?)
-    (send dc set-text-foreground black-color)
-    (send dc set-text-background (mred:get-panel-background))
-    (send dc set-pen (send mred:the-pen-list find-or-create-pen
-			   (mred:get-panel-background) 1 'solid))
-    (send dc set-brush (send mred:the-brush-list find-or-create-brush
-			     (mred:get-panel-background) 'solid))
-
-    (send dc draw-rectangle 0 0 w h)
-
-    (send dc set-pen (send mred:the-pen-list find-or-create-pen
-			   "BLACK" 1 'solid))
-    (send dc set-brush
-	  (send mred:the-brush-list find-or-create-brush
-		(if inverted? dark-button-color light-button-color) 'solid))
-
-    (let ([border
-	   (lambda (d)
-	     (send dc draw-rectangle
-		   d d
-		   (- w drop-shadow-size)
-		   (- h drop-shadow-size)))])
-      (if inverted?
-	  (let loop ([n 0])
-	    (cond
-	     [(= n drop-shadow-size) (void)]
-	     [else
-	      (border n)
-	      (loop (+ n 1))]))
-	  (let loop ([n drop-shadow-size])
-	    (cond
-	     [(zero? n) (void)]
-	     [else
-	      (border (- n 1))
-	      (loop (- n 1))]))))
-
-    (when label
-      (send dc set-font button-label-font)
-      (let-values ([(tw th _2 _3) (send dc get-text-extent label)])
-
-	;; 1 is for the outer drop shadow box
-	(send dc draw-text label
-	      (+ button-label-inset
-		 (if inverted? drop-shadow-size 1))
-	      (+ button-label-inset
-		 (if inverted? drop-shadow-size 1))))))
-
-  (define name-message%
-    (class/d mred:canvas% (parent)
-      ((inherit get-dc get-size get-client-size min-width min-height stretchable-width stretchable-height)
-       (public set-message) ;; set-message : (union #f string) string -> void
-       (override on-event on-paint))
-
-      ;(define font (send parent get-label-font))
-      
-      (define label #f)
-      (define short-label "Untitled")
-      (define (set-message name short-name)
-	(set! label name)
-	(set! short-label short-name)
-	(update-min-sizes))
-      
-      (define full-name-window #f)
-
-      (define (show-full-name-window)
-	(if label
-	    (mred:message-box "Full Name" label)
-	    (mred:message-box
-	     "Full Name"
-	     "The file does not have a full name because it has not yet been saved.")))
-
-      (define mouse-grabbed? #f)
-      (define (on-event evt)
-	(cond
-          [(send evt moving?)
-           (when mouse-grabbed?
-             (let-values ([(max-x max-y) (get-size)])
-               (let ([inside? (and (<= 0 (send evt get-x) max-x)
-                                   (<= 0 (send evt get-y) max-y))])
-                 (unless (eq? inside? inverted?)
-                   (set! inverted? inside?)
-                   (on-paint)))))]
-          [(send evt button-up? 'left)
-           (set! mouse-grabbed? #f)
-           (cond
-             [inverted?
-              (set! inverted? #f)
-              (on-paint)
-              (show-full-name-window)]
-             [else
-              (void)])]
-          [(send evt button-down? 'left)
-           (set! mouse-grabbed? #t)
-           (set! inverted? #t)
-           (on-paint)]
-          [else (void)]))
-		
-      (define (update-min-sizes)
-	(let-values ([(w h) (calc-button-min-sizes (get-dc) short-label)])
-	  (min-width w)
-	  (min-height h))
-	(send parent reflow-container))
-
-      (define inverted? #f)
-
-      (define (on-paint)
-	(let ([dc (get-dc)])
-	  (let-values ([(w h) (get-client-size)])
-	    (draw-button-label dc short-label w h inverted?))))
-
-      (super-init parent)
-      (stretchable-width #f)
-      (stretchable-height #f)))
-
   (define func-defs-canvas%
     (class/d mred:canvas% (parent text)
       ((override on-paint on-event)
@@ -597,7 +446,7 @@
       (define (on-paint)
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
-	    (draw-button-label dc label w h inverted?))))
+	    (drscheme:frame:draw-button-label dc label w h inverted?))))
 
       (define sort-by-name? #f)
       (define sorting-name "Sort by name")
@@ -661,7 +510,7 @@
 
       (super-init parent)
 
-      (define-values (width height) (calc-button-min-sizes (get-dc) label))
+      (define-values (width height) (drscheme:frame:calc-button-min-sizes (get-dc) label))
       (min-width width)
       (min-height height)
       (stretchable-width #f)
@@ -1108,7 +957,7 @@
 				 (send text save-file)
 				 (send definitions-canvas focus))))))
 	
-	(set! name-message (make-object name-message% name-panel)))
+	(set! name-message (make-object drscheme:frame:name-message% name-panel)))
       (private 
 	[teachpack-items null]
 	[update-teachpack-menu
