@@ -575,7 +575,8 @@
 	(sequence
 	  (send show-menu check definitions-id #t)
 	  (send show-menu check interactions-id 
-		(ivar interactions-edit repl-initially-active?))
+		(or (ivar interactions-edit repl-initially-active?)
+		    (mred:get-preference 'drscheme:repl-always-active)))
 
 	  (send interactions-edit initialize-console)
 	  (send interactions-edit enable-autoprompt)
