@@ -662,11 +662,17 @@
      (drscheme:frame:basics-mixin fw:frame:searchable%)))
   
   (define vertical-resizable/pref%
-    (class fw:panel:vertical-resizable% args
+    (class fw:panel:vertical-resizable% (unit-frame . args)
+      (inherit get-percentages)
       (override
         [on-percentage-change
          (lambda ()
-           '(fw:preferences:set 'drscheme:unit-window-size-percentage percentages))])
+           (let ([percentages (get-percentages)])
+             (when (and (= 1
+                           (length (ivar unit-frame definitions-canvases))
+                           (length (ivar unit-frame interactions-canvases)))
+                        (= 2 (length percentages)))
+               (fw:preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
       (sequence (apply super-init args))))
 
   (define frame%
@@ -1152,13 +1158,11 @@
                   (update-shown/ensure-one definitions-item))
                 #\e
                 "Show/Hide the interactions window")))
-      
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
 	[name-panel (make-object mred:vertical-panel% top-panel)]
-	[resizable-panel (make-object vertical-resizable/pref% (get-area-container))])
+	[resizable-panel (make-object vertical-resizable/pref% this (get-area-container))])
       (sequence
-        ;(send resizable-panel set-percentages (fw:preferences:get 'drscheme:unit-window-size-percentage))
 	(send name-panel stretchable-width #f)
 	(send name-panel stretchable-height #f))
 
@@ -1268,7 +1272,11 @@
 	  (toggle-show/hide interactions-item))
 	
 	(update-shown)
-	
+
+	(send resizable-panel set-percentages
+              (let ([p (fw:preferences:get 'drscheme:unit-window-size-percentage)])
+                (list p (- 1 p))))
+
 	(set-label-prefix "DrScheme")
 	
 	(send definitions-canvas focus)
