@@ -17,6 +17,11 @@
   (define (unix-browser?)
     (and (eq? (system-type) 'unix) (not (equal? "ppc-macosxonx" (system-library-subpath)))))
   
+  (fw:preferences:set-default
+   'external-browser
+   (get-preference 'external-browser (lambda () #f))
+   raw:browser-preference?)
+  
   ; : str [bool] -> void
   (define send-url
     (if (unix-browser?)
@@ -27,7 +32,7 @@
           (apply raw:send-url url args))
         raw:send-url))
   
-  ; : -> (U symbol #f)
+  ; : -> void
   ; to prompt the user for a browser preference and update the preference
   (define (update-browser-preference url)
     (let ([browser (choose-browser url)])
@@ -36,7 +41,8 @@
   ; : (U symbol #f) -> void
   ; to set the default browser
   (define (set-browser! browser)
-    (put-preferences '(external-browser) (list browser)))
+    (put-preferences '(external-browser) (list browser))
+    (fw:preferences:set 'external-browser browser))
   
   ; : str -> (U symbol #f)
   ; to prompt the user for a browser preference
@@ -95,12 +101,14 @@
                                (parent v)
                                (alignment '(center bottom))
                                (stretchable-height #f))]
-                    [none-index (length raw:unix-browser-list)]
+                    [plt-index (length raw:unix-browser-list)]
+                    [none-index (add1 plt-index)]
                     [custom-index (add1 none-index)]
                     [r (instantiate radio-box% ()
                          (label "")
                          (choices (append (map symbol->string raw:unix-browser-list)
-                                          (list (string-constant no-browser)
+                                          (list "PLT"
+                                                (string-constant no-browser)
                                                 (string-constant custom))))
                          (parent h-panel)
                          (callback
@@ -109,6 +117,7 @@
                             (let ([n (send radio get-selection)])
                               (set-browser!
                                (cond
+                                 [(= n plt-index) 'plt]
                                  [(= n none-index) #f]
                                  [(= n custom-index) (get-custom)]
                                  [else (list-ref raw:unix-browser-list n)]))))))]
