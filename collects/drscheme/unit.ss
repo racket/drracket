@@ -25,38 +25,36 @@
 	"Untitled"))
 
   (define (create-launcher frame)
-    (if (eq? (system-type) 'macos)
-        (mred:message-box "DrScheme Launcher" "Launchers are not yet supported under MacOS." frame)
-        (let* ([program-filename (send (ivar frame definitions-text) get-filename)]
-	       [executable-filename
-		(if (eq? (system-type) 'windows)
-		    (string-append (basename program-filename) ".exe")
-		    (basename program-filename))])
-          (cond
-            [(not program-filename)
-             (mred:message-box "Create Launcher"
-                               "You must save your program before creating a launcher"
-                               frame)]
-            [else
-             (let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
-                    [v-settings (struct->vector settings)]
-                    [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
-                    [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-                    [filename 
-                     (parameterize ([fw:finder:dialog-parent-parameter frame]
-				    [fw:finder:default-extension "exe"])
-                       (fw:finder:put-file
-			executable-filename
-			#f #f "Save a Launcher"))])
-               (when filename
-                 (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
-                                          "-e" (format "(define settings ~s)" v-settings)
-                                          "-e" (format "(define teachpacks '~s)" teachpacks))])
-                   ((if (and in-mz? (null? teachpacks))
-                        launcher:make-mzscheme-launcher
-                        launcher:make-mred-launcher)
-                    (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-                    filename))))]))))
+    (let* ([program-filename (send (ivar frame definitions-text) get-filename)]
+	   [executable-filename
+	    (if (eq? (system-type) 'windows)
+		(string-append (basename program-filename) ".exe")
+		(basename program-filename))])
+      (cond
+       [(not program-filename)
+	(mred:message-box "Create Launcher"
+			  "You must save your program before creating a launcher"
+			  frame)]
+       [else
+	(let* ([settings (fw:preferences:get drscheme:language:settings-preferences-symbol)]
+	       [v-settings (struct->vector settings)]
+	       [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
+	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
+	       [filename 
+		(parameterize ([fw:finder:dialog-parent-parameter frame]
+			       [fw:finder:default-extension "exe"])
+		  (fw:finder:put-file
+		   executable-filename
+		   #f #f "Save a Launcher"))])
+	  (when filename
+	    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
+				     "-e" (format "(define settings ~s)" v-settings)
+				     "-e" (format "(define teachpacks '~s)" teachpacks))])
+	      ((if (and in-mz? (null? teachpacks))
+		   launcher:make-mzscheme-launcher
+		   launcher:make-mred-launcher)
+	       (append '("-qmv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+	       filename))))])))
   
   (define make-bitmap 
     (case-lambda 
