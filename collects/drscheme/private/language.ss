@@ -254,13 +254,9 @@
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy? module-spec transformer-module-spec run-in-user-thread)
-        (let ([to-be-copied-specs (list 'mzscheme
-                                        '(lib "mred.ss" "mred")
-                                        ;'(lib "class.ss")
-                                        ;'(lib "unit.ss")
-                                        ;'(lib "unitsig.ss")
-                                        ;'(lib "mred.ss" "mred")
-                                        )])
+        (let ([to-be-copied-specs
+               (list 'mzscheme
+                     '(lib "mred.ss" "mred"))])
           (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-specs)
           
           (let* ([orig-namespace (current-namespace)]
@@ -269,7 +265,15 @@
                     (if (symbol? spec)
                         spec
                         ((current-module-name-resolver) spec #f #f)))]
-                 [to-be-copied-names (map get-name to-be-copied-specs)])
+                 [to-be-copied-names
+                  (map get-name to-be-copied-specs)])
+
+	    ;; add these in here so the code is `read' with
+	    ;; drs's reader settings, not the reader settings
+	    ;; of the language.
+	    (dynamic-require module-spec #f)
+	    (dynamic-require transformer-module-spec #f)
+
             (run-in-user-thread
              (lambda ()
                (with-handlers ([(lambda (x) #t)
