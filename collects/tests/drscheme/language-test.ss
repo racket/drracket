@@ -456,7 +456,7 @@
 
 ;; clear teachpack
 (let ([drs (wait-for-drscheme-frame)])
-  (fw:test:menu-select "Language" "Clear Teachpack"))
+  (fw:test:menu-select "Language" "Clear Teachpack(s)"))
 
 (zodiac-beginner)
 (zodiac-intermediate)
