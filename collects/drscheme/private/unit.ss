@@ -9,7 +9,9 @@
            (lib "name-message.ss" "mrlib")
            
            "drsig.ss"
-	   
+           
+           (prefix drscheme:arrow: "../arrow.ss")
+           
            (lib "mred.ss" "mred")
            (prefix mred: (lib "mred.ss" "mred"))
 
@@ -468,7 +470,50 @@
                          (or (is-a? dc post-script-dc%)
                              (is-a? dc printer-dc%)))
                 (send dc draw-text (get-date-string) 0 0)
-                (void)))
+                (void))
+              
+              ;; draw the arrows
+              (when before
+                (when error-arrows
+                  (let ([old-pen (send dc get-pen)])
+                    (send dc set-pen (send the-pen-list find-or-create-pen "red" 1 'solid))
+                    (let loop ([pts error-arrows])
+                      (cond
+                        [(null? pts) (void)]
+                        [(null? (cdr pts)) (void)]
+                        [else (let ([pt1 (car pts)]
+                                    [pt2 (cadr pts)])
+                                (draw-arrow dc dx dy pt1 pt2)
+                                (loop (cdr pts)))]))
+                    (send dc set-pen old-pen)))))
+            
+            (define/private (draw-arrow dc dx dy pt1 pt2)
+              (let-values ([(x1 y1) (find-poss (car pt1) (cadr pt1) (+ (cadr pt1) 1))]
+                           [(x2 y2) (find-poss (car pt2) (cadr pt2) (+ (cadr pt2) 1))])
+                (drscheme:arrow:draw-arrow dc x1 y1 x2 y2 dx dy)))
+            
+            (inherit dc-location-to-editor-location)
+            (define (find-poss text left-pos right-pos)
+              (let ([xlb (box 0)]
+                    [ylb (box 0)]
+                    [xrb (box 0)]
+                    [yrb (box 0)])
+                (send text position-location left-pos xlb ylb #t)
+                (send text position-location right-pos xrb yrb #f)
+                (let*-values ([(xl-off yl-off) (send text editor-location-to-dc-location (unbox xlb) (unbox ylb))]
+                              [(xl yl) (dc-location-to-editor-location xl-off yl-off)]
+                              [(xr-off yr-off) (send text editor-location-to-dc-location (unbox xrb) (unbox yrb))]
+                              [(xr yr) (dc-location-to-editor-location xr-off yr-off)])
+                  (values (/ (+ xl xr) 2)
+                          (/ (+ yl yr) 2)))))
+
+            (inherit invalidate-bitmap-cache)
+            (define/public (set-error-arrows arrows)
+              (set! error-arrows arrows)
+              (invalidate-bitmap-cache))
+            
+            (field [error-arrows #f])
+            
             (super-instantiate ()))))
       
       
