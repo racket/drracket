@@ -310,7 +310,7 @@
               (parent menu)
               (callback
                (lambda (item evt)
-                 (check-version))))
+                 (check-version this))))
             (drscheme:app:add-language-items-to-help-menu menu))
           
           [define (file-menu:open-callback item evt) (handler:open-file)]
