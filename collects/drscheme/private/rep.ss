@@ -682,8 +682,7 @@
                    release-snip
                    reset-region update-region-end)
           (rename [super-initialize-console initialize-console]
-                  [super-reset-console reset-console]
-                  [super-on-close on-close])
+                  [super-reset-console reset-console])
           
           (override get-prompt eval-busy? do-eval
                     initialize-console
@@ -1898,7 +1897,38 @@
                 (semaphore-post goahead))))
           
           (field (shutting-down? #f))
+          (rename [super-can-close? can-close?])
+          (define/override (can-close?)
+            (and (cond
+                   [in-evaluation?
+                    (equal? (message-box/custom
+                             (string-constant drscheme)
+                             (string-constant program-is-still-running)
+                             (string-constant close-anyway)
+                             (string-constant cancel)
+                             #f
+                             #f
+                             '(default=1 caution)
+                             2)
+                            1)]
+                   [(let ([user-eventspace (get-user-eventspace)])
+                      (and user-eventspace
+                           (parameterize ([current-eventspace user-eventspace])
+                             (not (null? (get-top-level-windows))))))
+                    (equal? (message-box/custom
+                             (string-constant drscheme)
+                             (string-constant program-has-open-windows)
+                             (string-constant close-anyway)
+                             (string-constant cancel)
+                             #f
+                             #f
+                             '(default=1 caution)
+                             2)
+                            1)]
+                   [else #t])
+                 (super-can-close?)))
           
+          (rename [super-on-close on-close])
           (define/override (on-close)
             (shutdown)
             (super-on-close))

@@ -2,6 +2,7 @@
 
 tab panels bug fixes:
   - can-close? & on-close in frame need to account for all tabs
+    (skip current tab, except for interactions; do all other tabs)
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
   - logging
@@ -13,10 +14,8 @@ waiting for matthew:
   - when switching tabs automatically (say for an error) the tab bar doesn't update
   - when creating a new tab, the tab bar doesn't update
 
-on-close: nothing (all in the editor on-close method already)
-can-close: 
-  ./drscheme/private/unit.ss: needs to be tab sensitive
-  ./framework/private/frame.ss: needs to be tab sensitive
+closing:
+  warning messages don't have frame as parent.....
 
 tab panels new behavior:
   - closing a single tab
@@ -899,8 +898,6 @@ tab panels new behavior:
                                     
                                     
                                     
-
-      
       (define vertical-dragable/def-int%
         (class panel:vertical-dragable%
           (init-field unit-frame)
@@ -919,18 +916,17 @@ tab panels new behavior:
          (drscheme:frame:basics-mixin 
           (frame:searchable-text-mixin 
            (frame:searchable-mixin
-            (frame:file-mixin
-             (frame:text-info-mixin 
-              (frame:delegate-mixin
-               (frame:status-line-mixin
-                (frame:info-mixin
-                 (frame:text-mixin
-                  (frame:open-here-mixin
-                   (frame:editor-mixin
-                    (frame:standard-menus-mixin
-                     (frame:register-group-mixin
-                      (frame:basic-mixin
-                       frame%))))))))))))))))
+            (frame:text-info-mixin 
+             (frame:delegate-mixin
+              (frame:status-line-mixin
+               (frame:info-mixin
+                (frame:text-mixin
+                 (frame:open-here-mixin
+                  (frame:editor-mixin
+                   (frame:standard-menus-mixin
+                    (frame:register-group-mixin
+                     (frame:basic-mixin
+                      frame%)))))))))))))))
       
       (define -frame<%>
         (interface ()
@@ -1115,37 +1111,6 @@ tab panels new behavior:
                (hide-info)
                (send top-outer-panel change-children (lambda (l) '()))
                (send toolbar-menu-item set-label (string-constant show-toolbar))]))
-          
-          (rename [super-can-close? can-close?])
-          (define/override (can-close?)
-            (and (cond
-                   [(send interactions-text get-in-evaluation?)
-                    (equal? (message-box/custom
-                             (string-constant drscheme)
-                             (string-constant program-is-still-running)
-                             (string-constant close-anyway)
-                             (string-constant cancel)
-                             #f
-                             this
-                             '(default=1 caution)
-                             2)
-                            1)]
-                   [(let ([user-eventspace (send interactions-text get-user-eventspace)])
-                      (and user-eventspace
-                           (parameterize ([current-eventspace user-eventspace])
-                             (not (null? (get-top-level-windows))))))
-                    (equal? (message-box/custom
-                             (string-constant drscheme)
-                             (string-constant program-has-open-windows)
-                             (string-constant close-anyway)
-                             (string-constant cancel)
-                             #f
-                             this
-                             '(default=1 caution)
-                             2)
-                            1)]
-                   [else #t])
-                 (super-can-close?)))
           
           (public clear-annotations)
           [define clear-annotations
