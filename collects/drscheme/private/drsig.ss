@@ -56,8 +56,8 @@
      all-toplevel-collections))
   
   (define-signature drscheme:snip^ 
-    (make-repeating-fraction-snip
-     whole/part-number-snip%
+    (make-repeating-decimal-snip
+     make-fraction-snip
      special<%>))
   
   (define-signature drscheme:language-configuration^

@@ -1248,17 +1248,11 @@
                      [((use-number-snip) x)
                       (let ([number-snip-type ((which-number-snip) x)])
                         (cond
-                          [(or (eq? number-snip-type 'repeating-decimal)
-                               (eq? number-snip-type 'repeating-decimal-e))
+                          [(memq number-snip-type '(repeating-decimal 
+                                                    repeating-decimal-e
+                                                    mixed-fraction
+                                                    mixed-fraction-e))
                            1] ;; no idea of size yet
-                          [(eq? number-snip-type 'mixed-fraction)
-                           (+ (string-length (number->string (floor x)))
-                              (max (string-length
-                                    (number->string 
-                                     (numerator (- x (floor x)))))
-                                   (string-length
-                                    (number->string 
-                                     (denominator (- x (floor x)))))))]
                           [else 
                            (error 'which-number-snip
                                   "unexpected result from parameter: ~e" 
@@ -1281,14 +1275,16 @@
                               (let ([number-snip-type ((which-number-snip) x)])
                                 (cond
                                   [(eq? number-snip-type 'repeating-decimal)
-                                   (drscheme:snip:make-repeating-fraction-snip x #f)]
+                                   (drscheme:snip:make-repeating-decimal-snip x #f)]
                                   [(eq? number-snip-type 'repeating-decimal-e)
-                                   (drscheme:snip:make-repeating-fraction-snip x #t)]
+                                   (drscheme:snip:make-repeating-decimal-snip x #t)]
                                   [(eq? number-snip-type 'mixed-fraction)
-                                   (make-object drscheme:snip:whole/part-number-snip% x)]
+                                   (drscheme:snip:make-fraction-snip x #f)]
+                                  [(eq? number-snip-type 'mixed-fraction-e)
+                                   (drscheme:snip:make-fraction-snip x #t)]
                                   [else
                                    (error 'which-number-snip
-                                          "expected either 'repeating-decimal or 'mixed fraction, got : ~e"
+                                          "expected either 'repeating-decimal, 'repeating-decimal-e, 'mixed-fraction, or 'mixed-fraction-e got : ~e"
                                           number-snip-type)]))]
                              [else x])])
                       (port-out-write snip/str))

@@ -1140,8 +1140,7 @@
                            (let ([number (get-fraction-from-user this)])
                              (when number
                                (send edit insert
-                                     (make-object drscheme:snip:whole/part-number-snip%
-                                       number)))))
+                                     (drscheme:snip:make-fraction-snip number #f)))))
                          #t))]
                     [insert-large-semicolon-letters
                      (lambda ()

@@ -149,12 +149,15 @@
                  (boolean? (vector-ref printable 0))
                  (memq (vector-ref printable 1) '(constructor quasiquote write))
                  (memq (vector-ref printable 2) 
-                       '(mixed-fraction repeating-decimal repeating-decimal-e))
+                       '(mixed-fraction 
+                         mixed-fraction-e
+                         repeating-decimal 
+                         repeating-decimal-e))
                  (boolean? (vector-ref printable 3))
                  (boolean? (vector-ref printable 4))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'write 'mixed-fraction #f #t #t))
+            (make-simple-settings #f 'write 'mixed-fraction-e #f #t #t))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -181,7 +184,7 @@
                                       debugging))
       ;;  case-sensitive  : boolean
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
-      ;;  fraction-style  : (union 'mixed-fraction 'repeating-decimal 'repeating-decimal-e)
+      ;;  fraction-style  : (union 'mixed-fraction 'mixed-fraction-e 'repeating-decimal 'repeating-decimal-e)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
       ;;  debugging       : boolean
@@ -252,7 +255,7 @@
 	       [(2) 'write])
              (if (send fraction-style get-value)
                  'repeating-decimal-e
-                 'mixed-fraction)
+                 'mixed-fraction-e)
 	     (send show-sharing get-value)
 	     (send insert-newlines get-value)
              (send debugging get-value))]
