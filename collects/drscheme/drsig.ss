@@ -33,14 +33,6 @@
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
 
-(define-signature drscheme:face^
-  (unit<%> compound-unit<%> 
-	 unit-display<%>
-	 unit-frame<%>
-	 compound-unit-frame<%>
-	 unit-snip<%> 
-	 compound-unit-snip<%>))
-
 (define-signature drscheme:language^
   (fill-language-menu))
 
@@ -69,14 +61,11 @@
 
 (define-signature drscheme:unit^
   (frame% 
-   snip-class% snip%
    make-bitmap
    definitions-canvas%
    definitions-edit%
    interactions-canvas%
-   unit%
-   open-as-unit
-   make-unit))
+   open-drscheme-window))
 
 (define-signature drscheme:frame^
   (<%>
@@ -84,9 +73,6 @@
    basics-mixin
    basics<%>
    help-desk))
-
-(define-signature drscheme:compound-unit^
-  (frame% snip% compound-unit% make-compound-unit))
 
 (define-signature drscheme:signature^
   (frame%))
@@ -120,8 +106,6 @@
   ((unit basis : userspace:basis^)
    (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
-   (unit compound-unit : drscheme:compound-unit^)
-   ;(unit signature : drscheme:signature^)
    (unit program : drscheme:program^)
    (unit get/extend : drscheme:get/extend^)
    (unit rep : drscheme:rep^)))

@@ -4,13 +4,11 @@
 	  [mzlib : mzlib:core^]
 	  [fw : framework^]
 	  [drscheme:app : drscheme:app^]
-	  [drscheme:compound-unit : drscheme:compound-unit^]
 	  [drscheme:frame : drscheme:frame^]
 	  [drscheme:edit : drscheme:edit^]
 	  [drscheme:rep : drscheme:rep^]
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
-	  [drscheme:face : drscheme:face^]
 	  [drscheme:graph : drscheme:graph^])
   
   (define make-bitmap 
@@ -228,7 +226,7 @@
      (drscheme:frame:basics-mixin fw:frame:text-info-file%)))
   
   (define frame%
-    (class* super-frame% (drscheme:face:unit-frame<%>) (unit)
+    (class* super-frame% () (filename)
       (inherit get-canvas
 	       set-label-prefix show-menu
 	       show get-menu%
@@ -427,7 +425,6 @@
 	   (cond
 	     [(eq? item interactions-item) interactions-canvas]
 	     [(eq? item definitions-item) definitions-canvas]
-	     ;[(eq? item imports-item) imports-panel]
 	     [else (error 'item->child "unknown item: ~a" item)]))])
       (private
 	[get-sub-items
@@ -494,7 +491,6 @@
 	   (remove-library-callback)
 	   (when (eq? this created-frame)
 	     (set! created-frame #f))
-	   (send unit frame-closed)
 	   (send interactions-edit shutdown)
 	   (super-on-close))])
 	
@@ -513,16 +509,11 @@
 	   (send interactions-edit clear-undos))])
   
       (public
-	[after-change-name void]
-	[after-add-import (lambda () (update-imports))]
-	[after-add-export (lambda () (update-imports))]
-	[after-remove-import (lambda () (update-imports))]
-	[after-remove-export (lambda () (update-imports))]
-	[get-unit (lambda () unit)])
+	[after-change-name void])
 
       (inherit get-menu-bar get-focus-object)
       (sequence
-	(super-init unit)
+	(super-init filename)
 
 	(let* ([mb (get-menu-bar)]
 	       [language-menu (make-object (get-menu%) "&Language" mb)]
@@ -571,14 +562,6 @@
 
 	(fw:frame:reorder-menus this)
 	     
-	'(set! imports-item
-	       (send show-menu append-item
-		     "&Imports"
-		     (lambda () 
-		       (toggle-show/hide imports-item)
-		       (update-shown))
-		     #f
-		     "Show the imports to this unit"))
 	(set! definitions-item
 	      (make-object mred:menu-item%
 		"Hide &Definitions"
@@ -600,24 +583,6 @@
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))])
-      
-      (public
-	[imports-panel (make-object mred:horizontal-panel% (get-area-container))]
-	[imports-message (make-object mred:message% "imports" imports-panel)]
-	[imports-space (make-object mred:horizontal-panel% imports-panel)]
-	[update-imports
-	 (lambda ()
-	   (let ([make-message
-		  (lambda (unit)
-		    (make-object mred:message%
-		      (send unit get-name)
-		      imports-panel))])
-	     (send imports-panel change-children
-		   (lambda (l) (list imports-message imports-space)))
-	     (for-each make-message
-		       (send unit get-imports))))]
-	[add-import (lambda (import) (update-imports))]
-	[remove-import (lambda (import) (update-imports))])
       
       (public
 	[definitions-canvas (get-canvas)]
@@ -677,7 +642,6 @@
 		  (send interactions-edit break)
 		  (ensure-interactions-shown)
 		  (send (send interactions-edit get-canvas) focus))))
-	(send imports-panel stretchable-height #f)
 	(send button-panel stretchable-height #f)
 	(send button-panel stretchable-width #f) 
 	(send top-panel stretchable-height #f))
@@ -724,7 +688,6 @@
 	(send interactions-edit insert-prompt)
 	(send interactions-edit clear-undos)
 	
-	(update-imports)
 	(update-shown)
 	
 	(set-label-prefix "DrScheme")
@@ -737,173 +700,26 @@
 	   (set! created-frame #f)]
 	  [else (void)]))))
   
-  (define snip%
-    (class* drscheme:graph:node-snip% (drscheme:face:unit-snip<%>) (unit)
-      (inherit get-admin set-snipclass invalidate-to)
-      (rename [super-get-flags get-flags])
-      (public
-	[after-change-name (lambda () (invalidate-to this))]
-	[after-add-import void]
-	[after-add-export void]
-	[after-remove-import void]
-	[after-remove-export void]
-	[get-unit (lambda () unit)])
-
-      (rename
-	[super-release-from-owner release-from-owner])
-      (override
-	[release-from-owner
-	 (lambda ()
-	   (and (super-release-from-owner)
-		(send unit remove-snip this)))]
-	[copy (lambda () (send unit create-snip))]
-	[snipclass unit-snipclass])
-      (sequence
-	(super-init)
-	(set-snipclass snipclass))))
-
-  (define snip-class%
-    (let ([s% snip%])
-      (class mred:snip-class% args
-	(inherit set-classname set-version)
-	(public
-	  [snip% s%] 
-	  [classname "drscheme:unit:snip%"]
-	  [version 3])
-	(override
-	  [write-header
-	   (lambda (p)
-	     (send p put "h"))]
-	  [read-header
-	   (lambda (p)
-	     (send p get-string (box 0)))]
-	  [read
-	   (lambda (p)
-	     (let ([l (mzlib:string:read-from-string
-		       (send p get-string))])
-	       (make-object snip% (car l) (cadr l))))])
-	(sequence
-	  (apply super-init args)
-	  (set-classname classname)
-	  (set-version version)
-	  (send (mred:get-the-snip-class-list) add this)))))
-  
-  (define unit-snipclass (make-object snip-class%))
-  
-  (define next-untitled-name
-    (let ([n 0])
-      (lambda ()
-	(set! n (add1 n))
-	(format "<untitled ~a>" n))))
-    
-  (define unit%
-    (let ([s% snip%])
-      (class* object% (drscheme:face:unit<%>) (filename-arg . collections-arg)
-	(private
-	  [filename filename-arg]
-	  [collections collections-arg])
-	(public
-	  [get-filename (lambda () filename)]
-	  [get-collections (lambda () collections)])
-	
-	(private
-	  [name (next-untitled-name)])
-	(public
-	  [get-name (lambda () name)]
-	  [set-name (lambda (n) (set! name n))])
-	
-	(private
-	  [imports null]
-	  [exports #f])
-	(public
-	  [get-imports (lambda () imports)]
-	  [get-exports (lambda () exports)]
-	  [add-import 
-	   (lambda (i)
-	     (set! imports (cons i imports))
-	     (update-displays (lambda (d) (send d after-add-import i))))]
-	  [remove-import
-	   (lambda (i)
-	     (when (member i imports)
-	       (set! imports (mzlib:function:remq i imports))))]
-	  [add-export 
-	   (lambda (e)
-	     (set! exports (cons e exports)))]
-	  [remove-export
-	   (lambda (e)
-	     (when (member e exports)
-	       (set! exports (mzlib:function:remq e exports))))])
-	
-	(private
-	  [snips null]
-	  [frame #f]
-	  [update-displays
-	   (lambda (f)
-	     (for-each f snips)
-	     (when frame
-	       (f frame)))])
-	(public
-	  [frame% (drscheme:get/extend:get-unit-frame%)]
-	  [snip% s%]
-	  [get-snips (lambda () snips)]
-	  [get-frame (lambda () frame)]
-	  [frame-closed (lambda () (set! frame #f))]
-	  [remove-snip (lambda (snip)
-			 (set! snips (mzlib:function:remq snip snips)))] 
-	  [create-frame (opt-lambda ([show? #t])
-			  (unless frame
-			    (set! frame (make-object frame% this))
-			    (when filename
-			      (send (send frame get-editor) load-file filename))
-			    (when show?
-			      (send frame show #t))
-			    frame))]
-	  [create-snip 
-	   (lambda ()
-	     (let ([new (make-object snip% this)])
-	       (set! snips (cons new snips))
-	       new))])
-	
-	(public
-	  [buffer% (drscheme:get/extend:get-definitions-edit%)]
-	  [set-filename
-	   (lambda (fn . cn)
-	     (set! filename fn)
-	     (set! collections cn)
-	     (when fn
-	       (let ([collections (get-collections)])
-		 (when frame
-		   (send (send frame get-editor) load-file
-		       (if (null? collections)
-			   (get-filename)
-			   (build-path (apply collection-path collections)
-				       (get-filename))))))))])
-	(sequence
-	  (super-init)
-	  (apply set-filename filename-arg collections-arg)))))
-
-
-  (define make-unit
-    (lambda (filename . collections)
-      (apply make-object unit% filename collections)))
-
   (define created-frame 'nothing-yet)
   
   (fw:preferences:set-default 'drscheme:open-all-files-in-scheme-mode
 			      #t
 			      boolean?)
-  
-  (define (open-as-unit name)
-    (if (and created-frame
-	     (not (eq? created-frame 'nothing-yet)) 
-	     (send created-frame still-untouched?))
-	(send created-frame change-to-file name)
-	(let* ([unit (make-unit name)]
-	       [f (begin (send unit create-frame) 
-			 (send unit get-frame))])
-	  (send f show #t)
-	  f)))
-    
+
+  (define open-drscheme-window
+    (case-lambda
+     [() (open-drscheme-window #f)]
+     [(name)
+      (if (and created-frame
+	       (not (eq? created-frame 'nothing-yet)) 
+	       (send created-frame still-untouched?))
+	  (begin (send created-frame change-to-file name)
+		 created-frame)
+	  (let* ([frame% (drscheme:get/extend:get-unit-frame%)]
+		 [frame (make-object frame% name)])
+	    (send frame show #t)
+	    frame))]))
+
   (fw:handler:insert-format-handler 
    "Units"
    (lambda (filename)
@@ -913,4 +729,4 @@
 		(ormap (lambda (extension)
 			 (string=? filename-ext extension))
 		       (list "ss" "scm" "sch" "mredrc"))))))
-   open-as-unit))
+   open-drscheme-window))
