@@ -118,9 +118,13 @@
 
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
    (build-path (collection-path "icons") 
-               (if ((get-display-depth) . <= . 8)
-                   "plt-flat.gif"
-                   "plt.jpg"))
+               (cond
+                 [(= (get-display-depth) 1)
+                  "pltbw.gif"]
+                 [((get-display-depth) . <= . 8)
+                  "plt-flat.gif"]
+                 [else
+                  "plt.jpg"]))
    "DrScheme"
    99)
 
