@@ -21,7 +21,7 @@
                 stx))
              (if (member fn cache)
                  (syntax (void))
-                 (with-syntax ([full-fn (build-path (with-handlers ([exn:i/o:filesystem?
+                 (with-syntax ([full-fn (build-path (with-handlers ([exn:fail:filesystem?
                                                                      (lambda (x)
                                                                        (current-load-relative-directory))])
                                                       (collection-path "solutions"))
