@@ -27,7 +27,7 @@
 	       [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
 	       [filename 
 		(parameterize ([fw:finder:dialog-parent-parameter frame])
-		  (fw:finder:put-file "Save a Launcher"))])
+		  (fw:finder:put-file"Untitled" #f #f "Save a Launcher"))])
 	  (when filename
 	    (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
 				     "-e" (format "(define settings ~s)" v-settings)

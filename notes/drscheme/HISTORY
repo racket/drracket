@@ -3,6 +3,9 @@ Version 102:
 102
 
  PRS:
+ 
+   1480: default launcher name is "Save A Launcher"
+   1506: Help Desk exits gracelessly when interrupted
 
  FUNCTIONALITY CHANGES
 

@@ -312,7 +312,9 @@
 			  (if (port? url)
 			      (values url null)
 			      ; Try to get mime info, but use get-pure-port if that fails:
-			      (with-handlers ([void (lambda (x) (values (get-pure-port url) null))])
+			      (with-handlers ([void (lambda (x) 
+                                                      (printf "url: ~s~n" (url->string url))
+                                                      (values (get-pure-port url) null))])
 				(let ([p (get-impure-port url)])
 				  (let ([headers (purify-port p)])
 				    (values p headers)))))])
@@ -723,42 +725,48 @@
 	[home-callback
          (lambda () 
            (when init-page
+             
              (cond
                [(not init-page) (void)]
                [(or (url? init-page) (string? init-page))
-                (send c goto-url init-page #f)
-                (set! init-page (send c current-page))
-                (update-buttons init-page)]
+                
+                ; handle stopping when loading the home page
+                (with-handlers ([exn:misc:user-break? 
+                                 (lambda (x) (void))])
+                  (send c goto-url init-page #f)
+                  (set! init-page (send c current-page))
+                  (update-buttons init-page))]
                [else 
                 (send c set-page init-page #t)])))]
         [home (and control-bar?
 		   (make-object button% "Home" hp
 				(lambda (b ev)
                                   (home-callback))))]
-	[update-buttons (lambda (page)
-			  (unless init-page
-			    (set! init-page page))
-			  (when control-bar?
-			    (send back enable (pair? past))
-			    (send forw enable (pair? future))
-
-			    (send home enable (and init-page
-                                                   (or (string? init-page)
-                                                       (url? init-page)
-                                                       (not (same-page? init-page page)))))
-
-			    (send choice clear)
-			    (for-each
-			     (lambda (p)
-			       (send choice append 
-				     (let ([s (send (car p) get-title)])
-				       (or s "Untitled"))))
-			     (append (reverse future)
-				     (if page (list page) null)
-				     past))
-			    (let ([c (send choice get-number)])
-			      (unless (zero? c)
-				(send choice set-selection (length future))))))]
+	[update-buttons
+         (lambda (page)
+           (unless init-page
+             (set! init-page page))
+           (when control-bar?
+             (send back enable (pair? past))
+             (send forw enable (pair? future))
+             
+             (send home enable (and init-page
+                                    (or (string? init-page)
+                                        (url? init-page)
+                                        (not (same-page? init-page page)))))
+             
+             (send choice clear)
+             (for-each
+              (lambda (p)
+                (send choice append 
+                      (let ([s (send (car p) get-title)])
+                        (or s "Untitled"))))
+              (append (reverse future)
+                      (if page (list page) null)
+                      past))
+             (let ([c (send choice get-number)])
+               (unless (zero? c)
+                 (send choice set-selection (length future))))))]
 	[choice (and control-bar?
 		     (make-object choice% #f null hp
 				  (lambda (ch e)
