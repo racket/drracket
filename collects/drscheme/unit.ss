@@ -581,15 +581,15 @@
 		"Show the definitions window"))
 	(set! interactions-item
 	      (make-object mred:menu-item%
-		"Show &Interactions"
-		show-menu
-		(lambda (_1 _2) 
-		  (toggle-show/hide interactions-item)
-		  (update-shown/ensure-one definitions-item))
-		(and
-		 (fw:preferences:get 'framework:menu-bindings)
-		 #\e)
-		"Show the interactions window")))
+                           "Show &Interactions"
+                           show-menu
+                           (lambda (_1 _2) 
+                             (toggle-show/hide interactions-item)
+                             (update-shown/ensure-one definitions-item))
+                           (and
+                            (fw:preferences:get 'framework:menu-bindings)
+                            #\e)
+                           "Show the interactions window")))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))])
@@ -691,8 +691,9 @@
 	
 	(send interactions-edit initialize-console)
 
-	(when (or (ivar interactions-edit repl-initially-active?)
-		  (fw:preferences:get 'drscheme:repl-always-active))
+	(when (and (not filename)
+                   (or (ivar interactions-edit repl-initially-active?)
+                       (fw:preferences:get 'drscheme:repl-always-active)))
 	  (toggle-show/hide interactions-item))
 	
 	(send interactions-edit insert-prompt)
