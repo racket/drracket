@@ -1,3 +1,32 @@
+#| 
+A test case:
+
+(module tmp mzscheme
+   (require (lib "class.ss")
+	    (lib "mred.ss" "mred")
+	    (lib "browser.ss" "browser")
+            (lib "framework.ss" "framework"))
+   
+   (define f%
+     (frame:status-line-mixin 
+      frame:basic%))
+   
+   (define f (new f%
+                  (label "My Frame")
+                  (width 400)
+                  (height 300)))
+   (define browser (new hyper-panel% 
+                        (info-line? #f)
+                        (parent (send f get-area-container))))
+   (send f show #t)
+   
+   (send (send browser get-canvas)
+	 goto-url
+	 ;; The starting URL:
+	 "http://www.htdp.org/";
+	 ;; #f means not a relative URL:
+	 #f))
+|#
 
 (module hyper mzscheme
   (require (lib "unitsig.ss")
@@ -66,9 +95,8 @@
           ))
       
       (define hyper-text-mixin
-        (lambda (super%)
-          (class* super% (hyper-text<%>)
-            
+        (mixin ((class->interface text%) editor:keymap<%>) (hyper-text<%>)
+        
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                      change-style
                      set-modified auto-wrap
@@ -86,7 +114,7 @@
                       [(port? url) #f]
                       [(and (url? url)
                             (equal? "file" (url-scheme url)))
-                       (with-handlers ([exn:i/o:filesystem? (lambda (x) #f)])
+                       (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
                          (path-below?
                           (normal-case-path (normalize-path (build-path (collection-path "mzlib") 
                                                                         'up
@@ -224,7 +252,7 @@
                        (dynamic-wind
                         begin-busy-cursor
                         (lambda () 
-                          (with-handlers ([not-break-exn?
+                          (with-handlers ([exn:fail?
                                            (lambda (exn)
                                              (format
                                               error-evalling-scheme-format
@@ -563,7 +591,7 @@
                                      ;;  close).
                                      (parameterize ([current-custodian cust])
                                        (with-handlers ([(lambda (x)
-                                                          (and (not-break-exn? x)
+                                                          (and (exn:fail? x)
                                                                busy?))
                                                         (lambda (x) 
                                                           (call/input-url 
@@ -576,8 +604,7 @@
                                                              (finish-without-dialog
                                                               (lambda ()
                                                                 (read-from-port p empty-header)))
-                                                             empty-header)
-                                                           null))])
+                                                             empty-header)))])
                                          (call/input-url 
                                           url 
                                           (if post-string 
@@ -652,7 +679,7 @@
             ;; load url, but the user might break:
             (with-handlers ([exn:break? void])
               ;(printf "url: ~a\n" (url->string url)) ;; handy for debugging help desk
-              (reload progress)))))
+              (reload progress))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))
 
