@@ -1,11 +1,17 @@
 #|
 
+wierdness:
+ - set pref to open new tabs
+ - open tmp.ss (in initial window)
+ - create new empty tab (cmd =)
+ - open tmp2.ss
+now there should be 3 open tabs, but there are only 2.
+
 tab panels bug fixes:
   - can-close? needs to account for all tabs
   - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
   - contour
   - ensure-rep-shown message must manipulate the tabs
-  - bringing files to the front when in other tabs (handler:???-file?)
 
 tab panels new behavior:
   - closing a single tab
@@ -35,7 +41,7 @@ tab panels new behavior:
   
   (provide unit@)
   
-  (define sc-new-tab "New Tab")
+  (define sc-new-tab (string-constant new-tab))
   (define module-browser-progress-constant (string-constant module-browser-progress))
   (define status-compiling-definitions (string-constant module-browser-compiling-defns))
   (define show-lib-paths (string-constant module-browser-show-lib-paths/short))
@@ -930,7 +936,8 @@ tab panels new behavior:
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
-          execute-callback))
+          execute-callback
+          open-in-new-tab))
 
       ;; defs : definitions-text
       ;; ints : interactions-text
@@ -1141,8 +1148,7 @@ tab panels new behavior:
             (lambda ()
               (send interactions-text reset-highlighting))]
           
-          (rename [super-update-shown update-shown]
-                  [super-on-close on-close])
+          (rename [super-update-shown update-shown])
           (public get-directory needs-execution?)
           [define get-directory
             (lambda ()
@@ -1687,8 +1693,7 @@ tab panels new behavior:
             (unless  interactions-shown?
               (set! definitions-shown? #t)))
           
-          (override update-shown on-close)
-          (define (update-shown)
+          (define/override (update-shown)
 	    (super-update-shown)
 	    
 	    (let ([new-children
@@ -1754,17 +1759,17 @@ tab panels new behavior:
 					;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
 		   (lambda () (file-menu:get-print-item))))
 	    (send file-menu:print-transcript-item enable interactions-shown?))
-           
-           (define on-close
-             (lambda ()
-               (when (eq? this created-frame)
-                 (set! created-frame #f))
-               (when logging
-                 (stop-logging))
-               (remove-logging-pref-callback)
-               (send interactions-text shutdown)
-               (send interactions-text on-close)
-               (super-on-close)))
+          
+          (rename [super-on-close on-close])
+          (define/override (on-close)
+            (when (eq? this created-frame)
+              (set! created-frame #f))
+            (when logging
+              (stop-logging))
+            (remove-logging-pref-callback)
+            (send interactions-text shutdown)
+            (send interactions-text on-close)
+            (super-on-close))
           
           (field [thread-to-break-box (make-weak-box #f)]
                  [custodian-to-kill-box (make-weak-box #f)]
@@ -1906,7 +1911,7 @@ tab panels new behavior:
           
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
-          (define (create-new-tab) 
+          (define/private (create-new-tab) 
             (when evaluation-enabled?
               (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
                      [defs (new (drscheme:get/extend:get-definitions-text))]
@@ -1940,6 +1945,10 @@ tab panels new behavior:
             (update-save-message)
             (update-save-button)
             (send definitions-text update-frame-filename))
+          
+          (define/public (open-in-new-tab filename)
+            (create-new-tab)
+            (send definitions-text load-file filename))
           
           (define/private (change-to-nth-tab n)
             (unless (< n (length tabs))
@@ -1990,6 +1999,17 @@ tab panels new behavior:
                            (pathname-equal? filename tab-filename))
                       (change-to-tab tab)
                       (loop (cdr tabs)))))))
+          
+          (define/override (editing-this-file? filename)
+            (let ([path-equal?
+                   (lambda (x y)
+                     (equal? (normal-case-path (normalize-path x))
+                             (normal-case-path (normalize-path y))))])
+              (ormap (lambda (tab)
+                       (let ([fn (send (tab-defs tab) get-filename)])
+                         (and fn
+                              (path-equal? fn filename))))
+                     tabs)))
           
           ;;
           ;; end tabs
@@ -2770,14 +2790,22 @@ tab panels new behavior:
         (case-lambda
          [() (open-drscheme-window #f)]
          [(name)
-          (if (and created-frame
-		   name
-		   (not (eq? created-frame 'nothing-yet)) 
-		   (send created-frame still-untouched?))
-	      (begin (send created-frame change-to-file name)
-		     (send created-frame show #t)
-		     created-frame)
-	      (create-new-drscheme-frame name))]))
+          (cond
+            [(and created-frame
+                  name
+                  (not (eq? created-frame 'nothing-yet)) 
+                  (send created-frame still-untouched?))
+             (send created-frame change-to-file name)
+             (send created-frame show #t)
+             created-frame]
+            [(preferences:get 'drscheme:open-in-tabs)
+             (let ([fr (send (group:get-the-frame-group) get-active-frame)])
+               (if (is-a? fr -frame<%>)
+                   (begin (send fr open-in-new-tab name)
+                          fr)
+                   (create-new-drscheme-frame name)))]
+            [else
+             (create-new-drscheme-frame name)])]))
       
       (define (create-new-drscheme-frame filename)
         (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]

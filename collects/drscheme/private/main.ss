@@ -64,6 +64,7 @@
         (drscheme:frame:create-root-menubar)
         (preferences:set 'framework:exit-when-no-frames #f))
       
+      (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)
  
       (let ([number-between-zero-and-one?
@@ -153,21 +154,31 @@
       (preferences:add-editor-checkbox-panel)
       (preferences:add-warnings-checkbox-panel)
       (preferences:add-scheme-checkbox-panel)
-      (preferences:add-to-warnings-checkbox-panel
-       (lambda (warnings-panel)
-         (let ([make-check-box
-                (lambda (pref-sym string)
-                  (let ([q (make-object check-box%
-                             string
-                             warnings-panel
-                             (lambda (checkbox evt)
-                               (preferences:set 
-                                pref-sym 
-                                (send checkbox get-value))))])
-                    (preferences:add-callback pref-sym (lambda (p v) (send q set-value v)))
-                    (send q set-value (preferences:get pref-sym))))])
-           (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once))
-           (make-check-box 'drscheme:test-coverage-ask-about-clearing? (string-constant test-coverage-ask?)))))
+      
+      (let ([make-check-box
+             (lambda (pref-sym string parent)
+               (let ([q (make-object check-box%
+                          string
+                          parent
+                          (lambda (checkbox evt)
+                            (preferences:set 
+                             pref-sym 
+                             (send checkbox get-value))))])
+                 (preferences:add-callback pref-sym (lambda (p v) (send q set-value v)))
+                 (send q set-value (preferences:get pref-sym))))])
+        (preferences:add-to-editor-checkbox-panel
+         (lambda (editor-panel)
+           (make-check-box 'drscheme:open-in-tabs 
+                           (string-constant open-files-in-tabs)
+                           editor-panel)))
+        (preferences:add-to-warnings-checkbox-panel
+         (lambda (warnings-panel)
+           (make-check-box 'drscheme:execute-warning-once 
+                           (string-constant only-warn-once)
+                           warnings-panel)
+           (make-check-box 'drscheme:test-coverage-ask-about-clearing?
+                           (string-constant test-coverage-ask?)
+                           warnings-panel))))
       (drscheme:debug:add-prefs-panel)
       (install-help-browser-preference-panel)
       
