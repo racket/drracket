@@ -1,4 +1,12 @@
 ------------------------------
+        Version 205
+------------------------------
+
+  - added a test coverage annotation; run the program and it
+    colors the code that was executed in green and code that
+    wasn't executed in red.
+
+------------------------------
         Version 204
 ------------------------------
 
