@@ -13,7 +13,6 @@
 (require-library "classd.ss")
 (require-library "launchers.ss" "launcher")
 (require-library "frameworks.ss" "framework")
-(require-library "init-namespaces.ss" "userspce")
 
 (require-library "sig.ss" "help")
 
@@ -101,8 +100,7 @@
 (define-signature drscheme:rep^
   (text%
    context<%>
-   show-interactions-history
-   invoke-teachpack))
+   show-interactions-history))
 
 (define-signature drscheme:app^
   (check-new-version
@@ -117,7 +115,7 @@
 
 (define-signature drscheme:export^
   ((unit interface : drscheme:interface^)
-   (unit basis : userspace:basis^)
+   (unit basis : plt:basis^)
    (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit program : drscheme:program^)

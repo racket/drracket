@@ -11,7 +11,7 @@
 	      #t
 	      "missing close paren"
 	      (vector 0 1)
-	      "read: expected a ')'; started at position 1, line 1 in "
+	      "read: expected a ')'; started at position 1 in "
 	      "read: expected a ')'; started at position 1, line 1 in "
 	      #t
 	      #f)
@@ -20,8 +20,8 @@
 	      #t
 	      "can't use `.' outside list"
 	      (vector 0 1)
-	      "read: illegal use of \".\" at position 1 line 1 in "
-	      "read: illegal use of \".\" at position 1 line 1 in "
+	      "read: illegal use of \".\" at position 1 in "
+	      "read: illegal use of \".\" at position 1, line 1 in "
 	      #t
 	      #f)
    (make-test "(lambda ())"
@@ -135,7 +135,7 @@
 	      #t
 	      (format "1~n2~nmissing close paren")
 	      (vector 4 5)
-	      (format "1~n2~nread: expected a ')'; started at position 5, line 1 in ")
+	      (format "1~n2~nread: expected a ')'; started at position 5 in ")
 	      (format "read: expected a ')'; started at position 5, line 1 in ")
 	      #t
 	      #f)
@@ -144,8 +144,8 @@
 	      #t
 	      (format "1~n2~ncan't use `.' outside list")
 	      (vector 4 5)
-	      (format "1~n2~nread: illegal use of \".\" at position 5 line 1 in ")
-	      (format "read: illegal use of \".\" at position 5 line 1 in ")
+	      (format "1~n2~nread: illegal use of \".\" at position 5 in ")
+	      (format "read: illegal use of \".\" at position 5, line 1 in ")
 	      #t
 	      #f)
    (make-test "1 2 x 3 4"
@@ -181,7 +181,7 @@
 	      "compile: illegal use of a syntactic form name in: if"
 	      #f
 	      "compile: illegal use of a syntactic form name in: if"
-	      'interactions
+	      'unlocated-error
 
 	      "compile: illegal use of a syntactic form name in: if"
 	      "compile: illegal use of a syntactic form name in: if"
@@ -395,7 +395,7 @@
 	      (unless (send definitions-canvas has-focus?)
 		(printf "FAILED execute test for ~s~n  expected definitions to have the focus~n"
 			program))]
-	      [(eq? execute-location 'unlocated-error) 
+	      [(eq? execute-location 'unlocated-error)
 	       (unless (send interactions-canvas has-focus?)
 		 (printf "FAILED execute test for ~s~n  expected interactions to have the focus~n"
 			 program))]

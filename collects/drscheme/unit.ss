@@ -5,7 +5,7 @@
 	  [mzlib:date : mzlib:date^]
 	  [fw : framework^]
           [launcher : launcher-maker^]
-	  [basis : userspace:basis^]
+	  [basis : plt:basis^]
 	  [drscheme:app : drscheme:app^]
 	  [drscheme:frame : drscheme:frame^]
 	  [drscheme:text : drscheme:text^]
@@ -41,7 +41,7 @@
 		 (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
 					  "-e" (format "(define settings ~s)" v-settings)
 					  "-e" (format "(define teachpacks '~s)" teachpacks))])
-		   (if (and in-mz? (null? teachpacks))
+		   '(if (and in-mz? (null? teachpacks))
 		       (printf
 			"~s~n"
 			(append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce")))
