@@ -15,7 +15,9 @@
   (provide/contract 
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
    [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
-   [lookup-binding (-> mark-list? identifier? any)]
+   [lookup-binding (case-> (-> mark-list? identifier? any)
+                           (-> mark-list? identifier? procedure? any)
+                           (-> mark-list? identifier? procedure? procedure? any))]
    [lookup-binding-with-symbol (-> mark-list? symbol? any)])
   
   (provide
@@ -163,22 +165,27 @@
           matches)))
   
   
-  (define (meta-lookup-binding binding-matcher mark-list binding)
-    (if (null? mark-list)
-          (error 'lookup-binding "variable not found in environment: ~a~n" binding)
+  (define lookup-binding
+    (case-lambda
+      ((mark-list binding binding-matcher fail-thunk)
+       (if (null? mark-list)
+           (fail-thunk)
           (let ([matches (binding-matches binding-matcher (car mark-list) binding)])
             (cond [(null? matches)
-                   (meta-lookup-binding binding-matcher (cdr mark-list) binding)]
+                   (lookup-binding (cdr mark-list) binding binding-matcher fail-thunk)]
                   [else
                    (mark-binding-value (car matches))]))))
-  
-  (define lookup-binding
-    (lambda args
-      (apply meta-lookup-binding module-identifier=? args)))
-  
-  (define lookup-binding-with-symbol
-    (lambda args
-      (apply meta-lookup-binding (lambda (id sym) (eq? (syntax-e id) sym)) args)))
+      ((mark-list binding binding-matcher)
+       (lookup-binding mark-list binding binding-matcher 
+                       (lambda ()
+                         (error 'lookup-binding "variable not found in environment: ~a~n" binding))))
+      ((mark-list binding)
+       (lookup-binding mark-list
+                       binding
+                       module-identifier=?))))
+ 
+  (define (lookup-binding-with-symbol mark-list binding)
+    (lookup-binding mark-list binding (lambda (id sym) (eq? (syntax-e id) sym))))
   
   (define (lookup-binding-list mark-list binding)
     (apply append (map (lambda (x) (binding-matches module-identifier=? x binding)) mark-list)))
