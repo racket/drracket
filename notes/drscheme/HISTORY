@@ -1,81 +1,48 @@
 ------------------------------
-        Version 299
+        Version 209
 ------------------------------
 
- - DrScheme's background color for the definitions and
-   interactions window is now configurable.
+* Several small errors in the ProfessorJ compiler have been corrected.
+  Additionally, the native method interface has been updated to
+  provide more access to class members by the native method.
 
- - The regular expression language for the lexer has changed.
-   See doc.txt in the parser-tools collection.
-   (This isn't a DrScheme change per se.)
+* The interfaces and implementations for several HtDP and HtDCH
+  teachpacks have changed:
+  + the World class for HtDCH now supplies 'draw' and 'erase' methods
+  + its event callbacks are guaranteed to call erase before and draw
+    after handling a tick or keyboard event
+  + the world.ss teachpack provides a nw:rectangle function for
+    creating rectangles whose pinhole is in the northwest corner.
 
- - the PLTDRDEBUG environment variable now works much
-   better. Thanks to improvements in cm, setting it now
-   builds .zos with errortrace and should make porting tools
-   to v299 much easier.
+* Oleg Kiselyov's SSAX/SXML is included in the distribution.
 
- - set the PLTDRBREAK environment variable to get a window
-   with two buttons that are useful for debugging deadlocks
-   & infinite loops. The buttons break drscheme's
-   eventspace's main thread and all threads started by
-   drscheme (and tools) resp. Useful in combination with
-   PLTDRDEBUG
+  The SSAX/SXML libraries provides functions for reading, writing and
+  manipulating XML data.  In addition, the package supports the
+  definition of XML languages and exports machinery for transforming
+  XML documents based on concise specifications.  SSAX/SXML is the
+  foundation for a variety of other XML packages in Scheme.  For more
+  information, see http://ssax.sourceforge.net/ and the documentation
+  in the "ssax" collection.
 
- - tool & framework interface changes:
+* Swindle is now included and maintained with PLT Scheme.
 
-   . removed drscheme:unit:make-bitmap. Use
-     (lib "bitmap-label.ss" "mrlib") instead.
+  Swindle is an extension of PLT Scheme.  The main feature is a
+  CLOS-like object system based on Tiny-CLOS from Xerox.  Additional
+  syntactic extensions include: :keyword values and optional CL-style
+  argument lists; syntactic sugar for `define's and `let's; generic
+  `set!'; `defsubst' & `letsubst' for defining simple macros,
+  `letsyntax', `letsubst' and `letmacro' than can bind identifier
+  macros; a list-comprehension macro `list-of' with an extensive
+  generic version `collect'; an `echo' mechanism for complex output
+  formatting including list iterations; customizing printings via a
+  `print-object' generic; `amb', adopted from Dorai's TYSiFD, and
+  more.
 
-   . contract name changes (overall, removed all of the /f,
-     /p, and ? suffixes in favor of the /c suffix)
+  Like Scheme in DrScheme, Swindle has several language levels.  It is
+  also possible to use its features on a selective basis.
 
-      not/f => not/c
-      box/p => box/c
-      cons/p => cons/c
-      vector/p => vector/c
-      list/p => list/c
-      any? => any/c
-      printable? => printable/c
-      false? => false/c
-      natural-number? => natural-number/c
-
-
-   . The framework still probhits editing of files that are
-     read-only, but rather than using the editor<%>'s lock
-     method, it overrides can-insert? and can-delete? in
-     text%. Accordingly, several and interfaces are now gone
-     and the functionality has moved into existing
-     mixins. These are now gone:
-
-       frame:file<%>
-       frame:file-mixin
-       frame:text-info-file%
-
-   . can-close? in editor:basic is now an augmentable method.
-
-   . render-value and render-value/format no longer take the
-     put-snip argument. Use write-special on the port
-     instead.
-
-   . order-manuals in
-     drscheme:tool:language-configuration<%> now accepts
-     (and returns) lists of bytes, not lists of strings.
-
-   . front-end/complete-program and front-end/interaction
-     methods now accept a port, instead of an `input'.
-
-   . added an extra argument to create-executable in
-     drscheme:language:language<%> and get-init-code in
-     drscheme:language:module-based-language<%>
-
-   . preferences:read is not called automatically anymore
-     but should be called by each application, as it starts
-     up.
-
- - errortrace internal interface has changed (see docs for
-   details)
-
- - added ->r contract combinator
+  Those extensions that are not directly related to Tiny CLOS are
+  likely to migrate into MzLib.
 
 ------------------------------
         Version 207
