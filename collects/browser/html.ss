@@ -28,15 +28,19 @@
 		       (write-char c op)
 		       (loop))))))))
 	  'truncate)
-	(let* ([upath (url-path url)])
-	  (begin0
-	   (make-object image-snip% tmp-filename)
-	   (delete-file tmp-filename))))))
+	(let* ([upath (url-path url)]
+	       [bitmap (make-object bitmap% tmp-filename)])
+	  (delete-file tmp-filename)
+	  (if (send bitmap ok?)
+	      (let ([is (make-object image-snip% #f)])
+		(send is set-bitmap bitmap)
+		is)
+	      #f)))))
 
   (define cache-image
     (lambda (url)
       (if (null? url)
-	  (make-object image-snip%)
+	  #f
 	  (let loop ([n 0])
 	    (cond
 	     [(= n NUM-CACHED)
@@ -51,10 +55,13 @@
 		(let loop ([n 0])
 		  (if (= (vector-ref cached-use n) m)
 		      (let ([image (get-image-from-url url)])
-			(vector-set! cached n image)
-			(vector-set! cached-name n url)
-			(vector-set! cached-use n 5)
-			(send image copy))
+			(cond
+			 [image
+			  (vector-set! cached n image)
+			  (vector-set! cached-name n url)
+			  (vector-set! cached-use n 5)
+			  (send image copy)]
+			 [else #f]))
 		      (loop (add1 n)))))]
 	     [(equal? url (vector-ref cached-name n))
 	      (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
@@ -176,6 +183,14 @@
 		  (if src
 		      (with-handlers ([void (lambda (x) null)])
 			(combine-url/relative base-path src))
+		      null))))]
+
+	   [parse-image-alt
+	    (let ([get-src (make-get-field "alt")])
+	      (lambda (s)
+		(let ([src (get-src s)])
+		  (if src
+		      src
 		      null))))]
 	   
 	   [get-mzscheme-arg (let ([get (make-get-field "mzscheme")])
@@ -503,10 +518,21 @@
 		    [(dd) (break #f 1)]
 		    [(img)
 		     (let* ([url (parse-image-source args)]
+			    [alt (parse-image-alt args)]
 			    [b (cache-image url)])
-		       (insert b pos)
-		       (change-style (make-object style-delta% 'change-alignment 'center) pos (add1 pos)))
-		     (atomic-values (add1 pos) #f)]
+		       (cond
+			[b (insert b pos)]
+			[(not (null? alt))
+			 (insert alt pos)]
+			[else (insert (make-object image-snip%) pos)])
+		       (change-style (make-object style-delta% 'change-alignment 'center) pos (add1 pos))
+		       (atomic-values
+			(cond
+			 [b (add1 pos)]
+			 [(not (null? alt))
+			  (+ pos (string-length alt))]
+			 [else (add1 pos)])
+			#f))]
 		    [(input)
 		     (let* ([unsupported (make-unsupported tag args)]
 			    [len (string-length unsupported)])
