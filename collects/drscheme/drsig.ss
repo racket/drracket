@@ -2,7 +2,7 @@
 (reference (begin-construction-time (build-path plt:home-directory "zodiac" "sigs.ss")))
 (reference-library "sparams.ss" "backward")
 (reference-library "ariess.ss" "cogen")
-(reference-library "gusrspcs.ss" "userspce")
+(reference-library "gusrspcs.ss" "gusrspce")
 (reference-library "pconvers.ss")
 
 (define-signature drscheme:prefs^ ())
