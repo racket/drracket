@@ -7,6 +7,9 @@
            "drsig.ss"
            (lib "framework.ss" "framework"))
   
+  ;; to ensure this guy is loaded (and the snipclass installed) in the drscheme namespace & eventspace
+  (require (lib "cache-image-snip.ss" "mrlib"))
+
   (define op (current-output-port))
   (define (oprintf . args) (apply fprintf op args))
   
@@ -167,7 +170,9 @@
       ;; these module specs are copied over to each new user's namespace 
       (define to-be-copied-module-specs
         (list 'mzscheme
-              '(lib "mred.ss" "mred")))
+              '(lib "mred.ss" "mred")
+              '(lib "cache-image-snip.ss" "mrlib")))
+      
       ;; ensure that they are all here.
       (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-module-specs)
       ;; get the names of those modules.
