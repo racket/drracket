@@ -563,11 +563,11 @@
 	    "Break the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
 	  (make-object mred:menu-item%
-	    "&Indent"
+	    "&Reindent"
 	    scheme-menu
 	    (send-method 'tabify-selection))
 	  (make-object mred:menu-item%
-	    "Indent &All"
+	    "Reindent &All"
 	    scheme-menu
 	    (send-method 'tabify-all)
 	    (and
