@@ -39,35 +39,33 @@
 
   (define cache-image
     (lambda (url)
-      (if (null? url)
-	  #f
-	  (let loop ([n 0])
-	    (cond
-	     [(= n NUM-CACHED)
-	      ;; Look for item to uncache
-	      (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
-	      (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
-			 (if (= n NUM-CACHED)
-			     m
-			     (begin
-			       (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
-			       (loop (add1 n) (min m (vector-ref cached-use n))))))])
-		(let loop ([n 0])
-		  (if (= (vector-ref cached-use n) m)
-		      (let ([image (get-image-from-url url)])
-			(cond
-			 [image
-			  (vector-set! cached n image)
-			  (vector-set! cached-name n url)
-			  (vector-set! cached-use n 5)
-			  (send image copy)]
-			 [else #f]))
-		      (loop (add1 n)))))]
-	     [(equal? url (vector-ref cached-name n))
-	      (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
-	      (send (vector-ref cached n) copy)]
-	     [else
-	      (loop (add1 n))])))))
+      (let loop ([n 0])
+	(cond
+	 [(= n NUM-CACHED)
+	  ;; Look for item to uncache
+	  (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
+	  (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
+		     (if (= n NUM-CACHED)
+			 m
+			 (begin
+			   (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
+			   (loop (add1 n) (min m (vector-ref cached-use n))))))])
+	    (let loop ([n 0])
+	      (if (= (vector-ref cached-use n) m)
+		  (let ([image (get-image-from-url url)])
+		    (cond
+		     [image
+		      (vector-set! cached n image)
+		      (vector-set! cached-name n url)
+		      (vector-set! cached-use n 5)
+		      (send image copy)]
+		     [else #f]))
+		  (loop (add1 n)))))]
+	 [(equal? url (vector-ref cached-name n))
+	  (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
+	  (send (vector-ref cached n) copy)]
+	 [else
+	  (loop (add1 n))]))))
 
   (define (make-get-field str)
     (let ([s (apply
@@ -131,7 +129,7 @@
 			    (set! inserted-chars (cdr inserted-chars)))
 			   (let ([v (read-char p)])
 			     (if (eof-object? v)
-				 #\null
+				 #\nul
 				 v))))]
 
 	   [base-path (get-url)]
@@ -141,7 +139,7 @@
 	   [verbatim-tags '(listing xmp plaintext)]
 	   [preformatted-tags '(pre blockquote)]
 	   [comment-tags '(script)]
-	   [atomic-tags '(p br hr li dd dt img html ! meta link input)]
+	   [atomic-tags '(p br hr li dd dt img html !-- meta link input)]
 	   [enum-tags '(ul dl ol)]
 
 	   [delta:fixed (make-object style-delta% 'change-family 'modern)]
@@ -180,18 +178,14 @@
 	    (let ([get-src (make-get-field "src")])
 	      (lambda (s)
 		(let ([src (get-src s)])
-		  (if src
-		      (with-handlers ([void (lambda (x) null)])
-			(combine-url/relative base-path src))
-		      null))))]
+		  (and src
+		       (with-handlers ([void (lambda (x) #f)])
+			 (combine-url/relative base-path src))))))]
 
 	   [parse-image-alt
 	    (let ([get-src (make-get-field "alt")])
 	      (lambda (s)
-		(let ([src (get-src s)])
-		  (if src
-		      src
-		      null))))]
+		(get-src s)))]
 	   
 	   [get-mzscheme-arg (let ([get (make-get-field "mzscheme")])
 			       (lambda (s)
@@ -410,9 +404,20 @@
 	   [read-bracket
 	    (lambda ()
 	      (let ([first (get-char)])
-		(if (char=? #\! first)
-		    ;; Assume comment - special parsing
-		    (let loop ([l (list #\space #\!)][dash-count 0])
+		(if (and (char=? #\! first)
+			 (let ([c1 (get-char)])
+			   (if (char=? #\- c1)
+			       (let ([c2 (get-char)])
+				 (if (char=? #\- c2)
+				     #t
+				     (begin
+				       (set! inserted-chars (list* c1 c2 inserted-chars))
+				       #f)))
+			       (begin
+				 (set! inserted-chars (list* c1 inserted-chars))
+				 #f))))
+		    ;; Comment - special parsing
+		    (let loop ([l (list #\space #\- #\- #\!)][dash-count 0])
 		      (let ([ch (get-char)])
 			(cond
 			 [(char=? #\null ch)
@@ -502,7 +507,7 @@
 				  (atomic-values (+ pos (if bullet? 1 0))
 						 #t)))])
 		  (case tag
-		    [(!)
+		    [(!--)
 		     (let ([code (parse-mzscheme args)])
 		       (when code
 			 (let ([s (with-handlers ([void void])
@@ -519,20 +524,16 @@
 		    [(img)
 		     (let* ([url (parse-image-source args)]
 			    [alt (parse-image-alt args)]
-			    [b (cache-image url)])
+			    [b (and url (cache-image url))])
 		       (cond
-			[b (insert b pos)]
-			[(not (null? alt))
-			 (insert alt pos)]
-			[else (insert (make-object image-snip%) pos)])
-		       (change-style (make-object style-delta% 'change-alignment 'center) pos (add1 pos))
-		       (atomic-values
-			(cond
-			 [b (add1 pos)]
-			 [(not (null? alt))
-			  (+ pos (string-length alt))]
-			 [else (add1 pos)])
-			#f))]
+			[(or b (not alt))
+			 (insert (or b (make-object image-snip%)) pos)
+			 (change-style (make-object style-delta% 'change-alignment 'center) 
+				       pos (add1 pos))
+			 (atomic-values (add1 pos) #f)]
+			[else
+			 (insert alt pos)
+			 (atomic-values (+ pos (string-length alt)) #f)]))]
 		    [(input)
 		     (let* ([unsupported (make-unsupported tag args)]
 			    [len (string-length unsupported)])
