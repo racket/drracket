@@ -2,6 +2,14 @@
         Version 300
 ------------------------------
 
+ - the preferences in DrScheme, Help Desk, and SirMail are
+   now periodically written out and read back in. This
+   allows multiple apps to use the preferences library and
+   avoid clobbering each other's preferences.
+
+ - added preferences:start-writing-thread to support the
+   previous item.
+
  - Help Desk's status messages are now in the frame and
    it's break button is also in the frame (no more modal
    dialog)
