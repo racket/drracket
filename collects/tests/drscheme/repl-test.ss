@@ -291,10 +291,6 @@
 (define get-int-pos (lambda () (get-text-pos interactions-edit)))
 
 
-(define do-execute 
-  (lambda ()
-    (push-button-and-wait execute-button)))
-
 (define tmp-load-filename
   (normalize-path (build-path (current-load-relative-directory) "repl-test-tmp.ss")))
 
@@ -325,7 +321,7 @@
 	; the start and end positions of the text
 	
 	(insert-string program)
-	(do-execute)
+	(do-execute drscheme-frame)
 	(let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
 	       [received-execute
 		(send interactions-edit get-text 
@@ -419,7 +415,7 @@
       (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				      "Clear"
 				      "Delete"))
-      (do-execute)
+      (do-execute drscheme-frame)
       (let/ec escape (for-each (run-test (get-int-pos) escape raw?) test-data)))))
 
 (run-test-in-language-level #t)

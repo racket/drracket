@@ -6,7 +6,7 @@
 
 (unit/sig drscheme:test-util^
   
-  (import [mred : mred^]
+  (import mred^
 	  [fw : framework^]
 	  test-utils:gui^)
   
@@ -16,7 +16,7 @@
     ((in-parameterization
       (ivar (ivar (wait-for-drscheme-frame) interactions-edit)
 	    user-param)
-      mred:current-eventspace)))
+      current-eventspace)))
   
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) ((debug-info-handler)))))
@@ -35,13 +35,15 @@
 		      (sleep step)
 		      (loop (- counter step))))))))]))
   
+  (define (drscheme-frame? frame)
+    (ivar-in-class? 'execute-button (object-class frame)))
+  
   (define (wait-for-drscheme-frame)
     (let* ([pred (lambda ()
-		   (mred:yield)
-		   (let ([active (mred:get-top-level-focus-window)])
+		   (yield)
+		   (let ([active (get-top-level-focus-window)])
 		     (if (and active
-			      (begin
-				(ivar-in-class? 'execute-button (object-class active))))
+			      (drscheme-frame? active))
 			 active
 			 #f)))])
       (or (pred)
@@ -52,20 +54,33 @@
   (define (wait-for-new-frame old-frame)
     (poll-until
      (lambda ()
-       (let ([active (mred:get-top-level-focus-window)])
+       (let ([active (get-top-level-focus-window)])
 	 (if (and active
 		  (not (eq? active old-frame)))
 	     active
 	     #f)))))
+
+  (define do-execute 
+    (lambda (frame)
+      (verify-drscheme-frame-frontmost 'do-execute frame)
+      (push-button-and-wait (ivar frame execute-button))))
+  
+  (define (verify-drscheme-frame-frontmost function-name frame)
+    (unless (and (eq? frame (get-top-level-focus-window))
+		 (drscheme-frame? frame))
+      (error function-name "drscheme frame not frontmost: ~e" frame)))
   
   (define (clear-definitions frame)
+    (verify-drscheme-frame-frontmost 'clear-definitions frame)
     (fw:test:new-window (ivar frame definitions-canvas))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
 				    "Delete")))
+    
   
   (define (type-in-definitions frame str)
+    (verify-drscheme-frame-frontmost 'type-in-definitions frame)
     (let ([len (string-length str)])
       (fw:test:new-window (ivar frame definitions-canvas))
       (let loop ([i 0])
@@ -109,7 +124,7 @@
     (letrec ([loop 
 	      (lambda (path panel)
 		(if (null? path)
-		    (if (is-a? panel mred:panel%)
+		    (if (is-a? panel panel%)
 			panel
 			(test-util-error "not a panel")) 
 		    (loop
@@ -143,18 +158,61 @@
   ; set language level in the frontmost DrScheme frame
   (define (set-language-level! level)
     (printf "getting frame ~n")
-    (let ([frame (mred:get-top-level-focus-window)])
+    (let ([frame (get-top-level-focus-window)])
       (printf "selecting menu~n")
       (fw:test:menu-select "Language" "Configure Language...")
       (printf "waiting for frame~n")
       (wait-for-new-frame frame)
       (printf "got frame~n")
-      (fw:test:set-choice! (find-labelled-window "Language" mred:choice%) level)
+      (fw:test:set-choice! (find-labelled-window "Language" choice%) level)
       (fw:test:button-push "OK")))
   
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))
   
-  ;; to be written, still
-  (define (fetch-output)
-    (mred:get-top-level-focus-window)))
+ 
+  (define fetch-output
+    (case-lambda
+     [(frame)
+      (verify-drscheme-frame-frontmost 'fetch-output frame)
+      (let* ([interactions-edit (ivar frame interactions-edit)]
+	     [last-para (send interactions-edit last-paragraph)])
+	(unless (> last-para 2)
+	  (error 'fetch-output "expected at least 2 paragraphs in interactions window, found ~a"
+		 last-para))
+	(fetch-output frame
+		      (send interactions-edit paragraph-start-position 2)
+		      (send interactions-edit paragraph-end-position
+			    (- (send interactions-edit last-paragraph) 1))))]
+     [(frame start end)
+      (printf "fetching from ~a to ~a~n" start end)
+      (verify-drscheme-frame-frontmost 'fetch-output frame)
+      (let ([interactions-edit (ivar frame interactions-edit)])
+	(send interactions-edit split-snip start)
+	(send interactions-edit split-snip end)
+	(let loop ([snip (send interactions-edit find-snip start 'after)]
+		   [strings null])
+
+	  (printf "snip: ~a ~a~n" 
+		  (send interactions-edit get-snip-position snip)
+		  snip)
+		  
+	  (cond
+	    [(<= end (send interactions-edit get-snip-position snip))
+	     (apply string-append (reverse strings))]
+	    [else 
+	     (cond
+	       [(is-a? snip string-snip%)
+		(loop (send snip next)
+		      (cons (send snip get-text) strings))]
+	       [(is-a? snip editor-snip%)
+		(loop (send snip next)
+		      (list* "["
+			     (send snip get-text 0 )
+			     "]"
+			     strings))]
+	       [(is-a? snip image-snip%
+		       (loop (send snip next)
+			     (cons "<image>"
+				   strings)))]
+	       [else (error 'find-output "unknown snip: ~e~n" snip)])])))])))
