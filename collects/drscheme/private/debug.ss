@@ -102,16 +102,28 @@ profile todo:
       ;; adds debugging information to `sexp' and calls `oe'
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
-               (lambda (exp)
-                 (let ([annotated
-                        (if (compiled-expression? 
-                             (if (syntax? exp) (syntax-e exp) exp))
-                            exp
-                            (annotate-top
-			     (expand exp)
-			     #f))])
-                   (oe annotated)))])
+               (lambda (orig-exp)
+                 (let loop ([exp orig-exp]) 
+                   (let ([top-e (expand-to-top-form exp)]) 
+                     (syntax-case top-e (begin) 
+                       [(begin expr ...)
+                        ;; Found a `begin', so expand/eval each contained 
+                        ;; expression one at a time 
+                        (foldl (lambda (e old-val) (loop e)) 
+                               (void)
+                               (syntax->list #'(expr ...)))]
+                       [_else 
+                        ;; Not `begin', so proceed with normal expand and eval 
+                        (let* ([annotated
+                                (if (compiled-expression? (if (syntax? exp)  
+                                                              (syntax-e exp)  
+                                                              exp))
+                                    exp 
+                                    (annotate-top (expand top-e) #f))])
+                          (oe annotated))]))))])
           debug-tool-eval-handler))
+      
+      
 
       ;; simple-scheme-text% : (implements scheme:text<%>)
       (define simple-scheme-text% (scheme:text-mixin

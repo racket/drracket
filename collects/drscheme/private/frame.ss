@@ -378,13 +378,13 @@
             (parent parent)
             (alignment '(left center))
             (label (string-constant install-plt-file-dialog-title))))
-        (define radio-button
-          (instantiate radio-box% ()
-            (label #f)
+        (define choice
+          (instantiate gui-utils:choices-canvas% ()
             (parent dialog)
             (callback (lambda (x y) (update-panels)))
-            (choices (list (string-constant install-plt-from-web)
-                           (string-constant install-plt-from-file)))))
+	    (stretchable-width #f)
+            (choices (list (string-constant install-plt-web-tab)
+                           (string-constant install-plt-file-tab)))))
         (define outer-swapping-panel (instantiate horizontal-panel% ()
                                        (parent dialog)
                                        (stretchable-height #f)))
@@ -445,7 +445,7 @@
         ;; from-web? : -> boolean
         ;; returns #t if the user has selected a web address
         (define (from-web?)
-          (zero? (send radio-button get-selection)))
+          (zero? (send choice get-selection)))
         
         (define cancel? #t)
         

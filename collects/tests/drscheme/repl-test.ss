@@ -173,7 +173,7 @@
                 #f
                 #f)
 
-     (make-test "(begin (define-struct a ()) (define-struct (b a)))"
+     (make-test "(begin (define-struct a ()) (define-struct (b a) ()))"
 		""
 		""
 		#f
