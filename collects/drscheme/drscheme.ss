@@ -10,20 +10,22 @@
   (when debugging?
     (printf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
     (use-compiled-file-paths (list (build-path "compiled" "errortrace")))
-    (let-values ([(make-compilation-manager-load/use-compiled-handler
+    (error-display-handler (dynamic-require '(lib "errortrace-lib.ss" "errortrace")
+                                            'errortrace-error-display-handler))
+    (let-values ([(current-managed-zo-compile
+                   make-compilation-manager-load/use-compiled-handler
                    manager-trace-handler)
                   (parameterize ([current-namespace (make-namespace)])
-                    ((dynamic-require '(lib "cm.ss") 'current-managed-zo-compile)
-                     (dynamic-require '(lib "zo-compile.ss" "errortrace") 'zo-compile))
                     (values
+                     (dynamic-require '(lib "cm.ss") 'current-managed-zo-compile)
                      (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)
                      (dynamic-require '(lib "cm.ss") 'manager-trace-handler)))])
+      (current-managed-zo-compile
+       (dynamic-require '(lib "zo-compile.ss" "errortrace") 'zo-compile))
       (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
       (when cm-trace?
         (manager-trace-handler
-         (lambda (x) (display x) (newline)))))
-    (error-display-handler (dynamic-require '(lib "errortrace-lib.ss" "errortrace")
-                                            'errortrace-error-display-handler)))
+         (lambda (x) (display x) (newline))))))
   
   (when install-cm?
     (printf "PLTDRCM: installing compilation manager\n")

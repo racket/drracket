@@ -929,7 +929,6 @@ TODO
             (send context enable-evaluation))
           
           (define/override (on-submit)
-            (car)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
             ;; an eof really does come thru the calls to `read'. handle-repl-evaluation
@@ -939,6 +938,68 @@ TODO
             (evaluate-from-port (get-in-port) #f))
           
           (define/public (evaluate-from-port port complete-program?) ; =Kernel=, =Handler=
+            (send context disable-evaluation)
+            (send context reset-offer-kill)
+            (send context set-breakables (get-user-thread) (get-user-custodian))
+            (reset-pretty-print-width)
+            (ready-non-prompt)
+            (when should-collect-garbage?
+              (set! should-collect-garbage? #f)
+              (collect-garbage))
+            (set! need-interaction-cleanup? #t)
+            
+            (run-in-evaluation-thread
+             (lambda () ; =User=, =Handler=, =No-Breaks=
+               (let* ([settings (current-language-settings)]
+                      [lang (drscheme:language-configuration:language-settings-language settings)]
+                      [settings (drscheme:language-configuration:language-settings-settings settings)]
+                      [get-sexp/syntax/eof 
+                       (if complete-program?
+                           (send lang front-end/complete-program port settings user-teachpack-cache)
+                           (send lang front-end/interaction port settings user-teachpack-cache))]
+                      [already-exited? #f])
+                 (protect-user-evaluation
+                  ; Evaluate the expression(s)
+                  (lambda () ; =User=, =Handler=, =No-Breaks=
+                    ; This procedure must also ensure that breaks are off before
+                    ;  returning or escaping.
+                    
+                    ; Evaluate the user's expression. We're careful to turn on
+                    ;   breaks as we go in and turn them off as we go out.
+                    ;   (Actually, we adjust breaks however the user wanted it.)
+                    ; A continuation hop might take us out of this instance of
+                    ;   evaluation and into another one, which is fine.
+                    
+                    (dynamic-wind
+                     (lambda () 
+                       (break-enabled user-break-enabled)
+                       (set! user-break-enabled 'user))
+                     (lambda ()
+                       (let loop ()
+                         (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                           (unless (eof-object? sexp/syntax/eof)
+                             (call-with-values
+                              (lambda () (eval-syntax sexp/syntax/eof))
+                              (lambda x (display-results x)))
+                             (loop)))))
+                     (lambda () 
+                       (set! user-break-enabled (break-enabled))
+                       (break-enabled #f)
+                       (unless already-exited?
+                         (set! already-exited? #t)
+                         ;; want to do this for errors, but not for continuation jumps
+                         (fprintf (get-out-port) (get-prompt))
+                         (flush-output (get-out-port))))))
+                  
+                  ; Cleanup after evaluation:
+                  (lambda () ; =User=, =Handler=, =No-Breaks=
+                    (queue-system-callback/sync
+                     (get-user-thread)
+                     (lambda () ; =Kernel=, =Handler= 
+                       (after-many-evals)
+                       (cleanup-interaction)))))))))
+          
+          (define/public (evaluate-from-port-old port complete-program?) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([settings (current-language-settings)]
@@ -959,15 +1020,6 @@ TODO
                       (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                         (cond
                           [(eof-object? sexp/syntax/eof)
-                           (set! got-eof? #t)
-                           
-                           ;; flush out extraneous eof object, if one is there
-                           ;; only necessary for the REPL, but doesn't hurt definitions
-                           (when (char-ready? port)
-                             (let ([pc (peek-byte-or-special port)])
-                               (when (eof-object? pc)
-                                 (read-byte port))))
-                           
                            (void)]
                           [else
                            (single-loop-eval
@@ -977,18 +1029,22 @@ TODO
                                  (eval-syntax sexp/syntax/eof))
                                (lambda x
                                  (display-results x)))))
-                           (set! successful? #t)])))
+                           (loop)])))
                     (lambda ()
-                      (cond
-                        [(not successful?) (void)]
-                        [got-eof?
-                         (unless already-exited?
-                           (set! already-exited? #t)
-                           ;; want to do this for errors, but not for continuation jumps
-                           (fprintf (get-out-port) (get-prompt))
-                           (flush-output (get-out-port)))]
-                        [else
-                         (loop)]))))))))
+                      #|                           
+                      ;; flush out extraneous eof object, if one is there
+                      ;; only necessary for the REPL, but doesn't hurt definitions
+                      (when (char-ready? port)
+                        (let ([pc (peek-byte-or-special port)])
+                          (when (eof-object? pc)
+                            (read-byte port))))
+                      |#
+                      
+                      (unless already-exited?
+                        (set! already-exited? #t)
+                        ;; want to do this for errors, but not for continuation jumps
+                        (fprintf (get-out-port) (get-prompt))
+                        (flush-output (get-out-port))))))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
           (define/public do-many-evals ; =Kernel=, =Handler=
@@ -1037,7 +1093,6 @@ TODO
                     (queue-system-callback/sync
                      (get-user-thread)
                      (lambda () ; =Kernel=, =Handler= 
-                       (after-many-evals)
                        (cleanup-interaction)))))))))
           
           (define/public (after-many-evals) (void))
@@ -1312,7 +1367,8 @@ TODO
               (current-output-port (get-out-port))
               (current-error-port (get-err-port))
               (current-value-port (get-value-port))
-              (current-input-port (get-in-port))
+              ;(current-input-port (get-in-port))
+              (current-input-port (make-custom-input-port (lambda (x) eof) (lambda (x y) eof) void))
               (break-enabled #t)
               (let* ([primitive-dispatch-handler (event-dispatch-handler)])
                 (event-dispatch-handler
