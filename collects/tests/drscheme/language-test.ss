@@ -1,4 +1,4 @@
-(define language (make-parameter #f))
+(define language (make-parameter "<<not a language>>"))
 
 (define (set-language close-dialog?)
   (set-language-level! (language) close-dialog?)
@@ -22,7 +22,7 @@
     '(dump-memory-stats)))
 
 (define (mred)
-  (parameterize ([language "MrEd (no debugging)"])
+  (parameterize ([language "Graphical without Debugging (MrEd)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -52,7 +52,7 @@
     (test-expression "argv" "#0()")))
 
 (define (mzscheme)
-  (parameterize ([language "MzScheme (no debugging)"])
+  (parameterize ([language "Textual without Debugging (MzScheme)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -81,9 +81,8 @@
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
-
 (define (mred-debug)
-  (parameterize ([language "Graphical Scheme"])
+  (parameterize ([language "Graphical (MrEd)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
@@ -119,7 +118,7 @@
     (test-expression "argv" "#0()")))
 
 (define (mzscheme-debug)
-  (parameterize ([language "Textual Scheme"])
+  (parameterize ([language "Textual (MzScheme)"])
     (generic-settings #f)
     (generic-output #t #t)
     (set-language #f)
