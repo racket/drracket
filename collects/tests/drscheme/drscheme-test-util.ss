@@ -107,7 +107,6 @@
      [(print-message?)
       (let ([wait-for-drscheme-frame-pred
              (lambda ()
-               (yield)
                (let ([active (get-top-level-focus-window)])
                  (if (and active
                           (drscheme-frame? active))

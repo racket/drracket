@@ -14,8 +14,8 @@
   (define (section->language section)
     (cond
       [(section . <= . 12) '("How to Design Programs" "Beginning Student")]
-      [(section . <= . 23) '("How to Design Programs" "Intermediate Student")]
-      [(section . <= . 29) '("How to Design Programs" "Intermediate Student with Lambda")]
+      [(section . <= . 19) '("How to Design Programs" "Intermediate Student")]
+      [(section . <= . 29) '("How to Design Programs" "Intermediate Student with lambda")]
       [else '("How to Design Programs" "Advanced Student")]))
 
   (define sample-solutions-teachpack-filename
@@ -76,7 +76,6 @@
            [language (section->language section)]
            [errors-ok? (car toc-entry)]
            [teachpacks (cadr toc-entry)])
-      
       (let* ([drs-frame (wait-for-drscheme-frame)]
              [definitions-text (send drs-frame get-definitions-text)]
              [interactions-text (send drs-frame get-interactions-text)])
@@ -86,7 +85,6 @@
            ;; update the program (cheat to hack around gc bug -- should really use file|open)
            ;; (this is also much more efficient, tho)
            (send definitions-text load-file (build-path sample-solutions-dir filename))))
-        
         ;; only bother changing the language dialog when necessary.
         (unless (string=?
                  (run-one/sync
@@ -96,7 +94,6 @@
                           (send interactions-text paragraph-end-position 1))))
                  (format "Language: ~a." (car (last-pair language))))
           (set-language-level! language))
-        
         ;; only bother changing the teachpacks when necessary.
         (let* ([get-full-path
                 (lambda (teachpack)
@@ -119,11 +116,11 @@
                              teachpacks)))]
                [teachpack-is
                 (run-one/sync
-                 (lambda ()
-                   (send interactions-text get-text
-                         (send interactions-text paragraph-start-position 2)
-                         (send interactions-text paragraph-start-position 
-                               (+ 2 (length teachpacks) 1)))))] ;; add 1 for the always there teachpack
+                  (lambda ()
+                    (send interactions-text get-text
+                          (send interactions-text paragraph-start-position 2)
+                          (send interactions-text paragraph-start-position 
+                                (+ 2 (length teachpacks) 1)))))] ;; add 1 for the always there teachpack
                [teachpacks-already-set? (string=? teachpack-should-be teachpack-is)])
           (unless teachpacks-already-set?
             (fw:test:menu-select "Language" "Clear All Teachpacks")
@@ -137,20 +134,25 @@
                            (fw:test:menu-select "Language" "Add Teachpack..."))
                          (get-full-path teachpack)))
                       teachpacks)))
-        
         (do-execute drs-frame)
         
         ;; kill the program, but only when it opens windows
-        (unless (eq? drs-frame (get-top-level-focus-window))
-          (custodian-shutdown-all (send interactions-text get-user-custodian))
-          (let ([wait-for-kill-window
-                 (lambda ()
-                   (let ([f (get-top-level-focus-window)])
-                     (and f (equal? (send f get-label)
-                                    "Evaluation Terminated"))))])
-            (poll-until wait-for-kill-window)
-            (fw:test:button-push "OK")
-            (wait-for-drscheme-frame #f)))
+        (let ([open-user-windows?
+               (parameterize ([current-eventspace (send interactions-text get-user-eventspace)])
+                 (not (null? (get-top-level-windows))))])
+          (when open-user-windows?
+            (let ([cust (send interactions-text get-user-custodian)])
+              (run-one/sync
+               (lambda ()
+                 (custodian-shutdown-all cust))))
+            (let ([wait-for-kill-window
+                   (lambda ()
+                     (let ([f (get-top-level-focus-window)])
+                       (and f (equal? (send f get-label)
+                                      "Evaluation Terminated"))))])
+              (poll-until wait-for-kill-window)
+              (fw:test:button-push "OK")
+              (wait-for-drscheme-frame #f))))
         
         (check-for-red-text filename drs-frame)
         
@@ -191,7 +193,9 @@
                      [else (loop sexp equal-count)])))))]))))
   
   (define (check-for-red-text filename drs-frame)
-    (when (send drs-frame get-test-coverage-info-visible?)
+    (when (run-one/sync
+           (lambda ()
+             (send drs-frame get-test-coverage-info-visible?)))
       (printf "ERROR: ~a: test coverage shows uncovered code\n"
               filename)))
   
