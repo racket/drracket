@@ -12,6 +12,7 @@
            (lib "url.ss" "net")
            (lib "head.ss" "net")
            (lib "plt-installer.ss" "setup")
+           (lib "bug-report.ss" "help")
            (prefix mzlib:file: (lib "file.ss")) (lib "file.ss")
            (prefix mzlib:list: (lib "list.ss")))
   
@@ -96,10 +97,7 @@
                           (show-keybindings-to-user structured-list this)))))
                   (bell)))]
           
-          (override file-menu:open-callback file-menu:open-string file-menu:new-string
-                    help-menu:about-callback help-menu:about-string help-menu:create-about?
-                    help-menu:before-about)
-          [define help-menu:before-about
+          [define/override help-menu:before-about
             (lambda (help-menu)
               (make-help-desk-menu-item help-menu)
               '(make-object menu-item%
@@ -109,9 +107,9 @@
                 (lambda (item evt)
                   (drscheme:app:invite-tour))))]
           
-          [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-          [define help-menu:about-string (lambda () (string-constant about-drscheme))]
-          [define help-menu:create-about? (lambda () #t)]
+          [define/override help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
+          [define/override help-menu:about-string (lambda () (string-constant about-drscheme))]
+          [define/override help-menu:create-about? (lambda () #t)]
           
           (define/public (get-additional-important-urls) '())
           (define/override (help-menu:after-about menu)
@@ -122,11 +120,18 @@
             (drscheme:app:add-important-urls-to-help-menu
              menu 
              (get-additional-important-urls))
+            (new menu-item%
+                 (label (string-constant bug-report-submit-menu-item))
+                 (parent menu)
+                 (callback
+                  (lambda (x y)
+                    (help-desk:report-bug))))
+            
             (drscheme:app:add-language-items-to-help-menu menu))
           
-          [define (file-menu:open-callback item evt) (handler:open-file)]
-          (define (file-menu:new-string) (string-constant new-menu-item))
-          (define (file-menu:open-string) (string-constant open-menu-item))
+          [define/override (file-menu:open-callback item evt) (handler:open-file)]
+          (define/override (file-menu:new-string) (string-constant new-menu-item))
+          (define/override (file-menu:open-string) (string-constant open-menu-item))
 
           [define/override file-menu:between-open-and-revert
             (lambda (file-menu) 
