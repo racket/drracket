@@ -637,22 +637,6 @@
                                             init-code
                                             gui?
                                             use-copy?)
-        (printf "~s\n"
-                `((if gui? make-mred-launcher make-mzscheme-launcher)
-                  (list
-                   "-qmvt"
-                   ,(build-path (collection-path "drscheme" "private") 
-                               "launcher-bootstrap.ss")
-                   "--"
-                   ,(condense-scheme-code-string (format "~s" init-code))
-                   ,program-filename
-                   ,(format "~s" module-language-spec)
-                   ,(format "~s" transformer-module-language-spec)
-                   ,(format "~s" use-copy?)
-                   ,(format "~s" (if gui?  
-                                    (list 'mzscheme '(lib "mred.ss" "mred"))
-                                    (list 'mzscheme))))
-                  ,executable-filename))
         ((if gui? make-mred-launcher make-mzscheme-launcher)
          (list
           "-qmvt"
