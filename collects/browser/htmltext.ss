@@ -48,6 +48,14 @@
       (define/public (make-link-style pos endpos) 
 	(change-style url-delta pos endpos))
       (define/public (add-scheme-callback pos endpos scheme) (void))
+      (define/public (add-thunk-callback pos endpos thunk)
+	(set-clickback pos endpos (lambda (e start-pos eou-pos)
+				     (thunk))))
+      (define/public (post-url url post-data)
+	(message-box "HTML" 
+		     (format "Cannot perform post: ~e"
+			     post-data)
+		     '(stop ok)))
       (super-instantiate ())))
 
   (define (render-html-to-text port text%-obj img-ok? eval-ok?)
