@@ -735,106 +735,149 @@ profile todo:
           (define/public (show-test-coverage-annotations ht on-style off-style ask?)
             (set! ask-about-reset? ask?)
             (let* ([edit-sequence-ht (make-hash-table)]
+                   [locked-ht (make-hash-table)]
+                   [actions-ht (make-hash-table 'equal)]
                    [on/syntaxes (hash-table-map ht (lambda (_ pr) pr))]
-                   [filtered (filter (lambda (pr)
-                                       (let ([stx (cadr pr)])
-                                         (and (syntax? stx)
-                                              (let ([src (syntax-source stx)]
-                                                    [pos (syntax-position stx)]
-                                                    [span (syntax-span stx)])
-                                                (and (is-a? src text:basic<%>)
-                                                     pos
-                                                     span)))))
-                                     on/syntaxes)]
 
-                   ;; sorting predicate:
-                   ;;  x < y if
-                   ;;    x's span is bigger than y's (ie, do larger expressions first)
-                   ;;    unless x and y are the same source location.
-                   ;;    in that case, color red first and then green
-                   [sorted
-                    (quicksort
-                     filtered
-                     (lambda (x y)
-                       (let* ([x-stx (cadr x)]
-                              [y-stx (cadr y)]
-                              [x-pos (syntax-position x-stx)]
-                              [y-pos (syntax-position y-stx)]
-                              [x-span (syntax-span x-stx)]
-                              [y-span (syntax-span y-stx)]
-                              [x-on (car x)]
-                              [y-on (car y)])
-                         (cond
-                           [(and (= x-pos y-pos)
-                                 (= x-span x-span))
-                            (or y-on
-                                (not x-on))]
-                           [else (>= x-span y-span)]))))])
-                           
-              ;; turn on edit-sequences in all editors to be touched by new annotations
-              ;; also fill in the edit-sequence-ht
-              (for-each
-               (lambda (pr)
-                 (let ([src (syntax-source (cadr pr))])
-                   (hash-table-get 
-                    edit-sequence-ht
-                    src
-                    (lambda ()
-                      (hash-table-put! edit-sequence-ht src #f)
-                      (send src begin-edit-sequence #f)))))
-               sorted)
-              
-              ;; clear out old annotations
-              (when internal-clear-test-coverage-display
-                (internal-clear-test-coverage-display)
-                (set! internal-clear-test-coverage-display #f))
-              
-              ;; set new annotations
-              (for-each
-               (lambda (pr)
-                 (let ([stx (cadr pr)]
-                       [on? (car pr)])
-                   (when (syntax? stx)
-                     (let* ([src (syntax-source stx)]
-                            [pos (syntax-position stx)]
-                            [span (syntax-span stx)]
-                            [locked? (send src is-locked?)])
-                       (when locked? (send src lock #f))
-                       (send src change-style
-                             (if on?
-                                 (or on-style test-covered-style-delta)
-                                 (or off-style test-not-covered-style-delta))
-                             (- pos 1)
-                             (+ (- pos 1) span)
-                             #f)
-                       (when locked? (send src lock #t))))))
-               sorted)
-
-              ;; end edit sequences
-              (hash-table-for-each 
-               edit-sequence-ht
-               (lambda (txt _) (send txt end-edit-sequence)))
-              
-              ;; save thunk to reset these new annotations
-              (set! internal-clear-test-coverage-display
-                    (lambda ()
-                      (hash-table-for-each
-                       edit-sequence-ht
-                       (lambda (txt _) (send txt begin-edit-sequence #f)))
-                      (hash-table-for-each
-                       edit-sequence-ht
-                       (lambda (txt _) 
-                         (let ([locked? (send txt is-locked?)])
-                           (when locked? (send txt lock #f))
-                           (send txt change-style 
-                                 erase-test-coverage-style-delta
-                                 0
-                                 (send txt last-position)
-                                 #f)
-                           (when locked? (send txt lock #t)))))
-                      (hash-table-for-each
-                       edit-sequence-ht
-                       (lambda (txt _) (send txt end-edit-sequence)))))))
+                   ;; can-annotate : (listof (list boolean syntax))
+                   ;; boolean is #t => code was run
+                   ;;            #f => code was not run
+                   ;; remove those that cannot be annotated
+                   [can-annotate
+                    (filter (lambda (pr)
+                              (let ([stx (cadr pr)])
+                                (and (syntax? stx)
+                                     (let ([src (syntax-source stx)]
+                                           [pos (syntax-position stx)]
+                                           [span (syntax-span stx)])
+                                       (and (is-a? src text:basic<%>)
+                                            pos
+                                            span)))))
+                            on/syntaxes)]
+                   
+                   ;; filtered : (listof (list boolean syntax))
+                   ;; remove redundant expressions
+                   [filtered
+                    (let (;; actions-ht : (list src number number) -> (list boolean syntax)
+                          [actions-ht (make-hash-table 'equal)])
+                      (for-each
+                       (lambda (pr)
+                         (let* ([stx (cadr pr)]
+                                [on? (car pr)]
+                                [key (list (syntax-source stx)
+                                           (syntax-position stx)
+                                           (syntax-span stx))]
+                                [old (hash-table-get actions-ht key (lambda () 'nothing))])
+                           (cond
+                             [(eq? old 'nothing) (hash-table-put! actions-ht key (list on? stx))]
+                             [(car old) ;; recorded as executed
+                              (void)]
+                             [(not (car old)) ;; recorded as unexected
+                              (when on?
+                                (hash-table-put! actions-ht key (list #t stx)))])))
+                       can-annotate)
+                      (hash-table-map actions-ht (lambda (k v) v)))])
+                   
+              ;; if everything is covered, do no coloring.
+              (unless (andmap car filtered)
+                (let (;; sorted : (listof (list boolean syntax))
+                      ;; sorting predicate:
+                      ;;  x < y if
+                      ;;    x's span is bigger than y's (ie, do larger expressions first)
+                      ;;    unless x and y are the same source location.
+                      ;;    in that case, color red first and then green
+                      [sorted
+                       (quicksort
+                        filtered
+                        (lambda (x y)
+                          (let* ([x-stx (cadr x)]
+                                 [y-stx (cadr y)]
+                                 [x-pos (syntax-position x-stx)]
+                                 [y-pos (syntax-position y-stx)]
+                                 [x-span (syntax-span x-stx)]
+                                 [y-span (syntax-span y-stx)]
+                                 [x-on (car x)]
+                                 [y-on (car y)])
+                            (cond
+                              [(and (= x-pos y-pos)
+                                    (= x-span x-span))
+                               (or y-on
+                                   (not x-on))]
+                              [else (>= x-span y-span)]))))])
+                  
+                  ;; turn on edit-sequences in all editors to be touched by new annotations
+                  ;; also fill in the edit-sequence-ht
+                  (for-each
+                   (lambda (pr)
+                     (let ([src (syntax-source (cadr pr))])
+                       (hash-table-get 
+                        edit-sequence-ht
+                        src
+                        (lambda ()
+                          (hash-table-put! edit-sequence-ht src #f)
+                          (send src begin-edit-sequence #f)
+                          (when (send src is-locked?)
+                            (hash-table-put! locked-ht src #t)
+                            (send src lock #f))
+                          (send src freeze-colorer)))))
+                   sorted)
+                  
+                  ;; clear out old annotations
+                  (when internal-clear-test-coverage-display
+                    (internal-clear-test-coverage-display)
+                    (set! internal-clear-test-coverage-display #f))
+                  
+                  ;; set new annotations
+                  (for-each
+                   (lambda (pr)
+                     (let ([stx (cadr pr)]
+                           [on? (car pr)])
+                       (when (syntax? stx)
+                         (let* ([src (syntax-source stx)]
+                                [pos (syntax-position stx)]
+                                [span (syntax-span stx)])
+                           (send src change-style
+                                 (if on?
+                                     (or on-style test-covered-style-delta)
+                                     (or off-style test-not-covered-style-delta))
+                                 (- pos 1)
+                                 (+ (- pos 1) span)
+                                 #f)))))
+                   sorted)
+                  
+                  ;; relock editors
+                  (hash-table-for-each 
+                   locked-ht
+                   (lambda (txt _) (send txt lock #t)))
+                  
+                  ;; end edit sequences
+                  (hash-table-for-each 
+                   edit-sequence-ht
+                   (lambda (txt _) (send txt end-edit-sequence)))
+                  
+                  ;; save thunk to reset these new annotations
+                  (set! internal-clear-test-coverage-display
+                        (lambda ()
+                          (hash-table-for-each
+                           edit-sequence-ht
+                           (lambda (txt _) 
+                             (send txt begin-edit-sequence #f)))
+                          (hash-table-for-each
+                           edit-sequence-ht
+                           (lambda (txt _) 
+                             (let ([locked? (send txt is-locked?)])
+                               (when locked? (send txt lock #f))
+                               (send txt change-style 
+                                     erase-test-coverage-style-delta
+                                     0
+                                     (send txt last-position)
+                                     #f)
+                               (when locked? (send txt lock #t)))))
+                          (hash-table-for-each
+                           edit-sequence-ht
+                           (lambda (txt _) 
+                             (send txt thaw-colorer)
+                             (send txt end-edit-sequence)))))))))
 
           (rename [super-clear-annotations clear-annotations])
           (define/override (clear-annotations)

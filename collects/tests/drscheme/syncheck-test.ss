@@ -146,6 +146,12 @@
                   (" "    #f)
                   ("1"    constant)
                   (")"    #f)))
+     (build-test "(#%top . x)"
+                 '(("("     #f) 
+                   ("#%top" imported-syntax)
+                   (" . "   #f)
+                   ("x"     error)
+                   (")"    #f)))
      (build-test "(let ([x 1]) (set! x 2))"
                 '(("("    #f)
                   ("let"   imported-syntax)
@@ -358,7 +364,31 @@
                 (list '((15 16) (39 40))))
      
      (build-test "(let () (define-struct s (x)) 1)"
-                 '())
+                 '(("("             #f)
+                   ("let"           imported-syntax)
+                   (" () ("         #f)
+                   ("define-struct" imported-syntax)
+                   (" "             #f)
+                   ("s"             lexically-bound-syntax)
+                   (" (x)) "        #f)
+                   ("1"             constant)
+                   (")"             #f)))
+     
+     (build-test "(let ([x 12]) (define-struct s (x)) x)"
+                 '(("("             #f)
+                   ("let"           imported-syntax)
+                   (" (["           #f)
+                   ("x"             lexically-bound-variable)
+                   (" "             #f)
+                   ("12"            constant)
+                   ("]) ("          #f)
+                   ("define-struct" imported-syntax)
+                   (" "             #f)
+                   ("s"             lexically-bound-syntax)
+                   (" (x)) "        #f)
+                   ("x"             lexically-bound-variable)
+                   (")"             #f))
+                 (list '((7 8) (36 37))))
      
      (build-test "`(1 ,x 2)"
                 '(("`"        imported-syntax)
@@ -535,11 +565,12 @@
                       '((62 63) (64 65) (68 69))))))
   
   (define (run-test)
+    (wait-for-drscheme-frame)
     (check-language-level #rx"Graphical")
-    (let* ([drs (wait-for-drscheme-frame)]
-           [defs (send drs get-definitions-text)])
-      (send defs force-stop-colorer #t))
-    (for-each run-one-test tests))
+    (let ([op (preferences:get 'framework:coloring-active)])
+      (preferences:set 'framework:coloring-active #f)
+      (for-each run-one-test tests)
+      (preferences:set 'framework:coloring-active op)))
   
   (define (run-one-test test)
     (let* ([drs (wait-for-drscheme-frame)]
