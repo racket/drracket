@@ -11,9 +11,14 @@
            update-browser-preference
            tool@)
   
+  
+  ; : -> bool
+  (define (unix-browser?)
+    (and (eq? (system-type) 'unix) (not (equal? "ppc-macosxonx" (system-library-subpath)))))
+  
   ; : str [bool] -> void
   (define send-url
-    (if (eq? (system-type) 'unix)
+    (if (unix-browser?)
         (lambda (url . args)
           (unless (get-preference 'external-browser (lambda () #f))
             ; either the preference doesn't exist or is #f
@@ -61,7 +66,7 @@
       (define phase1 void)
       (define phase2 void)
       
-      (when (eq? (system-type) 'unix)
+      (when (unix-browser?)
 	(let ([box-label (string-constant browser)])
           (fw:preferences:add-panel
            box-label
