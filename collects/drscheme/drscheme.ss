@@ -25,9 +25,9 @@
     (send t lock #t)
     (send f show #t))
 
-  (define profiling? (equal? (getenv "MREDDEBUG") "profile"))
+  (define profiling? (equal? (getenv "PLTDRDEBUG") "profile"))
 
-  (when (getenv "MREDDEBUG")
+  (when (getenv "PLTDRDEBUG")
     (let ([main-eventspace-thread (current-thread)]
           [main-eventspace (current-eventspace)])
       (let-values ([(sw sh) (get-display-size)])
