@@ -11,7 +11,7 @@
 
 (define-signature drscheme:interface^ 
   ((open zodiac:interface^)
-   (struct zodiac-exn (start-location end-location type))))
+   (struct zodiac-exn (message start-location end-location type))))
 
 (define-signature drscheme:language^
   ((open plt:parameters^)
