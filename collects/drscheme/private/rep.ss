@@ -92,7 +92,8 @@
       (define (drscheme-error-display-handler msg exn)
         (let ([rep (current-rep)])
           (cond
-            [(eq? (current-error-port) (send rep get-this-err))
+            [(and (is-a? rep -text<%>)
+                  (eq? (current-error-port) (send rep get-this-err)))
              (send rep queue-output
                    (lambda ()  ;; =Kernel=, =Handler=
                      (let ([locked? (send rep is-locked?)]

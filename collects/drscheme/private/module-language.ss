@@ -53,6 +53,7 @@
                      (is-a? (drscheme:language:text/pos-text input)
                             drscheme:unit:definitions-text%))
                 (let ([super-thunk (super-front-end input settings)]
+                      [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
                       [module-name #f])
                   (lambda ()
                     (set! iteration-number (+ iteration-number 1))
@@ -65,6 +66,7 @@
                               "the definitions window must contain a module")
                              (let-values ([(name new-module)
                                            (transform-module-to-export-everything
+                                            filename
                                             (expand super-result)
                                             super-result)])
                                (set! module-name name)
@@ -110,39 +112,38 @@
       ;; module-language-style-delta : (instanceof style-delta%)
       (define module-language-style-delta (make-object style-delta% 'change-family 'modern))
       
-      ;; transform-module-to-export-everything : syntax syntax -> syntax
+      ;; transform-module-to-export-everything : (union #f string) syntax syntax -> syntax
       ;; in addition to exporting everything, the result module's name
       ;; is the fully expanded name, with a directory prefix, 
       ;; if the file has been saved
-      (define (transform-module-to-export-everything stx unexpanded-stx)
+      (define (transform-module-to-export-everything filename stx unexpanded-stx)
         (syntax-case stx (module #%plain-module-begin)
           [(module name lang (#%plain-module-begin bodies ...))
-           (let ([filename (get-definitions-filename)])
-             (when filename
-               (check-filename-matches filename
-                                       (syntax-object->datum (syntax name)) 
-                                       unexpanded-stx))
-             (let ([prefixed-name (if filename
-                                      (build-prefixed-module-name filename (syntax name))
-                                      (syntax name))])
-               (with-syntax ([s-prefixed-name (datum->syntax-object (syntax name) prefixed-name)]
-                             [(to-provide-specs ...)
-                              (cons
-                               (syntax (all-from lang))
-                               (get-provide-specs
-                                (syntax->list
-                                 (syntax (bodies ...)))))]
-                             [(no-provide-bodies ...)
-                              (filter
-                               not-provide?
-                               (syntax->list
-                                (syntax (bodies ...))))])
-                 (values
-                  prefixed-name
-                  (syntax (module s-prefixed-name lang
-                            (#%plain-module-begin 
-                             (provide to-provide-specs ...)
-                             no-provide-bodies ...)))))))]
+           (when filename
+             (check-filename-matches filename
+                                     (syntax-object->datum (syntax name)) 
+                                     unexpanded-stx))
+           (let ([prefixed-name (if filename
+                                    (build-prefixed-module-name filename (syntax name))
+                                    (syntax name))])
+             (with-syntax ([s-prefixed-name (datum->syntax-object (syntax name) prefixed-name)]
+                           [(to-provide-specs ...)
+                            (cons
+                             (syntax (all-from lang))
+                             (get-provide-specs
+                              (syntax->list
+                               (syntax (bodies ...)))))]
+                           [(no-provide-bodies ...)
+                            (filter
+                             not-provide?
+                             (syntax->list
+                              (syntax (bodies ...))))])
+               (values
+                prefixed-name
+                (syntax (module s-prefixed-name lang
+                          (#%plain-module-begin 
+                           (provide to-provide-specs ...)
+                           no-provide-bodies ...))))))]
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
@@ -162,22 +163,21 @@
              (symbol->string
               (syntax-object->datum module-name)))))))
 
-      ;; get-definitions-filename : -> (union string #f)
+      ;; get-definitions-filename : (union text% #f) -> (union string #f)
       ;; extracts the file the definitions window is being saved in, if any.
-      (define (get-definitions-filename)
-        (let ([rep (drscheme:rep:current-rep)])
-          (and rep
-               (let ([canvas (send rep get-canvas)])
-                 (and canvas
-                      (let ([frame (send canvas get-top-level-window)])
-                        (and (is-a? frame drscheme:unit:frame%)
-                             (let* ([b (box #f)]
-                                    [filename (send (send frame get-definitions-text)
-                                                    get-filename
-                                                    b)])
-                               (if (unbox b)
-                                   #f
-                                   filename)))))))))
+      (define (get-definitions-filename definitions-text)
+        (and (is-a? definitions-text text%)
+             (let ([canvas (send definitions-text get-canvas)])
+               (and canvas
+                    (let ([frame (send canvas get-top-level-window)])
+                      (and (is-a? frame drscheme:unit:frame%)
+                           (let* ([b (box #f)]
+                                  [filename (send (send frame get-definitions-text)
+                                                  get-filename
+                                                  b)])
+                             (if (unbox b)
+                                 #f
+                                 filename))))))))
       
       ;; check-filename-matches : string datum syntax -> void
       (define re:check-filename-matches (regexp "^(.*)\\.[^.]*$"))
