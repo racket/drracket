@@ -82,7 +82,16 @@
   ;;;                               ((union #f string) (union class #f) area-container<%> -> window<%>))
   ;;;;  may call error, if no control with the label is found
   (define find-labelled-window
-    (opt-lambda (label [class #f] [window (get-top-level-focus-window)])
+    (opt-lambda (label 
+                 [class #f] 
+                 [window (get-top-level-focus-window)] 
+                 [failure (lambda ()
+                            (error 'find-labelled-window "no window labelled ~e in ~e~a"
+                                   label
+                                   window 
+                                   (if class
+                                       (format " matching class ~e" class)
+                                       "")))])
       (unless (or (not label)
                   (string? label))
 	(error 'find-labelled-window "first argument must be a string or #f, got ~e; other args: ~e ~e"
@@ -106,9 +115,4 @@
                  [(is-a? window area-container<%>) (ormap loop (send window get-children))]
                  [else #f]))])
 	(or ans
-	    (error 'find-labelled-window "no window labelled ~e in ~e~a"
-		   label
-		   window 
-		   (if class
-		       (format " matching class ~e" class)
-		       "")))))))
+	    (failure))))))
