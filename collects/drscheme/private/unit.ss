@@ -665,7 +665,7 @@
                                  (make-object (if checked?
                                                   menu:can-restore-checkable-menu-item%
                                                   menu:can-restore-menu-item%)
-                                   (defn-name defn)
+                                   (gui-utils:trim-string (defn-name defn) 200)
                                    menu
                                    (lambda x
                                      (set! inverted? #f)
