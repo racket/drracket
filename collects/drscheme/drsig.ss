@@ -71,8 +71,7 @@
   (<%>
    mixin
    basics-mixin
-   basics<%>
-   help-desk))
+   basics<%>))
 
 (define-signature drscheme:signature^
   (frame%))

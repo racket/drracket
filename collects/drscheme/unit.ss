@@ -393,9 +393,12 @@
       (private
 	[file-menu:print-transcript-item #f])
 
+      (rename
+       [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
       (override
 	[file-menu:between-open-and-revert
 	 (lambda (file-menu)
+           (super-file-menu:between-open-and-revert file-menu)
 	   (make-object mred:separator-menu-item% file-menu))]
 	[file-menu:save-string (lambda () "Definitions")]
 	[file-menu:save-as-string (lambda () "Definitions")]
