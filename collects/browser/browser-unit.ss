@@ -3,7 +3,6 @@
            (lib "mred-sig.ss" "mred")
            (lib "plt-installer-sig.ss" "setup")
            "browser-sig.ss"
-           "private/btree.ss"
            "private/bullet.ss"
            "private/html.ss"
            "private/hyper.ss"
@@ -15,8 +14,7 @@
     (compound-unit/sig
       (import (plt-installer : setup:plt-installer^)
               (mred : mred^))
-      (link [btree : relative-btree^ (btree@)]
-            [bullet : bullet^ (bullet@ mred)]
-            [html : html^ (html@ btree bullet mred)]
+      (link [bullet : bullet^ (bullet@ mred)]
+            [html : html^ (html@ bullet mred)]
             [hyper : browser^ (hyper@ html bullet mred plt-installer)])
       (export (open hyper)))))

@@ -77,6 +77,7 @@
                        "*")))])
           (sequence
             (super-init)
+            (add-snip-class-if-needed)
             (set-snipclass (send (get-the-snip-class-list) find "HTML Bullet"))
             (set-count 1))))
       
@@ -93,6 +94,8 @@
               (sequence
                 (super-init)
                 (set-classname "HTML Bullet")))))
-      
-      (send (get-the-snip-class-list) add bullet-snip-class))))
+
+      (define (add-snip-class-if-needed)
+        (unless (send (get-the-snip-class-list) find "HTML Bullet")
+          (send (get-the-snip-class-list) add bullet-snip-class))))))
 

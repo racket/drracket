@@ -7,7 +7,9 @@
 
   (define-signature html^
     (html-convert
-     html-status-handler))
+     html-status-handler
+     html-img-ok
+     html-eval-ok))
   
   (define-signature bullet^
     (bullet-snip%

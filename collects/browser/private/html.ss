@@ -18,8 +18,7 @@
   
   (define html@
     (unit/sig html^
-      (import relative-btree^
-              bullet^
+      (import bullet^
               mred^)
       
       ;; CACHE
@@ -111,36 +110,41 @@
 			     (string->number (cadddr m) 16))
 		(send the-color-database find-color str)))))
 
+      (define html-eval-ok (make-parameter #t))
+      (define html-img-ok (make-parameter #f))
+      
       (define get-image-from-url
         (lambda (url)
-          (let ([tmp-filename (make-temporary-file "mredimg~a")])
-            (load-status #t "image" url)
-            (call-with-output-file* tmp-filename
-                                    (lambda (op)
-                                      (with-handlers ([not-break-exn? void])
-                                        (call/input-url 
-                                         url
-                                         get-pure-port
-                                         (lambda (ip)
-					   (copy-port ip op)))))
-                                    'truncate)
-            (pop-status)
-            (let* ([upath (url-path url)]
-                   [bitmap (make-object bitmap% tmp-filename)])
-              (with-handlers ([(lambda (x) #t)
-                               (lambda (x)
-                                 (message-box "Warning"
-                                              (format "Could not delete file ~s~n~n~a"
-                                                      tmp-filename
-                                                      (if (exn? x)
-                                                          (exn-message x)
-                                                          x))))])
-                (delete-file tmp-filename))
-              (if (send bitmap ok?)
-                  (let ([is (make-object image-snip% #f)])
-                    (send is set-bitmap bitmap)
-                    is)
-                  #f)))))
+          (if (html-img-ok)
+              (let ([tmp-filename (make-temporary-file "mredimg~a")])
+                (load-status #t "image" url)
+                (call-with-output-file* tmp-filename
+                                        (lambda (op)
+                                          (with-handlers ([not-break-exn? void])
+                                            (call/input-url 
+                                             url
+                                             get-pure-port
+                                             (lambda (ip)
+                                               (copy-port ip op)))))
+                                        'truncate)
+                (pop-status)
+                (let* ([upath (url-path url)]
+                       [bitmap (make-object bitmap% tmp-filename)])
+                  (with-handlers ([(lambda (x) #t)
+                                   (lambda (x)
+                                     (message-box "Warning"
+                                                  (format "Could not delete file ~s~n~n~a"
+                                                          tmp-filename
+                                                          (if (exn? x)
+                                                              (exn-message x)
+                                                              x))))])
+                    (delete-file tmp-filename))
+                  (if (send bitmap ok?)
+                      (let ([is (make-object image-snip% #f)])
+                        (send is set-bitmap bitmap)
+                        is)
+                      #f)))
+              #f)))
       
       (define cache-image
         (lambda (url)
@@ -303,7 +307,9 @@
 					     (if (exn? exn)
 						 (exn-message exn)
 						 (format "~s" exn))))])
-			   (eval (read (open-input-string code))))])
+                           (if (html-eval-ok)
+                               (eval (read (open-input-string code)))
+                               (error "disabled")))])
 		  (if (string? s)
 		      (let ([content (read-html (open-input-string s))])
 			(fixup-whitespace content leading-ok?))
