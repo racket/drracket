@@ -980,6 +980,7 @@ tab panels new behavior:
                    [saved-p (preferences:get 'drscheme:module-browser-size-percentage)]
                    [_module-browser-panel (new vertical-panel%
                                             (parent outer-panel)
+                                            (alignment '(left center))
                                             (stretchable-width #f))]
                    [louter-panel (make-object vertical-panel% outer-panel)]
                    [root (make-object cls louter-panel)])
@@ -2074,6 +2075,7 @@ tab panels new behavior:
                  [module-browser-ec #f]
                  [module-browser-button #f]
                  [module-browser-lib-path-check-box #f]
+                 [module-browser-name-length-choice #f]
                  [module-browser-pb #f]
                  [module-browser-menu-item 'module-browser-menu-item-unset])
 
@@ -2116,7 +2118,6 @@ tab panels new behavior:
               (set! module-browser-pb 
                     (drscheme:module-overview:make-module-overview-pasteboard
                      #t
-                     #f 
                      (lambda (x) (mouse-currently-over x))))
               (set! module-browser-ec (make-object editor-canvas%
                                         module-browser-panel
@@ -2131,6 +2132,22 @@ tab panels new behavior:
                          (let ([val (send module-browser-lib-path-check-box get-value)])
                            (preferences:set 'drscheme:module-browser:show-lib-paths? val)
                            (send module-browser-pb show-lib-paths val))))))
+              
+              (set! module-browser-name-length-choice
+                    (new choice%
+                         (parent module-browser-panel)
+                         (label (string-constant module-browser-name-length))
+                         (choices (list (string-constant module-browser-name-short)
+                                        (string-constant module-browser-name-medium)
+                                        (string-constant module-browser-name-long)))
+                         (selection (preferences:get 'drscheme:module-browser:name-length))
+                         (callback
+                          (lambda (x y)
+                            (let ([selection (send module-browser-name-length-choice get-selection)])
+                              (preferences:set 'drscheme:module-browser:name-length selection)
+                              (update-module-browser-name-length selection))))))
+              (update-module-browser-name-length 
+               (preferences:get 'drscheme:module-browser:name-length))
               
               (set! module-browser-button 
                     (new button%
@@ -2148,6 +2165,13 @@ tab panels new behavior:
                 (send module-browser-parent-panel set-percentages (list p (- 1 p))))
               (send module-browser-parent-panel end-container-sequence)
               (calculate-module-browser)))
+          
+          (define/private (update-module-browser-name-length i)
+            (send module-browser-pb set-name-length 
+                  (case i
+                    [(0) 'short]
+                    [(1) 'medium]
+                    [(2) 'long])))
             
           (define/private (mouse-currently-over snips)
             (if (null? snips)
@@ -2167,6 +2191,7 @@ tab panels new behavior:
               (update-status-line 'plt:module-browser status-compiling-definitions)
               (send module-browser-button enable #f)
               (send module-browser-lib-path-check-box enable #f)
+              (send module-browser-name-length-choice enable #f)
               (disable-evaluation)
               (drscheme:module-overview:fill-pasteboard 
                module-browser-pb
@@ -2183,6 +2208,7 @@ tab panels new behavior:
               (enable-evaluation)
               (send module-browser-button enable #t)
               (send module-browser-lib-path-check-box enable #t)
+              (send module-browser-name-length-choice enable #t)
               (close-status-line 'plt:module-browser)))
           
           ;; set-directory : text -> void

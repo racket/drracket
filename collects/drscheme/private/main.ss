@@ -81,6 +81,8 @@
         (preferences:set-default 'drscheme:module-browser-size-percentage
                                  1/5
                                  number-between-zero-and-one?))
+      (preferences:set-default 'drscheme:module-browser:name-length 1 
+                               (lambda (x) (memq x '(0 1 2))))
       
       (let ([frame-width 600]
             [frame-height 650]

@@ -51,7 +51,9 @@
         (interface ()
           set-label-font-size
           get-label-font-size
-          show-lib-paths))
+          show-lib-paths
+          set-name-length
+          get-name-length))
       
       (define boxed-word-snip<%>
         (interface ()
@@ -64,13 +66,12 @@
       (define-struct req (filename lib?))
       ;; type req = (make-req string[filename] boolean)
       
-      ;; make-module-overview-pasteboard : string
-      ;;                                   vertical?
+      ;; make-module-overview-pasteboard : boolean
       ;;                                   ((union #f snip) -> void)
       ;;                                -> (union string pasteboard)
       ;; string as result indicates an error message
       ;; pasteboard as result is the pasteboard to show
-      (define (make-module-overview-pasteboard vertical? show-filenames? mouse-currently-over)
+      (define (make-module-overview-pasteboard vertical? mouse-currently-over)
         
         (define level-ht (make-hash-table))
 
@@ -106,6 +107,14 @@
                      dc-location-to-editor-location
                      find-snip
                      get-canvas)
+          
+            (define name-length 'long)
+            (define/public (set-name-length nl)
+              (unless (eq? name-length nl)
+                (set! name-length nl)
+                (re-add-snips)
+                (render-snips)))
+            (define/public (get-name-length) name-length)
             
             (field [max-lines #f])
             
@@ -117,9 +126,9 @@
             
             (field (label-font-size (preferences:get 'drscheme:module-overview:label-font-size)))
             (define/public (get-label-font-size) label-font-size)
-            (define/private (get-snip-hspace) (if show-filenames?
-                                                  (* 2 label-font-size)
-                                                  2))
+            (define/private (get-snip-hspace) (if vertical?
+                                                  2
+                                                  (* 2 label-font-size)))
             (define/private (get-snip-vspace) (if vertical?
                                                   30
                                                   2))
@@ -241,9 +250,11 @@
                (lambda () 
                  (let* ([snip (instantiate word-snip/lines% ()
                                 (lines (if is-filename? (count-lines name) #f))
-                                (word (format "~a" (if is-filename?
-                                                       (name->label name)
-                                                       name)))
+                                (word (if is-filename?
+                                          (let-values ([(_1 name _2) (split-path name)])
+                                            (path->string name))
+                                          name))
+                                (pb this)
                                 (filename (if is-filename? name #f)))])
                    (insert snip)
                    (hash-table-put! snip-table name snip)
@@ -284,41 +295,22 @@
                 (- (unbox bb)
                    (unbox tb))))
             
-            ;; name->label : path -> string
-            ;; constructs a label for the little boxes in terms
-            ;; of the filename.
-            (define/private (name->label filename)
-              (if (file-exists? filename)
-                  (let-values ([(base name dir?) (split-path filename)])
-                    (let ([m (regexp-match #rx#"^(.*)\\.[^.]*$" (path->bytes name))])
-                      (let ([short-name (if m 
-                                            (path->string (bytes->path (cadr m)))
-                                            (path->string name))])
-                        (if show-filenames?
-                            (path->string filename)
-                            (if (string=? short-name "")
-                                ""
-                                (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
-                                  (cond
-                                    [(null? ms)
-                                     (substring short-name 0 (min 2 (string-length short-name)))]
-                                    [else
-                                     (apply string-append
-                                            (cons (substring short-name 0 1)
-                                                  (map (lambda (x) (substring x 1 2))
-                                                       ms)))])))))))
-                  (path->string filename)))
-            
             (field [lib-paths-on? (preferences:get 'drscheme:module-browser:show-lib-paths?)])
             (define/public (show-lib-paths on?)
               (unless (eq? on? lib-paths-on?)
                 (set! lib-paths-on? on?)
                 (begin-edit-sequence)
-                (if on?
-                    (add-all)
-                    (remove-lib-linked))
+                (re-add-snips)
                 (render-snips)
                 (end-edit-sequence)))
+            
+            (define/private (re-add-snips)
+              (begin-edit-sequence)
+              (remove-currrently-inserted)
+              (if lib-paths-on?
+                  (add-all)
+                  (remove-lib-linked))
+              (end-edit-sequence))
             
             (define/private (remove-lib-linked)
               (remove-currrently-inserted)
@@ -385,8 +377,8 @@
                                                             (lambda (x) (get-snip-height x)))
                                                         this-level-snips))]
                               [this-major (apply max (map (if vertical? 
-                                                            (lambda (x) (get-snip-width x))
-                                                            (lambda (x) (get-snip-height x)))
+                                                              (lambda (x) (get-snip-height x))
+                                                              (lambda (x) (get-snip-width x)))
                                                           this-level-snips))])
                          (let loop ([snips this-level-snips]
                                     [minor-dim (/ (- max-minor this-minor) 2)])
@@ -485,8 +477,9 @@
           (class* % (boxed-word-snip<%>)
             (init-field word
                         filename
-                        lines)
-
+                        lines
+                        pb)
+            
             (field [lib-children null])
             (define/public (get-lib-children) lib-children)
             (define/public (add-lib-child child)
@@ -513,11 +506,11 @@
             
             (define/override (get-extent dc x y wb hb descent space lspace rspace)
               (cond
-                [(equal? word "")
+                [(equal? (name->label) "")
                  (set! snip-width 15)
                  (set! snip-height 15)]
                 [else
-                 (let-values ([(w h a d) (send dc get-text-extent word label-font)])
+                 (let-values ([(w h a d) (send dc get-text-extent (name->label) label-font)])
                    (set! snip-width (+ w 4))
                    (set! snip-height (+ h 4)))])
               (set-box/f wb snip-width)
@@ -526,6 +519,7 @@
               (set-box/f space 0)
               (set-box/f lspace 0)
               (set-box/f rspace 0))
+            
             (define/override (draw dc x y left top right bottom dx dy draw-caret)
               (let ([old-font (send dc get-font)]
                     [old-text-foreground (send dc get-text-foreground)]
@@ -539,12 +533,48 @@
                                (<= top (+ y snip-height) bottom)))
                   (send dc draw-rectangle x y snip-width snip-height)
                   (send dc set-text-foreground text-color)
-                  (send dc draw-text word (+ x 2) (+ y 2)))
+                  (send dc draw-text (name->label) (+ x 2) (+ y 2)))
                 (send dc set-brush old-brush)
                 (send dc set-text-foreground old-text-foreground)
                 (send dc set-font old-font)))
                           
-            (super-instantiate ())))
+            ;; name->label : path -> string
+            ;; constructs a label for the little boxes in terms
+            ;; of the filename.
+            
+            (define last-name #f)
+            (define last-size #f)
+            
+            (define/private (name->label)
+              (let ([this-size (send pb get-name-length)])
+                (cond
+                  [(eq? this-size last-size) last-name]
+                  [else
+                   (set! last-size this-size)
+                   (set! last-name
+                         (case last-size
+                           [(short)
+                            (if (string=? word "")
+                                ""
+                                (string (string-ref word 0)))]
+                           [(medium)
+                            (let ([m (regexp-match #rx"^(.*)\\.[^.]*$" word)])
+                              (let ([short-name (if m (cadr m) word)])
+                                (if (string=? short-name "")
+                                    ""
+                                    (let ([ms (regexp-match* #rx"-[^-]*" short-name)])
+                                      (cond
+                                        [(null? ms)
+                                         (substring short-name 0 (min 2 (string-length short-name)))]
+                                        [else
+                                         (apply string-append
+                                                (cons (substring short-name 0 1)
+                                                      (map (lambda (x) (substring x 1 2))
+                                                           ms)))])))))]
+                           [(long) word]))
+                   last-name])))
+
+            (super-new)))
         
         (define word-snip/lines% (level-mixin (boxed-word-snip-mixin (graph-snip-mixin snip%))))
         
@@ -739,7 +769,6 @@
         
         (define pasteboard (make-module-overview-pasteboard 
                             #f
-                            #t
                             (lambda (x) (update-label x))))
         
         (let ([success? (fill-pasteboard pasteboard text/pos show-status void)])
