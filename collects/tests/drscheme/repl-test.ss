@@ -7,7 +7,9 @@
 		     ;; this only applies to the load tests
 		     
 		     r4rs-execute-answer
+
 		     r4rs-execute-location
+		     ;; (union 'definitions 'unlocated-error (cons number number))
 		     
 		     mred-execute-answer
 		     mred-load-answer
@@ -128,6 +130,14 @@
 	      "reference to undefined identifier: x"
 	      #f
 	      #f)
+
+   (make-test (format "(eval (box 1))")
+	      "#&1" #f "#&1" 'unlocated-error
+	      "#&1" "#&1" #f #f)
+
+   (make-test (format "(eval '(box 1))")
+	      "#&1" #f "#&1" 'unlocated-error
+	      "#&1" "#&1" #f #f)
    
    ;; printer setup test
    (make-test "(car (void))"
@@ -195,8 +205,8 @@
 	      "compile: illegal use of a syntactic form name in: if"
 	      'unlocated-error
 
-	      "compile: illegal use of a syntactic form name in: if"
-	      "compile: illegal use of a syntactic form name in: if"
+	      "keyword: Invalid use of keyword if"
+	      "keyword: Invalid use of keyword if"
 	      #f
 	      #f)
 
@@ -338,6 +348,17 @@
 	      "#1(2)" #f "#1(2)" #f
 	      "#1(2)" "#1(2)" #f #f)
 
+
+   ;; thread tests
+   (make-test "(thread (lambda () x))"
+	      "1.19-1.20: reference to undefined identifier: x"
+	      2
+	      "reference to undefined identifier: x"
+	      (vector 19 20)
+	      "reference to undefined identifier: x"
+	      "reference to undefined identifier: x"
+	      #f
+	      #f)
    ))
 
 (define drscheme-frame (wait-for-drscheme-frame))
