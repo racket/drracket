@@ -121,9 +121,7 @@
   (define (binding-matches mark binding)
     (let ([matches
            (filter (lambda (b)
-                     ; temporary hack (comparing text rather than free-identifier=?), 2002-01-29
-                     (eq? (syntax-e (mark-binding-binding b)) (syntax-e binding)))
-                     ;(free-identifier=? (mark-binding-binding b) binding))
+                     (module-identifier=? (mark-binding-binding b) binding))
                    (mark-bindings mark))])
       (if (> (length matches) 1)
           (error 'lookup-binding "multiple bindings found for ~a" binding)
