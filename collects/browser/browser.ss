@@ -16,7 +16,7 @@
       (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 	       change-style get-style-list set-modified auto-wrap get-view-size
 	       find-snip get-snip-position set-clickback get-canvas
-	       get-visible-position-range)
+	       get-visible-position-range insert)
 
       (private
 	[title #f]
@@ -90,10 +90,12 @@
 				       (insert-loop (cdr tags-left)))])))))]
 	[find-tag
 	 (lambda (name)
-	   (and (string? name)
-		(ormap (lambda (x) (and (string=? name (hypertag-name x)) 
-					(hypertag-position x)))
-		       hypertags-list)))]
+	   (if (and (integer? name) (positive? name))
+	       name
+	       (and (string? name)
+		    (ormap (lambda (x) (and (string=? name (hypertag-name x)) 
+					    (hypertag-position x)))
+			   hypertags-list))))]
 	[remove-tag 
 	 (lambda (name)
 	   (set! hypertags-list
@@ -126,7 +128,17 @@
 			    (set! htmling? #t)
 			    (erase)
 			    (clear-undos)
-			    (html-convert p this))
+			    (if (and (url? url)
+				     (regexp-match "[.]txt$" (url-path url)))
+				; Text
+				(let loop ()
+				  (let ([r (read-line p)])
+				    (unless (eof-object? r)
+				      (insert r)
+				      (insert #\newline)
+				      (loop))))
+				; HTML
+				(html-convert p this)))
 			  (lambda ()
 			    (end-edit-sequence)
 			    (end-busy-cursor)
@@ -202,14 +214,16 @@
 			     (set! future (cons (send c current-page) future))
 			     (set! past (cdr past))
 			     (update-buttons page)
-			     (send c set-page page #f))))]
+			     (send c set-page page #f)
+			     (on-navigate))))]
       [forward (make-object button% "Forward >" hp
 			 (lambda (b ev) 
 			   (let ([page (car future)])
 			     (set! past (cons (send c current-page) past))
 			     (set! future (cdr future))
 			     (update-buttons page)
-			     (send c set-page page #f))))]
+			     (send c set-page page #f)
+			     (on-navigate))))]
       [update-buttons (lambda (page)
 			(send back enable (pair? past))
 			(send forward enable (pair? future))
@@ -237,13 +251,15 @@
 				   (set! past pre)
 				   (set! future (cdr l))
 				   (update-buttons (car l))
-				   (send c set-page (car l) #f)]
+				   (send c set-page (car l) #f)
+				   (on-navigate)]
 				  [else (loop (cdr l)
 					      (cons (car l) pre)
 					      (sub1 pos))])))))]
       [c (make-object hyper-canvas% this)])
     (public
       [get-canvas (lambda () c)]
+      [on-navigate void]
       [leaving-page (lambda (page new-page)
 		      (set! future null)
 		      (when page
@@ -272,6 +288,7 @@
 	(send (send p get-canvas) goto-url start-url #f)))))
 
 (define (editor->page e) (list e 0 0))
+(define (page->editor e) (car e))
 
 (define (open-url file)
   (make-object (hyper-frame-mixin frame%) file "Browser" #f 500 450))

@@ -373,7 +373,8 @@
 		     [break (lambda (bullet? newlines)
 			      (insert (make-string enum-depth #\tab) pos)
 			      (when bullet?
-				(insert "* " (+ pos enum-depth)))
+				(insert "* " (+ pos enum-depth))
+				(change-style normal (+ pos enum-depth) (+ pos enum-depth 2)))
 			      (atomic-values (+ pos enum-depth 
 						(try-newline pos newlines #t)
 						(if bullet? 2 0))
@@ -383,13 +384,13 @@
 		  [(br) (break #f 1)]
 		  [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
 		  [(li) (break #t 1)]
-		  [(dt) (break #f 1)]
-		  [(dt) (atomic-values pos del-white?)]
+		  [(dt) (break #f 2)]
+		  [(dd) (break #f 1)]
 		  [(img)
 		   (let* ([url (parse-image-source args)]
 			  [b (cache-image url)])
 		     (insert b pos)
-		     (change-style (make-object style-delta% 'change-alignment 'bottom) pos (add1 pos)))
+		     (change-style (make-object style-delta% 'change-alignment 'center) pos (add1 pos)))
 		   (atomic-values (add1 pos) #f)]
 		  [else 
 		   (html-error "unimplemented (atomic) tag: ~a" tag)
@@ -434,7 +435,7 @@
 		      [(title)
 		       (set-title (get-text pos end-pos))
 		       (delete pos end-pos)
-		       (restart)]
+		       (result pos #t)]
 		      [(dl ul)
 		       (insert #\newline end-pos)
 		       (result (add1 end-pos) #t)]
