@@ -36,6 +36,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
+
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:105: class")
@@ -107,6 +109,8 @@
         (clear-definitions drs)
         (set-language #t)
         (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
       
       (test-expression "(sqrt -1)" "0+1i")
 
@@ -185,6 +189,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
+      
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:87: class")
@@ -256,6 +262,8 @@
         (set-language #t)
         (do-execute drs))
       
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
+      
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "{image #f} reference to undefined identifier: class")
@@ -325,6 +333,8 @@
         (clear-definitions drs)
         (set-language #t)
         (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
       (test-expression "(sqrt -1)" "0+1i")
 
@@ -398,6 +408,8 @@
         (clear-definitions drs)
         (set-language #t)
         (do-execute drs))
+
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
       (test-expression "(sqrt -1)" "0+1i")
 
@@ -468,6 +480,8 @@
         (clear-definitions drs)
         (set-language #t)
         (do-execute drs))
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
       (test-expression "(sqrt -1)" "0+1i")
 
