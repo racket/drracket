@@ -39,6 +39,10 @@
   ((struct tool (name file callback))
    tools))
 
+(define-signature drscheme:intro^
+  (show-release-notes
+   show-intro))
+
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
