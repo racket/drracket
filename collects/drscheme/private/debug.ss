@@ -582,13 +582,14 @@ profile todo:
                        (< (send from-text get-snip-position snip) para-end-pos))
               (send to-text insert (send snip copy))
               (loop (send snip next))))
-          (send to-text highlight-range from-start from-end error-color #f #f 'high)
+          (send to-text highlight-range (- from-start 1) from-end error-color #f #f 'high)
           to-text))
       
       ;; get-filename : debug-source -> string
       (define (get-filename file)
         (cond
           [(symbol? file) (symbol->string file)]
+          [(path? file) (path->string file)]
           [(is-a? file editor<%>)
            (get-filename-from-editor file)]))
       
