@@ -2,12 +2,18 @@
   (require (lib "list.ss")
            (lib "string.ss")
            (lib "file.ss")
-           (lib "url.ss")
+	   (lib "unitsig.ss")
+	   (lib "class.ss")
+           (lib "url.ss" "net")
            (lib "plt-installer.ss" "setup")
-           (lib "info-thingy.ss" "setup.ss")
+           (lib "plt-installer-sig.ss" "setup")
 	   (lib "mred.ss" "mred")
+	   (lib "mred-sig.ss" "mred")
            (lib "framework.ss" "framework")
+           (lib "framework-sig.ss" "framework")
            (lib "startup-url.ss" "help")
+	   (lib "help-sig.ss" "help")
+	   "drsig.ss"
 	   (prefix basis: (lib "basis.ss" "userspce")))
   
   (provide help-interface@)
@@ -74,14 +80,9 @@
                           open-url-from-user
                           doc-collections-changed
                           set-font-size)
-                         (require-library "helpr.ss" "help")
+                         (dynamic-require '(lib "help-win.ss" "help") 'help@)
                          #f
-                         mzlib:function^
-                         mzlib:string^
-                         mzlib:file^
-                         mzlib:url^
-                         setup:plt-installer^
-                         setup:info^
+			 setup:plt-installer^
                          mred^
                          framework^
                          (frame-mixin)
@@ -104,7 +105,7 @@
         (load-help-desk)
         (open-url-from-user 
          frame 
-         (if (ivar-in-interface? 'goto-url (object-interface frame))
+         (if (method-in-interface? 'goto-url (object-interface frame))
              (lambda (url)
                (send frame goto-url url))
              new-help-frame)))

@@ -1,14 +1,19 @@
 
 (module get-extend mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
-           (prefix mzlib:function (lib "etc.ss")))
+           (lib "etc.ss"))
   
   (provide get-extend@)
   
   (define get-extend@
     (unit/sig drscheme:get/extend^
+
+      (import [drscheme:unit : drscheme:unit^]
+	      [drscheme:frame : drscheme:frame^]
+	      [drscheme:rep : drscheme:rep^])
       
       (define make-extender
         (lambda (base%)
@@ -34,8 +39,8 @@
                           base%))
                  (set! extensions 
                        (if before?
-                           (mzlib:function:compose (verify extension) extensions)
-                           (mzlib:function:compose extensions (verify extension))))]))
+                           (compose (verify extension) extensions)
+                           (compose extensions (verify extension))))]))
              (lambda ()
                (unless built-yet?
                  (set! built-yet? #t)

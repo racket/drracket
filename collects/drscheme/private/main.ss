@@ -13,7 +13,6 @@
            (lib "plt-installer.ss" "setup"))
   
   (define argv (namespace-variable-binding 'argv))
-  (define program (namespace-variable-binding 'program))
   (define get-dropped-files (namespace-variable-binding 'get-dropped-files))
   
   (provide main@)
@@ -23,8 +22,7 @@
       (import (drscheme:app : drscheme:app^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:get/extend : drscheme:get/extend^)
-              (drscheme:language : drscheme:language^)
-              (basis : userspace:basis^))
+              (drscheme:language : drscheme:language^))
       
       
   ;; no more extension after this point
@@ -40,14 +38,14 @@
       (define (make-basic)
         (let* ([frame (drscheme:unit:open-drscheme-window)])
           
-          (let* ([interactions-edit (ivar frame interactions-text)]
-                 [definitions-edit (ivar frame interactions-text)]
+          (let* ([interactions-edit (send frame get-interactions-text)]
+                 [definitions-edit (send frame get-interactions-text)]
                  [filename (send definitions-edit get-filename)])
             (unless filename
               (send interactions-edit reset-console)
               (send interactions-edit insert-prompt)
               (send frame update-shown)
-              (send (ivar frame interactions-canvas) focus)))
+              (send (send frame get-interactions-canvas) focus)))
           (send frame show #t)))
       
       (define (remove-duplicates files)
@@ -58,8 +56,8 @@
                       (loop (cdr files))
                       (cons (car files) (loop (cdr files))))])))
       
-      (let* ([files-to-open (append (reverse (top-level:get-dropped-files))
-                                    (reverse (vector->list top-level:argv)))]
+      (let* ([files-to-open (append (reverse (get-dropped-files))
+				    (reverse (vector->list argv)))]
              [normalized/filtered
               (let loop ([files files-to-open])
                 (cond
@@ -75,7 +73,7 @@
              [no-dups (remove-duplicates normalized/filtered)])
         (if (null? no-dups)
             (make-basic)
-            (for-each (lambda (f) (fw:handler:edit-file
+            (for-each (lambda (f) (handler:edit-file
                                    f
                                    (lambda () (drscheme:unit:open-drscheme-window f))))
                       no-dups)))
@@ -85,7 +83,7 @@
   ;; Show about box when version changes
   ;; 
       
-      (fw:preferences:set-default 'drscheme:last-version #f
+      (preferences:set-default 'drscheme:last-version #f
                                   (lambda (x)
                                     (or (string? x)
                                         (not x))))
