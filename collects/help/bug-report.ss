@@ -435,7 +435,7 @@
                   (get-display-depth)))
     (send tools set-value 
           (format "~s"
-		  (with-handlers ([(lambda (x) #f)
+		  (with-handlers ([not-break-exn?
 				   (lambda (x)
 				     (exn-message x))])
 		    (directory-list (collection-path "drscheme" "tools")))))
