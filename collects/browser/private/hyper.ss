@@ -267,7 +267,9 @@ A test case:
                                     (call/input-url 
                                      url
                                      (if post-data 
-                                         (lambda (u s) (post-pure-port u post-data s))
+                                         (case-lambda
+                                           [(u) (post-pure-port u post-data)]
+                                           [(u s) (post-pure-port u post-data s)])
                                          get-pure-port)
                                      (lambda (p)
                                        (stop-busy)
@@ -275,7 +277,9 @@ A test case:
                    (call/input-url 
                     url 
                     (if post-data 
-                        (lambda (u s) (post-impure-port u post-data s))
+                        (case-lambda
+                          [(u) (post-impure-port u post-data)]
+                          [(u s) (post-impure-port u post-data s)])
                         get-impure-port)
                     (lambda (p)
                       (let ([headers (purify-port p)])

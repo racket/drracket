@@ -367,10 +367,6 @@ TODO
          (format (string-constant evaluation-terminated-explanation))
          frame))
       
-      (define busy-cursor (make-object cursor% 'watch))
-      (unless (send busy-cursor ok?)
-        (set! busy-cursor #f))
-      
       ;; error-ranges : (union false? (cons (list file number number) (listof (list file number number))))
       (define error-ranges #f)
       ;; error-arrows : (union #f (listof (cons editor<%> number)))
