@@ -137,10 +137,29 @@
     (class snip% ()
       (inherit set-snipclass)
       (sequence
-	(super-init)
-	(set-snipclass non-breaking-snip-class))))
+        (super-init)
+        (set-snipclass non-breaking-snip-class))))
 
   (define face-list #f)
+
+  (define latin-1-symbols
+    '(("amp" 38) ("gt" 62) ("lt" 60) ("quot" 34) ("nbsp" 160) ("iexcl" 161)
+		 ("cent" 162) ("pound" 163) ("curren" 164) ("yen" 165) ("brvbar" 166) ("sect" 167)
+		 ("uml" 168) ("copy" 169) ("ordf" 170) ("laquo" 171) ("not" 172) ("shy" 173)
+		 ("reg" 174) ("macr" 175) ("deg" 176) ("plusmn" 177) ("sup2" 178) ("sup3" 179)
+		 ("acute" 180) ("micro" 181) ("para" 182) ("middot" 183) ("cedil" 184) ("sup1" 185)
+		 ("ordm" 186) ("raquo" 187) ("frac14" 188) ("frac12" 189) ("frac34" 190) ("iquest" 191)
+		 ("Agrave" 192) ("Aacute" 193) ("Acirc" 194) ("Atilde" 195) ("Auml" 196) ("Aring" 197)
+		 ("AElig" 198) ("Ccedil" 199) ("Egrave" 200) ("Eacute" 201) ("Ecirc" 202) ("Euml" 203)
+		 ("Igrave" 204) ("Iacute" 205) ("Icirc" 206) ("Iuml" 207) ("ETH" 208) ("Ntilde" 209)
+		 ("Ograve" 210) ("Oacute" 211) ("Ocirc" 212) ("Otilde" 213) ("Ouml" 214) ("times" 215)
+		 ("Oslash" 216) ("Ugrave" 217) ("Uacute" 218) ("Ucirc" 219) ("Uuml" 220) ("Yacute" 221)
+		 ("THORN" 222) ("szlig" 223) ("agrave" 224) ("aacute" 225) ("acirc" 226) ("atilde" 227)
+		 ("auml" 228) ("aring" 229) ("aelig" 230) ("ccedil" 231) ("egrave" 232) ("eacute" 233)
+		 ("ecirc" 234) ("euml" 235) ("igrave" 236) ("iacute" 237) ("icirc" 238) ("iuml" 239)
+		 ("eth" 240) ("ntilde" 241) ("ograve" 242) ("oacute" 243) ("ocirc" 244) ("otilde" 245)
+		 ("ouml" 246) ("divide" 247) ("oslash" 248) ("ugrave" 249) ("uacute" 250) ("ucirc" 251)
+		 ("uuml" 252) ("yacute" 253) ("thorn" 254) ("yuml" 255)))
 
   (define html-convert
     (lambda (p b)
@@ -451,36 +470,25 @@
 		   [(char=? #\& ch) 
 		    (let ([ch (get-char)]
 			  [result
-			   (lambda (v)
+			   (lambda (l1-val)
 			     (flush-i-buffer)
-			     (insert v pos)
-			     (find-bracket (+ pos
-					      (if (string? v)
-						  (string-length v)
-						  1))
-					   (eqv? #\space v)))])
+			     (let ([v (if (= l1-val 160) ; non-breaking space
+					  (make-object non-breaking-space-snip%)
+					  (or (latin-1-integer->char l1-val) #\?))])
+			       (insert v pos)
+			       (find-bracket (add1 pos) #f)))])
 		      (if (char=? #\# ch)
 			  (let loop ([val 0])
 			    (let ([ch (get-char)])
 			      (if (char-numeric? ch)
 				  (loop (+ (* 10 val) (- (char->integer ch) 48)))
-				  (result (case val
-					    [(160) #\space]
-					    [(169) "(c)"]
-					    [else (if (< 0 val 128) 
-						      (string (integer->char val))
-						      "")])))))
+				  (result val))))
 			  (let loop ([l (list ch)])
 			    (let ([ch (get-char)])
 			      (if (or (char=? #\null ch) (char=? #\; ch))
-				  (result
-				   (case (string->symbol (list->string (reverse! l)))
-				     [(nbsp) (make-object non-breaking-space-snip%)]
-				     [(gt) #\>]
-				     [(lt) #\<]
-				     [(quot) #\"]
-				     [(amp) #\&]
-				     [else ""]))
+				  (let* ([name (list->string (reverse! l))]
+					 [a (assoc name latin-1-symbols)])
+				    (result (or (and a (cadr a)) (char->latin-1-integer #\?))))
 				  (loop (cons ch l)))))))]
 		   [else 
 		    (buffer-insert ch pos)
@@ -774,16 +782,16 @@
 	       (lambda () (translate pos #t del-white? 0))
 	       loop))))
 
-	;; Replace non-breaking space snips with regular spaces:
-	(let loop ([snip (find-first-snip)])
-	  (when snip
-	    (let ([next (send snip next)])
-	      (when (is-a? snip non-breaking-space-snip%)
-		(let ([p (get-snip-position snip)])
-		  (insert " " (add1 p)) ; important: gets style from predecessor
-		  (delete p (add1 p))))
-	      (loop next))))
-	
+        ;; Replace non-breaking space snips with regular spaces:
+        (let loop ([snip (find-first-snip)])
+          (when snip
+            (let ([next (send snip next)])
+              (when (is-a? snip non-breaking-space-snip%)
+                (let ([p (get-snip-position snip)])
+                  (insert " " (add1 p)) ; important: gets style from predecessor
+                  (delete p (add1 p))))
+              (loop next))))
+
 	;; Install indentation
 	(btree-for-each
 	 indents
