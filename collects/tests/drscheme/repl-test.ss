@@ -113,7 +113,7 @@
    (make-test "    (eval '(lambda ()))"
 	      "1.5-1.24: lambda: malformed expression"
 	      2
-	      "lambda: malformed expression"
+	      ". lambda: malformed expression"
 	      (vector 4 23)
 	      "lambda: bad syntax in: (lambda ())"
 	      "lambda: bad syntax in: (lambda ())"
@@ -122,7 +122,7 @@
    (make-test "    (eval 'x)"
 	      "1.5-1.14: reference to undefined identifier: x"
 	      2
-	      "reference to undefined identifier: x"
+	      ". reference to undefined identifier: x"
 	      (vector 4 13)
 	      "reference to undefined identifier: x"
 	      "reference to undefined identifier: x"
@@ -171,7 +171,7 @@
 	      #f)
    (make-test "1 2 (raise 1) 3 4"
 	      "uncaught exception: 1"
-	      2
+	      #f
 	      (format "1~n2~nuncaught exception: 1")
 	      'unlocated-error
 	      (format "1~n2~nuncaught exception: 1")
@@ -203,8 +203,8 @@
    ;; error escape handler test
    (make-test (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
 	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
-	      #t
-	      (format "car: expects 1 argument, given 0~n15")
+	      2
+	      (format ". car: expects 1 argument, given 0~n15")
 	      'definitions
 
 	      (format "car: expects 1 argument, given 0~n15")
@@ -234,7 +234,7 @@
 	      #f)
    (make-test "(define-macro m (car))"
 	      "1.17-1.22: car: expects 1 argument, given 0"
-	      #t
+	      2
 	      "car: expects 1 argument, given 0"
 	      (vector 16 21)
 	      "car: expects 1 argument, given 0"
@@ -244,7 +244,7 @@
    (make-test
     (format "(define-macro m (lambda () (car)))~n(m)")
     "1.28-1.33: car: expects 1 argument, given 0"
-    #t
+    2
     "car: expects 1 argument, given 0"
     (vector 27 32)
     "car: expects 1 argument, given 0"
@@ -254,7 +254,7 @@
    (make-test
     (format "(define-macro m (lambda (x) `(+ ,x 1)))~n(m #t)")
     "2.1-2.7: +: expects type <number> as 1st argument, given: #t; other arguments were: 1"
-    #t
+    2
     "+: expects type <number> as 1st argument, given: #t; other arguments were: 1"
     (vector 40 46)
     "+: expects type <number> as 1st argument, given: #t; other arguments were: 1"
@@ -264,7 +264,7 @@
    (make-test
     "(define-macro m 1)"
     "1.1-1.19: define-macro: expander is not a procedure"
-    #t
+    2
     "define-macro: expander is not a procedure"
     (vector 0 18)
     "define-macro: not a procedure"
@@ -296,8 +296,8 @@
    (make-test
     (format "(define s (make-semaphore 0))~n(queue-callback~n(lambda ()~n(dynamic-wind~nvoid~n(lambda () (car))~n(lambda () (semaphore-post s)))))~n(yield s)")
     "6.12-6.17: car: expects 1 argument, given 0"
-    #t
-    "car: expects 1 argument, given 0"
+    2
+    ". car: expects 1 argument, given 0"
     (vector 99 104)
     "car: expects 1 argument, given 0"
     "car: expects 1 argument, given 0"
@@ -307,7 +307,7 @@
    ;; breaking tests
    (make-test "(semaphore-wait (make-semaphore 0))"
 	      "1.1-1.36: user break"
-	      #t
+	      2
 	      "user break"
 	      (vector 0 35)
 
@@ -318,7 +318,7 @@
 
    (make-test "(let l()(l))"
 	      "1.9-1.12: user break"
-	      #t
+	      2
 	      "user break"
 	      (vector 8 11)
 
@@ -370,16 +370,17 @@
 ;; the results of these operations against expected results.
 	  
 (define run-test
-  (lambda (execute-text-start escape mred?)
+  (lambda (execute-text-start escape raw?)
     (lambda (in-vector)
       (let* ([program (test-program in-vector)]
-	     [pre-answer-load (test-r4rs-load-answer in-vector)]
+	     [pre-load-answer (test-r4rs-load-answer in-vector)]
 	     [prepend-filename? (test-prepend-filename? in-vector)]
-	     [answer-load (case prepend-filename?
-			    [(2) (string-append ". . " tmp-load-filename ": " pre-answer-load)]
-			    [(#t) (string-append ". " tmp-load-filename ": " pre-answer-load)]
-			    [(#f) pre-answer-load])]
-	     [answer-execute (test-r4rs-execute-answer in-vector)]
+	     [load-answer
+	      (case prepend-filename?
+		[(2) (string-append ". . " tmp-load-filename ": " pre-load-answer)]
+		[(#t) (string-append ". " tmp-load-filename ": " pre-load-answer)]
+		[(#f) pre-load-answer])]
+	     [execute-answer (test-r4rs-execute-answer in-vector)]
 	     [execute-location (test-r4rs-execute-location in-vector)]
 	     [mred-execute-answer (test-mred-execute-answer in-vector)]
 	     [mred-load-answer (test-mred-load-answer in-vector)]
@@ -402,7 +403,7 @@
 		      execute-text-start execute-text-end)])
 	  
 	  ; check focus and selection for execute test
-	  (unless mred?
+	  (unless raw?
 	    (cond
 	     [(eq? execute-location 'definitions)
 	      (unless (send definitions-canvas has-focus?)
@@ -432,14 +433,16 @@
 	  
 	  ; check text for execute test
 	  (let ([expected
-		 (if mred?
+		 (if raw?
 		     (if mred-read-test?
 			 (string-append mred-execute-answer "USERPORT")
 			 mred-execute-answer)
-		     answer-execute)])
+		     execute-answer)])
 	    (unless (string=? received-execute expected)
-	      (printf "FAILED execute test for ~s~n  expected: ~s~n       got: ~s~n"
-		      program expected received-execute)))
+	      (printf "FAILED execute test for ~s (~a)~n  expected: ~s~n       got: ~s~n"
+		      program
+		      raw?
+		      expected received-execute)))
 	  
 	  (fw:test:new-window interactions-canvas)
 	  
@@ -471,12 +474,12 @@
 	      
 	      ; check load text 
 	      (let ([expected
-		     (if mred?
+		     (if raw?
 			 (if mred-read-test?
 			     (string-append mred-load-answer
 					    tmp-load-filename)
 			     mred-load-answer)
-			 answer-load)])
+			 load-answer)])
 		(unless (string=? received-load expected)
 		  (printf "FAILED load test for ~s~n  expected: ~s~n       got: ~s~n"
 			  program expected received-load)))
