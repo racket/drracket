@@ -1300,7 +1300,6 @@ TODO
             (set-unread-start-point (last-position))
             (set-insertion-point (last-position))
             (set-allow-edits #f)
-            (thaw-colorer)
             (set! repl-header-end #f)
             (end-edit-sequence))
           
