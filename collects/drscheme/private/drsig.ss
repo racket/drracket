@@ -72,6 +72,8 @@
      (open drscheme:language-configuration^)
      get-languages
      settings-preferences-symbol
+
+     add-built-in-languages
      
      ;; for the language dialog
      language-dialog
@@ -80,7 +82,9 @@
   
   (define-signature drscheme:tools^
     ((struct successful-tool (spec bitmap name))
-     get-successful-tools))
+     get-successful-tools
+     only-in-phase
+     load/invoke-all-tools))
 
   (define-signature drscheme:get/extend^
     (extend-interactions-text
@@ -167,6 +171,11 @@
                               insert-newlines))
      simple-settings->vector
      open-input-text
+
+     get-language-extensions
+     get-default-mixin
+     extend-language-interface
+     
      language<%>
      module-based-language<%>
      simple-module-based-language<%>

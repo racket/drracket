@@ -21,6 +21,12 @@
       ;; add-module-language : -> void
       ;; adds the special module-only language to drscheme
       (define (add-module-language)
+        (define module-language%
+          (module-mixin
+           ((drscheme:language:get-default-mixin)
+            (drscheme:language:module-based-language->language-mixin
+             (drscheme:language:simple-module-based-language->module-based-language-mixin
+              drscheme:language:simple-module-based-language%)))))
         (drscheme:language-configuration:add-language
          (instantiate module-language% ())))
       
@@ -280,11 +286,4 @@
         (syntax-case body (provide)
           [(provide vars ...)
            #f]
-          [_ #t]))
-      
-      ;; module-language : (implements drscheme:language:language<%>)
-      (define module-language%
-        (module-mixin
-         (drscheme:language:module-based-language->language-mixin
-          (drscheme:language:simple-module-based-language->module-based-language-mixin
-           drscheme:language:simple-module-based-language%)))))))
+          [_ #t])))))

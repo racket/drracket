@@ -1,3 +1,4 @@
+
 (module tools mzscheme
   (require (lib "unitsig.ss")
            (lib "getinfo.ss" "setup")
@@ -56,10 +57,18 @@
       ;; it is updated in load/invoke-tool. 
       (define successfully-loaded-tools null)
 
+      ;; load/invoke-all-tools : -> void
+      (define (load/invoke-all-tools phase1-extras phase2-extras)
+        (set! current-phase 'loading-tools)
+        (load/invoke-all-tools/single-collection
+         (drscheme:init:all-toplevel-collections)
+         phase1-extras
+         phase2-extras))
+
       ;; loads the the tools in each collection
-      (define (load/invoke-all-tools collections)
+      (define (load/invoke-all-tools/single-collection collections phase1-extras phase2-extras)
         (for-each load/invoke-tools collections)
-        (run-phases))
+        (run-phases phase1-extras phase2-extras))
 
       
                                                                              
@@ -256,13 +265,18 @@
 
 
       ;; run-phases : -> void
-      (define (run-phases)
-        (let* ([after-phase1 (run-one-phase (string-constant tool-error-phase1)
+      (define (run-phases phase1-extras phase2-extras)
+        (let* ([after-phase1 (run-one-phase 'phase1
+                                            (string-constant tool-error-phase1)
                                             successfully-loaded-tool-phase1
-                                            successfully-loaded-tools)]
-               [after-phase2 (run-one-phase (string-constant tool-error-phase2)
+                                            successfully-loaded-tools
+                                            phase1-extras)]
+               [after-phase2 (run-one-phase 'phase2
+                                            (string-constant tool-error-phase2)
                                             successfully-loaded-tool-phase2
-                                            after-phase1)])
+                                            after-phase1
+                                            phase2-extras)])
+          (set! current-phase 'init-complete)
           (set! successful-tools
                 (map (lambda (x) (make-successful-tool
                                   (successfully-loaded-tool-spec x)
@@ -273,9 +287,13 @@
       ;; run-one-phase : string 
       ;;                 (successfully-loaded-tool -> (-> void))
       ;;                 (listof successfully-loaded-tool)
+      ;;                 (-> void)
       ;;              -> (listof successfully-loaded-tool)
       ;; filters out the tools that raise exceptions during the phase.
-      (define (run-one-phase err-fmt selector tools)
+      ;; extras is the thunk for DrScheme init stuff on this phase.
+      (define (run-one-phase _the-phase err-fmt selector tools extras)
+        (set! current-phase _the-phase)
+        (extras)
         (let loop ([tools tools])
           (cond
             [(null? tools) null]
@@ -293,20 +311,16 @@
                    (phase-thunk)
                    (cons tool (loop (cdr tools))))))])))
       
+      ;; current-phase : (union #f 'loading-tools 'phase1 'phase2 'init-complete)
+      (define current-phase #f)
+      (define (get-current-phase) current-phase)
       
-                            
-                 ;          
-                            
-                            
-;;; ;   ;;;;   ;;;   ; ;;;  
- ; ; ;      ;    ;    ;;  ; 
- ; ; ;   ;;;;    ;    ;   ; 
- ; ; ;  ;   ;    ;    ;   ; 
- ; ; ;  ;   ;    ;    ;   ; 
-;; ; ;;  ;;; ; ;;;;; ;;;  ;;
-                            
-                            
-                            
-
-      
-      (load/invoke-all-tools (drscheme:init:all-toplevel-collections)))))
+      ;; only-in-phase : sym (union #f 'loading-tools 'phase1 'phase2 'init-complete) ... -> void
+      ;; raises an error unless one of `phases' is the current phase
+      (define (only-in-phase func . phases)
+        (unless (memq current-phase phases)
+          (error func "can only be called in phase: ~a"
+                 (apply string-append 
+                        (map (lambda (x) (format "~a " x))
+                             (filter (lambda (x) x) phases))))))
+      )))

@@ -23,7 +23,8 @@
               [drscheme:teachpack : drscheme:teachpack^]
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^]
-              [drscheme:app : drscheme:app^])
+              [drscheme:app : drscheme:app^]
+              [drscheme:tools : drscheme:tools^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.
@@ -46,28 +47,30 @@
       ;; languages : (listof (instanceof language<%>))
       ;; all of the languages supported in DrScheme
       (define languages null)
-      
-      ;; can-still-add-languages? : boolean
-      ;; invariant: addition of languages is only
-      ;;            allowed when this is #t
-      (define can-still-add-languages? #t)
 
       ;; add-language : (instanceof language%) -> void
-      ;; checks can-still-add-languages? before adding the language
+      ;; only allows addition on phase2
       ;; effect: updates `languages'
       (define add-language
         (opt-lambda (language [front? #f])
-          (unless can-still-add-languages?
-            (error 'add-language "too late to add a new language: ~e" language))
+          
+          (drscheme:tools:only-in-phase 'drscheme:language:add-language 'phase2)
+          (for-each
+           (lambda (i<%>)
+             (unless (is-a? language i<%>)
+               (error 'drscheme:language:add-language "expected language ~e to implement ~e, forgot to use drscheme:language:get-default-mixin ?" language i<%>)))
+           (drscheme:language:get-language-extensions))
+          
           (set! languages 
                 (if front? 
                     (cons language languages)
                     (append languages (list language))))))
       
       ;; get-languages : -> (listof languages)
-      ;; effect: sets can-still-add-languages? to #f
-      (define (get-languages)
-	(set! can-still-add-languages? #f)
+      (define (get-languages) 
+        (drscheme:tools:only-in-phase
+         'drscheme:language-configuration:get-languages
+         'init-complete)
         languages)
       
       ;; get-default-language-settings : -> language-settings
@@ -717,9 +720,10 @@
                  (for-each
                   (lambda (lang-module lang-position lang-numbers one-line-summary)
                     (let ([%
-                           (drscheme:language:module-based-language->language-mixin
-                            (drscheme:language:simple-module-based-language->module-based-language-mixin
-                             drscheme:language:simple-module-based-language%))])
+                           ((drscheme:language:get-default-mixin)
+                            (drscheme:language:module-based-language->language-mixin
+                             (drscheme:language:simple-module-based-language->module-based-language-mixin
+                              drscheme:language:simple-module-based-language%)))])
                       (add-language (instantiate % ()
                                       (module `(lib ,@lang-module))
                                       (language-position lang-position)
@@ -733,4 +737,79 @@
                  (message-box (string-constant drscheme)
                               (format (string-constant bad-module-language-specs)
                                       lang-positions
-                                      lang-modules))]))))))))
+                                      lang-modules))])))))
+      
+      
+
+                                                        
+;;               ;    ;;;                    ;          
+ ;                      ;     ;                         
+ ;                      ;     ;                         
+ ;;;;  ;;  ;;  ;;;      ;    ;;;;;         ;;;   ; ;;;  
+ ;   ;  ;   ;    ;      ;     ;              ;    ;;  ; 
+ ;   ;  ;   ;    ;      ;     ;              ;    ;   ; 
+ ;   ;  ;   ;    ;      ;     ;              ;    ;   ; 
+ ;   ;  ;   ;    ;      ;     ;   ;          ;    ;   ; 
+; ;;;    ;;; ; ;;;;;  ;;;;;;   ;;;         ;;;;; ;;;  ;;
+                                                        
+                                                        
+                                                        
+
+                                                               
+ ;;;                                                           
+   ;                                                           
+   ;                                                           
+   ;    ;;;;  ; ;;;    ;;; ;;;  ;;  ;;;;    ;;; ;  ;;;    ;;;  
+   ;        ;  ;;  ;  ;   ;  ;   ;      ;  ;   ;  ;   ;  ;   ; 
+   ;     ;;;;  ;   ;  ;   ;  ;   ;   ;;;;  ;   ;  ;;;;;   ;;;  
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;          ; 
+   ;    ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ;  ;   ; 
+ ;;;;;;  ;;; ;;;;  ;;  ;;;;   ;;; ;  ;;; ;  ;;;;   ;;;    ;;;  
+                          ;                    ;               
+                          ;                    ;               
+                       ;;;                  ;;;                
+
+
+      
+      ;; add-built-in-languages : -> void
+      (define (add-built-in-languages)
+        (let* ([extras-mixin
+                (lambda (mred-launcher? one-line-summary)
+                  (lambda (%)
+                    (class %
+                      (define/override (get-one-line-summary) one-line-summary)
+                      (define/override (use-namespace-require/copy?) #t)
+                      (define/override (use-mred-launcher?) mred-launcher?)
+                      (super-instantiate ()))))]
+               [make-simple
+                (lambda (module position numbers mred-launcher? one-line-summary)
+                  (let ([%
+                         ((extras-mixin mred-launcher? one-line-summary)
+                          ((drscheme:language:get-default-mixin)
+                           (drscheme:language:module-based-language->language-mixin
+                            (drscheme:language:simple-module-based-language->module-based-language-mixin
+                             drscheme:language:simple-module-based-language%))))])
+                    (instantiate % ()
+                      (module module)
+                      (language-position position)
+                      (language-numbers numbers))))])
+          (add-language
+           (make-simple '(lib "plt-mred.ss" "lang")
+                        (list (string-constant plt)
+                              (string-constant mred-w/debug))
+                        (list -10 1)
+                        #t
+                        (string-constant mred-one-line-summary)))
+          (add-language
+           (make-simple '(lib "plt-mzscheme.ss" "lang") 
+                        (list (string-constant plt)
+                              (string-constant mzscheme-w/debug))
+                        (list -10 2)
+                        #f
+                        (string-constant mzscheme-one-line-summary)))
+          (add-language
+           (make-simple '(lib "r5rs.ss" "lang")
+                        (list (string-constant r5rs-lang-name))
+                        (list -1000)
+                        #f
+                        (string-constant r5rs-one-line-summary))))))))

@@ -25,7 +25,8 @@
       (import [drscheme:rep : drscheme:rep^]
               [drscheme:snip : drscheme:snip^]
               [drscheme:debug : drscheme:debug^]
-              [drscheme:teachpack : drscheme:teachpack^])
+              [drscheme:teachpack : drscheme:teachpack^]
+              [drscheme:tools : drscheme:tools^])
       
       (define original-output-port (current-output-port))
       (define (printf . args) (apply fprintf original-output-port args)) 
@@ -735,4 +736,35 @@
                                  peek-char)])
           (update-str-to-snip)
           (port-count-lines! port)
-          port)))))
+          port))
+      
+                                                                      
+                                             ;                        
+                ;                                                     
+                ;                                                     
+  ;;;  ;;; ;;; ;;;;;   ;;;  ; ;;;    ;;;   ;;;     ;;;  ; ;;;    ;;;  
+ ;   ;   ; ;    ;     ;   ;  ;;  ;  ;   ;    ;    ;   ;  ;;  ;  ;   ; 
+ ;;;;;    ;     ;     ;;;;;  ;   ;   ;;;     ;    ;   ;  ;   ;   ;;;  
+ ;       ; ;    ;     ;      ;   ;      ;    ;    ;   ;  ;   ;      ; 
+ ;   ;  ;   ;   ;   ; ;   ;  ;   ;  ;   ;    ;    ;   ;  ;   ;  ;   ; 
+  ;;;  ;;   ;;   ;;;   ;;;  ;;;  ;;  ;;;   ;;;;;   ;;;  ;;;  ;;  ;;;  
+                                                                      
+                                                                      
+
+      (define language-extensions null)
+      (define (get-language-extensions) language-extensions)
+
+      (define (default-mixin x) x)
+      (define (get-default-mixin)
+        (drscheme:tools:only-in-phase
+         'drscheme:language:get-default-mixin
+         'phase2)
+        default-mixin)
+      
+      (define (extend-language-interface extension<%> default-impl)
+        (drscheme:tools:only-in-phase
+         'drscheme:language:extend-language-interface
+         'phase1)
+        (set! default-mixin (compose default-impl default-mixin))
+        (set! language-extensions (cons extension<%> language-extensions))))))
+
