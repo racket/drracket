@@ -23,7 +23,8 @@
 
  - tool & framework interface changes:
 
-   . contract name changes (overall, removed all of the
+   . contract name changes (overall, removed all of the /f,
+   /p, and ? suffixes in favor of the /c suffix)
 
       not/f => not/c
       box/p => box/c
