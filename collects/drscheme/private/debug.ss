@@ -92,6 +92,7 @@
             (cond
               [(eq? (send rep get-this-err) (current-error-port))
                (let ([cms (and (exn? exn) 
+                               (continuation-mark-set? (exn-continuation-marks exn))
                                (continuation-mark-set->list 
                                 (exn-continuation-marks exn)
                                 cm-key))])
