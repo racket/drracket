@@ -511,7 +511,7 @@
 
 	  (set-title-prefix "DrScheme")
 
-	  (send interactions-canvas set-focus)
+	  (send definitions-canvas set-focus)
 	  (send group insert-frame this)
 	  (when show? (show #t))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
