@@ -1,1 +1,1 @@
-(module stamp mzscheme (provide stamp) (define stamp "6oct2004"))
+(module stamp mzscheme (provide stamp) (define stamp "7oct2004"))
