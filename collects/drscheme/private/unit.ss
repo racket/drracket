@@ -1,16 +1,24 @@
 #|
 
-tab panels todo:
-  - look into modes
+startup failure is because of overridden enable-evaluations are 
+doing bad things.
+
+tab panels bug fixes:
+  - mode menu initially right, but interactions not in the right mode
   - can-close? needs to account for all tabs
-  - pref for opening in tabs by default (instead of new frames)
   - module browser
   - contour
   - scroll bar position
-  - in-evaluation mechanism (for enabling and disabling buttons at top of window)
-  - running/not running message at bottom of screen
-|#
+  - breaking & disable/enable should be global
+  - running/not running message at bottom of screen should be global
+  - ensure-rep-shown message must manipulate the tabs
+  - initializing the repl should disable/enable evaluation
 
+tab panels new behavior:
+  - closing a single tab
+  - open files in new tabs (not new windows)
+  - save all tabs (pr 6689)
+|#
 
 (module unit mzscheme
   (require (lib "unitsig.ss")
@@ -1161,23 +1169,27 @@ tab panels todo:
                   (get-editor)))]
           
           [define was-locked? #f]
-          [define execute-menu-item #f]
           
-          [define/public disable-evaluation
-            (lambda ()
-              (when execute-menu-item
-                (send execute-menu-item enable #f))
-              (send execute-button enable #f)
-              (send definitions-text lock #t)
-              (send interactions-text lock #t))]
-          [define/public enable-evaluation
-            (lambda ()
-              (when execute-menu-item
-                (send execute-menu-item enable #t))
-              (send execute-button enable #t)
-              (send definitions-text lock #f)
-              (unless (send interactions-text eval-busy?)
-                (send interactions-text lock #f)))]
+          (define evaluation-enabled? #t)
+          (define/public (disable-evaluation)
+            (printf "disable-evaluation\n")
+            (set! evaluation-enabled? #f)
+            (when execute-menu-item
+              (send execute-menu-item enable #f))
+            (printf "execute-button ~s\n" execute-button)
+            (send execute-button enable #f)
+            (send definitions-text lock #t)
+            (send interactions-text lock #t)
+            (send file-menu:create-new-tab-item enable #f))
+          (define/public (enable-evaluation)
+            (set! evaluation-enabled? #t)
+            (when execute-menu-item
+              (send execute-menu-item enable #t))
+            (send execute-button enable #t)
+            (send definitions-text lock #f)
+            (unless (send interactions-text eval-busy?)
+              (send interactions-text lock #f))
+            (send file-menu:create-new-tab-item enable #t))
           
           (inherit set-label)
           (inherit modified)
@@ -1214,9 +1226,9 @@ tab panels todo:
 
           [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           
-          (define/public (update-running)
+          (define/public (update-running running?)
             (send running-message set-label 
-                  (if (send interactions-text get-in-evaluation?)
+                  (if running?
                       (string-constant running)
                       (string-constant not-running))))
           (define/public (ensure-defs-shown)
@@ -1271,19 +1283,21 @@ tab panels todo:
                (send definitions-text set-filename name)]
               [else (send definitions-text clear)])
             (send definitions-canvas focus))
-          
-          
-          [define file-menu:print-transcript-item #f]
+
+          (define execute-menu-item #f)
+          (define file-menu:print-transcript-item #f)
+          (define file-menu:create-new-tab-item #f)
           
           (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
-            (new menu-item%
-                 (label sc-new-tab)
-                 (shortcut #\=)
-                 (parent file-menu)
-                 (callback
-                  (lambda (x y)
-                    (create-new-tab)))))
+            (set! file-menu:create-new-tab-item
+                  (new menu-item%
+                       (label sc-new-tab)
+                       (shortcut #\=)
+                       (parent file-menu)
+                       (callback
+                        (lambda (x y)
+                          (create-new-tab))))))
           (rename
            [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define/override file-menu:between-open-and-revert
@@ -1872,21 +1886,22 @@ tab panels todo:
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define (create-new-tab) 
-            (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
-                   [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
-                   [new-tab (make-tab defs ints)])
-              (set! tabs (append tabs (list new-tab)))
-              (send tabs-panel append "new name")
-              (when ((send tabs-panel get-number) . > . 1)
-                (send (send tabs-panel get-parent)
-                      change-children
-                      (lambda (l)
-                        (if (memq tabs-panel l)
-                            l
-                            (cons tabs-panel l))))
-                (change-to-tab (- (send tabs-panel get-number) 1))
-                (send ints initialize-console)
-                (send tabs-panel set-selection (- (send tabs-panel get-number) 1)))))
+            (when evaluation-enabled?
+              (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
+                     [ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+                     [new-tab (make-tab defs ints)])
+                (set! tabs (append tabs (list new-tab)))
+                (send tabs-panel append "new name")
+                (when ((send tabs-panel get-number) . > . 1)
+                  (send (send tabs-panel get-parent)
+                        change-children
+                        (lambda (l)
+                          (if (memq tabs-panel l)
+                              l
+                              (cons tabs-panel l))))
+                  (change-to-tab (- (send tabs-panel get-number) 1))
+                  (send ints initialize-console)
+                  (send tabs-panel set-selection (- (send tabs-panel get-number) 1))))))
           
           ;; change-to-tab : number -> void
           ;; updates current-tab, definitions-text, and interactactions-text

@@ -474,7 +474,7 @@
           ;; this method being called in between, it will offer to
           ;; kill the user's program)
 
-          update-running        ;; (-> void)
+          update-running        ;; (boolean -> void)
 	  ;; a callback to indicate that the repl may have changed its running state
           ;; use the repls' get-in-evaluation? method to find out what the current state is.
           
@@ -653,7 +653,7 @@
       (define text-mixin
         (mixin ((class->interface text%) editor:basic<%> scheme:text<%> console-text<%> color:text<%>) (-text<%>)
           (init-field context)
-          (inherit insert change-style get-canvas
+          (inherit insert change-style
                    get-active-canvas
                    set-styles-sticky
                    get-style-list
@@ -1604,7 +1604,7 @@
           
           (define (cleanup)
             (set! in-evaluation? #f)
-            (update-running)
+            (update-running #f)
             (unless (and (get-user-thread) (thread-running? (get-user-thread)))
               (lock #t)
               (unless shutting-down?
@@ -1614,11 +1614,8 @@
                         (send canvas get-top-level-window)))))))
           (field (need-interaction-cleanup? #f))
           
-          (field (saved-cursor #f))
-          
           (define (cleanup-interaction) ; =Kernel=, =Handler=
             (set! need-interaction-cleanup? #f)
-            (send (get-canvas) set-cursor saved-cursor)
             (begin-edit-sequence)
             (wait-for-io-to-complete)
             (cleanup-transparent-io)
@@ -1672,8 +1669,6 @@
               (cleanup-transparent-io)
               (reset-pretty-print-width)
               (ready-non-prompt)
-              (set! saved-cursor (send (get-canvas) get-cursor))
-              (send (get-canvas) set-cursor busy-cursor)
               (when should-collect-garbage?
                 (set! should-collect-garbage? #f)
                 (collect-garbage))
@@ -1771,7 +1766,7 @@
               ;; it returns or jumps out.
               
               (set! in-evaluation? #t)
-              (update-running)
+              (update-running #t)
               
               (let/ec k
                 (let ([saved-error-escape-k (current-error-escape-k)]
@@ -1790,7 +1785,7 @@
                      (current-error-escape-k saved-error-escape-k)
                      (when cleanup?
                        (set! in-evaluation? #f)
-                       (update-running)
+                       (update-running #f)
                        (cleanup))))))))
           
           (define run-in-evaluation-thread ; =Kernel=
@@ -1872,7 +1867,7 @@
                        (error-escape-handler drscheme-error-escape-handler))
                      
                      (set! in-evaluation? #f)
-                     (update-running)
+                     (update-running #f)
 		     (send context set-breakables #f #f)
                      
                      ;; let init-thread procedure return,
@@ -1920,11 +1915,11 @@
               (shutdown-user-custodian)))
           
           (define update-running ; =User=, =Handler=, =No-Breaks=
-            (lambda ()
+            (lambda (bool)
               (queue-system-callback
                (get-user-thread)
                (lambda ()
-                 (send context update-running)))))
+                 (send context update-running bool)))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                          ;;;
@@ -2028,9 +2023,8 @@
           (define (reset-console)
             (when (thread? thread-killed)
               (kill-thread thread-killed))
-            (let ([fr (send (get-canvas) get-top-level-window)])
-              (send context clear-annotations)
-              (drscheme:debug:hide-backtrace-window))
+            (send context clear-annotations)
+            (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
             (cleanup-transparent-io)
             (clear-previous-expr-positions)
@@ -2041,7 +2035,7 @@
             ;; in case the last evaluation thread was killed, clean up some state.
             (lock #f)
             (set! in-evaluation? #f)
-            (update-running)
+            (update-running #f)
             
             ;; clear out repl first before doing any work.
             (begin-edit-sequence)
@@ -2093,6 +2087,7 @@
             (reset-region 0 'end))
           
           (define (initialize-console)
+            (printf "initialize console\n")
             (super-initialize-console)
             
             (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
@@ -2103,7 +2098,11 @@
               (set-clickback before after 
                              (lambda args (drscheme:app:about-drscheme))
                              click-delta))
+            (printf "disabling ~s\n" context)
+            (send context disable-evaluation)
+            (printf "disabled\n")
             (reset-console)
+            (send context enable-evaluation)
             (insert-prompt)
             (clear-undos))
           (inherit get-prompt-position)
@@ -2569,7 +2568,7 @@
           (inherit change-style
                    get-resetting set-resetting lock get-text
                    set-position last-position get-character
-                   clear-undos set-cursor
+                   clear-undos
                    do-pre-eval do-post-eval balance-required)
           (rename [super-after-insert after-insert]
                   [super-on-local-char on-local-char])
