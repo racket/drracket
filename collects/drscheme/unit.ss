@@ -315,10 +315,12 @@
 
   (define name-message%
     (class/d mred:canvas% (parent)
-      ((inherit get-dc get-client-size min-width min-height)
+      ((inherit get-dc get-client-size min-width min-height stretchable-width)
        (public set-message)
-       (override on-event on-paint get-graphical-min-size))
+       (override on-event on-paint))
 
+      (define font (send parent get-label-font))
+      
       (define label #f)
       (define short-label "Untitled")
       (define (set-message name)
@@ -362,18 +364,12 @@
 	    (on-paint))]
 	 [else (void)]))
 		
-
-      (define (get-graphical-min-size)
+      (define (update-min-sizes)
 	(let ([dc (get-dc)])
 	  (send dc set-font (send mred:the-font-list find-or-create-font 12 'system 'normal 'normal #f))
 	  (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
-	    (values (inexact->exact (floor tw))
-		    (inexact->exact (floor th))))))
-
-      (define (update-min-sizes)
-	(let-values ([(tw th) (get-graphical-min-size)])
-	  (min-width tw)
-	  (min-height th)
+	    (min-width (+ 4 (inexact->exact (floor tw))))
+            (min-height (+ 4 (inexact->exact (floor th)))))
 	  (send parent reflow-container)))
 
       (define inverted? #f)
@@ -399,15 +395,18 @@
 	      (send dc set-brush (send mred:the-brush-list find-or-create-brush (mred:get-panel-background) 'solid))])
 	    (send dc draw-rectangle 0 0 w h)
 	    (when short-label
-	      (send dc set-font (send mred:the-font-list find-or-create-font 12 'system 'normal 'normal #f))
-	      (let-values ([(_1 th _2 _3) (send dc get-text-extent short-label)])
+	      (send dc set-font font)
+	      (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
 		(send dc draw-text short-label
-		      0
-		      (max (- (/ h 2)
-			      (/ th 2))
-			   0)))))))
+		      (max 0
+			   (- (/ w 2)
+                              (/ tw 2)))
+                      (max 0
+                           (- (/ h 2)
+			      (/ th 2)))))))))
 
-      (super-init parent)))
+      (super-init parent)
+      (stretchable-width #f)))
 
   
   (define super-frame%
