@@ -8,6 +8,9 @@ General
   Baron. While DrScheme is not doing any work in the user's program,
   Snoopy sleeps.
 
+- a "Windows" menu has been added which keeps track of the currently
+  open drscheme windows.
+
 - the thread that evaluations (including execution) take place on is
   the same as the eventspace's main thread, unless the evaluation
   thread is killed. In that case, the eventspace's main thread is
