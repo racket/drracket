@@ -34,11 +34,9 @@
                                                        stx
                                                        (car x)
                                                        (list "tool-info.ss" #f #f #f #f)))
-                                          table)]
-                         [src-info (datum->syntax-object stx 'name)])
+                                          table)])
              (syntax
-              (let ([name (contract type name 'drscheme tool-name 
-                                    (quote-syntax src-info))] ...)
+              (let ([name (contract type name 'drscheme tool-name (quote-syntax name))] ...)
                 body)))]))))
   
 
