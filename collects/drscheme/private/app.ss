@@ -528,16 +528,20 @@
                [d-dr (make-object style-delta%)]
                [d-http (make-object style-delta%)]
                
-               [insert-url/external-browser
-                (lambda (str url)
+               [insert/clickback
+                (lambda (str clickback)
                   (send e change-style d-http)
                   (let* ([before (send e get-start-position)]
                          [_ (send e insert str)]
                          [after (send e get-start-position)])
                     (send e set-clickback before after 
-                          (lambda args (send-url url))
+                          (lambda (a b c) (clickback))
                           d-http))
-                  (send e change-style d-usual))])
+                  (send e change-style d-usual))]
+               
+               [insert-url/external-browser
+                (lambda (str url)
+                  (insert/clickback str (lambda () (send-url url))))])
           
           (send* d-http 
             (copy d-usual)
@@ -581,14 +585,7 @@
             (insert #\newline)
             (insert "For licensing information see "))
           
-          (let ([copying.lib
-                 (normalize-path
-                  (build-path (collection-path "mzlib")
-                              'up
-                              'up
-                              "notes"
-                              "COPYING-LIB"))])
-            (send e insert copying.lib))
+          (insert/clickback "our software license" (lambda () (help-desk:goto-plt-license)))
           
           (send* e
             (insert ".")

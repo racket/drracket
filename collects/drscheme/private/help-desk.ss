@@ -36,12 +36,13 @@
         (help-desk-browser (get-hd-cookie)))
         
       (define (goto-tour)
-        (send-url (format "http://127.0.0.1:~a/doc/tour"
-                          (hd-cookie->port (get-hd-cookie)))))
+        (goto-hd-location (get-hd-cookie) 'hd-tour))
       
       (define (goto-release-notes)
-        (send-url (format "http://127.0.0.1:~a/servlets/releaseinfo.ss"
-                          (hd-cookie->port (get-hd-cookie)))))
+        (goto-hd-location (get-hd-cookie) 'release-notes))
+      
+      (define (goto-plt-license)
+        (goto-hd-location (get-hd-cookie) 'plt-license))
       
       (define help-desk
         (case-lambda
