@@ -13,51 +13,7 @@
   (define cached (make-vector 10 null))
   (define cached-name (make-vector 10 ""))
   (define cached-use (make-vector 10 0))
-
-  
-  ;; NON BREAKING SPACE
-  
-  (define nbsp-snip%
-    (class snip% ()
-      (inherit get-style)
-      (override
-        [get-extent
-         (let ([set-box/f!
-                (lambda (b v)
-                  (when (box? b) (set-box! b v)))])
-           (lambda (dc x y width-box height-box descent-box space-box lspace-box rspace-box)
-             (let-values ([(width height descent ascent)
-                           (send dc get-text-extent " " (send (get-style) get-font))])
-               (set-box/f! width-box width)
-               (set-box/f! height-box height)
-               (set-box/f! descent-box descent)
-               (set-box/f! space-box ascent)
-               (set-box/f! lspace-box 0)
-               (set-box/f! rspace-box 0))))]
-        [get-text
-         (lambda (offset num flattened?)
-           (cond
-             [(> offset 0) ""]
-             [(< num 1) ""]
-             [else (string (latin-1-integer->char 160))]))])
-      (inherit set-snipclass)
-      (sequence
-        (super-init)
-        (set-snipclass nbsp-snipclass))))
-  
-  (define nbsp-snipclass
-    (make-object
-     (class snip-class% ()
-       (override
-         [read
-          (lambda (f)
-            (make-object nbsp-snip%))])
-       (sequence (super-init)))))
-  
-  (send nbsp-snipclass set-version 1)
-  (send nbsp-snipclass set-classname "mred:nbsp")
-  (send (get-the-snip-class-list) add nbsp-snipclass)
-  
+ 
   (define html-status-handler
     (make-parameter
      void
@@ -819,15 +775,7 @@
 	       (lambda () (translate pos #t del-white? 0))
 	       loop))))
 
-        ;; Replace non-breaking spaces with regular spaces:
-	(let ([l (find-string-all (string (latin-1-integer->char 160)) 'forward 0)])
-	  (for-each
-	   (lambda (p)
-	     (insert (make-object nbsp-snip%) (add1 p)) ; important: gets style from predecessor
-	     (delete p (add1 p)))
-	   l))
-
-	;; Install indentation
+        ;; Install indentation
 	(btree-for-each
 	 indents
 	 (lambda (pos data)
