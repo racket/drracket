@@ -112,7 +112,8 @@
   (define-signature drscheme:app^
     (check-new-version
      invite-tour
-     about-drscheme))
+     about-drscheme
+     add-language-items-to-help-menu))
   
   (define-signature drscheme:draw-arrow^
     (draw-arrow))

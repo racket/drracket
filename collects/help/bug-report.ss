@@ -1,3 +1,4 @@
+
 (module bug-report mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "head.ss" "net")
@@ -50,11 +51,9 @@
       (define (set-ok-to-close ok?) (set! ok-to-close? #t))
       (define (can-close?)
         (or ok-to-close?
-            (eq? 'yes
-                 (message-box (string-constant cancel-bug-report?)
-                              (string-constant are-you-sure-cancel-bug-report?)
-                              this
-                              '(yes-no)))))
+            (ask-yes-or-no (string-constant cancel-bug-report?)
+                           (string-constant are-you-sure-cancel-bug-report?)
+                           this)))
       
       (super-make-object title)))
   
@@ -164,7 +163,7 @@
     
     (define priority
       (build/label
-       (string-constant bug-report-form-priority)
+       (string-constant bug-report-field-priority)
        (lambda (panel)
          (make-object choice%
            #f
@@ -431,9 +430,11 @@
                (done-checking #f)))
            (list name summary description reproduce)
            (list (string-constant bug-report-field-name)
-                 (string-constant bug-report-field-name-summary)
-                 (string-constant bug-report-field-name-description)
-                 (string-constant bug-report-field-steps-to-reproduce)))
+                 (string-constant bug-report-field-summary)
+                 (string-constant bug-report-field-description)
+                 (string-append (string-constant bug-report-field-reproduce1) 
+                                " "
+                                (string-constant bug-report-field-reproduce2))))
           
           (unless (member #\@ (string->list (or (preferences:get 'drscheme:email) "")))
             (message-box (string-constant illegal-bug-report)
@@ -492,7 +493,7 @@
                                    "non-existant path")))
                        (current-library-collection-paths))))
     
-    (send human-language set-value (string-constant human-language))
+    (send human-language set-value (this-language))
     
     (align-labels)
     (send button-panel set-alignment 'right 'center)
@@ -515,4 +516,12 @@
     
     (toggle-synthesized-info)
     
-    (send bug-frame show #t)))
+    (send bug-frame show #t))
+  
+  (define (ask-yes-or-no title msg parent)
+    (gui-utils:get-choice msg 
+                          (string-constant yes)
+                          (string-constant no)
+                          title
+                          #f
+                          parent)))

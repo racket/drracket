@@ -1,3 +1,92 @@
+199d3
+
+!!! WARNINGS !!!
+
+- Check Syntax now exists, but is not completely
+  functional yet. In particular, ignore the red-color
+  on the language-position of modules.
+
+- It is possible to switch the interface language of
+  DrSheme's GUI. The mechanism is in place, in any
+  case. The translations aren't yet, so you probably
+  don't want to try to switch. Also, you will see
+  funny warnings when starting up DrScheme to that
+  effect. Ignore them unless you are working on
+  the translation.
+  
+FUNCTIONALITY CHANGES
+
+- all string constants that appear in DrScheme's GUI
+  must now be put in the string-constants collection.
+  Search in Help Desk for `string-constant' for more
+  details.
+  
+- Help Desk now downloads its docs from the old pre-v200
+  tag place.
+
+- added `expand-program' to tools interface. useful for
+  all tools that process program text.
+  
+- added vertical-dragable-mixin, vertical-dragable%, 
+  vertical-dragable<%> to framework.
+
+- removed vertical-resizable<%>, vertical-resizable-mixin,
+  vertical-resizable%, vertical-resizable-pane% from
+  framework
+
+- added icon:get-up/down-cursor and 
+  icon:get-left/right-cursor to the framework.
+  They return the standard cursors for sizing 
+  columns left and right, and up and down.
+
+- exit:exit and exit:can-exit? now accept optional 
+  booleans that specify if the user should be asked
+  about quitting.
+  
+MINOR CHANGES AND BUG FIXES
+
+- drscheme constructor and quasiquote printers
+  now shows syntax's structure, and module-path-index
+  structure.
+
+- drscheme's quasiquote printer now works a little bit
+  better for expressions like '('a 'a).
+  It used to show `((,'quote a) (,'quote a)), but
+  now it shows `('a 'a).
+
+- the resize tab has been changed -- just grab and drag
+  the space between the definitions and interactions
+  windows now, instead of that ugly little triangle
+  that used to be on the right.
+
+- several misc bugs in split/collapse functionality
+  fixed.
+  
+- showing/hiding the definitions and interactions windows
+  restores relative sizing of windows.
+  (splitting and collapsing may still mess it up, tho)
+  
+
+199d2
+
+FUNCTIONALITY CHANGES
+
+  - the splash screen now only allows a single
+    splash screen (per namespace).
+
+MINOR CHANGES AND BUG FIXES
+
+  - structs now print properly in the REPL.
+
+  - the bug report form now connects to bugs.drscheme.org
+    instead of cs.rice.edu directly, so earthlink users
+    should be able to submit PRs via Help Desk.
+
+  - the resize tab should work properly now.
+
+  - the language dialog cancels properly and
+    properly restores defaults when re-opened.
+
 199d1
 
 WARNINGS

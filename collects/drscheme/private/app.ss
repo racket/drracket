@@ -198,9 +198,7 @@
                                       last-version)]
                              [else #f])])
                   (and msg (make-object message% msg messages-panel)))])
-          (printf "this-language ~s~n" (this-language))
           (for-each (lambda (native-lang-string language)
-                      (printf "~s ~s~n" native-lang-string language)
                       (unless (equal? (this-language) language)
                         (instantiate button% ()
                           (label native-lang-string)
@@ -222,18 +220,21 @@
           
           (send tour-button focus)
           (preferences:set 'drscheme:last-version this-version)
+          (preferences:set 'drscheme:last-language (this-language))
           (send f show #t)))
 
       (define (switch-language-to language)
         (when (gui-utils:get-choice
                (string-constant are-you-sure-you-want-to-switch-languages)
-               (string-constant yes)
-               (string-constant no)
+               (case (system-type)
+                 [(windows) (string-constant exit-cap)]
+                 [else (string-constant quit-cap)])
+               (string-constant cancel)
                (string-constant drscheme)
                #f)
-          (let ([set-language? #f])
+          (let ([set-language? #t])
             (exit:insert-on-callback 
-             (lambda () 
+             (lambda ()
                (when set-language?
                  (write-resource "mred" "gui_language" language))))
             (exit:exit #t)
@@ -300,7 +301,7 @@
           
           (send* e 
             (change-style d-dr)
-            (insert (format (string-constant welcome-to-drs-version/language) 
+            (insert (format (string-constant welcome-to-drscheme-version/language) 
                             this-version
                             (this-language)))
             (change-style d-usual))
@@ -385,4 +386,18 @@
           (send button-panel stretchable-height #f)
           (send button-panel set-alignment 'center 'center)
           (send f show #t)
-          f)))))
+          f))
+      
+      (define (add-language-items-to-help-menu help-menu)
+        (let ([added-any? #f])
+          (for-each (lambda (native-lang-string language)
+                      (unless (equal? (this-language) language)
+                        (unless added-any?
+                          (make-object separator-menu-item% help-menu)
+                          (set! added-any? #t))
+                        (instantiate menu-item% ()
+                          (label native-lang-string)
+                          (parent help-menu)
+                          (callback (lambda (x1 x2) (switch-language-to language))))))
+                    (string-constants is-this-your-native-language)
+                    (all-languages)))))))

@@ -82,9 +82,9 @@
                [thnk (send language front-end input settings)])
           (parameterize ([read-accept-compiled #t])
 	    (if expected-module
-		(let ([first (thnk)]
-		      [module-ized-exp (check-module-form exp expected-module filename)]
-		      [second (thnk)])
+		(let* ([first (thnk)]
+                       [module-ized-exp (check-module-form first expected-module filename)]
+                       [second (thnk)])
 		  (unless (eof-object? second)
 		    (raise-syntax-error
 		     'drscheme-load-handler

@@ -246,7 +246,7 @@
                        (loop item)))
                    (send menu-container get-items)))
                 (values name-ht fun-ht)))]
-            
+          
           [define copy-hash-table
             (lambda (ht)
               (let ([res (make-hash-table)])
@@ -261,21 +261,21 @@
                      (is-a? edit-object editor<%>)
                      (let ([keymap (send edit-object get-keymap)])
                        (is-a? keymap keymap:aug-keymap<%>)))))]
-            
+          
           [define show-keybindings
-           (lambda ()
-             (if (can-show-keybindings?)
-                 (let ([edit-object (get-edit-target-object)])
-                   (let ([keymap (send edit-object get-keymap)])
-                     (let*-values ([(menu-names menu-funs) (get-menu-bindings)])
-                       (let* ([table (send keymap get-map-function-table/ht
-                                           (copy-hash-table menu-names))]
-                              [structured-list
-                               (mzlib:list:quicksort
-                                (hash-table-map table list)
-                                (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
-                         (show-keybindings-to-user structured-list this)))))
-                 (bell)))]
+            (lambda ()
+              (if (can-show-keybindings?)
+                  (let ([edit-object (get-edit-target-object)])
+                    (let ([keymap (send edit-object get-keymap)])
+                      (let*-values ([(menu-names menu-funs) (get-menu-bindings)])
+                        (let* ([table (send keymap get-map-function-table/ht
+                                            (copy-hash-table menu-names))]
+                               [structured-list
+                                (mzlib:list:quicksort
+                                 (hash-table-map table list)
+                                 (lambda (x y) (string-ci<=? (cadr x) (cadr y))))])
+                          (show-keybindings-to-user structured-list this)))))
+                  (bell)))]
           
           (override file-menu:open-callback file-menu:open-string
                     file-menu:new-callback file-menu:new-string
@@ -296,27 +296,30 @@
                 help-menu
                 (lambda (item evt)
                   (drscheme:app:invite-tour))))]
-            
-            [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
-            [define help-menu:about-string (lambda () (string-constant drscheme))]
-            [define help-menu:create-about? (lambda () #t)]
-            
+          
+          [define help-menu:about-callback (lambda (item evt) (drscheme:app:about-drscheme))]
+          [define help-menu:about-string (lambda () (string-constant drscheme))]
+          [define help-menu:create-about? (lambda () #t)]
+          
+          (define/override (help-menu:after-about menu)
+            (drscheme:app:add-language-items-to-help-menu menu))
+          
           [define (file-menu:open-callback item evt) (handler:open-file)]
           [define (file-menu:open-string) ""]
           
-            [define (file-menu:new-string) ""]
-            [define file-menu:new-callback
-             (lambda (item evt)
-               (drscheme:unit:open-drscheme-window))]
-            
-            [define file-menu:between-open-and-revert
-             (lambda (file-menu) 
-               (make-object menu-item% 
-                 (string-constant open-url...)
-                 file-menu
-                 (lambda (item evt)
-                   (help:open-users-url this))))]
-            
+          [define (file-menu:new-string) ""]
+          [define file-menu:new-callback
+            (lambda (item evt)
+              (drscheme:unit:open-drscheme-window))]
+          
+          [define file-menu:between-open-and-revert
+            (lambda (file-menu) 
+              (make-object menu-item% 
+                (string-constant open-url...)
+                file-menu
+                (lambda (item evt)
+                  (help:open-users-url this))))]
+          
           [define edit-menu:between-find-and-preferences
             (lambda (menu)
               (make-object separator-menu-item% menu)
@@ -331,7 +334,7 @@
                   (help-string (string-constant keybindings-info))
                   (demand-callback keybindings-on-demand)))
               (make-object separator-menu-item% menu))]
-
+          
           (super-instantiate ())))
       
       (define keybindings-dialog%
