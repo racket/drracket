@@ -16,18 +16,18 @@
 
   (define hyper-text-mixin
     (lambda (super%)
-      (class super% (url)
+      (class super% (url . args)
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 		 change-style get-style-list set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
-		 get-visible-position-range insert)
-
+		 get-visible-position-range insert last-position)
+	
 	(private
 	  [title #f]
-	  [htmling? #f])
-	
-	(public  
-	  [hypertags-list (list (make-hypertag "top" 0))]
+	  [htmling? #f]
+	  [hypertags-list (list (make-hypertag "top" 0))])
+
+	(public
 	  [map-shift-style 
 	   (lambda (start end shift-style)
 	     (let loop ([pos start])
@@ -46,7 +46,8 @@
 	   (lambda (start end)
 	     (map-shift-style start end 
 			      (send (get-style-list) find-named-style "h-link-style")))]
-	  [get-url (lambda () (and (url? url) url))]
+	  [get-url (lambda () (and (url? url) url))])
+	(private
 	  [make-clickback-funct
 	   (lambda (url-string)
 	     (lambda (edit start end)
@@ -58,7 +59,8 @@
 						(if (exn? x)
 						    (exn-message x)
 						    x))))])
-		 (send (get-canvas) goto-url url-string (get-url)))))]	
+		 (send (get-canvas) goto-url url-string (get-url)))))])
+	(public
 	  [get-title (lambda () (or title (and (url? url) (url->string url))))]
 	  [set-title (lambda (t) (set! title t))])
 	(public
@@ -69,15 +71,16 @@
 	    (send mult set 0 0 0)
 	    (send add set 0 0 255)))
 	
-	(public
+	(private
 	  [add-h-link-style
 	   (lambda ()
 	     (let ([style-list (get-style-list)])
 	       (send style-list replace-named-style  "h-link-style"
 		     (send style-list find-or-create-style  
 			   (send style-list find-named-style "Standard") 
-			   hyper-delta))))]
-	  
+			   hyper-delta))))])
+
+	(public
 	  [add-tag 
 	   (lambda (name pos)
 	     (for-each (lambda (tag) 
@@ -119,7 +122,7 @@
 	       (when (string? v)
 		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))])
 	(sequence
-	  (super-init)
+	  (apply super-init args)
 	  (add-h-link-style)
 	  (when url
 	    (let* ([p (if (port? url)
@@ -135,12 +138,17 @@
 			      (if (and (url? url)
 				       (regexp-match "[.]txt$" (url-path url)))
 				  ; Text
-				  (let loop ()
-				    (let ([r (read-line p)])
-				      (unless (eof-object? r)
-					(insert r)
-					(insert #\newline)
-					(loop))))
+				  (begin
+				    (begin-edit-sequence)
+				    (let loop ()
+				      (let ([r (read-line p)])
+					(unless (eof-object? r)
+					  (insert r)
+					  (insert #\newline)
+					  (loop))))
+				    (change-style (make-object style-delta% 'change-family 'modern)
+						  0 (last-position))
+				    (end-edit-sequence))
 				  ; HTML
 				  (html-convert p this)))
 			    (lambda ()
@@ -178,6 +186,8 @@
 			       (string->url url)))]
 		  [e (make-editor url)]
 		  [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+	     (when tag-pos
+	       (send e set-position tag-pos))
 	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
 	[set-page
 	 (lambda (page notify?)
@@ -227,7 +237,8 @@
 	       (set! future (cdr future))
 	       (update-buttons page)
 	       (send c set-page page #f)
-	       (on-navigate))))])
+	       (on-navigate))))]
+	[make-canvas (lambda () (make-object hyper-canvas% this))])
       (private
 	[past null] [future null]
 	[hp (make-object horizontal-panel% this)]
@@ -269,7 +280,7 @@
 				    [else (loop (cdr l)
 						(cons (car l) pre)
 						(sub1 pos))])))))]
-	[c (make-object hyper-canvas% this)])
+	[c (make-canvas)])
       (public
 	[get-canvas (lambda () c)]
 	[on-navigate void]
