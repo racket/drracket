@@ -180,11 +180,11 @@
          (lambda ()
            (let ([f (get-top-level-window)])
              (when f
-			   (let ([interactions-text (ivar f interactions-text)])
-			     (when (object? interactions-text)
-				   (let ([reset (ivar interactions-text reset-highlighting)])
-				     (when (procedure? reset)
-					   (reset))))))))])
+	       (let ([interactions-text (ivar f interactions-text)])
+		 (when (object? interactions-text)
+		   (let ([reset (ivar interactions-text reset-highlighting)])
+		     (when (procedure? reset)
+		       (reset))))))))])
       (rename [super-on-insert on-insert]
               [super-on-delete on-delete])
       (override
