@@ -527,14 +527,18 @@
 			 (lambda () 
 			   (toggle-show/hide show-menu definitions-id)
 			   (update-shown))
-			 "Show the definitions window"))
+			 "Show the definitions window"
+			 #f
+			 "d"))
 	     (set! interactions-id
 		   (send show-menu append-item 
 			 "Show &Interactions"
 			 (lambda () 
 			   (toggle-show/hide show-menu interactions-id)
 			   (update-shown))
-			 "Show the interactions window"))
+			 "Show the interactions window"
+			 #f
+			 "n"))
 	     mb))]
 	
 	[do-close
