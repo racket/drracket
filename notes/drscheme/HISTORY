@@ -2,6 +2,11 @@
         Version 300
 ------------------------------
 
+ - Check Syntax can now jump from the use of a
+   module-provided variable to its definition. Either
+   control-click (aka right click) on the variable or use
+   the c-x;d keyboard shortcut.
+
  - Check Syntax now does a better job of navigating amoung
    occurrences of a single variable. The popup menu lets you
    go from a bound occurrence to a binding occurrence and
