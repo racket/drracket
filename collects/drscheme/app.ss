@@ -43,8 +43,8 @@
 		(let ([filename (build-path mred:constants:plt-home-directory
 					    "icons"
 					    (if (< (wx:display-depth) 8)
-						"bwlambda.gif"
-						"rblambda.gif"))])
+						"pltbw.gif"
+						"plt.gif"))])
 		  (if (file-exists? filename)
 		      (make-object wx:image-snip% 
 				   filename
@@ -94,7 +94,7 @@
 	  (send* d-usual 
 	    (set-delta-foreground "BLACK")
 	    (set-delta wx:const-change-underline 0))
-	  (send* p (user-min-width 600) (user-min-height 200))
+	  (send* p (user-min-width 600) (user-min-height 400))
 	  (send* d-dr (copy d-usual) (set-delta wx:const-change-bold 0))
 	  (send d-usual set-weight-on wx:const-normal)
 	  (send* c (set-media main-media) (stretchable-in-x #t) (stretchable-in-y #t))
