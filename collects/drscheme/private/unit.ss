@@ -1935,7 +1935,7 @@
                       (save)
                       (send definitions-canvas focus)))))
           
-          (set! name-message (make-object name-message% name-panel))
+          (set! name-message (make-object drs-name-message% name-panel))
           [define teachpack-items null]
           [define break-button (void)]
           [define execute-button (void)]
@@ -2008,7 +2008,14 @@
             [created-frame
              (set! created-frame #f)]
             [else (void)])))
-      
+
+      (define drs-name-message%
+        (class name-message%
+          (define/override (on-choose-directory dir)
+            (let ([file (finder:get-file dir)])
+              (when file
+                (handler:edit-file file))))
+          (super-instantiate ())))
       
       (define lambda-snipclass
         (make-object (class snip-class% ()
