@@ -1233,7 +1233,8 @@
                          v
                          settings
                          this-result
-                         (lambda (x) (this-result-write x))))))
+                         (lambda (x) (this-result-write x))
+			 80))))
              anss))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

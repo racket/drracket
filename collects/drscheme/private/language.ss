@@ -171,8 +171,8 @@
           (define/public (get-init-code setting)
             (simple-module-based-language-get-init-code setting))
           
-          (define/public (render-value/format value settings port put-snip)
-            (simple-module-based-language-render-value/format value settings port put-snip))
+          (define/public (render-value/format value settings port put-snip width)
+            (simple-module-based-language-render-value/format value settings port put-snip width))
           (define/public (render-value value settings port put-snip)
             (simple-module-based-language-render-value value settings port put-snip))
 	  (super-instantiate ())))
@@ -285,8 +285,8 @@
                     [(debug) 1]
                     [(debug/profile) 2]))])))
 
-      ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) -> void
-      (define (simple-module-based-language-render-value/format value settings port put-snip)
+      ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) number -> void
+      (define (simple-module-based-language-render-value/format value settings port put-snip width)
         (parameterize ([current-inspector drscheme-inspector])
           (let ([converted-value
                  (simple-module-based-language-convert-value value settings)])
