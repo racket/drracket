@@ -10,7 +10,8 @@
   (define cos-angle (cos arrow-head-angle))
   (define sin-angle (sin arrow-head-angle))
   (define arrow-head-size 10)
-  (define arrow-root-radius 3.5)
+  (define arrow-root-radius 3)
+  (define arrow-root-diameter (add1 (* 2 arrow-root-radius)))
   (define (draw-arrow dc start-x start-y end-x end-y dx dy)
     (send dc draw-line
           (+ start-x dx) (+ start-y dy)
@@ -18,8 +19,8 @@
     (send dc draw-ellipse 
           (- (+ start-x dx) arrow-root-radius)
           (- (+ start-y dy) arrow-root-radius)
-          (* 2 arrow-root-radius)
-          (* 2 arrow-root-radius))
+          arrow-root-diameter
+          arrow-root-diameter)
     (unless (and (= start-x end-x)
                  (= start-y end-y))
       (let* ([delta   0]
