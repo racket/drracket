@@ -62,6 +62,7 @@
    definitions-edit%
    interactions-canvas%
    unit%
+   open-as-unit
    make-unit))
 
 (define-signature drscheme:frame^

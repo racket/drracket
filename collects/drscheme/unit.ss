@@ -887,6 +887,18 @@
   (mred:set-preference-default 'drscheme:open-all-files-in-scheme-mode
 			       #t
 			       boolean?)
+  
+  (define (open-as-unit name)
+    (if (and created-frame
+	     (not (eq? created-frame 'nothing-yet)) 
+	     (send created-frame still-untouched?))
+	(send created-frame change-to-file name)
+	(let* ([unit (make-unit name)]
+	       [f (begin (send unit create-frame) 
+			 (send unit get-frame))])
+	  (send f show #t)
+	  f)))
+    
   (mred:insert-format-handler 
    "Units"
    (lambda (filename)
@@ -896,13 +908,4 @@
 		(ormap (lambda (extension)
 			 (string=? filename-ext extension))
 		       (list "ss" "scm" "sch" "mredrc"))))))
-   (lambda (name)
-     (if (and created-frame
-	      (not (eq? created-frame 'nothing-yet)) 
-	      (send created-frame still-untouched?))
-	 (send created-frame change-to-file name)
-	 (let* ([unit (make-unit name)]
-		[f (begin (send unit create-frame) 
-			  (send unit get-frame))])
-	   (send f show #t)
-	   f)))))
+   open-as-unit))
