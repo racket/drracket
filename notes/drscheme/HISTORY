@@ -1,5 +1,40 @@
 Version 102:
 
+102d5
+
+ PRS: 1334
+
+ FUNCTIONALITY CHANGES
+
+ - THE FILE FORMAT FOR PROJECT FILES HAS CHANGED
+
+   to update your old project files to the new format, use emacs or
+   something to insert a ' at the front of the file. Then open and
+   save the project in drscheme.
+
+ - project files are now `load'able. That is, if you have the right
+   language settings, you can do 
+   
+           mzscheme -qmvr myproj.proj
+
+   and have the same effect as clicking execute on the project
+   window. For mred, you will need to do something like this:
+
+           mred -qmvr myproj.proj -e "(yield (make-semaphore 0))"
+
+   so that mred doesn't quit automatically.
+
+ MINOR CHANGES AND BUG FIXES
+
+ - typeset now uses scheme-mode editors for red boxes.
+
+ - Help Desk now has a "feeling lucky" option ala google (menu
+   shortcut: l). It goes directly to the first item that would have
+   been found in a regular search.
+
+ - Clicking on an error message link in drscheme now uses the "feeling
+   lucky" style search in help desk.
+
 102d4
 
  minor bug fixes
