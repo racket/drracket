@@ -1671,13 +1671,13 @@
            
           (make-object separator-menu-item% (get-show-menu))
           
-          (instantiate menu-item% ()
+          (instantiate menu:can-restore-menu-item% ()
             (shortcut #\m)
             (label (string-constant split-menu-item-label))
             (parent (get-show-menu))
             (callback (lambda (x y) (split)))
             (demand-callback (lambda (item) (split-demand item))))
-          (instantiate menu-item% () 
+          (instantiate menu:can-restore-menu-item% () 
             (shortcut #\r)
             (label (string-constant collapse-menu-item-label))
             (parent (get-show-menu))
