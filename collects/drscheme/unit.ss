@@ -357,6 +357,10 @@
 		     (when file
 		       (send interactions-edit save-file 
 			     file wx:const-media-ff-text)))))
+	   (send file-menu append-separator)
+	   (send file-menu append-item
+		 "Show Interactions History..."
+		 mred:show-interactions-history)
 	   (send file-menu append-separator))]
 	[file-menu:print-string "Definitions"]
 	[file-menu:print-transcript-id #f]
