@@ -16,6 +16,7 @@
            (lib "etc.ss")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
+	   ;(lib "errortrace.ss" "errortrace")
            (prefix mzlib:pretty-print: (lib "pretty.ss"))
            (prefix print-convert: (lib "pconvert.ss")))  
   
@@ -67,27 +68,61 @@
       ;; the highlight must be set after the error message because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display/debug-handler msg exn)
-        (let* ([stx (and (exn:syntax? exn) (exn:syntax-expr exn))]
-               [src (and stx (syntax-source stx))]
-               [position (and stx (syntax-position stx))]
-               [rep (current-rep)])
-          
-          (when (string? src)
-            (let ([pos (send rep last-position)])
-              (send rep insert file-icon pos pos)
-              (send rep set-clickback pos (+ pos 1)
-                    (lambda (txt start end) 
-                      (let ([file (handler:edit-file src)])
-                        (when (is-a? file drscheme:unit:frame%)
-                          (send (send file get-interactions-text)
-                                highlight-error/forward-sexp
-                                (send file get-definitions-text)
-                                position)))))))
-          
-          ((error-display-handler) msg)
-          
-          (when (and (object? src) (is-a? src text:basic%))
-            (send rep highlight-error/forward-sexp src position))))
+	(let-values ([(src position other-position)
+		      (if (exn? exn)
+			  (extract-file/position-from-exn exn)
+			  (values #f #f #f))])
+	  (let ([rep (current-rep)])
+
+	    (printf "src: ~s position: ~s: other-position: ~s~n"
+		    src position other-position)
+	    
+	    (when (string? src)
+	      (let ([pos (send rep last-position)])
+		(send rep insert file-icon pos pos)
+		(send rep set-clickback pos (+ pos 1)
+		      (lambda (txt start end) 
+			(let ([file (handler:edit-file src)])
+			  (when (and (is-a? file drscheme:unit:frame%)
+				     position)
+			    (if other-position
+				(send (send file get-interactions-text)
+				      highlight-error
+				      (send file get-definitions-text)
+				      position
+				      other-position)
+				(send (send file get-interactions-text)
+				      highlight-error/forward-sexp
+				      (send file get-definitions-text)
+				      position))))))))
+	    
+	    ((error-display-handler) msg)
+	    
+	    (when (and (object? src) (is-a? src text:basic%))
+	      (if other-position
+		  (send rep highlight-error src position other-position)
+		  (send rep highlight-error/forward-sexp src position))))))
+
+      ;; extract-file/position-from-exn : exn ->
+      ;;                                  (values (union #f string (instanceof text:basic%))
+      ;;                                          (union #f number)
+      ;;                                          (union #f number))
+      ;; the first result is the filename or editor where the error occurred
+      ;; the second result is the position in the file or editor where it occured
+      ;; the last result is #f when the starting position should be considered
+      ;;     the beginning of an sexp and it is the end of the
+      ;;     region to highlight otherwise.
+      (define (extract-file/position-from-exn exn)
+	(cond
+	  [(exn:syntax? exn) (let ([stx (exn:syntax-expr exn)])
+			       (if stx
+				   (values (syntax-source stx)
+					   (and (syntax-position stx)
+						(- (syntax-position stx) 1))
+					   #f)
+				   (values #f #f #f)))]
+	  [else
+	   (values #f #f #f)]))
 
       ;; (parameter (string (union #f exn) -> void))
       (define error-display/debug-handler (make-parameter drscheme-error-display/debug-handler))
@@ -117,13 +152,13 @@
       ;; drscheme-exception-handler : exn -> A
       ;; effect: displays the exn-message and escapes
       (define (drscheme-exception-handler exn)
-        (let ([dh (error-display/debug-handler)])
-          (if (exn? exn)
+	(let ([dh (error-display/debug-handler)])
+	  (if (exn? exn)
 	      (dh (exn-message exn) exn)
-              (dh (format "uncaught exception: ~e" exn) #f)))
-        ((error-escape-handler))
-        ((error-display-handler) "Exception handler did not escape")
-        ((bottom-escape-handler)))
+	      (dh (format "uncaught exception: ~e" exn) #f)))
+	((error-escape-handler))
+	((error-display-handler) "Exception handler did not escape")
+	((bottom-escape-handler)))
       
       (define raw-symbol-chars "a-z/!>:%\\+\\*\\?-")
       (define symbol-chars (format "[~a]" raw-symbol-chars))
