@@ -91,15 +91,26 @@
                 (printf "Select DrScheme frame~n"))
               (poll-until wait-for-drscheme-frame-pred))))]))
   
-  (define (wait-for-new-frame old-frame)
-    (let ([wait-for-new-frame-pred
-	   (lambda ()
-	     (let ([active (get-top-level-focus-window)])
-	       (if (and active
-			(not (eq? active old-frame)))
-		   active
-		   #f)))])
-      (poll-until wait-for-new-frame-pred)))
+  ;; wait-for-new-frame : frame [(listof eventspace) = null] -> frame
+  ;; returns the newly opened frame, waiting until old-frame
+  ;; is no longer frontmost. Optionally checks other eventspaces
+  (define wait-for-new-frame
+    (case-lambda
+     [(old-frame) (wait-for-new-frame old-frame null)]
+     [(wait-for-new-frame extra-eventspaces)
+      (let ([wait-for-new-frame-pred
+	     (lambda ()
+	       (let ([active (or (get-top-level-focus-window)
+				 (ormap
+				  (lambda (eventspace)
+				    (parameterize ([current-eventspace eventspace])
+				      (get-top-level-focus-window)))
+				  extra-eventspaces))])
+		 (if (and active
+			  (not (eq? active old-frame)))
+		     active
+		     #f)))])
+	(poll-until wait-for-new-frame-pred))]))
 
   (define (wait-for-computation frame)
     (verify-drscheme-frame-frontmost 'wait-for-computation frame)

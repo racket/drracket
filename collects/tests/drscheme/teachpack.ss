@@ -1,4 +1,5 @@
 (define drs-frame (wait-for-drscheme-frame))
+(define interactions-text (ivar drs-frame interactions-text))
 
 (define (test-good-teachpack tp-exps dr-exp expected)
   (clear-definitions drs-frame)
@@ -37,34 +38,77 @@
                 tp-exps
                 dr-exp full-expectation got)))))
 
-(define (test-bad-teachpack tp-exps dr-exp expected-error)
-  (clear-definitions drs-frame)
-  (clear-definitions drs-frame)
-  (type-in-definitions drs-frame dr-exp)
+(define (test-bad/load-teachpack tp-exp expected-error)
   (fw:test:menu-select "Language" "Clear All Teachpacks")
-  
-  (let ([tp-names
-         (let ([teachpack-path (normal-case-path
-                                (normalize-path
-                                 (collection-path "tests" "drscheme")))])
-           (let loop ([tp-exps (if (pair? tp-exps)
-                                   tp-exps
-                                   (list tp-exps))]
-                      [n 0])
-             (cond
-               [(null? tp-exps) null]
-               [else
-                (let ([tp-name (build-path teachpack-path (format "teachpack-tmp~a.ss" n))])
-                  (call-with-output-file tp-name
-                    (lambda (port) (display (car tp-exps) port))
-                    'truncate)
-                  (use-get/put-dialog
-                   (lambda ()
-                     (fw:test:menu-select "Language" "Add Teachpack..."))
-                   tp-name)
-                  (cons tp-name (loop (cdr tp-exps) (- n 1))))])))])
-    (void)))
-  
+  (let ([tp-name (normal-case-path
+		  (normalize-path
+		   (build-path
+		    (collection-path "tests" "drscheme")
+		    "teachpack-tmp.ss")))])
+    (call-with-output-file tp-name
+      (lambda (port) (display tp-exp port))
+      'truncate)
+    (use-get/put-dialog
+     (lambda ()
+       (fw:test:menu-select "Language" "Add Teachpack..."))
+     tp-name)
+    (let ([dialog
+	   (with-handlers ([(lambda (x) #t)
+			    (lambda (x) #f)])
+	     (wait-for-new-frame drs-frame))])
+      (cond
+       [dialog
+	(let ([got (send dialog get-message)])
+	  (unless (string=? got expected-error)
+	    (printf "FAILED:       tp: ~s~n        expected: ~s~n             got: ~s~n"
+		    tp-exp expected-error got))
+	  (fw:test:button-push "Ok"))]
+       [else
+	(printf "FAILED: no error message appeared~n              tp: ~s~n        expected: ~s~n"
+		tp-exp expected-error)]))))
+
+(define (test-bad/execute-teachpack tp-exp expected-error)
+  (fw:test:menu-select "Language" "Clear All Teachpacks")
+  (let ([tp-name (normal-case-path
+		  (normalize-path
+		   (build-path
+		    (collection-path "tests" "drscheme")
+		    "teachpack-tmp.ss")))])
+    (call-with-output-file tp-name
+      (lambda (port) (display tp-exp port))
+      'truncate)
+    (use-get/put-dialog
+     (lambda ()
+       (fw:test:menu-select "Language" "Add Teachpack..."))
+     tp-name)
+    (do-execute drs-frame #f)
+    (let ([dialog
+	   (with-handlers ([(lambda (x) #t)
+			    (lambda (x) #f)])
+	     (let ([wait-for-error-pred
+		    (lambda ()
+		      (let ([active
+			     (or
+			      (get-top-level-focus-window)
+			      (and (ivar interactions-text user-eventspace)
+				   (parameterize ([current-eventspace
+						   (ivar interactions-text user-eventspace)])
+				     (get-top-level-focus-window))))])
+			(if (and active (not (eq? active drs-frame)))
+			    active
+			    #f)))])
+	       (poll-until wait-for-error-pred)))])
+      (cond
+       [dialog
+	(let ([got (send dialog get-message)])
+	  (unless (string=? got expected-error)
+	    (printf "FAILED:       tp: ~s~n        expected: ~s~n             got: ~s~n"
+		    tp-exp expected-error got))
+	  (fw:test:button-push "Ok"))]
+       [else
+	(printf "FAILED: no error message appeared~n              tp: ~s~n        expected: ~s~n"
+		tp-exp expected-error)]))))
+
 (define (generic-tests)
   (test-good-teachpack
    "(unit/sig (not-a-primitive) (import plt:userspace^) (define not-a-primitive 1))"
@@ -82,13 +126,37 @@
    "first"
    "\"not-firsts-original-defn\""))
 
-(set-language-level! "Graphical (MrEd)")
-(generic-tests)
+(define (good-tests)
+  (set-language-level! "Graphical (MrEd)")
+  (generic-tests)
 
-(set-language-level! "Beginning Student")
-(generic-tests)
+  (set-language-level! "Beginning Student")
+  (generic-tests)
+
+  (test-good-teachpack
+   "(unit/sig (car) (import [p : plt:userspace^]) (define car (list \"not-cars-original-defn\")))"
+   "(first car)"
+   "\"not-cars-original-defn\""))
   
-(test-good-teachpack
- "(unit/sig (car) (import [p : plt:userspace^]) (define car (list \"not-cars-original-defn\")))"
- "(first car)"
- "\"not-cars-original-defn\"")
+(define (bad-tests)
+  (set-language-level! "Beginning Student")
+
+  (test-bad/load-teachpack
+   "undefined-id"
+   "reference to undefined identifier: undefined-id")
+
+  (test-bad/load-teachpack
+   "1"
+   "loading Teachpack file does not result in a either a unit/sig or a pair of unit/sigs, got: 1")
+
+  (test-bad/execute-teachpack
+   "(unit/sig () (import))"
+   "import mis-match")
+
+  (test-bad/execute-teachpack
+   "(unit/sig () (import plt:userspace^) (car null))"
+   "car: null"))
+
+(bad-tests)
+(good-tests)
+
