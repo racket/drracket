@@ -2,14 +2,13 @@
 
 tab panels todo:
   - look into modes
-  - filenames
   - can-close? needs to account for all tabs
   - pref for opening in tabs by default (instead of new frames)
   - module browser
   - contour
   - scroll bar position
-  - language settings
-
+  - in-evaluation mechanism (for enabling and disabling buttons at top of window)
+  - running/not running message at bottom of screen
 |#
 
 
@@ -1085,11 +1084,10 @@ tab panels todo:
                (send top-outer-panel change-children (lambda (l) '()))
                (send toolbar-menu-item set-label (string-constant show-toolbar))]))
           
-          (inherit get-currently-running?)
           (rename [super-can-close? can-close?])
           (define/override (can-close?)
             (and (cond
-                   [(get-currently-running?)
+                   [(send interactions-text get-in-evaluation?)
                     (equal? (message-box/custom
                              (string-constant drscheme)
                              (string-constant program-is-still-running)
@@ -1216,6 +1214,11 @@ tab panels todo:
 
           [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           
+          (define/public (update-running)
+            (send running-message set-label 
+                  (if (send interactions-text get-in-evaluation?)
+                      (string-constant running)
+                      (string-constant not-running))))
           (define/public (ensure-defs-shown)
             (unless definitions-shown?
               (toggle-show/hide-definitions)
@@ -2492,10 +2495,14 @@ tab panels todo:
           [define break-button (void)]
           [define execute-button (void)]
           [define button-panel (make-object horizontal-panel% top-panel)]
-          (public get-execute-button get-break-button get-button-panel)
-          [define get-execute-button (lambda () execute-button)]
-          [define get-break-button (lambda () break-button)]
-          [define get-button-panel (lambda () button-panel)]
+          [define/public get-execute-button (lambda () execute-button)]
+          [define/public get-break-button (lambda () break-button)]
+          [define/public get-button-panel (lambda () button-panel)]
+          
+          (inherit get-info-panel)
+          (define running-message
+            (make-object message% (string-constant not-running) (get-info-panel)))
+
           
           [define func-defs-canvas (make-object func-defs-canvas% name-panel this definitions-text)]
           
@@ -2510,6 +2517,13 @@ tab panels todo:
                   button-panel
                   (lambda (x y)
 		    (break-callback))))
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;; initialization
+          ;;
+          
+          
           (send button-panel stretchable-height #f)
           (send button-panel stretchable-width #f) 
           

@@ -474,11 +474,9 @@
           ;; this method being called in between, it will offer to
           ;; kill the user's program)
 
-          running            ;; (-> void)
-	  ;; a callback to indicate that the repl is evaluating code
-
-          not-running        ;; (-> void)
-	  ;; a callback to indicate that the repl is not evaluating code
+          update-running        ;; (-> void)
+	  ;; a callback to indicate that the repl may have changed its running state
+          ;; use the repls' get-in-evaluation? method to find out what the current state is.
           
           clear-annotations  ;; (-> void)
 	  ;; clear any error highlighting context
@@ -1573,6 +1571,7 @@
           (field (in-evaluation? #f) ; a heursitic for making the Break button send a break
                  (should-collect-garbage? #f)
                  (ask-about-kill? #f))
+          (define/public (get-in-evaluation?) in-evaluation?)
           
           (define (insert-warning)
             (begin-edit-sequence)
@@ -1925,9 +1924,7 @@
               (queue-system-callback
                (get-user-thread)
                (lambda ()
-                 (if in-evaluation?
-                     (send context running)
-                     (send context not-running))))))
+                 (send context update-running)))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                          ;;;

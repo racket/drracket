@@ -383,58 +383,22 @@
       
       (define <%>
         (interface (frame:editor<%> basics<%> frame:text-info<%>)
-          running
-          not-running
-	  get-currently-running?
           get-show-menu
           update-shown
           add-show-menu-items))
       
       (define -mixin
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
-          (inherit get-editor)
+          (inherit get-editor get-menu% get-menu-bar)
           (rename [super-file-menu:print-callback file-menu:print-callback])
-          (inherit get-info-panel)
-          (field [show-menu #f])
-          (public get-show-menu update-shown)
-          [define get-show-menu (lambda () show-menu)]
-          [define update-shown (lambda () (void))]
+          (define show-menu #f)
+          (define/public get-show-menu (lambda () show-menu))
+          (define/public update-shown (lambda () (void)))
           (define/public (add-show-menu-items show-menu) (void))
-          
-          [define get-bitmap/string
-            (lambda (icon string)
-              (let ([p (build-path (collection-path "icons") icon)])
-                (if (file-exists? p)
-                    (make-object bitmap% p 'gif)
-                    string)))]
-          (field
-           [currently-running? #f]
-           [sleepy-bitmap (get-bitmap/string "snoopy-sleepy.gif" (string-constant not-running))]
-           [active-bitmap (get-bitmap/string "snoopy-active.gif" (string-constant running))])
-          (public running not-running)
-          [define running
-            (lambda ()
-              (unless currently-running?
-                (set! currently-running? #t)
-                (send running-message set-label active-bitmap)))]
-          [define not-running
-            (lambda ()
-              (when currently-running?
-                (set! currently-running? #f)
-                (send running-message set-label sleepy-bitmap)))]
-          
-          (define/public (get-currently-running?) currently-running?)
-          
-          (inherit get-menu% get-menu-bar)
-          (super-instantiate ())
+          (super-new)
           (set! show-menu (make-object (get-menu%) (string-constant view-menu-label)
                             (get-menu-bar)))
-
-          (add-show-menu-items show-menu)
-          
-          (field
-           [running-message
-            (make-object message% sleepy-bitmap (get-info-panel))])))
+          (add-show-menu-items show-menu)))
       
       
       (define (create-root-menubar)
