@@ -47,6 +47,11 @@
       ;; get-successful-tools : -> (listof sucessful-tool)
       (define (get-successful-tools) successful-tools)
 
+      ;; loads the the tools in each collection
+      (define (load/invoke-all-tools collections)
+        (for-each load/invoke-tools collections))
+
+      
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
       (define (load/invoke-tools coll)
@@ -78,7 +83,10 @@
       ;;                    -> (listof string[sub-collection-name]) 
       ;;                       (union #f (cons string[filename] (listof string[collection-name])))
       ;;                       (union #f string)
-      ;;                    -> void
+      ;;                    -> (list string[collection-name] 
+      ;;                             (listof string[sub-collection-name])
+      ;;                             (-> void)
+      ;;                             (-> void))
       ;; `coll' is a collection to load the tool from
       ;; `in-path' is the `coll'-relative collection-path spec for the tool module file
       ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
@@ -116,15 +124,21 @@
                                     (format (string-constant error-invoking-tool-title)
                                             coll in-path)
                                     x))])
-                  (invoke-tool unit name)
-                  
-                  (set! successful-tools 
-                        (cons (make-successful-tool tool-path tool-bitmap name)
-                              successful-tools))))))))
+                  (let ([phase-thunks (invoke-tool unit name)])
+                    ;; maybe too early todo that.
+                    (set! successful-tools 
+                          (cons (make-successful-tool tool-path tool-bitmap name)
+                                successful-tools))
+                    (list* coll in-path phase-thunks))))))))
 
-      ;; invoke-tool : unit/sig string -> void
+      ;; invoke-tool : unit/sig string -> (list (-> void) (-> void))
+      ;; invokes the tools and returns the two phase thunks.
       (define (invoke-tool unit tool-name)
-	(wrap-tool-inputs (invoke-unit/sig unit drscheme:tool^) 'drscheme))
+	(wrap-tool-inputs 
+         (let ()
+           (define-values/invoke-unit/sig drscheme:tool-exports^ unit #f drscheme:tool^)
+           (cons phase1 phase2))
+         'drscheme))
 
       ;; show-error : string exn -> void
       (define (show-error title x)
@@ -200,5 +214,4 @@
       (define tool-bitmap-y tool-bitmap-gap)
       (define tool-bitmap-size 32)
       
-      ;; loads the the tools in each collection
-      (for-each load/invoke-tools (drscheme:init:all-toplevel-collections)))))
+      (load/invoke-all-tools (drscheme:init:all-toplevel-collections)))))

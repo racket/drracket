@@ -182,6 +182,10 @@
   (define-signature drscheme:multi-file-search^
     (multi-file-search))
   
+  (define-signature drscheme:tool-exports^
+    (phase1 
+     phase2))
+  
   (define-signature drscheme:tool^
     ((unit drscheme:frame : drscheme:frame^)
      (unit drscheme:unit : drscheme:unit^)

@@ -699,7 +699,7 @@
 	  (public clear-annotations)
           [define clear-annotations
             (lambda ()
-	      (void))]
+              (send interactions-text reset-highlighting))]
           
           (rename [super-update-shown update-shown]
                   [super-on-close on-close])
