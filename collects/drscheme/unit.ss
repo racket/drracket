@@ -200,6 +200,29 @@
 	    (send frame set-save-init-shown?
 		  (and (not (null? m)) (send m modified?)))))))
 
+    (define definitions-edit%
+      (class-asi mred:backup-autosave-edit%
+	(rename [super-after-insert after-insert]
+		[super-after-delete after-delete])
+	(public
+	  [needs-execution? #f]
+	  [just-executed
+	   (lambda ()
+	     (set! needs-execution? #f)
+	     (set! already-warned? #f))]
+	  [already-warned? #f]
+	  [already-warned
+	   (lambda ()
+	     (set! already-warned? #t))]
+	  [after-insert
+	   (lambda x
+	     (set! needs-execution? #t)
+	     (apply super-after-insert x))]
+	  [after-delete
+	   (lambda x
+	     (set! needs-execution? #t)
+	     (apply super-after-delete x))])))
+
     (define super-frame% (mred:make-searchable-frame%
 			  (mred:make-info-frame%
 			   drscheme:frame:frame%)))
@@ -439,6 +462,7 @@
 	     (let* ([definitions-edit definitions-edit]
 		    [interactions-edit interactions-edit])
 	       (ensure-interactions-shown)
+	       (send definitions-edit just-executed)
 	       (send interactions-canvas set-focus)
 	       (dynamic-wind
 		(lambda () (send interactions-edit begin-edit-sequence))
