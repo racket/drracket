@@ -391,9 +391,7 @@
             (insert "Based on:")
             (insert #\newline)
             (insert "  ")
-            (insert (banner))
-            (insert "  McMicMac (c) 1995-1998 PLT, Rice University (Shriram Krishnamurthi)")
-            (insert #\newline))
+            (insert (banner)))
           
           (when (or (eq? (system-type) 'macos)
                     (eq? (system-type) 'macosx))

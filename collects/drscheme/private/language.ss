@@ -528,66 +528,74 @@
                                                           init-code
                                                           gui?
                                                           use-copy?)
-        (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
-        (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
         
-        (call-with-output-file bootstrap-tmp-filename
-          (lambda (port)
-            (write `(begin
-                      (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
-                      (namespace-transformer-require ',transformer-module-language-spec)
-                      ((dynamic-require '(file ,init-code-tmp-filename) 'init-code)))
-                   port))
-          'truncate
-          'text)
-        
-        (let-values ([(_1 init-code-mod-name _2) (split-path init-code-tmp-filename)])
-          (let ([new-init-code 
-                 (list*
-                  (car init-code)
-                  (string->symbol init-code-mod-name)
-                  (cddr init-code))])
-            (call-with-output-file init-code-tmp-filename
-              (lambda (port)
-                (write new-init-code port))
-              'truncate 'text)))
-        
-        (let* ([pre-to-be-embedded-module-specs0
-                (if (equal? module-language-spec transformer-module-language-spec)
-                    (list module-language-spec)
-                    (list module-language-spec
-                          transformer-module-language-spec))]
-               [pre-to-be-embedded-module-specs1
-                (if gui?
-                    (cons '(lib "mred.ss" "mred")
-                          pre-to-be-embedded-module-specs0)
-                    pre-to-be-embedded-module-specs0)]
-               [pre-to-be-embedded-module-specs2
-                (cons `(file ,init-code-tmp-filename)
-                      pre-to-be-embedded-module-specs1)]
-               [pre-to-be-embedded-module-specs3
-                (append (drscheme:teachpack:launcher-modules-to-embed
-                         (preferences:get 'drscheme:teachpacks))
-                        pre-to-be-embedded-module-specs2)]
-               [pre-to-be-embedded-module-specs4
-                (filter (lambda (x) (not (eq? x 'mzscheme)))
-                        pre-to-be-embedded-module-specs3)]
-               [to-be-embedded-module-specs
-                (map (lambda (x) (list #f x))
-                     pre-to-be-embedded-module-specs4)])
+        (with-handlers ([not-break-exn?
+                         (lambda (exn)
+                           (message-box 
+                            (string-constant drscheme)
+                            (if (exn? exn)
+                                (exn-message exn)
+                                (format "~s" exn))))])
+          (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
+          (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
           
-          (make-embedding-executable 
-           executable-filename
-           gui?
-           #f ;; verbose?
-           to-be-embedded-module-specs
-           (list 
-            bootstrap-tmp-filename
-            program-filename)
-           #f
-	   (if gui?
-	       (list "-mvqZ")
-	       (list "-mvq")))))
+          (call-with-output-file bootstrap-tmp-filename
+            (lambda (port)
+              (write `(begin
+                        (,(if use-copy? 'namespace-require/copy 'namespace-require) ',module-language-spec)
+                        (namespace-transformer-require ',transformer-module-language-spec)
+                        ((dynamic-require '(file ,init-code-tmp-filename) 'init-code)))
+                     port))
+            'truncate
+            'text)
+          
+          (let-values ([(_1 init-code-mod-name _2) (split-path init-code-tmp-filename)])
+            (let ([new-init-code 
+                   (list*
+                    (car init-code)
+                    (string->symbol init-code-mod-name)
+                    (cddr init-code))])
+              (call-with-output-file init-code-tmp-filename
+                (lambda (port)
+                  (write new-init-code port))
+                'truncate 'text)))
+          
+          (let* ([pre-to-be-embedded-module-specs0
+                  (if (equal? module-language-spec transformer-module-language-spec)
+                      (list module-language-spec)
+                      (list module-language-spec
+                            transformer-module-language-spec))]
+                 [pre-to-be-embedded-module-specs1
+                  (if gui?
+                      (cons '(lib "mred.ss" "mred")
+                            pre-to-be-embedded-module-specs0)
+                      pre-to-be-embedded-module-specs0)]
+                 [pre-to-be-embedded-module-specs2
+                  (cons `(file ,init-code-tmp-filename)
+                        pre-to-be-embedded-module-specs1)]
+                 [pre-to-be-embedded-module-specs3
+                  (append (drscheme:teachpack:launcher-modules-to-embed
+                           (preferences:get 'drscheme:teachpacks))
+                          pre-to-be-embedded-module-specs2)]
+                 [pre-to-be-embedded-module-specs4
+                  (filter (lambda (x) (not (eq? x 'mzscheme)))
+                          pre-to-be-embedded-module-specs3)]
+                 [to-be-embedded-module-specs
+                  (map (lambda (x) (list #f x))
+                       pre-to-be-embedded-module-specs4)])
+            
+            (make-embedding-executable 
+             executable-filename
+             gui?
+             #f ;; verbose?
+             to-be-embedded-module-specs
+             (list 
+              bootstrap-tmp-filename
+              program-filename)
+             #f
+             (if gui?
+                 (list "-mvqZ")
+                 (list "-mvq"))))))
 
       (define (condense-scheme-code-string s)
         (let ([i (open-input-string s)]
@@ -637,21 +645,30 @@
                                             init-code
                                             gui?
                                             use-copy?)
-        ((if gui? make-mred-launcher make-mzscheme-launcher)
-         (list
-          "-qmvt"
-          (build-path (collection-path "drscheme" "private") 
-                      "launcher-bootstrap.ss")
-          "--"
-          (condense-scheme-code-string (format "~s" init-code))
-          program-filename
-          (format "~s" module-language-spec)
-          (format "~s" transformer-module-language-spec)
-          (format "~s" use-copy?)
-          (format "~s" (if gui?  
-                           (list 'mzscheme '(lib "mred.ss" "mred"))
-                           (list 'mzscheme))))
-         executable-filename))
+
+        (with-handlers ([not-break-exn?
+                         (lambda (exn)
+                           (message-box 
+                            (string-constant drscheme)
+                            (if (exn? exn)
+                                (exn-message exn)
+                                (format "~s" exn))))])
+          
+          ((if gui? make-mred-launcher make-mzscheme-launcher)
+           (list
+            "-qmvt"
+            (build-path (collection-path "drscheme" "private") 
+                        "launcher-bootstrap.ss")
+            "--"
+            (condense-scheme-code-string (format "~s" init-code))
+            program-filename
+            (format "~s" module-language-spec)
+            (format "~s" transformer-module-language-spec)
+            (format "~s" use-copy?)
+            (format "~s" (if gui?  
+                             (list 'mzscheme '(lib "mred.ss" "mred"))
+                             (list 'mzscheme))))
+           executable-filename)))
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy?

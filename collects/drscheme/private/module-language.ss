@@ -93,7 +93,6 @@
                          'disallow-close
                          parent)])
               
-              ;; make-embedding-executable may fail if the defn's window doesn't contain a module.
               (with-handlers ([not-break-exn?
                                (lambda (exn)
                                  (message-box
