@@ -5,6 +5,13 @@ closing:
 
 tab panels new behavior:
   - save all tabs (pr 6689?)
+
+tab panels todo:
+  - changing tabs needs to update all kinds of things, based on new context<%> interface setup
+  - profiling info needs to be per-tab
+
+module browser threading seems wrong.
+
 |#
 
 (module unit mzscheme
@@ -819,7 +826,6 @@ tab panels new behavior:
       
       (define -frame<%>
         (interface ()
-          clear-annotations
           get-special-menu
           get-interactions-text
           get-definitions-text
@@ -837,14 +843,19 @@ tab panels new behavior:
       (define-struct tab (defs ints visible-defs visible-ints i enabled?) (make-inspector))
 
       (define tab%
-        (class object%
+        (class* object% (drscheme:rep:context<%>)
           (init-field frame
                       defs
-                      ints
                       i)
-          (field [enabled? #t]
+          (field [ints #f]
+                 [enabled? #t]
                  [visible-defs #f]
                  [visible-ints #f])
+          
+          ;; only called to initialize this tab.
+          ;; the interactions editor should be invariant.
+          (define/public (set-ints i) (set! ints i)) 
+          
           (define/public (get-defs) defs)
           (define/public (get-ints) ints)
           (define/public (get-visible-defs) visible-defs)
@@ -854,20 +865,98 @@ tab panels new behavior:
           (define/public (get-i) i)
           (define/public (set-i _i) (set! i _i))
           (define/public (disable-evaluation)
-            (send visible-defs lock #t)
-            (send visible-ints lock #t)
+            (send defs lock #t)
+            (send ints lock #t)
             (send frame disable-evaluation-in-tab this))
           (define/public (enable-evaluation)
-            (send visible-defs lock #f)
-            (send visible-ints lock #f)
+            (send defs lock #f)
+            (send ints lock #f)
             (send frame enable-evaluation-in-tab this))
           (define/public (get-enabled) enabled?)
           (define/public (set-enabled e?) (set! enabled? e?))
+          
+          (define/public (get-directory)
+            (let ([filename (send defs get-filename)])
+              (if (and (path? filename)
+                       (file-exists? filename))
+                  (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
+                    base)
+                  #f)))
+          (define/public (needs-execution?)
+            (send defs needs-execution?))
+          
+          ;; this should really do something local to the tab, but
+          ;; for now it doesn't.
+          (define/public (ensure-rep-shown rep) 
+            (send frame ensure-rep-shown rep))
+          
+          (field [thread-to-break-box (make-weak-box #f)]
+                 [custodian-to-kill-box (make-weak-box #f)]
+                 [offer-kill? #f])
+          
+          ;; break-callback : -> void
+          (define/public (break-callback)
+            (cond
+              [(or (not (weak-box-value thread-to-break-box))
+                   (not (weak-box-value custodian-to-kill-box)))
+               (bell)]
+              [offer-kill? 
+               (if (user-wants-kill?)
+                   (let ([thd (weak-box-value thread-to-break-box)])
+                     (when thd
+                       (break-thread thd)))
+                   (let ([cust (weak-box-value custodian-to-kill-box)])
+                     (when cust
+                       (custodian-shutdown-all cust))))]
+              [else
+               (let ([thd (weak-box-value thread-to-break-box)])
+                 (when thd
+                   (break-thread thd)))
+               ;; only offer a kill the next time if 
+               ;; something got broken.
+               (set! offer-kill? #t)]))
+          
+          ;; user-wants-kill? : -> boolean
+          ;; handles events, so be sure to check state
+          ;; after calling to avoid race conditions.
+          (define/private (user-wants-kill?)
+            (gui-utils:get-choice
+             (string-constant kill-evaluation?)
+             (string-constant just-break)
+             (string-constant kill)
+             (string-constant kill?)
+             'diallow-close
+             this))
+          
+          ;; reset-offer-kill
+          (define/public (reset-offer-kill)
+            (set! offer-kill? #f))
+          
+          ;; get-breakables : -> (union #f thread) (union #f cust) -> void
+          (define/public (get-breakables)
+            (values (weak-box-value thread-to-break-box) (weak-box-value custodian-to-kill-box)))
+          
+          ;; set-breakables : (union #f thread) (union #f cust) -> void
+          (define/public (set-breakables thd cust)
+            (set! thread-to-break-box (make-weak-box thd))
+            (set! custodian-to-kill-box (make-weak-box cust)))
+          
+          (define/public (clear-annotations)
+            (send ints reset-highlighting))
+          
+          ;; need to update running when switching tabs ...
+          (define/public (update-running b?) (send frame update-running b?))
+          
           (super-new)))
+      
+      ;; should only be called by the tab% object
+      (define-local-member-name 
+        disable-evaluation-in-tab
+        enable-evaluation-in-tab)
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
-          (drscheme:rep:context<%> -frame<%>)
+          (-frame<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
                    get-menu%
@@ -1063,18 +1152,6 @@ tab panels new behavior:
                   [else
                    (send (car cs) set-resize-corner #f)
                    (loop (cdr cs))]))))
-          
-          (define/public (clear-annotations)
-            (send interactions-text reset-highlighting))
-          
-          (define/public (get-directory)
-            (let ([filename (send definitions-text get-filename)])
-              (if (path? filename)
-                  (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
-                    base)
-                  #f)))
-          (define/public (needs-execution?)
-            (send definitions-text needs-execution?))
           
           [define definitions-item #f]
           [define interactions-item #f]
@@ -1733,53 +1810,6 @@ tab panels new behavior:
             (remove-show-status-line-callback)
             (send interactions-text on-close))
           
-          (field [thread-to-break-box (make-weak-box #f)]
-                 [custodian-to-kill-box (make-weak-box #f)]
-                 [offer-kill? #f])
-          
-          ;; break-callback : -> void
-          (define/public (break-callback)
-            (cond
-              [(or (not (weak-box-value thread-to-break-box))
-                   (not (weak-box-value custodian-to-kill-box)))
-               (bell)]
-              [offer-kill? 
-               (if (user-wants-kill?)
-                   (when (weak-box-value thread-to-break-box)
-                     (break-thread (weak-box-value thread-to-break-box)))
-                   (when (weak-box-value custodian-to-kill-box)
-                     (custodian-shutdown-all (weak-box-value custodian-to-kill-box))))]
-              [else
-               (break-thread (weak-box-value thread-to-break-box))
-               ;; only offer a kill the next time if 
-               ;; something got broken.
-               (set! offer-kill? #t)]))
-
-          ;; user-wants-kill? : -> boolean
-          ;; handles events, so be sure to check state
-          ;; after calling to avoid race conditions.
-          (define/private (user-wants-kill?)
-            (gui-utils:get-choice
-             (string-constant kill-evaluation?)
-             (string-constant just-break)
-             (string-constant kill)
-             (string-constant kill?)
-             'diallow-close
-             this))
-
-          ;; reset-offer-kill
-          (define/public (reset-offer-kill)
-            (set! offer-kill? #f))
-          
-          ;; get-breakables : -> (union #f thread) (union #f cust) -> void
-          (define/public (get-breakables)
-            (values (weak-box-value thread-to-break-box) (weak-box-value custodian-to-kill-box)))
-
-          ;; set-breakables : (union #f thread) (union #f cust) -> void
-          (define/public (set-breakables thd cust)
-            (set! thread-to-break-box (make-weak-box thd))
-            (set! custodian-to-kill-box (make-weak-box cust)))
-          
           ;; execute-callback : -> void
           ;; uses the state of the button to determine if an execution is
           ;; already running. This function is called from many places, not
@@ -1882,10 +1912,11 @@ tab panels new behavior:
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab)
-            (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
-                   [defs (new (drscheme:get/extend:get-definitions-text))]
+            (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
                    [tab-count (length tabs)]
-                   [new-tab (new tab% (defs defs) (ints ints) (i tab-count))])
+                   [new-tab (new tab% (defs defs) (i tab-count))]
+                   [ints (make-object (drscheme:get/extend:get-interactions-text) new-tab)])
+              (send new-tab set-ints ints)
               (set! tabs (append tabs (list new-tab)))
               (send tabs-panel append (get-defs-tab-label defs))
               (change-to-nth-tab (- (send tabs-panel get-number) 1))
@@ -1900,6 +1931,11 @@ tab panels new behavior:
           ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
           ;; to be the nth tab. Also updates the GUI to show the new tab
+          #|
+
+NEEDS TO UPDATE RUNNING
+
+|#
           (define/private (change-to-tab tab)
             (let ([old-delegate (send definitions-text get-delegate)])
               (save-visible-tab-regions)
@@ -1916,8 +1952,8 @@ tab panels new behavior:
               (update-save-button)
               
               (if (send tab get-enabled)
-                  (enable-global-controls)
-                  (disable-global-controls))
+                  (enable-evaluation)
+                  (disable-evaluation))
               
               (send definitions-text update-frame-filename)
               (send definitions-text set-delegate old-delegate)))
@@ -2282,30 +2318,31 @@ tab panels new behavior:
                   (update-status-line 'plt:module-browser:mouse-over str))))
             
           (define/private (calculate-module-browser)
-            (let-values ([(old-break-thread old-custodian) (get-breakables)])
-              (open-status-line 'plt:module-browser)
-              (update-status-line 'plt:module-browser status-compiling-definitions)
-              (send module-browser-button enable #f)
-              (send module-browser-lib-path-check-box enable #f)
-              (send module-browser-name-length-choice enable #f)
-              (disable-evaluation-in-tab current-tab)
-              (drscheme:module-overview:fill-pasteboard 
-               module-browser-pb
-               (drscheme:language:make-text/pos
-                definitions-text
-                0
-                (send definitions-text last-position))
-               (λ (str) (update-status-line 
-                         'plt:module-browser 
-                         (format module-browser-progress-constant str)))
-               (λ (user-thread user-custodian)
-                 (set-breakables user-thread user-custodian)))
-              (set-breakables old-break-thread old-custodian)
-              (enable-evaluation current-tab)
-              (send module-browser-button enable #t)
-              (send module-browser-lib-path-check-box enable #t)
-              (send module-browser-name-length-choice enable #t)
-              (close-status-line 'plt:module-browser)))
+            (let ([mod-tab current-tab])
+              (let-values ([(old-break-thread old-custodian) (send mod-tab get-breakables)])
+                (open-status-line 'plt:module-browser)
+                (update-status-line 'plt:module-browser status-compiling-definitions)
+                (send module-browser-button enable #f)
+                (send module-browser-lib-path-check-box enable #f)
+                (send module-browser-name-length-choice enable #f)
+                (disable-evaluation-in-tab current-tab)
+                (drscheme:module-overview:fill-pasteboard 
+                 module-browser-pb
+                 (drscheme:language:make-text/pos
+                  definitions-text
+                  0
+                  (send definitions-text last-position))
+                 (λ (str) (update-status-line 
+                           'plt:module-browser 
+                           (format module-browser-progress-constant str)))
+                 (λ (user-thread user-custodian)
+                   (send mod-tab set-breakables user-thread user-custodian)))
+                (send mod-tab set-breakables old-break-thread old-custodian)
+                (send mod-tab enable-evaluation)
+                (send module-browser-button enable #t)
+                (send module-browser-lib-path-check-box enable #t)
+                (send module-browser-name-length-choice enable #t)
+                (close-status-line 'plt:module-browser))))
           
           ;; set-directory : text -> void
           ;; sets the current-directory and current-load-relative-directory
@@ -2409,7 +2446,7 @@ tab panels new behavior:
             (make-object menu:can-restore-menu-item%
               (string-constant break-menu-item-label)
               scheme-menu
-              (λ (_1 _2) (break-callback))
+              (λ (_1 _2) (send current-tab break-callback))
               #\b
               (string-constant break-menu-item-help-string))
             (make-object menu:can-restore-menu-item%
@@ -2744,7 +2781,7 @@ tab panels new behavior:
                   (make-break-bitmap this) 
                   button-panel
                   (λ (x y)
-		    (break-callback))))
+		    (send current-tab break-callback))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
