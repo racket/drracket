@@ -26,7 +26,7 @@
           ("crimson" ,(make-object color% #xDC #x14 #x3C))
           ("darkblue" ,(make-object color% 0  0  100))))
       
-      ; CACHE
+      ;; CACHE
       (define NUM-CACHED 10)
       (define cached (make-vector 10 null))
       (define cached-name (make-vector 10 ""))
@@ -105,7 +105,7 @@
 	      (loop (+ p size))))))
       
       (define (call-with-output-file* file proc flag)
-        ; Closes on escape
+        ;; Closes on escape
         (let ([p (open-output-file file flag)])
           (dynamic-wind
            void
@@ -152,7 +152,7 @@
           (let loop ([n 0])
             (cond
               [(= n NUM-CACHED)
-	  ; Look for item to uncache
+	       ;; Look for item to uncache
                (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
                (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
                           (if (= n NUM-CACHED)
@@ -446,10 +446,10 @@
                                                  [else "BUTTON"])
                                                "BUTTON")])))))]
                
-	   ; Make sure newline strength before pos is count; returns number inserted
+	       ;; Make sure newline strength before pos is count; returns number inserted
                [try-newline-whitespace? (lambda (x)
                                           (and (char-whitespace? x)
-                                               ; exclude &nbsp; from this test
+                                               ;; exclude &nbsp; from this test
                                                (not (= (char->latin-1-integer x) 160))))]
                [try-newline
                 (lambda (pos count maybe-tabbed?)
@@ -458,26 +458,31 @@
                     [(zero? pos) 0]
                     [else (let ([c (send a-text get-character (sub1 pos))])
                             (cond
-                              [(eq? #\newline c)
-                               (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
-                              [(and maybe-tabbed? 
-                                    (try-newline-whitespace? c)) 
-                               ; Some whitespace is messing up the newlines (perhaps added
-                               ; by a spurious <P> in a list item); delete non-newlines
-                               (let loop ([p (sub1 pos)][nl 0])
-                                 (cond
-                                   [(or (zero? p) (not (try-newline-whitespace? 
-                                                        (send a-text get-character (sub1 p)))))
-                                    (delete p pos)
-                                    (insert (make-string nl #\newline) p)
-                                    (+ (- p pos) nl (try-newline (+ p nl) count #f))]
-                                   [else (loop (sub1 p) 
-                                               (if (char=? #\newline (send a-text get-character (sub1 p)))
-                                                   (add1 nl)
-                                                   nl))]))]
-                              [else
-                               (insert #\newline pos)
-                               (add1 (try-newline pos (sub1 count) #f))]))]))]
+			     [(and (eq? #\* c) 
+				   (let ([s (send a-text find-snip (sub1 pos) 'after)])
+				     (and s (is-a? s bullet-snip%))))
+			      ;; unneeded newline at the start of an item
+			      0]
+			     [(eq? #\newline c)
+			      (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
+			     [(and maybe-tabbed? 
+				   (try-newline-whitespace? c)) 
+			      ;; Some whitespace is messing up the newlines (perhaps added
+			      ;; by a spurious <P> in a list item); delete non-newlines
+			      (let loop ([p (sub1 pos)][nl 0])
+				(cond
+				 [(or (zero? p) (not (try-newline-whitespace? 
+						      (send a-text get-character (sub1 p)))))
+				  (delete p pos)
+				  (insert (make-string nl #\newline) p)
+				  (+ (- p pos) nl (try-newline (+ p nl) count #f))]
+				 [else (loop (sub1 p) 
+					     (if (char=? #\newline (send a-text get-character (sub1 p)))
+						 (add1 nl)
+						 nl))]))]
+			     [else
+			      (insert #\newline pos)
+			      (add1 (try-newline pos (sub1 count) #f))]))]))]
                
                [find-string 
                 (lambda (str pos keep?)
@@ -516,7 +521,7 @@
                               pos)
                           (get-char))]))))]
                
-	   ; Find next "<", translating whitespace, &# along the way
+	       ;; Find next "<", translating whitespace, &# along the way
                [find-bracket
                 (lambda (start-pos dewhite? del-white?)
                   (let find-bracket ([pos start-pos][del-white? del-white?])
@@ -563,7 +568,7 @@
                          (buffer-insert ch pos)
                          (find-bracket (add1 pos) #f)]))))]
                
-	   ; Read inside of <>; return content-of-string
+	       ;; Read inside of <>; return content-of-string
                [read-bracket
                 (lambda ()
                   (let ([first (get-char)])
@@ -579,7 +584,7 @@
                                    (begin
                                      (set! inserted-chars (list* c1 inserted-chars))
                                      #f))))
-		    ; Comment - special parsing
+			;; Comment - special parsing
                         (let loop ([l (list #\space #\- #\- #\!)][dash-count 0])
                           (let ([ch (get-char)])
                             (cond
@@ -591,7 +596,7 @@
                               [(char=? #\- ch)
                                (loop (cons ch l) (add1 dash-count))]
                               [else (loop (cons ch l) 0)])))
-		    ; Not a comment - parse with attention to quotes
+			;; Not a comment - parse with attention to quotes
                         (let ([done (lambda (name)
                                       (list->string (reverse! name)))])
                           (let loop ([ch first][name null][quotes null])
@@ -609,8 +614,8 @@
                               [else
                                (loop (get-char) (cons ch name) quotes)]))))))]
                
-	   ; Parse string from inside <> into 
-	   ; (values html-tag-symbol tag-args-str end-tag?)
+	       ;; Parse string from inside <> into 
+	       ;; (values html-tag-symbol tag-args-str end-tag?)
                [parse-command
                 (let ([re:start (regexp (format "^([^~a/][^~a/]*)(.*)" whitespaces whitespaces))]
                       [re:end (regexp (format "^/([^~a]*)(.*)" whitespaces))])
@@ -625,9 +630,9 @@
                       (string-lowercase! tag)
                       (values (string->symbol tag) args match-end))))]
                
-	   ; Given CMD, find </CMD>; remove </CMD> and return position
-	   ; Translate nested <CMD2> ... </CMD2>
-	   ; Returns (values end-pos del-white? found-extra-end extra-args)
+	       ;; Given CMD, find </CMD>; remove </CMD> and return position
+	       ;; Translate nested <CMD2> ... </CMD2>
+	       ;; Returns (values end-pos del-white? found-extra-end extra-args)
                [find-end
                 (lambda (tag pos dewhite? del-white? enum-depth)
                   (let-values ([(pos del-white?) (find-bracket pos dewhite? del-white?)])
@@ -686,7 +691,7 @@
                                                                  (format "~s" exn))))])
                                            (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
                                   (when (string? s)
-                                    ; Put result back into the input stream:
+                                    ;; Put result back into the input stream:
                                     (set! inserted-chars (append (string->list s) inserted-chars)))
                                   (when (is-a? s snip%)
                                     (insert s pos)
@@ -777,7 +782,7 @@
                                           [end (send a-text position-paragraph end-pos)])
                                       (btree-put! centers pos (- end start)))))
                                 
-                                ; At end, make sure indentation is reset:
+                                ;; At end, make sure indentation is reset:
                                 (let ([m (btree-get indents new-end)])
                                   (when m
                                     (set-car! m (sub1 (car m)))))
@@ -793,7 +798,7 @@
                               (result pos #t)]
                              [(dl ul menu table tr)
                               (let ([new-end (+ end-pos (try-newline end-pos pre-newlines #t))])
-                                ; At end, make sure indentation is reset:
+                                ;; At end, make sure indentation is reset:
                                 (let ([m (btree-get indents new-end)])
                                   (when m
                                     (set-car! m (sub1 (car m)))))
@@ -882,8 +887,8 @@
                               (html-error "unimplemented tag: ~s" tag)
                               (normal)]))))]))]
                
-	   ; Given pos for open bracket, find end and translate contents.
-	   ; Return (values position-for-continuing-search del-white?)
+	       ;; Given pos for open bracket, find end and translate contents.
+	       ;; Return (values position-for-continuing-search del-white?)
                [translate
                 (lambda (pos dewhite? del-white? enum-depth)
                   (let-values ([(cmd) (read-bracket)])
@@ -908,7 +913,7 @@
                    (lambda () (translate pos #t del-white? 0))
                    loop))))
             
-        ; Install indentation
+	    ;; Install indentation
             (btree-for-each
              indents
              (lambda (pos data)
@@ -923,7 +928,7 @@
                        (* 2 (get-bullet-width) depth)
                        0))))
             
-	; Install center alignments
+	    ;; Install center alignments
             (btree-for-each
              centers
              (lambda (pos para-len)
