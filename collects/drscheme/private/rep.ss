@@ -113,7 +113,7 @@
              (newline (current-error-port))])))
 
       ;; insert-error-in-text : (is-a?/c text%)
-      ;;                        (is-a?/c drscheme:rep:text<%>)
+      ;;                        (union #f (is-a?/c drscheme:rep:text<%>))
       ;;                        string?
       ;;                        exn?
       ;;                        (union false? (and/f string? directory-exists?))
@@ -172,7 +172,8 @@
                (insert/delta text "\n")
                (when (and (is-a? src text:basic%)
                           (number? pos)
-                          (number? span))
+                          (number? span)
+			  interactions-text)
                  (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
             [(exn:read? exn)
              (let ([src (exn:read-source exn)]
@@ -186,13 +187,15 @@
                (insert/delta text "\n")
                (when (and (is-a? src text:basic%)
                           (number? pos)
-                          (number? span))
+                          (number? span)
+			  interactions-text)
                  (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
             [(exn:locs? exn)
              (let ([locs (exn:locs-locs exn)])
                (insert/delta text (exn-message exn) error-delta)
                (insert/delta text "\n")
-               (send interactions-text highlight-errors locs))]
+	       (when interactions-text
+		 (send interactions-text highlight-errors locs)))]
             [(exn? exn)
              (insert/delta text (exn-message exn) error-delta)
              (insert/delta text "\n")]
