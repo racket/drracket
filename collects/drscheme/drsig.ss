@@ -19,7 +19,9 @@
   (snip-class% snip%))
 
 (define-signature drscheme:frame^
-  (frame% unit-frame%))
+  (frame-group
+   frame%
+   unit-frame%))
 
 (define-signature drscheme:compound-unit^
   (frame% snip%))

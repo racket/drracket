@@ -1,6 +1,8 @@
+
 (define drscheme:application@
   (unit/sig drscheme:app^
-    (import [mred : mred^]
+    (import [drscheme:frame : drscheme:frame^]
+	    [mred : mred^]
 	    [mzlib : mzlib:core^])
     
     (mred:debug:printf 'invoke "drscheme:application@")
@@ -112,7 +114,11 @@
 	  f)))
 
     (mred:debug:printf 'super-init "before console")
-    (define console (make-object mred:console-frame%))
+    (define console
+      (let ([frames (send drscheme:frame:frame-group get-frames)])
+	(cond
+	 [(null? frames) (make-object drscheme:frame:unit-frame% #f #f)]
+	 [else (car frames)])))
     (mred:debug:printf 'super-init "after console")
     (define eval-string (lambda args (void)))
 
