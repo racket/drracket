@@ -127,7 +127,7 @@ profile todo:
 		     (let loop ([exp (if (syntax? orig-exp)
 					 orig-exp
 					 (namespace-syntax-introduce
-					  (datum->syntax-object orig-exp)))])
+					  (datum->syntax-object #f orig-exp)))])
 		       (let ([top-e (expand-syntax-to-top-form exp)]) 
 			 (syntax-case top-e (begin) 
 			   [(begin expr ...)
