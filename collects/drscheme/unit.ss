@@ -315,22 +315,17 @@
 
   (define name-message%
     (class/d mred:canvas% (parent)
-      ((inherit get-dc get-client-size min-width min-height stretchable-width)
-       (public set-message)
+      ((inherit get-dc get-client-size min-width min-height stretchable-width stretchable-height)
+       (public set-message) ;; set-message : (union #f string) string -> void
        (override on-event on-paint))
 
       (define font (send parent get-label-font))
       
       (define label #f)
       (define short-label "Untitled")
-      (define (set-message name)
-	(cond
-	 [name
-	  (set! label (mzlib:file:normalize-path name))
-	  (set! short-label (mzlib:file:file-name-from-path label))]
-	 [else
-	  (set! short-label "Untitled")
-	  (set! label #f)])
+      (define (set-message name short-name)
+	(set! label name)
+	(set! short-label short-name)
 	(update-min-sizes))
       
       (define full-name-window #f)
@@ -379,7 +374,7 @@
       (define (on-paint)
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
-					;(send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
+            ;(send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
 
 	    (cond
 	     [inverted?
@@ -406,7 +401,8 @@
 			      (/ th 2)))))))))
 
       (super-init parent)
-      (stretchable-width #f)))
+      (stretchable-width #f)
+      (stretchable-height #f)))
 
   
   (define super-frame%
@@ -488,7 +484,9 @@
 	[update-save-message
 	 (lambda (name)
 	   (when name-message
-	     (send name-message set-message name)))])
+	     (let* ([name (mzlib:file:normalize-path name)]
+		    [short-name (mzlib:file:file-name-from-path name)])
+	       (send name-message set-message name short-name))))])
       (override
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
@@ -867,7 +865,9 @@
       (inherit get-label)
       (sequence
 	
-	(update-save-message filename)
+	(send name-message set-message
+	      filename
+	      (or (get-label) "Untitled")) ;; (get-label) shouldn't be #f, but I'm not sure....
 
 	(update-save-button #f)
 
