@@ -163,38 +163,41 @@
                            (is-a? splash-canvas canvas%))
                 (k (void)))
               
-              (let ([bdc (make-object bitmap-dc%)])
-                
-                ;; truncate the bitmap, if necessary
-                (unless (and (= tool-bitmap-size (send bitmap get-width))
-                             (= tool-bitmap-size (send bitmap get-height)))
-                  (let ([new-b (make-object bitmap% tool-bitmap-size tool-bitmap-size #f)])
-                    (send bdc set-bitmap new-b)
-                    (send bdc clear)
-                    (send bdc draw-bitmap bitmap 
-                          (max 0 (- (/ tool-bitmap-size 2)
-                                    (/ (send bitmap get-width) 2)))
-                          (max 0 (- (/ tool-bitmap-size 2)
-                                    (/ (send bitmap get-height) 2))))
-                    (send bdc set-bitmap #f)
-                    (set! bitmap new-b)))
-                
                 (parameterize ([current-eventspace splash-eventspace])
                   (queue-callback
                    (lambda ()
-                     (send bdc set-bitmap splash-bitmap)
-                     (send bdc draw-bitmap bitmap 
-                           tool-bitmap-x 
-                           (max 0 (- (send splash-bitmap get-height) tool-bitmap-y tool-bitmap-size)))
-                     (send bdc set-bitmap #f)
-                     (send splash-canvas on-paint)
-                     (if ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
-                         (begin
-                           (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
-                           (set! tool-bitmap-x tool-bitmap-gap))
-                         (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap)))
-                     (when (tool-bitmap-y . > . (send splash-bitmap get-width))
-                       (set! tool-bitmap-y tool-bitmap-gap)))))))
+                     (let ([bdc (make-object bitmap-dc%)]
+                           [translated-tool-bitmap-y (max 0 (- (send splash-bitmap get-height) tool-bitmap-y tool-bitmap-size))])
+                       
+                       ;; truncate the bitmap, if necessary
+                       (unless (and (= tool-bitmap-size (send bitmap get-width))
+                                    (= tool-bitmap-size (send bitmap get-height)))
+                         (let ([new-b (make-object bitmap% tool-bitmap-size tool-bitmap-size #f)])
+                           (send bdc set-bitmap new-b)
+                           (send bdc clear)
+                           (send bdc draw-bitmap-section splash-bitmap 
+                                 0 0 
+                                 tool-bitmap-x translated-tool-bitmap-y
+                                 tool-bitmap-size tool-bitmap-size)
+                           (send bdc draw-bitmap bitmap 
+                                 (max 0 (- (/ tool-bitmap-size 2)
+                                           (/ (send bitmap get-width) 2)))
+                                 (max 0 (- (/ tool-bitmap-size 2)
+                                           (/ (send bitmap get-height) 2))))
+                           (send bdc set-bitmap #f)
+                           (set! bitmap new-b)))
+                       
+                       (send bdc set-bitmap splash-bitmap)
+                       (send bdc draw-bitmap bitmap tool-bitmap-x translated-tool-bitmap-y)
+                       (send bdc set-bitmap #f)
+                       (send splash-canvas on-paint)
+                       (if ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
+                           (begin
+                             (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
+                             (set! tool-bitmap-x tool-bitmap-gap))
+                           (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap)))
+                       (when (tool-bitmap-y . > . (send splash-bitmap get-width))
+                         (set! tool-bitmap-y tool-bitmap-gap)))))))
             bitmap)))
       
       (define tool-bitmap-gap 4)
