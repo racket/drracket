@@ -107,11 +107,12 @@
       
       (define (make-tour-button button-panel)
         (make-object button% (string-constant take-a-tour) button-panel
-          (lambda x 
+          (lambda (x y)
             (help-desk:open-url
              (string-append
               "file:"
-              (build-path (collection-path "doc" "help" "tour")
+              (build-path (collection-path "doc")
+                          "tour"
                           "index.html"))))
           '(border)))
       
@@ -122,7 +123,9 @@
             (help-desk:open-url 
              (string-append
               "file:"
-              (build-path (collection-path "doc" "help" "release")
+              (build-path (collection-path "doc")
+                          "help"
+                          "release"
                           "notes.html"))))))
       
       (define tour-frame%
