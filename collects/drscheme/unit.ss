@@ -1,21 +1,27 @@
-
-(unit/sig drscheme:unit^
-  (import [mred : mred^]
-	  [mzlib : mzlib:core^]
-	  [mzlib:date : mzlib:date^]
-	  [fw : framework^]
-          [launcher : launcher-maker^]
-	  [basis : plt:basis^]
-	  [drscheme:help-desk : help:drscheme-interface^]
-	  [drscheme:app : drscheme:app^]
-	  [drscheme:frame : drscheme:frame^]
-	  [drscheme:text : drscheme:text^]
-	  [drscheme:rep : drscheme:rep^]
-	  [drscheme:language : drscheme:language^]
-	  [drscheme:get/extend : drscheme:get/extend^]
-	  [drscheme:snip : drscheme:snip^])
+(module unit mzscheme
+  (require "mred-wrap.ss"
+           "framework-wrap.ss"
+           (prefix mzlib:file: (lib "file.ss"))
+           (prefix mzlib:list: (lib "list.ss"))
+           (prefix mzlib:date: (lib "date.ss"))
+           (prefix basis: (lib "basis.ss" "userspce"))
+           (prefix drscheme:help-desk: "help.ss")
+           (prefix drscheme:app: "app.ss")
+           (prefix drscheme:frame: "frame.ss")
+           (prefix drscheme:text: "text.ss")
+           (prefix drscheme:language: "language.ss")
+           (prefix drscheme:get/extend: "get-extend.ss")
+           (prefix drscheme:snip: "snip.ss"))
   
-  (fw:keymap:add-to-right-button-menu
+  (provide frame% 
+           make-bitmap
+           definitions-canvas%
+           definitions-text%
+           interactions-canvas%
+           program-editor-mixin
+           open-drscheme-window)
+  
+  (keymap:add-to-right-button-menu
    (lambda (menu text event)
      (when (and (is-a? text mred:text%)
 		(is-a? event mred:mouse-event%))
@@ -130,7 +136,7 @@
 	    (if (eq? (system-type) 'windows)
 		(string-append (basename program-filename) ".exe")
 		(basename program-filename))]
-	   [settings (fw:preferences:get drscheme:language:settings-preferences-symbol)])
+	   [settings (preferences:get drscheme:language:settings-preferences-symbol)])
       
       (cond
         [(not program-filename)
@@ -140,13 +146,13 @@
         
         [else
          (let* ([filename 
-                 (parameterize ([fw:finder:dialog-parent-parameter frame]
-                                [fw:finder:default-extension "exe"])
-                   (fw:finder:put-file
+                 (parameterize ([finder:dialog-parent-parameter frame]
+                                [finder:default-extension "exe"])
+                   (finder:put-file
                     executable-filename
                     #f #f "Save a Launcher"))]
                 [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))]
-                [teachpacks (fw:preferences:get 'drscheme:teachpack-file)])
+                [teachpacks (preferences:get 'drscheme:teachpack-file)])
            (when filename
              (cond
 	     ;; this condition should guarantee that the language
@@ -244,7 +250,7 @@
   (define make-break-bitmap (make-bitmap "break"))
   
   ;; this is the old definition of the interactions canvas.
-  ;; It should be integrated into fw:canvas:wide-snip% 
+  ;; It should be integrated into canvas:wide-snip% 
   ;; becuase it uses a better algorithm to find the snip
   ;; wide widths.
   '(class-asi mred:wide-snip-canvas% ; to match rep-new.ss, inherit from wrapping-canvas% 
@@ -254,7 +260,7 @@
      (public)
      (private
        [snips null]
-       [autowrap-snips? (fw:preferences:get 'mred:auto-set-wrap?)]
+       [autowrap-snips? (preferences:get 'mred:auto-set-wrap?)]
        [update-snip-size
 	(lambda (s)
 	  (if (is-a? s mred:editor-snip%)
@@ -320,11 +326,11 @@
 	     (super-on-focus on?))]))))
   
   (define interactions-canvas% (make-searchable-canvas%
-				(fw:canvas:info-mixin
-				 fw:canvas:wide-snip%)))
+				(canvas:info-mixin
+				 canvas:wide-snip%)))
   
   (define definitions-canvas%
-    (class (make-searchable-canvas% fw:canvas:info%) args
+    (class (make-searchable-canvas% canvas:info%) args
       (sequence
 	(apply super-init args))))
   
@@ -356,9 +362,9 @@
   
   (define definitions-super%
     (program-editor-mixin
-     (fw:scheme:text-mixin
+     (scheme:text-mixin
       (drscheme:rep:drs-bindings-keymap-mixin
-       fw:text:info%))))
+       text:info%))))
   
   (define definitions-text%
     (class definitions-super% ()
@@ -418,19 +424,19 @@
       (private
         [needs-execution-state #f]
         [already-warned-state #f]
-        [execute-language (fw:preferences:get drscheme:language:settings-preferences-symbol)])
+        [execute-language (preferences:get drscheme:language:settings-preferences-symbol)])
       (public
 	[needs-execution? 
          (lambda ()
            (or needs-execution-state
                (not (equal? execute-language
-                            (fw:preferences:get drscheme:language:settings-preferences-symbol)))))]
+                            (preferences:get drscheme:language:settings-preferences-symbol)))))]
 	[teachpack-changed
 	 (lambda ()
 	   (set! needs-execution-state #t))]
 	[just-executed
 	 (lambda ()
-           (set! execute-language (fw:preferences:get drscheme:language:settings-preferences-symbol))
+           (set! execute-language (preferences:get drscheme:language:settings-preferences-symbol))
 	   (set! needs-execution-state #f)
 	   (set! already-warned-state #f))]
 	[already-warned? (lambda () already-warned-state)]
@@ -523,7 +529,7 @@
                                          (defn-name defn))))
                       defs))
           (if sort-by-name?
-              (mzlib:function:quicksort 
+              (mzlib:list:quicksort 
                defs
                (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
               defs)))
@@ -603,13 +609,13 @@
                            (set! inverted? #f)
                            (on-paint)))]
                  [defns (get-definitions)])
-             (make-object fw:menu:can-restore-menu-item% sorting-name
+             (make-object menu:can-restore-menu-item% sorting-name
                menu
                (lambda x
                  (change-sorting-order)))
              (make-object mred:separator-menu-item% menu)
              (if (null? defns)
-                 (send (make-object fw:menu:can-restore-menu-item%
+                 (send (make-object menu:can-restore-menu-item%
                          "<< no definitions found >>"
                          menu
                          void)
@@ -627,8 +633,8 @@
                                    (<= d-start t-start t-end d-end)))]
                             [item
                              (make-object (if checked?
-                                              fw:menu:can-restore-checkable-menu-item%
-                                              fw:menu:can-restore-menu-item%)
+                                              menu:can-restore-checkable-menu-item%
+                                              menu:can-restore-menu-item%)
                                (defn-name defn)
                                menu
                                (lambda x
@@ -658,10 +664,10 @@
   
   (define super-frame%
     (drscheme:frame:mixin
-     (drscheme:frame:basics-mixin fw:frame:searchable%)))
+     (drscheme:frame:basics-mixin frame:searchable%)))
   
   (define vertical-resizable/pref%
-    (class fw:panel:vertical-resizable% (unit-frame . args)
+    (class panel:vertical-resizable% (unit-frame . args)
       (inherit get-percentages)
       (override
         [on-percentage-change
@@ -671,7 +677,7 @@
                            (length (ivar unit-frame definitions-canvases))
                            (length (ivar unit-frame interactions-canvases)))
                         (= 2 (length percentages)))
-               (fw:preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
+               (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
       (sequence (apply super-init args))))
 
   (define frame%
@@ -810,8 +816,8 @@
                   (string=? (substring label 0 4) "Show"))))]
 	[save-as-text-from-text
 	 (lambda (text)
-	   (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
-			 (fw:finder:put-file))])
+	   (let ([file (parameterize ([finder:dialog-parent-parameter this])
+			 (finder:put-file))])
 	     (when file
 	       (send text save-file file 'text))))])
       
@@ -843,31 +849,31 @@
 	[file-menu:between-save-as-and-print
 	 (lambda (file-menu)
 	   (let ([sub-menu (make-object mred:menu% "Save Other" file-menu)])
-	     (make-object fw:menu:can-restore-menu-item%
+	     (make-object menu:can-restore-menu-item%
 	       "Save Definitions As Text..."
 	       sub-menu
 	       (lambda (_1 _2)
 		 (save-as-text-from-text definitions-text)))
-	     (make-object fw:menu:can-restore-menu-item%
+	     (make-object menu:can-restore-menu-item%
 	       "Save Interactions"
 	       sub-menu
 	       (lambda (_1 _2) (send interactions-text save-file)))
-	     (make-object fw:menu:can-restore-menu-item%
+	     (make-object menu:can-restore-menu-item%
 	       "Save Interactions As..."
 	       sub-menu
 	       (lambda (_1 _2) 
-		 (let ([file (parameterize ([fw:finder:dialog-parent-parameter this])
-			       (fw:finder:put-file))])
+		 (let ([file (parameterize ([finder:dialog-parent-parameter this])
+			       (finder:put-file))])
 		   (when file
 		     (send interactions-text save-file 
 			   file 'standard)))))
-	     (make-object fw:menu:can-restore-menu-item%
+	     (make-object menu:can-restore-menu-item%
 	       "Save Interactions As Text..."
 	       sub-menu
 	       (lambda (_1 _2)
 		 (save-as-text-from-text interactions-text)))
              ;	   (make-object mred:separator-menu-item% file-menu)
-             ;	   (make-object fw:menu:can-restore-menu-item%
+             ;	   (make-object menu:can-restore-menu-item%
              ;	     "Show Interactions History"
              ;	     file-menu
              ;	     (lambda (_1 _2)
@@ -877,14 +883,14 @@
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)
 	   (set! file-menu:print-transcript-item
-		 (make-object fw:menu:can-restore-menu-item%
+		 (make-object menu:can-restore-menu-item%
 		   "Print Interactions..."
 		   file-menu
 		   (lambda (_1 _2)
 		     (send interactions-text print
 			   #t 
 			   #t
-			   (fw:preferences:get 'framework:print-output-mode)))))
+			   (preferences:get 'framework:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
       
       (inherit get-edit-target-window)
@@ -982,7 +988,7 @@
 								 (car percentages)
 								 (cdr percentages))))])))])
 				    (set-canvases!
-				     (mzlib:function:remq target (get-canvases)))
+				     (mzlib:list:remq target (get-canvases)))
 				    (send resizable-panel change-children
 					  (lambda (l)
 					    (append definitions-canvases
@@ -1060,7 +1066,7 @@
            (send resizable-panel change-children
                  (lambda (l)
                    top-panel
-                   (mzlib:function:foldl
+                   (mzlib:list:foldl
                     (lambda (item sofar)
                       (if (hidden? item)
                           sofar
@@ -1138,8 +1144,8 @@
       (override
         [on-size
          (lambda (w h)
-           (fw:preferences:set 'drscheme:unit-window-width w)
-           (fw:preferences:set 'drscheme:unit-window-height h)
+           (preferences:set 'drscheme:unit-window-width w)
+           (preferences:set 'drscheme:unit-window-height h)
            (super-on-size w h))])
 
       (override
@@ -1155,8 +1161,8 @@
       (sequence
 	(super-init filename
 		    #f
-		    (fw:preferences:get 'drscheme:unit-window-width)
-		    (fw:preferences:get 'drscheme:unit-window-height))
+		    (preferences:get 'drscheme:unit-window-width)
+		    (preferences:get 'drscheme:unit-window-height))
 
 	(let* ([mb (get-menu-bar)]
 	       [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]
@@ -1172,49 +1178,49 @@
 	  (drscheme:language:fill-language-menu this language-menu)
 	  
 	  (set! execute-menu-item
-		(make-object fw:menu:can-restore-menu-item%
+		(make-object menu:can-restore-menu-item%
 		  "Execute"
 		  scheme-menu
 		  (lambda (_1 _2) (execute-callback))
 		  #\t
 		  "Restart the program in the definitions window"))
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "Break"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-text break))
             #\b
 	    "Break the current evaluation")
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "Kill"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-text kill-evaluation))
             #\k
 	    "Kill the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
-          (make-object fw:menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
+          (make-object menu:can-restore-menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
 	  (make-object mred:separator-menu-item% scheme-menu)
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "&Reindent"
 	    scheme-menu
 	    (send-method 'tabify-selection))
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "Reindent &All"
 	    scheme-menu
 	    (send-method 'tabify-all)
             #\i)
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "&Comment Out"
 	    scheme-menu
 	    (send-method 'comment-out-selection))
-	  (make-object fw:menu:can-restore-menu-item%
+	  (make-object menu:can-restore-menu-item%
 	    "&Uncomment"
 	    scheme-menu
 	    (send-method 'uncomment-selection)))
         
-	(fw:frame:reorder-menus this)
+	(frame:reorder-menus this)
         
 	(set! definitions-item
-	      (make-object fw:menu:can-restore-menu-item%
+	      (make-object menu:can-restore-menu-item%
 		"Hide &Definitions"
 		show-menu
 		(lambda (_1 _2) 
@@ -1223,7 +1229,7 @@
                 #\d
 		"Show/Hide the definitions window"))
 	(set! interactions-item
-	      (make-object fw:menu:can-restore-menu-item%
+	      (make-object menu:can-restore-menu-item%
                 "Show &Interactions"
                 show-menu
                 (lambda (_1 _2) 
@@ -1270,19 +1276,19 @@
 	   (for-each (lambda (item) (send item delete)) teachpack-items)
 	   (set! teachpack-items
 		 (map (lambda (name)
-			(make-object fw:menu:can-restore-menu-item%
+			(make-object menu:can-restore-menu-item%
 			  (format "Clear ~a Teachpack" (mzlib:file:file-name-from-path name))
 			  language-menu
 			  (lambda (item evt)
-			    (fw:preferences:set
+			    (preferences:set
 			     'drscheme:teachpack-file
-			     (mzlib:function:remove
+			     (mzlib:list:remove
 			      name
-			      (fw:preferences:get 'drscheme:teachpack-file))))))
+			      (preferences:get 'drscheme:teachpack-file))))))
 		      names)))])
       (sequence
 	(update-teachpack-menu
-	 (fw:preferences:get 'drscheme:teachpack-file)))
+	 (preferences:get 'drscheme:teachpack-file)))
       
       (public
 	[stop-execute-button (void)]
@@ -1318,7 +1324,7 @@
       
       (private
 	[remove-teachpack-callback
-	 (fw:preferences:add-callback
+	 (preferences:add-callback
 	  'drscheme:teachpack-file
 	  (lambda (p v)
 	    (update-teachpack-menu v)
@@ -1347,7 +1353,7 @@
 	(update-shown)
 
 	(send resizable-panel set-percentages
-              (let ([p (fw:preferences:get 'drscheme:unit-window-size-percentage)])
+              (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
                 (list p (- 1 p))))
 
 	(set-label-prefix "DrScheme")
@@ -1378,7 +1384,7 @@
 	    (send frame show #t)
 	    frame))]))
   
-  (fw:handler:insert-format-handler 
+  (handler:insert-format-handler 
    "Units"
    (lambda (filename) #t)
    open-drscheme-window))
@@ -1388,7 +1394,7 @@
 ;; nixed becuase of poor support from reader
 
 (make-object mred:separator-menu-item% scheme-menu)
-(make-object fw:menu:can-restore-menu-item%
+(make-object menu:can-restore-menu-item%
   "Insert &Lambda"
   scheme-menu
   (lambda x (let ([editor (get-edit-target-object)])
@@ -1410,17 +1416,17 @@
 (send (mred:get-the-snip-class-list) add lambda-snipclass)
 
 (define lambda-snip% 
-  (class* mred:snip% (fw:gui-utils:text-snip<%>) ()
+  (class* mred:snip% (gui-utils:text-snip<%>) ()
     (private
       [get-normal-font
        (lambda ()
          (send mred:the-font-list find-or-create-font
-               (fw:preferences:get 'drscheme:font-size)
+               (preferences:get 'drscheme:font-size)
                'modern 'normal 'normal #f))]
       [get-lambda-font
        (lambda ()
          (send mred:the-font-list find-or-create-font 
-               (fw:preferences:get 'drscheme:font-size)
+               (preferences:get 'drscheme:font-size)
                'symbol 'normal 'normal #f))])
     (public
       [get-string

@@ -31,10 +31,7 @@
   )
 
 (define-signature drscheme:snip^ 
-  (prompt-snip%
-   equal-snip% 
-   separator-snip%
-   whole/part-number-snip%))
+  )
 
 (define-signature drscheme:language^
   (fill-language-menu
@@ -61,22 +58,10 @@
    node-snip%))
 
 (define-signature drscheme:unit^
-  (frame% 
-   make-bitmap
-   definitions-canvas%
-   definitions-text%
-   interactions-canvas%
-   program-editor-mixin
-   open-drscheme-window))
+  )
 
 (define-signature drscheme:frame^
-  (name-message%
-   draw-button-label
-   calc-button-min-sizes
-   <%>
-   mixin
-   basics-mixin
-   basics<%>))
+  )
 
 (define-signature drscheme:signature^
   (frame%))
