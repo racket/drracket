@@ -34,8 +34,7 @@
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
           [define/private get-menu-bindings
             (lambda ()
-              (let ([name-ht (make-hash-table 'equal)]
-                    [fun-ht (make-hash-table 'equal)])
+              (let ([name-ht (make-hash-table)])
                 (let loop ([menu-container (get-menu-bar)])
                   (for-each
                    (lambda (item)
@@ -43,33 +42,29 @@
                        (let ([short-cut (send item get-shortcut)])
                          (when short-cut
                            (let ([keyname
-                                  (keymap:canonicalize-keybinding-string
-                                   (string-append
-                                    (case (system-type)
-                                      [(windows) "c:"]
-                                      [(macosx macos) "d:"]
-                                      [(unix)
-                                       (case (send item get-x-shortcut-prefix)
-                                         [(meta) "m:"]
-                                         [(alt) "a:"]
-                                         [(ctl) "c:"]
-                                         [(ctl-m) "c:m;"])]
-                                      [else ""])
-                                    (string short-cut)))])
-                             (hash-table-put! name-ht keyname (send item get-plain-label))
-                             (hash-table-put! fun-ht keyname
-                                              (lambda ()
-                                                (let ([evt (make-object control-event% 'menu)])
-                                                  (send evt set-time-stamp (current-milliseconds))
-                                                  (send item command evt))))))))
+                                  (string->symbol
+                                   (keymap:canonicalize-keybinding-string
+                                    (string-append
+                                     (case (system-type)
+                                       [(windows) "c:"]
+                                       [(macosx macos) "d:"]
+                                       [(unix)
+                                        (case (send item get-x-shortcut-prefix)
+                                          [(meta) "m:"]
+                                          [(alt) "a:"]
+                                          [(ctl) "c:"]
+                                          [(ctl-m) "c:m;"])]
+                                       [else ""])
+                                     (string short-cut))))])
+                             (hash-table-put! name-ht keyname (send item get-plain-label))))))
                      (when (is-a? item menu-item-container<%>)
                        (loop item)))
                    (send menu-container get-items)))
-                (values name-ht fun-ht)))]
+                name-ht))]
           
           [define/private copy-hash-table
             (lambda (ht)
-              (let ([res (make-hash-table 'equal)])
+              (let ([res (make-hash-table)])
                 (hash-table-for-each
                  ht
                  (lambda (x y) (hash-table-put! res x y)))
@@ -87,7 +82,7 @@
               (if (can-show-keybindings?)
                   (let ([edit-object (get-edit-target-object)])
                     (let ([keymap (send edit-object get-keymap)])
-                      (let*-values ([(menu-names menu-funs) (get-menu-bindings)])
+                      (let*-values ([(menu-names) (get-menu-bindings)])
                         (let* ([table (send keymap get-map-function-table/ht
                                             (copy-hash-table menu-names))]
                                [structured-list
