@@ -313,6 +313,10 @@
       ;; 
       (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
       (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (symbol? x) (not x))))
+
+      ;; no more preferences defaults can be set after this
+      (preferences:read)
+      
       (drscheme:app:check-new-version)
       
       ;;
@@ -323,8 +327,6 @@
       ;;   not going to be exiting yet.
       (autosave:restore-autosave-files/gui)
      
-      (preferences:read)
-
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
       (define (make-basic)

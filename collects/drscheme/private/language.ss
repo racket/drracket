@@ -175,7 +175,7 @@
                  (memq (vector-ref printable 5) '(none debug debug/profile test-coverage))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
-            (make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
+            (make-simple-settings #t 'write 'mixed-fraction-e #f #t 'debug))
           (define/public (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -471,7 +471,6 @@
 	(mixin (module-based-language<%>) (language<%>)
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
                    get-init-code use-mred-launcher get-reader)
-
 
           (define/public (get-comment-character) (values ";  " #\;))
           (define/public (order-manuals x) (values x #t))

@@ -1,3 +1,15 @@
+#|
+
+Make sure there are tests that cover these parameters:
+
+ (read-case-sensitive #f) 
+ (read-square-bracket-as-paren #f)  -- test: (symbol? '[])
+ (read-curly-brace-as-paren #f)
+ (print-vector-length #f)
+
+the settings above should match r5rs
+
+|#
 
 (module language-test mzscheme
   (require "drscheme-test-util.ss"
@@ -199,7 +211,101 @@
       (test-expression "(list 1)" "(1)")
       (test-expression "argv" "#0()")))
 
+  
+  
+;                           
+;                           
+;                           
+;        ;;;;;;             
+;        ;                  
+;        ;                  
+;   ; ;  ;       ; ;   ;;;  
+;   ;;   ;;;;    ;;   ;     
+;   ;        ;   ;    ;;    
+;   ;         ;  ;     ;;   
+;   ;         ;  ;       ;  
+;   ;    ;   ;   ;       ;  
+;   ;     ;;;    ;    ;;;   
+;                           
+;                           
+;                           
 
+  
+  (define (r5rs)
+    (parameterize ([language (list (regexp "R5RS"))])
+
+      (check-top-of-repl)
+
+      (generic-settings #f)
+      (generic-output #t #t #t)
+      
+      (test-hash-bang)
+      (test-error-after-definition)
+      
+      (prepare-for-test-expression)
+      
+      (test-expression "'|.|" "|.|")
+      (test-expression '("(equal? (list " image ") (list " image "))") 
+                       "#f")
+      (test-expression "(define x 1)(define x 2)" "")
+      
+      (test-expression "(define-struct spider (legs))(make-spider 4)" "#<struct:spider>")
+      
+      (test-expression "(sqrt -1)" "0+1i")
+
+      (test-expression "class" "{image} reference to undefined identifier: class")
+      (test-expression "shared" "{image} reference to undefined identifier: shared")
+      
+      (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of \"\\.\"")
+      (test-expression "'(1 . 2)" "(1 . 2)")
+      
+      (test-expression "(define (f define) 1)" "")
+      (test-expression "(define (f car) 1)" "")
+      (test-expression "(define (f empty) 1)" "")
+      
+      (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
+      
+      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
+      
+      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
+      
+      (test-expression "true" "{image} reference to undefined identifier: true")
+      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
+      (test-expression "(eq? 'a 'A)" "#t")
+      (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
+      (test-expression "(cond [(= 1 2) 3])" "")
+      (test-expression "(cons 1 2)" "(1 . 2)")
+      (test-expression "'(1)" "(1)")
+      (test-expression "(define shrd (box 1)) (list shrd shrd)"
+                       "(#&1 #&1)")
+      (test-expression 
+       "(local ((define x x)) 1)"
+       #rx"define: not allowed in an expression context")
+      (test-expression "(letrec ([x x]) 1)" "1")
+      (test-expression "(if 1 1 1)" "1")
+      (test-expression "(+ 1)" "1")
+
+      (test-expression "1.0" "1.0")
+      (test-expression "#i1.0" "1.0")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\" mixed}")
+      (test-expression "1/3" "{number 1/3 \"1/3\" mixed}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\" mixed}")
+      (test-expression "-1/3" "{number -1/3 \"-1/3\" mixed}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\" mixed}")
+      (test-expression "1/2" "{number 1/2 \"1/2\" mixed}")
+      (test-expression "-1/2" "{number -1/2 \"-1/2\" mixed}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\" mixed}")
+      (test-expression "+1/3i" "0+1/3i")
+      (test-expression "+1/2i" "0+1/2i")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\" mixed}")
+      (test-expression "(exact? 1.5)" "#f")
+
+      (test-expression "(let ([f (lambda (x) x)]) f)" "#<procedure:f>")
+      (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
+
+      (test-expression "(list 1)" "(1)")
+      (test-expression "argv" "#0()")))
                                                         
 ;;                      ;                               
  ;                                                      
@@ -1079,6 +1185,7 @@
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
+    (go r5rs)
     (go beginner)
     (go beginner/abbrev)
     (go intermediate)

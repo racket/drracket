@@ -1225,8 +1225,17 @@
                   [else `(expand ',res)]))))
           (super-instantiate ())))
 
-      (define (r5rs-manuals-mixin %)
+      (define (r5rs-mixin %)
         (class %
+          (define/override (on-execute setting run-in-user-thread)
+            (super on-execute setting run-in-user-thread)
+            (run-in-user-thread
+             (lambda ()
+               (read-square-bracket-as-paren #f)
+               (read-curly-brace-as-paren #f)
+               (print-vector-length #f))))
+          (define/override (default-settings) 
+            (drscheme:language:make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
           (define/override (order-manuals x)
             (values 
              (map bytes->path (list #"r5rs" #"drscheme" #"tour" #"help"))
@@ -1319,4 +1328,4 @@
                         (list -1000 -1000)
                         #f
                         (string-constant r5rs-one-line-summary)
-                        r5rs-manuals-mixin)))))))
+                        r5rs-mixin)))))))
