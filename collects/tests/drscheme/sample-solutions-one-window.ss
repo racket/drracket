@@ -103,7 +103,7 @@
                         "teachpack" "htdp" teachpack)))]))]
                [teachpack-should-be
                 (apply string-append 
-                       (map (lambda (tp) (format "TeachPack: ~a.~n" (get-full-path tp)))
+                       (map (lambda (tp) (format "Teachpack: ~a.~n" (get-full-path tp)))
                             (cons
                              sample-solutions-teachpack-filename
                              teachpacks)))]
@@ -114,15 +114,15 @@
                             (+ 2 (length teachpacks) 1)))] ;; add 1 for the always there teachpack
                [teachpacks-already-set? (string=? teachpack-should-be teachpack-is)])
           (unless teachpacks-already-set?
-            (fw:test:menu-select "Language" "Clear All TeachPacks")
+            (fw:test:menu-select "Language" "Clear All Teachpacks")
             (use-get/put-dialog
              (lambda ()
-               (fw:test:menu-select "Language" "Add TeachPack..."))
+               (fw:test:menu-select "Language" "Add Teachpack..."))
              sample-solutions-teachpack-filename)
             (for-each (lambda (teachpack)
                         (use-get/put-dialog
                          (lambda ()
-                           (fw:test:menu-select "Language" "Add TeachPack..."))
+                           (fw:test:menu-select "Language" "Add Teachpack..."))
                          (get-full-path teachpack)))
                       teachpacks)))
         

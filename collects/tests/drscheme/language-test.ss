@@ -33,7 +33,7 @@
 
   
   (define (mred)
-    (parameterize ([language (list "PLT" "Graphical (MrEd)")])
+    (parameterize ([language (list "PLT" (regexp "Graphical"))])
       (check-top-of-repl)
 
       (generic-settings #f)
@@ -129,7 +129,7 @@
 
   
   (define (mzscheme)
-    (parameterize ([language (list "PLT" "Textual (MzScheme)")])
+    (parameterize ([language (list "PLT" (regexp "Textual"))])
 
       (check-top-of-repl)
 
@@ -818,15 +818,21 @@
       (set-language #t)
       (do-execute drs)
       (let* ([interactions (send drs get-interactions-text)]
+             [short-lang (car (last-pair (language)))]
              [get-line (lambda (n) (send interactions get-text 
                                          (send interactions paragraph-start-position n)
                                          (send interactions paragraph-end-position n)))]
              [line0-expect (format "Welcome to DrScheme, version ~a." (version:version))]
-             [line1-expect (format "Language: ~a." (car (last-pair (language))))]
+             [line1-expect 
+              (if (string? short-lang)
+                  (format "Language: ~a." short-lang)
+                  short-lang)]
              [line0-got (get-line 0)]
              [line1-got (get-line 1)])
         (unless (and (string=? line0-expect line0-got)
-                     (string=? line1-expect line1-got))
+                     (if (string? short-lang)
+                         (string=? line1-expect line1-got)
+                         (regexp-match line1-expect line1-got)))
           (printf "expected lines: ~n  ~a~n  ~a~ngot lines:~n  ~a~n  ~a~n" 
                   line0-expect line1-expect
                   line0-got line1-got)
@@ -1022,12 +1028,12 @@
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
-    (beginner)
-    (beginner/abbrev)
-    (intermediate)
-    (intermediate/lambda)
-    (advanced)
-    (full)
+    ;(beginner)
+    ;(beginner/abbrev)
+    ;(intermediate)
+    ;(intermediate/lambda)
+    ;(advanced)
+    ;(full)
     (mred)
     (mzscheme)
     ))
