@@ -452,6 +452,17 @@
 			  (list interactions-id definitions-id 
 				;imports-id
 				)))))
+	   (when (ormap (lambda (child)
+			  (and (is-a? child wx:media-canvas%)
+			       (not (send child is-focus-on?))))
+			(ivar panel children))
+	     (let loop ([children (ivar panel children)])
+	       (cond
+		[(null? children) (void)]
+		[else (let ([child (car children)])
+			(if (is-a? child wx:media-canvas%)
+			    (send child set-focus)
+			    (loop (cdr children))))])))
 	   
 	   (send interactions-edit scroll-to-position 
 		 (send interactions-edit get-end-position)
