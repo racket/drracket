@@ -567,7 +567,6 @@
                                      (on-paint)
                                      (send text set-position (defn-start-pos defn) (defn-start-pos defn))
                                      (let ([canvas (send text get-canvas)])
-                                       (printf "canvas: ~s\n" canvas)
                                        (when canvas
                                          (send canvas focus)))))])
                            (when checked?
@@ -595,7 +594,8 @@
         (let* ([min-indent 0]
                [defs (let loop ([pos 0])
                        (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
-                         (if defn-pos
+                         (if (and defn-pos
+                                  (not (in-semicolon-comment? text defn-pos)))
                              (let ([indent (get-defn-indent text defn-pos)]
                                    [name (get-defn-name text (+ defn-pos (string-length tag-string)))])
                                (set! min-indent (min indent min-indent))
@@ -625,6 +625,17 @@
                                          (defn-name defn))))
                       defs))
           defs))
+
+      ;; in-semicolon-comment: text number -> boolean
+      ;; returns #t if `define-start-pos' is in a semicolon comment and #f otherwise
+      (define (in-semicolon-comment? text define-start-pos)
+        (let* ([para (send text position-paragraph define-start-pos)]
+               [start (send text paragraph-start-position para)])
+          (let loop ([pos start])
+            (cond
+              [(pos . >= . define-start-pos) #f]
+              [(char=? #\; (send text get-character pos)) #t]
+              [else (loop (+ pos 1))]))))
       
       ;; get-defn-indent : text number -> number
       ;; returns the amount to indent a particular definition
