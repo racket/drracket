@@ -1259,6 +1259,10 @@
           [define interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
                                    resizable-panel)]
           [define interactions-canvases (list interactions-canvas)]
+          
+          (define/public (get-definitions-canvases) definitions-canvases)
+          (define/public (get-interactions-canvases) interactions-canvases)
+          
           (public get-definitions-canvas get-interactions-canvas)
           [define get-definitions-canvas (lambda () definitions-canvas)]
           [define get-interactions-canvas (lambda () interactions-canvas)]
