@@ -121,7 +121,7 @@
                       (documentation-reference #f)
                       (reader (lambda (src port offsets)
 				(let ([v (read-syntax src port offsets)])
-				  (if (eof-object? v)
+                                  (if (eof-object? v)
 				      v
 				      (namespace-syntax-introduce v))))))
           (define/public (get-module) module)

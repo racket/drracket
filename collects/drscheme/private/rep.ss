@@ -699,6 +699,7 @@ TODO
           ;; display-results : (listof TST) -> void
           ;; prints each element of anss that is not void as values in the REPL.
           (define/public (display-results anss) ; =User=, =Handler=, =Breaks=
+            (printf "display-results ~s\n" anss)
             (for-each 
              (lambda (v)
                (unless (void? v)
