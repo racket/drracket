@@ -2,7 +2,8 @@
   (require (lib "unitsig.ss")
 	   (lib "framework-sig.ss" "framework"))
   
-  (provide drscheme:module-language^
+  (provide drscheme:debug^
+           drscheme:module-language^
            drscheme:get-collection^
            drscheme:main^
            drscheme:init^
@@ -25,6 +26,11 @@
            drscheme:tool^
 	   drscheme^)
 
+  (define-signature drscheme:debug^
+    (make-debug-error-display-handler
+     make-debug-eval-handler
+     hide-backtrace-window))
+  
   (define-signature drscheme:module-language^
     (add-module-language))
   
@@ -42,7 +48,8 @@
      system-custodian
      system-eventspace
      system-namespace
-     first-dir))
+     first-dir
+     all-toplevel-collections))
   
   (define-signature drscheme:snip^ 
     (whole/part-number-snip%
@@ -55,6 +62,7 @@
   (define-signature drscheme:language-configuration/internal^
     ((struct language-settings (language settings))
      
+     add-info-specified-languages
      get-default-language-settings
      (open drscheme:language-configuration^)
      get-languages

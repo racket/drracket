@@ -3,8 +3,9 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
            "drsig.ss"
+           (lib "list.ss")
 	   (lib "mred.ss" "mred"))
-
+  
   (provide init@)
   
   (define init@
@@ -26,7 +27,7 @@
       (define first-dir (current-directory))
       
       (define original-error-display-handler (error-display-handler))
-
+      
       (define error-display-handler-message-box-title
         (make-parameter (string-constant drscheme-internal-error)))
       
@@ -36,11 +37,11 @@
       ;; identifying the error as a drscheme internal error.
       (error-display-handler
        (lambda (msg exn)
-
+         
          ;; this  may raise an exception if the port is gone.
          (with-handlers ([not-break-exn? (lambda (x) (void))])
            (original-error-display-handler msg exn))
-
+         
          (let ([title (error-display-handler-message-box-title)])
            (let ([text (let ([p (open-output-string)])
                          (parameterize ([current-error-port p]
@@ -53,4 +54,30 @@
                                 [current-custodian system-custodian])
                    (queue-callback
                     (lambda ()
-                      (message-box title text))))))))))))
+                      (message-box title text)))))))))
+      
+      ;; all-toplevel-collections : -> (listof string)
+      ;; returns the list of collections currently available
+      (define (all-toplevel-collections)
+        ;; collections-hash-table : (hash-table symbol string)
+        ;; contains a list of the available collections.
+        ;; use a hash table to cancel out duplicate collections
+        (define collections-hash-table (make-hash-table))
+        
+        ;; add-collections-in-path : path -> void
+        ;; adds each collection in the given path
+        ;; to collections-hash-table
+        (define (add-collections-in-path path)
+          (for-each 
+           (lambda (d) 
+             (when (and (directory-exists? (build-path path d))
+                        (not (string-ci=? d "CVS")))
+               (hash-table-put! collections-hash-table (string->symbol d) d)))
+           (with-handlers ([not-break-exn?
+                            (lambda (x) null)])
+             (directory-list path))))
+        
+        (for-each add-collections-in-path (current-library-collection-paths))
+        (quicksort
+         (hash-table-map collections-hash-table (lambda (x y) y))
+         string<=?)))))

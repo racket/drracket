@@ -1,18 +1,22 @@
-(module debug-tool mzscheme
+(module debug mzscheme
   (require (lib "unitsig.ss")
            (lib "stacktrace.ss" "errortrace")
            (lib "class.ss")
            (lib "list.ss")
            (lib "date.ss")
-           (lib "tool.ss" "drscheme")
+           "drsig.ss"
            (lib "framework.ss" "framework")
            (lib "mred.ss" "mred")
            (lib "string-constant.ss" "string-constants"))
   
-  (provide tool@)
-  (define tool@
-    (unit/sig () 
-      (import drscheme:tool^)
+  (provide debug@)
+  (define debug@
+    (unit/sig drscheme:debug^
+      (import [drscheme:rep : drscheme:rep^]
+              [drscheme:frame : drscheme:frame^]
+              [drscheme:unit : drscheme:unit^]
+              [drscheme:language : drscheme:language^]
+              [drscheme:language-configuration : drscheme:language-configuration/internal^])
       
       ;; type debug-source = (union symbol (instanceof editor<%>))
       
@@ -28,7 +32,7 @@
       
       ;; cm-key : symbol
       ;; the key used to put information on the continuation
-      (define cm-key (gensym 'debug-tool-continuation-mark-key))
+      (define cm-key (gensym 'drscheme-debug-continuation-mark-key))
 
       ;; error-delta : (instanceof style-delta%)
       (define error-delta (make-object style-delta% 'change-style 'slant))
@@ -64,29 +68,9 @@
                              (make-object image-snip% b)
                              "[file]")))
       
-      ;; simple-scheme-text% : (implements scheme:text<%>)
-      (define simple-scheme-text% (scheme:text-mixin (editor:keymap-mixin text:basic%)))
-      
-      ;; debug-lang-mixin : (implements language<%>) -> (implements language<%>)
-      (define (debug-lang-mixin %)
-        (class %
-          (override on-execute)
-          (rename [super-on-execute on-execute])
-
-          (define/override (use-namespace-require/copy?) #t)
-
-          (define (on-execute settings run-in-user-thread)
-            (super-on-execute settings run-in-user-thread)
-            (run-in-user-thread
-             (lambda ()
-               (current-eval (add-debugging (current-eval)))
-               (error-display-handler
-                (make-debug-tool-error-display-handler (error-display-handler))))))
-          (super-instantiate ())))
-
       ;; add-debugging : (sexp -> value) -> sexp -> value
       ;; adds debugging information to `sexp' and calls `oe'
-      (define (add-debugging oe)
+      (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
                (lambda (exp)
                  (let ([annotated
@@ -97,11 +81,17 @@
                    (oe annotated)))])
           debug-tool-eval-handler))
 
-      ;; debug-tool-error-display-handler : (string (union TST exn) -> void) -> string exn -> void
+      ;; simple-scheme-text% : (implements scheme:text<%>)
+      (define simple-scheme-text% (scheme:text-mixin (editor:keymap-mixin text:basic%)))
+      
+      ;; make-debug-error-display-handler : (string (union TST exn) -> void) -> string exn -> void
       ;; adds in the bug icon, if there are contexts to display
-      (define (make-debug-tool-error-display-handler orig-error-display-handler)
-        (define (debug-tool-error-display-handler msg exn)
-          (let ([cms (and (exn? exn) (continuation-mark-set->list (exn-continuation-marks exn) cm-key))]
+      (define (make-debug-error-display-handler orig-error-display-handler)
+        (define (debug-error-display-handler msg exn)
+          (let ([cms (and (exn? exn) 
+                          (continuation-mark-set->list 
+                           (exn-continuation-marks exn)
+                           cm-key))]
                 [rep (drscheme:rep:current-rep)])
             
 	    (when (and cms
@@ -115,7 +105,7 @@
 		(insert/clickback rep
                                   (if mf-bday? mf-note bug-note)
 				  (lambda ()
-				    (show-backtrace-window rep msg cms)))
+				    (show-backtrace-window rep msg cms mf-bday?)))
 		(let ([debug-source (car (car cms))])
 		  (when (symbol? debug-source)
 		    (insert/clickback 
@@ -130,12 +120,12 @@
 		       (not (null? cms)))
               (let* ([first-cms (car cms)]
                      [src (car first-cms)]
-                     [position (cdr first-cms)])
+                     [position (cadr first-cms)]
+                     [span (cddr first-cms)])
                 (when (and (object? src)
-                           (is-a? src text:basic%)
-                           (number? position))
-                  (send rep highlight-error/forward-sexp src position))))))
-        debug-tool-error-display-handler)
+                           (is-a? src text:basic%))
+                  (send rep highlight-error src position (+ position span)))))))
+        debug-error-display-handler)
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
@@ -152,7 +142,7 @@
 		  (lambda (txt start end)
 		    (clickback))))))
 
-      ;; wrap : syntax syntax -> syntax
+      ;; with-mark : syntax syntax -> syntax
       ;; a member of stacktrace-imports^
       ;; guarantees that the continuation marks associated with cm-key are
       ;; members of the debug-source type
@@ -162,16 +152,21 @@
                          (string->symbol (syntax-source mark))]
                         [(is-a? (syntax-source mark) editor<%>)
                          (syntax-source mark)]
-                        [else #f])])
-          (if source
+                        [else #f])]
+              [position (syntax-position mark)]
+              [span (syntax-span mark)])
+          (if (and source
+                   (number? position)
+                   (number? span))
               (with-syntax ([expr expr]
                             [source source]
-                            [offset (- (syntax-position mark) 1)]
+                            [offset (- position 1)]
+                            [span span]
                             [cm-key cm-key])
                 (syntax
                  (with-continuation-mark
                   'cm-key
-                  '(source . offset)
+                  '(source offset . span)
                   expr)))
               expr)))
 
@@ -200,6 +195,12 @@
                 (preferences:get 'drscheme:backtrace-window-height)
                 (preferences:get 'drscheme:backtrace-window-x)
                 (preferences:get 'drscheme:backtrace-window-y))))
+
+      ;; hide-backtrace-window : -> void
+      (define (hide-backtrace-window)
+        (when current-backtrace-window
+          (send current-backtrace-window close)
+          (set! current-backtrace-window #f)))
       
       ;; backtrace-frame% : (extends frame:basic<%>)
       (define backtrace-frame%
@@ -221,12 +222,17 @@
             
       ;; show-backtrace-window : (union #f (instanceof drscheme:rep:text%) 
       ;;                         string
-      ;;                         (listof (cons debug-source number)) 
+      ;;                         (listof (cons debug-source (cons number number)))
+      ;;                         boolean
       ;;                         -> 
       ;;                         void
-      (define (show-backtrace-window rep error-text dis)
+      (define (show-backtrace-window rep error-text dis mf-bday?)
         (reset-backtrace-window)
         (letrec ([text (make-object text:basic%)]
+                 [mf-bday-note (when mf-bday?
+                                 (instantiate message% ()
+                                   (label "Happy Birthday, Matthias!")
+                                   (parent current-backtrace-window)))]
                  [ec (make-object canvas:wide-snip% 
                        (send current-backtrace-window get-area-container)
                        text)]
@@ -284,6 +290,7 @@
                       
                       (send text set-position start-pos end-pos)
                       (send text end-edit-sequence)))])
+          (send current-backtrace-window set-alignment 'center 'center)
           (send current-backtrace-window reflow-container)
           (send text auto-wrap #t)
           (send text set-autowrap-bitmap #f)
@@ -299,18 +306,19 @@
       ;; show-frame : (union #f (instanceof drscheme:rep:text%))
       ;;              (instanceof editor-canvas%)
       ;;              (instanceof text%) 
-      ;;              (cons debug-source number) 
+      ;;              (cons debug-source (cons number number))
       ;;              -> 
       ;;              void 
       ;; shows one frame of the continuation
       (define (show-frame rep editor-canvas text di)
-        (let* ([start (cdr di)]
+        (let* ([start (cadr di)]
+               [span (cddr di)]
                [debug-source (car di)]
                [fn (get-filename debug-source)]
                [start-pos (send text last-position)])
           
           ;; make hyper link to the file
-          (send text insert (format "~a: ~a" fn start))
+          (send text insert (format "~a: ~a-~a" fn start (+ start span)))
           (let ([end-pos (send text last-position)])
             (send text insert #\newline)
             (send text change-style (gui-utils:get-clickback-delta) start-pos end-pos)
@@ -319,7 +327,7 @@
                   (lambda x
                     (open-and-highlight-in-file di))))
           
-          (insert-context editor-canvas text debug-source start)
+          (insert-context editor-canvas text debug-source start span)
           (send text insert #\newline)))
       
       ;; insert-context : (instanceof editor-canvas%)
@@ -328,23 +336,18 @@
       ;;                  number
       ;;                  -> 
       ;;                  void
-      (define (insert-context editor-canvas text file start)
-        (let-values ([(from-text close-text finish)
+      (define (insert-context editor-canvas text file start span)
+        (let-values ([(from-text close-text)
                       (cond
                         [(symbol? file)
                          (let ([text (make-object simple-scheme-text%)])
                            (send text load-file (symbol->string file))
-                           (values text (lambda () (send text on-close))
-                                   (or (send text get-forward-sexp start)
-                                       (+ start 1))))]
-                        [(is-a? file scheme:text<%>) 
-                         (values file 
-                                 void
-                                 (or (send file get-forward-sexp start)
-                                     (+ start 1)))]
+                           (values text 
+                                   (lambda () (send text on-close))))]
                         [(is-a? file editor<%>)
-                         (values file void (+ start 1))])])
-          (let ([context-text (copy/highlight-text from-text start finish)])
+                         (values file void)])])
+          (let* ([finish (+ start span)]
+                 [context-text (copy/highlight-text from-text start finish)])
             (send context-text change-style modern-style-delta 0 (send context-text last-position))
             (send context-text lock #t)
             (send context-text hide-caret #t)
@@ -398,14 +401,15 @@
                    (or (send file get-filename) 
                        untitled)))])))
 
-      ;; open-and-highlight-in-file : (cons debug-source number)
+      ;; open-and-highlight-in-file : (cons debug-source (cons number number))
       ;;                              -> 
       ;;                              void
       ;; opens the window displaying this piece of syntax (if there is one)
       ;; and highlights the right position in the file
       (define (open-and-highlight-in-file di)
         (let* ([debug-source (car di)]
-               [position (cdr di)]
+               [position (cadr di)]
+               [span (cddr di)]
                [frame (cond
                         [(symbol? debug-source) (handler:edit-file (symbol->string debug-source))]
                         [(is-a? debug-source editor<%>)
@@ -427,30 +431,5 @@
             (send frame show #t))
           (when (and rep editor)
             (cond
-              [(is-a? editor scheme:text<%>)
-               (send rep highlight-error/forward-sexp editor position)]
               [(is-a? editor text:basic<%>)
-               (send rep highlight-error editor position (+ position 1))]))))
-      
-      ;; debug-lang% : (implements drscheme:language:language<%>)
-      (define debug-lang%
-        (debug-lang-mixin 
-         (drscheme:language:module-based-language->language-mixin
-          (drscheme:language:simple-module-based-language->module-based-language-mixin
-           drscheme:language:simple-module-based-language%))))
-      
-      ;; add-debug-lang : module-spec (cons string (listof string)) -> void
-      ;; adds a debugging language to drscheme's list of languages
-      (define (add-debug-lang module position)
-        (drscheme:language-configuration:add-language
-         (instantiate debug-lang% ()
-           (module module)
-           (language-position position))
-         #t))
-
-      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant r5rs-like-languages)
-                                                         (string-constant r5rs-w/debug)))
-      (add-debug-lang '(lib "full-mzscheme.ss" "lang") (list (string-constant r5rs-like-languages)
-                                                             (string-constant mzscheme-w/debug)))
-      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant r5rs-like-languages)
-                                                         (string-constant mred-w/debug))))))
+               (send rep highlight-error editor position (+ position span))])))))))

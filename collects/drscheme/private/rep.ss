@@ -38,7 +38,8 @@
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
               (drscheme:help : drscheme:help-desk^)
-              (drscheme:teachpack : drscheme:teachpack^))
+              (drscheme:teachpack : drscheme:teachpack^)
+              (drscheme:debug : drscheme:debug^))
       
       (rename [-text% text%])
 
@@ -1766,6 +1767,7 @@
 		(kill-thread thread-killed))
 	      (let ([fr (send (get-canvas) get-top-level-window)])
 		(send context clear-annotations)
+                (drscheme:debug:hide-backtrace-window)
                 (reset-highlighting))
 	      (shutdown-user-custodian)
 	      (cleanup-transparent-io)

@@ -46,24 +46,6 @@
       ;; get-successful-tools : -> (listof sucessful-tool)
       (define (get-successful-tools) successful-tools)
 
-      ;; collections-hash-table : (hash-table symbol string)
-      ;; contains a list of the available collections.
-      ;; use a hash table to cancel out duplicate collections
-      (define collections-hash-table (make-hash-table))
-      
-      ;; add-collections-in-path : path -> void
-      ;; adds each collection in the given path
-      ;; to collections-hash-table
-      (define (add-collections-in-path path)
-        (for-each 
-         (lambda (d) 
-           (when (and (directory-exists? (build-path path d))
-                      (not (string-ci=? d "CVS")))
-             (hash-table-put! collections-hash-table (string->symbol d) d)))
-         (with-handlers ([not-break-exn?
-			  (lambda (x) null)])
-	   (directory-list path))))
-      
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
       (define (load/invoke-tools coll)
@@ -217,11 +199,5 @@
       (define tool-bitmap-y tool-bitmap-gap)
       (define tool-bitmap-size 32)
       
-      ;; initializes the collection hash-table
-      (for-each add-collections-in-path (current-library-collection-paths))
-      
       ;; loads the the tools in each collection
-      (for-each load/invoke-tools
-                (quicksort
-                 (hash-table-map collections-hash-table (lambda (sym str) str))
-                 string<=?)))))
+      (for-each load/invoke-tools (drscheme:init:all-toplevel-collections)))))

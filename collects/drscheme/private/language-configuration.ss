@@ -11,7 +11,8 @@
            (lib "list.ss")
            (lib "etc.ss")
            (lib "file.ss")
-           (lib "pconvert.ss"))
+           (lib "pconvert.ss")
+           (lib "getinfo.ss" "setup"))
   
   (provide language-configuration@)
   
@@ -19,7 +20,9 @@
     (unit/sig drscheme:language-configuration/internal^
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:rep : drscheme:rep^]
-              [drscheme:teachpack : drscheme:teachpack^])
+              [drscheme:teachpack : drscheme:teachpack^]
+              [drscheme:init : drscheme:init^]
+              [drscheme:language : drscheme:language^])
       
       ;; settings-preferences-symbol : symbol
       ;; the preferences key for the language settings.
@@ -471,4 +474,50 @@
             (lambda (_1 _2) (clear-all-teachpacks))
             #f
             #f
-            clear-all-on-demand))))))
+            clear-all-on-demand)))
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;                                                                  ;;
+      ;;                    info.ss-specified languages                   ;;
+      ;;                                                                  ;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
+      (define (add-info-specified-languages)
+        (for-each add-info-specified-language
+                  (drscheme:init:all-toplevel-collections)))
+      
+      (define (add-info-specified-language collection-name)
+        (let ([info-proc (get-info (list collection-name))])
+          (when info-proc
+            (let* ([lang-positions (info-proc 'drscheme-language-positions (lambda () null))]
+                   [lang-modules (info-proc 'drscheme-language-modules (lambda () null))])
+              (cond
+                [(and (list? lang-positions)
+                      (andmap (lambda (x)
+                                (and (list? x)
+                                     (pair? x)
+                                     (andmap string? x)))
+                              lang-positions)
+                      (list? lang-modules)
+                      (andmap (lambda (x)
+                                (and (list? x)
+                                     (andmap string? x)))
+                              lang-modules)
+                      (= (length lang-positions)
+                         (length lang-modules)))
+                 (for-each
+                  (lambda (lang-module lang-position)
+                    (let ([%
+                           (drscheme:language:module-based-language->language-mixin
+                            (drscheme:language:simple-module-based-language->module-based-language-mixin
+                             drscheme:language:simple-module-based-language%))])
+                      (add-language (instantiate % ()
+                                      (module `(lib ,@lang-module))
+                                      (language-position lang-position)))))
+                  lang-modules
+                  lang-positions)]
+                [else
+                 (message-box (string-constant drscheme)
+                              (format (string-constant bad-module-language-specs)
+                                      lang-positions
+                                      lang-modules))]))))))))

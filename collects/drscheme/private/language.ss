@@ -19,8 +19,8 @@
   (define language@
     (unit/sig drscheme:language^
       (import [drscheme:rep : drscheme:rep^]
-              [drscheme:snip : drscheme:snip^])
-      
+              [drscheme:snip : drscheme:snip^]
+              [drscheme:debug : drscheme:debug^])
       
       (define original-output-port (current-output-port))
       (define (printf . args) (apply fprintf original-output-port args)) 
@@ -99,7 +99,7 @@
 		 (boolean? (vector-ref printable 4))
 		 (apply make-simple-settings (cdr (vector->list printable)))))
           (define (default-settings) 
-            (make-simple-settings #f 'write #f #t))
+            (make-simple-settings #f 'write #f #t #t))
           (define (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -114,11 +114,12 @@
 	  (super-instantiate ())))
 
       ;; settings for a simple module based language
-      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
+      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines debugging))
       ;;  case-sensitive  : boolean
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
+      ;;  debugging       : boolean
       (define simple-settings->vector (make-->vector simple-settings))
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
@@ -126,15 +127,31 @@
 	(let* ([parent (make-object vertical-panel% _parent)]
 	       
 	       [input-msg (make-object message% (string-constant input-syntax) parent)]
-	       [input-panel (make-object vertical-panel% parent '(border))]
+	       [input-panel (instantiate vertical-panel% ()
+                              (parent parent)
+                              (style '(border))
+                              (alignment '(left center)))]
+               
+               [dynamic-msg (make-object message% (string-constant dynamic-properties) parent)]
+	       [dynamic-panel (instantiate vertical-panel% ()
+                                (parent parent)
+                                (style '(border))
+                                (alignment '(left center)))]
 	       
 	       [output-msg (make-object message% (string-constant output-syntax) parent)]
-	       [output-panel (make-object vertical-panel% parent '(border))]
+	       [output-panel (instantiate vertical-panel% ()
+                               (parent parent)
+                               (style '(border))
+                               (alignment '(left center)))]
                
 	       [case-sensitive (make-object check-box%
 				 (string-constant case-sensitive-label)
 				 input-panel
 				 void)]
+               [debugging (instantiate check-box% ()
+                            (label (string-constant debugging))
+                            (parent dynamic-panel)
+                            (callback void))]
 	       [output-style (make-object radio-box%
 			       (string-constant output-style-label)
 			       (list (string-constant constructor-printing-style)
@@ -155,16 +172,6 @@
           (send _parent set-alignment 'center 'center)
 	  (send parent stretchable-height #f)
 	  (send parent stretchable-width #f)
-          (send parent set-alignment 'center 'center)
-	  (send output-panel stretchable-width #f)
-	  (send output-panel set-alignment 'left 'center)
-          
-          (send parent reflow-container)
-	  (let*-values ([(iw) (send input-panel get-width)]
-                        [(ow) (send output-panel get-width)]
-                        [(w) (max iw ow)])
-            (send input-panel min-width w)
-            (send output-panel min-width w))
           
 	  (case-lambda
            [()
@@ -175,7 +182,8 @@
 	       [(1) 'quasiquote]
 	       [(2) 'write])
 	     (send show-sharing get-value)
-	     (send insert-newlines get-value))]
+	     (send insert-newlines get-value)
+             (send debugging get-value))]
            [(settings)
             (send case-sensitive set-value (simple-settings-case-sensitive settings))
             (send output-style set-selection
@@ -184,7 +192,8 @@
                     [(quasiquote) 1]
                     [(write) 2]))
             (send show-sharing set-value (simple-settings-show-sharing settings))
-            (send insert-newlines set-value (simple-settings-insert-newlines settings))])))
+            (send insert-newlines set-value (simple-settings-insert-newlines settings))
+            (send debugging set-value (simple-settings-debugging settings))])))
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip)
@@ -231,6 +240,13 @@
     (define (initialize-simple-module-based-language setting run-in-user-thread)
       (run-in-user-thread
        (lambda ()
+         (when (simple-settings-debugging setting)
+           (current-eval 
+            (drscheme:debug:make-debug-eval-handler
+             (current-eval)))
+           (error-display-handler 
+            (drscheme:debug:make-debug-error-display-handler
+             (error-display-handler))))
          (current-inspector (make-inspector))
 	 (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
