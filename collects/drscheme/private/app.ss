@@ -388,7 +388,7 @@
           (when (or (eq? (system-type) 'macos)
                     (eq? (system-type) 'macosx))
             (send* e
-              (insert "  The A List (c) 1997-2000 Kyle Hammond")
+              (insert "  The A List (c) 1997-2001 Kyle Hammond")
               (insert #\newline)))
           
           (let ([tools (drscheme:tools:get-successful-tools)])
