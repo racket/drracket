@@ -50,12 +50,6 @@ profile todo:
 
       ;; type debug-source = (union symbol (instanceof editor<%>))
       
-      ;; preferences defaults
-      (preferences:set-default 'drscheme:backtrace-window-width 600 number?)
-      (preferences:set-default 'drscheme:backtrace-window-height 400 number?)
-      (preferences:set-default 'drscheme:backtrace-window-x 0 number?)
-      (preferences:set-default 'drscheme:backtrace-window-y 0 number?)
-      
       ;; original-output-port : output-port
       ;; for debugging -- be sure to print to here, not the current output port
       (define original-output-port (current-output-port))

@@ -96,7 +96,9 @@
       
       (preferences:set-default 'drscheme:backtrace-window-width 400 number?)
       (preferences:set-default 'drscheme:backtrace-window-height 300 number?)
-      
+      (preferences:set-default 'drscheme:backtrace-window-x 0 number?)
+      (preferences:set-default 'drscheme:backtrace-window-y 0 number?)
+
       (preferences:set-default 'drscheme:profile-how-to-count 'time
                                (λ (x)
                                  (memq x '(time count))))
