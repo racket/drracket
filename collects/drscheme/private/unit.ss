@@ -1182,15 +1182,16 @@ tab panels new behavior:
           [define was-locked? #f]
           
           (define evaluation-enabled? #t)
-          (define/public (disable-evaluation)
+          (define/pubment (disable-evaluation)
             (set! evaluation-enabled? #f)
             (when execute-menu-item
               (send execute-menu-item enable #f))
             (send execute-button enable #f)
             (send definitions-text lock #t)
             (send interactions-text lock #t)
-            (send file-menu:create-new-tab-item enable #f))
-          (define/public (enable-evaluation)
+            (send file-menu:create-new-tab-item enable #f)
+            (inner (void) disable-evaluation))
+          (define/pubment (enable-evaluation)
             (set! evaluation-enabled? #t)
             (when execute-menu-item
               (send execute-menu-item enable #t))
@@ -1198,7 +1199,8 @@ tab panels new behavior:
             (send definitions-text lock #f)
             (unless (send interactions-text eval-busy?)
               (send interactions-text lock #f))
-            (send file-menu:create-new-tab-item enable #t))
+            (send file-menu:create-new-tab-item enable #t)
+            (inner (void) enable-evaluation))
           
           (inherit set-label)
           (inherit modified)

@@ -781,13 +781,13 @@ If the namespace does not, they are colored the unbound color.
           
           (define button-visible? #t)
           
-          (define/override (enable-evaluation)
+          (define/augment (enable-evaluation)
             (send check-syntax-button enable #t)
-            (super enable-evaluation))
+            (inner (void) enable-evaluation))
 
-          (define/override (disable-evaluation)
+          (define/augment (disable-evaluation)
             (send check-syntax-button enable #f)
-            (super disable-evaluation))
+            (inner (void) disable-evaluation))
           
           (define cleanup-texts '())
           (define/public (syncheck:clear-highlighting)
