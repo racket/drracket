@@ -363,7 +363,9 @@
       (test-expression "(error \"a\" \"a\")"
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
-      (test-expression "(time 1)" "reference to undefined identifier: time")
+      (test-expression "(time 1)"
+		         "time: name is not defined, not an argument, and not a primitive name"
+		         "reference to undefined identifier: time")
       
       (test-expression "true" "true")
       (test-expression "mred^" 
@@ -377,7 +379,8 @@
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(list (list 1) (list 1))")
+                       "(list (list 1) (list 1))"
+                       "define: cannot redefine name: shrd")
       (test-expression "(local ((define x x)) 1)"
                        "local: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
@@ -486,7 +489,8 @@
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(list (list 1) (list 1))")
+                       "(list (list 1) (list 1))"
+                       "define: cannot redefine name: shrd")
       (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
@@ -590,7 +594,8 @@
       (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
       (test-expression "'(1)" "(list 1)")
       (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                       "(list (list 1) (list 1))")
+                       "(list (list 1) (list 1))"
+                       "define: cannot redefine name: shrd")
       (test-expression "(local ((define x x)) 1)" "local variable used before its definition: x")
       (test-expression "(letrec ([x x]) 1)" "local variable used before its definition: x")
       (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
