@@ -317,7 +317,7 @@
 		    [update-proxy (lambda ()
 				    (let ([host (send host get-value)]
 					  [port (send port get-value)])
-				      (let ([ok? (and (regexp-match "^[0-9a-zA-Z.]+$" host)
+				      (let ([ok? (and (regexp-match "^[-0-9a-zA-Z.]+$" host)
 						      (regexp-match "^[0-9]+$" port)
 						      (string->number port)
 						      (<= 1 (string->number port) 65535))])
