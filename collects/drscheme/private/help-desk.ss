@@ -2,6 +2,7 @@
   (require (lib "list.ss")
            (lib "string.ss")
            (lib "file.ss")
+           (lib "etc.ss")
 	   (lib "unitsig.ss")
 	   (lib "class.ss")
            (lib "url.ss" "net")
@@ -86,41 +87,45 @@
           (set! set-font-size _set-font-size)
           (set! load-help-desk void)))
       
-      (define (open-url url)
-        (with-help-desk-frame
-         (lambda ()
-           (send help-desk-frame goto-url url))))
+      (define open-url
+        (opt-lambda (url [progress void])
+          (with-help-desk-frame
+           #f
+           (lambda ()
+             (send help-desk-frame goto-url url progress)))))
       
       (define (open-users-url frame)
         (load-help-desk)
         (open-url-from-user 
          frame 
          (if (method-in-interface? 'goto-url (object-interface frame))
-             (lambda (url) (send frame goto-url url))
-             new-help-frame)))
+             (lambda (url progress) (send frame goto-url url progress))
+             (lambda (url progress) (new-help-frame url #f progress)))))
       
       (define help-desk
         (case-lambda
          [()
-          (with-help-desk-frame 
+          (with-help-desk-frame
+           #t
            void)]
          [(key) (help-desk key #t)]
          [(key lucky?) (help-desk key lucky? 'keyword+index)]
          [(key lucky? type) (help-desk key lucky? type 'exact)]
          [(key lucky? type mode)
           (with-help-desk-frame
+           #t
            (lambda ()
              (if lucky?
                  (send help-desk-frame search-for-help/lucky key type mode)
                  (send help-desk-frame search-for-help key type mode))))]))
       
-      (define (with-help-desk-frame thunk)
+      (define (with-help-desk-frame show-immediately? thunk)
         (cond
           [(or (not help-desk-frame)
                (not (send help-desk-frame is-shown?)))
            (begin-busy-cursor)
            (load-help-desk)
-           (set! help-desk-frame (new-help-frame startup-url))
+           (set! help-desk-frame (new-help-frame startup-url show-immediately?))
            (thunk)
            (end-busy-cursor)]
           [else

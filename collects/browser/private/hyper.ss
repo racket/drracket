@@ -7,6 +7,7 @@
            (lib "file.ss")
            (lib "list.ss")
            (lib "string.ss")
+           (lib "etc.ss")
            (lib "url.ss" "net")
            (lib "head.ss" "net")
            (lib "mred-sig.ss" "mred")
@@ -51,7 +52,7 @@
 
       (define hyper-text-mixin
         (lambda (super%)
-          (class100 super% (_url _top-level-window . args)
+          (class100 super% (_url _top-level-window progress . args)
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                      change-style get-style-list set-style-list
                      set-modified auto-wrap get-view-size
@@ -198,7 +199,7 @@
                      (send (get-canvas) goto-url (open-input-string v) (get-url)))))]
               
               [reload
-               (lambda ()
+               (opt-lambda ([progress void])
                  (when url
                    (let-values ([(wrapping-on?) #t]
                                 [(p mime-headers)
@@ -230,6 +231,7 @@
                                       ; document-not-found produces HTML:
                                       (not html?)))
                              ; Save the file
+                             (progress #f)
                              (end-busy-cursor) ; turn off cursor for a moment...
                              (let* ([orig-name (and (url? url)
                                                     (let ([m (regexp-match "([^/]*)$" (url-path url))])
@@ -357,6 +359,7 @@
                                       (regexp-match "[.]html?$" (url-path url)))
                                  html?)
                              ; HTML
+                             (progress #t)
                              (let* ([d #f]
                                     [e #f]
                                     [e-text ""]
@@ -433,6 +436,7 @@
                                (when exn (raise exn)))]
                             [else
                              ; Text
+                             (progress #t)
                              (begin-edit-sequence)
                              (let loop ()
                                (let ([r (read-line p 'any)])
@@ -459,7 +463,7 @@
             (sequence
               (apply super-init args)
               (add-h-link-style)
-              (reload)))))
+              (reload progress)))))
       
       (define hyper-text% (hyper-text-mixin text:keymap%))
       
@@ -498,7 +502,7 @@
           
           (public
             [get-editor% (lambda () hyper-text%)]
-            [make-editor (lambda (url) (make-object (get-editor%) url (get-top-level-window)))]
+            [make-editor (lambda (url progress) (make-object (get-editor%) url (get-top-level-window) progress))]
             [current-page
              (lambda ()
                (let ([e (get-editor)])
@@ -509,7 +513,7 @@
                         (list e (unbox sbox) (unbox ebox))))))]
             [on-url-click (lambda (k url) (send (get-parent) on-url-click k url))]
             [goto-url
-             (lambda (url relative)
+             (opt-lambda (url relative [progress void])
                (let* ([url (if (or (url? url) (port? url))
                                url
                                (if relative
@@ -520,8 +524,10 @@
                       [e (let ([e-now (get-editor)])
 			   (if (and e-now
 				    (same-page-url? url (send e-now get-url)))
-			       e-now
-			       (make-editor url)))]
+			       (begin
+                                 (progress #t)
+                                 e-now)
+			       (make-editor url progress)))]
                       [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
                  (unless (and tag-pos (positive? tag-pos))
                    (send e hide-caret #t))
