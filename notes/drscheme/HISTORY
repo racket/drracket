@@ -1,20 +1,7 @@
 Version 102:
 
-102
-
- PRS:
- 
-   1478: parity reversed in Dr Jr command line flag
-   1480: default launcher name is "Save A Launcher"
-   1484: cannot paste in search box on macos
-   1490: alt-tduring execution has different binding
-   1499: text mode display auto-wraps
-   1502: (define's hard to find
-   1506: Help Desk exits gracelessly when interrupted
-   1507: thread error freezes repl
-   1503: Launcher prints debug info
-
- FUNCTIONALITY CHANGES
+General
+-------
 
  - the help desk language level specific documentation has been
    integrated into drscheme.
@@ -23,47 +10,116 @@ Version 102:
    language levels. Click on the bug next to an error message to see
    a trace of the continuation of the error.
 
- - added a slew of -on-demand methods to frame:standard-menus-mixin
+ - drscheme-jr now supports teachpacks 
+   (those that don't use GUIs, like htdp/dir.ss)
 
- MINOR CHANGES AND BUG FIXES
+ - launchers can now be run from any directory.
+   They do not need to be saved in a particular place (this has been
+   true for some time, but it is officially true now.).
 
- - many menus now grey out in a context sensitive manner.
+ - the debug full scheme languages now allow loading of files
+   that contain graphics.
 
- - added parents for these dialogs:
+ - #! is treated like a comment when executing the defintions window,
+   if it is the first two characters in the definitions window.
 
-     Keybindings 
-     Choose Language...
-     Add Teachpack...
-     Create Launcher -> "you must save before creating a launcher" message box
-     "The thread has been killed" message box
-     "Uncaught Error"
-     Break, Break -> "do you want to kill it?" message box
-     Click unbound id in DrScheme -> "nothing found for <id>" message box
+ - rarely used save menu items relegated to sub-menu.
 
+ - added a "keymap" menu to the edit menu (shortcut: k)
+   that opens a window where you can see all of the key
+   bindings' names and short cuts, and you can choose one
+   to invoke.
+
+ - added a "Kill" menu item that kills all computation and reclaims
+   all resources from the program that drscheme is executing.
+   This is useful for multi-threaded apps that get out of hand.
+
+ - meta-control-d, meta-control-u, meta-shift-control-d, meta-shift-control-u
+   keybindings all restored.
+
+ - drscheme now has a little button on the bar that lets you hop
+   around between definitions in the program. It is approximate in
+   that it doesn't really know every detail about the lexical
+   structure of scheme, but it should still be quite useful. 
+
+ - interactions window now shows the names of the teachpacks that
+   were installed at last execute.
+
+ - drscheme now allows multiple teachpacks.
+
+ - teachpack names are not in the area with the execute button, instead
+   they are now shown in the language menu.
+
+ - repl errors that are in some loaded file have little clickable
+   icons that open the file and show the error's source location in
+   the file.
+   
  - Only the platform-specific dialogs are used in drscheme now, on
    all platforms. The preference has been removed from the dialog.
 
-102d10:
+ - project files are `load'able. That is, if you have the right
+   language settings, you can do 
+   
+           mzscheme -qmvr myproj.proj
 
- PRS:
+   and have the same effect as clicking execute on the project
+   window. For mred, you will need to do something like this:
 
-  1461: Kill menu problems
-  1460: Help Desk has empty preferences
-  1459: search menu items work on empty search text
-  1456: teachpacks don't add
-  1455: project windows never leave `Windows' menu
-  1428: setup -c deletes files for all platforms
-  1424: long (list ...) displays don't display correctly
-  1405: memory usage box should be read only
-  1398: Downloading doc files requires restart
-  1377: replacing by empty string loops
-  1330: killing repl, then check-syntax hangs
-  1144: match docs not setup right in Help Desk
-   737: mred:preferences library too global
-   599: mac: can't double click to open files while mred starts up
-   406: bad error message for sixlib op
+           mred -qmvr myproj.proj -e "(yield (make-semaphore 0))"
 
- FUNCTIONALITY CHANGES
+   so that mred doesn't quit automatically.
+
+ - Help Desk now has a "feeling lucky" option ala google (menu
+   shortcut: l). It goes directly to the first item that would have
+   been found in a regular search.
+
+ - Clicking on an error message link in drscheme now uses the "feeling
+   lucky" style search in help desk.
+
+ - clicking on the name in the topleft of the drscheme frame opens a
+   little window with the full path.
+
+ - check syntax now shows its syntax errors in a separate window.
+
+ - the teaching languages now come with:
+
+     make-posn, posn-x, posn-y, and posn?
+
+   by default (no library required).
+
+ - teaching levels print exact numbers whose denominators are evenly
+   disivible by 2 and 5 as decimals.
+
+ - teaching levels treat input decimals as exact numbers.
+
+ - in the main help-desk window, space does pgdn and backspace does
+   pgup, ala netscape. Also, typing return or enter while the cursor
+   is on a link follows the link.
+
+ - added class/d macro. It's syntax is like that for a unit, but it
+   defines a class. Roughly:
+
+   (class/d
+    super-expresion
+    init-args
+    ((public var ...)
+     (override var ...)
+     (inherit var ...)
+     (rename (var var) ...))
+ 
+     definitions-and-expressions ...)
+
+    This a new part of macro.ss in the mzlib library
+
+Tools and Framework
+-------------------
+
+ - drscheme:rep:process-text/zodiac and
+   drscheme:rep:process-text/no-zodiac
+   are now called drscheme:load-handler:process-text/zodiac and
+   drscheme:load-handler:process-text/no-zodiac.
+
+ - added a slew of -on-demand methods to frame:standard-menus-mixin
 
  - the framework now imports a definition of the preferences
    file location. Use this to have a separate preferences file
@@ -79,76 +135,8 @@ Version 102:
  - setup plt's ``clean'' info.ss flag does not recur
    into subdirectories anymore.
 
- MINOR CHANGES AND BUG FIXES
-
- - Added Replace and Find again to edit menu
- 
- - changed `h' shortcut to find and replace again. show keybindings
-   has no shortcut anymore.
-
- * Moved the filename and (define ...) popups to the left, swapping with
-   the Save button. (The popups in the middle of space look strange.)
-
- * Merged the Project menu with the File menu.
-
- * Changed the "Configure Language" menu item in the project window to
-   "Choose Language", to match the menu item in the file window.
-
- * Add "..." to "Open Project" menu item.
-
- * Got rid of "Insert Lambda". It's not nearly useful enough to be
-   worth all the bugs it creates. (Try inserting a lambda by itself and
-   hit return --- nothing happens. Try (<lambda>) --- bad selection for
-   the error message.)
-
- * Give windows for untitled files/projects unique names: "Untitled 1",
-   "Untitled 2", etc.
-
- * Fix multiple adjacent separators in the project window's File and
-   Edit menus.
-
- * Dropped the old "platform independent" file dialogs, and use
-   get-file-list for projects.
-
- * Disabled "Keybindings" menu item when not applicable.
-
-102d9:
-
-  NEW DIRECTORY: plt/collects/defaults
- 
-  be sure to get the new directory with:
-
-       cvs update -d plt/collects/defaults
-  
-  or DrScheme will fail to start up.
-
-  WARNINGS: 
-    - this release breaks the stepper.
-    - the "create launcher" menu item is 
-      not yet fully functional, so use at your
-      own risk.
-
- PRS: 1424, 1437
-
- FUNCTIONALITY CHANGES
-
- - drscheme-jr now supports teachpacks 
-   (those that don't use GUIs, like htdp/dir.ss)
-
  - the graphics library (sometimes known as sixlib) no longer 
    accepts any scaling arguments. 
-
- - drscheme:rep:process-text/zodiac and
-   drscheme:rep:process-text/no-zodiac
-   are now called drscheme:load-handler:process-text/zodiac and
-   drscheme:load-handler:process-text/no-zodiac.
-
- - Windows and unix launchers can now be run from any directory.
-   They do not need to be saved in a particular place (this has been
-   true for some time, but it is officially true now.).
-
- - the debug full scheme languages now allow loading of files
-   that contain graphics.
 
  - the framework's preferences system now requires you to
    set the marshall/unmarshalling functions (if any) before
@@ -178,286 +166,76 @@ Version 102:
  - setup-plt no longer automatically runs --clean when installing
    a .plt file.
 
- MINOR CHANGES AND BUG FIXES
-
- - the searching dialog now has two-line find and replace editors.
-
- - #! is treated like a comment when executing the defintions window,
-   if it is the first two characters in the definitions window.
-
- - constructing the project manager's "collection projects" menu
-   was adding something like a 25% overhead to drscheme's startup,
-   so that menu is gone (I doubt anyone really used it anyway...)
-
- - rarely used save menu items relegated to sub-menu.
-
- - wrap text is now a checkable item that is checked when the editor
-   is wrapped.
-   
- - drscheme-jr now has a doc.txt file that explains its implementation.
-   The implementation was factored so that DrScheme's new launchers
-   can re-use drscheme-jr's implementation. So, if you change
-   drscheme-jr, be aware that you might affecting these launchers.
-
-102d8
-
- PRS: 1358, 1344, 1341, 1329, 1322, 1242 (docs not yet built), 1235 
-
- FUNCTIONALITY CHANGES
-
- - added a "keymap" menu to the edit menu (shortcut: k)
-   that opens a window where you can see all of the key
-   bindings' names and short cuts, and you can choose one
-   to invoke.
-
  - framework:
    - added canonicalize-keybinding-string
    - added aug-keymap%, aug-keymap<%>
    - editor:basic now sets it's keymap to an
      aug-keymap<%> during initialization.
 
- MINOR CHANGES AND BUG FIXES
-
-  - added a "Kill" menu item that kills all computation and reclaims
-    all resources from the program that drscheme is executing.
-    This is useful for multi-threaded apps that get out of hand.
-
-  - improved the look of the "(define" (now "(define ...)") and
-    filename buttons on the left in drscheme's toolbar
-
-  - if ``#!'' appears at the beginning of the first line in the definitions
-    window, the first line is treated as a comment during execution
-    (this is only a change for the non-debug language levels -- the
-    teaching and debug language levels all already did this)
-
-  - meta-control-d, meta-control-u, meta-shift-control-d, meta-shift-control-u
-    keybindings all restored.
-
-
-102d7
-
-  - drscheme now has a little button on the bar that lets you hop
-    around between definitions in the program. It is approximate in
-    that it doesn't really know every detail about the lexical
-    structure of scheme, but it should still be quite useful. 
-
-102d6
-
- PRS: 1341
-
- FUN INFO
-
- - DrScheme's rep class now exports a method with this type:
- 
-   ((((-> void) -> void) -> void) -> void)
-       4        3        2        1
-
- believe it or not. It is used to evaluate user expressions in the
- repl. Arrow 1 sets up the repl (watch cursor and stuff) and then
- calls arrow 2, which should loop, once for each expression (say in
- the definitions window), calling arrow 3. Arrow 2 then calls arrow 3
- with arrow 4. Arrow 3 does a little before/after setup to get
- breaking right and calls arrow 4 to actually evaluate each
- expression. 
-
- FUNCTIONALITY CHANGES
-
  - the framework's info frame mixins no longer require frame:editor<%> 
    as an input. Also, they are moved lower in the hierarchy of the
    instantiated mixin classes in the framework. This affects all of the
    frame:XX% classes.
 
- - project manager windows now have a repl.
-   The repl shows the values returned by loading each of the files
-   in the project.
-
  tools:
-
    - ensure-interactions-shown is now ensure-rep-shown
    - do-many-buffer-evals is now do-many-text-evals
-
- teachpacks:
-
-   - interactions window now shows the names of the teachpacks that
-     were installed at last execute.
-   - teachpack names are not in the area with the execute button, instead
-     they are now shown in the language menu.
-   - it is now an error to add the same teachpack twice.
-
- - GRAPHICAL_DEBUG is no longer supported. It was always wierd, becuase
-   it changed the semantics of require-library in a way that was
-   mostly the same, and keeping drscheme in the consistent
-   intersection of the two semantics was getting painful (not to
-   mention confusing...)
-
- MINOR CHANGES AND BUG FIXES
-
- - repl errors that are in some loaded file have little clickable
-   icons that open the file and show the error's source location in
-   the file. Icon suggestions welcome. To test them out, just replace
-   file.gif in the icons collection.
-
- - common file dialog keyboard navigation improved (typing letters now
-   may go backwards now -- before it only went fowards)
-
- - common file dialogs are now resizable.
-
- - common file dialogs now sort in case insensitive mode always
-  (typing letters doesn't make much sense otherwise)
-
- - lucky search now sets the focus to the html viewing canvas instead
-   of leaving the focus on the search text-field.
-
-102d5
-
- PRS: 1334
-
- FUNCTIONALITY CHANGES
-
- - THE FILE FORMAT FOR PROJECT FILES HAS CHANGED
-
-   to update your old project files to the new format, use emacs or
-   something to insert a ' at the front of the file. Then open and
-   save the project in drscheme.
-
- - project files are now `load'able. That is, if you have the right
-   language settings, you can do 
-   
-           mzscheme -qmvr myproj.proj
-
-   and have the same effect as clicking execute on the project
-   window. For mred, you will need to do something like this:
-
-           mred -qmvr myproj.proj -e "(yield (make-semaphore 0))"
-
-   so that mred doesn't quit automatically.
-
- MINOR CHANGES AND BUG FIXES
-
- - typeset now uses scheme-mode editors for red boxes.
-
- - Help Desk now has a "feeling lucky" option ala google (menu
-   shortcut: l). It goes directly to the first item that would have
-   been found in a regular search.
-
- - Clicking on an error message link in drscheme now uses the "feeling
-   lucky" style search in help desk.
-
-102d4
-
- minor bug fixes
-
-102d3
-
- PRS: 1235
-
- FUNCTIONALITY CHANGES
-
- - drscheme now allows multiple teachpacks.
-
- - added typeset-size to typeset utilities. Used to control the size
-   of the rendered text.
 
  - clever-file-format now symetrically changes the file's format to
    'standard. It used to rever the file format to 'text when there
    were no more images in it. Now, it also changes back to non-'text
    when images (and other non-string-snips) are added back.
 
- MINOR CHANGES AND BUG FIXES
-
- - clicking on the name in the topleft of the drscheme frame opens a
-   little window with the full path.
-
- - check syntax now shows its syntax errors in a separate window.
-   (PR 1235)
-
-102d2
-
- PRS: 1297, 1306, 1171
-
- FUNCTIONALITY CHANGES
-
  - the framework's gui-utils:get-snips/chars-from-buffer is now
    gui-utils:get-snips/chars-from-text
 
  - zodiac now supports graphical expressions. If a snip implements
    zodiac's expand<%> interface, zodiac calls a method of the snip to
-   expand it. Docs updated but not built.
-
- - the teaching languages now come with:
-
-     make-posn, posn-x, posn-y, and posn?
-
-   by default (no library required).
-
- - added typeset tool. To get, there are two new directories:
-
-   plt/collects/typeset
-   plt/collects/drscheme/tools/typeset
-
-   be sure to check those out. Search for Typeset in help desk for
-   more info.
-
- - teaching levels print exact numbers whose denominators are evenly
-   disivible by 2 and 5 as decimals.
-
- - teaching levels treat input decimals as exact numbers.
-
- MINOR CHANGES AND BUG FIXES
-
- - fixed a bug (PR 1297, steck submission) in a call to message-box
-   from the get-file dialog but was unable to repdoduce the bug. Paul,
-   can you see if the bug has gone away? Thanks.
-
- - changed the new version "welcome to drs" window back to something
-   much like the one in previous versions.
-
- - drscheme should now print with a fixed-width font.
-
- - in the main help-desk window, space does pgdn and backspace does
-   pgup, ala netscape. Also, typing return or enter while the cursor
-   is on a link follows the link.
-
-102d1
-
- PRS: 1274, 1280, 1264, 1260, 1239, 1225, 1220, 1268, 1209, 1208,
-      1196, 1180, 1096, 1088, 1043, 771, 752, 846
-
- FUNCTIONALITY CHANGES
-
- - New project manager. The manual is not yet available, so
-   you will have to play with the Project menu yourself. I hope that
-   things are self-explanatory. There is no REPL support. Any repl
-   support that comes will be part of the debugger.
-
-   *** WARNING: NEW DIRECTORY ***
-
-   To get it, run these simple commands:
-
-    % cd PLTHOME/collects/drscheme
-    % cvs update -r exp -d
-
- - added class/d macro. It's syntax is like that for a unit, but it
-   defines a class. Roughly:
-
-   (class/d
-    super-expresion
-    init-args
-    ((public var ...)
-     (override var ...)
-     (inherit var ...)
-     (rename (var var) ...))
- 
-     definitions-and-expressions ...)
-
+   expand it. 
+   
  - the drscheme:get/extend:extend-* functions no longer haver %s at
    the end of their names.
 
- MINOR CHANGES AND BUG FIXES
 
- - bug report form cleaned up.
+PRS
+---
 
- - improved the welcome window (merged with about box)
+  1507: thread error freezes repl
+  1506: Help Desk exits gracelessly when interrupted
+  1503: Launcher prints debug info
+  1502: (define's hard to find
+  1499: text mode display auto-wraps
+  1490: alt-tduring execution has different binding
+  1484: cannot paste in search box on macos
+  1480: default launcher name is "Save A Launcher"
+  1478: parity reversed in Dr Jr command line flag
+  1461: Kill menu problems
+  1460: Help Desk has empty preferences
+  1459: search menu items work on empty search text
+  1456: teachpacks don't add
+  1455: project windows never leave `Windows' menu
+  1437:
+  1428: setup -c deletes files for all platforms
+  1424: long (list ...) displays don't display correctly
+  1405: memory usage box should be read only
+  1398: Downloading doc files requires restart
+  1377: replacing by empty string loops
+  1341:
+  1334:
+  1330: killing repl, then check-syntax hangs
+  1306:
+  1297:
+  1235:
+  1171:
+  1144: match docs not setup right in Help Desk
+   737: mred:preferences library too global
+   599: mac: can't double click to open files while mred starts up
+   406: bad error message for sixlib op
+
+  1274, 1280, 1264, 1260, 1239, 1225, 1220, 1268, 1209, 1208,
+  1196, 1180, 1096, 1088, 1043, 771, 752, 846
+
+  1358, 1344, 1341, 1329, 1322, 1242 (docs not yet built), 1235 
 
 
 Version 101:
