@@ -1199,28 +1199,27 @@
                   (change-style error-delta start end))))
 	     nonblock?)))
           
-          (field (this-err (make-custom-output-port limiting-sema
+          (field (this-err (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						    (lambda (s start end flush?) 
 						      (if (this-err-write (substring s start end) flush?)
 							  (- end start)
 							  0))
 						    void
 						    void))
-                 (this-out (make-custom-output-port limiting-sema
+                 (this-out (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						    (lambda (s start end flush?) 
 						      (if (this-out-write (substring s start end) flush?)
 							  (- end start)
 							  0))
 						    void
 						    void))
-                 (this-in (make-custom-input-port maybe-char-ready-sema
-						  (lambda (s) 
+                 (this-in (make-custom-input-port (lambda (s) 
 						    (let ([c (this-in-read-char)])
 						      (cond
 						       [(char? c)
 							(string-set! s 0 c)
 							1]
-						       [(not c) 0]
+						       [(not c) (make-semaphore-peek maybe-char-ready-sema)]
 						       [else c])))
 						  (lambda (s skip) 
 						    (let ([c (this-in-peek-char skip)])
@@ -1228,10 +1227,10 @@
 						       [(char? c)
 							(string-set! s 0 c)
 							1]
-						       [(not c) 0]
+						       [(not c) (make-semaphore-peek maybe-char-ready-sema)]
 						       [else c])))
 						  void))
-                 (this-result (make-custom-output-port limiting-sema
+                 (this-result (make-custom-output-port (lambda () (make-semaphore-peek limiting-sema))
 						       (lambda (s start end flush?) 
 							 (if (this-result-write (substring s start end) flush?)
 							     (- end start)
