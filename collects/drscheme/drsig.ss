@@ -67,6 +67,7 @@
    definitions-canvas%
    definitions-text%
    interactions-canvas%
+   text-with-error-mixin
    open-drscheme-window))
 
 (define-signature drscheme:frame^

@@ -168,9 +168,38 @@
 	  (send (get-top-level-window) set-save-init-shown?
 		(and m (send m is-modified?)))))))
   
+  (define text-with-error-mixin
+    (lambda (text%)
+      (class/d text% args
+	((override after-insert after-delete)
+	 (inherit get-top-level-window)
+	 (rename [super-after-insert after-insert]
+		 [super-after-delete after-delete]))
+
+        (define (reset-highlighting)
+	  (let ([f (get-top-level-window)])
+	    (when f
+	      (let ([interactions-text (ivar f interactions-text)])
+		(when (object? interactions-text)
+		  (let ([reset (ivar interactions-text reset-highlighting)])
+		    (when (procedure? reset)
+		      (reset))))))))
+
+        (define (after-insert x y)
+	  (reset-highlighting)
+	  (super-after-insert x y))
+
+        (define (after-delete x y)
+	  (reset-highlighting)
+	  (super-after-delete x y))
+
+	(apply super-init args))))
+
   (define definitions-super%
-    (fw:scheme:text-mixin
-     fw:text:info%))
+    (text-with-error-mixin
+     (fw:scheme:text-mixin
+      fw:text:info%)))
+	  
 
   (define definitions-text%
     (class definitions-super% ()
