@@ -1,3 +1,4 @@
+
 (module module-overview mzscheme
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
@@ -12,9 +13,9 @@
   (provide module-overview@)
   (define module-overview@
     (unit/sig drscheme:module-overview^
-      (import)
+      (import [drscheme:frame : drscheme:frame^])
       
-      (define filename-constant (string-constant module-browser-filename-constant))
+      (define filename-constant (string-constant module-browser-filename-format))
       (define font-size-gauge-label (string-constant module-browser-font-size-gauge-label))
       (define progress-label (string-constant module-browser-progress-label))
       (define adding-file (string-constant module-browser-adding-file))
@@ -101,10 +102,21 @@
         
         (define (boxed-word-snip-mixin %)
           (class %
-            (init-field word filename)
+            (init-field word
+                        filename
+                        lines)
             
             (define/public (get-filename) filename)
             (define/public (get-word) word)
+            (define/public (get-lines) lines)
+
+            (field (lines-brush #f)
+                   (normalized-line 0))
+            (define/public (normalize-lines n)
+              (let* ([grey (inexact->exact (floor (- 255 (* 255 (sqrt (/ lines n))))))])
+                (set! lines-brush (send the-brush-list find-or-create-brush
+                                        (make-object color% grey grey grey)
+                                        'solid))))
             
             (field (snip-width 0)
                    (snip-height 0))
@@ -123,14 +135,21 @@
                   (set-box/f rspace 0))
                 (send dc set-font old-font)))
             (define/override (draw dc x y left top right bottom dx dy draw-caret)
-              (let ([old-font (send dc get-font)])
+              (let ([old-font (send dc get-font)]
+                    [old-text-foreground (send dc get-text-foreground)]
+                    [old-brush (send dc get-brush)])
                 (send dc set-font label-font)
+                (when lines-brush
+                  (send dc set-brush lines-brush))
                 (when (and (or (<= left x right)
                                (<= left (+ x snip-width) right))
                            (or (<= top y bottom)
                                (<= top (+ y snip-height) bottom)))
                   (send dc draw-rectangle x y snip-width snip-height)
+                  (send dc set-text-foreground (make-object color% "blue"))
                   (send dc draw-text word (+ x 2) (+ y 2)))
+                (send dc set-brush old-brush)
+                (send dc set-text-foreground old-text-foreground)
                 (send dc set-font old-font)))
             (super-instantiate ())))
         
@@ -146,27 +165,16 @@
           (class pasteboard:basic%
             (inherit find-first-snip find-next-selected-snip)
             
-         (define/override (after-interactive-move event)
-           (let loop ([snip (find-next-selected-snip #f)])
-             (when snip
-               (when (is-a? snip lines<%>)
-                 (for-each
-                  (lambda (child)
-                    (invalidate-between snip child))
-                  (send snip get-children))
-                 (for-each
-                  (lambda (parent)
-                    (invalidate-between snip parent))
-                  (send snip get-parents)))
-               (loop (find-next-selected-snip snip)))))
-         
-         (define (invalidate-between from to)
-           (let-values ([(xf yf wf hf) (get-position from)]
-                        [(xt yt wt ht) (get-position to)])
-             (invalidate-bitmap-cache (min xf xt)
-                                      (min yf yt)
-                                      (max (+ xf wf) (+ xt wt))
-                                      (max (+ yf hf) (+ yt ht)))))
+            (define/override (after-interactive-move event)
+              (set! dont-move-snips #t))
+            
+            (define (invalidate-between from to)
+              (let-values ([(xf yf wf hf) (get-position from)]
+                           [(xt yt wt ht) (get-position to)])
+                (invalidate-bitmap-cache (min xf xt)
+                                         (min yf yt)
+                                         (max (+ xf wf) (+ xt wt))
+                                         (max (+ yf hf) (+ yt ht)))))
             
             (inherit dc-location-to-editor-location get-canvas)
             (rename [super-on-event on-event])
@@ -241,9 +249,9 @@
                   (when label-message
                     (send label-message set-label
                           (if currently-over
-                              (string-append 
-                               filename-constant
-                               (send currently-over get-filename))
+                              (format filename-constant
+                                      (send currently-over get-filename)
+                                      (send currently-over get-lines))
                               "")))
                   
                   (when old-currently-over
@@ -313,32 +321,32 @@
                   
                   (send dc set-pen old-pen)))
               (super-on-paint before? dc left top right bottom dx dy draw-caret))
-         
-         (inherit invalidate-bitmap-cache)
-         (define/private (draw-connection dc dx dy from to dark-lines? syntax-child?
-                                          left top right bottom)
-           (let-values ([(xf yf wf hf) (get-position from)]
-                        [(xt yt wt ht) (get-position to)])
-             (let ([x1 (+ xf (quotient wf 2))]
-                   [y1 (+ yf (quotient hf 2))]
-                   [x2 (+ xt (quotient wt 2))]
-                   [y2 (+ yt (quotient ht 2))])
-               
-               (unless (or (and (x1 . <= . left)
-                                (x2 . <= . left))
-                           (and (x1 . >= . right)
-                                (x2 . >= . right))
-                           (and (y1 . <= . top)
-                                (y2 . <= . top))
-                           (and (y1 . >= . bottom)
-                                (y2 . >= . bottom)))
-                 
-                 (send dc set-pen
-                       (if dark-lines?
-                           (if syntax-child? dark-syntax-pen dark-pen)
-                           (if syntax-child? light-syntax-pen light-pen)))
-                 
-                 (send dc draw-line (+ dx x1) (+ dy y1) (+ dx x2) (+ dy y2))))))
+            
+            (inherit invalidate-bitmap-cache)
+            (define/private (draw-connection dc dx dy from to dark-lines? syntax-child?
+                                             left top right bottom)
+              (let-values ([(xf yf wf hf) (get-position from)]
+                           [(xt yt wt ht) (get-position to)])
+                (let ([x1 (+ xf (quotient wf 2))]
+                      [y1 (+ yf (quotient hf 2))]
+                      [x2 (+ xt (quotient wt 2))]
+                      [y2 (+ yt (quotient ht 2))])
+                  
+                  (unless (or (and (x1 . <= . left)
+                                   (x2 . <= . left))
+                              (and (x1 . >= . right)
+                                   (x2 . >= . right))
+                              (and (y1 . <= . top)
+                                   (y2 . <= . top))
+                              (and (y1 . >= . bottom)
+                                   (y2 . >= . bottom)))
+                    
+                    (send dc set-pen
+                          (if dark-lines?
+                              (if syntax-child? dark-syntax-pen dark-pen)
+                              (if syntax-child? light-syntax-pen light-pen)))
+                    
+                    (send dc draw-line (+ dx x1) (+ dy y1) (+ dx x2) (+ dy y2))))))
             
             (define (should-hilite? snip)
               (let ([check-one-way
@@ -394,14 +402,8 @@
         
         ;; add-connection : string string -> void
         (define (add-connection filename-original filename-require for-syntax?)
-          (let* ([original-key (string->symbol filename-original)]
-                 [require-key (string->symbol filename-require)]
-                 [original-snip (find/create-snip (filename->label filename-original)
-                                                  filename-original
-                                                  original-key)]
-                 [require-snip (find/create-snip (filename->label filename-require)
-                                                 filename-require
-                                                 require-key)]
+          (let* ([original-snip (find/create-snip filename-original)]
+                 [require-snip (find/create-snip filename-require)]
                  [original-level (send original-snip get-level)]
                  [require-level (send require-snip get-level)])
             (send original-snip add-child require-snip)
@@ -446,301 +448,342 @@
          (send pasteboard get-snip-location snip #f bb #t)
          (- (unbox bb)
             (unbox tb))))
-     
-     ;; find/create-snip : string string[filename] symbol -> snip
-     ;; snip-table : hash-table[sym -o> snip]
-     ;; finds the snip with this key, or creates a new
-     ;; ones. For the same key, always returns the same snip.
-     ;; uses snip-table as a cache for this purpose.
-     (define snip-table (make-hash-table))
-     (define (find/create-snip label filename key)
-       (hash-table-get
-        snip-table
-        key
-        (lambda () 
-          (let* ([snip (instantiate word-snip/lines% ()
-                         (word (format "~a" label))
-                         (filename filename))])
-            (send pasteboard insert snip)
-            (hash-table-put! snip-table key snip)
-            snip))))
-     
-     ;; filename->label : string -> string
-     ;; constructs a label for the little boxes in terms
-     ;; of the filename.
+        
+        ;; find/create-snip : string[normalized-filename] -> snip
+        ;; snip-table : hash-table[sym -o> snip]
+        ;; finds the snip with this key, or creates a new
+        ;; ones. For the same key, always returns the same snip.
+        ;; uses snip-table as a cache for this purpose.
+        (define snip-table (make-hash-table))
+        (define (find/create-snip filename)
+          (let ([key (string->symbol filename)])
+            (hash-table-get
+             snip-table
+             key
+             (lambda () 
+               (let* ([snip (instantiate word-snip/lines% ()
+                              (lines (count-lines filename))
+                              (word (format "~a" (filename->label filename)))
+                              (filename filename))])
+                 (send pasteboard insert snip)
+                 (hash-table-put! snip-table key snip)
+                 snip)))))
+            
+        ;; count-lines : string[filename] -> number
+        (define (count-lines filename)
+          (call-with-input-file filename
+            (lambda (port)
+              (let loop ([n 0])
+                (let ([l (read-line port)])
+                  (if (eof-object? l)
+                      n
+                      (loop (+ n 1))))))
+            'text))
+        
+        ;; filename->label : string -> string
+        ;; constructs a label for the little boxes in terms
+        ;; of the filename.
         (define re:no-ext (regexp "^(.*)\\.[^.]*$"))
-     (define (filename->label filename)
-       (let-values ([(base name dir?) (split-path filename)])
-         (let ([m (regexp-match re:no-ext name)])
-           (if m
-               (cadr m)
-               name))))
-     
-     ;; add-blank-snips : -> void
-     (define (add-blank-snips)
-       (let loop ([snip (send pasteboard find-first-snip)])
-         (cond
-           [(not snip) (void)]
-           [else
-            (let c-loop ([children (send snip get-children)])
-              (cond
-                [(empty? children) (void)]
-                [else
-                 (let ([child (car children)])
-                   (cond
-                     [(= (send child get-level) (+ (send snip get-level) 1))
-                      (void)]
-                     [else
-                      (let* ([n (- (send child get-level)
-                                   (send snip get-level)
-                                   1)]
-                             [syntax-child? (send snip is-a-syntax-child? child)]
-                             ;; n must be 1 or bigger at this point
-                             [blank-snips (build-blank-snips 
-                                           n
-                                           (+ (send snip get-level) 1)
-                                           child
-                                           syntax-child?)])
-                        (send snip add-child (car blank-snips))
-                        (send (car blank-snips) add-parent snip)
-                        (when syntax-child?
-                          (send snip add-syntax-child (car blank-snips))
-                          (send (car blank-snips) add-syntax-parent snip))
-                        (send snip remove-child (car children))
-                        (send (car children) remove-parent snip))]))
-                 (c-loop (cdr children))]))
-            (loop (send snip next))])))
-     
-     ;; merge-blank-snips
-     (define (merge-blank-snips)
-       (hash-table-for-each
-        level-ht
-        (lambda (n snips)
-          (let* ([blank (filter (lambda (x) (is-a? x snip/lines%)) snips)]
-                 [words (filter (lambda (x) (is-a? x word-snip/lines%)) snips)]
-                 [blank-count (length blank)]
-                 [word-count (length words)]
-                 [per-gap (quotient blank-count word-count)]
-              [extra (modulo blank-count word-count)]
-              [merged
-               (let loop ([words words]
-                          [blank blank]
-                          [extra extra])
+        (define (filename->label filename)
+          (let-values ([(base name dir?) (split-path filename)])
+            (let ([m (regexp-match re:no-ext name)])
+              (if m
+                  (cadr m)
+                  name))))
+        
+        ;; add-blank-snips : -> void
+        (define (add-blank-snips)
+          (let loop ([snip (send pasteboard find-first-snip)])
+            (cond
+              [(not snip) (void)]
+              [else
+               (let c-loop ([children (send snip get-children)])
                  (cond
-                   [(null? words) blank]
+                   [(empty? children) (void)]
                    [else
-                    (let ([this-time (if (zero? extra)
-                                         per-gap
-                                         (+ per-gap 1))])
-                      (append (list (car words))
-                              (first-n this-time blank)
-                              (loop (cdr words)
-                                    (take-n this-time blank)
-                                    (if (zero? extra) 0 (- extra 1)))))]))])
-            (hash-table-put! level-ht n merged)))))
-     
-     (define (first-n n l)
-       (cond
-         [(zero? n) null]
-         [(empty? l) (error 'first-n "not enough")]
-         [else (cons (car l) (first-n (- n 1) (cdr l)))]))
-     
-     (define (take-n n l)
-       (cond
-         [(zero? n) l]
-         [(empty? l) (error 'take-n "not enough")]
-         [else (take-n (- n 1) (cdr l))]))
-     
-     ;; builds a chain of `n' blank snips
-     (define (build-blank-snips n level orig-child syntax-child?)
-       (let loop ([n n]
-                  [level level])
-         (cond
-           [(zero? n) 
-            (send orig-child set-level level)
-            null]
-           [else
-            (let ([new-snip (make-object snip/lines%)]
-                  [rest (loop (- n 1) (+ level 1))])
-              (send pasteboard insert new-snip)
-              (send new-snip set-level level)
-              (if (null? rest)
-                  (begin (send new-snip add-child orig-child)
-                         (send orig-child add-parent new-snip)
-                         (when syntax-child?
-                           (send new-snip add-syntax-child orig-child)
-                           (send orig-child add-syntax-parent new-snip)))
-                  (begin (send new-snip add-child (car rest))
-                         (send (car rest) add-parent new-snip)
-                         (when syntax-child?
-                           (send new-snip add-syntax-child (car rest))
-                           (send (car rest) add-syntax-parent new-snip))))
-              (cons new-snip rest))])))
-     
-     ;; render-snips : -> void
-     (define (render-snips)
-       (let ([for-each-level
-              (lambda (f)
-                (hash-table-for-each
-                 level-ht
-                 f))]
-             [max-h 0])
-         
-         (for-each-level
-          (lambda (n v)
-            (set! max-h (max max-h (apply + (map get-snip-height v))))))
-         
-         (let ([levels (quicksort (hash-table-map level-ht list)
-                                  (lambda (x y) (<= (car x) (car y))))])
-           (let loop ([levels levels]
-                      [x 0])
-             (cond
-               [(null? levels) (void)]
-               [else
-                (let* ([level (car levels)]
-                       [n (car level)]
-                       [this-level-snips (cadr level)]
-                       [this-h (apply + (map get-snip-height this-level-snips))]
-                       [this-w (apply max (map get-snip-width  this-level-snips))])
-                  (let loop ([snips this-level-snips]
-                             [y (/ (- max-h this-h) 2)])
-                    (unless (null? snips)
-                      (let ([snip (car snips)])
-                        (send pasteboard move-to 
-                              snip
-                              (+ x
-                                 (floor
-                                  (- (/ this-w 2) 
-                                     (/ (get-snip-width snip) 2)))) 
-                              y)
-                        (loop (cdr snips)
-                              (+ y snip-vspace (get-snip-height snip))))))
-                  (loop (cdr levels)
-                        (+ x (get-snip-hspace) this-w)))])))))
-     
-     ;; add-connections : string[filename] -> void
-     ;; recursively adds a connections from this file and
-     ;; all files it requires
-     (define (add-connections filename)
-       (define visited-hash-table (make-hash-table))
-       (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
-                                (instantiate frame% ()
-                                  (parent parent)
-                                  (label progress-label)
-                                  (width 600))))
-       (define progress-message (instantiate message% ()
-                                  (label "")
-                                  (stretchable-width #t)
-                                  (parent progress-frame)))
-       (define sema (make-semaphore 1))
-       (define done? #f)
-       (thread
-        (lambda ()
-          (sleep 3)
+                    (let ([child (car children)])
+                      (cond
+                        [(= (send child get-level) (+ (send snip get-level) 1))
+                         (void)]
+                        [else
+                         (let* ([n (- (send child get-level)
+                                      (send snip get-level)
+                                      1)]
+                                [syntax-child? (send snip is-a-syntax-child? child)]
+                                ;; n must be 1 or bigger at this point
+                                [blank-snips (build-blank-snips 
+                                              n
+                                              (+ (send snip get-level) 1)
+                                              child
+                                              syntax-child?)])
+                           (send snip add-child (car blank-snips))
+                           (send (car blank-snips) add-parent snip)
+                           (when syntax-child?
+                             (send snip add-syntax-child (car blank-snips))
+                             (send (car blank-snips) add-syntax-parent snip))
+                           (send snip remove-child (car children))
+                           (send (car children) remove-parent snip))]))
+                    (c-loop (cdr children))]))
+               (loop (send snip next))])))
+        
+        ;; merge-blank-snips
+        (define (merge-blank-snips)
+          (hash-table-for-each
+           level-ht
+           (lambda (n snips)
+             (let* ([blank (filter (lambda (x) (is-a? x snip/lines%)) snips)]
+                    [words (filter (lambda (x) (is-a? x word-snip/lines%)) snips)]
+                    [blank-count (length blank)]
+                    [word-count (length words)]
+                    [per-gap (quotient blank-count word-count)]
+                    [extra (modulo blank-count word-count)]
+                    [merged
+                     (let loop ([words words]
+                                [blank blank]
+                                [extra extra])
+                       (cond
+                         [(null? words) blank]
+                         [else
+                          (let ([this-time (if (zero? extra)
+                                               per-gap
+                                               (+ per-gap 1))])
+                            (append (list (car words))
+                                    (first-n this-time blank)
+                                    (loop (cdr words)
+                                          (take-n this-time blank)
+                                          (if (zero? extra) 0 (- extra 1)))))]))])
+               (hash-table-put! level-ht n merged)))))
+        
+        (define (first-n n l)
+          (cond
+            [(zero? n) null]
+            [(empty? l) (error 'first-n "not enough")]
+            [else (cons (car l) (first-n (- n 1) (cdr l)))]))
+        
+        (define (take-n n l)
+          (cond
+            [(zero? n) l]
+            [(empty? l) (error 'take-n "not enough")]
+            [else (take-n (- n 1) (cdr l))]))
+        
+        ;; builds a chain of `n' blank snips
+        (define (build-blank-snips n level orig-child syntax-child?)
+          (let loop ([n n]
+                     [level level])
+            (cond
+              [(zero? n) 
+               (send orig-child set-level level)
+               null]
+              [else
+               (let ([new-snip (make-object snip/lines%)]
+                     [rest (loop (- n 1) (+ level 1))])
+                 (send pasteboard insert new-snip)
+                 (send new-snip set-level level)
+                 (if (null? rest)
+                     (begin (send new-snip add-child orig-child)
+                            (send orig-child add-parent new-snip)
+                            (when syntax-child?
+                              (send new-snip add-syntax-child orig-child)
+                              (send orig-child add-syntax-parent new-snip)))
+                     (begin (send new-snip add-child (car rest))
+                            (send (car rest) add-parent new-snip)
+                            (when syntax-child?
+                              (send new-snip add-syntax-child (car rest))
+                              (send (car rest) add-syntax-parent new-snip))))
+                 (cons new-snip rest))])))
+        
+        ;; render-snips : -> void
+        (define (render-snips)
+          (let ([for-each-level
+                 (lambda (f)
+                   (hash-table-for-each
+                    level-ht
+                    f))]
+                [max-h 0])
+            
+            (for-each-level
+             (lambda (n v)
+               (set! max-h (max max-h (apply + (map get-snip-height v))))))
+            
+            (let ([levels (quicksort (hash-table-map level-ht list)
+                                     (lambda (x y) (<= (car x) (car y))))])
+              (let loop ([levels levels]
+                         [x 0])
+                (cond
+                  [(null? levels) (void)]
+                  [else
+                   (let* ([level (car levels)]
+                          [n (car level)]
+                          [this-level-snips (cadr level)]
+                          [this-h (apply + (map get-snip-height this-level-snips))]
+                          [this-w (apply max (map get-snip-width  this-level-snips))])
+                     (let loop ([snips this-level-snips]
+                                [y (/ (- max-h this-h) 2)])
+                       (unless (null? snips)
+                         (let ([snip (car snips)])
+                           (send pasteboard move-to 
+                                 snip
+                                 (+ x
+                                    (floor
+                                     (- (/ this-w 2) 
+                                        (/ (get-snip-width snip) 2)))) 
+                                 y)
+                           (loop (cdr snips)
+                                 (+ y snip-vspace (get-snip-height snip))))))
+                     (loop (cdr levels)
+                           (+ x (get-snip-hspace) this-w)))])))))
+        
+        ;; add-connections : string[filename] -> void
+        ;; recursively adds a connections from this file and
+        ;; all files it requires
+        (define (add-connections filename)
+          (define visited-hash-table (make-hash-table))
+          (define progress-frame (parameterize ([current-eventspace (make-eventspace)])
+                                   (instantiate frame% ()
+                                     (parent parent)
+                                     (label progress-label)
+                                     (width 600))))
+          (define progress-message (instantiate message% ()
+                                     (label "")
+                                     (stretchable-width #t)
+                                     (parent progress-frame)))
+          (define sema (make-semaphore 1))
+          (define done? #f)
+          (define max-lines 0)
+          (thread
+           (lambda ()
+             (sleep 3)
+             (semaphore-wait sema)
+             (unless done?
+               (send progress-frame show #t))
+             (semaphore-post sema)))
+          (send pasteboard begin-edit-sequence)
+          (let loop ([filename (normalize-path filename)])
+            (let ([visited-key (string->symbol filename)])
+              (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
+                (send progress-message set-label (format adding-file filename))
+                (hash-table-put! visited-hash-table visited-key #t)
+                (let-values ([(base name dir?) (split-path filename)])
+                  (let ([module-code (get-module-code filename)]
+                        [lines (send (find/create-snip filename) get-lines)])
+                    (set! max-lines (max lines max-lines))
+                    (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
+                      (let ([requires (extract-filenames imports filename)]
+                            [syntax-requires (extract-filenames fs-imports filename)])
+                        (for-each (lambda (require)
+                                    (add-connection filename require #f)
+                                    (loop require))
+                                  requires)
+                        (for-each (lambda (syntax-require)
+                                    (add-connection filename syntax-require #t)
+                                    (loop syntax-require))
+                                  syntax-requires))))))))
+          (send progress-message set-label laying-out-graph-label) 
+          (let loop ([snip (send pasteboard find-first-snip)])
+            (when snip
+              (when (is-a? snip word-snip/lines%)
+                (send snip normalize-lines max-lines))
+              (loop (send snip next))))
+          (render-snips)
           (semaphore-wait sema)
-          (unless done?
-            (send progress-frame show #t))
-          (semaphore-post sema)))
-       (send pasteboard begin-edit-sequence)
-       (let loop ([filename (normalize-path filename)])
-         (let ([visited-key (string->symbol filename)])
-           (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
-             (send progress-message set-label (format adding-file filename))
-             (hash-table-put! visited-hash-table visited-key #t)
-             (let-values ([(base name dir?) (split-path filename)])
-               (let ([module-code (get-module-code filename)])
-                 (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                   (let ([requires (extract-filenames imports filename)]
-                         [syntax-requires (extract-filenames fs-imports filename)])
-                     (for-each (lambda (require) 
-                                 (add-connection filename require #f)
-                                 (loop require))
-                               requires)
-                     (for-each (lambda (syntax-require)
-                                 (add-connection filename syntax-require #t)
-                                 (loop syntax-require))
-                               syntax-requires))))))))
-       (send progress-message set-label laying-out-graph-label) 
-       (render-snips)
-       (semaphore-wait sema)
-       (set! done? #t)
-       (send progress-frame show #f)
-       (semaphore-post sema)
-       (send pasteboard end-edit-sequence))
-     
-     ;; extract-filenames : (listof (union symbol module-path-index)) string[directory] ->
-     ;;                     (listof string[filename))
-     (define (extract-filenames direct-requires base)
-       (let loop ([direct-requires direct-requires])
-         (cond
-           [(null? direct-requires) null]
-           [else (let ([dr (car direct-requires)])
-                   (if (module-path-index? dr)
-                       (cons (normal-case-path (normalize-path (resolve-module-path-index dr base)))
-                             (loop (cdr direct-requires)))
-                       (loop (cdr direct-requires))))])))
-     
-     (define label-font-size (preferences:get 'drscheme:module-overview:label-font-size))
-     (define label-font
-       (send the-font-list find-or-create-font label-font-size 'decorative 'normal 'normal  #f))
-     
-     (define font-label-size-callback-running? #f)
-     (define (set-label-font-size)
-       (unless font-label-size-callback-running?
-         (set! font-label-size-callback-running? #t)
-         (queue-callback
-          (lambda ()
-            (let ([new-font-size (send font-size-gauge get-value)])
-              (set! label-font-size new-font-size)
-              (preferences:set 'drscheme:module-overview:label-font-size 
-                               new-font-size)
-              (set! label-font
-                    (send the-font-list find-or-create-font 
-                          new-font-size 'decorative 'normal 'normal #f))
-              (send pasteboard begin-edit-sequence)
-              (let loop ([snip (send pasteboard find-first-snip)])
-                (when snip
-                  (let ([admin (send snip get-admin)])
-                    (when admin
-                      (send admin resized snip #t)))
-                  (loop (send snip next))))
-              (render-snips)
-              (send pasteboard end-edit-sequence)
-              (set! font-label-size-callback-running? #f))))))
-     
-     (define size-recording-frame%
-       (class frame:basic%
-         (rename [super-on-size on-size])
-         (define/override (on-size w h)
-           (preferences:set 'drscheme:module-overview:window-width w)
-           (preferences:set 'drscheme:module-overview:window-height h)
-           (super-on-size w h))
-         (super-instantiate ())))
+          (set! done? #t)
+          (send progress-frame show #f)
+          (semaphore-post sema)
+          (send pasteboard end-edit-sequence))
+        
+        ;; extract-filenames : (listof (union symbol module-path-index)) string[directory] ->
+        ;;                     (listof string[filename))
+        (define (extract-filenames direct-requires base)
+          (let loop ([direct-requires direct-requires])
+            (cond
+              [(null? direct-requires) null]
+              [else (let ([dr (car direct-requires)])
+                      (if (module-path-index? dr)
+                          (cons (normal-case-path (normalize-path (resolve-module-path-index dr base)))
+                                (loop (cdr direct-requires)))
+                          (loop (cdr direct-requires))))])))
+        
+        (define label-font-size (preferences:get 'drscheme:module-overview:label-font-size))
+        (define label-font
+          (send the-font-list find-or-create-font label-font-size 'decorative 'normal 'normal  #f))
 
-     (define frame (instantiate size-recording-frame% ()
-                     (label (string-constant module-browser))
-                     (width (preferences:get 'drscheme:module-overview:window-width))
-                     (height (preferences:get 'drscheme:module-overview:window-height))
-                     (alignment '(left center))))
-     (define pasteboard (make-object draw-lines-pasteboard%))
-     (define label-message (instantiate message% ()
-                             (label "")
-                             (parent (send frame get-area-container))
-                             (stretchable-width #t)))
-     
-     (define font-size-gauge
-       (instantiate slider% ()
-         (label font-size-gauge-label)
-         (min-value 1)
-         (max-value 72)
-         (init-value label-font-size)
-         (parent (send frame get-area-container))
-         (callback
-          (lambda (x y)
-            (set-label-font-size)))))
+        ;; controls if the snips should be moved
+        ;; around when the font size is changed.
+        ;; set to #f if the user ever moves a
+        ;; snip themselves.
+        (define dont-move-snips #f)
 
-     (define ec (make-object canvas:basic% (send frame get-area-container) pasteboard))
-     
-     (add-connections filename)
-     
-     (send frame show #t)))))
+        (define font-label-size-callback-running? #f)
+        (define (set-label-font-size)
+          (unless font-label-size-callback-running?
+            (set! font-label-size-callback-running? #t)
+            (queue-callback
+             (lambda ()
+               (let ([new-font-size (send font-size-gauge get-value)])
+                 (set! label-font-size new-font-size)
+                 (preferences:set 'drscheme:module-overview:label-font-size 
+                                  new-font-size)
+                 (set! label-font
+                       (send the-font-list find-or-create-font 
+                             new-font-size 'decorative 'normal 'normal #f))
+                 (send pasteboard begin-edit-sequence)
+                 (let loop ([snip (send pasteboard find-first-snip)])
+                   (when snip
+                     (let ([admin (send snip get-admin)])
+                       (when admin
+                         (send admin resized snip #t)))
+                     (loop (send snip next))))
+                 (unless dont-move-snips
+                   (render-snips))
+                 (send pasteboard end-edit-sequence)
+                 (set! font-label-size-callback-running? #f))))))
+        
+        (define super-frame%
+          (drscheme:frame:basics-mixin
+           frame:standard-menus%))
+
+        (define overview-frame%
+          (class super-frame%
+            (define/override (file-menu:between-print-and-close menu) (void))
+            (define/override (edit-menu:between-select-all-and-find menu) (void))
+            
+            (define/override (edit-menu:create-cut?) #f)
+            (define/override (edit-menu:create-copy?) #f)
+            (define/override (edit-menu:create-paste?) #f)
+            (define/override (edit-menu:create-clear?) #f)
+            (define/override (edit-menu:create-select-all?) #f)
+            
+            (rename [super-on-size on-size])
+            (define/override (on-size w h)
+              (preferences:set 'drscheme:module-overview:window-width w)
+              (preferences:set 'drscheme:module-overview:window-height h)
+              (super-on-size w h))
+            (super-instantiate ())))
+        
+        (define frame (instantiate overview-frame% ()
+                        (label (string-constant module-browser))
+                        (width (preferences:get 'drscheme:module-overview:window-width))
+                        (height (preferences:get 'drscheme:module-overview:window-height))
+                        (alignment '(left center))))
+        (define pasteboard (make-object draw-lines-pasteboard%))
+        (define label-message (instantiate message% ()
+                                (label "")
+                                (parent (send frame get-area-container))
+                                (stretchable-width #t)))
+        
+        (define font-size-gauge
+          (instantiate slider% ()
+            (label font-size-gauge-label)
+            (min-value 1)
+            (max-value 72)
+            (init-value label-font-size)
+            (parent (send frame get-area-container))
+            (callback
+             (lambda (x y)
+               (set-label-font-size)))))
+        
+        (define ec (make-object canvas:basic% (send frame get-area-container) pasteboard))
+        
+        (add-connections filename)
+        
+        (send frame show #t)))))

@@ -28,13 +28,13 @@
       (link [init : drscheme:init^ (init@)]
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
-            [module-overview : drscheme:module-overview^ (module-overview@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
             [rep : drscheme:rep^
                  (rep@ init snip language-configuration language app 
                      frame unit text help-desk teachpack debug)]
             [language : drscheme:language^ (language@ rep snip debug teachpack)]
             [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
+            [module-overview : drscheme:module-overview^ (module-overview@ frame)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration 
                        get/extend snip teachpack module-overview)]
