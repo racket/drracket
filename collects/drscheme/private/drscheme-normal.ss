@@ -8,10 +8,12 @@
   ;; we have to do it explicitly.
   (current-load text-editor-load-handler)
   
-  (define texas-independence-day?
-    (let ([date (seconds->date (current-seconds))])
-      (and (= 3 (date-month date))
-           (= 2 (date-day date)))))
+  (define-values (texas-independence-day? halloween?)
+    (let* ([date (seconds->date (current-seconds))]
+           [month (date-month date)]
+           [day (date-day date)])
+      (values (and (= 3 month) (= 2 day))
+              (and (= 10 month) (= 31 day)))))
   
   (define high-color? ((get-display-depth) . > . 8))
   (define special-state #f)
@@ -94,6 +96,8 @@
                (cond
                  [texas-independence-day?
                   "texas-plt-bw.gif"]
+                 [(and halloween? high-color?)
+                  "PLT-pumpkin.png"]
                  [high-color? "PLT-206.png"]
                  [(= (get-display-depth) 1)
                   "pltbw.gif"]
