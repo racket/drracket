@@ -104,7 +104,7 @@
 				   [rmargin (box 0)])
 			       (send snip get-margin lmargin (box 0) rmargin (box 0))
 			       (+ (unbox lmargin) (unbox rmargin)))
-			     (if (is-a? containing-admin mred:editor-snip-editor-admin%)
+			     (if (is-a? containing-admin mred:editor-snip-editor-admin<%>)
 				 (+ (unbox snip-x-pos)
 				    (loop (send containing-admin get-snip)))
 				 (unbox snip-x-pos)))))]
@@ -112,7 +112,7 @@
 				   (let ([containing-admin
 					  (send (send (send snip get-admin)
 						      get-editor) get-admin)])
-				     (if (is-a? containing-admin mred:editor-snip-editor-admin%)
+				     (if (is-a? containing-admin mred:editor-snip-editor-admin<%>)
 					 (loop (send containing-admin get-snip))
 					 snip)))]					
 		     [view-width (let* ([width (box 0)]
@@ -687,6 +687,7 @@
 			  (and last-one v
 			       (string=? v last-one)))
 		(set! last-one v)
+		; (send top-panel change-children (lambda (l) (mzlib:function:remq library-msg l)))
 		(set! library-msg (make-library-name-msg top-panel v))
 		(send definitions-text library-changed)
 		(send top-panel change-children 
