@@ -1,0 +1,10 @@
+((("CFBundleTypeName"
+   "Scheme Source")
+  ("CFBundleTypeIconFile"
+   "doc")
+  ("CFBundleTypeRole"
+   "Editor")
+  ("CFBundleTypeOSTypes"
+   (array "TEXT" "WXME"))
+  ("CFBundleTypeExtensions"
+   (array ".scm" ".ss"))))
