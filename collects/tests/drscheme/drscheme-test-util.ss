@@ -79,18 +79,19 @@
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
   
   (define poll-until
-    (case-lambda
-     [(pred) (poll-until pred 10)]
-     [(pred secs)
+    (opt-lambda (pred [secs 10] [fail (lambda ()
+                                        (error 'poll-until 
+                                               "timeout after ~e secs, ~e never returned a true value"
+                                               secs pred))])
       (let ([step 1/20])
 	(let loop ([counter secs])
 	  (if (<= counter 0)
-	      (error 'poll-until "timeout after ~e secs, ~e never returned a true value" secs pred)
+	      (fail)
 	      (let ([result (pred)])
 		(or result
 		    (begin
 		      (sleep step)
-		      (loop (- counter step))))))))]))
+		      (loop (- counter step))))))))))
   
   (define (drscheme-frame? frame)
     (method-in-interface? 'get-execute-button (object-interface frame)))
