@@ -4,45 +4,68 @@
   
   (provide draw-arrow)
   
-  
   (define pi (* 2 (asin 1)))
+  
   (define arrow-head-angle (/ pi 8))
-  (define cos-angle (cos arrow-head-angle))
-  (define sin-angle (sin arrow-head-angle))
-  (define arrow-head-size 10)
-  (define arrow-root-radius 3)
+  (define cos-arrow-head-angle (cos arrow-head-angle))
+  (define sin-arrow-head-angle (sin arrow-head-angle))
+  
+  (define arrow-head-size 8)
+  (define arrow-head-size-cos-arrow-head-angle (* arrow-head-size cos-arrow-head-angle))
+  (define arrow-head-size-sin-arrow-head-angle (* arrow-head-size sin-arrow-head-angle))
+  
+  (define arrow-root-radius 2)
   (define arrow-root-diameter (add1 (* 2 arrow-root-radius)))
+
+  ; If alpha is the angle between the x axis and the Start->End vector:
+  ;
+  ; p2-x = end-x + arrow-head-size * cos(alpha + pi - arrow-head-angle)
+  ;      = end-x - arrow-head-size * cos(alpha - arrow-head-angle)
+  ;      = end-x - arrow-head-size * (cos(alpha) * cos(arrow-head-angle) + sin(alpha) * sin(arrow-head-angle))
+  ;      = end-x - arrow-head-size-cos-arrow-head-angle * cos-alpha - arrow-head-size-sin-arrow-head-angle * sin-alpha
+  ;      = end-x - arrow-head-size-cos-arrow-head-angle-cos-alpha - arrow-head-size-sin-arrow-head-angle-sin-alpha
+  ;
+  ; p2-y = end-y + arrow-head-size * sin(alpha + pi - arrow-head-angle)
+  ;      = end-y - arrow-head-size * sin(alpha - arrow-head-angle)
+  ;      = end-y - arrow-head-size * (sin(alpha) * cos(arrow-head-angle) - cos(alpha) * sin(arrow-head-angle))
+  ;      = end-y - arrow-head-size-cos-arrow-head-angle * sin-alpha + arrow-head-size-sin-arrow-head-angle * cos-alpha
+  ;      = end-y - arrow-head-size-cos-arrow-head-angle-sin-alpha + arrow-head-size-sin-arrow-head-angle-cos-alpha
+  ;
+  ; p3-x = end-x + arrow-head-size * cos(alpha + pi + arrow-head-angle)
+  ;      = end-x - arrow-head-size * cos(alpha + arrow-head-angle)
+  ;      = end-x - arrow-head-size * (cos(alpha) * cos(arrow-head-angle) - sin(alpha) * sin(arrow-head-angle))
+  ;      = end-x - arrow-head-size-cos-arrow-head-angle * cos-alpha + arrow-head-size-sin-arrow-head-angle * sin-alpha
+  ;      = end-x - arrow-head-size-cos-arrow-head-angle-cos-alpha + arrow-head-size-sin-arrow-head-angle-sin-alpha
+  ;
+  ; p3-y = end-y + arrow-head-size * sin(alpha + pi + arrow-head-angle)
+  ;      = end-y - arrow-head-size * sin(alpha + arrow-head-angle)
+  ;      = end-y - arrow-head-size * (sin(alpha) * cos(arrow-head-angle) + cos(alpha) * sin(arrow-head-angle))
+  ;      = end-y - arrow-head-size-cos-arrow-head-angle * sin-alpha - arrow-head-size-sin-arrow-head-angle * cos-alpha
+  ;      = end-y - arrow-head-size-cos-arrow-head-angle-sin-alpha - arrow-head-size-sin-arrow-head-angle-cos-alpha
+  
   (define (draw-arrow dc start-x start-y end-x end-y dx dy)
-    (send dc draw-line
-          (+ start-x dx) (+ start-y dy)
-          (+ end-x dx) (+ end-y dy))
-    (send dc draw-ellipse 
-          (- (+ start-x dx) arrow-root-radius)
-          (- (+ start-y dy) arrow-root-radius)
-          arrow-root-diameter
-          arrow-root-diameter)
-    (unless (and (= start-x end-x)
-                 (= start-y end-y))
-      (let* ([delta   0]
-             [ofs-x   (- start-x end-x)]
-             [ofs-y   (- start-y end-y)]
-             [len     (sqrt (+ (* ofs-x ofs-x) (* ofs-y ofs-y)))]
-             [ofs-x   (/ ofs-x len)]
-             [ofs-y   (/ ofs-y len)]
-             [head-x  (* ofs-x arrow-head-size)]
-             [head-y  (* ofs-y arrow-head-size)]
-             [end-x   (+ end-x (* ofs-x delta))]
-             [end-y   (+ end-y (* ofs-y delta))]
-             [pt1     (make-object point% end-x end-y)]
-             [pt2     (make-object point%
-                        (+ end-x (* cos-angle head-x) 
-                           (* sin-angle head-y))
-                        (+ end-y (- (* sin-angle head-x))
-                           (* cos-angle head-y)))]
-             [pt3     (make-object point%
-                        (+ end-x (* cos-angle head-x)
-                           (- (* sin-angle head-y)))
-                        (+ end-y (* sin-angle head-x)
-                           (* cos-angle head-y)))]
-             [pts (list pt1 pt2 pt3)])
-        (send dc draw-polygon pts dx dy)))))
+    (let ([start-x (+ start-x dx)]
+          [start-y (+ start-y dy)]
+          [end-x (+ end-x dx)]
+          [end-y (+ end-y dy)])
+      (send dc draw-line start-x start-y end-x end-y)
+      (send dc draw-ellipse (- start-x arrow-root-radius) (- start-y arrow-root-radius)
+            arrow-root-diameter arrow-root-diameter)
+      (unless (and (= start-x end-x) (= start-y end-y))
+        (let* ([offset-x (- end-x start-x)]
+               [offset-y (- end-y start-y)]
+               [arrow-length (sqrt (+ (* offset-x offset-x) (* offset-y offset-y)))]
+               [cos-alpha (/ offset-x arrow-length)]
+               [sin-alpha (/ offset-y arrow-length)]
+               [arrow-head-size-cos-arrow-head-angle-cos-alpha (* arrow-head-size-cos-arrow-head-angle cos-alpha)]
+               [arrow-head-size-cos-arrow-head-angle-sin-alpha (* arrow-head-size-cos-arrow-head-angle sin-alpha)]
+               [arrow-head-size-sin-arrow-head-angle-cos-alpha (* arrow-head-size-sin-arrow-head-angle cos-alpha)]
+               [arrow-head-size-sin-arrow-head-angle-sin-alpha (* arrow-head-size-sin-arrow-head-angle sin-alpha)]
+               [pt1 (make-object point% end-x end-y)]
+               [pt2 (make-object point%
+                      (- end-x arrow-head-size-cos-arrow-head-angle-cos-alpha arrow-head-size-sin-arrow-head-angle-sin-alpha)
+                      (+ end-y (- arrow-head-size-cos-arrow-head-angle-sin-alpha) arrow-head-size-sin-arrow-head-angle-cos-alpha))]
+               [pt3 (make-object point%
+                      (+ end-x (- arrow-head-size-cos-arrow-head-angle-cos-alpha) arrow-head-size-sin-arrow-head-angle-sin-alpha)
+                      (- end-y arrow-head-size-cos-arrow-head-angle-sin-alpha arrow-head-size-sin-arrow-head-angle-cos-alpha))])
+          (send dc draw-polygon (list pt1 pt2 pt3)))))))
