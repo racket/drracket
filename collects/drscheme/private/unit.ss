@@ -490,7 +490,73 @@
                (send dc draw-text (get-date-string) 0 0)
                (void)))
            (super-instantiate ())))
+
       
+                                                       
+   ;      ;           ;; ;                             
+  ;       ;          ;                                 
+  ;       ;          ;                                 
+ ;    ;;; ;   ;;;   ;;;  ;   ; ;;;    ;;;              
+ ;   ;   ;;  ;   ;   ;   ;   ;;   ;  ;   ;             
+ ;   ;    ;  ;   ;   ;   ;   ;    ;  ;   ;             
+ ;   ;    ;  ;;;;;   ;   ;   ;    ;  ;;;;;             
+ ;   ;    ;  ;       ;   ;   ;    ;  ;                 
+ ;   ;   ;;  ;       ;   ;   ;    ;  ;                 
+  ;   ;;; ;   ;;;;   ;   ;   ;    ;   ;;;;  ;   ;   ;  
+  ;                                                    
+   ;                                                   
+                                                       
+
+      
+      ;; get-pos : text mouse-event% -> (union #f number)
+      (define (get-pos text event)
+        (let*-values ([(event-x event-y)
+                       (values (send event get-x)
+                               (send event get-y))]
+                      [(x y) (send text dc-location-to-editor-location
+                                   event-x 
+                                   event-y)])
+          (let* ([on-it? (box #f)]
+                 [pos (send text find-position x y #f on-it?)])
+            (and (unbox on-it?)
+                 pos))))                                                 
+      
+      (let ([old (keymap:add-to-right-button-menu)])
+        (keymap:add-to-right-button-menu
+         (lambda (menu editor event)
+           (when (is-a? editor text%)
+             (let* ([current-pos (get-pos editor event)]
+                    [current-word (and current-pos (get-current-word editor current-pos))]
+                    [defn (and current-word
+                               (ormap (lambda (defn) (and (string=? current-word (defn-name defn))
+                                                          defn))
+                                      (get-definitions #f editor)))])
+               (when defn
+                 (instantiate separator-menu-item% () (parent menu))
+                 (instantiate menu-item% () 
+                   (parent menu)
+                   (label (format (string-constant jump-to-defn) (defn-name defn)))
+                   (callback (lambda (x y)
+                               (send editor set-position (defn-start-pos defn))))))))
+           (old menu editor event))))
+
+      ;; get-current-word : editor number -> string
+      ;; returns the string that is being clicked on
+      (define (get-current-word editor pos)
+        (let* ([search
+                (lambda (dir offset)
+                  (let loop ([pos pos])
+                    (cond
+                      [(or (= pos 0) 
+                           (= pos (send editor last-position)))
+                       pos]
+                      [(memq (send editor get-character pos) '(#\space #\return #\newline #\( #\) #\[ #\] #\tab))
+                       (offset pos)]
+                      [else (loop (dir pos))])))]
+               [before (search sub1 add1)]
+               [after (search add1 (lambda (x) x))])
+          (send editor get-text before after)))
+        
       (define func-defs-canvas%
         (class canvas%
 	  (init parent)
@@ -500,98 +566,7 @@
 		   stretchable-width
 		   stretchable-height)
 	  (rename [super-on-event on-event])
-          
-          (define-struct defn (indent name start-pos end-pos))
-          
-          (define tag-string "(define")
-          (define (get-definitions)
-            (let* ([min-indent 0]
-                   [defs (let loop ([pos 0])
-                           (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
-                             (if defn-pos
-                                 (let ([indent (get-defn-indent defn-pos)]
-                                       [name (get-defn-name (+ defn-pos (string-length tag-string)))])
-                                   (set! min-indent (min indent min-indent))
-                                   (cons (make-defn indent name defn-pos defn-pos)
-                                         (loop (+ defn-pos (string-length tag-string)))))
-                                 null)))])
-              
-              ;; update end-pos's based on the start pos of the next defn
-              (unless (null? defs)
-                (let loop ([first (car defs)]
-                           [defs (cdr defs)])
-                  (cond
-                    [(null? defs) 
-                     (set-defn-end-pos! first (send text last-position))]
-                    [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
-                                                        (defn-start-pos first)))
-                          (loop (car defs) (cdr defs))])))
-              
-              (unless sort-by-name?
-                (for-each (lambda (defn)
-                            (set-defn-name! defn
-                                            (string-append
-                                             (apply string
-                                                    (vector->list
-                                                     (make-vector 
-                                                      (- (defn-indent defn) min-indent) #\space)))
-                                             (defn-name defn))))
-                          defs))
-              (if sort-by-name?
-                  (mzlib:list:quicksort 
-                   defs
-                   (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
-                  defs)))
-          
-          (define (get-defn-indent pos)
-            (let* ([para (send text position-paragraph pos)]
-                   [para-start (send text paragraph-start-position para #t)])
-              (let loop ([c-pos para-start]
-                         [offset 0])
-                (if (< c-pos pos)
-                    (let ([char (send text get-character c-pos)])
-                      (cond
-                        [(char=? char #\tab)
-                         (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
-                        [else
-                         (loop (+ c-pos 1) (+ offset 1))]))
-                    offset))))
-          
-          (define (skip-to-whitespace/paren pos)
-            (let loop ([pos pos])
-              (if (>= pos (send text last-position))
-                  (send text last-position)
-                  (let ([char (send text get-character pos)])
-                    (cond
-                      [(or (char=? #\) char)
-                           (char=? #\( char)
-                           (char=? #\] char)
-                           (char=? #\[ char)
-                           (char-whitespace? char))
-                       pos]
-                      [else (loop (+ pos 1))])))))
-          
-          (define (skip-whitespace/paren pos)
-            (let loop ([pos pos])
-              (if (>= pos (send text last-position))
-                  (send text last-position)
-                  (let ([char (send text get-character pos)])
-                    (cond
-                      [(or (char=? #\) char)
-                           (char=? #\( char)
-                           (char=? #\] char)
-                           (char=? #\[ char)
-                           (char-whitespace? char))
-                       (loop (+ pos 1))]
-                      [else pos])))))
-          
-          (define (get-defn-name define-pos)
-            (if (>= define-pos (send text last-position))
-                (string-constant end-of-buffer-define)
-                (let* ([start-pos (skip-whitespace/paren (skip-to-whitespace/paren define-pos))]
-                       [end-pos (skip-to-whitespace/paren start-pos)])
-                  (send text get-text start-pos end-pos))))
-          
+                    
           (define inverted? #f)
           
           (define label "(define ...)")
@@ -614,11 +589,16 @@
               [(send evt button-down?)
                (set! inverted? #t)
                (on-paint)
-               (let ([menu (make-object popup-menu% #f
-                             (lambda x
-                               (set! inverted? #f)
-                               (on-paint)))]
-                     [defns (get-definitions)])
+               (let* ([menu (make-object popup-menu% #f
+                              (lambda x
+                                (set! inverted? #f)
+                                (on-paint)))]
+                      [unsorted-defns (get-definitions (not sort-by-name?) text)]
+                      [defns (if sort-by-name?
+                                 (mzlib:list:quicksort 
+                                  unsorted-defns
+                                  (lambda (x y) (string-ci<=? (defn-name x) (defn-name y))))
+                                 unsorted-defns)])
                  (make-object menu:can-restore-menu-item% sorting-name
                    menu
                    (lambda x
@@ -669,8 +649,124 @@
           (min-height height)
           (stretchable-width #f)
           (stretchable-height #f)))
+
+      ;; defn = (make-defn number string number number)
+      (define-struct defn (indent name start-pos end-pos))
+      (define tag-string "(define")
+
+      ;; get-definitions : boolean text -> (listof defn)
+      (define (get-definitions indent? text)
+        (let* ([min-indent 0]
+               [defs (let loop ([pos 0])
+                       (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
+                         (if defn-pos
+                             (let ([indent (get-defn-indent text defn-pos)]
+                                   [name (get-defn-name text (+ defn-pos (string-length tag-string)))])
+                               (set! min-indent (min indent min-indent))
+                               (cons (make-defn indent name defn-pos defn-pos)
+                                     (loop (+ defn-pos (string-length tag-string)))))
+                             null)))])
+          
+          ;; update end-pos's based on the start pos of the next defn
+          (unless (null? defs)
+            (let loop ([first (car defs)]
+                       [defs (cdr defs)])
+              (cond
+                [(null? defs) 
+                 (set-defn-end-pos! first (send text last-position))]
+                [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
+                                                    (defn-start-pos first)))
+                      (loop (car defs) (cdr defs))])))
+          
+          (when indent?
+            (for-each (lambda (defn)
+                        (set-defn-name! defn
+                                        (string-append
+                                         (apply string
+                                                (vector->list
+                                                 (make-vector 
+                                                  (- (defn-indent defn) min-indent) #\space)))
+                                         (defn-name defn))))
+                      defs))
+          defs))
+      
+      ;; get-defn-indent : text number -> number
+      ;; returns the amount to indent a particular definition
+      (define (get-defn-indent text pos)
+        (let* ([para (send text position-paragraph pos)]
+               [para-start (send text paragraph-start-position para #t)])
+          (let loop ([c-pos para-start]
+                     [offset 0])
+            (if (< c-pos pos)
+                (let ([char (send text get-character c-pos)])
+                  (cond
+                    [(char=? char #\tab)
+                     (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+                    [else
+                     (loop (+ c-pos 1) (+ offset 1))]))
+                offset))))
+      
+      ;; skip-to-whitespace/paren : text number -> number
+      ;; skips to the next parenthesis or whitespace after `pos', returns that position.
+      (define (skip-to-whitespace/paren text pos)
+        (let loop ([pos pos])
+          (if (>= pos (send text last-position))
+              (send text last-position)
+              (let ([char (send text get-character pos)])
+                (cond
+                  [(or (char=? #\) char)
+                       (char=? #\( char)
+                       (char=? #\] char)
+                       (char=? #\[ char)
+                       (char-whitespace? char))
+                   pos]
+                  [else (loop (+ pos 1))])))))
+      
+      ;; skip-whitespace/paren : text number -> number
+      ;; skips past any parenthesis or whitespace
+      (define (skip-whitespace/paren text pos)
+        (let loop ([pos pos])
+          (if (>= pos (send text last-position))
+              (send text last-position)
+              (let ([char (send text get-character pos)])
+                (cond
+                  [(or (char=? #\) char)
+                       (char=? #\( char)
+                       (char=? #\] char)
+                       (char=? #\[ char)
+                       (char-whitespace? char))
+                   (loop (+ pos 1))]
+                  [else pos])))))
+      
+      ;; get-defn-name : text number -> string
+      ;; returns the name of the definition starting at `define-pos'
+      (define (get-defn-name text define-pos)
+        (if (>= define-pos (send text last-position))
+            (string-constant end-of-buffer-define)
+            (let* ([start-pos (skip-whitespace/paren text (skip-to-whitespace/paren text define-pos))]
+                   [end-pos (skip-to-whitespace/paren text start-pos)])
+              (send text get-text start-pos end-pos))))
       
       (define (set-box/f! b v) (when (box? b) (set-box! b v)))
+      
+
+                                    
+                                    
+                                    
+   ;;                               
+  ;                                 
+  ;                                 
+ ;;;  ; ;;  ;;;   ; ;;; ;;     ;;;  
+  ;   ;;   ;   ;  ;;  ;;  ;   ;   ; 
+  ;   ;        ;  ;   ;   ;   ;   ; 
+  ;   ;     ;;;;  ;   ;   ;   ;;;;; 
+  ;   ;    ;   ;  ;   ;   ;   ;     
+  ;   ;    ;   ;  ;   ;   ;   ;     
+  ;   ;     ;;;;; ;   ;   ;    ;;;; 
+                                    
+                                    
+                                    
+
       
       (define vertical-dragable/def-int%
         (class panel:vertical-dragable%
