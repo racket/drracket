@@ -48,14 +48,18 @@
       (define status-stack (make-parameter null))
       
       (define (load-status push? what url)
-        (let ([s (format "Loading ~a ~a~a..." what 
-                         (or (and (url? url) (url-host url)) "") 
-                         (or (and (url? url) (url-path url)) ""))])
+        (let ([s (format "Loading ~a ~a..." 
+                         what 
+                         (trim 150 (url->string url)))])
           (status-stack (cons s (if push? (status-stack) null)))
           (status "~a" s)))
       (define (pop-status)
         (status-stack (cdr (status-stack)))
         (status "~a" (car (status-stack))))
+      (define (trim len s)
+        (if ((string-length s) . <= . len)
+            s
+            (string-append (substring s 0 (- len 4)) " ...")))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;

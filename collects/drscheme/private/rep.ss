@@ -140,7 +140,13 @@ TODO
                                  (send obj get-text start end))])
                    (if (equal? "" str)
                        (drscheme:help-desk:help-desk)
-                       (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))]
+                       (let ([language (let ([canvas (send obj get-canvas)])
+                                         (and canvas
+                                              (let ([tlw (send canvas get-top-level-window)])
+                                                (and (is-a? tlw drscheme:unit:frame<%>)
+                                                     (send (send tlw get-definitions-text)
+                                                           get-next-settings)))))])
+                         (drscheme:help-desk:help-desk str #f 'keyword+index 'contains language))))]
                 [else                   
                  (drscheme:help-desk:help-desk)])))
       (send drs-bindings-keymap add-function

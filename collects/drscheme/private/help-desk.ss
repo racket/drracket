@@ -60,12 +60,14 @@
           
           (define current-language 
             (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+          (define/public (set-current-language cl)
+            (set! current-language cl))
           
           (define/override (order-manuals x)
             (send (drscheme:language-configuration:language-settings-language current-language)
                   order-manuals
                   x))
-          (define/override (get-language-name) 
+          (define/override (get-language-name)
             (send (drscheme:language-configuration:language-settings-language current-language)
                   get-language-name))
           
@@ -159,22 +161,30 @@
           [() (show-help-desk)]
           [(key) (help-desk key #f)]
           [(key lucky?) (help-desk key lucky? 'keyword+index)]
-          [(key lucky? type) (help-desk key lucky? type 'contins)]
-          [(key lucky? type mode) 
-           (search-for-docs
-            key
-            (case type
-              [(keyword) "keyword"]
-              [(keyword+index) "keyword-index"]
-              [(keyword+index+text) "keyword-index-text"]
-              [else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
-            (case mode
-              [(exact) "exact-match"]
-              [(contains) "containing-match"]
-              [(regexp) "regexp-match"]
-              [else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
-            lucky?
-            (map car (get-docs)))]))
+          [(key lucky? type) (help-desk key lucky? type 'contains)]
+          [(key lucky? type mode) (help-desk key lucky? type mode #f)]
+          [(key lucky? type mode language)
+           (let ([frame (or (find-help-desk-frame)
+                            (new-help-desk))])
+             (when language 
+               (send frame set-current-language language))
+             (search-for-docs/in-frame
+              frame
+              key
+              (case type
+                [(keyword) "keyword"]
+                [(keyword+index) "keyword-index"]
+                [(keyword+index+text) "keyword-index-text"]
+                [else (error 'drscheme:help-desk:help-desk "unknown type argument: ~s" type)])
+              (case mode
+                [(exact) "exact-match"]
+                [(contains) "containing-match"]
+                [(regexp) "regexp-match"]
+                [else (error 'drscheme:help-desk:help-desk "unknown mode argument: ~s" mode)])
+              lucky?
+              (map car (get-docs))))]))
       
       ;; open-url : string -> void
-      (define (open-url x) (send-url x)))))
+      (define (open-url x) (send-url x))
+      
+      (add-help-desk-mixin drscheme-help-desk-mixin))))

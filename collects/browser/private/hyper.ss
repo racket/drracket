@@ -234,6 +234,7 @@ A test case:
           (define/public reload
             (opt-lambda ([progress void])
               (when url
+                (init-browser-status-line top-level-window)
                 (let ([headers (get-headers/read-from-port progress)])
                   ;; Page is a redirection?
                   (let ([m (regexp-match "^HTTP/[^ ]+ 301 " headers)])
@@ -245,7 +246,8 @@ A test case:
                                   [(url? url)
                                    (combine-url/relative url loc)]
                                   [else
-                                   (string->url loc)]))))))))))
+                                   (string->url loc)])))))))
+                (close-browser-status-line top-level-window))))
           
           (define/private (get-headers/read-from-port progress)
             (cond
