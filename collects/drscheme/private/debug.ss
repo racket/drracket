@@ -16,7 +16,8 @@ profile todo:
            (lib "mred.ss" "mred")
            (lib "thread.ss")
 	   (lib "toplevel.ss" "syntax")
-           (lib "string-constant.ss" "string-constants"))
+           (lib "string-constant.ss" "string-constants")
+           (lib "bday.ss" "framework" "private"))
   
   (define orig (current-output-port))
   
@@ -459,13 +460,6 @@ profile todo:
           (send text lock #t)
           (send text hide-caret #t)
           (send current-backtrace-window show #t)))
-
-      ;; mf-bday? : -> boolean
-      ;; Matthias's birthday
-      (define (mf-bday?)
-        (let ([date (seconds->date (current-seconds))])
-          (and (= (date-month date) 10)
-               (= (date-day date) 29))))
       
       ;; show-frame : (instanceof editor-canvas%)
       ;;              (instanceof text%) 
