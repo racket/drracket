@@ -2,8 +2,10 @@
         Version 204
 ------------------------------
 
-- Windows installer generates Program menu 
-  shortcuts for all users
+- Removed `Windows' menu from windows and unix versions.
+
+- Windows installer generates Program menu shortcuts for all
+  users
 
 ------------------------------
         Version 203

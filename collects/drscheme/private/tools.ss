@@ -252,10 +252,8 @@
                            (send bdc set-bitmap #f)
                            (set! bitmap new-b)))
                        
-                       (send bdc set-bitmap splash-bitmap)
-                       (send bdc draw-bitmap bitmap tool-bitmap-x translated-tool-bitmap-y)
-                       (send bdc set-bitmap #f)
-                       (send splash-canvas on-paint)
+                       ((dynamic-require '(lib "splash.ss" "framework") 'add-splash-icon)
+                        bitmap tool-bitmap-x translated-tool-bitmap-y)
                        (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap))
                        (when ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . (send splash-bitmap get-width))
                          (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
