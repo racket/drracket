@@ -2,33 +2,29 @@
         Version 300
 ------------------------------
 
+;;; unannounced above -- add to iplt/misc/announcements
+
+ - changed the defaults for frame:standard-menus-mixin --
+   the method file-menu:between-save-as-and-print method no
+   longer creates a separator menu item. 
+
+ - changed the overriding method behavior of
+   drscheme:frame:basics-mixin. See docs for details.
+
  - Help Desk searching is now language-sensitive.
 
  - Check syntax is now integrated (better) with the syntax
    colorer.
 
- - Check Syntax now properly distinguishes between require'd
-   and locally defined variables, and between macro
-   variables and regular variables (for a total of four
-   categories).
+ - Check Syntax now distinguishes between require'd
+   and locally defined identifiers.
 
- - added command-line specs to the module language details.
-
-*'d items have been revoked.
-
- * the preferences in DrScheme, Help Desk, and SirMail are
-   now periodically written out and read back in. This
-   allows multiple apps to use the preferences library and
-   avoid clobbering each other's preferences.
-
- * added preferences:start-writing-thread to support the
-   previous item.
+ - added the ability to specify a command-line to the module
+   language.
 
  - Help Desk's status messages are now in the frame and
    it's break button is also in the frame (no more modal
    dialog)
-
-;;; unannounced above -- add to iplt/misc/announcements
 
  - Check Syntax can now jump from the use of a
    module-provided variable to its definition. Either
