@@ -67,7 +67,7 @@
 	    (send memory-dc select-object null)
 	    new-bitmap)))))
   
-  (define-values (execute-bitmap help-bitmap save-bitmap break-bitmap)
+  (define-values (execute-bitmap save-bitmap break-bitmap)
     (apply values (map 
 		   (lambda (filename)
 		     (let* ([capd (string-copy filename)]
@@ -76,7 +76,7 @@
 				   (string-append filename ".bmp"))])
 		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
 		       (make-bitmap path capd)))
-		   (list "execute" "help" "save" "break"))))
+		   (list "execute" "save" "break"))))
   
   ;; this is the old definition of the interactions canvas.
   ;; It should be integrated into mred:wide-snip-canvas% 
@@ -152,17 +152,6 @@
 	(lambda (width height)
 	  (super-on-size width height)
 	  (for-each update-snip-size snips))]))
-  
-  (define do-help
-    (lambda ()
-      (mred:show-busy-cursor
-       (lambda ()
-	 (mred:open-hyper-view
-	  (string-append
-	   "file:"
-	   (build-path (collection-path "doc")
-		       "drscheme"
-		       "index.htm")))))))
   
   ;; this sends a message to it's frame when it gets the focus
   (define make-searchable-canvas%
@@ -246,7 +235,8 @@
 	       file-menu:save-as-id file-menu:revert-id file-menu:print-id)
       (rename [super-make-menu-bar make-menu-bar]
 	      [super-update-shown update-shown]
-	      [super-do-close do-close])
+	      [super-do-close do-close]
+	      [help-menu:super-insert-items help-menu:insert-items])
       (public
 	[definitions-id #f]
 	[interactions-id #f]
@@ -338,12 +328,14 @@
 	   (send definitions-canvas set-focus))])
 
       (private
-	[hidden?
-	 (lambda (menu id)
-	   (let ([item (send menu get-label id)])
-	     (and (string? item)
-		  (>= (string-length item) 4)
-		  (string=? (substring item 0 4) "Show"))))]
+       [drscheme-manual 
+	"PLT DrScheme: Programming Environment Manual"]
+       [hidden?
+	(lambda (menu id)
+	  (let ([item (send menu get-label id)])
+	    (and (string? item)
+		 (>= (string-length item) 4)
+		 (string=? (substring item 0 4) "Show"))))]
 	[save-as-text-from-edit
 	 (lambda (win)
 	   (let ([file (mred:put-file)])
@@ -412,6 +404,26 @@
 					#t
 					(mred:get-preference 'mred:print-output-mode)))))
 	   (send file-menu append-separator))]
+
+	[help-menu:compare
+
+	 ; override default comparison so drscheme-manual is first
+
+	 (lambda (s1 s2)
+	   (if (string=? s1 drscheme-manual)
+	       -1
+	       (if (string=? s2 drscheme-manual)
+		   1
+		   (string-ci<? s1 s2))))]
+	[help-menu:insert-items
+	    (lambda (items)
+	      (if (string=? (caar items) drscheme-manual)
+		  (begin
+		    (apply (ivar (ivar this help-menu) append-item) 
+			   (car items))
+		    (send (ivar this help-menu) append-separator)
+		    (help-menu:super-insert-items (cdr items)))
+		  (help-menu:super-insert-items items)))]
 	[id->child
 	 (lambda (id)
 	   (cond
@@ -630,7 +642,6 @@
       (public
 	[stop-execute-button (void)]
 	[execute-button (void)]
-	[help-button (void)]
 	[button-panel (make-object mred:horizontal-panel% top-panel)])
       
       (sequence
@@ -645,11 +656,6 @@
 			     (ensure-interactions-shown)
 			     (send (send interactions-edit get-canvas) set-focus))
 			   break-bitmap))
-	(set! help-button 
-	      (make-object mred:button% button-panel
-			   (lambda args (do-help))
-			   help-bitmap))
-	
 	(send imports-panel stretchable-in-y #f)
 	(send button-panel stretchable-in-y #f)
 	(send button-panel stretchable-in-x #f) 

@@ -88,12 +88,13 @@
 	  (send* d-http 
 	    (copy d-usual)
 	    (set-delta-foreground "BLUE")
-	    (set-delta wx:const-change-underline 1))
+	    (set-delta wx:const-change-underline #t))
 	  (send* d-usual 
 	    (set-delta-foreground "BLACK")
-	    (set-delta wx:const-change-underline 0))
+	    (set-delta wx:const-change-underline #f))
+
 	  (send* p (user-min-width 600) (user-min-height 400))
-	  (send* d-dr (copy d-usual) (set-delta wx:const-change-bold 0))
+	  (send* d-dr (copy d-usual) (set-delta wx:const-change-bold))
 	  (send d-usual set-weight-on wx:const-normal)
 	  (send* c (set-media main-media) (stretchable-in-x #t) (stretchable-in-y #t))
 	  (send* e 
