@@ -157,13 +157,15 @@
                (mark-bindings mark))))
   
   
+  ; possible optimization: rig the mark-maker to guarantee statically that a
+  ; variable can occur at most once in a mark.  
+  
   (define (binding-matches matcher mark binding)
     (let ([matches
            (filter (lambda (b)
                      (matcher (mark-binding-binding b) binding))
                    (mark-bindings mark))])
-      (printf "bindings: ~a\n" (map syntax-object->datum (map mark-binding-binding (mark-bindings mark))))
-      (if (> (length matches) 1)
+      (if (and (pair? matches) (pair? (cdr matches))) ; (> (length matches) 1)
           (error 'lookup-binding "multiple bindings found for ~a" binding)
           matches)))
   
