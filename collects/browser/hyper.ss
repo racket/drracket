@@ -2,9 +2,13 @@
 (unit/sig browser^
   (import browser:html^
 	  mzlib:function^
+	  mzlib:file^
 	  mzlib:string^
 	  mzlib:url^
 	  mred^)
+
+  (define-struct (exn:file-saved-instead struct:exn) (pathname))
+  (define-struct (exn:cancelled struct:exn) ())
 
   (define history-limit 20)
 
@@ -103,6 +107,59 @@
 
 |#
 
+  (define (run-installer file)
+    (letrec ([f (make-object (class dialog% ()
+			       (override
+				 [can-close? (lambda () (send done is-enabled?))])
+			       (sequence
+				 (super-init "Install Progress"
+					     #f 400 300))))]
+	     [c (make-object editor-canvas% f)]
+	     [e (make-object text%)]
+	     [s (make-semaphore)]
+	     [done (make-object button% "Ok" f (lambda (b e) 
+						 (semaphore-post s)))]
+	     [output (make-output-port
+		      (lambda (s)
+			(send e lock #f)
+			(send e insert s (send e last-position) 'same 
+			      ; Scroll on newlines only:
+			      (regexp-match (string #\newline) s))
+			(send e lock #t))
+		      void)]
+	     [cust (make-custodian)])
+      (send done enable #f)
+      (send e lock #t)
+      (send c set-editor e)
+      (let ([t (parameterize ([current-custodian cust])
+		 (thread
+		  (lambda ()
+		    (current-output-port output)
+		    (current-error-port output)
+		    (parameterize ([current-namespace (make-namespace 'mred)]
+				   [exit-handler (lambda (v) (custodian-shutdown-all cust))])
+		      (printf "Loading installer...~n")
+		      (global-defined-value 'argv (vector file))
+		      (require-library "setup.ss" "compiler")))))])
+	(thread (lambda () (send f show #t) (semaphore-post s)))
+	(thread (lambda () 
+		  (thread-wait t) 
+		  (semaphore-post s)))
+	(yield s)
+	(custodian-shutdown-all cust)
+	(end-busy-cursor)
+	(send done enable #t)
+	(fprintf output "(Click Ok to close this progess window.)~n")
+	(send e lock #f)
+	(send e change-style
+	      (make-object style-delta% 'change-bold)
+	      (send e line-start-position (sub1 (send e last-line)))
+	      (send e last-position))
+	(yield s)
+	(begin-busy-cursor)
+	(send f show #f)
+	(yield s))))
+
   (define hyper-text-mixin
     (lambda (super%)
       (class super% (url top-level-window . args)
@@ -151,7 +208,9 @@
 	       (on-url-click
 		(lambda (url-string)
 		  (with-handlers ([void (lambda (x)
-					  (unless (exn:misc:user-break? x)
+					  (unless (or (exn:misc:user-break? x)
+						      (exn:file-saved-instead? x)
+						      (exn:cancelled? x))
 					    (message-box
 					     "Error"
 					     (format "Cannot display ~s: ~a~n" 
@@ -252,18 +311,59 @@
 							     (mime-header-value mh)))
 						      mime-headers)])
 				(cond
-				 [(and mime-type (regexp-match "application/" mime-type))
+				 [(or (and mime-type (regexp-match "application/" mime-type))
+				      (and (url? url)
+					   (regexp-match "[.]plt$" (url-path url))))
 				  ; Save the file
 				  (end-busy-cursor)
-				  (let ([f (put-file "Save downloaded file as"
-						     #f ; should be calling window!
-						     #f
-						     (and (url? url)
-							  (let ([m (regexp-match "([^/]*)$" (url-path url))])
-							    (and m (cadr m)))))])
+				  (let* ([orig-name (and (url? url)
+							   (let ([m (regexp-match "([^/]*)$" (url-path url))])
+							     (and m (cadr m))))]
+					 [size (ormap (lambda (mh)
+							(and (string=? (mime-header-name mh) "content-length")
+							     (let ([m (regexp-match "[0-9]+" (mime-header-value mh))])
+							       (and m (string->number (car m))))))
+						      mime-headers)]
+					 [install? (and (and orig-name (regexp-match "[.]plt$" orig-name))
+							(let ([d (make-object dialog% "Install?")]
+							      [d? #f]
+							      [i? #f])
+							  (make-object message% "You have selected an installable package." d)
+							  (make-object message% "Do you want to install it?" d)
+							  (when size
+							    (make-object message% (format "(The file is ~a bytes)" size) d))
+							  (let ([hp (make-object horizontal-panel% d)])
+							    (send hp set-alignment 'center 'center)
+							    (send (make-object button% "Download && Install" hp
+									       (lambda (b e) (set! i? #t) (send d show #f))
+									       '(border))
+								  focus)
+							    (make-object button% "Download" hp
+									 (lambda (b e) (set! d? #t) (send d show #f)))
+							    (make-object button% "Cancel" hp
+									 (lambda (b e) (send d show #f))))
+							  (send d center)
+							  (send d show #t)
+							  (unless (or d? i?)
+							    (raise (make-exn:cancelled "Package cancelled"
+										       (current-continuation-marks))))
+							  i?))]
+					 [f (if install?
+						(make-temporary-file "tmp~a.plt")
+						(put-file (format "Save downloaded file~a as"
+								  (if size
+								      (format " (~a bytes)" size)
+								      ""))
+							  #f ; should be calling window!
+							  #f
+							  orig-name))])
 				    (begin-busy-cursor)
 				    (when f
 				      (let* ([d (make-object dialog% "Downloading" top-level-window)]
+					     [message (make-object message% "Downloading file..." d)]
+					     [gauge (if size
+							(make-object gauge% #f 100 d)
+							#f)]
 					     [exn #f]
 					     ; Semaphores to avoid race conditions:
 					     [wait-to-start (make-semaphore 0)]
@@ -278,15 +378,17 @@
 						     (semaphore-post wait-to-break)
 						     (with-output-to-file f
 						       (lambda ()
-							 (let loop ()
+							 (let loop ([total 0])
+							   (when gauge
+							     (send gauge set-value 
+								   (inexact->exact (floor (* 100 (/ total size))))))
 							   (let ([s (read-string 1024 p)])
 							     (unless (eof-object? s)
 							       (display s)
-							       (loop)))))
+							       (loop (+ total (string-length s)))))))
 						       'binary 'truncate))
 						   (send d show #f)))])
 					(send d center)
-					(make-object message% "Downloading file..." d)
 					(make-object button% "&Stop" d (lambda (b e)
 									 (semaphore-wait wait-to-break)
 									 (set! f #f)
@@ -295,10 +397,20 @@
 					; Let thread run only after the dialog is shown
 					(queue-callback (lambda () (semaphore-post wait-to-start)))
 					(send d show #t)
-					(when exn (raise exn))))
-				    (error (if f
-					       "The downloaded file was saved."
-					       "The download was cancelled.")))]
+					(when exn (raise exn)))
+				      (when install?
+					(run-installer f)
+					(delete-file f)))
+				    (raise
+				     (if f
+					 (make-exn:file-saved-instead
+					  (if install?
+					      "The package was installed."
+					      "The downloaded file was saved.")
+					  (current-continuation-marks)
+					  f)
+					 (make-exn:cancelled "The download was cancelled."
+							     (current-continuation-marks)))))]
 				 [(or (port? url)
 				      (and (url? url)
 					   (regexp-match "[.]html?$" (url-path url)))
