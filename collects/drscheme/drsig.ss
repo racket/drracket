@@ -9,9 +9,6 @@
 (define-signature drscheme^
   ((open mred:application^)))
 
-(define-signature drscheme:aries^
-  (transform frame% console-edit%))
-
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
@@ -33,5 +30,6 @@
   (do-setup))
 
 (define-signature drscheme:spawn^
-  (spawned-process-console-frame%
+  ((open plt:aries:predicates^)
+   spawned-process-console-frame%
    spawned-process-console-edit%))
