@@ -2722,7 +2722,7 @@ tab panels new behavior:
         (class* snip% (readable-snip<%>)
           (init-field symbol one-char-string)
           (define/public (read-one-special index source line column position)
-            (values symbol 1 #t))
+            (values (datum->syntax-object #'here symbol) #t))
 
           (define/private (get-greek-font)
             (send the-font-list find-or-create-font 
