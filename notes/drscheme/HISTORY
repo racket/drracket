@@ -49,12 +49,19 @@ General
 DrScheme Tools/Libraries
 ------------------------
 
+- new methods on rep:edit%: report-exception-error accepts an exception and
+  prints the error message in the console.
+
 - send-scheme is outdated. Use run-in-evaluation-thread instead
 
 - the drscheme:tool^ signature has changed. A new subunit, "basis" has
   been aded and the process-finish struct is now in that subunit. So,
   drscheme:language:process-finish? becomes
   drscheme:basis:process-finish?, etc.
+  
+  The process-finish structure no longer has a boolean indicating sucess. 
+  Instead, an exception is raised.
+
 
 - the settings for the language have been re-aranged
   - there are two new parameters, exported from the basis
