@@ -1657,8 +1657,7 @@
             
             (define initialize-parameters ; =User=
               (lambda ()
-                
-		(current-language-settings user-language-settings)
+              	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
                 (current-exception-handler drscheme-exception-handler)
                 (current-load-relative-directory #f)
@@ -1707,11 +1706,18 @@
                 (exit-handler (lambda (arg) ; =User=
                                 (custodian-shutdown-all user-custodian)))
                 
+                (current-namespace (make-namespace 'empty))
+                
+                (send (drscheme:language:language-settings-language user-language-settings)
+                      on-execute
+                      (drscheme:language:language-settings-settings user-language-settings)
+                      (lambda (thnk)
+                        (run-in-user-thread thnk)))
+                
 	    ;; set all parameters before constructing eventspace
 	    ;; so that the parameters are set in the eventspace's
 	    ;; parameterization
                 (let* ([primitive-dispatch-handler (event-dispatch-handler)])
-                  
                   (event-dispatch-handler
                    (rec drscheme-event-dispatch-handler ; <= a name for #<...> printout
                      (lambda (eventspace) ; =User=, =Handler=

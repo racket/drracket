@@ -239,7 +239,8 @@
 
 	  (define cancel-button (make-object button% "Cancel" button-panel (lambda (x y) (cancel-callback))))
 	  (define ok-button (make-object button% "OK" button-panel (lambda (x y) (ok-callback))))
-
+          (define grow-box-spacer (make-object grow-box-spacer-pane% button-panel))
+          
 	  (send button-panel set-alignment 'right 'center)
 	  (send button-panel stretchable-height #f)
 
