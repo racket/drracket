@@ -351,7 +351,7 @@
   (let* ([drs (wait-for-drscheme-frame)]
 	 [expression (format "(define x (box 4/3))~n(list x x)")]
 	 [set-output-choice
-	  (lambda (option show-sharing rationals)    
+	  (lambda (option show-sharing rationals pretty?)
 	    (set-language #f)
 	    (fw:test:set-radio-box! "Output Style" option)
 	    (when show-sharing
@@ -362,40 +362,55 @@
 	      (fw:test:set-check-box!
 	       "Print rationals in whole/part notation"
 	       (if (eq? rationals 'on) #t #f)))
+	    (fw:test:set-check-box!
+	     "Use pretty printer to format values"
+	     pretty?)
 	    (let ([f (get-top-level-focus-window)])
 	      (fw:test:button-push "OK")
 	      (wait-for-new-frame f)))]
 	 [test
-	  (lambda (option show-sharing rationals answer)
-	    (set-output-choice option show-sharing rationals)
+	  ;; answer must either be a string, or a procedure that accepts both zero and 1
+	  ;; argument. When the procedure accepts 1 arg, the argument is `got' and
+	  ;; the result must be a boolean indicating if the result was satisfactory.
+	  ;; if the procedure receives no arguments, it must return a descriptive string
+	  ;; for the error message
+	  (lambda (option show-sharing rationals pretty? answer)
+	    (set-output-choice option show-sharing rationals pretty?)
 	    (do-execute drs)
 	    (let ([got (fetch-output drs)])
-	      (unless (whitespace-string=? answer got)
+	      (unless (if (procedure? answer)
+			  (answer got)
+			  (whitespace-string=? answer got))
 		(printf "FAILED ~a ~a, sharing ~a, rationals ~a, got ~s expected ~s~n"
-			(language) option show-sharing rationals got answer))))])
+			(language) option show-sharing rationals got
+			(answer)))))])
     
     (clear-definitions drs)
     (type-in-definitions drs expression)
     
-    (test "write" 'off #f "(#&4/3 #&4/3)")    
-    (test "write" 'on #f "(#0=#&4/3 #0#)")
+    (test "write" 'off #f #t "(#&4/3 #&4/3)")    
+    (test "write" 'on #f #t "(#0=#&4/3 #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off 'off "`(,(box 4/3) ,(box 4/3))")
-      (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/3)) ,(box (+ 1 1/3)))")
-      (test "Quasiquote" 'on 'off "(shared ((-1- (box 4/3))) `(,-1- ,-1-))")
-      (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/3)))) `(,-1- ,-1-))"))
-    (test "Constructor" 'off 'off (if list?
-				      "(list (box 4/3) (box 4/3))"
-				      "(cons (box 4/3) (cons (box 4/3) empty))"))
-    (test "Constructor" 'off 'on (if list?
-				     "(list (box (+ 1 1/3)) (box (+ 1 1/3)))"
-				     "(cons (box (+ 1 1/3)) (cons (box (+ 1 1/3)) empty))"))
-    (test "Constructor" 'on 'off (if list? 
-				     "(shared ((-1- (box 4/3))) (list -1- -1-))"
-				     (format "(shared ((-1- (box 4/3))) (cons -1- (cons -1- empty)))")))
-    (test "Constructor" 'on 'on (if list?
-				    "(shared ((-1- (box (+ 1 1/3)))) (list -1- -1-))"
-				    (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))
+      (test "Quasiquote" 'off 'off #t "`(,(box 4/3) ,(box 4/3))")
+      (test "Quasiquote" 'off 'on #t "`(,(box (+ 1 1/3)) ,(box (+ 1 1/3)))")
+      (test "Quasiquote" 'on 'off #t "(shared ((-1- (box 4/3))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on 'on #t "(shared ((-1- (box (+ 1 1/3)))) `(,-1- ,-1-))"))
+    (test "Constructor" 'off 'off #t
+	  (if list?
+	      "(list (box 4/3) (box 4/3))"
+	      "(cons (box 4/3) (cons (box 4/3) empty))"))
+    (test "Constructor" 'off 'on #t
+	  (if list?
+	      "(list (box (+ 1 1/3)) (box (+ 1 1/3)))"
+	      "(cons (box (+ 1 1/3)) (cons (box (+ 1 1/3)) empty))"))
+    (test "Constructor" 'on 'off #t
+	  (if list? 
+	      "(shared ((-1- (box 4/3))) (list -1- -1-))"
+	      (format "(shared ((-1- (box 4/3))) (cons -1- (cons -1- empty)))")))
+    (test "Constructor" 'on 'on #t
+	  (if list?
+	      "(shared ((-1- (box (+ 1 1/3)))) (list -1- -1-))"
+	      (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))
 
 
     ;; setup comment box
@@ -406,8 +421,30 @@
     (fw:test:keystroke #\c)
 
     ;; test comment box in print-convert and print-convert-less settings
-    (test "Constructor" 'on 'on (if zodiac? "[abc]" "'non-string-snip"))
-    (test "write" 'on #f (if zodiac? "[abc]" "non-string-snip"))))
+    (test "Constructor" 'on 'on #t (if zodiac? "[abc]" "'non-string-snip"))
+    (test "write" 'on #f #t (if zodiac? "[abc]" "non-string-snip"))
+
+    ;; setup write / pretty-print difference
+    (clear-definitions drs)
+    (for-each fw:test:keystroke
+	      (string->list
+	       "(define(f n)(cond((zero? n)null)[else(cons n(f(- n 1)))]))(f 40)"))
+    (test "Constructor" 'on 'on #f
+	  (case-lambda
+	   [(x) (not (member #\newline (string->list x)))]
+	   [() "no newlines in result"]))
+    (test "Constructor" 'on 'on #t
+	  (case-lambda
+	   [(x) (member #\newline (string->list x))]
+	   [() "newlines in result (may need to make the window smaller)"]))
+    (test "write" #f #f #f
+	  (case-lambda
+	   [(x) (not (member #\newline (string->list x)))]
+	   [() "no newlines in result"]))
+    (test "write" #f #f #t
+	  (case-lambda
+	   [(x) (member #\newline (string->list x))]
+	   [() "newlines in result (may need to make the window smaller)"]))))
 
 (define (whitespace-string=? string1 string2)
   (let loop ([i 0]

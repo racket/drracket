@@ -122,6 +122,7 @@
    (unit unit : drscheme:unit^)
    (unit program : drscheme:program^)
    (unit get/extend : drscheme:get/extend^)
+   (unit load-handler : drscheme:load-handler^)
    (unit rep : drscheme:rep^)
    (unit language : drscheme:language^)
    (unit help-desk : help:drscheme-interface^)))
