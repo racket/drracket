@@ -172,10 +172,11 @@
               build/label 
               label 
               (lambda (panel)
-                (let* ([text (make-object (editor:keymap-mixin text:basic%))]
+                (let* ([text (new (editor:standard-style-list-mixin
+				   (editor:keymap-mixin
+				    text:basic%)))]
                        [canvas (make-object canvas:basic% panel text)])
                   (send text set-paste-text-only #t)
-                  (send text set-style-list (scheme:get-style-list))
                   (send text set-styles-fixed #t)
                   canvas))
               #t
