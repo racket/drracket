@@ -788,7 +788,7 @@
     
   (define unit%
     (let ([s% snip%])
-      (class* () (drscheme:face:unitI) (filename-arg . collections-arg)
+      (class* object% (drscheme:face:unitI) (filename-arg . collections-arg)
 	(private
 	  [filename filename-arg]
 	  [collections collections-arg])
