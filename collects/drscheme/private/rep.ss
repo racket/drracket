@@ -1132,11 +1132,13 @@ TODO
                      ; No user code has been evaluated yet, so we're in the clear...
                      (break-enabled #f)
                      (set! user-thread-box (make-weak-box (current-thread)))
-                     (initialize-parameters snip-classes))))
+                     (initialize-parameters snip-classes)
+                     (set! user-parameterization (new-parameterization))
+                     )))
                 
                 ;; disable breaks until an evaluation actually occurs
                 (send context set-breakables #f #f)
-                                
+                
                 ;; initialize the language
                 (send (drscheme:language-configuration:language-settings-language user-language-settings)
                       on-execute
