@@ -1,3 +1,4 @@
+
 (module arrow mzscheme
   (require (lib "class.ss")
 	   (lib "mred.ss" "mred"))
@@ -14,9 +15,9 @@
   (define arrow-head-size-cos-arrow-head-angle (* arrow-head-size cos-arrow-head-angle))
   (define arrow-head-size-sin-arrow-head-angle (* arrow-head-size sin-arrow-head-angle))
   
-  (define arrow-root-radius 2)
-  (define arrow-root-diameter (add1 (* 2 arrow-root-radius)))
-
+  (define arrow-root-radius 2.5)
+  (define arrow-root-diameter (* 2 arrow-root-radius))
+  
   ; If alpha is the angle between the x axis and the Start->End vector:
   ;
   ; p2-x = end-x + arrow-head-size * cos(alpha + pi - arrow-head-angle)
@@ -43,10 +44,16 @@
   ;      = end-y - arrow-head-size-cos-arrow-head-angle * sin-alpha - arrow-head-size-sin-arrow-head-angle * cos-alpha
   ;      = end-y - arrow-head-size-cos-arrow-head-angle-sin-alpha - arrow-head-size-sin-arrow-head-angle-cos-alpha
   
+  ; dc<%> real real real real real real -> void
+  ; draw one arrow
+  ; The reason of the "-0.5" in the definition of start-x and end-x in the let
+  ; right below is because, well, after numerous experiments done under carefully
+  ; controlled conditions by a team of independent experts, it was thought to
+  ; be The Right Thing for the arrows to be drawn correctly, maybe.
   (define (draw-arrow dc start-x start-y end-x end-y dx dy)
-    (let ([start-x (+ start-x dx)]
+    (let ([start-x (+ start-x dx -0.5)]
           [start-y (+ start-y dy)]
-          [end-x (+ end-x dx)]
+          [end-x (+ end-x dx -0.5)]
           [end-y (+ end-y dy)])
       (send dc draw-line start-x start-y end-x end-y)
       (send dc draw-ellipse (- start-x arrow-root-radius) (- start-y arrow-root-radius)
@@ -61,6 +68,7 @@
                [arrow-head-size-cos-arrow-head-angle-sin-alpha (* arrow-head-size-cos-arrow-head-angle sin-alpha)]
                [arrow-head-size-sin-arrow-head-angle-cos-alpha (* arrow-head-size-sin-arrow-head-angle cos-alpha)]
                [arrow-head-size-sin-arrow-head-angle-sin-alpha (* arrow-head-size-sin-arrow-head-angle sin-alpha)]
+               ; pt1 is the tip of the arrow, pt2 is the first point going clockwise from pt1
                [pt1 (make-object point% end-x end-y)]
                [pt2 (make-object point%
                       (- end-x arrow-head-size-cos-arrow-head-angle-cos-alpha arrow-head-size-sin-arrow-head-angle-sin-alpha)
