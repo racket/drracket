@@ -17,8 +17,8 @@
     (case-lambda 
      [(button-name) (make-bitmap 
 		     (let ([capd (string-copy button-name)])
-			      (string-set! capd 0 (char-upcase (string-ref capd 0)))
-			      capd)
+		       (string-set! capd 0 (char-upcase (string-ref capd 0)))
+		       capd)
 		     (build-path
 		      (collection-path "icons")
 		      (string-append button-name ".bmp")))]
@@ -26,8 +26,6 @@
       (lambda (area-container-window)
 	(let*-values ([(outside-margin) 2]
 		      [(middle-margin) 3]
-		      
-		      
 		      [(font) (send area-container-window get-control-font)]
 		      [(img-bitmap-dc img-width img-height)
 		       (let ([mdc (make-object mred:bitmap-dc%)]
@@ -44,33 +42,39 @@
 		      [(width height descent leading)
 		       (begin (send img-bitmap-dc set-scale 1 1)
 			      (send img-bitmap-dc get-text-extent text font))]
-		      [(new-width) (+ outside-margin
-				      img-width
-				      middle-margin
-				      (unbox width)
-				      outside-margin)]
-		      [(new-height) (+ outside-margin
-				       (max img-height
-					    (unbox height))
-				       outside-margin)]
+		      [(new-width) (inexact->exact
+				    (floor
+				     (+ outside-margin
+					img-width
+					middle-margin
+					width
+					outside-margin)))]
+		      [(new-height) (inexact->exact
+				     (floor (+ outside-margin
+					       (max img-height height)
+					       outside-margin)))]
 		      [(bitmap-dc) (make-object mred:bitmap-dc%)]
-		      [(new-bitmap) (make-object mred:bitmap% new-width new-height -1)])
-	  (send* bitmap-dc
-	    (select-object new-bitmap)
-	    (set-scale 1 1)
-	    (set-font font)
-	    (clear)
-	    (set-font font)
-	    (draw-text text (+ outside-margin img-width middle-margin)
-		       (- (/ new-height 2) (/ (unbox height) 2))))
-	  (unless (or (= img-width 0)
-		      (= img-height 0))
-	    (send bitmap-dc draw-bitmap
-		  (send img-bitmap-dc get-bitmap)
-		  outside-margin
-		  (- (/ new-height 2) (/ img-height 2))))
-	  (send bitmap-dc select-object #f)
-	  new-bitmap))]))
+		      [(new-bitmap) (make-object mred:bitmap% new-width new-height)])
+	  (cond
+	   [(or (= img-width 0)
+		(= img-height 0))
+	    text]
+	   [else
+	    (send* bitmap-dc
+		   (set-bitmap new-bitmap)
+		   (set-scale 1 1)
+		   (set-font font)
+		   (clear)
+		   (draw-text text (+ outside-margin img-width middle-margin)
+			      (- (/ new-height 2) (/ height 2))))
+	    (let ([bm (send img-bitmap-dc get-bitmap)])
+	      (send img-bitmap-dc set-bitmap #f)
+	      (send bitmap-dc draw-bitmap
+		    bm
+		    outside-margin
+		    (- (/ new-height 2) (/ img-height 2)))
+	      (send bitmap-dc set-bitmap #f)
+	      new-bitmap)])))]))
   
   (define make-execute-bitmap (make-bitmap "execute"))
   (define make-save-bitmap (make-bitmap "save"))
@@ -159,10 +163,10 @@
 	(rename [super-on-focus on-focus])
 	(override
 	  [on-focus
-	   (lambda (x)
-	     (when x
+	   (lambda (on?)
+	     (when on?
 	       (send (get-top-level-window) make-searchable this))
-	     (super-on-focus x))]))))
+	     (super-on-focus on?))]))))
   
   (define interactions-canvas% (make-searchable-canvas% fw:canvas:wide-snip%))
   
@@ -176,7 +180,7 @@
 		(and m (send m modified?)))))))
   
   (define definitions-edit%
-    (class fw:scheme:text% (unit . args)
+    (class fw:scheme:text% ()
       (inherit get-top-level-window)
       (rename
        [super-set-modified set-modified]
@@ -223,7 +227,7 @@
 	   (set! needs-execution? #t)
 	   (apply super-after-delete x))])
       (sequence
-	(apply super-init args))))
+	(super-init))))
   
   (define super-frame% (drscheme:frame:mixin fw:frame:text-info-file%))
   
@@ -305,10 +309,10 @@
 	   (when save-button
 	     (let ([msg (make-object 
 			 mred:message% top-panel
-			 (if (null? name)
-			     "Untitled" 
+			 (if name
 			     (or (mzlib:file:file-name-from-path name)
-				 "Untitlesd")))])
+				 "Untitlesd") 
+			     "Untitled"))])
 	       (set! name-message msg)
 	       (send top-panel change-children
 		     (lambda (l) (build-top-panel-children))))))])
@@ -321,16 +325,14 @@
 	     (toggle-show/hide interactions-item)
 	     (update-shown)))])
       
+      (override
+	[get-editor% (lambda () (drscheme:get/extend:get-definitions-edit%))])
       (public
-	[get-edit
-	 (lambda ()
-	   (send unit get-buffer))]
-	[get-edit% (lambda () (drscheme:get/extend:get-definitions-edit%))]
 	[still-untouched?
 	 (lambda ()
 	   (and (= (send definitions-edit last-position) 0)
 		(not (send definitions-edit modified?))
-		(null? (send definitions-edit get-filename))))]
+		(not (send definitions-edit get-filename))))]
 	[change-to-file
 	 (lambda (name)
 	   (cond
@@ -339,7 +341,7 @@
 	     [name
 	      (send definitions-edit set-filename name)]
 	     [else (send definitions-edit clear)])
-	   (send definitions-canvas set-focus))])
+	   (send definitions-canvas focus))])
 
       (private
        [drscheme-manual 
@@ -376,47 +378,50 @@
 	[file-menu:between-open-and-revert
 	 (lambda (file-menu)
 	   (make-object mred:separator-menu-item% file-menu))]
-	[file-menu:save-string "Definitions"]
-	[file-menu:save-as-string "Definitions"]
+	[file-menu:save-string (lambda () "Definitions")]
+	[file-menu:save-as-string (lambda () "Definitions")]
 	[file-menu:between-save-as-and-print
-
 	 (lambda (file-menu)
-
-	   (send file-menu append-item
-		 "Save Definitions As Text..."
-		 (lambda ()
-		   (save-as-text-from-edit definitions-edit)))
-	   (send file-menu append-item
-		 "Save Interactions"
-		 (lambda () (send interactions-edit save-file)))
-	   (send file-menu append-item
-		 "Save Interactions As..."
-		 (lambda () 
-		   (let ([file (mred:put-file)])
-		     (when file
-		       (send interactions-edit save-file 
-			     file 'standard)))))
-	   (send file-menu append-item
-		 "Save Interactions As Text..."
-		 (lambda ()
-		   (save-as-text-from-edit interactions-edit)))
+	   (make-object mred:menu-item%
+	     "Save Definitions As Text..."
+	     file-menu
+	     (lambda (_1 _2)
+	       (save-as-text-from-edit definitions-edit)))
+	   (make-object mred:menu-item%
+	     "Save Interactions"
+	     file-menu
+	     (lambda (_1 _2) (send interactions-edit save-file)))
+	   (make-object mred:menu-item%
+	     "Save Interactions As..."
+	     file-menu
+	     (lambda (_1 _2) 
+	       (let ([file (mred:put-file)])
+		 (when file
+		   (send interactions-edit save-file 
+			 file 'standard)))))
+	   (make-object mred:menu-item%
+	     "Save Interactions As Text..."
+	     file-menu
+	     (lambda (_1 _2)
+	       (save-as-text-from-edit interactions-edit)))
 	   (make-object mred:separator-menu-item% file-menu)
 	   (make-object mred:menu-item%
 	     "Show Interactions History"
 	     file-menu
 	     (lambda (_1 _2) (drscheme:rep:show-interactions-history)))
 	   (make-object mred:separator-menu-item% file-menu))]
-	[file-menu:print-string "Definitions"]
+	[file-menu:print-string (lambda () "Definitions")]
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)
 	   (set! file-menu:print-transcript-item
 		 (make-object mred:menu-item%
 		   "Print Interactions..."
 		   file-menu
-		   (lambda () (send interactions-edit print
-				    #t 
-				    #t
-				    (fw:preferences:get 'mred:print-output-mode)))))
+		   (lambda (_1 _2)
+		     (send interactions-edit print
+			   #t 
+			   #t
+			   (fw:preferences:get 'mred:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
       (private
 	[item->child
@@ -445,26 +450,26 @@
 				  )))))
 	     (when (ormap (lambda (child)
 			    (and (is-a? child mred:editor-canvas%)
-				 (not (send child is-focus-on?))))
-			  (send panel children))
-	       (let loop ([children (ivar panel children)])
+				 (not (send child has-focus?))))
+			  (send panel get-children))
+	       (let loop ([children (send panel get-children)])
 		 (cond
 		  [(null? children) (void)]
 		  [else (let ([child (car children)])
 			  (if (is-a? child mred:editor-canvas%)
-			      (send child set-focus)
+			      (send child focus)
 			      (loop (cdr children))))])))
 	     
 	     (send interactions-edit scroll-to-position 
 		   (send interactions-edit get-end-position)
 		   #f
 		   (send interactions-edit get-start-position)
-		   1)
+		   'start)
 	     (send definitions-edit scroll-to-position 
 		   (send definitions-edit get-end-position)
 		   #f
 		   (send definitions-edit get-start-position)	
-		   1)
+		   'start)
 	     (let ([defs-show? (not (hidden? definitions-item))])
 	       (for-each
 		(lambda (get-item)
@@ -492,7 +497,7 @@
 	 (lambda ()
 	   (ensure-interactions-shown)
 	   (send definitions-edit just-executed)
-	   (send interactions-canvas set-focus)
+	   (send interactions-canvas focus)
 	   (send interactions-edit reset-console)
 	   (send interactions-edit clear-undos)
 	   (send interactions-edit do-many-buffer-evals
@@ -527,15 +532,16 @@
 	  
 	  (set! execute-menu-item
 		(make-object mred:menu-item%
-		  scheme-menu
 		  "Execute"
+		  scheme-menu
 		  (lambda (_1 _2) (execute-callback))
-		  "Restart the program in the definitions window" #f "t"))
+		  #\t
+		  "Restart the program in the definitions window"))
 	  (make-object mred:menu-item%
 	    "Break"
 	    scheme-menu
 	    (lambda (_1 _2) (send interactions-edit break))
-	    "b"
+	    #\b
 	    "Break the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
 	  (make-object mred:menu-item%
@@ -546,7 +552,7 @@
 	    "Indent &All"
 	    scheme-menu
 	    (send-method 'tabify-all)
-	    "i")
+	    #\i)
 	  (make-object mred:menu-item%
 	    "&Comment Out"
 	    scheme-menu
@@ -562,40 +568,41 @@
 		     (lambda () 
 		       (toggle-show/hide imports-item)
 		       (update-shown))
-		     "Show the imports to this unit"
-		     #t))
+		     #f
+		     "Show the imports to this unit"))
 	(set! definitions-item
-	      (make-object mred:menu-item%
+	      (make-object mred:checkable-menu-item%
 		"Hide &Definitions"
 		show-menu
 		(lambda (_1 _2) 
 		  (toggle-show/hide definitions-item)
 		  (update-shown))
-		"d"
+		#\d
 		"Show the definitions window"))
 	(set! interactions-item
-	      (make-object mred:menu-item%
+	      (make-object mred:checkable-menu-item%
 		"Show &Interactions"
 		show-menu
 		(lambda (_1 _2) 
 		  (toggle-show/hide interactions-item)
 		  (update-shown))
-		"Show the interactions window"
-		"e")))
+		#\e
+		"Show the interactions window")))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))])
       
       (public
 	[imports-panel (make-object mred:horizontal-panel% (get-area-container))]
-	[imports-message (make-object mred:message% imports-panel "imports")]
+	[imports-message (make-object mred:message% "imports" imports-panel)]
 	[imports-space (make-object mred:horizontal-panel% imports-panel)]
 	[update-imports
 	 (lambda ()
 	   (let ([make-message
 		  (lambda (unit)
-		    (make-object mred:message% imports-panel
-				 (send unit get-name)))])
+		    (make-object mred:message%
+		      (send unit get-name)
+		      imports-panel))])
 	     (send imports-panel change-children
 		   (lambda (l) (list imports-message imports-space)))
 	     (for-each make-message
@@ -615,36 +622,38 @@
       (sequence
 	(send* interactions-canvas 
 	  ;(scroll-with-bottom-base #t)
-	  (set-media interactions-edit))
-	(send interactions-edit set-auto-set-wrap #t)
+	  (set-editor interactions-edit))
+	(send interactions-edit auto-wrap #t)
 
 	(set! name-message
-	      (make-object mred:message% top-panel
-			   (let ([fn (send definitions-edit get-filename)])
-			     (cond
-			       [(null? fn) "Untitled"]
-			       [(mzlib:file:file-name-from-path fn)]
-			       [else "Untitled"]))))
+	      (make-object mred:message%
+		(let ([fn (send definitions-edit get-filename)])
+		  (cond
+		   [(not fn) "Untitled"]
+		   [(mzlib:file:file-name-from-path fn)]
+		   [else "Untitled"]))
+		top-panel))
 	
 	
 	(set! save-button
 	      (make-object mred:button% 
+			   (make-save-bitmap this)
 			   top-panel
 			   (lambda args
 			     (let* ([edit definitions-edit])
-			       (unless (or (null? edit) (not edit))
+			       (when edit
 				 (send edit save-file)
-				 (send definitions-canvas set-focus))))
-			   (make-save-bitmap)))
+				 (send definitions-canvas focus))))))
 	(update-save-button #f))
       (private 
 	[make-library-name-msg
 	 (lambda (panel n)
-	   (make-object mred:message% panel 
-			(if n
-			    (let-values ([(base name must-be-dir) (split-path n)])
-			      name)
-			    "")))]
+	   (make-object mred:message%
+	     (if n
+		 (let-values ([(base name must-be-dir) (split-path n)])
+		   name)
+		 "") 
+	     panel))]
 	[library-msg (make-library-name-msg
 		      top-panel
 		      (fw:preferences:get 'drscheme:library-file))])
@@ -656,20 +665,22 @@
       
       (sequence
 	(set! execute-button
-	      (make-object mred:button% button-panel
-			   (lambda (button evt) (execute-callback))
-			   (make-execute-bitmap)))
+	      (make-object mred:button%
+		(make-execute-bitmap this)
+		button-panel
+		(lambda (button evt) (execute-callback))))
 	(set! stop-execute-button
-	      (make-object mred:button% button-panel 
-			   (lambda args
-			     (send interactions-edit break)
-			     (ensure-interactions-shown)
-			     (send (send interactions-edit get-canvas) set-focus))
-			   (make-break-bitmap)))
-	(send imports-panel stretchable-in-y #f)
-	(send button-panel stretchable-in-y #f)
-	(send button-panel stretchable-in-x #f) 
-	(send top-panel stretchable-in-y #f))
+	      (make-object mred:button%
+		(make-break-bitmap this) 
+		button-panel
+		(lambda args
+		  (send interactions-edit break)
+		  (ensure-interactions-shown)
+		  (send (send interactions-edit get-canvas) focus))))
+	(send imports-panel stretchable-height #f)
+	(send button-panel stretchable-height #f)
+	(send button-panel stretchable-width #f) 
+	(send top-panel stretchable-height #f))
       
       (private
 	[remove-library-callback
@@ -709,7 +720,7 @@
 	
 	(set-label-prefix "DrScheme")
 	
-	(send definitions-canvas set-focus)
+	(send definitions-canvas focus)
 	(cond
 	  [(eq? created-frame 'nothing-yet)
 	   (set! created-frame this)]
@@ -759,7 +770,8 @@
 	     (send p get-string (box 0)))]
 	  [read
 	   (lambda (p)
-	     (let ([l (mzlib:string:read-from-string (send p get-string null))])
+	     (let ([l (mzlib:string:read-from-string
+		       (send p get-string))])
 	       (make-object snip% (car l) (cadr l))))])
 	(sequence
 	  (apply super-init args)
@@ -841,25 +853,22 @@
 	       (set! snips (cons new snips))
 	       new))])
 	
-	(private
-	  [buffer #f])
 	(public
 	  [buffer% (drscheme:get/extend:get-definitions-edit%)]
-	  [get-buffer (lambda () buffer)]
 	  [set-filename
 	   (lambda (fn . cn)
 	     (set! filename fn)
 	     (set! collections cn)
 	     (when fn
 	       (let ([collections (get-collections)])
-		     (send buffer load-file
-			   (if (null? collections)
-			       (get-filename)
-			       (build-path (apply collection-path collections)
-					   (get-filename)))))))])
+		 (when frame
+		   (send (send frame get-editor) load-file
+		       (if (null? collections)
+			   (get-filename)
+			   (build-path (apply collection-path collections)
+				       (get-filename))))))))])
 	(sequence
 	  (super-init)
-	  (set! buffer (make-object buffer% this))
 	  (apply set-filename filename-arg collections-arg)))))
 
 

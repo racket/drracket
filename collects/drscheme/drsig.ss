@@ -10,9 +10,6 @@
 
 (require-library "mred-interfaces.ss" "framework")
 
-(require-library "errortrace.ss" "errortrace")
-(error-print-width 80)
-
 (define-signature drscheme:get-collection^
   (get-file/collection))
 
