@@ -84,6 +84,8 @@
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
     (test-expression "1/3" "1/3")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -135,6 +137,8 @@
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
     (test-expression "1/3" "1/3")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -195,6 +199,8 @@
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
     (test-expression "1/3" "1/3")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -255,6 +261,8 @@
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
     (test-expression "1/3" "1/3")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -307,8 +315,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "1.5")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(cons 1 empty)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -364,8 +374,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "1.5")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -421,8 +433,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "1.5")
-    (test-expression "1/3" "1/3")
+    (test-expression "3/2" "<number 3/2>")
+    (test-expression "1/3" "<number 1/3>")
+    (test-expression "+1/3i" "0+1/3i")
+    (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -459,10 +473,9 @@
 	      (fw:test:set-check-box!
 	       "Show sharing in values"
 	       (if (eq? show-sharing 'on) #t #f)))
-	    (when rationals
-	      (fw:test:set-check-box!
-	       "Print rationals in whole/part notation"
-	       (if (eq? rationals 'on) #t #f)))
+	    (fw:test:set-check-box!
+	     "Print rationals in whole/part notation"
+	     rationals)
 	    (fw:test:set-check-box!
 	     "Use pretty printer to format values"
 	     pretty?)
@@ -482,36 +495,38 @@
 	      (unless (if (procedure? answer)
 			  (answer got)
 			  (whitespace-string=? answer got))
-		(printf "FAILED ~a ~a, sharing ~a, rationals ~a, got ~s expected ~s~n"
+		(printf "FAILED ~a ~a, sharing ~a, rationals ~a~n            got ~s~n       expected ~s~n"
 			(language) option show-sharing rationals got
-			(answer)))))])
+			(if (procedure? answer) (answer) answer)))))])
     
     (clear-definitions drs)
     (type-in-definitions drs expression)
     
     (test "write" 'off #f #t "((4/3) (4/3))")
     (test "write" 'on #f #t "(#0=(4/3) #0#)")
+    (test "write" 'off #t #t "((<number 4/3>) (<number 4/3>))")
+    (test "write" 'on #t #t "(#0=(<number 4/3>) #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off 'off #t "`((4/3) (4/3))")
-      (test "Quasiquote" 'off 'on #t "`((,(+ 1 1/3)) (,(+ 1 1/3)))")
-      (test "Quasiquote" 'on 'off #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))")
-      (test "Quasiquote" 'on 'on #t "(shared ((-1- `(,(+ 1 1/3)))) `(,-1- ,-1-))"))
-    (test "Constructor" 'off 'off #t
+      (test "Quasiquote" 'off #t #t "`((<number 4/3>) (<number 4/3>))")
+      (test "Quasiquote" 'off #f #t "`((4/3) (4/3))")
+      (test "Quasiquote" 'on #t #t "(shared ((-1- `(<number 4/3>))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on #f #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))"))
+    (test "Constructor" 'off #f #t
 	  (if list?
 	      "(list (list 4/3) (list 4/3))"
 	      "(cons (cons 4/3 empty) (cons (cons 4/3 empty) empty))"))
-    (test "Constructor" 'off 'on #t
+    (test "Constructor" 'off #t #t
 	  (if list?
-	      "(list (list (+ 1 1/3)) (list (+ 1 1/3)))"
-	      "(cons (cons (+ 1 1/3) empty) (cons (cons (+ 1 1/3) empty) empty))"))
-    (test "Constructor" 'on 'off #t
+	      "(list (list <number 4/3>) (list <number 4/3>))"
+	      "(cons (cons <number 4/3> empty) (cons (cons <number 4/3> empty) empty))"))
+    (test "Constructor" 'on #f #t
 	  (if list? 
 	      "(shared ((-1- (list 4/3))) (list -1- -1-))"
 	      "(shared ((-1- (cons 4/3 empty))) (cons -1- (cons -1- empty)))"))
-    (test "Constructor" 'on 'on #t
+    (test "Constructor" 'on #t #t
 	  (if list?
-	      "(shared ((-1- (list (+ 1 1/3)))) (list -1- -1-))"
-	      "(shared ((-1- (cons (+ 1 1/3) empty))) (cons -1- (cons -1- empty)))"))
+	      "(shared ((-1- (list <number 4/3>))) (list -1- -1-))"
+	      "(shared ((-1- (cons <number 4/3> empty))) (cons -1- (cons -1- empty)))"))
 
 
     ;; setup comment box
@@ -522,7 +537,7 @@
     (fw:test:keystroke #\c)
 
     ;; test comment box in print-convert and print-convert-less settings
-    (test "Constructor" 'on 'on #t (if zodiac? "[abc]" "'non-string-snip"))
+    (test "Constructor" 'on #t #t (if zodiac? "[abc]" "'non-string-snip"))
     (test "write" 'on #f #t (if zodiac? "[abc]" "non-string-snip"))
 
     ;; setup write / pretty-print difference
@@ -530,11 +545,11 @@
     (for-each fw:test:keystroke
 	      (string->list
 	       "(define(f n)(cond((zero? n)null)[else(cons n(f(- n 1)))]))(f 40)"))
-    (test "Constructor" 'on 'on #f
+    (test "Constructor" 'on #t #f
 	  (case-lambda
 	   [(x) (not (member #\newline (string->list x)))]
 	   [() "no newlines in result"]))
-    (test "Constructor" 'on 'on #t
+    (test "Constructor" 'on #t #t
 	  (case-lambda
 	   [(x) (member #\newline (string->list x))]
 	   [() "newlines in result (may need to make the window smaller)"]))

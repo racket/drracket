@@ -8,7 +8,8 @@
   
   (import mred^
 	  [fw : framework^]
-	  test-utils:gui^)
+	  test-utils:gui^
+	  [drscheme:export : drscheme:export^])
   
   ;; save-drscheme-window-as : string -> void
   ;; use the "save as" dialog in drscheme to save the definitions
@@ -346,5 +347,9 @@
 	       [(is-a? snip image-snip%)
 		(loop (send snip previous)
 		      (cons "<image>"
+			    strings))]
+	       [(is-a? snip drscheme:export:snip:whole/part-number-snip%)
+		(loop (send snip previous)
+		      (cons (format "<number ~a>" (send snip get-number))
 			    strings))]
 	       [else (error 'find-output "unknown snip: ~e~n" snip)])])))])))

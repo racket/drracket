@@ -37,7 +37,10 @@
    first-dir))
 
 (define-signature drscheme:snip^ 
-  (prompt-snip% equal-snip% separator-snip%))
+  (prompt-snip%
+   equal-snip% 
+   separator-snip%
+   whole/part-number-snip%))
 
 (define-signature drscheme:language^
   (fill-language-menu
@@ -113,7 +116,8 @@
    about-drscheme))
 
 (define-signature drscheme:export^
-  ((unit interface : drscheme:interface^)
+  ((unit snip : drscheme:snip^)
+   (unit interface : drscheme:interface^)
    (unit basis : plt:basis^)
    (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
@@ -137,7 +141,6 @@
 
    (unit drscheme:init : drscheme:init^)
    (unit drscheme:text : drscheme:text^)
-   (unit drscheme:snip : drscheme:snip^)
    (unit drscheme:export : drscheme:export^)
    (unit drscheme:app : drscheme:app^)
    (unit drscheme:main : drscheme:main^)))
