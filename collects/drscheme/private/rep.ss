@@ -1899,6 +1899,7 @@
               (error-display-handler drscheme-error-display-handler)
               (current-load-relative-directory #f)
               (current-custodian user-custodian)
+              (current-load text-editor-load-handler)
               
               (global-port-print-handler drscheme-port-print-handler)
               (setup-display/write-handlers)
