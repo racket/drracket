@@ -1041,6 +1041,7 @@ If the namespace does not, they are colored the unbound color.
                      (disable-evaluation) ;; this locks the editor, so must be outside.
                      (send definitions-text begin-edit-sequence #f)
                      (with-lock/edit-sequence
+                      definitions-text
                       (λ ()
                         (clear-annotations)
                         (reset-offer-kill)
@@ -1062,6 +1063,7 @@ If the namespace does not, they are colored the unbound color.
                                 (queue-callback
                                  (λ () ; =drs=
                                    (with-lock/edit-sequence
+                                    definitions-text
                                     (λ ()
                                       (expansion-completed user-namespace user-directory)
                                       (send definitions-text syncheck:sort-bindings-table)))
@@ -1074,6 +1076,7 @@ If the namespace does not, they are colored the unbound color.
                                 (queue-callback
                                  (λ () ; =drs=
                                    (with-lock/edit-sequence
+                                    definitions-text
                                     (λ ()
                                       (open-status-line 'drscheme:check-syntax)
                                       (update-status-line 'drscheme:check-syntax status-coloring-program)
@@ -1094,12 +1097,11 @@ If the namespace does not, they are colored the unbound color.
                     (current-directory base)
                     (current-load-relative-directory base))))))
           
-          ;; with-lock/edit-sequence : (-> void) -> void
+          ;; with-lock/edit-sequence : text (-> void) -> void
           ;; sets and restores some state of the definitions text
           ;; so that edits to the definitions text work out.
-          (define/private (with-lock/edit-sequence thnk)
-            (let* ([definitions-text (get-definitions-text)]
-                   [locked? (send definitions-text is-locked?)])
+          (define/private (with-lock/edit-sequence definitions-text thnk)
+            (let* ([locked? (send definitions-text is-locked?)])
               (send definitions-text begin-edit-sequence)
               (send definitions-text lock #f)
               (thnk)
@@ -1114,7 +1116,6 @@ If the namespace does not, they are colored the unbound color.
               (get-button-panel)
               (λ (button evt) (syncheck:button-callback))))
           (define/public (syncheck:get-button) check-syntax-button)
-          (send (get-definitions-text) set-styles-fixed #t)
           (send check-syntax-button show button-visible?)
           (send (get-button-panel) change-children
                 (λ (l)

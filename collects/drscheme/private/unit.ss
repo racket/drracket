@@ -1077,9 +1077,7 @@ tab panels new behavior:
           
           [define was-locked? #f]
           
-          (define evaluation-enabled? #t)
           (define/pubment (disable-evaluation)
-            (set! evaluation-enabled? #f)
             (when execute-menu-item
               (send execute-menu-item enable #f))
             (send execute-button enable #f)
@@ -1088,7 +1086,6 @@ tab panels new behavior:
             (send file-menu:create-new-tab-item enable #f)
             (inner (void) disable-evaluation))
           (define/pubment (enable-evaluation)
-            (set! evaluation-enabled? #t)
             (when execute-menu-item
               (send execute-menu-item enable #t))
             (send execute-button enable #t)
@@ -1848,18 +1845,16 @@ tab panels new behavior:
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
           (define/private (create-new-tab) 
-            ;(error 'create-new-tab "not yet implemented")
-            (when evaluation-enabled?
-              (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
-                     [defs (new (drscheme:get/extend:get-definitions-text))]
-                     [tab-count (length tabs)]
-                     [new-tab (make-tab defs ints #f #f tab-count)])
-                (set! tabs (append tabs (list new-tab)))
-                (send tabs-panel append (get-defs-tab-label defs))
-                (change-to-nth-tab (- (send tabs-panel get-number) 1))
-                (init-definitions-text)
-                (send ints initialize-console)
-                (send tabs-panel set-selection (- (send tabs-panel get-number) 1)))))
+            (let* ([ints (make-object (drscheme:get/extend:get-interactions-text) this)]
+                   [defs (new (drscheme:get/extend:get-definitions-text))]
+                   [tab-count (length tabs)]
+                   [new-tab (make-tab defs ints #f #f tab-count)])
+              (set! tabs (append tabs (list new-tab)))
+              (send tabs-panel append (get-defs-tab-label defs))
+              (change-to-nth-tab (- (send tabs-panel get-number) 1))
+              (init-definitions-text)
+              (send ints initialize-console)
+              (send tabs-panel set-selection (- (send tabs-panel get-number) 1))))
           
           ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
@@ -1924,11 +1919,8 @@ tab panels new behavior:
                    (close-editor (tab-ints tab)))))
           
           (define/public (open-in-new-tab filename)
-            (if evaluation-enabled?
-                (begin
-                  (create-new-tab)
-                  (send definitions-text load-file filename))
-                (open-drscheme-window filename)))
+            (create-new-tab)
+            (send definitions-text load-file filename))
           
           (define/private (change-to-nth-tab n)
             (unless (< n (length tabs))
@@ -2738,8 +2730,6 @@ tab panels new behavior:
              created-frame]
             [(preferences:get 'drscheme:open-in-tabs)
              (let ([fr (send (group:get-the-frame-group) get-active-frame)])
-               (when (equal? (getenv "USER") "robby")
-                 (printf "PLTDRFRAME: ~s ~s\n" fr (is-a? fr -frame<%>)))
                (if (is-a? fr -frame<%>)
                    (begin (send fr open-in-new-tab name)
                           fr)
