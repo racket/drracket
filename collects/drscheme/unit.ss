@@ -567,7 +567,8 @@
 			       (unless (or (null? edit) (not edit))
 				 (send edit save-file)
 				 (send definitions-canvas set-focus))))
-			   save-bitmap)))
+			   save-bitmap))
+	(update-save-button #f))
       (private 
 	[make-library-name-msg
 	 (lambda (panel n)
@@ -813,7 +814,7 @@
      (or (mred:get-preference 'drscheme:open-all-files-in-scheme-mode)
 	 (let ([filename-ext (mzlib:file@:filename-extension filename)])
 	   (and filename-ext
-		(ormap (lambda (extension) 
+		(ormap (lambda (extension)
 			 (string=? filename-ext extension))
 		       (list "ss" "scm" "sch" "mredrc"))))))
    (lambda (name)

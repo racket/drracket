@@ -131,8 +131,4 @@
 		 (scroll-to-position 0)
 		 (lock #t))
 	  (send f show #t)
-	  f)))
-    
-    (define app-name "DrScheme")
-    (define console #f)
-    (define eval-string (lambda args (void))))
+	  f))))

@@ -1,3 +1,5 @@
+(reference-library "match.ss")
+(reference-library "sig.ss" "mred")
 (reference-library "zsigs.ss" "zodiac")
 (reference-library "sigs.ss" "zodiac")
 (reference-library "sparams.ss" "backward")
@@ -124,8 +126,7 @@
    current-vocabulary))
 
 (define-signature drscheme:app^
-  ((open mred:application^)
-   about-drscheme))
+  (about-drscheme))
 
 (define-signature drscheme:export^
   ((unit frame : drscheme:frame^)
@@ -137,15 +138,13 @@
    (unit rep : drscheme:rep^)))
 
 (begin-construction-time
- (define drscheme:tool-directories
-   (quicksort (directory-list (collection-path "drscheme" "tools"))
-	      string-ci<=?))
+ (define drscheme:tool-directories (directory-list (collection-path "drscheme" "tools")))
  `(begin
     ,@(let loop ([dirs drscheme:tool-directories])
 	(cond
 	  [(null? dirs) `(void)]
 	  [else
-	   (let ([f (find-library "sig.ss" "drscheme" "tools" (car dirs))])
+	   (let ([f (build-path (collection-path "drscheme") "tools" (car dirs) "sig.ss")])
 	     (if (and f (file-exists? f))
 		 `((reference ,f) ,@(loop (cdr dirs)))
 		 (loop (cdr dirs))))]))))
