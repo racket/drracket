@@ -150,32 +150,41 @@
              (send rep wait-for-io-to-complete/user)
              
              (let ([insert-file-name/icon
-                    (lambda (filename start span row col)
-                      (let ([locked? (send rep is-locked?)]
-                            [short-filename (find-relative-path (current-directory) filename)]
-                            [range-spec
-                             (cond
-                               [(and row col)
-                                (format ":~a:~a" row col)]
-                               [start
-                                (format "::~a" start)]
-                               [else ""])])
+                    ;; insert-file-name/icon : string number number number number -> void
+                    (lambda (source-name start span row col)
+                      (let* ([locked? (send rep is-locked?)]
+                             [range-spec
+                              (cond
+                                [(and row col)
+                                 (format ":~a:~a" row col)]
+                                [start
+                                 (format "::~a" start)]
+                                [else ""])])
                         (send rep lock #f)
-                        (let-values ([(icon-start icon-end) (insert/delta rep (send file-icon copy))]
-                                     [(space-start space-end) (insert/delta rep " ")]
-                                     [(filename-start filename-end) (insert/delta rep short-filename)]
-                                     [(range-start range-end) (insert/delta rep range-spec)])
-                          (when (number? start)
-                            (send rep set-clickback icon-start range-end
-                                  (lambda (_1 _2 _3)
-                                    (open-file-and-highlight filename 
-                                                             (- start 1) 
-                                                             (if span
-                                                                 (+ start -1 span)
-                                                                 start))))))
-                        (insert/delta rep ": ")
+                        (if (file-exists? source-name)
+                            (let* ([normalized-name (normalize-path source-name)]
+                                   [short-name
+                                    (find-relative-path (current-directory) normalized-name)])
+                              (let-values ([(icon-start icon-end) 
+                                            (insert/delta rep (send file-icon copy))]
+                                           [(space-start space-end) (insert/delta rep " ")]
+                                           [(name-start name-end) (insert/delta rep short-name)]
+                                           [(range-start range-end) (insert/delta rep range-spec)]
+                                           [(colon-start colon-ent) (insert/delta rep ": ")])
+                                (when (number? start)
+                                  (send rep set-clickback icon-start range-end
+                                        (lambda (_1 _2 _3)
+                                          (open-file-and-highlight normalized-name
+                                                                   (- start 1) 
+                                                                   (if span
+                                                                       (+ start -1 span)
+                                                                       start)))))))
+                            (begin
+                              (insert/delta rep source-name)
+                              (insert/delta rep range-spec)
+                              (insert/delta rep ": ")
+                              (void)))
                         (send rep lock locked?)))])
-               
                (cond
                  [(exn:syntax? exn)
                   (let* ([expr (exn:syntax-expr exn)]
@@ -261,46 +270,6 @@
         (message-box "open docs here"
                      (format "module: ~s~nform: ~s~n" module form)))
       
-      ;; extract-info-from-exn : exn ->
-      ;;                         (values (union #f string (instanceof text:basic%))
-      ;;                                 (union #f number)
-      ;;                                 (union #f number)
-      ;;                                 (union #f symbol)
-      ;;                                 (union #f symbol))
-      ;; the first result is the filename or editor where the error occurred
-      ;; the second result is the position in the file or editor where it occured
-      ;; the third result is #f when the starting position should be considered
-      ;;     the beginning of an sexp and it is the end of the
-      ;;     region to highlight otherwise.
-      ;; the fourth result is a symbol naming the module defining the form that
-      ;;     signalled the error
-      ;; the fifth result is a symbol naming the form that signaled the error.
-      (define (extract-info-from-exn exn)
-	(cond
-	  [(exn:syntax? exn)
-           (let ([stx (exn:syntax-expr exn)])
-             (if stx
-                 (let* ([start (and (syntax-position stx)
-                                    (- (syntax-position stx) 1))]
-                        [end (and (syntax-span stx)
-                                  start
-                                  (+ start (syntax-span stx)))])
-                   (values (syntax-source stx)
-                           start
-                           end
-                           (exn:syntax-module exn)
-                           (exn:syntax-form exn)))
-                 (values #f #f #f
-                         (exn:syntax-module exn)
-                         (exn:syntax-form exn))))]
-          [(exn:read? exn)
-           (values (exn:read-source exn)
-		   (- (exn:read-position exn) 1)
-		   (exn:read-position exn)
-		   #f #f)]
-	  [else
-	   (values #f #f #f #f #f)]))
-
       ;; drscheme-error-value->string-handler : TST number -> string
       (define (drscheme-error-value->string-handler x n)
         (let ([port (open-output-string)])
