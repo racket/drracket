@@ -421,6 +421,17 @@
 	     [(eq? item definitions-item) definitions-canvas]
 	     ;[(eq? item imports-item) imports-panel]
 	     [else (error 'item->child "unknown item: ~a" item)]))])
+      (private
+	[get-sub-items
+	 (lambda ()
+	   (list interactions-item definitions-item
+		 ;imports-item
+		 ))]
+	[update-shown/ensure-one
+	 (lambda (last-one)
+	   (when (andmap hidden? (get-sub-items))
+	     (toggle-show/hide last-one))
+	   (update-shown))])
       (override
 	[update-shown
 	 (lambda ()
@@ -435,9 +446,7 @@
 				  sofar
 				  (cons (item->child item) sofar)))
 			    null
-			    (list interactions-item definitions-item
-				  ;imports-item
-				  )))))
+			    (get-sub-items)))))
 	     (when (ormap (lambda (child)
 			    (and (is-a? child mred:editor-canvas%)
 				 (not (send child has-focus?))))
@@ -551,6 +560,8 @@
 	    "&Uncomment"
 	    scheme-menu
 	    (send-method 'uncomment-selection)))
+
+	(fw:frame:reorder-menus this)
 	     
 	'(set! imports-item
 	       (send show-menu append-item
@@ -566,7 +577,7 @@
 		show-menu
 		(lambda (_1 _2) 
 		  (toggle-show/hide definitions-item)
-		  (update-shown))
+		  (update-shown/ensure-one interactions-item))
 		#\d
 		"Show the definitions window"))
 	(set! interactions-item
@@ -575,7 +586,7 @@
 		show-menu
 		(lambda (_1 _2) 
 		  (toggle-show/hide interactions-item)
-		  (update-shown))
+		  (update-shown/ensure-one definitions-item))
 		#\e
 		"Show the interactions window")))
       
