@@ -223,7 +223,7 @@
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
       
       (define verbatim-tags '(listing xmp plaintext))
-      (define preformatted-tags '(pre blockquote))
+      (define preformatted-tags '(pre))
       (define exact-whitespace-tags (append verbatim-tags
 					    preformatted-tags))
       (define comment-tags '(script))
@@ -706,6 +706,26 @@
 				      (begin0
 				       (rest)
 				       (insert-newlines 2 para-base))]
+				     [(blockquote)
+				      (insert-newlines 2 para-base)
+				      (begin0
+				       (let* ([pos (current-pos)]
+					      [r (rest/base/depth para-base (add1 enum-depth))]
+					      [end-pos (current-pos)])
+					 (lambda ()
+					   (let ([end-para (send a-text position-paragraph 
+								 (backover-newlines end-pos pos))]
+						 [left-margin (* 2 (get-bullet-width) (add1 enum-depth))])
+					     (let loop ([para (send a-text position-paragraph pos)])
+					       (send a-text set-paragraph-margins
+						     para
+						     left-margin
+						     left-margin
+						     left-margin)
+					       (unless (= para end-para)
+						 (loop (add1 para)))))
+					    (r)))
+				       (insert-newlines 2 para-base))]
 				     [(center)
 				      (insert-newlines 2 para-base)
 				      (begin0
@@ -770,8 +790,8 @@
 					  (lambda ()
 					    (change-style normal-style pos end-pos)
 					    (r))))]
-				     [(tt code samp kbd pre blockquote)
-				      (when (memq tag '(pre blockquote))
+				     [(tt code samp kbd pre)
+				      (when (memq tag '(pre))
 					(insert-newlines 2 para-base))
 				      (begin0
 				       (let* ([class (get-field e 'class)]
@@ -786,7 +806,7 @@
 							  d)
 							delta:fixed)
 						    rest))))
-				       (when (memq tag '(pre blockquote))
+				       (when (memq tag '(pre))
 					 (insert-newlines 2 para-base)))]
 				     [(span)
 				      (let* ([class (get-field e 'class)]
