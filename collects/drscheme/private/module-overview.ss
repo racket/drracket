@@ -3,12 +3,18 @@
 todo : 
 
  - abstract out progress frame (use progress bar sometimes)
+   use framework for that one. also include check syntax
+   (and talk to philippe about spidey)
+   
  - the flag that controls if the new font size also re-lays out the snips
+
  - add a way to hide lib-based paths to show-menu version of graph
+ 
  - lines field can be #f and filename field might not be a file, so double check everything
    and rename things!
+ 
  - double clicking should open the file (or maybe set the insertion point?)
- - progress messages
+ 
  - build abstraction for drscheme:eval?
  
 |#
