@@ -116,7 +116,7 @@
 	  (send* e
 	    (insert #\newline)
 	    (change-style d-usual)
-	    (insert "For licensing information see LICENSE, included with the plt release.")
+	    (insert "For licensing information see LICENSE, included with the PLT release.")
 	    (insert #\newline)
 	    (insert "Based on:")
 	    (insert #\newline)

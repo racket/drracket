@@ -206,6 +206,9 @@
 	[library-changed
 	 (lambda ()
 	   (set! needs-execution? #t))]
+	[language-changed
+	 (lambda ()
+	   (set! needs-execution? #t))]
 	[just-executed
 	 (lambda ()
 	   (set! needs-execution? #f)
