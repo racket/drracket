@@ -2118,9 +2118,11 @@
                                 (loop (send snip next))]
                                [else (void)]))
                            (set-position (last-position)))])
+
                     (cond
-                      [(not (and (char? code) 
-                                 (or (char=? code #\return) (char=? code #\newline))))
+                      [(not (or (eq? code 'numpad-enter)
+				(equal? code #\return)
+				(equal? code #\newline)))
                        (super-on-local-char key)]
                       [(and (< start end) (< end prompt-position)
                             (not (eval-busy?)))
@@ -2134,24 +2136,30 @@
                             (not (eval-busy?)))
                        (insert-prompt)]
                       [(and (prompt-position . <= . start)
-                            (only-spaces-after start)
                             (not (eval-busy?)))
                        (if (balance-required)
-                           (let ([balanced? (scheme-paren:balanced?
-                                             this
-                                             prompt-position
-                                             last)])
-                             (if balanced?
-                                 (begin
-                                   (delete start last)
-                                   (do-save-and-eval prompt-position start))
-                                 (super-on-local-char key)))
+                           (let ([at-end-of-sexp?
+				  (and
+				   (only-spaces-after start)
+				   (scheme-paren:balanced? this
+							   prompt-position
+							   last))])
+                             (cond
+			       [at-end-of-sexp?
+				(delete start last)
+				(do-save-and-eval prompt-position start)]
+			       [(eq? 'numpad-enter code)
+				(begin-edit-sequence)
+				(set-position (last-position))
+				(end-edit-sequence)
+				(do-save-and-eval prompt-position (last-position))]
+			       [else
+				(super-on-local-char key)]))
                            (begin
                              (delete start last)
                              (do-save-and-eval prompt-position start)))]
-                      [(< start prompt-position)
-                       (let ([match (scheme-paren:backward-match
-                                     this start 0)])
+                      [(start . < . prompt-position)
+                       (let ([match (scheme-paren:backward-match this start 0)])
                          (if match
                              (begin
                                (begin-edit-sequence)
