@@ -23,8 +23,8 @@
       
       (define bullet-size bullet:bullet-size)
       
-      (define-struct (exn:file-saved-instead struct:exn) (pathname))
-      (define-struct (exn:cancelled struct:exn) ())
+      (define-struct (exn:file-saved-instead exn) (pathname))
+      (define-struct (exn:cancelled exn) ())
       
       (define history-limit 20)
       
