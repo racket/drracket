@@ -149,10 +149,10 @@
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t
 		  "(cond [#f 1])"
-		  "<image> no matching cond clause")
+		  "{image} no matching cond clause")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
-		  "<image> Variable x referenced before definition or initialization")
+		  "{image} Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
@@ -177,7 +177,7 @@
 
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
-    (test-expression "(list make-posn posn-x posn-y posn?)" "<image> reference to undefined identifier: make-posn")
+    (test-expression "(list make-posn posn-x posn-y posn?)" "{image} reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
 
@@ -210,10 +210,10 @@
     (generic-output #t #t #t)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])"
-		  "<image> no matching cond clause")
+		  "{image} no matching cond clause")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(letrec ([x x]) 1)"
-		  "<image> Variable x referenced before definition or initialization")
+		  "{image} Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
@@ -239,7 +239,7 @@
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)"
-		     "<image> reference to undefined identifier: make-posn")
+		     "{image} reference to undefined identifier: make-posn")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
     (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
 

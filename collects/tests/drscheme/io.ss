@@ -11,15 +11,15 @@
        (unless (equal? expected got)
 	 (error 'io.ss "expected ~s, got ~s for ~s" expected got expression)))))
 
-(check-output "(display 1)" "[1]")
-(check-output "(display 1 (current-output-port))" "[1]")
+(check-output "(display 1)" "{embedded \"1\"}")
+(check-output "(display 1 (current-output-port))" "{embedded \"1\"}")
 (check-output "(display 1 (current-error-port))" "1")
-(check-output "(display 1) (display 1 (current-error-port))" (format "[1]~n1"))
-(check-output "(display 1 (current-error-port)) (display 1)" (format "1~n[1]"))
-(check-output "(display 1) (display 1 (current-error-port)) (display 1)" (format "[1]~n1~n[1]"))
-(check-output "(display 1 (current-error-port)) (display 1) (display 1 (current-error-port))" (format "1~n[1]~n1"))
-(check-output "(let ([s (make-semaphore)]) (thread (lambda () (display 1) (semaphore-post s))) (semaphore-wait s))" "[1]")
-(check-output "(let ([s (make-semaphore)]) (thread (lambda () (display 1 (current-output-port)) (semaphore-post s))) (semaphore-wait s))" "[1]")
+(check-output "(display 1) (display 1 (current-error-port))" (format "{embedded \"1\"}~n1"))
+(check-output "(display 1 (current-error-port)) (display 1)" (format "1~n{embedded \"1\"}"))
+(check-output "(display 1) (display 1 (current-error-port)) (display 1)" (format "{embedded \"1\"}~n1~n{embedded \"1\"}"))
+(check-output "(display 1 (current-error-port)) (display 1) (display 1 (current-error-port))" (format "1~n{embedded \"1\"}~n1"))
+(check-output "(let ([s (make-semaphore)]) (thread (lambda () (display 1) (semaphore-post s))) (semaphore-wait s))" "{embedded \"1\"}")
+(check-output "(let ([s (make-semaphore)]) (thread (lambda () (display 1 (current-output-port)) (semaphore-post s))) (semaphore-wait s))" "{embedded \"1\"}")
 (check-output "(let ([s (make-semaphore)]) (thread (lambda () (display 1 (current-error-port)) (semaphore-post s))) (semaphore-wait s))" "1")
 
 

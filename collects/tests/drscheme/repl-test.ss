@@ -120,7 +120,7 @@
    (make-test "    (eval '(lambda ()))"
 	      "1.5-1.24: lambda: malformed expression"
 	      2
-	      "<image> lambda: malformed expression"
+	      "{image} lambda: malformed expression"
 	      (vector 4 23)
 	      "lambda: bad syntax in: (lambda ())"
 	      "lambda: bad syntax in: (lambda ())"
@@ -129,7 +129,7 @@
    (make-test "    (eval 'x)"
 	      "1.5-1.14: reference to undefined identifier: x"
 	      2
-	      "<image> reference to undefined identifier: x"
+	      "{image} reference to undefined identifier: x"
 	      (vector 4 13)
 	      "reference to undefined identifier: x"
 	      "reference to undefined identifier: x"
@@ -220,7 +220,7 @@
     (format "(let ([old (error-escape-handler)])~n(+ (let/ec k~n(dynamic-wind~n(lambda () (error-escape-handler (lambda () (k 5))))~n(lambda () (car))~n(lambda () (error-escape-handler old))))~n10))")
     (format "5.20-5.25: car: expects 1 argument, given 0~n15")
     2
-    (format "<image> car: expects 1 argument, given 0~n15")
+    (format "{image} car: expects 1 argument, given 0~n15")
     'definitions
 
     (format "car: expects 1 argument, given 0~n15")
@@ -325,7 +325,7 @@
     (format "(define s (make-semaphore 0))~n(queue-callback~n(lambda ()~n(dynamic-wind~nvoid~n(lambda () (car))~n(lambda () (semaphore-post s)))))~n(yield s)")
     "6.16-6.21: car: expects 1 argument, given 0"
     2
-    "<image> car: expects 1 argument, given 0"
+    "{image} car: expects 1 argument, given 0"
     (vector 99 104)
     "car: expects 1 argument, given 0"
     "car: expects 1 argument, given 0"
@@ -414,8 +414,8 @@
 	     [prepend-filename? (test-prepend-filename? in-vector)]
 	     [load-answer
 	      (case prepend-filename?
-		[(2) (string-append "<image> <image> " tmp-load-filename ": " pre-load-answer)]
-		[(#t) (string-append "<image> " tmp-load-filename ": " pre-load-answer)]
+		[(2) (string-append "{image} {image} " tmp-load-filename ": " pre-load-answer)]
+		[(#t) (string-append "{image} " tmp-load-filename ": " pre-load-answer)]
 		[(#f) pre-load-answer])]
 	     [execute-answer (test-r4rs-execute-answer in-vector)]
 	     [execute-location (test-r4rs-execute-location in-vector)]

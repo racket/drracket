@@ -340,16 +340,16 @@
 			  (cons "<pasteboard>" strings))]
 		   [(is-a? editor text%)
 		    (loop (send snip previous)
-			  (list* "["
+			  (list* "{embedded \""
 				 (send editor get-text)
-				 "]"
+				 "\"}"
 				 strings))]))]
 	       [(is-a? snip image-snip%)
 		(loop (send snip previous)
-		      (cons "<image>"
+		      (cons "{image}"
 			    strings))]
 	       [(is-a? snip drscheme:export:snip:whole/part-number-snip%)
 		(loop (send snip previous)
-		      (cons (format "<number ~a>" (send snip get-number))
+		      (cons (format "{number ~a}" (send snip get-number))
 			    strings))]
-	       [else (error 'find-output "unknown snip: ~e~n" snip)])])))])))
+	       [else (error 'find-output "{unknown snip: ~e}~n" snip)])])))])))
