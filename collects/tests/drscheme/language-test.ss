@@ -44,6 +44,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "compile: illegal use of an expansion-time value name in: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
@@ -73,6 +74,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
@@ -108,6 +110,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "Invalid use of signature name mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
@@ -143,6 +146,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
@@ -171,6 +175,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
@@ -204,6 +209,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
     (test-expression "(set! x 1)" "reference to undefined identifier: set!")
@@ -237,6 +243,7 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
@@ -257,6 +264,12 @@
 
 (define (zodiac language)
   (generic-settings #t)
+  
+  (set-language #f)
+  (test-setting "Print booleans as true and false" #t "#t #f" (format "true~nfalse"))
+  (set-language #f)
+  (test-setting "Print booleans as true and false" #f "#t #f" (format "#t~n#f"))
+  
   (set-language #f)
   (test-setting "Unmatched cond/case is an error" #t "(cond [false 1])" "no matching cond clause"))
 
