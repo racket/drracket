@@ -34,6 +34,10 @@
   (set-language "MzScheme" #f)
   (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause"))
 
+(define (zodiac language)
+  (generic-settings language)
+  (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause"))
+
 (define (generic-settings language)
   (set-language language #f)
   (test-setting "Case sensitive" #t "(eq? 'a 'A)" "#f")
@@ -67,7 +71,7 @@
 	    (do-execute drs)
 	    (let ([got (fetch-output drs)])
 	      (unless (string=? answer got)
-		(printf "for ~a sharing ~a rationals ~a, got ~a, expected ~an" 
+		(printf "FAILED ~a, sharing ~a, rationals ~a, got ~s expected ~s~n"
 			option show-sharing rationals got answer))))])
 
     (clear-definitions drs)
@@ -75,13 +79,14 @@
 
     (test "R4RS" 'off #f "(#&3/2 #&3/2)")    
     (test "R4RS" 'on #f "(#0=#&3/2 #0#)")
+    (test "Quasiquote" 'off 'off "`(,(box 3/2) ,(box 3/2))")
+    (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/2)) ,(box (+ 1 1/2)))")
+    (test "Quasiquote" 'on 'off "(shared ((-1- (box 3/2))) `(,-1- ,-1-))")
+    (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/2)))) `(,-1- ,-1-))")
     (test "Constructor" 'off 'off "(list (box 3/2) (box 3/2))")
-    (test "Constructor" 'off 'on "(list (box (+1 1/2)) (box (+1 1/2)))")
-    (test "Constructor" 'on 'off "(shared ([-1- (box 3/2)]) (list -1- -1-))")
-    (test "Constructor" 'on 'on "(shared ([-1- (box (+ 1 1/2))]) (list -1- -1-))")
-    ))
-    
-
+    (test "Constructor" 'off 'on "(list (box (+ 1 1/2)) (box (+ 1 1/2)))")
+    (test "Constructor" 'on 'off "(shared ((-1- (box 3/2))) (list -1- -1-))")
+    (test "Constructor" 'on 'on "(shared ((-1- (box (+ 1 1/2)))) (list -1- -1-))")))
 
 (define (zodiac-generic language)
   (set-language language #f)
@@ -129,9 +134,10 @@
   (open-language-dialog)
   (test-setting "Allow set! on undefined identifiers" #f "(set! x 123) x" "set!: cannot set undefined identifier: x"))
 
+(zodiac "Beginner")
 ;(zodiac-beginner)
 ;(zodiac-intermediate)
 ;(zodiac-advanced)
 ;(mzscheme)
-(generic-output "MzScheme")
+
 
