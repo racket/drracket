@@ -901,6 +901,7 @@
              #f]
             [else
              (drscheme:teachpack:set-teachpack-cache-filenames! old null)
+             (preferences:set 'drscheme:teachpacks old)
              #t])))
 
    ;             ;;;                             
