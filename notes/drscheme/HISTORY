@@ -17,7 +17,7 @@
   - Added an "insert fraction" menu item to the edit menu for
     inserting fractions directly into the program.
 
- MINOR CHANGES AND BUG FIXES
+	 MINOR CHANGES AND BUG FIXES
 
   - check syntax now rechecks the syntax right after an
     alpha conversion, since alpha conversion may introduce
