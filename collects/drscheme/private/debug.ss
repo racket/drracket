@@ -1063,11 +1063,12 @@ profile todo:
           (define/public (clear-profile-display)
             (when profile-info-visible?
               (set! profile-info-visible? #f)
-              (send profile-info-outer-panel change-children
-                    (lambda (l)
-                      (remq profile-info-panel l)))
-              (send profile-info-text clear-profile-display)
-              (update-shown)))
+	      (when profile-gui-constructed?
+		(send profile-info-outer-panel change-children
+		      (lambda (l)
+			(remq profile-info-panel l)))
+		(send profile-info-text clear-profile-display)
+		(update-shown))))
 
           ;; can-show-profile? : -> boolean
           ;; indicates if there is any profiling information to be shown.
@@ -1124,6 +1125,7 @@ profile todo:
               [(not profile-info-visible?)
                (cond
                  [(can-show-profile?)
+		  (construct-profile-gui)
                   (clear-annotations)
                   (send profile-info-text refresh-profile)
                   (set! profile-info-visible? #t)
@@ -1137,6 +1139,7 @@ profile todo:
 
           (field (profile-info-visible? #f))
           (field (show-profile-menu-item #f))
+	  (field (profile-gui-constructed? #f))
 
           ;; get-profile-info-visible? : -> boolean
           ;; returns #t when the profiling information is visible in the frame.
@@ -1153,67 +1156,80 @@ profile todo:
           
           (super-instantiate ())
           
-          (define profile-info-text (instantiate profile-text% (this)))
-          (define profile-info-panel (instantiate horizontal-panel% ()
-                                       (parent profile-info-outer-panel)
-                                       (stretchable-height #f)))
-          (define profile-left-side (instantiate vertical-panel% (profile-info-panel)))
-          (define profile-info-editor-canvas (instantiate canvas:basic% (profile-info-panel profile-info-text)))
-          (define profile-message (instantiate message% ()
-                                    (label (string-constant profiling))
-                                    (parent profile-left-side)))
-          (define profile-choice (instantiate radio-box% ()
-                                   (label #f)
-                                   (parent profile-left-side)
-                                   (callback
-                                    (lambda (x y)
-                                      (preferences:set 'drscheme:profile-how-to-count
-                                                       (case (send profile-choice get-selection)
-                                                         [(0) 'time]
-                                                         [(1) 'count]))
-                                      (send profile-info-text refresh-profile)))
-                                   (choices (list (string-constant profiling-time)
-                                                  (string-constant profiling-number)))))
-          (send profile-choice set-selection
-                (case (preferences:get 'drscheme:profile-how-to-count)
-                  [(time) 0]
-                  [(count) 1]))
-          (define update-profile-button
-            (instantiate button% ()
-              (label (string-constant profiling-update))
-              (parent profile-left-side)
-              (callback
-               (lambda (x y)
-                 (send profile-info-text refresh-profile)))))
-          (define clear-profile-button 
-            (instantiate button% ()
-              (label (string-constant profiling-clear))
-              (parent profile-left-side)
-              (callback
-               (lambda (x y)
-                 (clear-profile-display)
-                 (clear-profile-info)))))
-          (send profile-choice set-selection (case (preferences:get 'drscheme:profile-how-to-count)
-                                               [(time) 0]
-                                               [(count) 1]))
-          
-          (send profile-left-side stretchable-width #f)
-          
-          (let ([wid (max (send update-profile-button get-width)
-                          (send clear-profile-button get-width)
-                          (send profile-choice get-width)
-                          (send profile-message get-width))])
-            (send update-profile-button min-width wid)
-            (send clear-profile-button min-width wid)
-            (send profile-choice min-width wid))
-          (send profile-left-side set-alignment 'left 'center)
-          
-          ;; hide profiling info initially, but reflow the container
-          ;; so that the invisible children get the right size.
-          (send this reflow-container)
-          (send profile-info-outer-panel change-children
-                (lambda (l)
-                  (remq profile-info-panel l)))))
+	  (define profile-info-panel #f)
+	  (define profile-info-text #f)
+
+	  (inherit begin-container-sequence end-container-sequence)
+	  (define/private (construct-profile-gui)
+	    (unless profile-gui-constructed?
+	      (set! profile-gui-constructed? #t)
+	      (begin-container-sequence)
+	      (let ()
+		(define _2
+		  (set! profile-info-panel (instantiate horizontal-panel% ()
+					     (parent profile-info-outer-panel)
+					     (stretchable-height #f))))
+		(define _3
+		  (set! profile-info-text (instantiate profile-text% (this))))
+		(define profile-left-side (instantiate vertical-panel% (profile-info-panel)))
+		(define profile-info-editor-canvas (instantiate canvas:basic% (profile-info-panel profile-info-text)))
+		(define profile-message (instantiate message% ()
+					  (label (string-constant profiling))
+					  (parent profile-left-side)))
+		(define profile-choice (instantiate radio-box% ()
+					 (label #f)
+					 (parent profile-left-side)
+					 (callback
+					  (lambda (x y)
+					    (preferences:set 'drscheme:profile-how-to-count
+							     (case (send profile-choice get-selection)
+							       [(0) 'time]
+							       [(1) 'count]))
+					    (send profile-info-text refresh-profile)))
+					 (choices (list (string-constant profiling-time)
+							(string-constant profiling-number)))))
+		(define _1
+		  (send profile-choice set-selection
+			(case (preferences:get 'drscheme:profile-how-to-count)
+			  [(time) 0]
+			  [(count) 1])))
+		(define update-profile-button
+		  (instantiate button% ()
+		    (label (string-constant profiling-update))
+		    (parent profile-left-side)
+		    (callback
+		     (lambda (x y)
+		       (send profile-info-text refresh-profile)))))
+		(define clear-profile-button 
+		  (instantiate button% ()
+		    (label (string-constant profiling-clear))
+		    (parent profile-left-side)
+		    (callback
+		     (lambda (x y)
+		       (clear-profile-display)
+		       (clear-profile-info)))))
+		(send profile-choice set-selection (case (preferences:get 'drscheme:profile-how-to-count)
+						     [(time) 0]
+						     [(count) 1]))
+		
+		(send profile-left-side stretchable-width #f)
+		
+		(let ([wid (max (send update-profile-button get-width)
+				(send clear-profile-button get-width)
+				(send profile-choice get-width)
+				(send profile-message get-width))])
+		  (send update-profile-button min-width wid)
+		  (send clear-profile-button min-width wid)
+		  (send profile-choice min-width wid))
+		(send profile-left-side set-alignment 'left 'center)
+		
+		;; hide profiling info initially, but reflow the container
+		;; so that the invisible children get the right size.
+		(send this reflow-container)
+		(send profile-info-outer-panel change-children
+		      (lambda (l)
+			(remq profile-info-panel l))))
+	      (end-container-sequence)))))
       
       ;; profile-text% : extends text:basic%
       ;; this class keeps track of a single thread's

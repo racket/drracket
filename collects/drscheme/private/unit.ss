@@ -868,7 +868,7 @@
 	       (drscheme:rep:context<%> -frame<%>)
           (init filename)
           (inherit set-label-prefix get-show-menu
-                   show get-menu%
+                   get-menu%
                    get-area-container
                    update-info
                    get-file-menu
@@ -1201,19 +1201,13 @@
           
           (rename
            [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
-          (override file-menu:between-open-and-revert
-                    file-menu:save-string
-                    file-menu:save-as-string
-                    file-menu:between-save-as-and-print
-                    file-menu:print-string
-                    file-menu:between-print-and-close)
-          [define file-menu:between-open-and-revert
+          [define/override file-menu:between-open-and-revert
             (lambda (file-menu)
               (super-file-menu:between-open-and-revert file-menu)
               (make-object separator-menu-item% file-menu))]
-          [define file-menu:save-string (lambda () (string-constant save-definitions))]
-          [define file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
-          [define file-menu:between-save-as-and-print
+          [define/override file-menu:save-string (lambda () (string-constant save-definitions))]
+          [define/override file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
+          [define/override file-menu:between-save-as-and-print
             (lambda (file-menu)
               (let ([sub-menu (make-object menu% (string-constant save-other) file-menu)])
                 (make-object menu:can-restore-menu-item%
@@ -1253,8 +1247,8 @@
                               (start-logging)))))
                 (make-object separator-menu-item% file-menu)))]
           
-          [define file-menu:print-string (lambda () (string-constant print-definitions))]
-          [define file-menu:between-print-and-close
+          [define/override file-menu:print-string (lambda () (string-constant print-definitions))]
+          [define/override file-menu:between-print-and-close
             (lambda (file-menu)
               (set! file-menu:print-transcript-item
                     (make-object menu:can-restore-menu-item%
@@ -1356,7 +1350,7 @@
 
           
           (inherit get-edit-target-window)
-          [define (split)
+          (define (split)
             (let* ([canvas-to-be-split (get-edit-target-window)]
                    [update
                     (lambda (set-canvases! canvases canvas% text)
@@ -1418,7 +1412,7 @@
                          interactions-canvases
                          interactions-canvas%
                          interactions-text)]
-                [else (bell)]))]
+                [else (bell)])))
           
           ;; split-demand : menu-item -> void
           ;; enables the menu-item if splitting is allowed, disables otherwise
@@ -1499,7 +1493,7 @@
                       (unbox bw)
                       (unbox bh))))
           
-          [define (collapse)
+          (define (collapse)
             (let* ([target (get-edit-target-window)]
                    [handle-collapse
                     (lambda (get-canvases set-canvases!)
@@ -1573,7 +1567,7 @@
                  (handle-collapse
                   (lambda () interactions-canvases)
                   (lambda (c) (set! interactions-canvases c)))]
-                [else (bell)]))]
+                [else (bell)])))
           
 
 ;                                                                          
@@ -1597,85 +1591,84 @@
           (define interactions-shown? #t)
           (define definitions-shown? #t)
           
-          [define (toggle-show/hide-definitions)
+          (define (toggle-show/hide-definitions)
             (set! definitions-shown? (not definitions-shown?))
             (unless definitions-shown?
-              (set! interactions-shown? #t))]
-          [define (toggle-show/hide-interactions)
+              (set! interactions-shown? #t)))
+          (define (toggle-show/hide-interactions)
             (set! interactions-shown? (not interactions-shown?))
             (unless  interactions-shown?
-              (set! definitions-shown? #t))]
+              (set! definitions-shown? #t)))
           
           (override update-shown on-close)
-          [define update-shown
-            (lambda ()
-              (super-update-shown)
-              
-              (let ([new-children
-                     (foldl
-                      (lambda (shown? children sofar)
-                        (if shown?
-                            (append children sofar)
-                            sofar))
-                      null
-                      (list interactions-shown?
-                            definitions-shown?)
-                      (list interactions-canvases
-                            definitions-canvases))]
-                    [p (preferences:get 'drscheme:unit-window-size-percentage)])
-                
-                (send definitions-item set-label 
-                      (if definitions-shown?
-                          (string-constant hide-definitions-menu-item-label)
-                          (string-constant show-definitions-menu-item-label)))
-                (send interactions-item set-label 
-                      (if interactions-shown?
-                          (string-constant hide-interactions-menu-item-label)
-                          (string-constant show-interactions-menu-item-label)))
-                
-                (send resizable-panel begin-container-sequence)
-                
-                ;; this might change the unit-window-size-percentage, so save/restore it
-                (send resizable-panel change-children (lambda (l) new-children))
-                
-                (preferences:set 'drscheme:unit-window-size-percentage p)
-                
-                ;; restore preferred interactions/definitions sizes
-                (when (and (= 1 (length definitions-canvases))
-                           (= 1 (length interactions-canvases))
-                           (= 2 (length new-children)))
-                  (with-handlers ([not-break-exn? (lambda (x) (void))])
-                    (send resizable-panel set-percentages
-                          (list p (- 1 p))))))
-              
-              (send resizable-panel end-container-sequence)
-              
-              (when (ormap (lambda (child)
-                             (and (is-a? child editor-canvas%)
-                                  (not (send child has-focus?))))
-                           (send resizable-panel get-children))
-                 (let loop ([children (send resizable-panel get-children)])
-                   (cond
-                     [(null? children) (void)]
-                     [else (let ([child (car children)])
-                             (if (is-a? child editor-canvas%)
-                                 (send child focus)
-                                 (loop (cdr children))))])))
-               
-               
-               (for-each
-                (lambda (get-item)
-                  (let ([item (get-item)])
-                    (when item
-                      (send item enable definitions-shown?))))
-                (list (lambda () (file-menu:get-revert-item))
-                      (lambda () (file-menu:get-save-item))
-                      (lambda () (file-menu:get-save-as-item))
-                      ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
-                      (lambda () (file-menu:get-print-item))))
-               (send file-menu:print-transcript-item enable interactions-shown?))]
+          (define (update-shown)
+	    (super-update-shown)
+	    
+	    (let ([new-children
+		   (foldl
+		    (lambda (shown? children sofar)
+		      (if shown?
+			  (append children sofar)
+			  sofar))
+		    null
+		    (list interactions-shown?
+			  definitions-shown?)
+		    (list interactions-canvases
+			  definitions-canvases))]
+		  [p (preferences:get 'drscheme:unit-window-size-percentage)])
+	      
+	      (send definitions-item set-label 
+		    (if definitions-shown?
+			(string-constant hide-definitions-menu-item-label)
+			(string-constant show-definitions-menu-item-label)))
+	      (send interactions-item set-label 
+		    (if interactions-shown?
+			(string-constant hide-interactions-menu-item-label)
+			(string-constant show-interactions-menu-item-label)))
+	      
+	      (send resizable-panel begin-container-sequence)
+	      
+	      ;; this might change the unit-window-size-percentage, so save/restore it
+	      (send resizable-panel change-children (lambda (l) new-children))
+	      
+	      (preferences:set 'drscheme:unit-window-size-percentage p)
+	      
+	      ;; restore preferred interactions/definitions sizes
+	      (when (and (= 1 (length definitions-canvases))
+			 (= 1 (length interactions-canvases))
+			 (= 2 (length new-children)))
+		(with-handlers ([not-break-exn? (lambda (x) (void))])
+		  (send resizable-panel set-percentages
+			(list p (- 1 p))))))
+	    
+	    (send resizable-panel end-container-sequence)
+	    
+	    (when (ormap (lambda (child)
+			   (and (is-a? child editor-canvas%)
+				(not (send child has-focus?))))
+			 (send resizable-panel get-children))
+	      (let loop ([children (send resizable-panel get-children)])
+		(cond
+		  [(null? children) (void)]
+		  [else (let ([child (car children)])
+			  (if (is-a? child editor-canvas%)
+			      (send child focus)
+			      (loop (cdr children))))])))
+	    
+	    
+	    (for-each
+	     (lambda (get-item)
+	       (let ([item (get-item)])
+		 (when item
+		   (send item enable definitions-shown?))))
+	     (list (lambda () (file-menu:get-revert-item))
+		   (lambda () (file-menu:get-save-item))
+		   (lambda () (file-menu:get-save-as-item))
+					;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
+		   (lambda () (file-menu:get-print-item))))
+	    (send file-menu:print-transcript-item enable interactions-shown?))
            
-           [define on-close
+           (define on-close
              (lambda ()
                (when (eq? this created-frame)
                  (set! created-frame #f))
@@ -1684,7 +1677,7 @@
                (remove-logging-pref-callback)
                (send interactions-text shutdown)
                (send interactions-text on-close)
-               (super-on-close))]
+               (super-on-close)))
           
           (field [thread-to-break-box (make-weak-box #f)]
                  [custodian-to-kill-box (make-weak-box #f)]
@@ -1774,21 +1767,19 @@
                   [(2) (revert)]))))
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
-          [define language-menu 'uninited-language-menu]
+          (define language-menu 'uninited-language-menu)
           
           (rename [super-on-size on-size])
-          (override on-size)
-          [define on-size
+          (define/override on-size
             (lambda (w h)
               (preferences:set 'drscheme:unit-window-width w)
               (preferences:set 'drscheme:unit-window-height h)
-              (super-on-size w h))]
+              (super-on-size w h)))
           
-          (override get-editor get-canvas)
-          [define get-editor (lambda () definitions-text)]
-          [define get-canvas (lambda () 
-                               (initialize-definitions-canvas)
-                               definitions-canvas)]
+          (define/override (get-editor) definitions-text)
+          (define/override (get-canvas)
+	    (initialize-definitions-canvas)
+	    definitions-canvas)
           (define/private (initialize-definitions-canvas)
             (unless definitions-canvas
               (set! definitions-canvas
@@ -1799,13 +1790,11 @@
           (define/override (get-delegated-text) definitions-text)
           (define/override (get-open-here-editor) definitions-text)
           
-          [define definitions-text (make-object (drscheme:get/extend:get-definitions-text))]
-          [define interactions-text (make-object 
-                                        (drscheme:get/extend:get-interactions-text)
-                                      this)]
+          (define definitions-text (new (drscheme:get/extend:get-definitions-text)))
+          (define interactions-text (make-object (drscheme:get/extend:get-interactions-text) this))
           (public get-definitions-text get-interactions-text)
-          [define get-definitions-text (lambda () definitions-text)]
-          [define get-interactions-text (lambda () interactions-text)]
+          (define get-definitions-text (lambda () definitions-text))
+          (define get-interactions-text (lambda () interactions-text))
           
           (define (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
@@ -2285,7 +2274,7 @@
               #f
               #f
               has-editor-on-demand))
-          
+
           (make-object separator-menu-item% (get-show-menu))
           
           (new menu:can-restore-menu-item%
@@ -2302,7 +2291,7 @@
             (demand-callback (lambda (item) (collapse-demand item))))
           
           (frame:reorder-menus this)
-          
+
           
 ;                                                                               
 ;                                                                               
@@ -2344,6 +2333,7 @@
                                            (editor interactions-text))]
           [define interactions-canvases (list interactions-canvas)]
           
+
           (define/public (get-definitions-canvases) 
             ;; before definition, just return null
             (if (pair? definitions-canvases)
@@ -2414,7 +2404,7 @@
                   (or ed-filename (get-label) (string-constant untitled))))
           
           (update-save-button #f)
-          
+
           (send interactions-text initialize-console)
           
           (cond
@@ -2426,7 +2416,7 @@
              (set! interactions-shown? #t)])
           
           (update-shown)
-          
+
           (when (= 2 (length (send resizable-panel get-children)))
             ;; should really test this, but too lazy to add inspector to framework (for now)
             (with-handlers ([not-break-exn? (lambda (x) (void))])
@@ -2554,12 +2544,12 @@
          [() (open-drscheme-window #f)]
          [(name)
           (if (and created-frame
-                   name
-                   (not (eq? created-frame 'nothing-yet)) 
-                   (send created-frame still-untouched?))
-              (begin (send created-frame change-to-file name)
-                     (send created-frame show #t)
-                     created-frame)
+		   name
+		   (not (eq? created-frame 'nothing-yet)) 
+		   (send created-frame still-untouched?))
+	      (begin (send created-frame change-to-file name)
+		     (send created-frame show #t)
+		     created-frame)
 	      (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
 		     [frame (new drs-frame% (filename name))])
 		(send frame show #t)
