@@ -259,6 +259,8 @@
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
       
+      (define (get-drs-bindings-keymap) drs-bindings-keymap)
+
       ;; drs-bindings-keymap-mixin :
       ;;   ((implements editor:keymap<%>) -> (implements editor:keymap<%>))
       ;;   for any x that is an instance of the resulting class,

@@ -150,6 +150,7 @@
      drs-bindings-keymap-mixin
      current-rep
      current-language-settings
+     get-drs-bindings-keymap
      text%
      text<%>
      console-text<%>
