@@ -7,7 +7,10 @@
            (lib "check-gui.ss" "version")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-           (prefix mzlib:file: (lib "file.ss"))
+           (lib "url.ss" "net")
+           (lib "head.ss" "net")
+           (lib "plt-installer.ss" "setup")
+           (prefix mzlib:file: (lib "file.ss")) (lib "file.ss")
            (prefix mzlib:list: (lib "list.ss")))
   
   (provide frame@)
@@ -336,11 +339,11 @@
           (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define file-menu:between-open-and-revert
             (lambda (file-menu) 
-              ;(make-object menu-item% 
-              ;  (string-constant install-plt-file-menu-item...)
-              ;  file-menu
-              ;  (lambda (item evt)
-              ;    (install-plt-file this)))
+              (make-object menu-item% 
+                (string-constant install-plt-file-menu-item...)
+                file-menu
+                (lambda (item evt)
+                  (install-plt-file this)))
               (super-file-menu:between-open-and-revert file-menu))]
           
           [define edit-menu:between-find-and-preferences
@@ -365,25 +368,167 @@
               (make-object separator-menu-item% menu))]
           
           (super-instantiate ())))
-      
-      ;; install-plt-file : (is-a?/c frame%) -> void
-      ;; 
+
+      ;; install-plt-file : (union #f dialog% frame%) -> void
+      ;; asks the user for a .plt file, either from the web or from
+      ;; a file on the disk and installs it.
       (define (install-plt-file parent)
-        (let* ([dialog
-                (instantiate dialog% ()
-                  (parent parent)
-                  (label (string-constant install-plt-file-dialog-title)))]
-               [radio-button (instantiate radio-box% ()
-                               (label #f)
+        (define dialog
+          (instantiate dialog% ()
+            (parent parent)
+            (alignment '(left center))
+            (label (string-constant install-plt-file-dialog-title))))
+        (define radio-button
+          (instantiate radio-box% ()
+            (label #f)
+            (parent dialog)
+            (callback (lambda (x y) (update-panels)))
+            (choices (list (string-constant install-plt-from-web)
+                           (string-constant install-plt-from-file)))))
+        (define outer-swapping-panel (instantiate horizontal-panel% ()
+                                       (parent dialog)
+                                       (stretchable-height #f)))
+        (define spacing-panel (instantiate horizontal-panel% ()
+                                (stretchable-width #f)
+                                (parent outer-swapping-panel)
+                                (min-width 20)))
+        (define swapping-panel (instantiate panel:single% ()
+                                 (parent outer-swapping-panel)
+                                 (alignment '(left center))
+                                 (stretchable-width #t)
+                                 (stretchable-height #f)))
+        (define file-panel (instantiate horizontal-panel% ()
+                             (parent swapping-panel)
+                             (stretchable-width #t)
+                             (stretchable-height #f)))
+        (define url-panel (instantiate horizontal-panel% ()
+                            (parent swapping-panel)
+                            (stretchable-height #f)))
+        (define button-panel (instantiate horizontal-panel% ()
                                (parent dialog)
-                               (callback void)
-                               (choices (list (string-constant plt-from-web)
-                                              (string-constant plt-from-file))))]
-               [file-panel (instantiate horizontal-panel% () (parent dialog))]
-               [url-panel (instantiate horizontal-panel% () (parent dialog))]
-               [button-panel (instantiate horizontal-panel% () (parent dialog))])
-          (error 'install-plt-file "not-yet-implemented")
-          (send dialog show #t)))
+                               (stretchable-height #f)
+                               (alignment '(right center))))
+        (define file-text-field (instantiate text-field% ()
+                                  (parent file-panel)
+                                  (callback void)
+                                  (min-width 300)
+                                  (stretchable-width #t)
+                                  (label (string-constant install-plt-filename))))
+        (define file-button (instantiate button% ()
+                              (parent file-panel)
+                              (label (string-constant browse...))
+                              (callback (lambda (x y) (browse)))))
+        (define url-text-field (instantiate text-field% ()
+                                 (parent url-panel)
+                                 (label (string-constant install-plt-url))
+                                 (min-width 300)
+                                 (stretchable-width #t)
+                                 (callback void)))
+        
+        (define-values (ok-button cancel-button)
+          (gui-utils:ok/cancel-buttons
+           button-panel
+           (lambda (x y)
+             (set! cancel? #f)
+             (send dialog show #f))
+           (lambda (x y)
+             (send dialog show #f))))
+        
+        ;; browse : -> void
+        ;; gets the name of a file from the user and
+        ;; updates file-text-field
+        (define (browse)
+          (let ([filename (get-file #f dialog)])
+            (when filename
+              (send file-text-field set-value filename))))
+        
+        ;; from-web? : -> boolean
+        ;; returns #t if the user has selected a web address
+        (define (from-web?)
+          (zero? (send radio-button get-selection)))
+        
+        (define cancel? #t)
+        
+        (define (update-panels)
+          (send swapping-panel active-child
+                (if (from-web?)
+                    url-panel
+                    file-panel)))
+        
+        (update-panels)
+        (send dialog show #t)
+        
+        (cond
+          [cancel? (void)]
+          [(from-web?)
+           (install-plt-from-url (send url-text-field get-value) parent)]
+          [else 
+           (run-installer (send file-text-field get-value))]))
+
+;; install-plt-from-url : string (union #f dialog%) -> void
+;; downloads and installs a .plt file from the given url
+      (define (install-plt-from-url s-url parent)
+        (with-handlers ([(lambda (x) #f)
+                         (lambda (exn)
+                           (message-box (string-constant drscheme)
+                                        (if (exn? exn)
+                                            (exn-message exn)
+                                            (format "~s" exn))))])
+          (let* ([url (string->url s-url)]
+                 [tmp-filename (make-temporary-file "tmp~a.plt")]
+                 [port (get-impure-port url)]
+                 [header (purify-port port)]
+                 [size (let* ([content-header (extract-field "content-length" header)]
+                              [m (and content-header
+                                      (regexp-match "[0-9]+" content-header))])
+                         (and m (string->number (car m))))]
+                 [d (make-object dialog% "Downloading" parent)] 
+                 [message (make-object message% "Downloading file..." d)] 
+                 [gauge (if size 
+                            (make-object gauge% #f 100 d) 
+                            #f)] 
+                 [exn #f] 
+                 ; Semaphores to avoid race conditions: 
+                 [wait-to-start (make-semaphore 0)] 
+                 [wait-to-break (make-semaphore 0)] 
+                 ; Thread to perform the download: 
+                 [t (thread 
+                     (lambda () 
+                       (semaphore-wait wait-to-start) 
+                       (with-handlers ([void 
+                                        (lambda (x) 
+                                          (when (not-break-exn? x) 
+                                            (set! exn x)))] 
+                                       [void ; throw away break exceptions 
+                                        void]) 
+                         (semaphore-post wait-to-break) 
+                         (with-output-to-file tmp-filename 
+                           (lambda () 
+                             (let loop ([total 0]) 
+                               (when gauge 
+                                 (send gauge set-value  
+                                       (inexact->exact 
+                                        (floor (* 100 (/ total size)))))) 
+                               (let ([s (read-string 1024 port)]) 
+                                 (unless (eof-object? s) 
+                                   (unless (eof-object? s) 
+                                     (display s) 
+                                     (loop (+ total (string-length s))))))))
+                           'binary 'truncate))
+                       (send d show #f)))]) 
+            (send d center) 
+            (make-object button% "&Stop" d (lambda (b e) 
+                                             (semaphore-wait wait-to-break) 
+                                             (set! tmp-filename #f) 
+                                             (send d show #f) 
+                                             (break-thread t))) 
+            ; Let thread run only after the dialog is shown 
+            (queue-callback (lambda () (semaphore-post wait-to-start))) 
+            (send d show #t) 
+            (when exn (raise exn))
+            (run-installer tmp-filename) 
+            (delete-file tmp-filename))))
+      
       
       (define keybindings-dialog%
         (class dialog%

@@ -172,6 +172,15 @@
                 #f
                 #f
                 #f)
+
+     (make-test "(begin (define-struct a ()) (define-struct (b a)))"
+		""
+		""
+		#f
+		'interactions
+		#f
+		#f
+		#f)
      
      ;; leading comment test
      (make-test "#!\n1"

@@ -15,6 +15,7 @@ profile todo:
            (lib "framework.ss" "framework")
            (lib "mred.ss" "mred")
            (lib "thread.ss")
+	   (lib "toplevel.ss" "syntax")
            (lib "string-constant.ss" "string-constants"))
   
   (define orig (current-output-port))
@@ -102,11 +103,16 @@ profile todo:
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
                (lambda (exp)
+                 (printf "exp: ~s\n" (if (syntax? exp)
+                                         (syntax-object->datum exp)
+                                         exp))
                  (let ([annotated
                         (if (compiled-expression? 
                              (if (syntax? exp) (syntax-e exp) exp))
                             exp
-                            (annotate-top (expand exp) #f))])
+                            (annotate-top
+			     (expand exp)
+			     #f))])
                    (oe annotated)))])
           debug-tool-eval-handler))
 
