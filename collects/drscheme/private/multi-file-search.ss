@@ -60,7 +60,7 @@
       (preferences:set-default 'drscheme:multi-file-search:recur? #t boolean?)
       (preferences:set-default 'drscheme:multi-file-search:filter? #t boolean?)
       (preferences:set-default 'drscheme:multi-file-search:filter-string "ss" string?)
-      (preferences:set-default 'drscheme:multi-file-search:directory (car (filesystem-root-list)) string?)
+      (preferences:set-default 'drscheme:multi-file-search:directory "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-string "" string?)
       (preferences:set-default 'drscheme:multi-file-search:search-type
                                1
