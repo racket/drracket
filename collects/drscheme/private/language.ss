@@ -4,7 +4,6 @@
            (lib "class.ss")
            (lib "class100.ss")
            "drsig.ss"
-           (lib "sig.ss" "userspce")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "list.ss")

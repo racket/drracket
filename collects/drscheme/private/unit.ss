@@ -1095,12 +1095,14 @@
                (let ([defs-show? (not (hidden? definitions-item))])
                  (for-each
                   (lambda (get-item)
-                    (send (get-item) enable defs-show?))
-                  (list (lambda (x) (file-menu:get-revert-item x))
-                        (lambda (x) (file-menu:get-save-item x))
-                        (lambda (x) (file-menu:get-save-as-item x))
-                        ;(lambda (x) (file-menu:save-as-text-item x)) ; Save As Text...
-                        (lambda (x) (file-menu:get-print-item x)))))
+		    (let ([item (get-item)])
+		      (when item
+			(send item enable defs-show?))))
+                  (list (lambda () (file-menu:get-revert-item))
+                        (lambda () (file-menu:get-save-item))
+                        (lambda () (file-menu:get-save-as-item))
+                        ;(lambda () (file-menu:save-as-text-item)) ; Save As Text...
+                        (lambda () (file-menu:get-print-item)))))
                (send file-menu:print-transcript-item enable
                      (not (hidden? interactions-item))))]
             

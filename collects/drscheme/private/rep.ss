@@ -272,14 +272,14 @@
                  (build-path (collection-path "icons") "mf.gif"))])
           (if (send bitmap ok?)
               (make-object image-snip% bitmap)
-              (make-object string-snip% "[show history]"))))
+              (make-object string-snip% "[mf]"))))
       (define bug-icon 
         (let ([bitmap
                (make-object bitmap%
                  (build-path (collection-path "icons") "bug09.gif"))])
           (if (send bitmap ok?)
               (make-object image-snip% bitmap)
-              (make-object string-snip% "[show history]"))))
+              (make-object string-snip% "[err]"))))
       
       (define (no-user-evaluation-message frame)
         (message-box
@@ -1113,10 +1113,10 @@
                                                void))
                    (this-out (make-output-port (lambda (x) (this-out-write x))
                                                void))
-                   (this-in (make-input-port (lambda (x) (this-in-read-char x))
-                                             (lambda (x) (this-in-char-ready? x))
+                   (this-in (make-input-port (lambda () (this-in-read-char))
+                                             (lambda () (this-in-char-ready?))
                                              void
-                                             (lambda (x) (this-in-peek-char x))))
+                                             (lambda () (this-in-peek-char))))
                    (this-result (make-output-port (lambda (x) (this-result-write x)) 
                                                   void)))
             

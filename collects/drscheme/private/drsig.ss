@@ -1,6 +1,5 @@
 (module drsig mzscheme
   (require (lib "unitsig.ss")
-           (lib "sig.ss" "userspce")
 	   (lib "framework-sig.ss" "framework")
 	   (lib "sig.ss" "stepper"))
   
