@@ -2485,15 +2485,18 @@ tab panels new behavior:
                              (define tmp-color (make-object color%))
                              (define (get-char x y)
                                (send bdc get-pixel x y tmp-color)
-                               (if (zero? (send tmp-color red))
-                                   comment-character
-                                   #\space))
+                               (let ([red (send tmp-color red)])
+                                 (cond
+                                   [(<= red 63) (integer->char #x2739) #\@]
+                                   [(<= red 127) (integer->char #x2734) #\+]
+                                   [(<= red 191) (integer->char #x2731) #\:]
+                                   [else #\space])))
                              
                              (define bitmap
                                (make-object bitmap% 
                                  (inexact->exact tw)
                                  (inexact->exact th) 
-                                 #t))
+                                 #f))
                              
                              (define (fetch-line y)
                                (let loop ([x (send bitmap get-width)]
