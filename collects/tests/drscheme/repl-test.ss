@@ -3,7 +3,7 @@
 
 (define test-data
   (list
-   
+
    ;; basic tests
    (make-test "("
 	      "1.1-1.2: missing close paren"
@@ -180,7 +180,8 @@
 	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
 	      #t
 	      (format "car: expects 1 argument, given 0~n15")
-	      #f
+	      'definitions
+
 	      (format "car: expects 1 argument, given 0~n15")
 	      (format "car: expects 1 argument, given 0~n15")
 	      #f
@@ -279,17 +280,39 @@
     #f)
    
    ;; breaking tests
-   ; (make-test
-   ; (format "(let l()(l))")
-   ; "user break"
-   ; #t
-   ; "user break"
-   ; (vector 28 40)
-   ; "user break"
-   ; "user break"
-   ; #f
-   ; #t)
-   
+   (make-test "(semaphore-wait (make-semaphore 0))"
+	      "1.1-1.36: user break"
+	      #t
+	      "user break"
+	      (vector 0 35)
+
+	      "user break"
+	      "user break"
+	      #f
+	      #t)
+
+   (make-test "(let l()(l))"
+	      "1.9-1.12: user break"
+	      #t
+	      "user break"
+	      (vector 8 11)
+
+	      "user break"
+	      "user break"
+	      #f
+	      #t)
+
+   ;; continuation tests
+   (make-test (format "(define k (call/cc (lambda (x) x)))~n(k 17)~nk")
+	      "17" #f "17" #f
+	      "17" "17" #f #f)
+   (make-test (format "(define v (vector (call/cc (lambda (x) x))))~n((vector-ref v 0) 2)~nv")
+	      "#1(2)" #f "#1(2)" #f
+	      "#1(2)" "#1(2)" #f #f)
+   (make-test (format "(define v (vector (eval '(call/cc (lambda (x) x)))))~n((vector-ref v 0) 2)~nv")
+	      "#1(2)" #f "#1(2)" #f
+	      "#1(2)" "#1(2)" #f #f)
+
    ))
 
 (define drscheme-frame (wait-for-drscheme-frame))
@@ -343,7 +366,11 @@
 	; the start and end positions of the text
 	
 	(insert-string program)
-	(do-execute drscheme-frame)
+	(do-execute drscheme-frame (not breaking-test?))
+	(when breaking-test?
+	  (fw:test:button-push (ivar drscheme-frame stop-execute-button))
+	  (wait-for-execute))
+
 	(let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
 	       [received-execute
 		(send interactions-text get-text 
@@ -352,6 +379,10 @@
 	  ; check focus and selection for execute test
 	  (unless mred?
 	    (cond
+	     [(eq? execute-location 'definitions)
+	      (unless (send definitions-canvas has-focus?)
+		(printf "FAILED execute test for ~s~n  expected definitions to have the focus~n"
+			program))]
 	      [(eq? execute-location 'unlocated-error) 
 	       (unless (send interactions-canvas has-focus?)
 		 (printf "FAILED execute test for ~s~n  expected interactions to have the focus~n"
@@ -404,6 +435,8 @@
 	    
 	    (fw:test:keystroke #\return)
 	    
+	    (when breaking-test?
+	      (fw:test:button-push (ivar drscheme-frame stop-execute-button)))
 	    (wait-for-execute)
 	    
 	    (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline

@@ -64,14 +64,18 @@
 	 (lambda ()
 	   (fw:test:reraise-error)
 	   (send button is-enabled?))
-	 30)))
+	 60)))
 
   (define do-execute 
-    (lambda (frame)
+    (case-lambda
+     [(frame)
+      (do-execute frame #t)]
+     [(frame wait-for-finish?)
       (verify-drscheme-frame-frontmost 'do-execute frame)
       (let ([button (ivar frame execute-button)])
 	(fw:test:button-push button)
-	(wait-for-computation frame))))
+	(when wait-for-finish?
+	  (wait-for-computation frame)))]))
   
   (define (verify-drscheme-frame-frontmost function-name frame)
     (unless (and (eq? frame (get-top-level-focus-window))
