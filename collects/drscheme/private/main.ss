@@ -323,6 +323,8 @@
       ;;   not going to be exiting yet.
       (autosave:restore-autosave-files/gui)
      
+      (preferences:read)
+
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
       (define (make-basic)
