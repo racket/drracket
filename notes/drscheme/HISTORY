@@ -1,3 +1,9 @@
+Version %2:
+
+General
+-------
+- the turtles window does not survive across executions anymore
+
 Version 51:
 
 General 
