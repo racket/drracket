@@ -140,10 +140,13 @@
 	(super-init)
 	(set-snipclass non-breaking-snip-class))))
 
+  (define face-list #f)
+
   (define html-convert
     (lambda (p b)
       (letrec 
 	  ([indents (make-btree)]
+	   [centers (make-btree)]
 	   
 	   [normal-style (send (send b get-style-list)
 			       find-named-style
@@ -155,11 +158,13 @@
 		       (let ([len (if (string? what)
 				      (string-length what)
 				      1)])
-			 (btree-shift! indents pos len))
+			 (btree-shift! indents pos len)
+			 (btree-shift! centers pos len))
 		       (insert what pos)))]
 	   [delete (let ([delete (ivar b delete)])
 		     (lambda (start end)
 		       (btree-shift! indents end (- start end))
+		       (btree-shift! centers end (- start end))
 		       (delete start end)))]
 	   [get-text (ivar b get-text)]
 	   [set-title (ivar b set-title)]
@@ -176,6 +181,7 @@
 	   [get-snip-position (ivar b get-snip-position)]
 	   [position-paragraph (ivar b position-paragraph)]
 	   [set-paragraph-margins (ivar b set-paragraph-margins)]
+	   [set-paragraph-alignment (ivar b set-paragraph-alignment)]
 	   [add-document-note (ivar b add-document-note)]
 
 	   [inserted-chars #f]
@@ -285,10 +291,12 @@
 
 	   [parse-font
 	    (let ([get-size (make-get-field "size")]
+		  [get-face (make-get-field "face")]
 		  [get-color (make-get-field "color")]
 		  [get-bg-color (make-get-field "bgcolor")])
 	      (lambda (args)
 		(let ([size (get-size args)]
+		      [face (get-face args)]
 		      [color (get-color args)]
 		      [bg-color (get-bg-color args)])
 		  (let ([size
@@ -303,11 +311,28 @@
 					  (make-object style-delta% 'change-smaller (- n))]
 					 [else
 					  (make-object style-delta% 'change-size n)]))))]
+			[face (and face (let ([f (let loop ([f face])
+						   (let ([m (regexp-match "([^,]*), *(.*)" f)]
+							 [try-face (lambda (s)
+								     (unless face-list
+								       (set! face-list (get-face-list)))
+								     (ormap
+								      (lambda (s-norm)
+									(and (string-ci=? s s-norm)
+									     s-norm))
+								      face-list))])
+						     (if m
+							 (or (try-face (cadr m))
+							     (loop (caddr m)))
+							 (try-face f))))])
+					  (and f
+					       (let ([d (make-object style-delta%)])
+						 (send d set-delta-face f)))))]
 			[color (and color (let ([d (make-object style-delta%)])
 					    (send d set-delta-foreground color)))]
 			[bg-color (and bg-color (let ([d (make-object style-delta%)])
 						  (send d set-delta-background bg-color)))])
-		    (let loop ([delta #f][l (list size color bg-color)])
+		    (let loop ([delta #f][l (list size face color bg-color)])
 		      (cond
 		       [(null? l) delta]
 		       [(not (car l)) (loop delta (cdr l))]
@@ -657,7 +682,12 @@
 				      (change-style delta pos end-pos)
 				      (result (+ end-pos 2) #t))])
 		      (case tag
-			[(head body center) (normal)]
+			[(head body) (normal)]
+			[(center)
+			 (let ([start (position-paragraph pos)]
+			       [end (position-paragraph end-pos)])
+			   (btree-put! centers pos (- end start)))
+			 (normal)]
 			[(title)
 			 (set-title (get-text pos end-pos))
 			 (delete pos end-pos)
@@ -767,5 +797,15 @@
 						  0)))
 				    (* 2 (get-bullet-width) depth)
 				    0))))
+
+	;; Install center alignments
+	(btree-for-each
+	 centers
+	 (lambda (pos para-len)
+	   (let ([p (position-paragraph pos)])
+	     (let loop ([p p][len para-len])
+	       (set-paragraph-alignment p 'center)
+	       (unless (zero? len)
+		 (loop (add1 p) (sub1 len)))))))
 
 	(set-position 0)))))
