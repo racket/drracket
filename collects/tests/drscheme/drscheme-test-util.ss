@@ -78,6 +78,9 @@
   (define (test-util-error fmt . args)
     (raise (make-exn (apply fmt args) (current-continuation-marks))))
   
+  ;; poll-until : (-> alpha) number (-> alpha) -> alpha
+  ;; waits until pred return a true value and returns that.
+  ;; if that doesn't happen by `secs', calls fail and returns that.
   (define poll-until
     (opt-lambda (pred [secs 10] [fail (lambda ()
                                         (error 'poll-until 

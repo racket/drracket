@@ -1,3 +1,4 @@
+
 (module stepper-test mzscheme
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
@@ -23,10 +24,11 @@
   
   (define (run-test)
     (set-language-level! (list "How to Design Programs" "Beginning Student"))
+    (run-file-test (build-path sample-solutions-directory "add.scm"))
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    '(for-each
+    (for-each
       (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
       (directory-list sample-solutions-directory))
     
@@ -54,20 +56,21 @@
          prog
          (step-and-extract-program prog)))))
   
-  ;; simple-failure : string any ... -> beta
+  ;; simple-failure : (union #f step) string any ... -> beta
   ;; indicates that this one test failed, but the stepper may still
   ;; be steppable, so just jumps out of this one test.
-  (define (simple-failure message . args)
-    (printf "FAILED TEST ~s:\n~a\n" 
-            (current-program-id)
-            (apply format message args))
+  (define (simple-failure step message . args)
+    (printf "FAILED TEST ~s:\n" (current-program-id))
+    (when step (printf "~s\n" step))
+    (printf "~a\n\n" (apply format message args))
     ((failure-escape)))
   
   ;; check-steps : program-spec (listof step) -> void
   ;; executes each of the steps in DrScheme and raises
   ;; an exception if something doesn't match up.
   (define (check-steps program steps)
-    (let ([drs-frame (wait-for-drscheme-frame)])
+    (let* ([drs-frame (wait-for-drscheme-frame)]
+           [defs-text (send drs-frame get-definitions-text)])
       (let loop ([last-results #f]
                  [steps steps])
         (cond
@@ -77,25 +80,41 @@
            (set-definitions-to-program drs-frame program)
            (do-execute drs-frame)
            (let ([prog-results (fetch-output drs-frame)])
-             (check-same-results last-results prog-results))]
+             
+             ;; can only check subset here, since we may have stopped stepping early
+             (check-subset-results #f last-results prog-results))]
           [else
            (let ([step (car steps)])
              (clear-definitions drs-frame)
-             (type-in-definitions drs-frame ";; before\n")
-             (insert-into-definitions drs-frame (step-definitions step))
-             (type-in-definitions drs-frame "\n")
-             (insert-into-definitions drs-frame (step-before step))
+             (dynamic-wind
+              (lambda ()
+                (send defs-text begin-edit-sequence))
+              (lambda ()
+                (type-in-definitions drs-frame ";; before\n")
+                (insert-into-definitions drs-frame (step-definitions step))
+                (type-in-definitions drs-frame "\n")
+                (insert-into-definitions drs-frame (step-before step)))
+              (lambda ()
+                (send defs-text end-edit-sequence)))
              (do-execute drs-frame)
              (let ([before-results (fetch-output drs-frame)])
                (when last-results
-                 (check-subset-results last-results before-results))
+                 (check-subset-results step last-results before-results))
                (clear-definitions drs-frame)
-               (type-in-definitions drs-frame ";; after\n")
-               (insert-into-definitions drs-frame (step-definitions step))
-               (type-in-definitions drs-frame "\n")
+               (dynamic-wind
+                (lambda ()
+                  (send defs-text begin-edit-sequence))
+                (lambda ()
+                  (type-in-definitions drs-frame ";; after\n")
+                  (insert-into-definitions drs-frame (step-definitions step))
+                  (type-in-definitions drs-frame "\n")
+                  (unless (err? (step-after step))
+                    (insert-into-definitions drs-frame (step-after step))))
+                (lambda ()
+                  (send defs-text end-edit-sequence)))
+               (do-execute drs-frame)
                (cond
                  [(err? (step-after step))
-                  (do-execute drs-frame)
                   (let* ([pre-output (fetch-output drs-frame)]
                          [add-newline? (and ((string-length pre-output) . >= . 1)
                                             (not
@@ -110,53 +129,51 @@
                                              (err-message (step-after step)))
                               (string-append pre-output
                                              (err-message (step-after step))))])
-                    (check-same-results before-results after-results)
+                    (check-same-results step before-results after-results)
                     (unless (null? (cdr steps))
-                      (simple-failure "expected no more steps after an error, found ~s" (cdr steps)))
+                      (simple-failure #f "expected no more steps after an error, found ~s" (cdr steps)))
                     (loop after-results null))]
                  [else
-                  (insert-into-definitions drs-frame (step-after step))
-                  (do-execute drs-frame)
                   (let ([after-results (fetch-output drs-frame)])
-                    (check-same-results before-results after-results)
+                    (check-same-results step before-results after-results)
                     (loop after-results (cdr steps)))])))]))))
 
   ;; insert-info-definitions : frame contents -> void
-  (define (insert-into-definitions drs-frame contents)
-    (for-each
-     (lambda (content)
-       (cond
-         [(string? content) (type-in-definitions drs-frame content)]
-         [(is-a? content snip%) (void)]
-         [else (insert-into-definitions content)]))
-     contents))
+  ;; technically, this function should probably type the
+  ;; contents into the definitions window, but that is
+  ;; considerably slower than just inserting it directly....
+  (define (insert-into-definitions drs-frame orig-contents)
+    (let ([defns (send drs-frame get-definitions-text)])
+      (let loop ([contents orig-contents])
+        (for-each
+         (lambda (content)
+           (cond
+             [(or (string? content) 
+                  (is-a? content snip%))
+              (send defns insert content
+                    (send defns last-position)
+                    (send defns last-position))]
+             [(eq? content 'unknown)
+              (error 'insert-into-definitions "found unknown snip in ~e" orig-contents)]
+             [(list? content) 
+              ;; wrong thing. this flattens embedded editors
+              (loop content)]))
+         contents))))
   
-  ;; check-subset-results : string string -> void
+  ;; check-subset-results : step string string -> void
   ;; raises an error if s1 is not the beginning of s2.
-  (define (check-subset-results s1 s2)
+  (define (check-subset-results step s1 s2)
     (unless (and (<= (string-length s1)
                      (string-length s2))
                  (string=? (substring s2 0 (string-length s1))
                            s1))
-      (simple-failure "expected ~s to be the beginning of ~s" s1 s2)))
+      (simple-failure step "expected ~s to be the beginning of ~s" s1 s2)))
   
-  ;; check-same-results : string string -> void
+  ;; check-same-results : step string string -> void
   ;; raises an error if s1 is not s2.
-  (define (check-same-results s1 s2)
+  (define (check-same-results step s1 s2)
     (unless (string=? s1 s2)
-      (simple-failure "expected ~s to be the same as ~s" s1 s2)))
-  
-  ;; display-steps : steps -> void
-  (define (display-steps steps)
-    (for-each
-     (lambda (step)
-       (display ";; defns\n")
-       (for-each display (step-definitions step))
-       (display ";; before\n")
-       (for-each display (step-before step))
-       (display ";; after\n")
-       (for-each display (step-after step)))
-     steps))
+      (simple-failure step "expected ~s to be the same as ~s" s1 s2)))
   
   ;; step-and-extract-program : program-spec -> (listof step)
   (define (step-and-extract-program program)
@@ -189,8 +206,10 @@
   
   ;; get-all-steps : frame -> (listof step)
   (define (get-all-steps stepper-frame)
-    (cons (get-step stepper-frame)
-          (get-more-steps stepper-frame)))
+    (let* ([stepper-canvas (find-labelled-window #f editor-canvas% stepper-frame)]
+           [stepper-editor (poll-until (lambda () (send stepper-canvas get-editor)))])
+      (cons (get-step stepper-frame stepper-editor)
+            (get-more-steps stepper-frame))))
 
   ;; get-more-steps : stepper-frame -> (listof step)
   ;; repeatedly push the next button to get out all of the steps
@@ -201,9 +220,9 @@
       ;; just make sure we are in a ready state.
       (poll-until (lambda () (send next-button is-enabled?)) 1 void)
       
-      (let loop ([n 50])
+      (let loop ([n 200])
         (cond
-          [(zero? n) null] ;; at most 50 steps
+          [(zero? n) null] ;; at most 200 steps
           [(send next-button is-enabled?)
            (test:button-push next-button)
            
@@ -211,37 +230,28 @@
            ;; indicate a new step is rendered
            (poll-until
             (lambda () (send next-button is-enabled?))
-            1
+            2
             void) ;; no error signalled if button doesn't show up.
            
-           ;; wait for the stepper-canvas to have an editor
-           (poll-until (lambda () (send stepper-canvas get-editor)))
-           
-           (let ([step (get-step stepper-frame)])
+           (let ([step (get-step stepper-frame (send stepper-canvas get-editor))])
              (if step
                  (cons step (loop (- n 1)))
                  (loop (- n 1))))]
           [else null]))))
   
-  ;; get-step : frame -> (union step #f)
+  ;; get-step : frame editor -> (union step #f)
   ;; extracts a step from the stepper window. Only returns #f for
   ;; the "I'm done stepping" message that sometimes appears at the end.
-  (define (get-step stepper-frame)
+  (define (get-step stepper-frame stepper-editor)
     (let ([canvas (find-labelled-window #f canvas% stepper-frame (lambda () #f))])
       (when canvas
         (error 'get-steps "stepper warning present!")))
-    (let ([editor-canvas (find-labelled-window #f editor-canvas% stepper-frame)])
-      (unless editor-canvas
-        (error 'get-steps "couldn't find stepper window's editor-canvas%"))
-      (let* ([stepper-editor (send editor-canvas get-editor)]
-             [_ (unless stepper-editor
-                  (error 'get-step "stepper window editor canvas has no editor"))]
-             [extraction (extract-from-editor stepper-editor)]
+      (let* ([extraction (extract-from-editor stepper-editor)]
              [step (separate-steps extraction)])
         (unless step
           (unless (equal? '("evaluation of program is complete.") extraction)
             (error 'get-step "couldn't parse stepper window: ~s\n" extraction)))
-        step)))
+        step))
       
   ;; snips = (union (cons error snips) (cons snip snips) (cons snips snips) null)
   ;; extract-from-editor : editor -> snips
@@ -265,6 +275,9 @@
          (cons (send snip get-text 0 (send snip get-count) #t)
                (loop (send snip next)))]
         [(is-a? snip image-snip%)
+         (cons snip (loop (send snip next)))]
+        [(and (is-a? snip snip%)
+              (method-in-interface? 'get-fraction-view (object-interface snip)))
          (cons snip (loop (send snip next)))]
         [else (cons 'unknown
                     (loop (send snip next)))])))
