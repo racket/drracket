@@ -114,6 +114,39 @@
     (dynamic-require '(lib "errortrace.ss" "errortrace") #f)
     (error-print-width 200))
 
+  ;; we set the error display handler here (even tho it will be re-set
+  ;; when drscheme's units are invoked) so that we can catch errors
+  ;; in expansion. Don't use `string-constant' here, so we can
+  ;; open up the splash screen window without first loading any files.
+
+  (define system-eventspace (current-eventspace))
+  (define system-custodian (current-custodian))
+  (define original-error-display-handler (error-display-handler))
+  (error-display-handler
+   (lambda (msg exn)
+     
+     ;; wrap this in with-handlers just in case original
+     ;; output/error ports aren't there anymore and this
+     ;; raises an exception.
+     (with-handlers ([not-break-exn?
+                      (lambda (x) (void))])
+       (original-error-display-handler msg exn))
+     
+     
+     (let ([title "DrScheme Internal Error During Loading"])
+       (let ([text (let ([p (open-output-string)])
+                     (parameterize ([current-error-port p]
+                                    [current-output-port p])
+                       (original-error-display-handler msg exn))
+                     (get-output-string p))])
+         (if (eq? (current-eventspace) system-eventspace)
+             (message-box title text)
+             (parameterize ([current-eventspace system-eventspace]
+                            [current-custodian system-custodian])
+               (queue-callback
+                (lambda ()
+                  (message-box title text)))))))))
+
   ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
    (build-path (collection-path "icons") "plt.gif")
    "DrScheme"

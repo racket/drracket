@@ -8,7 +8,6 @@
            (lib "string-constant.ss" "string-constants")
            (lib "pconvert.ss")
            (lib "pretty.ss")
-	   (lib "macro.ss" "userspce")
            (lib "etc.ss")
 	   (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -100,11 +99,7 @@
 		 (boolean? (vector-ref printable 4))
 		 (apply make-simple-settings (cdr (vector->list printable)))))
           (define (default-settings) 
-            (make-simple-settings/parse
-             '((case-sensitive #f)
-               (printing-style write)
-               (show-sharing #f)
-               (insert-newlines #t))))
+            (make-simple-settings #f 'write #f #t))
           (define (default-settings? x)
 	    (equal? (simple-settings->vector x)
 		    (simple-settings->vector (default-settings))))
@@ -123,8 +118,8 @@
       ;;  printing-style  : (union 'write 'constructor 'quasiquote)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
-      (define-struct/parse simple-settings
-                           (case-sensitive printing-style show-sharing insert-newlines))
+      (define-struct simple-settings (case-sensitive printing-style show-sharing insert-newlines))
+      (define simple-settings->vector (make-->vector simple-settings))
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
       (define (simple-module-based-language-config-panel _parent)

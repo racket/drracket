@@ -5,19 +5,23 @@
            (lib "class.ss")
            (lib "list.ss")
            "drsig.ss"
+           (lib "specs.ss" "framework")
            (lib "string-constant.ss" "string-constants"))
   
   (provide tools@)
 
-  (define-syntax wrap-tool
-    (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
-                                                   "tool-info.ss")
-                   read)])
-      (lambda (stx)
+  (define-syntax wrap-tool-inputs
+    (lambda (stx)
+      (let ([table (call-with-input-file (build-path (collection-path "drscheme" "private")
+                                                     "tool-info.ss")
+                     read)])
         (syntax-case stx ()
-          [(_ name)
-           (with-syntax ([type (assoc (syntax name) table)])
-             (syntax name))]))))
+          [(_ body tool-name)
+           (with-syntax ([(types ...) (map cadr table)]
+                         [(names ...) (map (lambda (x) (datum->syntax-object stx (car x))) table)])
+             (syntax
+              (let ([names (contract types names 'drscheme tool-name)] ...)
+                body)))]))))
 
   (define tools@
     (unit/sig drscheme:tools^
@@ -136,12 +140,7 @@
 
       ;; invoke-tool : unit/sig string -> void
       (define (invoke-tool unit tool-name)
-
-	(let ([drscheme:help-desk:help-desk (wrap-tool drscheme:help-desk:help-desk)]
-	      [drscheme:help-desk:open-url (wrap-tool drscheme:help-desk:open-url)]
-	      [drscheme:help-desk:open-users-url (wrap-tool drscheme:help-desk:open-users-url)])
-
-	  (invoke-unit/sig unit drscheme:tool^)))
+	(wrap-tool-inputs (invoke-unit/sig unit drscheme:tool^) 'drscheme))
 
       ;; show-error : string exn -> void
       (define (show-error title x)
