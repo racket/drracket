@@ -18,7 +18,7 @@
            (lib "launcher.ss" "launcher")
 	   (lib "mred.ss" "mred")
 	   (lib "framework.ss" "framework")
-           "syntax-browser.ss")
+           (lib "syntax-browser.ss" "mrlib"))
 
   (provide language@)
 
