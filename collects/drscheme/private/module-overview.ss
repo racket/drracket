@@ -250,10 +250,8 @@
                (lambda () 
                  (let* ([snip (instantiate word-snip/lines% ()
                                 (lines (if is-filename? (count-lines name) #f))
-                                (word (if is-filename?
-                                          (let-values ([(_1 name _2) (split-path name)])
-                                            (path->string name))
-                                          name))
+                                (word (let-values ([(_1 name _2) (split-path name)])
+                                        (path->string name)))
                                 (pb this)
                                 (filename (if is-filename? name #f)))])
                    (insert snip)
