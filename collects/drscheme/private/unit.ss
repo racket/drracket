@@ -46,6 +46,23 @@
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
 
+      (define-struct mode (name surrogate repl-submit?))
+      (define modes (list 
+                     (make-mode 
+                      (string-constant scheme-mode)
+                      (new scheme:text-mode%)
+                      (lambda (x) #f))
+                     (make-mode 
+                      (string-constant text-mode)
+                      #f
+                      (lambda (x) #t))))
+      (define (add-mode name surrogate repl-submit?)
+        (set! modes 
+              (append modes 
+                      (list (make-mode name 
+                                       surrogate
+                                       repl-submit?)))))
+      
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
@@ -350,7 +367,7 @@
               (when on?
                 (send (get-top-level-window) make-searchable this))
               (super-on-focus on?))
-            (super-instantiate ()))))
+            (super-new))))
       
       (define interactions-canvas% (make-searchable-canvas%
                                     (canvas:info-mixin
@@ -358,7 +375,7 @@
       
       (define definitions-canvas%
         (class (make-searchable-canvas% (canvas:delegate-mixin canvas:info%))
-          (super-instantiate ())))
+          (super-new)))
       
       (define definitions-text<%> (interface ()))
       
@@ -376,9 +393,10 @@
                 (drscheme:module-language:module-language-put-file-mixin
                  (scheme:text-mixin
                   (drscheme:rep:drs-bindings-keymap-mixin
-                   (text:delegate-mixin
-                    (text:nbsp->space-mixin
-                     text:info%))))))])
+                   (mode:host-text-mixin
+                    (text:delegate-mixin
+                     (text:nbsp->space-mixin
+                      text:info%)))))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
             
@@ -516,7 +534,7 @@
             
             (field [error-arrows #f])
             
-            (super-instantiate ()))))
+            (super-new))))
       
       
                                                        
@@ -559,8 +577,8 @@
                                                           defn))
                                       (get-definitions #f editor)))])
                (when defn
-                 (instantiate separator-menu-item% () (parent menu))
-                 (instantiate menu-item% () 
+                 (new separator-menu-item% (parent menu))
+                 (new menu-item%
                    (parent menu)
                    (label (format (string-constant jump-to-defn) (defn-name defn)))
                    (callback (lambda (x y)
@@ -826,7 +844,7 @@
                             (length (send unit-frame get-interactions-canvases)))
                          (= 2 (length percentages)))
                 (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))
-          (super-instantiate ())))
+          (super-new)))
       
       (define super-frame%
         (drscheme:frame:mixin
@@ -980,7 +998,7 @@
           (define/override (make-root-area-container cls parent)
             (let* ([outer-panel (super-make-root-area-container module-browser-dragable-panel% parent)]
                    [saved-p (preferences:get 'drscheme:module-browser-size-percentage)]
-                   [_module-browser-panel (instantiate vertical-panel% ()
+                   [_module-browser-panel (new vertical-panel%
                                             (parent outer-panel)
                                             (stretchable-width #f))]
                    [louter-panel (make-object vertical-panel% outer-panel)]
@@ -989,7 +1007,7 @@
               (set! module-browser-parent-panel outer-panel)
               (send outer-panel change-children (lambda (l) (remq module-browser-panel l)))
               (preferences:set 'drscheme:module-browser-size-percentage saved-p)
-              (set! logging-parent-panel (instantiate horizontal-panel% ()
+              (set! logging-parent-panel (new horizontal-panel%
                                            (parent louter-panel)
                                            (stretchable-height #f)))
               (set! logging-panel (make-object horizontal-panel% logging-parent-panel))
@@ -1184,14 +1202,6 @@
               [else (send definitions-text clear)])
             (send definitions-canvas focus))
           
-          [define (toggle-show/hide-definitions)
-            (set! definitions-shown? (not definitions-shown?))
-            (unless definitions-shown?
-              (set! interactions-shown? #t))]
-          [define (toggle-show/hide-interactions)
-            (set! interactions-shown? (not interactions-shown?))
-            (unless  interactions-shown?
-              (set! definitions-shown? #t))]
           
           [define file-menu:print-transcript-item #f]
           
@@ -1262,6 +1272,48 @@
                               #t
                               (preferences:get 'framework:print-output-mode)))))
               (make-object separator-menu-item% file-menu))]
+          
+          (rename [super-edit-menu:between-find-and-preferences 
+                   edit-menu:between-find-and-preferences])
+          (define/override (edit-menu:between-find-and-preferences edit-menu)
+            (super-edit-menu:between-find-and-preferences edit-menu)
+            (new menu%
+                 (parent edit-menu)
+                 (label (string-constant mode-submenu-label))
+                 (demand-callback
+                  (lambda (menu)
+                    (for-each (lambda (item) (send item delete))
+                              (send menu get-items))
+                    (for-each (lambda (mode) 
+                                (let* ([surrogate (mode-surrogate mode)]
+                                       [item
+                                        (new checkable-menu-item% 
+                                             (label (mode-name mode))
+                                             (parent menu)
+                                             (callback 
+                                              (lambda (_1 _2)
+                                                (send definitions-text set-surrogate surrogate))))])
+                                  (when (eq? surrogate (send definitions-text get-surrogate))
+                                    (send item check #t))))
+                              modes)))))
+                    
+;                                                                                         
+;                                                                                         
+;                                                                                         
+;                  ;   ;           ;                  ;   ;                               
+;                  ;               ;                  ;   ;                               
+;                  ;       ;      ;                   ;   ;                               
+;    ;;;   ; ;;    ;   ;  ;;;;    ;     ;;;    ;;;    ;   ;   ;;;    ; ;;     ;;;    ;;;  
+;   ;      ;;  ;   ;   ;   ;      ;    ;   ;  ;   ;   ;   ;  ;   ;   ;;  ;   ;      ;   ; 
+;   ;;     ;    ;  ;   ;   ;      ;   ;      ;     ;  ;   ;      ;   ;    ;  ;;    ;    ; 
+;    ;;    ;    ;  ;   ;   ;     ;    ;      ;     ;  ;   ;   ;;;;   ;    ;   ;;   ;;;;;; 
+;      ;   ;    ;  ;   ;   ;     ;    ;      ;     ;  ;   ;  ;   ;   ;    ;     ;  ;      
+;      ;   ;;  ;   ;   ;   ;     ;     ;   ;  ;   ;   ;   ;  ;   ;   ;;  ;      ;   ;     
+;   ;;;    ; ;;    ;   ;    ;;  ;       ;;;    ;;;    ;   ;   ;;;;;  ; ;;    ;;;     ;;;; 
+;          ;                    ;                                    ;                    
+;          ;                    ;                                    ;                    
+;          ;                                                         ;                    
+
           
           (inherit get-edit-target-window)
           [define (split)
@@ -1484,9 +1536,36 @@
                 [else (bell)]))]
           
 
+;                                                                          
+;                                                                          
+;                                                                          
+;          ;                                                               
+;          ;                                                               
+;          ;                                                               
+;    ;;;   ; ;;     ;;;   ;   ;   ;      ; ;;  ;;     ;;;   ; ;;    ;   ;  
+;   ;      ;;  ;   ;   ;  ;   ;   ;      ;;  ;;  ;   ;   ;  ;;  ;   ;   ;  
+;   ;;     ;   ;  ;     ;  ; ; ; ;       ;   ;   ;  ;    ;  ;   ;   ;   ;  
+;    ;;    ;   ;  ;     ;  ; ; ; ;       ;   ;   ;  ;;;;;;  ;   ;   ;   ;  
+;      ;   ;   ;  ;     ;  ; ; ; ;       ;   ;   ;  ;       ;   ;   ;   ;  
+;      ;   ;   ;   ;   ;    ;   ;        ;   ;   ;   ;      ;   ;   ;  ;;  
+;   ;;;    ;   ;    ;;;     ;   ;        ;   ;   ;    ;;;;  ;   ;    ;; ;  
+;                                                                          
+;                                                                          
+;                                                                          
+
           
           (define interactions-shown? #t)
           (define definitions-shown? #t)
+          
+          [define (toggle-show/hide-definitions)
+            (set! definitions-shown? (not definitions-shown?))
+            (unless definitions-shown?
+              (set! interactions-shown? #t))]
+          [define (toggle-show/hide-interactions)
+            (set! interactions-shown? (not interactions-shown?))
+            (unless  interactions-shown?
+              (set! definitions-shown? #t))]
+          
           (override update-shown on-close)
           [define update-shown
             (lambda ()
@@ -1727,7 +1806,7 @@
                     #\e
                     (string-constant interactions-menu-item-help-string)))
             
-            (instantiate menu:can-restore-menu-item% ()
+            (new menu:can-restore-menu-item%
               (shortcut #\u)
               (label 
                (if (delegated-text-shown?)
@@ -1747,7 +1826,7 @@
                        (show-delegated-text))))))
             
             (set! module-browser-menu-item
-                  (instantiate menu:can-restore-menu-item% ()
+                  (new menu:can-restore-menu-item%
                     (label (if module-browser-shown?
                                (string-constant hide-module-browser)
                                (string-constant show-module-browser)))
@@ -1758,6 +1837,25 @@
                            (hide-module-browser)
                            (show-module-browser)))))))
 
+          
+;                                                                                                       
+;                                                                                                       
+;                                                                                                       
+;                           ;           ;              ;                                                
+;                           ;           ;              ;                                                
+;                           ;           ;              ;                                                
+;   ; ;;  ;;     ;;;     ;; ;   ;   ;   ;    ;;;       ; ;;    ; ;   ;;;   ;   ;   ;   ;;;    ;;;   ; ; 
+;   ;;  ;;  ;   ;   ;   ;  ;;   ;   ;   ;   ;   ;      ;;  ;   ;;   ;   ;  ;   ;   ;  ;      ;   ;  ;;  
+;   ;   ;   ;  ;     ; ;    ;   ;   ;   ;  ;    ;      ;    ;  ;   ;     ;  ; ; ; ;   ;;    ;    ;  ;   
+;   ;   ;   ;  ;     ; ;    ;   ;   ;   ;  ;;;;;;      ;    ;  ;   ;     ;  ; ; ; ;    ;;   ;;;;;;  ;   
+;   ;   ;   ;  ;     ; ;    ;   ;   ;   ;  ;           ;    ;  ;   ;     ;  ; ; ; ;      ;  ;       ;   
+;   ;   ;   ;   ;   ;   ;  ;;   ;  ;;   ;   ;          ;;  ;   ;    ;   ;    ;   ;       ;   ;      ;   
+;   ;   ;   ;    ;;;     ;; ;    ;; ;   ;    ;;;;      ; ;;    ;     ;;;     ;   ;    ;;;     ;;;;  ;   
+;                                                                                                       
+;                                                                                                       
+;                                                                                                       
+
+          
           (field [module-browser-shown? #f]
                  [module-browser-parent-panel #f]
                  [module-browser-panel #f]
@@ -1812,7 +1910,7 @@
                                         module-browser-panel
                                         module-browser-pb))
               (set! module-browser-lib-path-check-box
-                    (instantiate check-box% ()
+                    (new check-box%
                       (parent module-browser-panel)
                       (label show-lib-paths)
                       (value (preferences:get 'drscheme:module-browser:show-lib-paths?))
@@ -1823,7 +1921,7 @@
                            (send module-browser-pb show-lib-paths val))))))
               
               (set! module-browser-button 
-                    (instantiate button% ()
+                    (new button%
                       (parent module-browser-panel)
                       (label refresh)
                       (callback (lambda (x y) (update-module-browser-pane)))
@@ -1887,11 +1985,30 @@
                     (current-directory base)
                     (current-load-relative-directory base))))))
           
-          (super-instantiate ()
+          (super-new
             (filename filename)
             (style '(toolbar-button))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
+
+          
+;                                            
+;                                            
+;                                            
+;                                            
+;                                            
+;                                            
+;   ; ;;  ;;     ;;;   ; ;;    ;   ;    ;;;  
+;   ;;  ;;  ;   ;   ;  ;;  ;   ;   ;   ;     
+;   ;   ;   ;  ;    ;  ;   ;   ;   ;   ;;    
+;   ;   ;   ;  ;;;;;;  ;   ;   ;   ;    ;;   
+;   ;   ;   ;  ;       ;   ;   ;   ;      ;  
+;   ;   ;   ;   ;      ;   ;   ;  ;;      ;  
+;   ;   ;   ;    ;;;;  ;   ;    ;; ;   ;;;   
+;                                            
+;                                            
+;                                            
+
           
           (let* ([mb (get-menu-bar)]
                  [language-menu-on-demand
@@ -1962,7 +2079,7 @@
               (lambda (_1 _2) (send interactions-text kill-evaluation))
               #\k
               (string-constant kill-menu-item-help-string))
-            (instantiate menu:can-restore-menu-item% ()
+            (new menu:can-restore-menu-item%
               (label (string-constant clear-error-highlight-menu-item-label))
               (parent scheme-menu)
               (callback (lambda (_1 _2) (drscheme:rep:reset-error-ranges)))
@@ -2040,14 +2157,14 @@
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
-                       (send edit insert (instantiate lambda-snip% ()))))
+                       (send edit insert (new lambda-snip%))))
                    #t)]
                 [insert-delta
                  (lambda ()
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
-                       (send edit insert (instantiate define-snip% ()))))
+                       (send edit insert (new define-snip%))))
                    #t)]
                 [insert-large-semicolon-letters
                  (lambda ()
@@ -2125,18 +2242,37 @@
            
           (make-object separator-menu-item% (get-show-menu))
           
-          (instantiate menu:can-restore-menu-item% ()
+          (new menu:can-restore-menu-item%
             (shortcut #\m)
             (label (string-constant split-menu-item-label))
             (parent (get-show-menu))
             (callback (lambda (x y) (split)))
             (demand-callback (lambda (item) (split-demand item))))
-          (instantiate menu:can-restore-menu-item% () 
+          (new menu:can-restore-menu-item% 
             (shortcut #\r)
             (label (string-constant collapse-menu-item-label))
             (parent (get-show-menu))
             (callback (lambda (x y) (collapse)))
             (demand-callback (lambda (item) (collapse-demand item))))
+          
+          
+;                                                                               
+;                                                                               
+;                                                                               
+;                                 ;       ;                                     
+;                                 ;       ;                                     
+;                                 ;       ;                                 ;   
+;   ; ;;    ;;;    ; ;;     ;;;   ;       ;   ;;;   ;     ;  ;;;    ;   ;  ;;;; 
+;   ;;  ;  ;   ;   ;;  ;   ;   ;  ;       ;  ;   ;  ;     ; ;   ;   ;   ;   ;   
+;   ;    ;     ;   ;   ;  ;    ;  ;       ;      ;   ;   ; ;     ;  ;   ;   ;   
+;   ;    ;  ;;;;   ;   ;  ;;;;;;  ;       ;   ;;;;   ;   ; ;     ;  ;   ;   ;   
+;   ;    ; ;   ;   ;   ;  ;       ;       ;  ;   ;    ; ;  ;     ;  ;   ;   ;   
+;   ;;  ;  ;   ;   ;   ;   ;      ;       ;  ;   ;    ; ;   ;   ;   ;  ;;   ;   
+;   ; ;;    ;;;;;  ;   ;    ;;;;  ;       ;   ;;;;;    ;     ;;;     ;; ;    ;; 
+;   ;                                                  ;                        
+;   ;                                                  ;                        
+;   ;                                                 ;                         
+
           
           ;; most contain only top-panel (or nothing)
           (define top-outer-panel (new horizontal-pane% 
@@ -2144,11 +2280,11 @@
                                        (stretchable-height #f)))
           
           [define top-panel (make-object horizontal-panel% top-outer-panel)]
-          [define name-panel (instantiate vertical-pane% ()
+          [define name-panel (new vertical-pane%
                                (parent top-panel)
                                (stretchable-width #f)
                                (stretchable-height #f))]
-          [define resizable-panel (instantiate vertical-dragable/def-int% ()
+          [define resizable-panel (new vertical-dragable/def-int%
                                     (unit-frame this)
                                     (parent (get-definitions/interactions-panel-parent)))]
           
@@ -2273,7 +2409,7 @@
                          (null? (cddr percentages)))
                 (preferences:set 'drscheme:module-browser-size-percentage
                                  (car percentages)))))
-          (super-instantiate ())))
+          (super-new)))
       
       (define drs-name-message%
         (class name-message%
@@ -2281,13 +2417,13 @@
             (let ([file (finder:get-file dir)])
               (when file
                 (handler:edit-file file))))
-          (super-instantiate ())))
+          (super-new)))
       
       (define lambda-snipclass
         (make-object (class snip-class% ()
                        (define/override (read p)
                          (make-object lambda-snip%))
-                       (super-instantiate ()))))
+                       (super-new))))
       (send lambda-snipclass set-version 1)
       (send lambda-snipclass set-classname "drscheme:lambda-snip%")
       (send (get-the-snip-class-list) add lambda-snipclass)
@@ -2296,7 +2432,7 @@
         (make-object (class snip-class% ()
                        (define/override (read p)
                          (make-object define-snip%))
-                       (super-instantiate ()))))
+                       (super-new))))
       (send define-snipclass set-version 1)
       (send define-snipclass set-classname "drscheme:define-snip%")
       (send (get-the-snip-class-list) add define-snipclass)
@@ -2345,12 +2481,12 @@
                       ;(+ y (- (- wh wd) (- lh ld)))
                       ))
               (send dc set-font font)))
-          (super-instantiate ())))
+          (super-new)))
 
       (define lambda-snip%
         (class greek-char-snip%
-          (define/override (copy) (instantiate lambda-snip% ()))
-          (super-instantiate ()
+          (define/override (copy) (new lambda-snip%))
+          (super-new
             (symbol 'lambda)
             (one-char-string "l"))
           (inherit set-snipclass)
@@ -2358,8 +2494,8 @@
       
       (define define-snip%
         (class greek-char-snip%
-          (define/override (copy) (instantiate define-snip% ()))
-          (super-instantiate ()
+          (define/override (copy) (new define-snip%))
+          (super-new
             (symbol 'define)
             (one-char-string "d"))
           (inherit set-snipclass)
@@ -2379,7 +2515,7 @@
                      (send created-frame show #t)
                      created-frame)
               (let* ([drs-frame% (drscheme:get/extend:get-unit-frame)]
-		     [frame (instantiate drs-frame% () (filename name))])
+		     [frame (new drs-frame% (filename name))])
                 (send frame show #t)
                 frame))]))
       

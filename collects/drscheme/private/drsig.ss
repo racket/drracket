@@ -131,7 +131,8 @@
      open-drscheme-window
      find-symbol
      get-program-editor-mixin
-     add-to-program-editor-mixin))
+     add-to-program-editor-mixin
+     add-mode))
   
   (define-signature drscheme:frame^
     (<%>

@@ -13,7 +13,7 @@
             (andmap (lambda (x) (string? (syntax-object->datum x)))
                     (apply append (map syntax->list (syntax->list (syntax ((strs ...) ...)))))))
        (with-syntax ([wrap-tool-inputs (datum->syntax-object stx 'wrap-tool-inputs #'here)])
-         (syntax 
+         (syntax/loc stx
           (#%module-begin
            (provide wrap-tool-inputs)
            (define-syntax wrap-tool-inputs
@@ -24,15 +24,17 @@
                                  (map (lambda (in-type-obj) 
                                         (datum->syntax-object 
                                          in-stx
-                                         (syntax-object->datum in-type-obj)))
+                                         (syntax-object->datum in-type-obj)
+                                         in-type-obj))
                                       (syntax->list (syntax (type ...))))]
                                 [(in-name (... ...))
                                  (map (lambda (in-name-obj) 
                                         (datum->syntax-object 
                                          in-stx 
-                                         (syntax-object->datum in-name-obj)))
+                                         (syntax-object->datum in-name-obj)
+                                         in-name-obj))
                                       (syntax->list (syntax (name ...))))])
-                    (syntax
+                    (syntax/loc in-stx
                      (let ([in-name (contract in-type in-name 'drscheme tool-name (quote-syntax in-name))] (... ...))
                        body)))]))))))]
       [(_ (name type type-names strs ...) ...)
