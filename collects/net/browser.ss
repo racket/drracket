@@ -3,7 +3,9 @@
            (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "file.ss")
+           (lib "list.ss")
            (prefix raw: (lib "sendurl.ss" "net"))
+           (lib "url.ss" "net")
            (lib "unitsig.ss")
            (lib "tool.ss" "drscheme")
            (prefix fw: (lib "framework.ss" "framework")))
@@ -16,8 +18,7 @@
   ; : -> bool
   (define (unix-browser?)
     (and (eq? (system-type) 'unix)
-	 ;(not (equal? "ppc-macosxonx" (system-library-subpath)))
-         ))
+	 (not (equal? "ppc-macosxonx" (system-library-subpath)))))
   
   (fw:preferences:set-default
    'external-browser
@@ -34,7 +35,22 @@
 						   (equal? (car x) "http")
 						   (string? (cadr x))
 						   (number? (caddr x))))))
+  (fw:preferences:add-callback 
+   http-proxy-preference
+   (lambda (p v)
+     (let* ([ops (current-proxy-servers)]
+            [removed (remove-all-proxies "http" ops)])
+       (current-proxy-servers
+        (if v
+            (cons v removed)
+            removed)))))
 
+  (define (remove-all-proxies scheme proxies)
+    (filter (lambda (x) 
+              (and (pair? x)
+                   (not (equal? (car x) scheme))))
+            proxies))
+    
   (define send-url
     (if (unix-browser?)
         (lambda (url . args)
@@ -124,12 +140,6 @@
 			panel)))))))
   
   (define (make-help-browser-preference-panel set-help? ask-later? mk)
-    (unless synchronized?
-      ;; Keep low-level pref in sync. Yes, this is clumsy and bad.
-      
-      (fw:preferences:add-callback http-proxy-preference
-				   (lambda (name proxy)
-				     (try-put-preferences (list http-proxy-preference) (list proxy)))))
     
     (mk
      (lambda (parent)
@@ -140,7 +150,7 @@
 	 ;; -------------------- external browser for Unix --------------------
 	 (when (unix-browser?)
 	   (unless synchronized?
-	     ;; Keep 'external-browser in sync, too
+	     ;; Keep 'external-browser in sync
 	     (fw:preferences:add-callback 'external-browser
 					  (lambda (name browser)
 					    (try-put-preferences (list 'external-browser) (list browser)))))
