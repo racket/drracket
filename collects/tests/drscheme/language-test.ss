@@ -333,9 +333,9 @@
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
     (test-expression "(define (f #%empty) 1)" "")
-    (test-expression "(define (f empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
     
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
@@ -398,9 +398,9 @@
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
     (test-expression "(define (f #%empty) 1)" "")
-    (test-expression "(define (f empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
     
     (test-expression "call/cc" "reference to undefined identifier: call/cc")
 
@@ -461,9 +461,9 @@
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
-    (test-expression "(define (f car) 1)" "")
+    (test-expression "(define (f car) 1)" "keyword: invalid use of keyword car")
     (test-expression "(define (f #%empty) 1)" "")
-    (test-expression "(define (f empty) 1)" "")
+    (test-expression "(define (f empty) 1)" "keyword: invalid use of keyword empty")
     
     (test-expression "call/cc" "call-with-current-continuation")
 

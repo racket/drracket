@@ -1,4 +1,63 @@
 The exp-tagged source (in CVS) for DrScheme is now version 
+103d104.
+
+ PRS
+
+  1410: read-line in DrScheme
+  1642: bad teachpack causes drscheme to freeze
+  1663: Dr. Scheme pasting what's on the clipboard when you don't want it too
+  1681: backtrace window should indicate source out-of-synch
+  1682: indentation and #%
+  1702: DrScheme filename popup doesn't always update on save
+  1726: Colour parameters in sixlib procedures are not too coherent
+  1747: faulty teachpacks no longer signal an error
+  1783: DrScheme, standard input, and eof
+  1792: interactive movable split-pane & scrolling-content feature request
+        (just the movable split-pane part is done)
+
+ FUNCTIONALITY CHANGES
+ 
+ - added Teach Youself Scheme in Fixnum Days (with Dorai's permission)
+   to our documentation. To get it, you should delete plt/collects/doc/help,
+   start up Help Desk (to redownload that directory), restart Help Desk,
+   and then follow the big "Scheme" link on the front page, to the
+   "Teach Yourself Scheme in Fixnum Days" link to download it. Once
+   it is downloaded, the index will be added to Help Desk for easy
+   searching.
+
+ - implicit sequencing has been eliminated from the advanced language 
+   level in order to give better error messages. Use an explicit `begin' 
+   for sequencing. (this change was made between 102 and
+   103, but we forgot to put it into the release notes)
+
+ - teachpacks finally support macro definitions.
+   Download the revised documentation to see how!
+   (throw away your copy of plt/collects/doc/drscheme/
+    and start up help desk. search for teachpack
+    follow the link and download the new docs)
+ 
+ - DrScheme's main two windows now have a little draggable
+   thumb that changes the percentage difference between
+   the windows
+   
+ - added panel:vertical-resizable%, panel:vertical-resiable-pane%,
+   panel:vertical-resizable-mixin, and panel:vertical-resizable<%>
+   to framework
+ 
+ MINOR CHANGES AND BUG FIXES
+
+ - there is now a little eof icon next to the input box when
+   input is expected. you can click it send an eof (close the
+   input port until execute is next clicked). Suggestions for
+   a better icon welcome.
+  
+ - misc changes to html.ss in the browser collection
+   to support Teach Yourself Scheme in Fixnum Days,
+   including more colors, div support, better whitespace
+   management, and transparent url links.
+
+
+The exp-tagged source (in CVS) for DrScheme is now version 
 103d103.
 
  PRS
