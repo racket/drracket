@@ -322,9 +322,9 @@ profile todo:
           (if (and source
                    (number? position)
                    (number? span))
-              (let* ([mark-label `(,source ,(- position 1) . ,span)])
+              (let* ([mark-src `(,source ,(- position 1) . ,span)])
                 (with-syntax ([expr expr]
-                              [mark (mark-maker mark-label)]
+                              [mark (mark-maker mark-src)]
                               [cm-key cm-key])
                   (syntax
                    (with-continuation-mark
