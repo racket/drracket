@@ -270,7 +270,7 @@
 	     (insert #\newline)
 	     (insert "Based on:")
 	     (insert #\newline)
-	     (inset "  ")
+	     (insert "  ")
 	     (insert (banner))
 	     (insert "  McMicMac (c) 1995-1998 PLT, Rice University (Shriram Krishnamurthi)")
 	     (insert #\newline)
