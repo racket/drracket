@@ -1,13 +1,3 @@
-(define drscheme:toplevel-tools
-  (list (list "Syntax Checker" (build-path "drscheme" "mrslatex"))
-	(list "Stepper" (build-path "drscheme" "donkstub"))
-	(list "Static Debugger" (build-path "drscheme" "spidstub"))
-
-;;          this is the example tool.
-	;(list "Toy" (build-path "drscheme" "toy"))
-
-	))
-
 (reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "sigs.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "lib" "sparams.ss")))
@@ -86,3 +76,22 @@
   ((unit drscheme:frame : drscheme:frame^)
    (unit drscheme:unit : drscheme:unit^)
    (unit drscheme:compound-unit : drscheme:compound-unit^)))
+
+
+(begin-elaboration-time
+ (define drscheme:tool-directories
+   (quicksort (directory-list (build-path plt:home-directory
+					  "drscheme"
+					  "tools"))
+	      string-ci<=?))
+ `(begin
+    ,@(let loop ([dirs drscheme:tool-directories])
+	(cond
+	  [(null? dirs) `(void)]
+	  [else
+	   (let ([f (build-path plt:home-directory
+				"drscheme" "tools" 
+				(car dirs) "sig.ss")])
+	     (if (file-exists? f)
+		 `((reference ,f) ,@(loop (cdr dirs)))
+		 (loop (cdr dirs))))]))))
