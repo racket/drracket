@@ -4,7 +4,7 @@
 
   - the teaching languages color the portion of the program
     that has not been tested in dark red (using a simple
-    syntactic coverage criterion -- dark red means tested,
+    syntactic coverage criterion -- dark red means untested,
     but not dark red doesn't mean fully tested, of course).
 
   - added a test coverage annotation for other languages in
