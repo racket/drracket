@@ -1,5 +1,13 @@
 (define-signature drscheme:language^
-  (fill-language-menu))
+  ((open plt:parameters^)
+   (struct setting (vocabulary-symbol
+		    case-sensitive?
+		    allow-set!-on-undefined?
+		    unmatched-cond/case-is-error?
+		    allow-improper-lists?
+		    sharing-printing?
+		    printing))
+   fill-language-menu))
 
 (define-signature drscheme:tool^
   ((struct tool (name file callback))
