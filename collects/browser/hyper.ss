@@ -20,8 +20,16 @@
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 		 change-style get-style-list set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
-		 get-visible-position-range insert last-position)
-	
+		 get-visible-position-range insert last-position hide-caret
+		 get-end-position)
+	(rename [super-after-set-position after-set-position])
+
+	(override
+	 [after-set-position
+	  (lambda ()
+	    (unless (zero? (get-end-position))
+	      (hide-caret #f))
+	    (super-after-set-position))])
 	(private
 	  [title #f]
 	  [htmling? #f]
@@ -246,6 +254,8 @@
 		  [tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
 	     (when tag-pos
 	       (send e set-position tag-pos))
+	     (unless (and tag-pos (positive? tag-pos))
+	       (send e hide-caret #t))
 	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
 	[set-page
 	 (lambda (page notify?)
