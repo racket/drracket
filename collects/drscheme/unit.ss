@@ -13,60 +13,64 @@
 	  [drscheme:face : drscheme:face^]
 	  [drscheme:graph : drscheme:graph^])
   
-  (define (make-bitmap button-name)
-    (lambda (area-container-window)
-      (let*-values ([(outside-margin) 2]
-		    [(middle-margin) 3]
-
-		    [(text) (let ([capd (string-copy button-name)])
+  (define make-bitmap 
+    (case-lambda 
+     [(button-name) (make-bitmap 
+		     (let ([capd (string-copy button-name)])
 			      (string-set! capd 0 (char-upcase (string-ref capd 0)))
-			      capd)]
-		    [(filename) (build-path
-				 (collection-path "icons")
-				 (string-append button-name ".bmp"))]
-		    [(font) (send area-container-window get-control-font)]
-		    [(img-bitmap-dc img-width img-height)
-		     (let ([mdc (make-object mred:bitmap-dc%)]
-			   [q (make-object mred:bitmap% filename 'bmp)])
-		       (if (send q ok?)
-			   (begin (send mdc set-bitmap q)
-				  (values mdc
-					  (send q get-width)
-					  (send q get-height)))
-			   (let ([b (make-object mred:bitmap% 1 1)])
-			     (send mdc set-bitmap b)
-			     (send mdc clear)
-			     (values mdc 0 0))))]
-		    [(width height descent leading)
-		     (begin (send img-bitmap-dc set-scale 1 1)
-			    (send img-bitmap-dc get-text-extent text font))]
-		    [(new-width) (+ outside-margin
-				    img-width
-				    middle-margin
-				    (unbox width)
-				    outside-margin)]
-		    [(new-height) (+ outside-margin
-				     (max img-height
-					  (unbox height))
-				     outside-margin)]
-		    [(bitmap-dc) (make-object mred:bitmap-dc%)]
-		    [(new-bitmap) (make-object mred:bitmap% new-width new-height -1)])
-	(send* bitmap-dc
-	       (select-object new-bitmap)
-	       (set-scale 1 1)
-	       (set-font font)
-	       (clear)
-	       (set-font font)
-	       (draw-text text (+ outside-margin img-width middle-margin)
-			  (- (/ new-height 2) (/ (unbox height) 2))))
-	(unless (or (= img-width 0)
-		    (= img-height 0))
-	  (send bitmap-dc draw-bitmap
-		(send img-bitmap-dc get-bitmap)
-		outside-margin
-		(- (/ new-height 2) (/ img-height 2))))
-	(send bitmap-dc select-object #f)
-	new-bitmap)))
+			      capd)
+		     (build-path
+		      (collection-path "icons")
+		      (string-append button-name ".bmp")))]
+     [(text filename)
+      (lambda (area-container-window)
+	(let*-values ([(outside-margin) 2]
+		      [(middle-margin) 3]
+		      
+		      
+		      [(font) (send area-container-window get-control-font)]
+		      [(img-bitmap-dc img-width img-height)
+		       (let ([mdc (make-object mred:bitmap-dc%)]
+			     [q (make-object mred:bitmap% filename 'bmp)])
+			 (if (send q ok?)
+			     (begin (send mdc set-bitmap q)
+				    (values mdc
+					    (send q get-width)
+					    (send q get-height)))
+			     (let ([b (make-object mred:bitmap% 1 1)])
+			       (send mdc set-bitmap b)
+			       (send mdc clear)
+			       (values mdc 0 0))))]
+		      [(width height descent leading)
+		       (begin (send img-bitmap-dc set-scale 1 1)
+			      (send img-bitmap-dc get-text-extent text font))]
+		      [(new-width) (+ outside-margin
+				      img-width
+				      middle-margin
+				      (unbox width)
+				      outside-margin)]
+		      [(new-height) (+ outside-margin
+				       (max img-height
+					    (unbox height))
+				       outside-margin)]
+		      [(bitmap-dc) (make-object mred:bitmap-dc%)]
+		      [(new-bitmap) (make-object mred:bitmap% new-width new-height -1)])
+	  (send* bitmap-dc
+	    (select-object new-bitmap)
+	    (set-scale 1 1)
+	    (set-font font)
+	    (clear)
+	    (set-font font)
+	    (draw-text text (+ outside-margin img-width middle-margin)
+		       (- (/ new-height 2) (/ (unbox height) 2))))
+	  (unless (or (= img-width 0)
+		      (= img-height 0))
+	    (send bitmap-dc draw-bitmap
+		  (send img-bitmap-dc get-bitmap)
+		  outside-margin
+		  (- (/ new-height 2) (/ img-height 2))))
+	  (send bitmap-dc select-object #f)
+	  new-bitmap))]))
   
   (define make-execute-bitmap (make-bitmap "execute"))
   (define make-save-bitmap (make-bitmap "save"))

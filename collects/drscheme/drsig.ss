@@ -116,7 +116,7 @@
    (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit compound-unit : drscheme:compound-unit^)
-   (unit signature : drscheme:signature^)
+   ;(unit signature : drscheme:signature^)
    (unit program : drscheme:program^)
    (unit get/extend : drscheme:get/extend^)
    (unit rep : drscheme:rep^)))
