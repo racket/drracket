@@ -189,26 +189,31 @@
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip)
-        (let ([converted-value
-               (simple-module-based-language-convert-value value settings)])
-	  (parameterize ([print-graph
+        (parameterize ([current-inspector drscheme-inspector])
+          (let ([converted-value
+                 (simple-module-based-language-convert-value value settings)])
+            (parameterize ([print-graph
 			  ;; only turn on print-graph when using `write' printing style
 			  ;; because the sharing is being taken care of by the print-convert
 			  ;; sexp construction when using other printing styles.
-			  (and (eq? (simple-settings-printing-style settings) 'write)
-			       (simple-settings-show-sharing settings))])
-	    (cond
-	      [(simple-settings-insert-newlines settings)
-	       (pretty-print converted-value port)]
-	      [else
-               (parameterize ([pretty-print-columns 'infinity])
-                 (pretty-print converted-value port))
-               (newline port)]))))
+                            (and (eq? (simple-settings-printing-style settings) 'write)
+                                 (simple-settings-show-sharing settings))])
+              (cond
+                [(simple-settings-insert-newlines settings)
+                 (pretty-print converted-value port)]
+                [else
+                 (parameterize ([pretty-print-columns 'infinity])
+                   (pretty-print converted-value port))
+                 (newline port)])))))
       
       ;; simple-module-based-language-render-value : TST settings port (union #f (snip% -> void)) -> void
       (define (simple-module-based-language-render-value value settings port put-snip)
-        (parameterize ([pretty-print-columns 'infinity])
+        (parameterize ([pretty-print-columns 'infinity]
+                       [current-inspector drscheme-inspector])
           (pretty-print (simple-module-based-language-convert-value value settings) port)))
+      
+      ;; drscheme-inspector : inspector
+      (define drscheme-inspector (current-inspector))
       
       ;; simple-module-based-language-convert-value : TST settings -> TST
       (define (simple-module-based-language-convert-value value settings)
@@ -227,6 +232,7 @@
     (define (initialize-simple-module-based-language setting run-in-user-thread)
       (run-in-user-thread
        (lambda ()
+         (current-inspector (make-inspector))
 	 (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
       ;; module-based-language->language : language<%>

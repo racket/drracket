@@ -1560,7 +1560,7 @@
                 (break-enabled #t)
                 (read-curly-brace-as-paren #t)
                 (read-square-bracket-as-paren #t)
-    
+                
                 (error-print-width 250)
                 
                 (print-convert:current-print-convert-hook
