@@ -11,17 +11,19 @@
   (define mark? (-> ; no args  
                  full-mark-struct?))
   (define mark-list? (listof procedure?))
-
+  
   (provide/contract 
    ;[make-debug-info (-> any? binding-set? varref-set? any? boolean? syntax?)] ; (location tail-bound free label lifting? -> mark-stx)
-   [expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
+   ;[expose-mark (-> mark? (list/p any? symbol? (listof (list/p identifier? any?))))]
+   [top-level-define-wrap (syntax? syntax? . -> . syntax?)]
    [lookup-binding (case-> (-> mark-list? identifier? any)
                            (-> mark-list? identifier? procedure? any)
                            (-> mark-list? identifier? procedure? procedure? any))]
    [lookup-binding-with-symbol (-> mark-list? symbol? any)])
   
   (provide
-   make-debug-info ; ditto.
+   make-debug-info
+   wcm-wrap
    skipto-mark?
    skipto-mark
    strip-skiptos
@@ -98,10 +100,10 @@
   
   ; see module top for type
   (define (make-full-mark location label bindings)
-    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
-                                              ,(make-stx-protector location) 
-                                              ,(make-label-protector label)
-                                              ,@(apply append (map make-mark-binding-stx bindings))))))
+    #`(lambda () (#,make-full-mark-varargs 
+                  #,(make-stx-protector location) 
+                  #,(make-label-protector label)
+                  #,@(apply append (map make-mark-binding-stx bindings)))))
   
   (define (mark-source mark)
     (stx-protector-stx (full-mark-struct-source (mark))))
@@ -190,6 +192,9 @@
   (define (lookup-binding-list mark-list binding)
     (apply append (map (lambda (x) (binding-matches module-identifier=? x binding)) mark-list)))
   
+  (define (wcm-wrap debug-info expr)
+    #`(with-continuation-mark #,debug-key #,debug-info #,expr))
+
   
   ; DEBUG-INFO STRUCTURES
   
@@ -215,4 +220,13 @@
                                                 kept-vars)]
                           [lifter-syms (map get-lifted-var let-bindings)])
                (make-full-mark source label (append kept-vars lifter-syms)))
-             (make-full-mark source label kept-vars)))))
+             (make-full-mark source label kept-vars))))
+  
+  ;; TOP-LEVEL-DEFINES : a special mark is placed at the outside of a define so that the shape of the define can be
+  ;; deduced.  We can't put the mark around the outside of the define because that would make the defines non-top-level.
+  
+  (define (top-level-define-wrap source-expr annotated)
+    #`(with-continuation-mark #,debug-key #,(make-full-mark source-expr 'top-level-define null) 
+                              (call-with-values
+                               (lambda () #,annotated)
+                               (lambda args (apply values args))))))
