@@ -1,3 +1,42 @@
+101d8
+
+ - PRS: 1115, 1173, 1168, 1169
+ 
+
+ FUNCTIONALITY CHANGES
+ 
+ - gui-utils:get-choice does now allow cancelling or closing
+   of the dialog. The user is forced to actually choose one of
+   the two buttons.
+ 
+ - all c:[ bindings are now gone. Use esc or meta
+   (alt on some platforms) instead
+ 
+ - editor:basic-mixin no longer has a `default-auto-wrap?' method.
+   Just set the parameter method `auto-wrap' directly.
+ 
+   
+ MINOR CHANGES AND BUG FIXES
+   
+ - fixed a bug in help desk where help desk would try to open a
+   doc.txt/doc.txt file.
+ 
+ - rgb-red, rgb-blue, and rgb-green fixed (and added to test suite)
+ 
+ - collects/browser/html.ss now has a separate non-breaking space 
+   snip that it uses instead of regular spaces for &nbsp;
+
+ - the page that help desk leads to when an installed html page is
+   accessed now explains what to do for proxy server users.
+   [Shriram: is the explanation satisfactory?]
+   
+ - changed the bahavior of esc-space and esc-\. They should not
+   generate any error messages anymore, but they may not
+   be quite the same as they used to. Please try them and see if
+   you don't like the changes.
+ 
+; ------------------------------------------------------------
+
 101d7
 
  - PRS: 1154, 1133,
@@ -16,7 +55,6 @@
    without searching for all of the fixed with fonts on every
    startup of drscheme. So, I only reject the preference when the
    preferences dialog is opened. I hope that this is satisfactory.
-
 
 ; ------------------------------------------------------------
 
