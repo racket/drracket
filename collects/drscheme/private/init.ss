@@ -49,12 +49,12 @@
                            (original-error-display-handler msg exn))
                          (get-output-string p))])
              (if (eq? (current-eventspace) system-eventspace)
-                 (message-box title text)
+                 (message-box title text #f '(stop ok))
                  (parameterize ([current-eventspace system-eventspace]
                                 [current-custodian system-custodian])
                    (queue-callback
                     (lambda ()
-                      (message-box title text)))))))))
+                      (message-box title text #f '(stop ok))))))))))
       
       ;; all-toplevel-collections : -> (listof string)
       ;; returns the list of collections currently available

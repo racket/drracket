@@ -104,12 +104,16 @@
               (unless (= (length tools) (length tool-icons))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-icons-same-length)
-                                     tools tool-icons))
+                                     tools tool-icons)
+                             #f
+                             '(ok stop))
                 (set! tool-icons (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-names))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-names-same-length)
-                                     tools tool-names))
+                                     tools tool-names)
+                             #f
+                             '(ok stop))
                 (set! tool-names (map (lambda (x) #f) tools)))
               (for-each (load/invoke-tool coll) tools tool-icons tool-names)))))
       
@@ -133,8 +137,10 @@
                                (not (null? in-path))
                                (andmap string? in-path)))
                 (message-box (string-constant drscheme)
-                             (string-constant invalid-tool-spec)
-                             coll in-path)
+                             (format (string-constant invalid-tool-spec)
+                                     coll in-path)
+                             #f
+                             '(ok stop))
                 (k (void)))
               (let* ([tool-path
                       (if (string? in-path) 
