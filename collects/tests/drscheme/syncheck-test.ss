@@ -644,7 +644,11 @@
                         input))))
   
   (define remappings
-    '((constant #f)))
+    '((constant #f)
+      (imported-syntax imported-identifier)
+      (imported-variable imported-identifier)
+      (lexically-bound-syntax lexically-bound-identifier)
+      (lexically-bound-variable lexically-bound-identifier)))
   
   (define (collapse-and-rename expected)
     (let ([renamed

@@ -1745,28 +1745,33 @@
             (set! thread-to-break-box (make-weak-box thd))
             (set! custodian-to-kill-box (make-weak-box cust)))
           
+          ;; execute-callback : -> void
+          ;; uses the state of the button to determine if an execution is
+          ;; already running. This function is called from many places, not
+          ;; just the execute button.
           (define/public (execute-callback)
-            (check-if-save-file-up-to-date)
-            (ensure-rep-shown)
-            (when logging
-              (log-definitions)
-              (log-interactions))
-            (send definitions-text just-executed)
-            (send interactions-canvas focus)
-            (send interactions-text reset-console)
-            (send interactions-text clear-undos)
-            (let ([start (if (and ((send definitions-text last-position) . >= . 2)
-                                  (char=? (send definitions-text get-character 0) #\#)
-                                  (char=? (send definitions-text get-character 1) #\!))
-                             (send definitions-text paragraph-start-position 1)
-                             0)])
-              (send definitions-text split-snip start)
-              (send interactions-text do-many-text-evals
-                    definitions-text 
-                    start
-                    (send definitions-text last-position)
-                    #t))
-            (send interactions-text clear-undos))
+            (when (send execute-button is-enabled?)
+              (check-if-save-file-up-to-date)
+              (ensure-rep-shown)
+              (when logging
+                (log-definitions)
+                (log-interactions))
+              (send definitions-text just-executed)
+              (send interactions-canvas focus)
+              (send interactions-text reset-console)
+              (send interactions-text clear-undos)
+              (let ([start (if (and ((send definitions-text last-position) . >= . 2)
+                                    (char=? (send definitions-text get-character 0) #\#)
+                                    (char=? (send definitions-text get-character 1) #\!))
+                               (send definitions-text paragraph-start-position 1)
+                               0)])
+                (send definitions-text split-snip start)
+                (send interactions-text do-many-text-evals
+                      definitions-text 
+                      start
+                      (send definitions-text last-position)
+                      #t))
+              (send interactions-text clear-undos)))
           
           (inherit revert save)
           (define/private (check-if-save-file-up-to-date)

@@ -32,7 +32,7 @@
          (string-constant scheme-mode)
          (new scheme:text-mode%)
          (lambda (text prompt-position)
-           (send text balanced? prompt-position (send text last-position)))
+           (scheme:text-balanced? text prompt-position))
          (lambda (l) #t))
         
         (add-mode 
