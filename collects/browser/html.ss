@@ -12,12 +12,49 @@
   (define cached-name (make-vector 10 ""))
   (define cached-use (make-vector 10 0))
 
+  (define html-status-handler
+    (make-parameter
+     void
+     (lambda (f)
+       (unless (and (procedure? f)
+		    (procedure-arity-includes? f 1))
+	 (raise-type-error 'html-status-handler
+			   "procedure of arity 1"
+			   f))
+       f)))
+
+  (define (status . args)
+    ((html-status-handler) (apply format args)))
+
+  (define status-stack (make-parameter null))
+
+  (define (load-status push? what url)
+    (let ([s (format "Loading ~a ~a~a..." what 
+		     (or (and url (url-host url)) "") 
+		     (or (and url (url-path url)) ""))])
+      (status-stack (cons s (if push? (status-stack) null)))
+      (status "~a" s)))
+  (define (pop-status)
+    (status-stack (cdr (status-stack)))
+    (status "~a" (car (status-stack))))
+  
+  (define (not-break x) (not (exn:misc:user-break? x)))
+
+  (define (call-with-output-file* file proc flag)
+    ; Closes on escape
+    (let ([p (open-output-file file flag)])
+      (dynamic-wind
+       void
+       (lambda () (proc p))
+       (lambda () (close-output-port p)))))
+
   (define get-image-from-url
     (lambda (url)
       (let ([tmp-filename (make-temporary-file "mredimg~a")])
-	(call-with-output-file tmp-filename
+	(load-status #t "image" url)
+	(call-with-output-file* tmp-filename
 	  (lambda (op)
-	    (with-handlers ([void void])
+	    (with-handlers ([void void]) ; break is ok!
 	      (call/input-url 
 	       url
 	       get-pure-port
@@ -28,6 +65,7 @@
 		       (write-char c op)
 		       (loop))))))))
 	  'truncate)
+	(pop-status)
 	(let* ([upath (url-path url)]
 	       [bitmap (make-object bitmap% tmp-filename)])
 	  (delete-file tmp-filename)
@@ -179,7 +217,7 @@
 	      (lambda (s)
 		(let ([src (get-src s)])
 		  (and src
-		       (with-handlers ([void (lambda (x) #f)])
+		       (with-handlers ([not-break (lambda (x) #f)])
 			 (combine-url/relative base-path src))))))]
 
 	   [parse-image-alt
@@ -480,7 +518,8 @@
 				 (begin
 				   (html-error "found </~a> looking for </~a>"
 					       found-tag tag)
-				   (values pos del-white? found-tag args))))])
+				   (values pos del-white? found-tag args))))]
+			  [ignore-end-tag? (lambda (t) (memq t atomic-tags))])
 		      (let-values ([(found-tag args end?) (parse-command cmd)])
 			(if (not end?)
 			    (let-values ([(pos del-white? found-tag args) 
@@ -489,7 +528,9 @@
 			      (if found-tag
 				  (found-end pos del-white? found-tag args)
 				  (find-end tag pos dewhite? del-white? enum-depth)))
-			    (found-end pos del-white? found-tag args)))))))]
+			    (if (ignore-end-tag? found-tag)
+				(find-end tag pos dewhite? del-white? enum-depth)
+				(found-end pos del-white? found-tag args))))))))]
 
 	   [translate-command
 	    (lambda (pos dewhite? del-white? enum-depth tag args)
@@ -510,7 +551,7 @@
 		    [(!--)
 		     (let ([code (parse-mzscheme args)])
 		       (when code
-			 (let ([s (with-handlers ([void void])
+			 (let ([s (with-handlers ([not-break void])
 				    (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
 			   (when (string? s)
 			     ; Put result back into the input stream:
@@ -659,6 +700,8 @@
 			  (html-error "closing </~a> without opening" tag))
 			(values end-pos del-white?))))))])
 
+	(load-status #f "page" base-path)
+	
 	(add-tag "top" 0)
 	(let loop ([pos 0][del-white? #t])
 	  (let-values ([(pos del-white?) (find-bracket pos #t del-white?)])

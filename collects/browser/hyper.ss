@@ -16,7 +16,7 @@
 
   (define hyper-text-mixin
     (lambda (super%)
-      (class super% (url . args)
+      (class super% (url top-level-window . args)
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
 		 change-style get-style-list set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
@@ -60,13 +60,14 @@
 	   (lambda (url-string)
 	     (lambda (edit start end)
 	       (with-handlers ([void (lambda (x)
-				       (message-box
-					"Error"
-					(format "Cannot display ~s: ~a~n" 
-						url-string
-						(if (exn? x)
-						    (exn-message x)
-						    x))))])
+				       (unless (exn:misc:user-break? x)
+					 (message-box
+					  "Error"
+					  (format "Cannot display ~s: ~a~n" 
+						  url-string
+						  (if (exn? x)
+						      (exn-message x)
+						      x)))))])
 		 (send (get-canvas) goto-url url-string (get-url)))))])
 	(public
 	  [get-title (lambda () (or title (and (url? url) (url->string url))))]
@@ -164,7 +165,7 @@
 							    (and m (cadr m)))))])
 				    (begin-busy-cursor)
 				    (when f
-				      (let* ([d (make-object dialog% "Downloading")]
+				      (let* ([d (make-object dialog% "Downloading" top-level-window)]
 					     [exn #f]
 					     ; Semaphores to avoid race conditions:
 					     [wait-to-start (make-semaphore 0)]
@@ -185,6 +186,7 @@
 							       (loop)))))
 						       'binary 'truncate))
 						   (send d show #f)))])
+					(send d center)
 					(make-object message% "Downloading file..." d)
 					(make-object button% "&Stop" d (lambda (b e)
 									 (semaphore-wait wait-to-break)
@@ -204,7 +206,40 @@
 				      (and mime-type
 					   (regexp-match "text/html" mime-type)))
 				  ; HTML
-				  (html-convert p this)]
+				  (let* ([d (make-object dialog% "Getting Page" top-level-window 400)]
+					 [c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))]
+					 [e (make-object text%)]
+					 [exn #f]
+					 [done? #f]
+					 ; Semaphores to avoid race conditions:
+					 [wait-to-break (make-semaphore 0)]
+					 [wait-on-thread (make-semaphore 0)]
+					 ; Thread to perform the download:
+					 [t (thread
+					     (lambda ()
+					       (with-handlers ([void (lambda (x) (set! exn x))])
+						 (semaphore-post wait-to-break)
+						 (parameterize ([html-status-handler
+								 (lambda (s) 
+								   (send e erase)
+								   (send e insert s))])
+						   (html-convert p this)))
+					       (set! done? #t)
+					       (send d show #f)))]
+					 [b (make-object button% "&Stop" d (lambda (b e)
+									     (semaphore-wait wait-to-break)
+									     (semaphore-post wait-to-break)
+									     (break-thread t)))])
+				    (send e auto-wrap #t)
+				    (send c set-editor e)
+				    (send c set-line-count 3)
+				    (send c enable #f)
+				    (send d center)
+				    (send b focus)
+				    (thread (lambda () (sleep 1) (unless done? (send d show #t))))
+				    (thread (lambda () (thread-wait t) (semaphore-post wait-on-thread)))
+				    (yield wait-on-thread)
+				    (when exn (raise exn)))]
 				 [else
 				  ; Text
 				  (begin-edit-sequence)
@@ -230,9 +265,9 @@
 
   (define (hyper-canvas-mixin super%)
     (class super% args
-      (inherit get-editor set-editor refresh get-parent)
+      (inherit get-editor set-editor refresh get-parent get-top-level-window)
       (public
-	[make-editor (lambda (url) (make-object hyper-text% url))]
+	[make-editor (lambda (url) (make-object hyper-text% url (get-top-level-window)))]
 	[current-page
 	 (lambda ()
 	   (let ([e (get-editor)])
