@@ -1681,36 +1681,39 @@
                        (preferences:set 'framework:show-delegate? #t)
                        (show-delegated-text))))))
             
-            '(instantiate menu:can-restore-menu-item% ()
-              (label (if module-browser-shown?
-                         (string-constant hide-module-browser)
-                         (string-constant show-module-browser)))
-              (parent (get-show-menu))
-              (callback
-               (lambda (menu evt)
-                 (set! module-browser-shown? (not module-browser-shown?))
-                 (if module-browser-shown?
-                     (begin (send menu set-label (string-constant hide-module-browser))
-                            (show-module-browser))
-                     (begin (send menu set-label (string-constant show-module-browser))
-                            (hide-module-browser)))))))
-          
+            (set! module-browser-menu-item
+                  (instantiate menu:can-restore-menu-item% ()
+                    (label (if module-browser-shown?
+                               (string-constant hide-module-browser)
+                               (string-constant show-module-browser)))
+                    (parent (get-show-menu))
+                    (callback
+                     (lambda (menu evt)
+                       (if module-browser-shown?
+                           (hide-module-browser)
+                           (show-module-browser)))))))
+
           (field [module-browser-shown? #f]
                  [module-browser-parent-panel #f]
                  [module-browser-panel #f]
                  [module-browser-ec #f]
                  [module-browser-button #f]
                  [module-browser-lib-path-check-box #f]
-                 [module-browser-pb #f])
+                 [module-browser-pb #f]
+                 [module-browser-menu-item 'module-browser-menu-item-unset])
 
           (inherit open-status-line close-status-line update-status-line)
           
           (define/private (show-module-browser)
             (when module-browser-panel
+              (set! module-browser-shown? #t)
+              (send module-browser-menu-item set-label (string-constant hide-module-browser))
               (update-module-browser-pane)))
           
           (define/private (hide-module-browser)
             (when module-browser-panel
+              (set! module-browser-shown? #f)
+              (send module-browser-menu-item set-label (string-constant show-module-browser))
               (close-status-line 'plt:module-browser:mouse-over)
               (send module-browser-parent-panel change-children
                     (lambda (l)
@@ -1718,7 +1721,7 @@
               (let loop ()
                 (let ([snip (send module-browser-pb find-first-snip)])
                   (when snip
-                    (send module-browser-pb delete snip)
+                    (send snip release-from-owner)
                     (loop))))))
           
           (define/private (update-module-browser-pane)
@@ -1836,7 +1839,13 @@
                       (close-status-line 'plt:module-browser))]
                    [language-settings (send (get-definitions-text) get-next-settings)]
                    [kill-termination (lambda () (shutdown))]
-                   [init (lambda () (set-directory defs))]
+                   [init (lambda ()
+                           (error-display-handler 
+                            (lambda (str exn)
+                              (shutdown)
+                              (message-box (string-constant drscheme)
+                                           (format (string-constant module-browser-error-expanding) str))))
+                           (set-directory defs))]
                    [complete-program? #t]
                    [iter 
                     (lambda (exp cont) ;=user compile thread=

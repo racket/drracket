@@ -169,7 +169,7 @@ todo :
             ;; returns a string error message if there was an error compiling
             ;; the program
             (define/public (add-connections filename/stx)
-              
+
               (define visited-hash-table (make-hash-table))
               (define sema (make-semaphore 1))
               (define done? #f)
@@ -426,7 +426,6 @@ todo :
                    (let-values ([(a b) (module-path-index-split dr)])
                      (and (pair? a)
                           (eq? 'lib (car a))))))
-            
             
             (field [lib-paths-on? (preferences:get 'drscheme:module-browser:show-lib-paths?)])
             (define/public (show-lib-paths on?)

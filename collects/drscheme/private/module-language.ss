@@ -359,15 +359,12 @@
       (define (transform-module-to-export-everything filename stx unexpanded-stx)
         (syntax-case stx (module #%plain-module-begin)
           [(module name lang (#%plain-module-begin bodies ...))
-           (when filename
-             (check-filename-matches filename
-                                     (syntax-object->datum (syntax name)) 
-                                     unexpanded-stx))
-           (let ([prefixed-name (if filename
-                                    (build-prefixed-module-name filename (syntax name))
-                                    (syntax name))])
-             (with-syntax ([s-prefixed-name (datum->syntax-object (syntax name) prefixed-name)]
-                           [(to-provide-specs ...)
+           (let ([v-name (syntax name)])
+             (when filename
+               (check-filename-matches filename
+                                       (syntax-object->datum (syntax name)) 
+                                       unexpanded-stx))
+             (with-syntax ([(to-provide-specs ...)
                             (get-provide-specs
                              (cons
                               (syntax (require lang))
@@ -379,8 +376,8 @@
                              (syntax->list
                               (syntax (bodies ...))))])
                (values
-                prefixed-name
-                (syntax (module s-prefixed-name lang
+                v-name
+                (syntax (module name lang
                           (#%plain-module-begin 
                            (provide to-provide-specs ...)
                            no-provide-bodies ...))))))]
