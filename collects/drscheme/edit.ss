@@ -1,9 +1,9 @@
-(unit/sig drscheme:edit^
+(unit/sig drscheme:text^
   (import [fw : framework^]
 	  [aries : plt:aries^]
 	  [zodiac : drscheme:zodiac^])
   
-  (define edit%
+  (define text%
     (class fw:scheme:text% args
       (public
 	[get-zodiac-sexp

@@ -5,7 +5,7 @@
 	  [fw : framework^]
 	  [drscheme:app : drscheme:app^]
 	  [drscheme:frame : drscheme:frame^]
-	  [drscheme:edit : drscheme:edit^]
+	  [drscheme:text : drscheme:text^]
 	  [drscheme:rep : drscheme:rep^]
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
@@ -169,7 +169,7 @@
     (fw:scheme:text-mixin
      fw:text:info%))
 
-  (define definitions-edit%
+  (define definitions-text%
     (class definitions-super% ()
 
       (inherit get-top-level-window)
@@ -178,9 +178,9 @@
          (lambda ()
            (let ([f (get-top-level-window)])
              (when f
-			   (let ([interactions-edit (ivar f interactions-edit)])
-			     (when (object? interactions-edit)
-				   (let ([reset (ivar interactions-edit reset-highlighting)])
+			   (let ([interactions-text (ivar f interactions-text)])
+			     (when (object? interactions-text)
+				   (let ([reset (ivar interactions-text reset-highlighting)])
 				     (when (procedure? reset)
 					   (reset))))))))])
       (rename [super-on-insert on-insert]
@@ -304,16 +304,16 @@
 	   (when execute-menu-item
 	     (send execute-menu-item enable #f))
 	   (send execute-button enable #f)
-	   (send definitions-edit lock #t)
-	   (send interactions-edit lock #t))]
+	   (send definitions-text lock #t)
+	   (send interactions-text lock #t))]
 	[enable-evaluation
 	 (lambda ()
 	   (when execute-menu-item
 	     (send execute-menu-item enable #t))
 	   (send execute-button enable #t)
-	   (send definitions-edit lock #f)
-	   (unless (send interactions-edit eval-busy?)
-	     (send interactions-edit lock #f)))])
+	   (send definitions-text lock #f)
+	   (unless (send interactions-text eval-busy?)
+	     (send interactions-text lock #f)))])
       
       (inherit set-label)
       (public
@@ -345,21 +345,21 @@
 	     (update-shown)))])
       
       (override
-	[get-editor% (lambda () (drscheme:get/extend:get-definitions-edit%))])
+	[get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))])
       (public
 	[still-untouched?
 	 (lambda ()
-	   (and (= (send definitions-edit last-position) 0)
-		(not (send definitions-edit is-modified?))
-		(not (send definitions-edit get-filename))))]
+	   (and (= (send definitions-text last-position) 0)
+		(not (send definitions-text is-modified?))
+		(not (send definitions-text get-filename))))]
 	[change-to-file
 	 (lambda (name)
 	   (cond
 	     [(and name (file-exists? name))
-	      (send definitions-edit load-file name)]
+	      (send definitions-text load-file name)]
 	     [name
-	      (send definitions-edit set-filename name)]
-	     [else (send definitions-edit clear)])
+	      (send definitions-text set-filename name)]
+	     [else (send definitions-text clear)])
 	   (send definitions-canvas focus))])
 
       (private
@@ -371,7 +371,7 @@
 	    (and (string? label)
 		 (>= (string-length label) 4)
 		 (string=? (substring label 0 4) "Show"))))]
-	[save-as-text-from-edit
+	[save-as-text-from-text
 	 (lambda (win)
 	   (let ([file (mred:put-file)])
 	     (when file
@@ -408,24 +408,24 @@
 	     "Save Definitions As Text..."
 	     file-menu
 	     (lambda (_1 _2)
-	       (save-as-text-from-edit definitions-edit)))
+	       (save-as-text-from-text definitions-text)))
 	   (make-object mred:menu-item%
 	     "Save Interactions"
 	     file-menu
-	     (lambda (_1 _2) (send interactions-edit save-file)))
+	     (lambda (_1 _2) (send interactions-text save-file)))
 	   (make-object mred:menu-item%
 	     "Save Interactions As..."
 	     file-menu
 	     (lambda (_1 _2) 
 	       (let ([file (mred:put-file)])
 		 (when file
-		   (send interactions-edit save-file 
+		   (send interactions-text save-file 
 			 file 'standard)))))
 	   (make-object mred:menu-item%
 	     "Save Interactions As Text..."
 	     file-menu
 	     (lambda (_1 _2)
-	       (save-as-text-from-edit interactions-edit)))
+	       (save-as-text-from-text interactions-text)))
 	   ; (make-object mred:separator-menu-item% file-menu)
 	   ; (make-object mred:menu-item%
 	   ;  "Show Interactions History"
@@ -440,7 +440,7 @@
 		   "Print Interactions..."
 		   file-menu
 		   (lambda (_1 _2)
-		     (send interactions-edit print
+		     (send interactions-text print
 			   #t 
 			   #t
 			   (fw:preferences:get 'framework:print-output-mode)))))
@@ -490,15 +490,15 @@
 			      (send child focus)
 			      (loop (cdr children))))])))
 	     
-	     (send interactions-edit scroll-to-position 
-		   (send interactions-edit get-end-position)
+	     (send interactions-text scroll-to-position 
+		   (send interactions-text get-end-position)
 		   #f
-		   (send interactions-edit get-start-position)
+		   (send interactions-text get-start-position)
 		   'start)
-	     (send definitions-edit scroll-to-position 
-		   (send definitions-edit get-end-position)
+	     (send definitions-text scroll-to-position 
+		   (send definitions-text get-end-position)
 		   #f
-		   (send definitions-edit get-start-position)	
+		   (send definitions-text get-start-position)	
 		   'start)
 	     (let ([defs-show? (not (hidden? definitions-item))])
 	       (for-each
@@ -517,7 +517,7 @@
 	   (remove-library-callback)
 	   (when (eq? this created-frame)
 	     (set! created-frame #f))
-	   (send interactions-edit shutdown)
+	   (send interactions-text shutdown)
 	   (super-on-close))])
 	
       (public
@@ -525,14 +525,14 @@
 	[execute-callback
 	 (lambda ()
 	   (ensure-interactions-shown)
-	   (send definitions-edit just-executed)
+	   (send definitions-text just-executed)
 	   (send interactions-canvas focus)
-	   (send interactions-edit reset-console)
-	   (send interactions-edit clear-undos)
-	   (send interactions-edit do-many-buffer-evals
-		 definitions-edit 0
-		 (send definitions-edit last-position))
-	   (send interactions-edit clear-undos))])
+	   (send interactions-text reset-console)
+	   (send interactions-text clear-undos)
+	   (send interactions-text do-many-buffer-evals
+		 definitions-text 0
+		 (send definitions-text last-position))
+	   (send interactions-text clear-undos))])
   
       (public
 	[after-change-name void])
@@ -548,8 +548,8 @@
 		(lambda (method)
 		  (lambda (_1 _2)
 		    (let ([text (get-focus-object)])
-		      (when (or (eq? text definitions-edit)
-				(eq? text interactions-edit))
+		      (when (or (eq? text definitions-text)
+				(eq? text interactions-text))
 			((ivar/proc text method))))))])
 	  
 	  (drscheme:language:fill-language-menu language-menu)
@@ -566,7 +566,7 @@
 	  (make-object mred:menu-item%
 	    "Break"
 	    scheme-menu
-	    (lambda (_1 _2) (send interactions-edit break))
+	    (lambda (_1 _2) (send interactions-text break))
 	    (and
 	     (fw:preferences:get 'framework:menu-bindings)
 	     #\b)
@@ -622,27 +622,27 @@
       
       (public
 	[definitions-canvas (get-canvas)]
-	[definitions-edit (get-editor)]
+	[definitions-text (get-editor)]
 	[interactions-canvas (make-object 
 			      (drscheme:get/extend:get-interactions-canvas%)
 			      (get-area-container))]
-	[interactions-edit (make-object 
-			    (drscheme:get/extend:get-interactions-edit%))])
+	[interactions-text (make-object 
+			    (drscheme:get/extend:get-interactions-text%))])
 
       (sequence
 	(send* interactions-canvas 
 	  ;(scroll-with-bottom-base #t)
-	  (set-editor interactions-edit))
-	(send interactions-edit auto-wrap #t)
+	  (set-editor interactions-text))
+	(send interactions-text auto-wrap #t)
 
 	(set! save-button
 	      (make-object mred:button% 
 			   (make-save-bitmap this)
 			   top-panel
 			   (lambda args
-			     (let* ([edit definitions-edit])
-			       (when edit
-				 (send edit save-file)
+			     (let* ([text definitions-text])
+			       (when text
+				 (send text save-file)
 				 (send definitions-canvas focus))))))
 	
 	(set! name-message (make-object mred:message% "" top-panel)))
@@ -675,9 +675,9 @@
 		(make-break-bitmap this) 
 		button-panel
 		(lambda args
-		  (send interactions-edit break)
+		  (send interactions-text break)
 		  (ensure-interactions-shown)
-		  (send (send interactions-edit get-canvas) focus))))
+		  (send (send interactions-text get-canvas) focus))))
 	(send button-panel stretchable-height #f)
 	(send button-panel stretchable-width #f) 
 	(send top-panel stretchable-height #f))
@@ -693,7 +693,7 @@
 			       (string=? v last-one)))
 		(set! last-one v)
 		(set! library-msg (make-library-name-msg top-panel v))
-		(send definitions-edit library-changed)
+		(send definitions-text library-changed)
 		(send top-panel change-children 
 		      (lambda (l) (build-top-panel-children)))))))])
       
@@ -709,21 +709,21 @@
 	(update-save-button #f)
 
 	(update-save-message
-	 (let ([fn (send definitions-edit get-filename)])
+	 (let ([fn (send definitions-text get-filename)])
 	   (cond
 	     [(not fn) "Untitled"]
 	     [(mzlib:file:file-name-from-path fn) => (lambda (x) x)]
 	     [else "Untitled"])))
 	
-	(send interactions-edit initialize-console)
+	(send interactions-text initialize-console)
 
 	(when (and (not filename)
-                   (or (ivar interactions-edit repl-initially-active?)
+                   (or (ivar interactions-text repl-initially-active?)
                        (fw:preferences:get 'drscheme:repl-always-active)))
 	  (toggle-show/hide interactions-item))
 	
-	(send interactions-edit insert-prompt)
-	(send interactions-edit clear-undos)
+	(send interactions-text insert-prompt)
+	(send interactions-text clear-undos)
 	
 	(update-shown)
 	

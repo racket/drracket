@@ -44,13 +44,13 @@
   (load/link-tool))
 
 (define-signature drscheme:get/extend^
-  (extend-interactions-edit%
-   extend-definitions-edit%
+  (extend-interactions-text%
+   extend-definitions-text%
    extend-interactions-canvas%
    extend-definitions-canvas%
    extend-unit-frame%
-   get-interactions-edit%
-   get-definitions-edit%
+   get-interactions-text%
+   get-definitions-text%
    get-interactions-canvas%
    get-definitions-canvas%
    get-unit-frame%))
@@ -63,7 +63,7 @@
   (frame% 
    make-bitmap
    definitions-canvas%
-   definitions-edit%
+   definitions-text%
    interactions-canvas%
    open-drscheme-window))
 
@@ -79,8 +79,8 @@
 (define-signature drscheme:program^
   (frame%))
 
-(define-signature drscheme:edit^
-  (edit%))
+(define-signature drscheme:text^
+  (text%))
 
 (define-signature drscheme:project^
   (scheme-project-frame%))
@@ -93,9 +93,9 @@
   (do-setup))
 
 (define-signature drscheme:rep^
-  (edit%
-   process-edit/zodiac
-   process-edit/no-zodiac
+  (text%
+   process-text/zodiac
+   process-text/no-zodiac
    show-interactions-history))
 
 (define-signature drscheme:app^
