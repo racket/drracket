@@ -114,7 +114,7 @@
     
   ; : identifier -> (list/p stx-protector? identifier?)
   (define (make-mark-binding-stx id)
-    `(,(make-stx-protector id) ,id)) ; 3D!
+    `(,(make-stx-protector id) ,(syntax-property id 'stepper-dont-check-for-function #t))) ; 3D!
   
   (define (mark-bindings mark)
     (letrec ([pair-off
