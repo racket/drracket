@@ -11,27 +11,29 @@
 (define-signature drscheme:export^
   (console))
 
-(define-signature drscheme^
-  ((open mred:application^)))
-
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
+(define-signature drscheme:unit^
+  (snip-class% snip%))
+
 (define-signature drscheme:frame^
-  (scheme-project-member-frame%))
+  (frame%))
+
+(define-signature drscheme:compound-unit^
+  (frame% snip%))
 
 (define-signature drscheme:edit^
   (console-edit%))
 
 (define-signature drscheme:project^
-  (scheme-project-frame%
-   (open mred:application^)))
+  (scheme-project-frame%))
 
 (define-signature drscheme:check^
   (advance-check%
    beginner-check%))
 
-(define-signature drscheme:setup^
+(define-signature drscheme:setup^ 
   (do-setup))
 
 (define-signature drscheme:spawn^
