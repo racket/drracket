@@ -177,11 +177,18 @@
 	      (hide-caret #f))
 	    (super-after-set-position))])
 	(private
+	  [doc-notes null]
 	  [title #f]
 	  [htmling? #f]
 	  [hypertags-list (list (make-hypertag "top" 0))])
 
 	(public
+	  [add-document-note
+	   (lambda (note)
+	     (set! doc-notes (append doc-notes (list note))))]
+	  [get-document-notes
+	   (lambda () doc-notes)]
+
 	  [map-shift-style 
 	   (lambda (start end shift-style)
 	     (let loop ([pos start])
@@ -557,7 +564,8 @@
 
   (define info-canvas%
     (class canvas% (parent)
-      (inherit min-client-height get-dc stretchable-height enable)
+      (inherit min-client-height get-dc stretchable-height
+	       enable refresh show)
       (private
 	[text ""])
       (override
@@ -565,25 +573,51 @@
 	 (lambda ()
 	   (let ([dc (get-dc)])
 	     (send dc clear)
-	     (send dc draw-text text 1 1)))])
+	     (send dc draw-text text 4 2)))])
+      (public
+	[erase-info (lambda ()
+		      (unless (string=? text "")
+			(set! text "")
+			(let ([dc (get-dc)])
+			  (send dc clear))))]
+	[set-info (lambda (t)
+		    (set! text t)
+		    (if (string=? t "")
+			(show #f)
+			(let ([dc (get-dc)])
+			  (send dc clear)
+			  (show #t)
+			  (refresh))))])
       (sequence 
 	(super-init parent)
 	(stretchable-height #f)
 	(enable #f)
+	(show #f)
 	(let ([font (make-object font% 
 				 (send (send parent get-label-font) get-point-size) 
-				 'default 'normal 'bold)]
+				 'default 'normal 'normal)]
 	      [dc (get-dc)])
 	  (send dc set-font font)
-	  (send dc set-text-foreground (make-object color% "RED"))
-	  (send dc set-background (get-panel-background))
 	  (let-values ([(w h d a) (send dc get-text-extent "X" font)])
-	    (min-client-height (+ 2 (inexact->exact (ceiling h)))))))))
+	    (min-client-height (+ 4 (inexact->exact (ceiling h)))))))))
 
   (define (hyper-panel-mixin super%)
     (class super% (info-line? . args)
       (inherit reflow-container)
       (sequence (apply super-init args))
+      (private
+	[clear-info (lambda () 
+		      (when info (send info erase-info)))]
+	[update-info (lambda (page) 
+		       (when (and info page)
+			 (let ([notes (send (page->editor page) get-document-notes)])
+			   (send info set-info (filter-notes notes)))))]
+	[go (lambda (page)
+	      (clear-info)
+	      (update-buttons page)
+	      (send c set-page page #f)
+	      (update-info page)
+	      (on-navigate))])
       (public
 	[rewind 
 	 (lambda ()
@@ -591,18 +625,14 @@
 	     (let ([page (car past)])
 	       (set! future (cons (send c current-page) future))
 	       (set! past (cdr past))
-	       (update-buttons page)
-	       (send c set-page page #f)
-	       (on-navigate))))]
+	       (go page))))]
 	[forward
 	 (lambda ()
 	   (unless (null? future)
 	     (let ([page (car future)])
 	       (set! past (cons (send c current-page) past))
 	       (set! future (cdr future))
-	       (update-buttons page)
-	       (send c set-page page #f)
-	       (on-navigate))))]
+	       (go page))))]
 	[make-canvas (lambda () (make-object hyper-canvas% this))])
       (private
 	[past null] [future null] [init-page #f]
@@ -647,9 +677,7 @@
 				    [(zero? pos)
 				     (set! past pre)
 				     (set! future (cdr l))
-				     (update-buttons (car l))
-				     (send c set-page (car l) #f)
-				     (on-navigate)]
+				     (go (car l))]
 				    [else (loop (cdr l)
 						(cons (car l) pre)
 						(sub1 pos))])))))]
@@ -659,8 +687,9 @@
 	[c (make-canvas)])
       (public
 	; [get-progress (lambda () progress)]
-	[get-canvas (lambda () c)]
 	[on-navigate void]
+	[filter-notes (lambda (l) (apply string-append l))]
+	[get-canvas (lambda () c)]
 	[on-url-click (lambda (k url) (k url))]
 	[leaving-page (lambda (page new-page)
 			(set! future null)
@@ -672,7 +701,9 @@
 				  (if (null? (cdr l))
 				      null
 				      (cons (car l) (loop (cdr l)))))))
-			(update-buttons new-page))])
+			(clear-info)
+			(update-buttons new-page)
+			(update-info new-page))])
       (sequence
 	(send choice stretchable-width #t)
 	(send hp stretchable-height #f)

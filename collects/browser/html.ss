@@ -158,6 +158,7 @@
 	   [get-snip-position (ivar b get-snip-position)]
 	   [position-paragraph (ivar b position-paragraph)]
 	   [set-paragraph-margins (ivar b set-paragraph-margins)]
+	   [add-document-note (ivar b add-document-note)]
 
 	   [inserted-chars #f]
 	   [get-char (lambda ()
@@ -255,6 +256,8 @@
 	   [parse-mzscheme
 	    (lambda (args)
 	      (get-mzscheme-arg args))]
+	    
+	   [parse-docnote (make-get-field "docnote")]
 	    
 	   [parse-name (make-get-field "name")]
 
@@ -556,6 +559,9 @@
 			   (when (string? s)
 			     ; Put result back into the input stream:
 			     (set! inserted-chars (append (string->list s) inserted-chars))))))
+		     (let ([note (parse-docnote args)])
+		       (when note
+			 (add-document-note note)))
 		     (atomic-values pos del-white?)]
 		    [(br) (break #f 1)]
 		    [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
