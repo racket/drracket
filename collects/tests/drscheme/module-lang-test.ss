@@ -69,7 +69,19 @@
                               (this-expression-source-directory)
                               "module-lang-test-tmp.ss"))
                      "+"
-                     ". reference to undefined identifier: +")))
+                     ". reference to undefined identifier: +")
+          
+          (make-test (format "~s" '(module m mzscheme (provide lambda)))
+                     "(lambda (x) x)"
+                     #rx"<procedure")
+          
+          (make-test (format "~s" '(module m mzscheme (define-syntax (m x) (syntax 1)) (provide m)))
+                     "(m)"
+                     "1")
+          (make-test (format "~s" '(module m mzscheme (define-syntax s (syntax 1)) (provide s)))
+                     "s"
+                     "s: illegal use of syntax in: s")
+          ))
   
   ;; set up language for last test.
   (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp.ss")

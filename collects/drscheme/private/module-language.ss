@@ -374,9 +374,9 @@
                               (syntax (require lang))
                               (syntax->list
                                (syntax (bodies ...)))))]
-                           [(rewritten-bodies ...)
-                            (map
-                             rewrite-provide
+                           [(no-provide-bodies ...)
+                            (filter
+                             not-provide?
                              (syntax->list
                               (syntax (bodies ...))))])
                (values
@@ -384,7 +384,7 @@
                 (syntax (module s-prefixed-name lang
                           (#%plain-module-begin 
                            (provide to-provide-specs ...)
-                           rewritten-bodies ...))))))]
+                           no-provide-bodies ...))))))]
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
@@ -499,17 +499,14 @@
               other-specs
               (cons module-spec-sym other-specs))))
       
-      ;; extract-provided-vars : (listof syntax) -> (listof syntax[identifier])
-      ;; rewrite provide expressions into `if #f' with the same variables,
-      ;; so that the variables still appear in the program. Check Syntax
-      ;; treats the provided variables as variable references for highlighting,
-      ;; this makes that still work properly.
-      (define (rewrite-provide body)
+      ;; not-provide? : syntax -> boolean
+      ;; returns #t if the expression is not a provide expression, #f otherwise.
+      (define (not-provide? body)
         (syntax-case body (provide)
           [(provide provide-specs ...)
-           (with-syntax ([(vars ...) (extract-provided-vars (syntax->list (syntax (provide-specs ...))))])
-             (syntax (if #f (begin (void) vars ...))))]
-          [_ body]))
+           #f]
+          [_ 
+           #t]))
       
       ;; extract-provided-vars : (listof syntax) -> (listof syntax)
       ;; extracts the names of the variables mentioned in the provide specification
