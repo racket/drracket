@@ -365,6 +365,8 @@
 			    strings))]
 	       [(is-a? snip drscheme:export:snip:whole/part-number-snip%)
 		(loop (send snip previous)
-		      (cons (format "{number ~a}" (send snip get-number))
+		      (cons (format "{number ~s ~s}"
+				    (send snip get-number)
+				    (send snip get-formatted-string))
 			    strings))]
 	       [else (error 'find-output "{unknown snip: ~e}~n" snip)])])))])))

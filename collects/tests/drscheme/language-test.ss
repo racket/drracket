@@ -117,8 +117,10 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -174,8 +176,10 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -241,8 +245,10 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -307,8 +313,10 @@
     (test-expression "(+ 1)" "1")
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+3/2i")
     (test-expression "(list 1)" "(1)")
@@ -367,8 +375,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(cons 1 empty)")
@@ -430,8 +440,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
@@ -493,8 +505,10 @@
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "{number 3/2}")
-    (test-expression "1/3" "{number 1/3}")
+    (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
+    (test-expression "1/3" "{number 1/3 \"1/3\"}")
+    (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+    (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
     (test-expression "+1/3i" "0+1/3i")
     (test-expression "+3/2i" "0+1.5i")
     (test-expression "(list 1)" "(list 1)")
@@ -564,12 +578,12 @@
     
     (test "write" 'off #f #t "((4/3) (4/3))")
     (test "write" 'on #f #t "(#0=(4/3) #0#)")
-    (test "write" 'off #t #t "(({number 4/3}) ({number 4/3}))")
-    (test "write" 'on #t #t "(#0=({number 4/3}) #0#)")
+    (test "write" 'off #t #t "(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
+    (test "write" 'on #t #t "(#0=({number 4/3 \"1 1/3\"}) #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off #t #t "`(({number 4/3}) ({number 4/3}))")
+      (test "Quasiquote" 'off #t #t "`(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
       (test "Quasiquote" 'off #f #t "`((4/3) (4/3))")
-      (test "Quasiquote" 'on #t #t "(shared ((-1- `({number 4/3}))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on #t #t "(shared ((-1- `({number 4/3 \"1 1/3\"}))) `(,-1- ,-1-))")
       (test "Quasiquote" 'on #f #t "(shared ((-1- `(4/3))) `(,-1- ,-1-))"))
 
     (test "Constructor" 'off #f #t
@@ -578,16 +592,16 @@
 	      "(cons (cons 4/3 empty) (cons (cons 4/3 empty) empty))"))
     (test "Constructor" 'off #t #t
 	  (if list?
-	      "(list (list {number 4/3}) (list {number 4/3}))"
-	      "(cons (cons {number 4/3} empty) (cons (cons {number 4/3} empty) empty))"))
+	      "(list (list {number 4/3 \"1 1/3\"}) (list {number 4/3 \"1 1/3\"}))"
+	      "(cons (cons {number 4/3 \"1 1/3\"} empty) (cons (cons {number 4/3 \"1 1/3\"} empty) empty))"))
     (test "Constructor" 'on #f #t
 	  (if list? 
 	      "(shared ((-1- (list 4/3))) (list -1- -1-))"
 	      "(shared ((-1- (cons 4/3 empty))) (cons -1- (cons -1- empty)))"))
     (test "Constructor" 'on #t #t
 	  (if list?
-	      "(shared ((-1- (list {number 4/3}))) (list -1- -1-))"
-	      "(shared ((-1- (cons {number 4/3} empty))) (cons -1- (cons -1- empty)))"))
+	      "(shared ((-1- (list {number 4/3 \"1 1/3\"}))) (list -1- -1-))"
+	      "(shared ((-1- (cons {number 4/3 \"1 1/3\"} empty))) (cons -1- (cons -1- empty)))"))
 
     ;; setup comment box
     (clear-definitions drs)

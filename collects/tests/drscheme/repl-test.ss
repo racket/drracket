@@ -407,7 +407,7 @@
 (define get-int-pos (lambda () (get-text-pos interactions-text)))
 
 (define tmp-load-filename
-  (normalize-path (build-path (current-load-relative-directory) "repl-test-tmp.ss")))
+  (normalize-path (build-path (collection-path "tests" "drscheme") "repl-test-tmp.ss")))
 
 ;; given a filename "foo", we perform two operations on the contents 
 ;; of the file "foo.ss".  First, we insert its contents into the REPL
