@@ -477,6 +477,7 @@ TODO
                    insert
                    insert-between
                    invalidate-bitmap-cache
+                   is-frozen?
                    is-locked?
                    last-position
                    line-location
@@ -801,7 +802,8 @@ TODO
             (send-eof-to-in-port)
             (send-eof-to-in-port)
             (set! prompt-position #f)
-            (evaluate-from-port 
+            (freeze-colorer)
+            (evaluate-from-port
              (get-in-port) 
              #f
              (lambda ()
@@ -828,7 +830,8 @@ TODO
               
               (let ([sp (get-unread-start-point)])
                 (set! prompt-position sp)
-                (reset-region sp 'end)))
+                (reset-region sp 'end)
+                (when (is-frozen?) (thaw-colorer))))
             (set! inserting-prompt? #f))
           
           (field [submit-predicate
