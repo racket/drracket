@@ -16,7 +16,7 @@
     (ivar (wait-for-drscheme-frame) user-eventspace))
   
   (define (test-util-error fmt . args)
-    (raise (make-exn (apply fmt args) ((debug-info-handler)))))
+    (raise (make-exn (apply fmt args) (current-continuation-marks))))
   
   (define poll-until
     (case-lambda
