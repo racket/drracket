@@ -78,7 +78,7 @@
                                      [(symbol? exp) (list exp)]
                                      [(pair? exp) exp]
                                      [else '()]))]
-                        [filtered (filter (λ (x) 
+                        [filtered (filter (lambda (x) 
                                             (let-values ([(base name dir) (split-path x)])
                                               (memq (string->symbol (path->string name))
                                                     allowed)))
@@ -107,8 +107,8 @@
       ;; load/invoke-tools : string[collection-name] -> void
       ;; loads each tool in a collection
       (define (load/invoke-tools coll-dir)
-        (let ([table (with-handlers ([(λ (x) #f) ; exn:fail? 
-                                      (λ (x)
+        (let ([table (with-handlers ([(lambda (x) #f) ; exn:fail? 
+                                      (lambda (x)
                                         (show-error
                                          (format (string-constant error-getting-info-tool)
                                                  coll-dir)
@@ -116,31 +116,31 @@
                                         #f)])
                        (get-info/full coll-dir))])
           (when table
-            (let* ([tools (table 'tools (λ () null))]
-                   [tool-icons (table 'tool-icons (λ () (map (λ (x) #f) tools)))]
-                   [tool-names (table 'tool-names (λ () (map (λ (x) #f) tools)))]
-                   [tool-urls (table 'tool-urls (λ () (map (λ (x) #f) tools)))])
+            (let* ([tools (table 'tools (lambda () null))]
+                   [tool-icons (table 'tool-icons (lambda () (map (lambda (x) #f) tools)))]
+                   [tool-names (table 'tool-names (lambda () (map (lambda (x) #f) tools)))]
+                   [tool-urls (table 'tool-urls (lambda () (map (lambda (x) #f) tools)))])
               (unless (= (length tools) (length tool-icons))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-icons-same-length)
                                      coll-dir tools tool-icons)
                              #f
                              '(ok stop))
-                (set! tool-icons (map (λ (x) #f) tools)))
+                (set! tool-icons (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-names))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-names-same-length)
                                      coll-dir tools tool-names)
                              #f
                              '(ok stop))
-                (set! tool-names (map (λ (x) #f) tools)))
+                (set! tool-names (map (lambda (x) #f) tools)))
               (unless (= (length tools) (length tool-urls))
                 (message-box (string-constant drscheme)
                              (format (string-constant tool-tool-urls-same-length)
                                      coll-dir tools tool-urls)
                              #f
                              '(ok stop))
-                (set! tool-urls (map (λ (x) #f) tools)))
+                (set! tool-urls (map (lambda (x) #f) tools)))
               (for-each (load/invoke-tool coll-dir) tools tool-icons tool-names tool-urls)))))
       
       ;; load/invoke-tool :    path[directory-of-collection] 
@@ -154,7 +154,7 @@
       ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
       ;; `name' is the name of the tool (only used in about box)
       (define (load/invoke-tool coll-dir)
-        (λ (in-path icon-spec name tool-url)
+        (lambda (in-path icon-spec name tool-url)
           (let ([tool-bitmap
                  (and icon-spec
                       (install-tool-bitmap name icon-spec))])
@@ -175,7 +175,7 @@
                           (apply build-path coll-dir (append (cdr in-path) (list (car in-path)))))]
                      [unit 
                        (with-handlers ([exn:fail? 
-                                        (λ (x)
+                                        (lambda (x)
                                           (show-error
                                            (format (string-constant error-invoking-tool-title)
                                                    coll-dir in-path)
@@ -183,7 +183,7 @@
                                           (k (void)))])
                          (dynamic-require tool-path 'tool@))])
                 (with-handlers ([exn:fail? 
-                                 (λ (x)
+                                 (lambda (x)
                                    (show-error 
                                     (format (string-constant error-invoking-tool-title)
                                             coll-dir in-path)
@@ -225,7 +225,7 @@
       (define (install-tool-bitmap name bitmap-path)
         (let/ec k
           (let ([bitmap
-                 (with-handlers ([exn:fail:filesystem? (λ (x) (k (void)))])
+                 (with-handlers ([exn:fail:filesystem? (lambda (x) (k (void)))])
                    (make-object bitmap%
                      (build-path (build-path (apply collection-path (cdr bitmap-path)) (car bitmap-path)))
 		     'unknown/mask))])
@@ -244,7 +244,7 @@
               
                 (parameterize ([current-eventspace splash-eventspace])
                   (queue-callback
-                   (λ ()
+                   (lambda ()
                      (let ([bdc (make-object bitmap-dc%)]
                            [translated-tool-bitmap-y (max 0 (- (send splash-bitmap get-height) tool-bitmap-y tool-bitmap-size))])
                        
@@ -314,7 +314,7 @@
                                             phase2-extras)])
           (set! current-phase 'init-complete)
           (set! successful-tools
-                (map (λ (x) (make-successful-tool
+                (map (lambda (x) (make-successful-tool
                                   (successfully-loaded-tool-spec x)
                                   (successfully-loaded-tool-bitmap x)
                                   (successfully-loaded-tool-name x)
@@ -338,7 +338,7 @@
              (let ([tool (car tools)])
                (let ([phase-thunk (selector tool)])
                  (with-handlers ([exn:fail?
-                                  (λ (exn) 
+                                  (lambda (exn) 
                                     (show-error
                                      (format err-fmt 
                                              (successfully-loaded-tool-spec tool)
@@ -358,5 +358,5 @@
         (unless (memq current-phase phases)
           (error func "can only be called in phase: ~a"
                  (apply string-append 
-                        (map (λ (x) (format "~e " x))
-                             (filter (λ (x) x) phases)))))))))
+                        (map (lambda (x) (format "~e " x))
+                             (filter (lambda (x) x) phases)))))))))
