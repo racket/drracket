@@ -119,6 +119,7 @@
       (define (set-basic-parameters snip-classes)
         (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
                   snip-classes)
+        (current-command-line-arguments #())
         (read-curly-brace-as-paren #t)
         (read-square-bracket-as-paren #t)
         (error-print-width 250)
