@@ -228,6 +228,8 @@
 	     (ouml 246) (divide 247) (oslash 248) (ugrave 249) (uacute 250) (ucirc 251)
 	     (uuml 252) (yacute 253) (thorn 254) (yuml 255)))
 
+      (define re:amp (regexp "[&][aA][mM][pP][;]"))
+
       (define re:empty (regexp (format "^[ ~c]*$" (latin-1-integer->char 160))))
 
       (define-struct form (action target method parts active-select))
@@ -682,7 +684,7 @@
 					       [end-pos (current-pos)])
 					  (cond
 					   [url-string
-					    (send a-text add-link pos end-pos url-string)
+					    (send a-text add-link pos end-pos (regexp-replace* re:amp url-string "\\&"))
 					    ;; might have a label, too:
 					    (when label
 					      (send a-text add-tag label pos))
