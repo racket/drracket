@@ -912,34 +912,36 @@
               root))
 
           (inherit get-currently-running?)
+          (rename [super-can-close? can-close?])
           (define/override (can-close?)
-            (cond
-              [(get-currently-running?)
-               (equal? (message-box/custom
-                        (string-constant drscheme)
-                        (string-constant program-is-still-running)
-                        (string-constant yes)
-                        (string-constant no)
-                        #f
-                        this
-                        '(default=1 caution)
-                        2)
-                       1)]
-              [(let ([user-eventspace (send interactions-text get-user-eventspace)])
-                 (and user-eventspace
-                      (parameterize ([current-eventspace user-eventspace])
-                        (not (null? (get-top-level-windows))))))
-               (equal? (message-box/custom
-                        (string-constant drscheme)
-                        (string-constant program-has-open-windows)
-                        (string-constant yes)
-                        (string-constant no)
-                        #f
-                        this
-                        '(default=1 caution)
-                        2)
-                       1)]
-              [else #t]))
+            (and (cond
+                   [(get-currently-running?)
+                    (equal? (message-box/custom
+                             (string-constant drscheme)
+                             (string-constant program-is-still-running)
+                             (string-constant yes)
+                             (string-constant no)
+                             #f
+                             this
+                             '(default=1 caution)
+                             2)
+                            1)]
+                   [(let ([user-eventspace (send interactions-text get-user-eventspace)])
+                      (and user-eventspace
+                           (parameterize ([current-eventspace user-eventspace])
+                             (not (null? (get-top-level-windows))))))
+                    (equal? (message-box/custom
+                             (string-constant drscheme)
+                             (string-constant program-has-open-windows)
+                             (string-constant yes)
+                             (string-constant no)
+                             #f
+                             this
+                             '(default=1 caution)
+                             2)
+                            1)]
+                   [else #t])
+                 (super-can-close?)))
           
           (public clear-annotations)
           [define clear-annotations
