@@ -122,7 +122,7 @@
 		 set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
 		 get-visible-position-range insert last-position hide-caret
-		 get-end-position)
+		 get-end-position set-autowrap-bitmap)
 	(rename [super-after-set-position after-set-position])
 
 	(override
@@ -252,6 +252,7 @@
 		       end-busy-cursor)])
 	       (when (string? v)
 		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))])
+        
 	(sequence
 	  (apply super-init args)
 	  (add-h-link-style)
@@ -492,6 +493,7 @@
 	      (set-style-list hyper-style-list)
 	      (set-modified #f)
 	      (auto-wrap wrapping-on?)
+              (set-autowrap-bitmap #f)
 	      (lock #t)))))))
 
   (define hyper-text% (hyper-text-mixin text:keymap%))
