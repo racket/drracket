@@ -3,9 +3,11 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
+           (lib "sig.ss" "userspce")
            "drsig.ss"
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
+           (prefix launcher: (lib "launcher.ss" "launcher"))
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:list: (lib "list.ss"))
            (prefix mzlib:date: (lib "date.ss")))
@@ -14,6 +16,15 @@
   
   (define unit@
     (unit/sig drscheme:unit^
+      (import [basis : plt:basis^]
+              [help-desk : drscheme:help-interface^]
+              [drscheme:app : drscheme:app^]
+              [drscheme:frame : drscheme:frame^]
+              [drscheme:text : drscheme:text^]
+              [drscheme:rep : drscheme:rep^]
+              [drscheme:language : drscheme:language^]
+              [drscheme:get/extend : drscheme:get/extend^]
+              [drscheme:snip : drscheme:snip^])
       (keymap:add-to-right-button-menu
        (lambda (menu text event)
          (when (and (is-a? text text%)
@@ -60,11 +71,11 @@
                    (make-object menu-item%
                      (format "Search in Help Desk for \"~a\"" str)
                      menu
-                     (lambda x (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))
+                     (lambda x (help-desk:help-desk str #f 'keyword+index 'contains)))
                    (make-object menu-item%
                      (format "Exact lucky search in Help Desk for \"~a\"" str)
                      menu
-                     (lambda x (drscheme:help-desk:help-desk str #t 'keyword+index 'exact))))))))))
+                     (lambda x (help-desk:help-desk str #t 'keyword+index 'exact))))))))))
       
       (define (get-fraction-from-user)
         (let* ([dlg (make-object dialog% "Enter Fraction")]
@@ -124,7 +135,7 @@
             "Untitled"))
       
       (define (create-launcher frame)
-        (let* ([program-filename (send (ivar frame definitions-text) get-filename)]
+        (let* ([program-filename (send (send frame get-definitions-text) get-filename)]
                [executable-filename
                 (if (eq? (system-type) 'windows)
                     (string-append (basename program-filename) ".exe")
@@ -151,12 +162,10 @@
 	     ;; this condition should guarantee that the language
 	     ;; matches the default mred or mzscheme initial language.
 	     ;; in that case, we don't need to load any of the
-	     ;; zodiac or drs support so that program starts up much
-	     ;; faster.
+	     ;; drs support so that program starts up much faster.
                    [(and (null? teachpacks)
                          (basis:full-language? settings)
-                         (not (basis:zodiac-vocabulary? settings))
-                         (ormap (lambda (x) (equal? x settings)) basis:settings))
+                         (ormap (lambda (x) (equal? x settings)) (basis:get-settings)))
                     ((if in-mz?
                          launcher:make-mzscheme-launcher
                          launcher:make-mred-launcher)
@@ -338,11 +347,9 @@
           (define (reset-highlighting)
             (let ([f (get-top-level-window)])
               (when f
-                (let ([interactions-text (ivar f interactions-text)])
+                (let ([interactions-text (send f get-interactions-text)])
                   (when (object? interactions-text)
-                    (let ([reset (ivar interactions-text reset-highlighting)])
-                      (when (procedure? reset)
-                        (reset))))))))
+                    (send interactions-text reset-highlighting))))))
           
           (define (after-insert x y)
             (reset-highlighting)
@@ -374,11 +381,9 @@
              (lambda ()
                (let ([f (get-top-level-window)])
                  (when f
-                   (let ([interactions-text (ivar f interactions-text)])
+                   (let ([interactions-text (send f get-interactions-text)])
                      (when (object? interactions-text)
-                       (let ([reset (ivar interactions-text reset-highlighting)])
-                         (when (procedure? reset)
-                           (reset))))))))])
+                       (send interactions-text reset-highlighting))))))])
           (rename [super-on-insert on-insert]
                   [super-on-delete on-delete])
           (override
@@ -673,8 +678,8 @@
              (lambda ()
                (let ([percentages (get-percentages)])
                  (when (and (= 1
-                               (length (ivar unit-frame definitions-canvases))
-                               (length (ivar unit-frame interactions-canvases)))
+                               (length (send unit-frame get-definitions-canvases))
+                               (length (send unit-frame get-interactions-canvases)))
                             (= 2 (length percentages)))
                    (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))])
           (sequence (apply super-init args))))
@@ -1152,11 +1157,14 @@
             [get-editor (lambda () definitions-text)]
             [get-canvas (lambda () definitions-canvas)])
           
-          (public-field
+          (private
             [definitions-text (make-object (drscheme:get/extend:get-definitions-text%))]
             [interactions-text (make-object 
                                    (drscheme:get/extend:get-interactions-text%)
                                  this)])
+          (public
+            [get-definitions-text (lambda () definitions-text)]
+            [get-interactions-text (lambda () interactions-text)])
           
           (sequence
             (super-init filename
@@ -1173,7 +1181,7 @@
                         (let ([text (get-focus-object)])
                           (when (or (eq? text definitions-text)
                                     (eq? text interactions-text))
-                            ((ivar/proc text method))))))])
+                            (method text)))))])
               
               (drscheme:language:fill-language-menu this language-menu)
               
@@ -1202,20 +1210,20 @@
               (make-object menu:can-restore-menu-item%
                 "&Reindent"
                 scheme-menu
-                (send-method 'tabify-selection))
+                (send-method (lambda (x) (send x tabify-selection))))
               (make-object menu:can-restore-menu-item%
                 "Reindent &All"
                 scheme-menu
-                (send-method 'tabify-all)
+                (send-method (lambda (x) (send x tabify-all)))
                 #\i)
               (make-object menu:can-restore-menu-item%
                 "&Comment Out"
                 scheme-menu
-                (send-method 'comment-out-selection))
+                (send-method (lambda (x) (send x comment-out-selection))))
               (make-object menu:can-restore-menu-item%
                 "&Uncomment"
                 scheme-menu
-                (send-method 'uncomment-selection)))
+                (send-method (lambda (x) (send x uncomment-selection)))))
             
             (frame:reorder-menus this)
             
@@ -1245,13 +1253,16 @@
             (send name-panel stretchable-width #f)
             (send name-panel stretchable-height #f))
           
-          (public-field
+          (private
             [definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
                                   resizable-panel)]
             [definitions-canvases (list definitions-canvas)]
             [interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
                                    resizable-panel)]
             [interactions-canvases (list interactions-canvas)])
+          (public
+            [get-definitions-canvas (labda () definitions-canvas)]
+            [get-interactions-canvas (labda () interactions-canvas)])
           
           (sequence
             (send interactions-text auto-wrap #t)

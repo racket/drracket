@@ -23,6 +23,7 @@
            drscheme:app^
            drscheme:draw-arrow^
 	   drscheme:load-handler^
+           drscheme:help-interface^
            drscheme:export^
            drscheme^)
   
