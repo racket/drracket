@@ -1131,7 +1131,11 @@
                                        #\;
                                        ;; non-breaking space, so the letters
                                        ;; won't be messed up by scheme-mode tabbing
-                                       (integer->char 160)))
+				       ;; can't use that now, tho -- it isn't considerd
+				       ;; whitespace by mzscheme's reader.
+                                       ;; (integer->char 160)
+				       #\space
+				       ))
                                  
                                  (define (fetch-line y)
                                    (let loop ([x tw]
