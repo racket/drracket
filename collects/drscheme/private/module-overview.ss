@@ -74,7 +74,7 @@
         (define level-ht (make-hash-table))
 
         ;; snip-table : hash-table[sym -o> snip]
-        (define snip-table (make-hash-table))
+        (define snip-table (make-hash-table 'equal))
         (define label-font (find-label-font (preferences:get 'drscheme:module-overview:label-font-size)))
         (define text-color (make-object color% "blue"))
         
@@ -82,6 +82,11 @@
         (define dark-syntax-brush (send the-brush-list find-or-create-brush "darkorchid" 'solid))
         (define light-syntax-pen (send the-pen-list find-or-create-pen "plum" 1 'solid))
         (define light-syntax-brush (send the-brush-list find-or-create-brush "plum" 'solid))
+
+        (define dark-template-pen (send the-pen-list find-or-create-pen "seagreen" 1 'solid))
+        (define dark-template-brush (send the-brush-list find-or-create-brush "seagreen" 'solid))
+        (define light-template-pen (send the-pen-list find-or-create-pen "springgreen" 1 'solid))
+        (define light-template-brush (send the-brush-list find-or-create-brush "springgreen" 'solid))
         
         (define dark-pen (send the-pen-list find-or-create-pen "blue" 1 'solid))
         (define dark-brush (send the-brush-list find-or-create-brush "blue" 'solid))
@@ -156,7 +161,7 @@
                     (send s release-from-owner)
                     (loop))))
               (set! level-ht (make-hash-table))
-              (set! snip-table (make-hash-table)))
+              (set! snip-table (make-hash-table 'equal)))
 
             (define/public (end-adding-connections)
               (unless max-lines
@@ -178,11 +183,11 @@
               (render-snips)
               (end-edit-sequence))
               
-            ;; add-connection : string string boolean boolean -> void
+            ;; add-connection : string string boolean symbol -> void
             ;; name-original and name-require and the identifiers for those paths and
             ;; original-filename? and require-filename? are booleans indicating if the names
             ;; are filenames.
-            (define/public (add-connection name-original name-require lib-path? for-syntax?)
+            (define/public (add-connection name-original name-require lib-path? require-type)
               (unless max-lines
                 (error 'add-connection "not in begin-adding-connections/end-adding-connections sequence"))
               (let* ([original-filename? (file-exists? name-original)]
@@ -191,13 +196,19 @@
                      [require-snip (find/create-snip name-require require-filename?)]
                      [original-level (send original-snip get-level)]
                      [require-level (send require-snip get-level)])
-                (if for-syntax?
-                    (add-links original-snip require-snip 
-                               dark-syntax-pen light-syntax-pen
-                               dark-syntax-brush light-syntax-brush)
-                    (add-links original-snip require-snip
-                               dark-pen light-pen
-                               dark-brush light-brush))
+                (case require-type 
+                  [(require)
+                   (add-links original-snip require-snip
+                              dark-pen light-pen
+                              dark-brush light-brush)]
+                  [(require-for-syntax)
+                   (add-links original-snip require-snip 
+                              dark-syntax-pen light-syntax-pen
+                              dark-syntax-brush light-syntax-brush)]
+                  [(require-for-template)
+                   (add-links original-snip require-snip
+                              dark-template-pen light-template-pen
+                              dark-template-brush light-template-brush)])
                 (when lib-path?
                   (send original-snip add-lib-child require-snip))
                 (if (send original-snip get-level)
@@ -218,25 +229,24 @@
                      (lambda (child) (loop child (+ new-min-level 1)))
                      (send snip get-children))))))
             
-            ;; find/create-snip : (union string[filename] string) boolean? -> word-snip/lines
+            ;; find/create-snip : (union path string) boolean? -> word-snip/lines
             ;; finds the snip with this key, or creates a new
             ;; ones. For the same key, always returns the same snip.
             ;; uses snip-table as a cache for this purpose.
             (define (find/create-snip name is-filename?)
-              (let ([key (string->symbol name)])
-                (hash-table-get
-                 snip-table
-                 key
-                 (lambda () 
-                   (let* ([snip (instantiate word-snip/lines% ()
-                                  (lines (if is-filename? (count-lines name) #f))
-                                  (word (format "~a" (if is-filename?
-                                                         (name->label name)
-                                                         name)))
-                                  (filename (if is-filename? name #f)))])
-                     (insert snip)
-                     (hash-table-put! snip-table key snip)
-                     snip)))))
+              (hash-table-get
+               snip-table
+               name
+               (lambda () 
+                 (let* ([snip (instantiate word-snip/lines% ()
+                                (lines (if is-filename? (count-lines name) #f))
+                                (word (format "~a" (if is-filename?
+                                                       (name->label name)
+                                                       name)))
+                                (filename (if is-filename? name #f)))])
+                   (insert snip)
+                   (hash-table-put! snip-table name snip)
+                   snip))))
             
             ;; count-lines : string[filename] -> (union #f number)
             ;; effect: updates max-lines
@@ -273,18 +283,17 @@
                 (- (unbox bb)
                    (unbox tb))))
             
-            ;; name->label : string -> string
+            ;; name->label : path -> string
             ;; constructs a label for the little boxes in terms
             ;; of the filename.
-            (define re:no-ext (regexp "^(.*)\\.[^.]*$"))
             (define (name->label filename)
               (if (file-exists? filename)
                   (let-values ([(base name dir?) (split-path filename)])
-                    (let ([m (regexp-match re:no-ext name)])
+                    (let ([m (regexp-match #rx#"^(.*)\\.[^.]*$" (path->bytes name))])
                       (if m
-                          (cadr m)
+                          (path->string (bytes->path (cadr m)))
                           name)))
-                  filename))
+                  (path->string filename)))
             
             (field [lib-paths-on? (preferences:get 'drscheme:module-browser:show-lib-paths?)])
             (define/public (show-lib-paths on?)
@@ -551,7 +560,7 @@
                   connection-channel)
           (export add-connections)
         
-          (define visited-hash-table (make-hash-table))
+          (define visited-hash-table (make-hash-table 'equal))
           
           ;; add-connections : (union syntax string[filename]) -> (union #f string)
           ;; recursively adds a connections from this file and
@@ -582,12 +591,12 @@
           
           (define (build-module-filename str)
             (let ([try (lambda (ext)
-                         (let ([tst (string-append str ext)])
+                         (let ([tst (bytes->path (bytes-append (path->bytes str) ext))])
                            (and (file-exists? tst)
                                 tst)))])
-              (or (try ".ss")
-                  (try ".scm")
-                  (try "")
+              (or (try #".ss")
+                  (try #".scm")
+                  (try #"")
                   str)))
               
           ;; add-filename-connections : string -> void
@@ -595,37 +604,44 @@
             (add-module-code-connections filename (get-module-code filename)))
           
           (define (add-module-code-connections module-name module-code)
-            (let ([visited-key (string->symbol module-name)])
-              (unless (hash-table-get visited-hash-table visited-key (lambda () #f))
-                (async-channel-put progress-channel (format adding-file module-name))
-                (hash-table-put! visited-hash-table visited-key #t)
-                (let-values ([(imports fs-imports) (module-compiled-imports module-code)])
-                  (let ([requires (extract-filenames imports module-name)]
-                        [syntax-requires (extract-filenames fs-imports module-name)])
-                    (for-each (lambda (require)
-                                (add-connection module-name
-                                                (req-filename require)
-                                                (req-lib? require)
-                                                #f)
-                                (add-filename-connections (req-filename require)))
-                              requires)
-                    (for-each (lambda (syntax-require)
-                                (add-connection module-name 
-                                                (req-filename syntax-require)
-                                                (req-lib? syntax-require)
-                                                #t)
-                                (add-filename-connections (req-filename syntax-require)))
-                              syntax-requires))))))
+            (unless (hash-table-get visited-hash-table module-name (lambda () #f))
+              (async-channel-put progress-channel (format adding-file module-name))
+              (hash-table-put! visited-hash-table module-name #t)
+              (let-values ([(imports fs-imports ft-imports) (module-compiled-imports module-code)])
+                (let ([requires (extract-filenames imports module-name)]
+                      [syntax-requires (extract-filenames fs-imports module-name)]
+                      [template-requires (extract-filenames ft-imports module-name)])
+                  (for-each (lambda (require)
+                              (add-connection module-name
+                                              (req-filename require)
+                                              (req-lib? require)
+                                              'require)
+                              (add-filename-connections (req-filename require)))
+                            requires)
+                  (for-each (lambda (syntax-require)
+                              (add-connection module-name 
+                                              (req-filename syntax-require)
+                                              (req-lib? syntax-require)
+                                              'require-for-syntax)
+                              (add-filename-connections (req-filename syntax-require)))
+                            syntax-requires)
+                  (for-each (lambda (require)
+                              (add-connection module-name
+                                              (req-filename require)
+                                              (req-lib? require)
+                                              'require-for-template)
+                              (add-filename-connections (req-filename require)))
+                            template-requires)))))
 
-          ;; add-connection : string boolean string boolean boolean boolean -> void
+          ;; add-connection : string string boolean symbol -> void
           ;; name-original and name-require and the identifiers for those paths and
           ;; original-filename? and require-filename? are booleans indicating if the names
           ;; are filenames.
-          (define (add-connection name-original name-require is-lib? for-syntax?)
+          (define (add-connection name-original name-require is-lib? require-type)
             (async-channel-put connection-channel (list name-original 
                                                         name-require  
                                                         is-lib?
-                                                        for-syntax?)))
+                                                        require-type)))
           
           (define (extract-module-name stx)
             (syntax-case stx ()
@@ -849,8 +865,8 @@
                    (let ([name-original (first val)]
                          [name-require (second val)]
                          [lib-path? (third val)]
-                         [for-syntax? (fourth val)])
-                     (send pasteboard add-connection name-original name-require lib-path? for-syntax?))
+                         [require-type (fourth val)])
+                     (send pasteboard add-connection name-original name-require lib-path? require-type))
                    (loop))]))))
         (send pasteboard end-adding-connections)
         
