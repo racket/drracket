@@ -2,7 +2,6 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
            "drsig.ss"
            (lib "framework.ss" "framework"))
   
@@ -18,19 +17,11 @@
           is-printing?))
       
       (define text%
-        (class100* scheme:text% (text<%>) args
-          (private-field
-            [printing? #f])
-          (public
-            [is-printing?
-             (lambda ()
-               printing?)]
-            [printing-on
-             (lambda ()
-               (set! printing? #t))]
-            [printing-off
-             (lambda ()
-               (set! printing? #f))])
+        (class* scheme:text% (text<%>)
+          (define printing? #f)
+          (define/public (is-printing?) printing?)
+          (define/public (printing-on) (set! printing? #t))
+          (define/public (printing-off) (set! printing? #f))
           ;      (rename [super-on-paint on-paint])
           ;      (inherit get-filename)
           ;      (override
@@ -44,5 +35,4 @@
           ;			    (get-filename)
           ;			    "Untitled"))])
           ;	      (send dc draw-text str dx dy)))])
-          (sequence
-            (apply super-init args)))))))
+          (super-new))))))

@@ -685,8 +685,6 @@
                   [super-reset-console reset-console]
                   [super-on-close on-close])
           
-          (override on-close)
-          
           (override get-prompt eval-busy? do-eval
                     initialize-console
                     reset-console)
@@ -1901,7 +1899,7 @@
           
           (field (shutting-down? #f))
           
-          (define (on-close)
+          (define/override (on-close)
             (shutdown)
             (super-on-close))
           

@@ -1,15 +1,27 @@
 #|
 
-tab panels todo:
-  - can-close? needs to account for all tabs
-  - closing a single tab
-  - save all tabs (pr 6689?)
+tab panels bug fixes:
+  - can-close? & on-close in frame need to account for all tabs
+  - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
+  - contour
+  - logging
+  - test autosave when closing a single tab
+  - disable close-tab when only one tab (in gui and in callback)
 
 waiting for matthew:
   - tabs don't have the right names when files are opened
   - when switching tabs automatically (say for an error) the tab bar doesn't update
   - when creating a new tab, the tab bar doesn't update
 
+on-close: nothing (all in the editor on-close method already)
+can-close: 
+  ./drscheme/private/unit.ss: needs to be tab sensitive
+  ./framework/private/frame.ss: needs to be tab sensitive
+
+tab panels new behavior:
+  - closing a single tab
+  - open files in new tabs (not new windows)
+  - save all tabs (pr 6689?)
 |#
 
 (module unit mzscheme
@@ -1777,7 +1789,6 @@ waiting for matthew:
             (when logging
               (stop-logging))
             (remove-logging-pref-callback)
-            (send interactions-text shutdown)
             (send interactions-text on-close)
             (super-on-close))
           
