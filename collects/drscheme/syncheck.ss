@@ -12,6 +12,7 @@ let-values, define-values) in the fully expanded text.
 Variables inside #%top (not inside a module) are treated specially. 
 If the namespace has a binding for them, they are colored bound color.
 If the namespace does not, they are colored the unbound color.
+
 |#
 
 (module syncheck mzscheme
@@ -763,28 +764,16 @@ If the namespace does not, they are colored the unbound color.
           syncheck:add-to-cleanup-texts
           syncheck:error-report-visible?))
       
-      (define (make-new-unit-frame% super%)
-        (class* super% (syncheck-frame<%>)
-          (define/override (clear-annotations)
-            (super clear-annotations)
-            (hide-error-report)
+      (define tab-mixin
+        (mixin (drscheme:unit:tab<%>) ()
+          (inherit is-current-tab?)
+          (define error-report-visible #f)
+          (define/augment (clear-annotations)
+            (inner (void) clear-annotations)
+            (set! error-report-visible? #f)
+            (when (is-current-tab?)
+              (send frame hide-error-report))
             (syncheck:clear-highlighting))
-          
-          (inherit get-button-panel 
-                   get-definitions-canvas 
-                   get-definitions-text
-                   get-interactions-text
-                   get-directory)
-          
-          (define button-visible? #t)
-          
-          (define/augment (enable-evaluation)
-            (send check-syntax-button enable #t)
-            (inner (void) enable-evaluation))
-
-          (define/augment (disable-evaluation)
-            (send check-syntax-button enable #f)
-            (inner (void) disable-evaluation))
           
           (define cleanup-texts '())
           (define/public (syncheck:clear-highlighting)
@@ -804,9 +793,28 @@ If the namespace does not, they are colored the unbound color.
           (define/public (syncheck:add-to-cleanup-texts txt)
             (unless (memq txt cleanup-texts)
               (send txt freeze-colorer)
-              (set! cleanup-texts (cons txt cleanup-texts))))
+              (set! cleanup-texts (cons txt cleanup-texts))))))
+      
+      (define (make-new-unit-frame% super%)
+        (class* super% (syncheck-frame<%>)
           
-	  (define/augment (on-close)
+          (inherit get-button-panel 
+                   get-definitions-canvas 
+                   get-definitions-text
+                   get-interactions-text
+                   get-directory)
+          
+          (define button-visible? #t)
+
+          (define/augment (enable-evaluation)
+            (send check-syntax-button enable #t)
+            (inner (void) enable-evaluation))
+          
+          (define/augment (disable-evaluation)
+            (send check-syntax-button enable #f)
+            (inner (void) disable-evaluation))
+          
+          (define/augment (on-close)
 	    (send report-error-text on-close)
 	    (inner (void) on-close))
 

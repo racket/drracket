@@ -903,8 +903,7 @@ TODO
             (set! submit-predicate p))
           
           (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
-            (let ([current-tab (send context get-current-tab)])
-              (send context disable-evaluation current-tab)
+              (send context disable-evaluation)
               (send context reset-offer-kill)
               (send context set-breakables (get-user-thread) (get-user-custodian))
               (reset-pretty-print-width)
@@ -915,57 +914,57 @@ TODO
               (update-running #t)
               (set! need-interaction-cleanup? #t)
               
-              (run-in-evaluation-thread
-               (λ () ; =User=, =Handler=, =No-Breaks=
-                 (let* ([settings (current-language-settings)]
-                        [lang (drscheme:language-configuration:language-settings-language settings)]
-                        [settings (drscheme:language-configuration:language-settings-settings settings)]
-                        [get-sexp/syntax/eof 
-                         (if complete-program?
-                             (send lang front-end/complete-program port settings user-teachpack-cache)
-                             (send lang front-end/interaction port settings user-teachpack-cache))])
-                   
-                   ; Evaluate the user's expression. We're careful to turn on
-                   ;   breaks as we go in and turn them off as we go out.
-                   ;   (Actually, we adjust breaks however the user wanted it.)
-                   ; A continuation hop might take us out of this instance of
-                   ;   evaluation and into another one, which is fine.
-                   
-                   (let/ec k
-                     (let ([saved-error-escape-k (current-error-escape-k)]
-                           [cleanup? #f])
-                       (dynamic-wind
-                        (λ ()
-                          (set! cleanup? #f)
-                          (current-error-escape-k (λ () 
-                                                    (set! cleanup? #t)
-                                                    (k (void)))))
-                        (λ () 
-                          (let loop ()
-                            (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                              (unless (eof-object? sexp/syntax/eof)
-                                (call-with-values
-                                 (λ ()
-                                   (call-with-break-parameterization
-                                    (get-user-break-parameterization)
-                                    (λ ()
-                                      (eval-syntax sexp/syntax/eof))))
-                                 (λ x (display-results x)))
-                                (loop))))
-                          (set! cleanup? #t))
-                        (λ () 
-                          (current-error-escape-k saved-error-escape-k)
-                          (when cleanup?
-                            (set! in-evaluation? #f)
-                            (update-running #f)
-                            (cleanup)
-                            (flush-output (get-value-port))
-                            (queue-system-callback/sync
-                             (get-user-thread)
-                             (λ () ; =Kernel=, =Handler= 
-                               (after-many-evals)
-                               (cleanup-interaction)
-                               (insert-prompt)))))))))))))
+            (run-in-evaluation-thread
+             (λ () ; =User=, =Handler=, =No-Breaks=
+               (let* ([settings (current-language-settings)]
+                      [lang (drscheme:language-configuration:language-settings-language settings)]
+                      [settings (drscheme:language-configuration:language-settings-settings settings)]
+                      [get-sexp/syntax/eof 
+                       (if complete-program?
+                           (send lang front-end/complete-program port settings user-teachpack-cache)
+                           (send lang front-end/interaction port settings user-teachpack-cache))])
+                 
+                 ; Evaluate the user's expression. We're careful to turn on
+                 ;   breaks as we go in and turn them off as we go out.
+                 ;   (Actually, we adjust breaks however the user wanted it.)
+                 ; A continuation hop might take us out of this instance of
+                 ;   evaluation and into another one, which is fine.
+                 
+                 (let/ec k
+                   (let ([saved-error-escape-k (current-error-escape-k)]
+                         [cleanup? #f])
+                     (dynamic-wind
+                      (λ ()
+                        (set! cleanup? #f)
+                        (current-error-escape-k (λ () 
+                                                  (set! cleanup? #t)
+                                                  (k (void)))))
+                      (λ () 
+                        (let loop ()
+                          (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                            (unless (eof-object? sexp/syntax/eof)
+                              (call-with-values
+                               (λ ()
+                                 (call-with-break-parameterization
+                                  (get-user-break-parameterization)
+                                  (λ ()
+                                    (eval-syntax sexp/syntax/eof))))
+                               (λ x (display-results x)))
+                              (loop))))
+                        (set! cleanup? #t))
+                      (λ () 
+                        (current-error-escape-k saved-error-escape-k)
+                        (when cleanup?
+                          (set! in-evaluation? #f)
+                          (update-running #f)
+                          (cleanup)
+                          (flush-output (get-value-port))
+                          (queue-system-callback/sync
+                           (get-user-thread)
+                           (λ () ; =Kernel=, =Handler= 
+                             (after-many-evals)
+                             (cleanup-interaction)
+                             (insert-prompt))))))))))))
           
           (define/pubment (after-many-evals) (inner (void) after-many-evals))
           

@@ -376,8 +376,8 @@ module browser threading seems wrong.
               (set! interactions-text it))
               
             (define tab #f)
-            (define (get-tab) tab)
-            (define (set-tab t) (set! tab t))
+            (define/public (get-tab) tab)
+            (define/public (set-tab t) (set! tab t))
             
             (inherit get-surrogate set-surrogate)
             (define/public (set-current-mode mode)
@@ -829,31 +829,27 @@ module browser threading seems wrong.
                      (frame:basic-mixin
                       frame%)))))))))))))))
       
-      (define -frame<%>
+
+      (define tab<%>
         (interface ()
-          get-special-menu
-          get-interactions-text
-          get-definitions-text
-          get-interactions-canvas
-          get-definitions-canvas
-          execute-callback
-          open-in-new-tab))
-
-      ;; defs : definitions-text
-      ;; ints : interactions-text
-      ;; visible-defs : (listof (list number number number number))
-      ;; visible-ints : (listof (list number number number number))
-      ;; i : number  -- which tab this is in the tab panel
-      ;; enabled? : boolean -- indicates if evaluation (or editing) is allowed in this tab, currently
-      (define-struct tab (defs ints visible-defs visible-ints i enabled?) (make-inspector))
-
+          get-defs
+          get-ints
+          get-visible-defs
+          set-visible-defs
+          set-visible-ints
+          get-i
+          set-i
+          break-callback
+          is-current-tab?
+          get-enabled))
+      
       (define tab%
-        (class* object% (drscheme:rep:context<%>)
+        (class* object% (drscheme:rep:context<%> tab<%>)
           (init-field frame
                       defs
                       i)
+          (define enabled? #t)
           (field [ints #f]
-                 [enabled? #t]
                  [visible-defs #f]
                  [visible-ints #f])
           
@@ -870,16 +866,17 @@ module browser threading seems wrong.
           (define/public (get-i) i)
           (define/public (set-i _i) (set! i _i))
           (define/public (disable-evaluation)
+            (set! enabled? #f)
             (send defs lock #t)
             (send ints lock #t)
             (send frame disable-evaluation-in-tab this))
           (define/public (enable-evaluation)
+            (set! enabled? #t)
             (send defs lock #f)
             (send ints lock #f)
             (send frame enable-evaluation-in-tab this))
           (define/public (get-enabled) enabled?)
-          (define/public (set-enabled e?) (set! enabled? e?))
-          
+        
           (define/public (get-directory)
             (let ([filename (send defs get-filename)])
               (if (and (path? filename)
@@ -952,12 +949,24 @@ module browser threading seems wrong.
           ;; need to update running when switching tabs ...
           (define/public (update-running b?) (send frame update-running b?))
           
+          (define/public (is-current-tab?) (eq? this (send frame get-current-tab)))
+          
           (super-new)))
       
       ;; should only be called by the tab% object
       (define-local-member-name 
         disable-evaluation-in-tab
         enable-evaluation-in-tab)
+      
+      (define -frame<%>
+        (interface ()
+          get-special-menu
+          get-interactions-text
+          get-definitions-text
+          get-interactions-canvas
+          get-definitions-canvas
+          execute-callback
+          open-in-new-tab))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
@@ -1182,8 +1191,6 @@ module browser threading seems wrong.
           (define was-locked? #f)
           
           (define/public-final (disable-evaluation-in-tab tab)
-            (unless (send tab get-enabled)
-              (error 'disable-evaluation-in-tab "tab already disabled"))
             (when (eq? tab current-tab)
               (disable-evaluation)))
           
@@ -1195,8 +1202,6 @@ module browser threading seems wrong.
             (inner (void) disable-evaluation))
           
           (define/public-final (enable-evaluation-in-tab tab)
-            (when (send tab get-enabled)
-              (error 'enable-evaluation "tab already enabled"))
             (when (eq? tab current-tab)
               (enable-evaluation)))
           
@@ -1885,33 +1890,29 @@ module browser threading seems wrong.
           (define/override (get-delegated-text) definitions-text)
           (define/override (get-open-here-editor) definitions-text)
           
-          (define definitions-text (new (drscheme:get/extend:get-definitions-text)))
-          (define interactions-text (new (drscheme:get/extend:get-interactions-text) 
-                                         (context this)))
-          (define/public (get-definitions-text) definitions-text)
-          (define/public (get-interactions-text) interactions-text)
-          
           ;; wire the definitions text to the interactions text and initialize it.
-          (define/private (init-definitions-text)
+          (define/private (init-definitions-text tab)
             (send definitions-text set-interactions-text interactions-text)
+            (send definitions-text set-tab tab)
             (send interactions-text set-definitions-text definitions-text)
             (send definitions-text change-mode-to-match))
 
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;
-          ;; tabs
-          ;;
-          
-          ;; tabs : (listof tab)
-          (define tabs (list (new tab%
-                                  (defs definitions-text)
-                                  (ints interactions-text)
-                                  (i 0))))
-          
-          ;; current-tab : tab
-          ;; corresponds to the tabs-panel's active button.
-          (define current-tab (car tabs))
-          
+
+;                              
+;                              
+;                @@            
+;    @            @            
+;   @@@@@   $@$:  @-@$   :@@+@ 
+;    @        -@  @+ *$  @$ -@ 
+;    @     -$@$@  @   @  :@@$- 
+;    @     $*  @  @   @     *@ 
+;    @: :$ @- *@  @  +$  @  :@ 
+;    :@@$- -$$-@@@@+@$   $+@@: 
+;                              
+;                              
+;                              
+;                              
+
           (define/public (get-current-tab) current-tab)
           
           ;; create-new-tab : -> void
@@ -1919,14 +1920,13 @@ module browser threading seems wrong.
           (define/private (create-new-tab)
             (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
                    [tab-count (length tabs)]
-                   [new-tab (new tab% (defs defs) (i tab-count))]
+                   [new-tab (new (drscheme:get/extend:get-tab) (defs defs) (i tab-count) (frame this))]
                    [ints (make-object (drscheme:get/extend:get-interactions-text) new-tab)])
-              (send defs set-tab new-tab)
               (send new-tab set-ints ints)
               (set! tabs (append tabs (list new-tab)))
               (send tabs-panel append (get-defs-tab-label defs))
               (change-to-nth-tab (- (send tabs-panel get-number) 1))
-              (init-definitions-text)
+              (init-definitions-text new-tab)
               (send ints initialize-console)
               (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
               
@@ -1937,18 +1937,15 @@ module browser threading seems wrong.
           ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
           ;; to be the nth tab. Also updates the GUI to show the new tab
-          #|
-
-NEEDS TO UPDATE RUNNING
-
-|#
           (define/private (change-to-tab tab)
-            (let ([old-delegate (send definitions-text get-delegate)])
+            (let ([old-delegate (send definitions-text get-delegate)]
+                  [old-tab current-tab])
               (save-visible-tab-regions)
               (send definitions-text set-delegate #f)
               (set! current-tab tab)
               (set! definitions-text (send current-tab get-defs))
               (set! interactions-text (send current-tab get-ints))
+              
               (for-each (λ (defs-canvas) (send defs-canvas set-editor definitions-text))
                         definitions-canvases)
               (for-each (λ (ints-canvas) (send ints-canvas set-editor interactions-text))
@@ -1957,12 +1954,19 @@ NEEDS TO UPDATE RUNNING
               (update-save-message)
               (update-save-button)
               
-              (if (send tab get-enabled)
-                  (enable-evaluation)
-                  (disable-evaluation))
+              (let ([old-enabled (send old-tab get-enabled)]
+                    [new-enabled (send current-tab get-enabled)])
+                (unless (eq? old-enabled new-enabled)
+                  (if (send tab get-enabled)
+                      (enable-evaluation)
+                      (disable-evaluation))))
               
               (send definitions-text update-frame-filename)
-              (send definitions-text set-delegate old-delegate)))
+              (send definitions-text set-delegate old-delegate)
+              (on-tab-change old-tab current-tab)))
+          
+          (define/pubment (on-tab-change from-tab to-tab)
+            (inner (void) on-tab-change from-tab to-tab))
           
           (define/public (next-tab) (change-to-delta-tab +1))
           (define/public (prev-tab) (change-to-delta-tab -1))
@@ -1988,8 +1992,8 @@ NEEDS TO UPDATE RUNNING
                             (send tabs-panel delete (send tab get-i))
                             (update-menu-bindings) 
                             (change-to-tab (cond
-                                             [(< (tab-i tab) (length tabs))
-                                              (list-ref tabs (tab-i tab))]
+                                             [(< (send tab get-i) (length tabs))
+                                              (list-ref tabs (send tab get-i))]
                                              [else (car tabs)])))
                           (loop (cdr l-tabs))))]))]))
           
@@ -2101,6 +2105,9 @@ NEEDS TO UPDATE RUNNING
           ;; end tabs
           ;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          
+          (define/public (get-definitions-text) definitions-text)
+          (define/public (get-interactions-text) interactions-text)
           
           (define/private (update-teachpack-menu)
             (define user-teachpack-cache (send (get-interactions-text) get-user-teachpack-cache))
@@ -2362,15 +2369,7 @@ NEEDS TO UPDATE RUNNING
                     (current-directory base)
                     (current-load-relative-directory base))))))
           
-          (super-new
-            (filename filename)
-            (style '(toolbar-button))
-            (width (preferences:get 'drscheme:unit-window-width))
-            (height (preferences:get 'drscheme:unit-window-height)))
 
-          (init-definitions-text)
-
-          
 ;                                            
 ;                                            
 ;                                            
@@ -2388,297 +2387,342 @@ NEEDS TO UPDATE RUNNING
 ;                                            
 ;                                            
 
-          
-          (let* ([mb (get-menu-bar)]
-                 [language-menu-on-demand
-                  (λ (menu-item)
-                    (update-teachpack-menu))]
-                 [_ (set! language-menu (make-object (get-menu%) 
-                                          (string-constant language-menu-name)
-                                          mb
-                                          #f
-                                          language-menu-on-demand))]
-                 [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
-                 [send-method
-                  (λ (method)
-                    (λ (_1 _2)
-                      (let ([text (get-focus-object)])
-                        (when (is-a? text scheme:text<%>)
-                          (method text)))))])
-            
-            (make-object menu:can-restore-menu-item%
-              (string-constant choose-language-menu-item-label)
-              language-menu
-              (λ (_1 _2)
-                (let ([new-settings (drscheme:language-configuration:language-dialog
-                                     #f
-                                     (send definitions-text get-next-settings)
-                                     this)])
-                  (when new-settings
-                    (send definitions-text set-next-settings new-settings)
-                    (preferences:set
-                     drscheme:language-configuration:settings-preferences-symbol
-                     new-settings))))
-              #\l)
-            (make-object separator-menu-item% language-menu)
-            (make-object menu:can-restore-menu-item%
-              (string-constant add-teachpack-menu-item-label)
-              language-menu
-              (λ (_1 _2)
-                (when (drscheme:language-configuration:add-new-teachpack this)
-                  (send (get-definitions-text) teachpack-changed))))
-            (let ([clear-all-on-demand
-                   (λ (menu-item)
-                     (send menu-item enable
-                           (not (null? (drscheme:teachpack:teachpack-cache-filenames
-                                        (preferences:get 'drscheme:teachpacks))))))])
-              (make-object menu:can-restore-menu-item% 
-                (string-constant clear-all-teachpacks-menu-item-label)
-                language-menu
-                (λ (_1 _2) 
-                  (when (drscheme:language-configuration:clear-all-teachpacks)
-                    (send (get-definitions-text) teachpack-changed)))
-                #f
-                #f
-                clear-all-on-demand))
-            
-            (set! execute-menu-item
-                  (make-object menu:can-restore-menu-item%
-                    (string-constant execute-menu-item-label)
-                    scheme-menu
-                    (λ (_1 _2) (execute-callback))
-                    #\t
-                    (string-constant execute-menu-item-help-string)))
-            (make-object menu:can-restore-menu-item%
-              (string-constant break-menu-item-label)
-              scheme-menu
-              (λ (_1 _2) (send current-tab break-callback))
-              #\b
-              (string-constant break-menu-item-help-string))
-            (make-object menu:can-restore-menu-item%
-              (string-constant kill-menu-item-label)
-              scheme-menu
-              (λ (_1 _2) (send interactions-text kill-evaluation))
-              #\k
-              (string-constant kill-menu-item-help-string))
-            (new menu:can-restore-menu-item%
-              (label (string-constant clear-error-highlight-menu-item-label))
-              (parent scheme-menu)
-              (callback (λ (_1 _2) (drscheme:rep:reset-error-ranges)))
-              (help-string (string-constant clear-error-highlight-item-help-string))
-              (demand-callback
-               (λ (item)
-                 (send item enable (drscheme:rep:get-error-ranges)))))
-            (make-object separator-menu-item% scheme-menu)
-            (make-object menu:can-restore-menu-item%
-              (string-constant create-executable-menu-item-label)
-              scheme-menu
-              (λ (x y) (create-executable this)))
-            (make-object menu:can-restore-menu-item%
-              (string-constant module-browser...)
-              scheme-menu
-              (λ (x y) (drscheme:module-overview:module-overview this)))
-            (make-object separator-menu-item% scheme-menu)
-            (make-object menu:can-restore-menu-item%
-              (string-constant reindent-menu-item-label)
-              scheme-menu
-              (send-method (λ (x) (send x tabify-selection))))
-            (make-object menu:can-restore-menu-item%
-              (string-constant reindent-all-menu-item-label)
-              scheme-menu
-              (send-method (λ (x) (send x tabify-all)))
-              #\i)
-            (make-object menu:can-restore-menu-item%
-              (string-constant box-comment-out-menu-item-label)
-              scheme-menu
-              (send-method (λ (x) (send x box-comment-out-selection))))
-            (make-object menu:can-restore-menu-item%
-              (string-constant semicolon-comment-out-menu-item-label)
-              scheme-menu
-              (send-method (λ (x) (send x comment-out-selection))))
-            (make-object menu:can-restore-menu-item%
-              (string-constant uncomment-menu-item-label)
-              scheme-menu
-              (λ (x y)
-                (let ([text (get-focus-object)])
-                  (when (is-a? text text%)
-                    (let ([admin (send text get-admin)])
-                      (cond
-                        [(is-a? admin editor-snip-editor-admin<%>)
-                         (let ([es (send admin get-snip)])
-                           (cond
-                             [(is-a? es comment-box:snip%)
-                              (let ([es-admin (send es get-admin)])
-                                (when es-admin
-                                  (let ([ed (send es-admin get-editor)])
-                                    (when (is-a? ed scheme:text<%>)
-                                      (send ed uncomment-box/selection)))))]
-                             [else (send text uncomment-selection)]))]
-                        [else (send text uncomment-selection)])))))))
-
-          (field [special-menu (make-object (get-menu%) (string-constant special-menu) (get-menu-bar))])
+          (define special-menu 'special-menu-not-yet-init)
           (define/public (get-special-menu) special-menu)
 
-          (let ([has-editor-on-demand
-                 (λ (menu-item)
-                   (let ([edit (get-edit-target-object)])
-                     (send menu-item enable (and edit (is-a? edit editor<%>)))))]
-                [callback
-                 (λ (menu evt)
-                   (let ([edit (get-edit-target-object)])
-                     (when (and edit
-                                (is-a? edit editor<%>))
-                       (let ([number (get-fraction-from-user this)])
-                         (when number
-                           (send edit insert
-                                 (number-snip:make-fraction-snip number #f)))))
-                     #t))]
-                [insert-lambda
-                 (λ ()
-                   (let ([edit (get-edit-target-object)])
-                     (when (and edit
-                                (is-a? edit editor<%>))
-                       (send edit insert "\u03BB")))
-                   #t)]
-                [insert-large-semicolon-letters
-                 (λ ()
-                   (let ([edit (get-edit-target-object)])
-                     (when edit
-                       (let ([str (get-text-from-user (string-constant large-semicolon-letters)
-                                                      (string-constant text-to-insert)
-                                                      this)])
-                         (when (and str
-                                    (not (equal? str "")))
-                           (let ()
-                             (define language-settings (send definitions-text get-next-settings))
-                             (define-values (comment-prefix comment-character)
-                               (if language-settings
-                                   (send (drscheme:language-configuration:language-settings-language
-                                          language-settings)
-                                         get-comment-character)
-                                   (values ";" #\;)))
-                             (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 #t)))
-                             (define the-font (send (send (editor:get-standard-style-list)
-                                                          find-named-style
-                                                          "Standard")
-                                                    get-font))
-                             (define-values (tw th td ta) (send bdc get-text-extent str the-font))
-                             (define tmp-color (make-object color%))
-                             
-                             
-                             (define chars #f)
-                             (define (compute-chars)
-                               (unless chars
-                                 (let* ([bdc (make-object bitmap-dc% (make-object bitmap% 20 20 #t))]
-                                        [index-char
-                                         (lambda (s)
-                                           (send bdc clear)
-                                           (let-values ([(w h a d) (send bdc get-text-extent s)])
-                                             (send bdc draw-text s 0 0)
-                                             (let loop ([x w])
-                                               (if (zero? x)
-                                                   0
-                                                   (+ (let loop ([y h])
-                                                        (if (zero? y)
-                                                            0
-                                                            (begin
-                                                              (send bdc get-pixel (- x 1) (- y 1) tmp-color)
-                                                              (+ (if (= (send tmp-color red) 255) 0 1)
-                                                                 (loop (- y 1))))))
-                                                      (loop (- x 1)))))))])
-                                   (send bdc set-font the-font)
-                                   (let* ([all-chars '(#\@ #\# #\+ #\- #\: #\$ #\& #\* #\space)]
-                                          [prs 
-                                           (quicksort
-                                            (map (lambda (c) (cons c (index-char (string c))))
-                                                 all-chars)
-                                            (lambda (x y) (> (cdr x) (cdr y))))]
-                                          [biggest (cdr (car prs))]
-                                          [smallest (cdr (car (last-pair prs)))]
-                                          [normalized
-                                           (map (lambda (x)
-                                                  (cons (car x)
-                                                        (- 255 (floor (* (/ (- (cdr x) smallest)
-                                                                            (- biggest smallest))
-                                                                         255)))))
-                                                prs)])
-                                     (set! chars normalized)))))
-                             (define (get-char x y)
-                               (send bdc get-pixel x y tmp-color)
-                               (let ([red (send tmp-color red)])
-                                 (or (ormap (lambda (pr)
-                                              (if (<= red (cdr pr))
-                                                  (car pr)
-                                                  #f))
-                                            chars)
-                                     #\space)))
-                             (define bitmap
-                               (make-object bitmap% 
-                                 (inexact->exact tw)
-                                 (inexact->exact th) 
-                                 #f))
-                             
-                             (define (fetch-line y)
-                               (let loop ([x (send bitmap get-width)]
-                                          [chars null])
-                                 (cond
-                                   [(zero? x) (apply string chars)]
-                                   [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
-                             
-                             (compute-chars)
-                             
-                             (send bdc set-bitmap bitmap)
-                             (send bdc clear)
-                             (send bdc set-font the-font)
-                             (send bdc draw-text str 0 0)
-                             
-                             (send edit begin-edit-sequence)
-                             (let ([start (send edit get-start-position)]
-                                   [end (send edit get-end-position)])
-                               (send edit delete start end)
-                               (send edit insert "\n" start start)
-                               (let loop ([y (send bitmap get-height)])
-                                 (unless (zero? y)
-                                   (send edit insert (fetch-line (- y 1)) start start)
-                                   (send edit insert comment-prefix start start)
+          
+          (define/private (initialize-menus)
+            (let* ([mb (get-menu-bar)]
+                   [language-menu-on-demand
+                    (λ (menu-item)
+                      (update-teachpack-menu))]
+                   [_ (set! language-menu (make-object (get-menu%) 
+                                            (string-constant language-menu-name)
+                                            mb
+                                            #f
+                                            language-menu-on-demand))]
+                   [scheme-menu (make-object (get-menu%) (string-constant scheme-menu-name) mb)]
+                   [send-method
+                    (λ (method)
+                      (λ (_1 _2)
+                        (let ([text (get-focus-object)])
+                          (when (is-a? text scheme:text<%>)
+                            (method text)))))])
+              
+              (make-object menu:can-restore-menu-item%
+                (string-constant choose-language-menu-item-label)
+                language-menu
+                (λ (_1 _2)
+                  (let ([new-settings (drscheme:language-configuration:language-dialog
+                                       #f
+                                       (send definitions-text get-next-settings)
+                                       this)])
+                    (when new-settings
+                      (send definitions-text set-next-settings new-settings)
+                      (preferences:set
+                       drscheme:language-configuration:settings-preferences-symbol
+                       new-settings))))
+                #\l)
+              (make-object separator-menu-item% language-menu)
+              (make-object menu:can-restore-menu-item%
+                (string-constant add-teachpack-menu-item-label)
+                language-menu
+                (λ (_1 _2)
+                  (when (drscheme:language-configuration:add-new-teachpack this)
+                    (send (get-definitions-text) teachpack-changed))))
+              (let ([clear-all-on-demand
+                     (λ (menu-item)
+                       (send menu-item enable
+                             (not (null? (drscheme:teachpack:teachpack-cache-filenames
+                                          (preferences:get 'drscheme:teachpacks))))))])
+                (make-object menu:can-restore-menu-item% 
+                  (string-constant clear-all-teachpacks-menu-item-label)
+                  language-menu
+                  (λ (_1 _2) 
+                    (when (drscheme:language-configuration:clear-all-teachpacks)
+                      (send (get-definitions-text) teachpack-changed)))
+                  #f
+                  #f
+                  clear-all-on-demand))
+              
+              (set! execute-menu-item
+                    (make-object menu:can-restore-menu-item%
+                      (string-constant execute-menu-item-label)
+                      scheme-menu
+                      (λ (_1 _2) (execute-callback))
+                      #\t
+                      (string-constant execute-menu-item-help-string)))
+              (make-object menu:can-restore-menu-item%
+                (string-constant break-menu-item-label)
+                scheme-menu
+                (λ (_1 _2) (send current-tab break-callback))
+                #\b
+                (string-constant break-menu-item-help-string))
+              (make-object menu:can-restore-menu-item%
+                (string-constant kill-menu-item-label)
+                scheme-menu
+                (λ (_1 _2) (send interactions-text kill-evaluation))
+                #\k
+                (string-constant kill-menu-item-help-string))
+              (new menu:can-restore-menu-item%
+                   (label (string-constant clear-error-highlight-menu-item-label))
+                   (parent scheme-menu)
+                   (callback (λ (_1 _2) (drscheme:rep:reset-error-ranges)))
+                   (help-string (string-constant clear-error-highlight-item-help-string))
+                   (demand-callback
+                    (λ (item)
+                      (send item enable (drscheme:rep:get-error-ranges)))))
+              (make-object separator-menu-item% scheme-menu)
+              (make-object menu:can-restore-menu-item%
+                (string-constant create-executable-menu-item-label)
+                scheme-menu
+                (λ (x y) (create-executable this)))
+              (make-object menu:can-restore-menu-item%
+                (string-constant module-browser...)
+                scheme-menu
+                (λ (x y) (drscheme:module-overview:module-overview this)))
+              (make-object separator-menu-item% scheme-menu)
+              (make-object menu:can-restore-menu-item%
+                (string-constant reindent-menu-item-label)
+                scheme-menu
+                (send-method (λ (x) (send x tabify-selection))))
+              (make-object menu:can-restore-menu-item%
+                (string-constant reindent-all-menu-item-label)
+                scheme-menu
+                (send-method (λ (x) (send x tabify-all)))
+                #\i)
+              (make-object menu:can-restore-menu-item%
+                (string-constant box-comment-out-menu-item-label)
+                scheme-menu
+                (send-method (λ (x) (send x box-comment-out-selection))))
+              (make-object menu:can-restore-menu-item%
+                (string-constant semicolon-comment-out-menu-item-label)
+                scheme-menu
+                (send-method (λ (x) (send x comment-out-selection))))
+              (make-object menu:can-restore-menu-item%
+                (string-constant uncomment-menu-item-label)
+                scheme-menu
+                (λ (x y)
+                  (let ([text (get-focus-object)])
+                    (when (is-a? text text%)
+                      (let ([admin (send text get-admin)])
+                        (cond
+                          [(is-a? admin editor-snip-editor-admin<%>)
+                           (let ([es (send admin get-snip)])
+                             (cond
+                               [(is-a? es comment-box:snip%)
+                                (let ([es-admin (send es get-admin)])
+                                  (when es-admin
+                                    (let ([ed (send es-admin get-editor)])
+                                      (when (is-a? ed scheme:text<%>)
+                                        (send ed uncomment-box/selection)))))]
+                               [else (send text uncomment-selection)]))]
+                          [else (send text uncomment-selection)]))))))
+            
+              (set! special-menu
+                    (make-object (get-menu%) (string-constant special-menu) mb))
+
+              (let ([has-editor-on-demand
+                     (λ (menu-item)
+                       (let ([edit (get-edit-target-object)])
+                         (send menu-item enable (and edit (is-a? edit editor<%>)))))]
+                    [callback
+                     (λ (menu evt)
+                       (let ([edit (get-edit-target-object)])
+                         (when (and edit
+                                    (is-a? edit editor<%>))
+                           (let ([number (get-fraction-from-user this)])
+                             (when number
+                               (send edit insert
+                                     (number-snip:make-fraction-snip number #f)))))
+                         #t))]
+                    [insert-lambda
+                     (λ ()
+                       (let ([edit (get-edit-target-object)])
+                         (when (and edit
+                                    (is-a? edit editor<%>))
+                           (send edit insert "\u03BB")))
+                       #t)]
+                    [insert-large-semicolon-letters
+                     (λ ()
+                       (let ([edit (get-edit-target-object)])
+                         (when edit
+                           (let ([str (get-text-from-user (string-constant large-semicolon-letters)
+                                                          (string-constant text-to-insert)
+                                                          this)])
+                             (when (and str
+                                        (not (equal? str "")))
+                               (let ()
+                                 (define language-settings (send definitions-text get-next-settings))
+                                 (define-values (comment-prefix comment-character)
+                                   (if language-settings
+                                       (send (drscheme:language-configuration:language-settings-language
+                                              language-settings)
+                                             get-comment-character)
+                                       (values ";" #\;)))
+                                 (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 #t)))
+                                 (define the-font (send (send (editor:get-standard-style-list)
+                                                              find-named-style
+                                                              "Standard")
+                                                        get-font))
+                                 (define-values (tw th td ta) (send bdc get-text-extent str the-font))
+                                 (define tmp-color (make-object color%))
+                                 
+                                 
+                                 (define chars #f)
+                                 (define (compute-chars)
+                                   (unless chars
+                                     (let* ([bdc (make-object bitmap-dc% (make-object bitmap% 20 20 #t))]
+                                            [index-char
+                                             (lambda (s)
+                                               (send bdc clear)
+                                               (let-values ([(w h a d) (send bdc get-text-extent s)])
+                                                 (send bdc draw-text s 0 0)
+                                                 (let loop ([x w])
+                                                   (if (zero? x)
+                                                       0
+                                                       (+ (let loop ([y h])
+                                                            (if (zero? y)
+                                                                0
+                                                                (begin
+                                                                  (send bdc get-pixel (- x 1) (- y 1) tmp-color)
+                                                                  (+ (if (= (send tmp-color red) 255) 0 1)
+                                                                     (loop (- y 1))))))
+                                                          (loop (- x 1)))))))])
+                                       (send bdc set-font the-font)
+                                       (let* ([all-chars '(#\@ #\# #\+ #\- #\: #\$ #\& #\* #\space)]
+                                              [prs 
+                                               (quicksort
+                                                (map (lambda (c) (cons c (index-char (string c))))
+                                                     all-chars)
+                                                (lambda (x y) (> (cdr x) (cdr y))))]
+                                              [biggest (cdr (car prs))]
+                                              [smallest (cdr (car (last-pair prs)))]
+                                              [normalized
+                                               (map (lambda (x)
+                                                      (cons (car x)
+                                                            (- 255 (floor (* (/ (- (cdr x) smallest)
+                                                                                (- biggest smallest))
+                                                                             255)))))
+                                                    prs)])
+                                         (set! chars normalized)))))
+                                 (define (get-char x y)
+                                   (send bdc get-pixel x y tmp-color)
+                                   (let ([red (send tmp-color red)])
+                                     (or (ormap (lambda (pr)
+                                                  (if (<= red (cdr pr))
+                                                      (car pr)
+                                                      #f))
+                                                chars)
+                                         #\space)))
+                                 (define bitmap
+                                   (make-object bitmap% 
+                                     (inexact->exact tw)
+                                     (inexact->exact th) 
+                                     #f))
+                                 
+                                 (define (fetch-line y)
+                                   (let loop ([x (send bitmap get-width)]
+                                              [chars null])
+                                     (cond
+                                       [(zero? x) (apply string chars)]
+                                       [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
+                                 
+                                 (compute-chars)
+                                 
+                                 (send bdc set-bitmap bitmap)
+                                 (send bdc clear)
+                                 (send bdc set-font the-font)
+                                 (send bdc draw-text str 0 0)
+                                 
+                                 (send edit begin-edit-sequence)
+                                 (let ([start (send edit get-start-position)]
+                                       [end (send edit get-end-position)])
+                                   (send edit delete start end)
                                    (send edit insert "\n" start start)
-                                   (loop (- y 1)))))
-                             (send edit end-edit-sequence)))))))]
-                [c% (get-menu-item%)])
-            (frame:add-snip-menu-items special-menu c%)
+                                   (let loop ([y (send bitmap get-height)])
+                                     (unless (zero? y)
+                                       (send edit insert (fetch-line (- y 1)) start start)
+                                       (send edit insert comment-prefix start start)
+                                       (send edit insert "\n" start start)
+                                       (loop (- y 1)))))
+                                 (send edit end-edit-sequence)))))))]
+                    [c% (get-menu-item%)])
+                (frame:add-snip-menu-items special-menu c%)
+                
+                (make-object c% (string-constant insert-fraction-menu-item-label)
+                  special-menu callback 
+                  #f #f
+                  has-editor-on-demand)
+                (make-object c% (string-constant insert-large-letters...)
+                  special-menu
+                  (λ (x y) (insert-large-semicolon-letters))
+                  #f #f
+                  has-editor-on-demand)
+                (make-object c% (string-constant insert-lambda)
+                  special-menu
+                  (λ (x y) (insert-lambda))
+                  #\\
+                  #f
+                  has-editor-on-demand))
 
-            (make-object c% (string-constant insert-fraction-menu-item-label)
-              special-menu callback 
-              #f #f
-              has-editor-on-demand)
-            (make-object c% (string-constant insert-large-letters...)
-              special-menu
-              (λ (x y) (insert-large-semicolon-letters))
-              #f #f
-              has-editor-on-demand)
-            (make-object c% (string-constant insert-lambda)
-              special-menu
-              (λ (x y) (insert-lambda))
-              #\\
-              #f
-              has-editor-on-demand))
+              (make-object separator-menu-item% (get-show-menu))
+              
+              (new menu:can-restore-menu-item%
+                   (shortcut (if (eq? (system-type) 'macosx) #f #\m))
+                   (label (string-constant split-menu-item-label))
+                   (parent (get-show-menu))
+                   (callback (λ (x y) (split)))
+                   (demand-callback (λ (item) (split-demand item))))
+              (new menu:can-restore-menu-item% 
+                   (shortcut #\r)
+                   (label (string-constant collapse-menu-item-label))
+                   (parent (get-show-menu))
+                   (callback (λ (x y) (collapse)))
+                   (demand-callback (λ (item) (collapse-demand item))))
+              
+              (frame:reorder-menus this)))
 
-          (make-object separator-menu-item% (get-show-menu))
+;                          
+;                          
+;                          
+;                          
+;   ++-@@-   -+@+- +++: :++
+;   +@@-+@  -@-:-@--@-   -@
+;   :@:  @: @+   ++ @::@::@
+;   :@   @: @@@@@@@ +--@--*
+;   :@   @: @-      -@+*+@:
+;   -@: :@- +@:::+@ :@@:@@ 
+;   @@@ +@@: +@@@+:  ++ ++ 
+;                          
+;                          
+;                          
+
+          (define definitions-text (new (drscheme:get/extend:get-definitions-text)))
+                    
+          ;; tabs : (listof tab)
+          (define tabs (list (new (drscheme:get/extend:get-tab)
+                                  (defs definitions-text)
+                                  (frame this)
+                                  (i 0))))
           
-          (new menu:can-restore-menu-item%
-            (shortcut (if (eq? (system-type) 'macosx) #f #\m))
-            (label (string-constant split-menu-item-label))
-            (parent (get-show-menu))
-            (callback (λ (x y) (split)))
-            (demand-callback (λ (item) (split-demand item))))
-          (new menu:can-restore-menu-item% 
-            (shortcut #\r)
-            (label (string-constant collapse-menu-item-label))
-            (parent (get-show-menu))
-            (callback (λ (x y) (collapse)))
-            (demand-callback (λ (item) (collapse-demand item))))
+          ;; current-tab : tab
+          ;; corresponds to the tabs-panel's active button.
+          (define current-tab (car tabs))
           
-          (frame:reorder-menus this)
+          (define interactions-text (new (drscheme:get/extend:get-interactions-text) 
+                                         (context (car tabs))))
+          (send (car tabs) set-ints interactions-text)
+          
+          (init-definitions-text (car tabs))
+          
+          (super-new
+            (filename filename)
+            (style '(toolbar-button))
+            (width (preferences:get 'drscheme:unit-window-width))
+            (height (preferences:get 'drscheme:unit-window-height)))
+          
+          (initialize-menus)
 
           
 ;                                                                               
@@ -2789,12 +2833,6 @@ NEEDS TO UPDATE RUNNING
                   (λ (x y)
 		    (send current-tab break-callback))))
           
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;
-          ;; initialization
-          ;;
-          
-          
           (send button-panel stretchable-height #f)
           (send button-panel stretchable-width #f) 
           
@@ -2809,11 +2847,11 @@ NEEDS TO UPDATE RUNNING
           (let ([m (send definitions-canvas get-editor)])
             (set-save-init-shown?
              (and m (send m is-modified?))))
-	  
-          (update-save-message)
+
+	  (update-save-message)
           (update-save-button)
           
-          (cond
+	  (cond
             [filename
              (set! definitions-shown? #t)
              (set! interactions-shown? #f)]
@@ -2824,17 +2862,15 @@ NEEDS TO UPDATE RUNNING
           (update-shown)
 
           (when (= 2 (length (send resizable-panel get-children)))
-            ;; should really test this, but too lazy to add inspector to framework (for now)
-            (with-handlers ([exn:fail? (λ (x) (void))])
-              (send resizable-panel set-percentages
-                    (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
-                      (list p (- 1 p))))))
+            (send resizable-panel set-percentages
+                  (let ([p (preferences:get 'drscheme:unit-window-size-percentage)])
+                    (list p (- 1 p)))))
           
           (set-label-prefix (string-constant drscheme))
           (update-toolbar-visiblity)
           (set! newest-frame this)
           (send definitions-canvas focus)))
-
+      
       (define -frame% (frame-mixin super-frame%))
 
       (define module-browser-dragable-panel%
