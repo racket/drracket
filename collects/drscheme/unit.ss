@@ -661,6 +661,14 @@
     (drscheme:frame:mixin
      (drscheme:frame:basics-mixin fw:frame:searchable%)))
   
+  (define vertical-resizable/pref%
+    (class fw:panel:vertical-resizable% args
+      (override
+        [on-percentage
+         (lambda (new)
+           (fw:preferences:set 'drscheme:unit-window-size-percentage new))])
+      (sequence (apply super-init args))))
+
   (define frame%
     (class* super-frame% (drscheme:rep:context<%>) (filename)
       (inherit set-label-prefix show-menu
@@ -1095,8 +1103,10 @@
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
 	[name-panel (make-object mred:vertical-panel% top-panel)]
-	[resizable-panel (make-object fw:panel:vertical-resizable% (get-area-container))])
+	[resizable-panel (make-object vertical-resizable/pref% (get-area-container))])
       (sequence
+        (send resizable-panel set-percentage 
+              (fw:preferences:get 'drscheme:unit-window-size-percentage))
 	(send name-panel stretchable-width #f)
 	(send name-panel stretchable-height #f))
 
