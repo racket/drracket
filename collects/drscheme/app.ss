@@ -141,7 +141,11 @@
 	   [panel (send f get-area-container)]
 	   [top-hp (make-object horizontal-panel% panel)]
 	   [left-vp (make-object vertical-panel% top-hp)]
-	   [plt-icon (make-object message% (get-plt-bitmap) left-vp)]
+           [plt-bitmap (get-plt-bitmap)]
+	   [plt-icon (make-object message% (if (send plt-bitmap ok?)
+                                               plt-bitmap
+                                               "[plt]")
+                       left-vp)]
 	   [outer-button-panel (make-object vertical-panel% top-hp)]
 	   [top-button-panel (make-object vertical-panel% outer-button-panel)]
 	   [bottom-button-panel (make-object vertical-panel% outer-button-panel)]
