@@ -35,7 +35,11 @@
                                          in-name-obj))
                                       (syntax->list (syntax (name ...))))])
                     (syntax/loc in-stx
-                     (let ([in-name (contract in-type in-name 'drscheme tool-name (quote-syntax in-name))] (... ...))
+                     (let ([in-name (contract (let ([in-name in-type]) in-name)
+                                              in-name
+                                              'drscheme
+                                              tool-name
+                                              (quote-syntax in-name))] (... ...))
                        body)))]))))))]
       [(_ (name type type-names strs ...) ...)
        (begin
