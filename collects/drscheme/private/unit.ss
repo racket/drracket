@@ -5,6 +5,7 @@
            (lib "string-constant.ss" "string-constants")
 	   "drsig.ss"
 	   (lib "mred.ss" "mred")
+           (prefix mred: (lib "mred.ss" "mred"))
            (lib "framework.ss" "framework")
            (prefix launcher: (lib "launcher.ss" "launcher"))
            (lib "etc.ss")
@@ -790,6 +791,106 @@
                    file-menu:get-save-as-item
                    file-menu:get-revert-item
                    file-menu:get-print-item)
+
+          ;; logging : (union #f string[directory-name])
+          (field [logging #f]
+                 [definitions-log-counter 0]  ;; number
+                 [interactions-log-counter 0] ;; number
+                 [logging-panel #f]           ;; panel (unitialized short time only)
+                 [logging-menu-item #f])      ;; menu-item (unitialized short time only)
+          ;; log-definitions : -> void
+          (define/private (log-definitions)
+            (when logging
+              (set! definitions-log-counter (+ definitions-log-counter 1))
+              (send definitions-text save-file 
+                    (build-path logging (format "~a-definitions" (pad-two definitions-log-counter)))
+                    'copy)))
+          
+          ;; log-ineractions : -> void
+          (define/private (log-interactions)
+            (when logging
+              (set! interactions-log-counter (+ interactions-log-counter 1))
+              (send interactions-text save-file 
+                    (build-path logging (format "~a-interactions" (pad-two interactions-log-counter)))
+                    'copy)))
+          
+          ;; pad-two : number -> string
+          (define (pad-two n)
+            (cond
+              [(<= 0 n 9) (format "0~a" n)]
+              [else (format "~a" n)]))
+          
+          ;; start-logging : -> void
+          ;; turns on the logging and shows the logging gui
+          (define (start-logging)
+            (let ([log-directory (mred:get-directory
+                                  (string-constant please-choose-a-log-directory)
+                                  this)])
+              (when (and log-directory
+                         (ensure-empty log-directory))
+                (send logging-menu-item enable #f)
+                (set! logging log-directory)
+                (set! definitions-log-counter 0)
+                (set! interactions-log-counter 0)
+                (build-logging-panel)
+                (log-definitions))))
+          
+          ;; stop-logging : -> void
+          ;; turns off the logging procedure
+          (define (stop-logging)
+            (log-interactions)
+            (send logging-menu-item enable #t)
+            (set! logging #f)
+            (send logging-panel change-children (lambda (l) null)))
+          
+          ;; build-logging-panel : -> void
+          ;; builds the contents of the logging panel
+          (define (build-logging-panel)
+            (define hp (make-object horizontal-panel% logging-panel '(border)))
+            (make-object message% (string-constant logging-to) hp)
+            (send (make-object message% logging hp) stretchable-width #t)
+            (make-object button% (string-constant stop-logging) hp (lambda (x y) (stop-logging))))
+          
+          ;; ensure-empty : string[directory] -> boolean
+          ;; if the log-directory is empty, just return #t
+          ;; if not, ask the user about emptying it. 
+          ;;   if they say yes, try to empty it.
+          ;;     if that fails, report the error and return #f.
+          ;;     if it succeeds, return #t.
+          ;;   if they say no, return #f.
+          (define (ensure-empty log-directory)
+            (let ([dir-list (directory-list log-directory)])
+              (or (null? dir-list)
+                  (let ([query (message-box 
+                                (string-constant drscheme)
+                                (format (string-constant erase-log-directory-contents) log-directory)
+                                this
+                                '(yes-no))])
+                    (cond
+                      [(eq? query 'no) 
+                       #f]
+                      [(eq? query 'yes)
+                       (with-handlers ([not-break-exn?
+                                        (lambda (exn)
+                                          (message-box 
+                                           (string-constant drscheme)
+                                           (format (string-constant error-erasing-log-directory)
+                                                   (if (exn? exn)
+                                                       (exn-message exn)
+                                                       (format "~s" exn)))
+                                           this)
+                                          #f)])
+                         (for-each (lambda (file) (delete-file (build-path log-directory file)))
+                                   dir-list)
+                         #t)])))))
+
+          (rename [super-make-root-area-container make-root-area-container])
+          (define/override (make-root-area-container cls parent)
+            (let* ([outer-panel (super-make-root-area-container vertical-panel% parent)]
+                   [root (make-object cls outer-panel)])
+              (set! logging-panel (make-object horizontal-panel% outer-panel))
+              (send logging-panel stretchable-height #f)
+              root))
           
           (public clear-annotations)
           [define clear-annotations
@@ -981,6 +1082,12 @@
                   sub-menu
                   (lambda (_1 _2)
                     (save-as-text-from-text interactions-text)))
+                (make-object separator-menu-item% file-menu)
+                (set! logging-menu-item
+                      (make-object menu:can-restore-menu-item%
+                        (string-constant log-definitions-and-interactions)
+                        file-menu
+                        (lambda (x y) (start-logging))))
                 (make-object separator-menu-item% file-menu)))]
           [define file-menu:print-string (lambda () (string-constant print-definitions))]
           [define file-menu:between-print-and-close
@@ -1289,6 +1396,8 @@
              (lambda ()
                (when (eq? this created-frame)
                  (set! created-frame #f))
+               (when logging
+                 (stop-logging))
                (send interactions-text shutdown)
                (send interactions-text on-close)
                (super-on-close))]
@@ -1349,6 +1458,9 @@
                 this)]
               [else
                (ensure-rep-shown)
+               (when logging
+                 (log-definitions)
+                 (log-interactions))
                (send definitions-text just-executed)
                (send interactions-canvas focus)
                (send interactions-text reset-console)
