@@ -33,7 +33,7 @@
 		      (loop (- counter step))))))))]))
   
   (define (drscheme-frame? frame)
-    (ivar-in-class? 'execute-button (object-class frame)))
+    (ivar-in-interface? 'execute-button (object-interface frame)))
   
   (define (wait-for-drscheme-frame)
     (let* ([pred (lambda ()
