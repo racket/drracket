@@ -583,7 +583,6 @@
           get-prompt-position
           
           do-pre-eval
-          do-eval
           do-post-eval
           eval-busy?))
 
@@ -659,7 +658,7 @@
           (rename [super-initialize-console initialize-console]
                   [super-reset-console reset-console])
           
-          (override get-prompt eval-busy? do-eval
+          (override get-prompt eval-busy?
                     initialize-console
                     reset-console)
           
@@ -1636,10 +1635,6 @@
                   set-prompt-position
                   get-prompt-position
                   
-                  
-                  do-pre-eval
-                  do-eval
-                  do-post-eval
                   eval-busy?)
           
           (define edit-sequence-count 0)
@@ -1826,7 +1821,8 @@
                 (set! previous-expr-positions (cons (cons start end) previous-expr-positions))
                 (set! previous-expr-pos -1)
                 (add-to-previous-exprs snips)
-                (do-eval start end))))
+                ;(do-eval start end)
+                )))
           
           (define reset-pretty-print-width
             (lambda ()
