@@ -205,12 +205,17 @@
                                 [(p mime-headers)
                                  (if (port? url)
                                      (values url empty-header)
-                                     ; Try to get mime info, but use get-pure-port if that fails:
-                                     (with-handlers ([void (lambda (x) 
-                                                             (values (get-pure-port url) empty-header))])
-                                       (let ([p (get-impure-port url)])
-                                         (let ([headers (purify-port p)])
-                                           (values p headers)))))])
+				     ;; Turn on the busy cursor:
+				     (dynamic-wind
+				      (lambda () (begin-busy-cursor))
+				      (lambda ()
+					;; Try to get mime info, but use get-pure-port if that fails.
+					(with-handlers ([void (lambda (x) 
+								(values (get-pure-port url) empty-header))])
+						       (let ([p (get-impure-port url)])
+							 (let ([headers (purify-port p)])
+							   (values p headers)))))
+				      (lambda () (end-busy-cursor))))])
                      (lock #f)
                      (dynamic-wind
                       (lambda ()
@@ -463,7 +468,9 @@
             (sequence
               (apply super-init args)
               (add-h-link-style)
-              (reload progress)))))
+	      ;; load url, but the user might break:
+	      (with-handlers ([exn:break? void])
+                 (reload progress))))))
       
       (define hyper-text% (hyper-text-mixin text:keymap%))
       
