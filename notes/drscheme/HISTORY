@@ -2,6 +2,18 @@
         Version 299
 ------------------------------
 
+ - the PLTDRDEBUG environment variable now works much
+   better. Thanks to improvements in cm, setting it now
+   builds .zos with errortrace and should make porting tools
+   to v299 much easier.
+
+ - set the PLTDRBREAK environment variable to get a window
+   with two buttons that are useful for debugging deadlocks
+   & infinite loops. The buttons break drscheme's
+   eventspace's main thread and all threads started by
+   drscheme (and tools) resp. Useful in combination with
+   PLTDRDEBUG
+
  - front-end/complete-program and front-end/interaction
    methods now accept a port, instead of an `input'.
 
