@@ -105,8 +105,7 @@
      drs-bindings-keymap-mixin
      current-rep
      text%
-     context<%>
-     show-interactions-history))
+     context<%>))
   
   (define-signature drscheme:app^
     (check-new-version

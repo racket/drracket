@@ -244,14 +244,14 @@
   ;;   ((implements editor:keymap<%>) -> (implements editor:keymap<%>))
   ;;   for any x that is an instance of the resulting class,
   ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
-      (define (drs-bindings-keymap-mixin editor%)
+      (define drs-bindings-keymap-mixin
+	(mixin (editor:keymap<%>) (editor:keymap<%>)
         (class100 editor% args
           (rename [super-get-keymaps get-keymaps])
-          (override
-            [get-keymaps
-             (lambda ()
-               (cons drs-bindings-keymap (super-get-keymaps)))])
-          (sequence (apply super-init args))))
+          (override get-keymaps)
+	  [define (get-keymaps)
+	    (cons drs-bindings-keymap (super-get-keymaps))]
+          (super-instantiate ())))
       
   ;; Max length of output queue (user's thread blocks if the
   ;; queue is full):
@@ -346,16 +346,6 @@
         (preferences:set-un/marshall
          'console-previous-exprs
          marshall unmarshall))
-      (define (show-interactions-history)
-        (let* ([f (make-object (drscheme:frame:basics-mixin frame:standard-menus%)
-                    "Interactions History"
-                    #f
-                    300
-                    400)]
-               [panel (send f get-panel)]
-               [text (make-object text%)]
-               [canvas (make-object editor-canvas% panel text)])
-          (send f show #t)))
       
       (define error-color (make-object color% "PINK"))
       (define color? ((get-display-depth) . > . 8))

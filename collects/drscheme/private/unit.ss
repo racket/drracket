@@ -350,7 +350,7 @@
             (apply super-init args))))
       
       (define program-editor-mixin
-	(mixin ((class->interface text%)) ()
+	(mixin (editor:basic<%> (class->interface text%)) ()
 	  (init-rest args)
           (override after-insert after-delete)
 	  (inherit get-top-level-window)
@@ -836,7 +836,6 @@
                (when file
                  (send text save-file file 'text))))]
           
-          (public toggle-show/hide)
           [define toggle-show/hide
             (lambda (item)
               (let ([label (send item get-label)])
@@ -891,12 +890,6 @@
                   sub-menu
                   (lambda (_1 _2)
                     (save-as-text-from-text interactions-text)))
-                ;	   (make-object separator-menu-item% file-menu)
-                ;	   (make-object menu:can-restore-menu-item%
-                ;	     "Show Interactions History"
-                ;	     file-menu
-                ;	     (lambda (_1 _2)
-                ;	       (drscheme:rep:show-interactions-history)))
                 (make-object separator-menu-item% file-menu)))]
           [define file-menu:print-string (lambda () (string-constant definitions))]
           [define file-menu:between-print-and-close
@@ -1147,9 +1140,6 @@
                          start
                          (send definitions-text last-position)))
                  (send interactions-text clear-undos)]))]
-          
-          (public after-change-name)
-          [define after-change-name (lambda () (void))]
           
           (inherit get-menu-bar get-focus-object get-edit-target-object)
           [define language-menu 'uninited-language-menu]

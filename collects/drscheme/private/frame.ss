@@ -318,7 +318,7 @@
                          (send menu-item enable (can-show-keybindings?))))])
                 (instantiate menu-item% ()
 		  (label "Keybindings")
-		  (menu menu)
+		  (parent menu)
                   (callback (lambda x (show-keybindings)))
                   (help-string "Show the currently active keybindings")
                   (demand-callback keybindings-on-demand)))
