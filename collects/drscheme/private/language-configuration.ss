@@ -16,7 +16,7 @@
            (lib "toplevel.ss" "syntax"))
   
   (define original-output (current-output-port))
-  (define (printfo . args) (apply printf args))
+  (define (printfo . args) (apply fprintf original-output args))
   
   (provide language-configuration@)
   
@@ -869,9 +869,14 @@
                            (with-handlers ([not-break-exn?
                                             (lambda (x)
                                               (message-box (string-constant drscheme)
-                                                           (if (exn? x)
-                                                               (exn-message x)
-                                                               (format "~s" x)))
+                                                           (let ([p (open-output-string)])
+                                                             (parameterize ([current-output-port p])
+                                                               ((error-display-handler)
+                                                                (if (exn? x)
+                                                                    (exn-message x)
+                                                                    (format "uncaught exception: ~s" x))
+                                                                x))
+                                                             (get-output-string p)))
                                               read-syntax)])
                              (contract
                               (opt-> (any?)
