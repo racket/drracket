@@ -1,6 +1,7 @@
 (module marks mzscheme
 
   (require (lib "list.ss")
+           (lib "specs.ss" "framework")
            "my-macros.ss")
   
   (provide
@@ -8,7 +9,8 @@
    cheap-mark?
    make-cheap-mark
    cheap-mark-source
-   make-full-mark
+   make-full-mark ; : (syntax[location] symbol[label] (listof identifier)[bindings] -> syntax[mark])
+   stx-protector-stx ; : (protector -> identifier) FOR TESTING ONLY
    mark-source
    mark-bindings
    mark-label
@@ -20,7 +22,10 @@
    lookup-binding-list
    debug-key
    extract-mark-list)
-  
+
+  (define (identifier-list? idl)
+    (and (list? idl) (andmap identifier? idl)))
+
   (make-contract-checker SYNTAX-OBJECT
                          syntax?)
   
@@ -67,9 +72,19 @@
   (define (make-full-mark-varargs source label-num . bindings)
     (make-full-mark-struct source label-num bindings))
   
-  (define (make-full-mark location label bindings)
-    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs (quote-syntax ,location) 
-                                              ,(get-label-num label) ,@(apply append bindings)))))
+  (define-struct stx-protector (stx))
+  
+  ; see module top for type
+  (define make-full-mark
+    (contract
+     (-> syntax? symbol? identifier-list? syntax?) 
+     (lambda (location label bindings)
+       (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
+                                                 (quote-syntax ,location) 
+                                                 ,(get-label-num label)
+                                                 ,@(apply append (map make-mark-binding-stx bindings))))))
+     'make-full-mark
+     'caller))
   
   (define-struct cheap-mark (source))
   
@@ -82,6 +97,10 @@
   (define (extract-locations mark-set)
     (map mark-source (extract-mark-list mark-set)))
     
+  ; : identifier -> (list identifier TST)
+  (define (make-mark-binding-stx id)
+    (list id (make-stx-protector id)))
+  
   (define (mark-bindings mark)
     (letrec ([pair-off
               (lambda (lst)
@@ -98,7 +117,7 @@
     (car mark-binding))
   
   (define (mark-binding-binding mark-binding)
-    (cadr mark-binding))
+    (stx-protector-stx (cadr mark-binding)))
 
   (define (expose-mark mark)
     (let ([source (mark-source mark)]
