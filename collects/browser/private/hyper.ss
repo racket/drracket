@@ -277,56 +277,59 @@ A test case:
                    [wait-to-show (make-semaphore 1)]
                    [orig-eventspace (current-eventspace)]
                    [timeout-thread
-                    (parameterize ([break-enabled #f])
-                      (thread (lambda () 
-                                (error-display-handler void) 
-                                (break-enabled #t)
-                                (sleep 1))))]
+                    (parameterize-break 
+                     #f
+                     (thread (lambda () 
+                               (error-display-handler void) 
+                               (break-enabled #t)
+                               (sleep 1))))]
                    [break-button 
                     (and (is-a? top-level-window hyper-frame<%>)
                          (send (send top-level-window get-hyper-panel) get-break-button))]
                    ; Thread to perform the work (e.g., download):
-                   [t (parameterize ([break-enabled #f])
-                        (thread
-                         (lambda ()
-                           (define (finished-work)
-                             (semaphore-wait wait-to-show)
-                             (set! done? #t)
-                             (show-progress "")
-                             (when progress-dlg
-                               (send progress-dlg show #f))
-                             (when break-button
-                               (send break-button enable #f))
-                             (close-browser-status-line top-level-window)
-                             (break-thread timeout-thread)
-                             (semaphore-post wait-to-show))
-                           (with-handlers ([void (lambda (x)
-                                                   (set! exn x))])
-                             (parameterize ([break-enabled #t])
-                               (semaphore-post wait-to-break)
-                               (set! result
-                                     (work (lambda (s)
-                                             (set! e-text s)
-                                             (semaphore-wait wait-to-show)
-                                             (show-progress s)
-                                             (semaphore-post wait-to-show))
-                                           (lambda (finisher)
-                                             (finished-work)
-                                             (set! finished-work #f)
-                                             (let ([wait-for-finish (make-semaphore)]
-                                                   [exn #f])
-                                               (parameterize ([current-eventspace orig-eventspace])
-                                                 (queue-callback
-                                                  (lambda ()
-                                                    (with-handlers ([void (lambda (x)
-                                                                            (set! exn x))])
-                                                      (finisher))
-                                                    (semaphore-post wait-for-finish))))
-                                               (semaphore-wait wait-for-finish)
-                                               (when exn (raise exn))))))))
-                           (when finished-work
-                             (finished-work))
-                           (semaphore-post wait-to-continue))))]
+                   [t (parameterize-break 
+                       #f
+                       (thread
+                        (lambda ()
+                          (define (finished-work)
+                            (semaphore-wait wait-to-show)
+                            (set! done? #t)
+                            (show-progress "")
+                            (when progress-dlg
+                              (send progress-dlg show #f))
+                            (when break-button
+                              (send break-button enable #f))
+                            (close-browser-status-line top-level-window)
+                            (break-thread timeout-thread)
+                            (semaphore-post wait-to-show))
+                          (with-handlers ([void (lambda (x)
+                                                  (set! exn x))])
+                            (parameterize-break 
+                             #t
+                             (semaphore-post wait-to-break)
+                             (set! result
+                                   (work (lambda (s)
+                                           (set! e-text s)
+                                           (semaphore-wait wait-to-show)
+                                           (show-progress s)
+                                           (semaphore-post wait-to-show))
+                                         (lambda (finisher)
+                                           (finished-work)
+                                           (set! finished-work #f)
+                                           (let ([wait-for-finish (make-semaphore)]
+                                                 [exn #f])
+                                             (parameterize ([current-eventspace orig-eventspace])
+                                               (queue-callback
+                                                (lambda ()
+                                                  (with-handlers ([void (lambda (x)
+                                                                          (set! exn x))])
+                                                    (finisher))
+                                                  (semaphore-post wait-for-finish))))
+                                             (semaphore-wait wait-for-finish)
+                                             (when exn (raise exn))))))))
+                          (when finished-work
+                            (finished-work))
+                          (semaphore-post wait-to-continue))))]
                    [make-dialog
                     (lambda ()
                       (semaphore-wait wait-to-show)
