@@ -737,11 +737,13 @@ get-directory: (-> (union string #f))
 	[after-change-name void])
 
       (inherit get-menu-bar get-focus-object)
+      (private
+	[language-menu 'uninited-language-menu])
       (sequence
 	(super-init filename)
 
 	(let* ([mb (get-menu-bar)]
-	       [language-menu (make-object (get-menu%) "&Language" mb)]
+	       [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]
 	       [scheme-menu (make-object (get-menu%) "S&cheme" mb)]
 	       [send-method
 		(lambda (method)
@@ -847,22 +849,24 @@ get-directory: (-> (union string #f))
 	
 	(set! name-message (make-object name-message% top-panel)))
       (private 
-	[update-teachpack-panel
-	 (lambda (pack)
-	   (let ([names (cond
-			 [(string? pack) (list pack)]
-			 [(not pack) null]
-			 [else pack])])
-	     (send teachpack-panel change-children (lambda (l) null))
-	     (for-each
-	      (lambda (name)
-		(let-values ([(base short-name must-be-dir) (split-path name)])
-		  (make-object mred:message% short-name teachpack-panel)))
-	      names)))]
-	[teachpack-panel (make-object mred:vertical-panel% top-panel)])
+	[teachpack-items null]
+	[update-teachpack-menu
+	 (lambda (names)
+	   (for-each (lambda (item) (send item delete)) teachpack-items)
+	   (set! teachpack-items
+		 (map (lambda (name)
+			(make-object mred:menu-item%
+			  (format "Clear ~a Teachpack" (mzlib:file:file-name-from-path name))
+			  language-menu
+			  (lambda (item evt)
+			    (fw:preferences:set
+			     'drscheme:teachpack-file
+			     (mzlib:function:remove
+			      name
+			      (fw:preferences:get 'drscheme:teachpack-file))))))
+		      names)))])
       (sequence
-	(send teachpack-panel set-alignment 'left 'center)
-	(update-teachpack-panel
+	(update-teachpack-menu
 	 (fw:preferences:get 'drscheme:teachpack-file)))
       
       (public
@@ -892,19 +896,14 @@ get-directory: (-> (union string #f))
 	[remove-teachpack-callback
 	 (fw:preferences:add-callback
 	  'drscheme:teachpack-file
-	  (let ([last-one (fw:preferences:get 'drscheme:teachpack-file)])
-	    (lambda (p v)
-	      (unless (equal? v last-one)
-		(set! last-one v)
-		(update-teachpack-panel v)
-		(send definitions-text teachpack-changed)))))])
+	  (lambda (p v)
+	    (update-teachpack-menu v)
+	    (send definitions-text teachpack-changed)))])
       
       (private
 	[build-top-panel-children
 	 (lambda ()
-	   (list name-message save-button
-		 teachpack-panel
-		 button-panel))])
+	   (list name-message save-button button-panel))])
       
       (inherit get-label)
       (sequence

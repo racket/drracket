@@ -36,35 +36,39 @@
     (ivar-in-interface? 'execute-button (object-interface frame)))
   
   (define (wait-for-drscheme-frame)
-    (let* ([pred (lambda ()
-		   (yield)
-		   (let ([active (get-top-level-focus-window)])
-		     (if (and active
-			      (drscheme-frame? active))
-			 active
-			 #f)))])
-      (or (pred)
+    (let ([wait-for-drscheme-frame-pred
+	   (lambda ()
+	     (yield)
+	     (let ([active (get-top-level-focus-window)])
+	       (if (and active
+			(drscheme-frame? active))
+		   active
+		   #f)))])
+      (or (wait-for-drscheme-frame-pred)
 	  (begin
 	    (printf "Select DrScheme frame~n")
-	    (poll-until pred)))))
+	    (poll-until wait-for-drscheme-frame-pred)))))
   
   (define (wait-for-new-frame old-frame)
-    (poll-until
-     (lambda ()
-       (let ([active (get-top-level-focus-window)])
-	 (if (and active
-		  (not (eq? active old-frame)))
-	     active
-	     #f)))))
+    (let ([wait-for-new-frame-pred
+	   (lambda ()
+	     (let ([active (get-top-level-focus-window)])
+	       (if (and active
+			(not (eq? active old-frame)))
+		   active
+		   #f)))])
+      (poll-until wait-for-new-frame-pred)))
 
   (define (wait-for-computation frame)
     (verify-drscheme-frame-frontmost 'wait-for-computation frame)
-      (let ([button (ivar frame execute-button)])
-	(poll-until
-	 (lambda ()
-	   (fw:test:reraise-error)
-	   (send button is-enabled?))
-	 60)))
+    (let* ([button (ivar frame execute-button)]
+	   [wait-for-computation-pred
+	    (lambda ()
+	      (fw:test:reraise-error)
+	      (send button is-enabled?))])
+      (poll-until
+       wait-for-computation-pred
+       60)))
 
   (define do-execute 
     (case-lambda
@@ -167,15 +171,19 @@
   
   (define (wait-for-button button)
     (poll-until
-     (lambda ()
-       (send button is-enabled?))))
+     (let ([wait-for-button-pred
+	    (lambda ()
+	      (send button is-enabled?))])
+       wait-for-button-pred)))
   
   (define (push-button-and-wait button)
     (fw:test:button-push button)
     (poll-until
-     (lambda ()
-       (fw:test:reraise-error)
-       (= 0 (fw:test:number-pending-actions))))
+     (let ([button-push-and-wait-pred
+	    (lambda ()
+	      (fw:test:reraise-error)
+	      (= 0 (fw:test:number-pending-actions)))])
+       button-push-and-wait-pred))
     (wait-for-button button))
   
   ; set language level in the frontmost DrScheme frame
@@ -210,6 +218,32 @@
   (define (repl-in-edit-sequence?)
     (send (ivar (wait-for-drscheme-frame) interactions-text) refresh-delayed?))
  
+  (define (has-error? frame)
+    (verify-drscheme-frame-frontmost 'had-error? frame)
+    (let* ([interactions-text (ivar frame interactions-text)]
+	   [last-para (send interactions-text last-paragraph)])
+      (unless (>= last-para 2)
+	(error 'has-error? "expected at least 2 paragraphs in interactions window, found ~a"
+	       (+ last-para 1)))
+      (let ([start (send interactions-text paragraph-start-position 2)]
+	    [end (send interactions-text paragraph-end-position
+		       (- (send interactions-text last-paragraph) 1))])
+	(send interactions-text split-snip start)
+	(send interactions-text split-snip end)
+	(let loop ([pos start])
+	  (cond
+	   [(<= end pos) #f]
+	   [else
+	    (let ([snip (send interactions-text find-snip pos 'after-or-none)])
+	      (cond
+	       [(not snip) #f]
+	       [else
+		(let ([color (send (send snip get-style) get-foreground)])
+		  (if (and (= 255 (send color red))
+			   (= 0 (send color blue) (send color green)))
+		      #t
+		      (loop (+ pos (send snip get-count)))))]))])))))
+
   (define fetch-output
     (case-lambda
      [(frame)
