@@ -1941,7 +1941,6 @@ module browser threading seems wrong.
             (let ([old-delegate (send definitions-text get-delegate)]
                   [old-tab current-tab])
               (save-visible-tab-regions)
-              (send definitions-text set-delegate #f)
               (set! current-tab tab)
               (set! definitions-text (send current-tab get-defs))
               (set! interactions-text (send current-tab get-ints))
@@ -1954,18 +1953,24 @@ module browser threading seems wrong.
               (update-save-message)
               (update-save-button)
               
-              (let ([old-enabled (send old-tab get-enabled)]
-                    [new-enabled (send current-tab get-enabled)])
-                (unless (eq? old-enabled new-enabled)
-                  (if (send tab get-enabled)
-                      (enable-evaluation)
-                      (disable-evaluation))))
-              
               (send definitions-text update-frame-filename)
               (send definitions-text set-delegate old-delegate)
               (on-tab-change old-tab current-tab)))
           
           (define/pubment (on-tab-change from-tab to-tab)
+            (let ([old-enabled (send from-tab get-enabled)]
+                  [new-enabled (send to-tab get-enabled)])
+              (unless (eq? old-enabled new-enabled)
+                (if new-enabled
+                    (enable-evaluation)
+                    (disable-evaluation))))
+            
+            (let ([from-defs (send from-tab get-defs)]
+                  [to-defs (send to-tab get-defs)])
+              (let ([delegate (send from-defs get-delegate)])
+                (send from-defs set-delegate #f)
+                (send to-defs set-delegate delegate)))
+            
             (inner (void) on-tab-change from-tab to-tab))
           
           (define/public (next-tab) (change-to-delta-tab +1))

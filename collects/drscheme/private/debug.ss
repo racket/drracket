@@ -968,7 +968,6 @@ clearing annotations in profiler broken (needs tabs)
             (clear-test-coverage-display))
           
           (super-new)))
-          
  
       
       
@@ -1034,7 +1033,7 @@ clearing annotations in profiler broken (needs tabs)
             (when rep
               (let ([ht (make-hash-table)])
                 (thread-cell-set! current-profile-info ht)
-                (send rep set-profile-info ht)))))
+                (send (send rep get-context) add-profile-info ht)))))
         (let ([profile-info (thread-cell-ref current-profile-info)])
           (hash-table-put! profile-info
                            key 
@@ -1158,19 +1157,84 @@ clearing annotations in profiler broken (needs tabs)
 
           (super-new)))
 
-      (define profile-interactions-text<%>
+      (define profile-interactions-tab<%>
         (interface ()
           get-profile-info
-          set-profile-info))
-                
-      (define profile-interactions-text-mixin
-        (mixin (drscheme:rep:text<%>) (profile-interactions-text<%>)
-          ;; profile-info : symbol -o> prof-info
-          (field [profile-info (make-hash-table)])
-          (define/public (set-profile-info ht) (set! profile-info ht))
+          add-profile-info))
+        
+      (define profile-tab-mixin
+        (mixin (drscheme:rep:tab<%>) (profile-interactions-tab<%>)
+          ;; profile-info : (listof hashtable[symbol -o> prof-info])
+          (define profile-info '())
+          (define/public (add-profile-info ht) (set! profile-info (cons ht profile-info)))
           (define/public (get-profile-info) profile-info)
-          (super-instantiate ())))
+
+          ;; clear-annotations
+          (define/override (clear-annotations)
+            (super clear-annotations)
+            (clear-profile-display))
           
+          ;; clear-profile-info : -> void
+          ;; clears the profiling data, but doesn't change the GUI
+          (define/public (clear-profile-info)
+            (for-each (λ (ht)
+                        (hash-table-for-each
+                         ht
+                         (λ (k info)
+                           (set-prof-info-num! info 0)
+                           (set-prof-info-time! info 0))))
+                      profile-info))
+          
+          ;; can-show-profile? : -> boolean
+          ;; indicates if there is any profiling information to be shown.
+          (define/public (can-show-profile?)
+            (let/ec esc-k
+              (for-each
+               (λ (ht)
+                 (hash-table-for-each
+                  ht
+                  (λ (key v)
+                    (when (any-info? v)
+                      (esc-k #t)))))
+               profile-info)
+              #f))
+          
+          ;; execute-callback : -> void
+          (define/augment (on-execute-callback)
+            (set! profile-info (make-hash-table))
+            (inner (void) on-execute))
+          
+          (define profile-info-text (new profile-text% (tab this)))
+
+          (define/public (refresh-profile) 
+            (send profile-info-text refresh-profile profile-infos))
+          
+          ;; toggle-profile-visible : -> void
+          (define/private (toggle-profile-visible)
+            (cond
+              [profile-info-visible?
+               '(clear-annotations)]
+              [(not profile-info-visible?)
+               (cond
+                 [(can-show-profile?)
+		  (construct-profile-gui)
+                  '(clear-annotations)
+                  (send profile-info-text refresh-profile)
+                  (set! profile-info-visible? #t)
+                  (send profile-info-outer-panel change-children
+                        (λ (l)
+                          (append l (list profile-info-panel))))
+                  (update-shown)]
+                 [else
+                  (message-box (string-constant drscheme)
+                               (string-constant profiling-no-information-available))])]))
+          
+          (define/public (refresh-profile) ...)
+          
+          (field (profile-info-visible? #f))
+          
+          (super-new)))
+      
       ;; profile-unit-frame-mixin : mixin
       ;; adds profiling to the unit frame
       (define profile-unit-frame-mixin
@@ -1178,16 +1242,6 @@ clearing annotations in profiler broken (needs tabs)
 
           (inherit get-interactions-text)
           
-          ;; clear-profile-info : -> void
-          ;; clears the profiling data, but doesn't change the GUI
-          (define/public (clear-profile-info)
-            (let ([ht (send (get-interactions-text) get-profile-info)])
-              (hash-table-for-each
-               ht
-               (λ (k info)
-                 (set-prof-info-num! info 0)
-                 (set-prof-info-time! info 0)))))
-
           ;; clear-profile-display : -> void
           ;; clears the profiling information from the GUI.
           (define/public (clear-profile-display)
@@ -1197,31 +1251,7 @@ clearing annotations in profiler broken (needs tabs)
 		(send profile-info-outer-panel change-children
 		      (λ (l)
 			(remq profile-info-panel l)))
-		(send profile-info-text clear-profile-display)
 		(update-shown))))
-
-          ;; can-show-profile? : -> boolean
-          ;; indicates if there is any profiling information to be shown.
-          (define/public (can-show-profile?)
-            (let ([ht (send (get-interactions-text) get-profile-info)])
-              (let/ec esc-k
-                (hash-table-for-each
-                 ht
-                 (λ (key v)
-                   (when (any-info? v)
-                     (esc-k #t))))
-                #f)))
-
-          ;; clear-annotations
-          #;
-          (define/override (clear-annotations)
-            (super clear-annotations)
-            (clear-profile-display))
-          
-          ;; execute-callback : -> void
-          (define/override (execute-callback)
-            (send (get-interactions-text) set-profile-info (make-hash-table))
-            (super execute-callback))
 
           ;; update-shown : -> void
           ;; updates the state of the profile item's show menu
@@ -1244,29 +1274,8 @@ clearing annotations in profiler broken (needs tabs)
                      (λ (x y)
                        (toggle-profile-visible))))))
           
-          ;; toggle-profile-visible : -> void
-          (define/private (toggle-profile-visible)
-            (cond
-              [profile-info-visible?
-               '(clear-annotations)]
-              [(not profile-info-visible?)
-               (cond
-                 [(can-show-profile?)
-		  (construct-profile-gui)
-                  '(clear-annotations)
-                  (send profile-info-text refresh-profile)
-                  (set! profile-info-visible? #t)
-                  (send profile-info-outer-panel change-children
-                        (λ (l)
-                          (append l (list profile-info-panel))))
-                  (update-shown)]
-                 [else
-                  (message-box (string-constant drscheme)
-                               (string-constant profiling-no-information-available))])]))
-
-          (field (profile-info-visible? #f))
-          (field (show-profile-menu-item #f))
-	  (field (profile-gui-constructed? #f))
+          (define show-profile-menu-item #f)
+	  (define profile-gui-constructed? #f)
 
           ;; get-profile-info-visible? : -> boolean
           ;; returns #t when the profiling information is visible in the frame.
@@ -1283,7 +1292,6 @@ clearing annotations in profiler broken (needs tabs)
           (super-new)
           
 	  (define profile-info-panel #f)
-	  (define profile-info-text #f)
 
 	  (inherit begin-container-sequence end-container-sequence)
 	  (define/private (construct-profile-gui)
@@ -1295,8 +1303,6 @@ clearing annotations in profiler broken (needs tabs)
 		  (set! profile-info-panel (instantiate horizontal-panel% ()
 					     (parent profile-info-outer-panel)
 					     (stretchable-height #f))))
-		(define _3
-		  (set! profile-info-text (instantiate profile-text% (this))))
 		(define profile-left-side (instantiate vertical-panel% (profile-info-panel)))
 		(define profile-info-editor-canvas (instantiate canvas:basic% (profile-info-panel profile-info-text)))
 		(define profile-message (instantiate message% ()
@@ -1311,7 +1317,7 @@ clearing annotations in profiler broken (needs tabs)
 							     (case (send profile-choice get-selection)
 							       [(0) 'time]
 							       [(1) 'count]))
-					    (send profile-info-text refresh-profile)))
+					    (send (get-current-tab) refresh-profile)))
 					 (choices (list (string-constant profiling-time)
 							(string-constant profiling-number)))))
 		(define _1
@@ -1325,7 +1331,7 @@ clearing annotations in profiler broken (needs tabs)
 		    (parent profile-left-side)
 		    (callback
 		     (λ (x y)
-		       (send profile-info-text refresh-profile)))))
+		       (send (get-current-tab) refresh-profile)))))
 		(define clear-profile-button 
 		  (instantiate button% ()
 		    (label (string-constant profiling-clear))
@@ -1366,13 +1372,7 @@ clearing annotations in profiler broken (needs tabs)
       ;; in the bottom window
       (define profile-text% 
         (class text:basic%
-          (init-field definitions-frame)
-
-          ;; refresh-profile : -> void
-          ;; shows the profiling information with text highlighting 
-          ;; in this editor
-          (define/public (refresh-profile)
-            (refresh-profile/work))
+          (init-field tab)
 
           ;; clear-profile-display : -> void
           ;; clears out the GUI showing the profile results
@@ -1385,10 +1385,6 @@ clearing annotations in profiler broken (needs tabs)
               (lock locked?)
               (end-edit-sequence)))
           
-          (define/private (get-profile-info)
-            (let ([t (send definitions-frame get-interactions-text)])
-              (send t get-profile-info)))
-
           (inherit lock is-locked?
                    get-canvas hide-caret get-snip-location
                    begin-edit-sequence end-edit-sequence 
@@ -1398,20 +1394,29 @@ clearing annotations in profiler broken (needs tabs)
           ;; removes the profile highlighting
           (field [clear-old-results void])
 
-          ;; refresh-profile-results : -> void
+          ;; refresh-profile : (listof hashtable[...]) -> void
           ;; does the work to erase any existing profile info
           ;; and make new profiling info.
-          (define/private (refresh-profile/work)
+          (define/public (refresh-profile profile-info)
             (begin-edit-sequence)
             (lock #f)
             (erase)
             (clear-old-results)
             (let* (;; must copy them here in case the program is still running
                    ;; and thus updating them.
-                   [infos 
-                    (filter
-                     any-info?
-                     (map copy-prof-info (hash-table-map (get-profile-info) (λ (key val) val))))]
+                   [infos '()]
+                   [_ (let loop ([profile-info profile-info])
+                        (cond
+                          [(null? profile-info) (void)]
+                          [else 
+                           (let ([ht (car profile-info)])
+                             (hash-table-for-each
+                              ht
+                              (λ (key val)
+                                (when (any-info? val)
+                                  (set! infos (cons (copy-info val) info))))))
+                           (loop (cdr profile-info))]))]
+
                    ;; each editor that gets some highlighting is put
                    ;; into this table and an edit sequence is begun for it.
                    ;; after all ranges are updated, the edit sequences are all closed.

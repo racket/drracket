@@ -128,6 +128,7 @@
     
   (define-signature drscheme:unit^
     (tab%
+     tab<%>
      frame% 
      frame<%>
      definitions-canvas%
