@@ -18,6 +18,9 @@ Version 102:
 
  MINOR CHANGES AND BUG FIXES
 
+ - clicking on the name in the topleft of the drscheme frame opens a
+   little window with the full path.
+
  - check syntax now shows its syntax errors in a separate window.
    (PR 1235)
 
