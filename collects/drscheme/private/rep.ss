@@ -927,8 +927,11 @@ TODO
           (define/augment (on-submit)
             (inner (void) on-submit)
             (when prompt-position
-              (printf "submit-predicate ~s\n" submit-predicate)
               (when (submit-predicate this prompt-position)
+                
+                ;; the -2 drops the last newline from history (why -2?!?)
+                (save-interaction-in-history prompt-position (- (last-position) 2))
+                
                 ;; put two eofs in the port; one to terminate a potentially incomplete sexp
                 ;; (or a non-self-terminating one, like a number) and the other to ensure that
                 ;; an eof really does come thru the calls to `read'. 
@@ -947,14 +950,7 @@ TODO
           (field (prompt-position #f))
           (define/public (get-prompt) "> ")
           (define/public (insert-prompt)
-            (let ([locked? (is-locked?)])
-              (begin-edit-sequence)
-              (lock #f)
-              (printf "inserting\n")
-              (insert-between (get-prompt))
-              (printf "inserted\n")
-              (lock locked?)
-              (end-edit-sequence))
+            (insert-between (get-prompt))
             (set! prompt-position (get-unread-start-point)))
           
           (field [submit-predicate
@@ -1017,12 +1013,13 @@ TODO
                           (set! in-evaluation? #f)
                           (update-running #f)
                           (cleanup)
+                          (flush-output (get-value-port))
                           (queue-system-callback/sync
                            (get-user-thread)
                            (lambda () ; =Kernel=, =Handler= 
-                             (insert-prompt)
                              (after-many-evals)
-                             (cleanup-interaction))))))))))))
+                             (cleanup-interaction)
+                             (insert-prompt))))))))))))
           
           (define/pubment (after-many-evals) (inner (void) after-many-evals))
           
@@ -1438,9 +1435,7 @@ TODO
             (thaw-colorer)
             (send context disable-evaluation)
             (reset-console)
-            (insert (get-prompt) (last-position) (last-position))
-            (set-unread-start-point (last-position))
-            (set-insertion-point (last-position))
+            (insert-prompt)
             (send context enable-evaluation)
             (end-edit-sequence)
             (clear-undos))
@@ -1451,10 +1446,10 @@ TODO
           (define orig-stderr (current-error-port))
           (define normal-delta #f)
           
-          (define last-str (lambda (l)
-                             (if (null? (cdr l))
-                                 (car l)
-                                 (last-str (cdr l)))))
+          (define/private (last-str l)
+            (if (null? (cdr l))
+                (car l)
+                (last-str (cdr l))))
           
           (field (previous-expr-pos -1))
           
@@ -1510,23 +1505,20 @@ TODO
                 (cdr lst)
                 lst))
           
-          (define do-save-and-eval
-            (lambda (start end)
-              (split-snip start)
-              (split-snip end)
-              (let ([snips
-                     (let loop ([snip (find-snip start 'after-or-none)]
-                                [snips null])
-                       (cond
-                         [(not snip) snips]
-                         [((get-snip-position snip) . <= . end)
-                          (loop (send snip next)
-                                (cons (send snip copy) snips))]
-                         [else snips]))])
-                (set! previous-expr-pos -1)
-                (add-to-previous-exprs snips)
-                ;(do-eval start end)
-                )))
+          (define/private (save-interaction-in-history start end)
+            (split-snip start)
+            (split-snip end)
+            (let ([snips
+                   (let loop ([snip (find-snip start 'after-or-none)]
+                              [snips null])
+                     (cond
+                       [(not snip) snips]
+                       [((get-snip-position snip) . <= . end)
+                        (loop (send snip next)
+                              (cons (send snip copy) snips))]
+                       [else snips]))])
+              (set! previous-expr-pos -1)
+              (add-to-previous-exprs snips)))
           
           (define/public (reset-pretty-print-width)
             (let* ([standard (send (get-style-list) find-named-style "Standard")])
