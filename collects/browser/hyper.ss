@@ -576,7 +576,7 @@
 	      [dc (get-dc)])
 	  (send dc set-font font)
 	  (send dc set-text-foreground (make-object color% "RED"))
-	  (send dc set-background (make-object color% "GRAY"))
+	  (send dc set-background (get-panel-background))
 	  (let-values ([(w h d a) (send dc get-text-extent "X" font)])
 	    (min-client-height (+ 2 (inexact->exact (ceiling h)))))))))
 
