@@ -417,8 +417,8 @@
                                                                [current-load-relative-directory directory]
                                                                [html-eval-ok url-allows-evaling?])
                                                   (html-convert p this))))
-                                            (set! done? #t)
                                             (semaphore-wait wait-to-show)
+                                            (set! done? #t)
                                             (when d
                                               (send d show #f))
                                             (semaphore-post wait-to-show)
