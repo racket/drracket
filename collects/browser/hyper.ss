@@ -313,14 +313,18 @@
 			      (set! htmling? #t)
 			      (erase)
 			      (clear-undos)
-			      (let ([mime-type (ormap (lambda (mh)
-							(and (string=? (mime-header-name mh) "content-type")
-							     (mime-header-value mh)))
-						      mime-headers)])
+			      (let* ([mime-type (ormap (lambda (mh)
+							 (and (string=? (mime-header-name mh) "content-type")
+							      (mime-header-value mh)))
+						       mime-headers)]
+				     [html? (and mime-type
+						 (regexp-match "text/html" mime-type))])
 				(cond
 				 [(or (and mime-type (regexp-match "application/" mime-type))
 				      (and (url? url)
-					   (regexp-match "[.]plt$" (url-path url))))
+					   (regexp-match "[.]plt$" (url-path url))
+					   ; document-not-found produces HTML:
+					   (not html?)))
 				  ; Save the file
 				  (end-busy-cursor)
 				  (let* ([orig-name (and (url? url)
@@ -421,8 +425,7 @@
 				 [(or (port? url)
 				      (and (url? url)
 					   (regexp-match "[.]html?$" (url-path url)))
-				      (and mime-type
-					   (regexp-match "text/html" mime-type)))
+				      html?)
 				  ; HTML
 				  (let* ([d #f]
 					 [e #f]
