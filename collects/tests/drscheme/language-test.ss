@@ -33,6 +33,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "compile: illegal use of an expansion-time value name in: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
@@ -48,6 +52,7 @@
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -63,6 +68,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
@@ -78,6 +87,7 @@
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -98,6 +108,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "Invalid use of signature name mred^")
     (test-expression "(eq? 'a 'A)" "#t")
@@ -114,6 +128,7 @@
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -134,6 +149,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "reference to undefined identifier: true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "#t")
@@ -150,6 +169,7 @@
     (test-expression "1.0" "1.0")
     (test-expression "#i1.0" "1.0")
     (test-expression "3/2" "3/2")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(1)")
     (test-expression "argv" "#0()")))
 
@@ -163,6 +183,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "(cons make-posn (cons posn-x (cons posn-y (cons posn? empty))))")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
@@ -176,9 +200,10 @@
     (test-expression "(letrec ([x x]) 1)" "First term after parenthesis is illegal in an application")
     (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
-    (test-expression "1.0" "#i1.0")
+    (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "3/2")
+    (test-expression "3/2" "1.5")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(cons 1 empty)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -197,6 +222,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
@@ -210,9 +239,10 @@
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
-    (test-expression "1.0" "#i1.0")
+    (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "3/2")
+    (test-expression "3/2" "1.5")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -231,6 +261,10 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
+    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
+    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
@@ -244,9 +278,10 @@
     (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
-    (test-expression "1.0" "#i1.0")
+    (test-expression "1.0" "1")
     (test-expression "#i1.0" "#i1.0")
-    (test-expression "3/2" "3/2")
+    (test-expression "3/2" "1.5")
+    (test-expression "1/3" "1/3")
     (test-expression "(list 1)" "(list 1)")
     (test-expression "argv" "reference to undefined identifier: argv")))
 
@@ -273,7 +308,7 @@
 
 (define (generic-output list? quasi-quote?)
   (let* ([drs (wait-for-drscheme-frame)]
-	 [expression (format "(define x (box 3/2))~n(list x x)")]
+	 [expression (format "(define x (box 4/3))~n(list x x)")]
 	 [set-output-choice
 	  (lambda (option show-sharing rationals)    
 	    (set-language #f)
@@ -301,25 +336,25 @@
     (clear-definitions drs)
     (type-in-definitions drs expression)
     
-    (test "write" 'off #f "(#&3/2 #&3/2)")    
-    (test "write" 'on #f "(#0=#&3/2 #0#)")
+    (test "write" 'off #f "(#&4/3 #&4/3)")    
+    (test "write" 'on #f "(#0=#&4/3 #0#)")
     (when quasi-quote?
-      (test "Quasiquote" 'off 'off "`(,(box 3/2) ,(box 3/2))")
-      (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/2)) ,(box (+ 1 1/2)))")
-      (test "Quasiquote" 'on 'off "(shared ((-1- (box 3/2))) `(,-1- ,-1-))")
-      (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/2)))) `(,-1- ,-1-))"))
+      (test "Quasiquote" 'off 'off "`(,(box 4/3) ,(box 4/3))")
+      (test "Quasiquote" 'off 'on "`(,(box (+ 1 1/3)) ,(box (+ 1 1/3)))")
+      (test "Quasiquote" 'on 'off "(shared ((-1- (box 4/3))) `(,-1- ,-1-))")
+      (test "Quasiquote" 'on 'on "(shared ((-1- (box (+ 1 1/3)))) `(,-1- ,-1-))"))
     (test "Constructor" 'off 'off (if list?
-				      "(list (box 3/2) (box 3/2))"
-				      "(cons (box 3/2) (cons (box 3/2) empty))"))
+				      "(list (box 4/3) (box 4/3))"
+				      "(cons (box 4/3) (cons (box 4/3) empty))"))
     (test "Constructor" 'off 'on (if list?
-				     "(list (box (+ 1 1/2)) (box (+ 1 1/2)))"
-				     "(cons (box (+ 1 1/2)) (cons (box (+ 1 1/2)) empty))"))
+				     "(list (box (+ 1 1/3)) (box (+ 1 1/3)))"
+				     "(cons (box (+ 1 1/3)) (cons (box (+ 1 1/3)) empty))"))
     (test "Constructor" 'on 'off (if list? 
-				     "(shared ((-1- (box 3/2))) (list -1- -1-))"
-				     (format "(shared ((-1- (box 3/2))) (cons -1- (cons -1- empty)))")))
+				     "(shared ((-1- (box 4/3))) (list -1- -1-))"
+				     (format "(shared ((-1- (box 4/3))) (cons -1- (cons -1- empty)))")))
     (test "Constructor" 'on 'on (if list?
-				    "(shared ((-1- (box (+ 1 1/2)))) (list -1- -1-))"
-				    (format "(shared ((-1- (box (+ 1 1/2)))) (cons -1- (cons -1- empty)))")))))
+				    "(shared ((-1- (box (+ 1 1/3)))) (list -1- -1-))"
+				    (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))))
 
 (define (whitespace-string=? string1 string2)
   (let loop ([i 0]

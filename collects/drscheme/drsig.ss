@@ -68,7 +68,7 @@
    definitions-canvas%
    definitions-text%
    interactions-canvas%
-   text-with-error-mixin
+   program-editor-mixin
    open-drscheme-window))
 
 (define-signature drscheme:frame^
@@ -106,6 +106,7 @@
 
 (define-signature drscheme:app^
   (check-new-version
+   invite-tour
    about-drscheme))
 
 (define-signature drscheme:export^

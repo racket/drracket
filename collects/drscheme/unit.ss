@@ -168,38 +168,36 @@
 	  (send (get-top-level-window) set-save-init-shown?
 		(and m (send m is-modified?)))))))
   
-  (define text-with-error-mixin
-    (lambda (text%)
-      (class/d text% args
-	((override after-insert after-delete)
-	 (inherit get-top-level-window)
-	 (rename [super-after-insert after-insert]
-		 [super-after-delete after-delete]))
+  (define (program-editor-mixin text%)
+    (class/d text% args
+      ((override after-insert after-delete)
+       (inherit get-top-level-window)
+       (rename [super-after-insert after-insert]
+	       [super-after-delete after-delete]))
 
-        (define (reset-highlighting)
-	  (let ([f (get-top-level-window)])
-	    (when f
-	      (let ([interactions-text (ivar f interactions-text)])
-		(when (object? interactions-text)
-		  (let ([reset (ivar interactions-text reset-highlighting)])
-		    (when (procedure? reset)
-		      (reset))))))))
+      (define (reset-highlighting)
+	(let ([f (get-top-level-window)])
+	  (when f
+	    (let ([interactions-text (ivar f interactions-text)])
+	      (when (object? interactions-text)
+		(let ([reset (ivar interactions-text reset-highlighting)])
+		  (when (procedure? reset)
+		    (reset))))))))
 
-        (define (after-insert x y)
-	  (reset-highlighting)
-	  (super-after-insert x y))
+      (define (after-insert x y)
+	(reset-highlighting)
+	(super-after-insert x y))
 
-        (define (after-delete x y)
-	  (reset-highlighting)
-	  (super-after-delete x y))
+      (define (after-delete x y)
+	(reset-highlighting)
+	(super-after-delete x y))
 
-	(apply super-init args))))
+      (apply super-init args)))
 
   (define definitions-super%
-    (text-with-error-mixin
+    (program-editor-mixin
      (fw:scheme:text-mixin
       fw:text:info%)))
-	  
 
   (define definitions-text%
     (class definitions-super% ()
@@ -230,16 +228,7 @@
       (rename
        [super-set-modified set-modified]
        [super-set-filename set-filename])
-      (inherit is-modified? run-after-edit-sequence)
       (override
-       [set-modified
-	(lambda (mod?)
-	  (super-set-modified mod?)
-	  (run-after-edit-sequence
-	   (lambda ()
-	     (let ([f (get-top-level-window)])
-	       (when f
-		 (send f update-save-button (is-modified?)))))))]
        [set-filename
 	(case-lambda
 	 [(fn) (set-filename fn #f)]
@@ -388,7 +377,8 @@
         [update-save-button
 	 (lambda (mod?)
 	   (if save-button
-	       (send save-button show mod?)
+	       (unless (eq? mod? (send save-button is-shown?))
+		 (send save-button show mod?))
 	       (set! save-init-shown? mod?)))]
 	[update-save-message
 	 (lambda (name)
