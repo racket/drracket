@@ -125,7 +125,12 @@
    (unit load-handler : drscheme:load-handler^)
    (unit rep : drscheme:rep^)
    (unit language : drscheme:language^)
-   (unit help-desk : help:drscheme-interface^)))
+   (unit help-desk : help:drscheme-interface^)
+   (unit help-info : help:get-info^)))
+
+(define-signature drscheme^
+  ((unit drscheme:export : drscheme:export^)
+   (open framework^)))
 
 (begin-elaboration-time
  (define drscheme:tool-directories (directory-list (collection-path "drscheme" "tools")))
@@ -139,3 +144,4 @@
 		 `((require-library "sig.ss" "drscheme" "tools" ,(car dirs))
                    ,@(loop (cdr dirs)))
 		 (loop (cdr dirs))))]))))
+

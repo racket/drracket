@@ -7,7 +7,8 @@
      (import mred^
 	     framework^
 	     mzlib:smtp^
-	     mzlib:head^)
+	     mzlib:head^
+             help:get-info^)
      
      (preferences:set-default 'drscheme:email "" string?)
      (preferences:set-default 'drscheme:full-name "" string?)
@@ -267,6 +268,31 @@
 		       (with-handlers ([(lambda (x) #t)
 					(lambda (x) "none")])
 			 (directory-list (collection-path "doc")))))
+
+         (define language-level
+           (build/label
+            "Language"
+            (lambda (panel)
+              (keymap:call/text-keymap-initializer
+               (lambda ()
+                 (make-object text-field% #f panel void ""))))
+            #f
+            #f
+            synthesized-panel))
+         (send language-level set-value (format "~s" (get-language-level)))
+         
+         (define teachpacks
+           (build/label
+            "Teachpacks"
+            (lambda (panel)
+              (keymap:call/text-keymap-initializer
+               (lambda ()
+                 (make-object text-field% #f panel void ""))))
+            #f
+            #f
+            synthesized-panel))
+         (send teachpacks set-value (format "~s" (get-teachpack-names)))
+
 	 (define collections
 	   (build/label 
 	    "Collections"
@@ -410,4 +436,5 @@
    mred^
    framework^
    mzlib:smtp^
-   mzlib:head^))
+   mzlib:head^
+   (drscheme:export:help-info : help:get-info^)))
