@@ -635,7 +635,7 @@
 			  (when #f ; treat them all as ignored warnings
 			    (apply error 'html args)))]
 
-		       [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
+		       [re:transparent #rx"[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
 		       
 		       [parse-image-source
 			(lambda (s)
