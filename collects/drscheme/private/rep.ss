@@ -924,26 +924,27 @@ TODO
           
           (inherit backward-containing-sexp)
           
+          (define/augment (submit-to-port? key) 
+            (and prompt-position 
+                 (submit-predicate this prompt-position)))
+          
           (define/augment (on-submit)
             (inner (void) on-submit)
-            (when prompt-position
-              (when (submit-predicate this prompt-position)
-                
-                ;; the -2 drops the last newline from history (why -2?!?)
-                (save-interaction-in-history prompt-position (- (last-position) 2))
-                
-                ;; put two eofs in the port; one to terminate a potentially incomplete sexp
-                ;; (or a non-self-terminating one, like a number) and the other to ensure that
-                ;; an eof really does come thru the calls to `read'. 
-                ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
-                (send-eof-to-in-port)
-                (send-eof-to-in-port)
-                (set! prompt-position #f)
-                (evaluate-from-port 
-                 (get-in-port) 
-                 #f
-                 (lambda ()
-                   (clear-input-port))))))
+            ;; the -2 drops the last newline from history (why -2 and not -1?!)
+            (save-interaction-in-history prompt-position (- (last-position) 2))
+            
+            ;; put two eofs in the port; one to terminate a potentially incomplete sexp
+            ;; (or a non-self-terminating one, like a number) and the other to ensure that
+            ;; an eof really does come thru the calls to `read'. 
+            ;; the cleanup thunk clears out the extra eof, if one is still there after evaluation
+            (send-eof-to-in-port)
+            (send-eof-to-in-port)
+            (set! prompt-position #f)
+            (evaluate-from-port 
+             (get-in-port) 
+             #f
+             (lambda ()
+               (clear-input-port))))
           
           ;; prompt-position : (union #f integer)
           ;; the position just after the last prompt
@@ -951,7 +952,9 @@ TODO
           (define/public (get-prompt) "> ")
           (define/public (insert-prompt)
             (insert-between (get-prompt))
-            (set! prompt-position (get-unread-start-point)))
+            (let ([sp (get-unread-start-point)])
+              (set! prompt-position sp)
+              (reset-region sp 'end)))
           
           (field [submit-predicate
                   (lambda (text prompt-position)
@@ -1268,8 +1271,6 @@ TODO
           ;;;                                          ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
-          (field (repl-initially-active? #f))
-          
           ;; initialize-paramters : (listof snip-class%) -> void
           (define initialize-parameters ; =User=
             (lambda (snip-classes)
@@ -1386,6 +1387,7 @@ TODO
             (begin-edit-sequence)
             (set-position (last-position) (last-position))
             
+            (set! setting-up-repl? #t)
             (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
             (let-values (((before after)
                           (insert/delta
@@ -1410,8 +1412,8 @@ TODO
                (insert/delta this (format ".~n") welcome-delta))
              (drscheme:teachpack:teachpack-cache-filenames 
               user-teachpack-cache))
+            (set! setting-up-repl? #f)
             
-            (set! repl-initially-active? #t)
             (set! already-warned? #f)
             (reset-region (last-position) (last-position))
             (set-unread-start-point (last-position))
@@ -1423,6 +1425,7 @@ TODO
           (define/public (initialize-console)
             (begin-edit-sequence)
             (freeze-colorer)
+            (set! setting-up-repl? #t)
             (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
             (let-values ([(before after)
                           (insert/delta this (string-constant drscheme) click-delta drs-font-delta)])
@@ -1431,7 +1434,7 @@ TODO
               (set-clickback before after 
                              (lambda args (drscheme:app:about-drscheme))
                              click-delta))
-            (reset-region (last-position) (last-position))
+            (set! setting-up-repl? #f)
             (thaw-colorer)
             (send context disable-evaluation)
             (reset-console)
@@ -1440,12 +1443,12 @@ TODO
             (end-edit-sequence)
             (clear-undos))
           
-          (define edit-sequence-count 0)
-          
-          (define orig-stdout (current-output-port))
-          (define orig-stderr (current-error-port))
-          (define normal-delta #f)
-          
+          (define setting-up-repl? #f)
+          (define/augment (can-change-style? start len)
+            (and (inner #t can-change-style? start len)
+                 (or setting-up-repl?
+                     (start . >= . (paragraph-start-position 2)))))
+                    
           (define/private (last-str l)
             (if (null? (cdr l))
                 (car l)
