@@ -51,7 +51,9 @@
      get-cm-key))
   
   (define-signature drscheme:module-language^
-    (add-module-language))
+    (add-module-language
+     module-language<%>
+     module-language-put-file-mixin))
   
   (define-signature drscheme:get-collection^
     (get-file/collection))

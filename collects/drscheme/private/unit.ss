@@ -38,7 +38,8 @@
               [drscheme:module-overview : drscheme:module-overview^]
               [drscheme:tools : drscheme:tools^]
               [drscheme:eval : drscheme:eval^]
-              [drscheme:init : drscheme:init^])
+              [drscheme:init : drscheme:init^]
+              [drscheme:module-language : drscheme:module-language^])
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
@@ -368,10 +369,11 @@
       (define (make-definitions-text%)
         (let ([definitions-super%
                ((get-program-editor-mixin)
-                (scheme:text-mixin
-                 (drscheme:rep:drs-bindings-keymap-mixin
-                  (text:delegate-mixin
-                   text:info%))))])
+                (drscheme:module-language:module-language-put-file-mixin
+                 (scheme:text-mixin
+                  (drscheme:rep:drs-bindings-keymap-mixin
+                   (text:delegate-mixin
+                    text:info%)))))])
           (class* definitions-super% (definitions-text<%>)
             (inherit get-top-level-window)
             
@@ -467,7 +469,7 @@
                 (send dc draw-text (get-date-string) 0 0)
                 (void)))
             (super-instantiate ()))))
-
+      
       
                                                        
    ;      ;           ;; ;                             
@@ -990,7 +992,8 @@
           [define get-directory
             (lambda ()
               (let ([filename (send definitions-text get-filename)])
-                (if (string? filename)
+                (if (and (string? filename)
+                         (not (string=? "" filename)))
                     (let-values ([(base _1 _2) (split-path (mzlib:file:normalize-path filename))])
                       base)
                     #f)))]
@@ -1115,13 +1118,6 @@
               [else (send definitions-text clear)])
             (send definitions-canvas focus))
           
-          [define save-as-text-from-text
-            (lambda (text)
-              (let ([file (parameterize ([finder:dialog-parent-parameter this])
-                            (finder:put-file))])
-                (when file
-                  (send text save-file/gui-error file 'text))))]
-          
           [define (toggle-show/hide-definitions)
             (set! definitions-shown? (not definitions-shown?))
             (unless definitions-shown?
@@ -1154,24 +1150,28 @@
                   (string-constant save-definitions-as-text)
                   sub-menu
                   (lambda (_1 _2)
-                    (save-as-text-from-text definitions-text)))
+                    (let ([filename (send definitions-text put-file #f #f)])
+                      (when filename
+                        (send definitions-text save-file/gui-error filename 'text)))))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions)
                   sub-menu
-                  (lambda (_1 _2) (send interactions-text save-file/gui-error)))
+                  (lambda (_1 _2) 
+                    (send interactions-text save-file/gui-error)))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as)
                   sub-menu
-                  (lambda (_1 _2) 
-                    (let ([file (parameterize ([finder:dialog-parent-parameter this])
-                                  (finder:put-file))])
-                      (when file
-                        (send interactions-text save-file/gui-error file 'standard)))))
+                  (lambda (_1 _2)
+                    (let ([filename (send interactions-text put-file #f #f)])
+                      (when filename
+                        (send interactions-text save-file/gui-error filename 'standard)))))
                 (make-object menu:can-restore-menu-item%
                   (string-constant save-interactions-as-text)
                   sub-menu
                   (lambda (_1 _2)
-                    (save-as-text-from-text interactions-text)))
+                    (let ([filename (send interactions-text put-file #f #f)])
+                      (when filename
+                        (send interactions-text save-file/gui-error filename 'text)))))
                 (make-object separator-menu-item% file-menu)
                 (set! logging-menu-item
                       (make-object menu:can-restore-menu-item%
@@ -1182,6 +1182,7 @@
                               (stop-logging)
                               (start-logging)))))
                 (make-object separator-menu-item% file-menu)))]
+          
           [define file-menu:print-string (lambda () (string-constant print-definitions))]
           [define file-menu:between-print-and-close
             (lambda (file-menu)

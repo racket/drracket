@@ -9,7 +9,8 @@
            (lib "launcher.ss" "launcher")
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants")
-           "drsig.ss")
+           "drsig.ss"
+           (lib "contract.ss"))
   
   (define op (current-output-port))
   (define (oprintf . args) (apply fprintf op args))
@@ -20,6 +21,10 @@
               [drscheme:language : drscheme:language^]
               [drscheme:unit : drscheme:unit^]
               [drscheme:rep : drscheme:rep^])
+
+      (define module-language<%> 
+        (interface ()
+          ))
       
       ;; add-module-language : -> void
       ;; adds the special module-only language to drscheme
@@ -39,7 +44,7 @@
       ;; module-mixin : (implements drscheme:language:language<%>)
       ;;             -> (implements drscheme:language:language<%>)
       (define (module-mixin %)
-        (class %
+        (class* % (module-language<%>)
           (define/override (use-namespace-require/copy?) #t)
           (rename [super-on-execute on-execute]
                   [super-front-end/complete-program front-end/complete-program])
@@ -186,9 +191,6 @@
             (language-numbers (list -10 1000)))))
       
       ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))
-      
-      ;; don't forget to remove the string constants to string-constants.ss
-      
       (define (module-language-config-panel parent)
         (define new-parent 
           (instantiate vertical-panel% ()
@@ -525,4 +527,87 @@
         (syntax-case body (provide)
           [(provide vars ...)
            #f]
-          [_ #t])))))
+          [_ #t]))
+      
+      (define module-language-put-file-mixin
+        (mixin (text:basic<%>) ()
+          (inherit get-text last-position get-character get-top-level-window)
+          (rename [super-put-file put-file])
+          (define/override (put-file directory default-name)
+            (let ([tlw (get-top-level-window)])
+              (if (and tlw 
+                       (is-a? tlw drscheme:unit:frame<%>))
+                  (let* ([definitions-text (send tlw get-definitions-text)]
+                         [module-language? 
+                          (is-a? (drscheme:language-configuration:language-settings-language
+                                  (send definitions-text get-next-settings))
+                                 module-language<%>)]
+                         [module-default-filename
+                          (and module-language? (get-module-filename))])
+                    (super-put-file directory module-default-filename))
+                  (super-put-file directory default-name))))
+      
+          ;; returns the name after "(module " suffixed with .scm
+          ;; in the beginning of the editor
+          ;; or #f if the beginning doesn't match "(module "
+          (define/contract get-module-filename
+            (-> (union false? string?))
+            (lambda ()
+              (let ([open-paren (skip-whitespace 0)])
+                (or (match-paren open-paren "(")
+                    (match-paren open-paren "[")
+                    (match-paren open-paren "{")))))
+          
+          (define/contract match-paren
+            (number? string? . -> . (union false? string?))
+            (lambda (open-paren paren)
+              (and (matches open-paren paren)
+                   (let ([module (skip-whitespace (+ open-paren 1))])
+                     (and (matches module "module")
+                          (let* ([end-module (+ module (string-length "module"))]
+                                 [filename-start (skip-whitespace end-module)]
+                                 [filename-end (skip-to-whitespace filename-start)])
+                            (and (not (= filename-start end-module))
+                                 (string-append (get-text filename-start filename-end)
+                                                ".scm"))))))))
+          
+
+          (define/contract matches
+            (number? string? . -> . boolean?)
+            (lambda (start string)
+              (let ([last-pos (last-position)])
+                (let loop ([i 0])
+                  (cond
+                    [(and (i . < . (string-length string))
+                          ((+ i start) . < . last-pos))
+                     (and (char=? (string-ref string i)
+                                  (get-character (+ i start)))
+                          (loop (+ i 1)))]
+                    [(= i (string-length string)) #t]
+                    [else #f])))))
+          
+          (define/contract skip-whitespace
+            (number? . -> . number?)
+            (lambda (start) 
+              (let ([last-pos (last-position)])
+                (let loop ([pos start])
+                  (cond
+                    [(pos . >= . last-pos) last-pos]
+                    [(char-whitespace? (get-character pos))
+                     (loop (+ pos 1))]
+                    [else pos])))))
+
+          (define/contract skip-to-whitespace
+            (number? . -> . number?)
+            (lambda (start) 
+              (let ([last-pos (last-position)])
+                (let loop ([pos start])
+                  (cond
+                    [(pos . >= . last-pos)
+                     last-pos]
+                    [(char-whitespace? (get-character pos))
+                     pos]
+                    [else
+                     (loop (+ pos 1))])))))
+          
+          (super-instantiate ()))))))
