@@ -1876,6 +1876,12 @@ tab panels new behavior:
               (send definitions-text update-frame-filename)
               (send definitions-text set-delegate old-delegate)))
           
+          (define/public (next-tab) (change-to-delta-tab +1))
+          (define/public (prev-tab) (change-to-delta-tab -1))
+          
+          (define/private (change-to-delta-tab dt)
+            (change-to-nth-tab (modulo (+ (tab-i current-tab) dt) (length tabs))))
+          
           (define/private (close-current-tab)
             (cond
               [(null? tabs) (void)]

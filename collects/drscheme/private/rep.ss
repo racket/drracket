@@ -116,15 +116,7 @@ TODO
                   short-string)))))
 
       (define drs-bindings-keymap (make-object keymap:aug-keymap%))
-      (send drs-bindings-keymap add-function
-            "execute"
-            (λ (obj evt)
-              (when (is-a? obj editor<%>)
-                (let ([canvas (send obj get-canvas)])
-                  (when canvas
-                    (let ([frame (send canvas get-top-level-window)])
-                      (when (is-a? frame drscheme:unit:frame%)
-                        (send frame execute-callback))))))))
+      
       (send drs-bindings-keymap add-function
             "search-help-desk"
             (λ (obj evt)
@@ -146,23 +138,54 @@ TODO
                          (drscheme:help-desk:help-desk str #f 'keyword+index 'contains language))))]
                 [else                   
                  (drscheme:help-desk:help-desk)])))
-      (send drs-bindings-keymap add-function
-            "toggle-focus-between-definitions-and-interactions"
-            (λ (obj evt)
-              (when (is-a? obj editor<%>)
-                (let ([canvas (send obj get-canvas)])
-                  (when canvas
-                    (let ([frame (send canvas get-top-level-window)])
-                      (when (is-a? frame drscheme:unit:frame%)
-                        (cond
-                          [(send (send frame get-definitions-canvas) has-focus?)
-                           (send (send frame get-interactions-canvas) focus)]
-                          [else
-                           (send (send frame get-definitions-canvas) focus)]))))))))
+      (let ([with-drs-frame
+             (λ (obj f)
+               (when (is-a? obj editor<%>)
+                 (let ([canvas (send obj get-canvas)])
+                   (when canvas
+                     (let ([frame (send canvas get-top-level-window)])
+                       (when (is-a? frame drscheme:unit:frame%)
+                         (f frame)))))))])
+      
+        (send drs-bindings-keymap add-function
+              "execute"
+              (λ (obj evt)
+                (with-drs-frame
+                 obj
+                 (λ (frame)
+                   (send frame execute-callback)))))
+        
+        (send drs-bindings-keymap add-function
+              "toggle-focus-between-definitions-and-interactions"
+              (λ (obj evt)
+                (with-drs-frame 
+                 obj
+                 (λ (frame)
+                   (cond
+                     [(send (send frame get-definitions-canvas) has-focus?)
+                      (send (send frame get-interactions-canvas) focus)]
+                     [else
+                      (send (send frame get-definitions-canvas) focus)])))))
+        (send drs-bindings-keymap add-function
+              "next-tab"
+              (λ (obj evt)
+                (with-drs-frame 
+                 obj
+                 (λ (frame) (send frame next-tab)))))
+        (send drs-bindings-keymap add-function
+              "prev-tab"
+              (λ (obj evt)
+                (with-drs-frame 
+                 obj
+                 (λ (frame) (send frame prev-tab))))))
       
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
       (send drs-bindings-keymap map-function "f1" "search-help-desk")
+      (send drs-bindings-keymap map-function "c:tab" "next-tab")
+      (send drs-bindings-keymap map-function "c:s:tab" "prev-tab")
+      (send drs-bindings-keymap map-function "d:s:right" "next-tab")
+      (send drs-bindings-keymap map-function "d:s:left" "prev-tab")
       
       (define (get-drs-bindings-keymap) drs-bindings-keymap)
 
