@@ -207,6 +207,10 @@ General
  - DrScheme permits the use of "." (period) as an identifier in the
    student language levels.
 
+ - implicit sequencing has been eliminated from the advanced language
+   level in order to give better error messages. Use an explicit `begin'
+   for sequencing.
+
 Version 102:
 
 General

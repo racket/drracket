@@ -1,14 +1,23 @@
 
 (unit/sig browser:html^
   (import mzlib:file^
+	  mzlib:function^
 	  mzlib:string^
 	  relative-btree^
 	  mzlib:url^
 	  bullet-snip^
 	  mred^)
-    
-  ;; CACHE
   
+  (define extra-colors-table
+    `(("mediumvioletred" ,(make-object color% 199  21  133))
+      ("orangered" ,(make-object color% 255  69  0))
+      ("purple" ,(make-object color% 160  32  240))
+      ("darkgreen" ,(make-object color% 0  100  0))
+      ("darkorange" ,(make-object color% 255 140 0))
+      ("crimson" ,(make-object color% #xDC #x14 #x3C))
+      ("darkblue" ,(make-object color% 0  0  100))))
+      
+  ;; CACHE
   (define NUM-CACHED 10)
   (define cached (make-vector 10 null))
   (define cached-name (make-vector 10 ""))
@@ -125,7 +134,7 @@
 			 (char-downcase c)))
 	       (string->list str)))]
 	  [spc (string #\space #\tab #\newline #\return #\vtab)])
-      (let ([re:plain (regexp (format "(^|[~a])~a[~a]*=[~a]*([^ ]*)" spc s spc spc))]
+      (let ([re:plain (regexp (format "(^|[~a])~a[~a]*=[~a]*([^~a]*)" spc s spc spc spc))]
 	    [re:quote (regexp (format "(^|[~a])~a[~a]*=[~a]*\"([^\"]*)\"" spc s spc spc))])
 	(lambda (args)
 	  (let ([m (or (regexp-match re:quote args)
@@ -251,6 +260,11 @@
 		(insert (list->string (reverse! i-buffer)) buffer-pos)
 		(set! i-buffer null)))]
 
+	   [parse-div-align (make-get-field "align")]
+
+	   [get-style (make-get-field "style")]
+	   [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
+
 	   [parse-image-source
 	    (let ([get-src (make-get-field "src")])
 	      (lambda (s)
@@ -309,45 +323,59 @@
 		  [get-face (make-get-field "face")]
 		  [get-color (make-get-field "color")]
 		  [get-bg-color (make-get-field "bgcolor")]
+		  [color-string->color
+		   (lambda (str)
+		     (or (send the-color-database find-color str)
+			 (let ([pr (assf (lambda (x) (string-ci=? (car x) str))
+					 extra-colors-table)])
+			   (and pr
+				(cadr pr)))))]
                   [face-regexp (regexp "([^,]*), *(.*)")])
 	      (lambda (args)
-		(let ([size (get-size args)]
-		      [face (get-face args)]
-		      [color (get-color args)]
-		      [bg-color (get-bg-color args)])
+		(let ([size-string (get-size args)]
+		      [face-string (get-face args)]
+		      [color-string (get-color args)]
+		      [bg-color-string (get-bg-color args)])
 		  (let ([size
-			 (and size (let* ([n (string->number size)])
-				   (and n
-					(integer? n)
-					(<= -127 n 127)
-					(cond
-					 [(char=? #\+ (string-ref size 0))
-					  (make-object style-delta% 'change-bigger n)]
-					 [(negative? n)
-					  (make-object style-delta% 'change-smaller (- n))]
-					 [else
-					  (make-object style-delta% 'change-size n)]))))]
-			[face (and face (let ([f (let loop ([f face])
-						   (let ([m (regexp-match face-regexp f)]
-							 [try-face (lambda (s)
-								     (unless face-list
-								       (set! face-list (get-face-list)))
-								     (ormap
-								      (lambda (s-norm)
-									(and (string-ci=? s s-norm)
-									     s-norm))
-								      face-list))])
-						     (if m
-							 (or (try-face (cadr m))
-							     (loop (caddr m)))
-							 (try-face f))))])
-					  (and f
-					       (let ([d (make-object style-delta%)])
-						 (send d set-delta-face f)))))]
-			[color (and color (let ([d (make-object style-delta%)])
-					    (send d set-delta-foreground color)))]
-			[bg-color (and bg-color (let ([d (make-object style-delta%)])
-						  (send d set-delta-background bg-color)))])
+			 (and size-string
+			      (let* ([n (string->number size-string)])
+				(and n
+				     (integer? n)
+				     (<= -127 n 127)
+				     (cond
+				      [(char=? #\+ (string-ref size-string 0))
+				       (make-object style-delta% 'change-bigger n)]
+				      [(negative? n)
+				       (make-object style-delta% 'change-smaller (- n))]
+				      [else
+				       (make-object style-delta% 'change-size n)]))))]
+			[face (and face-string
+				   (let ([f (let loop ([f face-string])
+					      (let ([m (regexp-match face-regexp f)]
+						    [try-face (lambda (s)
+								(unless face-list
+								  (set! face-list (get-face-list)))
+								(ormap
+								 (lambda (s-norm)
+								   (and (string-ci=? s s-norm)
+									s-norm))
+								 face-list))])
+						(if m
+						    (or (try-face (cadr m))
+							(loop (caddr m)))
+						    (try-face f))))])
+				     (and f
+					  (let ([d (make-object style-delta%)])
+					    (send d set-delta-face f)))))]
+			[color (let ([clr (and color-string (color-string->color color-string))])
+				 (and clr
+				      (let ([d (make-object style-delta%)])
+					(send d set-delta-foreground clr))))]
+			[bg-color (let ([bg-clr (and bg-color-string
+						     (color-string->color bg-color-string))])
+				    (and bg-clr
+				       (let ([d (make-object style-delta%)])
+					 (send d set-delta-background bg-clr))))])
 		    (let loop ([delta #f][l (list size face color bg-color)])
 		      (cond
 		       [(null? l) delta]
@@ -693,6 +721,13 @@
 				      (result (+ end-pos 2) #t))])
 		      (case tag
 			[(head body) (normal)]
+			[(div)
+			 (let ([align (parse-div-align args)])
+			   (when (and align (string-ci=? align "center"))
+			     (let ([start (position-paragraph pos)]
+				   [end (position-paragraph end-pos)])
+			       (btree-put! centers pos (- end start))))
+			   (normal))]
 			[(center)
 			 (let ([start (position-paragraph pos)]
 			       [end (position-paragraph end-pos)])
@@ -740,17 +775,22 @@
 			[(h2) (heading delta:h2)]
 			[(h3) (heading delta:h3)]
 			[(a) (let-values ([(url-string label scheme) (parse-href args)])
-                               (cond
-				[url-string
-				 (add-link pos end-pos url-string)
-				 (make-link-style pos end-pos)]
-				[label
-				 (add-tag label pos)]
-				[scheme
-				 (add-scheme-callback pos end-pos scheme)
-				 (make-link-style pos end-pos)]
-				[else (void)])
-			       (normal))]
+			       (let ([style (get-style args)])
+				 (cond
+				  [url-string
+				   (add-link pos end-pos url-string)
+				   (when (or (not style)
+					     (not (regexp-match re:transparent style)))
+				     (make-link-style pos end-pos))]
+				  [label
+				   (add-tag label pos)]
+				  [scheme
+				   (add-scheme-callback pos end-pos scheme)
+				   (when (or (not style)
+					     (not (regexp-match re:transparent style)))
+				     (make-link-style pos end-pos))]
+				  [else (void)])
+				 (normal)))]
 			[(select textarea)
 			 (let* ([unsupported (make-unsupported tag args)]
 				[len (string-length unsupported)])
