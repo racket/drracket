@@ -1417,11 +1417,14 @@
           (define (reset-highlighting)
             (reset-error-ranges))
           
-	  (define/private (remove-duplicate-error-arrows error-arrows)
-	    (let ([ht (make-hash-table 'equal)])
-	      (for-each (lambda (arr) (hash-table-put! ht arr #f)) error-arrows)
-	      (hash-table-map ht (lambda (x y) x))))
-
+          ;; remove-duplicate-error-arrows : (listof X) -> (listof X)
+          ;; duplicate arrows point from and to the same place -- only
+          ;; need one arrow for each pair of locations they point to.
+          (define/private (remove-duplicate-error-arrows error-arrows)
+            (let ([ht (make-hash-table 'equal)])
+              (for-each (lambda (arr) (hash-table-put! ht arr #f)) error-arrows)
+              (hash-table-map ht (lambda (x y) x))))
+              
           (define/private (embedded-in? txt-inner txt-outer)
             (let loop ([txt-inner txt-inner])
               (cond
