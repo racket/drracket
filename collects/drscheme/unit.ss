@@ -237,16 +237,18 @@
 	   (lambda ()
 	     (get-edit-to-search))])
 
+	(private [was-locked? #f])
 	(public
 	  [disable-evaluation
 	   (lambda ()
 	     (send execute-button enable #f)
+	     (set! was-locked? (ivar definitions-edit locked?))
 	     (send definitions-edit lock #t)
 	     (send interactions-edit lock #t))]
 	  [enable-evaluation
 	   (lambda ()
 	     (send execute-button enable #t)
-	     (send definitions-edit lock #f)
+	     (send definitions-edit lock was-locked?)
 	     (send interactions-edit lock #f))])
 
 	(public

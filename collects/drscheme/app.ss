@@ -17,7 +17,7 @@
 		       "Matthias Felleisen, Robby Findler, Cormac Flanagan, Matthew Flatt, "
 		       "Sebastian Good, Mark Krentel, Shriram Krishnamurthi, and Stephanie Weirich")]
 	       [wrap-edit% 
-		(class-asi mred:edit%
+		(class-asi mred:media-edit%
 		  (inherit get-max-width find-snip  set-autowrap-bitmap position-location)
 		  (rename [super-after-set-size-constraint after-set-size-constraint])
 		  (public
