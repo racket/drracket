@@ -3,7 +3,8 @@
   (require (lib "unitsig.ss")
 	   (lib "framework-sig.ss" "framework"))
   
-  (provide drscheme:debug^
+  (provide drscheme:eval^
+           drscheme:debug^
            drscheme:module-language^
            drscheme:get-collection^
            drscheme:main^
@@ -130,6 +131,11 @@
   
   (define-signature drscheme:program^
     (frame%))
+
+  (define-signature drscheme:eval^
+    (expand-program
+     set-basic-parameters
+     get-snip-classes))
   
   (define-signature drscheme:text^
     (text<%>
@@ -143,6 +149,7 @@
      which-number-snip
      drs-bindings-keymap-mixin
      current-rep
+     current-language-settings
      text%
      text<%>
      console-text<%>
@@ -181,6 +188,8 @@
      create-module-based-stand-alone-executable
 
      open-input-text
+
+     ;(struct loc (source position line column span) -setters)
 
      (struct text/pos (text start end) -setters)
      (struct simple-settings (case-sensitive 
@@ -231,6 +240,7 @@
      (unit drscheme:language-configuration : drscheme:language-configuration^)
      (unit drscheme:language : drscheme:language^)
      (unit drscheme:help-desk : drscheme:help-desk^)
+     (unit drscheme:eval : drscheme:eval^)
      ;(open ((unit drscheme:help-desk : drscheme:help-desk^)))
      ))
 

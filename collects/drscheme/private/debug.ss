@@ -901,7 +901,7 @@ profile todo:
                              [src (syntax-source expr)]
                              [pos (syntax-position expr)]
                              [span (syntax-span expr)])
-                        (when (and src 
+                        (when (and src
                                    (is-a? src text:basic<%>)
                                    (number? pos)
                                    (number? span))

@@ -683,6 +683,44 @@
                           eof)
                         result)))))))
       
+      (define-struct loc (source position line column span))
+
+      ;; read-syntax-original : ... -> syntax
+      ;; arguments are the same as to read-syntax.
+      ;; adds the 'original annotations to the syntax that comes 
+      ;; from applying read-syntax to the arguments
+      (define (read-syntax-original . x)
+        (let ([res (apply read-syntax x)])
+          (let loop ([stx res])
+            (cond
+              [(syntax? stx)
+               (let ([obj (syntax-e stx)])
+                 (cond
+                   [(pair? obj)
+                    (with-syntax ([fst (loop (car obj))]
+                                  [rst (loop (cdr obj))])
+                      (printf "adding to: ~s\n" (syntax-object->datum stx))
+                      (syntax-property
+                       (syntax (fst . rst))
+                       'original
+                       (stx->loc stx)))]
+                   [else
+                    (syntax-property stx 'original (stx->loc stx))]))]
+              [(pair? stx)
+               (cons (loop (car stx))
+                     (loop (cdr stx)))]
+              [else stx]))))
+      
+      ;; stx->loc : syntax -> loc
+      ;; adds the loc that corresponds to this syntax as the
+      ;; 'original property to the input syntax.
+      (define (stx->loc stx)
+        (make-loc (syntax-source stx)
+                  (syntax-position stx)
+                  (syntax-line stx)
+                  (syntax-column stx)
+                  (syntax-span stx)))
+      
       
                                                                                                          
                                       ;                                                                  

@@ -41,7 +41,8 @@
 	      [drscheme:help-desk : drscheme:help-desk^]
               [drscheme:init : drscheme:init^]
               [drscheme:snip : drscheme:snip^]
-	      [drscheme:debug : drscheme:debug^])
+	      [drscheme:debug : drscheme:debug^]
+              [drscheme:eval : drscheme:eval^])
       
       ;; successful-tool = (make-successful-tool module-spec (union #f (instanceof bitmap%)) (union #f string))
       (define-struct successful-tool (spec bitmap name))

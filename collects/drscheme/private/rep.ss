@@ -40,25 +40,11 @@
               (drscheme:text : drscheme:text^)
               (drscheme:help : drscheme:help-desk^)
               (drscheme:teachpack : drscheme:teachpack^)
-              (drscheme:debug : drscheme:debug^))
+              (drscheme:debug : drscheme:debug^)
+              [drscheme:eval : drscheme:eval^])
       
       (rename [-text% text%]
               [-text<%> text<%>])
-
-      ;; these module specs are copied over to each new user's namespace 
-      (define to-be-copied-module-specs
-        (list 'mzscheme
-              '(lib "mred.ss" "mred")))
-      ;; just double check that they are all here.
-      (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-module-specs)
-      ;; get the names of those modules.
-      (define to-be-copied-module-names
-        (let ([get-name
-               (lambda (spec)
-                 (if (symbol? spec)
-                     spec
-                     ((current-module-name-resolver) spec #f #f)))])
-          (map get-name to-be-copied-module-specs)))
 
       (define sized-snip<%>
 	(interface ((class->interface snip%))
@@ -97,55 +83,6 @@
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
             
-      ;; drscheme-load-handler : string ??? ->* TST
-      ;; =User=
-      ;; the default load handler for programs running in DrScheme
-      (define (drscheme-load-handler filename expected-module)
-        (unless (string? filename)
-	  (raise-type-error 'drscheme-load-handler "string" filename))
-        (let* ([input (build-input filename)]
-               [ls (current-language-settings)]
-               [language (drscheme:language-configuration:language-settings-language ls)]
-               [settings (drscheme:language-configuration:language-settings-settings ls)]
-               [thnk (send language front-end input settings)])
-          (parameterize ([read-accept-compiled #t])
-	    (if expected-module
-		(with-module-reading-parameterization 
-		 (lambda ()
-		   (let* ([first (thnk)]
-			  [module-ized-exp (check-module-form first expected-module filename)]
-			  [second (thnk)])
-		     (unless (eof-object? second)
-		       (raise-syntax-error
-			'drscheme-load-handler
-			(format "expected only a `module' declaration for `~s', but found an extra expression"
-				expected-module)
-			second))
-		     (eval module-ized-exp))))
-		(let loop ([last-time-values (list (void))])
-		  (let ([exp (thnk)])
-		    (if (eof-object? exp)
-			(apply values last-time-values)
-			(call-with-values
-			 (lambda () (eval exp))
-			 (lambda x (loop x))))))))))
-      
-      ;; build-input : string[file-exists?] -> input
-      ;; returns an input to be used with a language's `front-end' method
-      (define (build-input filename)
-        (let* ([p (open-input-file filename)]
-               [chars (list (read-char p)
-                            (read-char p)
-                            (read-char p)
-                            (read-char p))])
-          (close-input-port p)
-          (cond
-            [(equal? chars (string->list "WXME"))
-             (let ([text (make-object text%)])
-               (send text load-file filename)
-               (drscheme:language:make-text/pos text 0 (send text last-position)))]
-            [else filename])))
-      
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
       ;; =User=
       ;; the timing is a little tricky here. 
@@ -1271,31 +1208,6 @@
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
-          ;; set-basic-parameters : -> void
-          ;; sets the parameters that are shared between the repl's initialization
-          ;; and expand-program
-          (define (set-basic-parameters snip-classes)
-            (for-each (lambda (snip-class) (send (get-the-snip-class-list) add snip-class))
-                      snip-classes)
-            (current-rep this)
-            (read-curly-brace-as-paren #t)
-            (read-square-bracket-as-paren #t)
-            (error-print-width 250)
-            (current-load drscheme-load-handler)
-            (let ([dir (or (send context get-directory)
-                           drscheme:init:first-dir)])
-              (current-directory dir)
-              (current-load-relative-directory dir))
-            
-            (current-ps-setup (make-object ps-setup%))
-            
-            (let ([user-custodian (current-custodian)])
-              (exit-handler (lambda (arg) ; =User=
-                              (custodian-shutdown-all user-custodian))))
-            (current-namespace (make-namespace 'empty))
-            (for-each (lambda (x) (namespace-attach-module drscheme:init:system-namespace x))
-                      to-be-copied-module-names))
-          
           ;; drscheme-port-print-handler : TST port -> void
           ;; effect: prints the value on the port
           ;; default setting for the behavior of the `print' primitive.
@@ -1374,68 +1286,7 @@
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           (define (expand-program input language-settings iter)
-            (let* ([eventspace (make-eventspace)]
-                   [language (drscheme:language-configuration:language-settings-language
-                              language-settings)]
-                   [settings (drscheme:language-configuration:language-settings-settings
-                              language-settings)]
-                   [user-custodian (make-custodian)]
-                   [exn-raised? #f]
-                   [err-msg #f]
-                   [err-exn #f]
-                   [run-in-eventspace
-                    (lambda (thnk)
-                      (parameterize ([current-eventspace eventspace])
-                        (set! exn-raised? #f)
-                        (let ([sema (make-semaphore 0)]
-                              [ans #f])
-                          (queue-callback
-                           (lambda ()
-                             (let/ec k
-                               (parameterize ([error-escape-handler
-                                               (let ([drscheme-expand-program-error-escape-handler
-                                                      (lambda ()
-                                                        (set! exn-raised? #t)
-                                                        (k (void)))])
-                                                 drscheme-expand-program-error-escape-handler)])
-                                 (set! ans (thnk))))
-                             (semaphore-post sema)))
-                          (semaphore-wait sema)
-                          ans)))]
-                   [drs-snip-classes (get-snip-classes)])
-              (run-in-eventspace
-               (lambda ()
-                 (current-custodian user-custodian)
-                 (set-basic-parameters drs-snip-classes)
-                 (current-language-settings language-settings)))
-              (send language on-execute settings run-in-eventspace)
-              (run-in-eventspace
-               (lambda ()
-                 (error-display-handler
-                  (lambda (msg exn)
-                    (set! err-msg msg)
-                    (set! err-exn exn)))
-                 (break-enabled #t)))
-              (let ([read-thnk
-                     (run-in-eventspace
-                      (lambda ()
-                        (send language front-end input settings)))])
-                (let loop ()
-                  (let ([in (run-in-eventspace
-                             (lambda ()
-                               (let ([rd (read-thnk)])
-                                 (if (eof-object? rd)
-                                     rd
-                                     (let ([expanded (expand rd)])
-                                       (eval-compile-time-part-of-top-level expanded)
-                                       expanded)))))])
-                    (cond
-                      [(eof-object? in)
-                       (iter #f in run-in-eventspace (lambda () (void)))]
-                      [exn-raised?
-                       (iter #t (cons err-msg err-exn) run-in-eventspace (lambda () (void)))]
-                      [else
-                       (iter #f in run-in-eventspace (lambda () (loop)))]))))))
+            (drscheme:eval:expand-program input language-settings iter))
           
           (define (get-prompt) "> ")
           (define (eval-busy?)
@@ -1694,15 +1545,6 @@
               (semaphore-post eval-thread-state-sema)
               (semaphore-post eval-thread-queue-sema)))
           
-          ;; get-snip-classes : -> (listof snipclass)
-          ;; returns a list of the snip classes in the current eventspace
-          (define (get-snip-classes)
-            (let loop ([n (send (get-the-snip-class-list) number)])
-              (if (zero? n)
-                  null
-                  (cons (send (get-the-snip-class-list) nth (- n 1))
-                        (loop (- n 1))))))
-          
           (inherit get-top-level-window)
           (define init-evaluation-thread ; =Kernel=
             (lambda ()
@@ -1736,7 +1578,7 @@
                 ; setup standard parameters
                 (let ([snip-classes
                        ; the snip-classes in the DrScheme eventspace's snip-class-list
-                       (get-snip-classes)])
+                       (drscheme:eval:get-snip-classes)])
                   (queue-user/wait
                    (lambda () ; =User=, =No-Breaks=
                      ; No user code has been evaluated yet, so we're in the clear...
@@ -1854,7 +1696,13 @@
                      expr
                      (basic-convert expr))))
               
-              (set-basic-parameters snip-classes)
+              (drscheme:eval:set-basic-parameters snip-classes)
+              (current-rep this)
+              (let ([dir (or (send context get-directory)
+                           drscheme:init:first-dir)])
+              (current-directory dir)
+              (current-load-relative-directory dir))
+              
               (set! user-namespace (current-namespace))
               
               (current-output-port this-out)
