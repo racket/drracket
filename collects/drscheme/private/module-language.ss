@@ -67,7 +67,7 @@
                         [else eof]))))
                 (super-front-end input settings)))
           (super-instantiate ()
-            (module '(lib "full-mred.ss" "lang"))
+            (module '(lib "plt-mred.ss" "lang"))
             (language-position (list "module")))))
       
       ;; module-language-style-delta : (instanceof style-delta%)
