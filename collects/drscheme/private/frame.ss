@@ -465,6 +465,16 @@
                 (lambda (x y)
                   (handler:open-file)
                   #t)))
+	  (unless (current-eventspace-has-standard-menus?)
+	    (new separator-menu-item% (parent file-menu))
+	    (new menu-item%
+               (label (string-constant quit-menu-item-others))
+               (parent file-menu)
+               (shortcut #\q)
+               (callback
+                (lambda (x y)
+                  (exit:exit)
+                  #t))))
           (make-help-desk-menu-item help-menu)))
       
       (define (make-help-desk-menu-item help-menu)

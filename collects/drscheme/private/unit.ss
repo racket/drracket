@@ -1027,8 +1027,8 @@
                     (equal? (message-box/custom
                              (string-constant drscheme)
                              (string-constant program-is-still-running)
-                             (string-constant yes)
-                             (string-constant no)
+                             (string-constant close-anyway)
+                             (string-constant cancel)
                              #f
                              this
                              '(default=1 caution)
@@ -1041,8 +1041,8 @@
                     (equal? (message-box/custom
                              (string-constant drscheme)
                              (string-constant program-has-open-windows)
-                             (string-constant yes)
-                             (string-constant no)
+                             (string-constant close-anyway)
+                             (string-constant cancel)
                              #f
                              this
                              '(default=1 caution)
