@@ -339,7 +339,7 @@
 	  (set! stop-execute-button
 		(make-object mred:button% button-panel 
 			     (lambda args (send interactions-edit break))
-			     "Stop Executing"))
+			     "Break"))
 	 (make-object mred:button% button-panel
 		       (lambda args (do-help))
 		       "Help")
