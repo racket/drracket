@@ -295,6 +295,7 @@
 					 (string-constant wizard-finish)
 					 (string-constant wizard-next)))
                               (parent bp)
+                              (style '(border))
                               (callback (lambda (x y) (next-state)))))
         
         (set-state 'natural-language)
