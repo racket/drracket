@@ -64,20 +64,16 @@
   (define (make-full-mark-varargs source label-num . bindings)
     (make-full-mark-struct source label-num bindings))
   
-  (define-struct location-protector (location))
-  
   (define (make-full-mark location label bindings)
-    (let ([protected-location (make-location-protector location)])
-      (fprintf (current-error-port) "made protected location\n")
-      (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs ,protected-location ,(get-label-num label) ,@(apply append bindings))))))
+    (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs (quote-syntax ,location) 
+                                              ,(get-label-num label) ,@(apply append bindings)))))
   
   (define-struct cheap-mark (source))
   
   (define (mark-source mark)
-    (fprintf (current-error-port) "extracting location\n")
     (if (cheap-mark? mark)
         (cheap-mark-source mark)
-        (location-protector-location (full-mark-struct-source (mark)))))
+        (full-mark-struct-source (mark))))
   
   ;; extract-locations : mark-set -> (listof syntax-object)
   (define (extract-locations mark-set)
