@@ -36,6 +36,17 @@
    (get-preference help-browser-preference (lambda () 'external))
    help-browser-preference?)
   
+  (define http-proxy-preference 'plt:http-proxy)
+
+  (fw:preferences:set-default http-proxy-preference
+			      #f
+			      (lambda (x) (or (not x)
+					      (and (list? x)
+						   (= (length x) 3)
+						   (equal? (car x) "http")
+						   (string? (cadr x))
+						   (number? (caddr x))))))
+
   ; : str [bool] -> void
   (define send-help-desk-url
     (lambda (mk-browser url . args)
@@ -67,8 +78,18 @@
   (define (set-browser! browser)
     (fw:preferences:set 'external-browser browser))
   
+  ;; Tries to put low-level prefs three times, sleeping a bit in
+  ;; between, then gives up.
+  (define (try-put-preferences names vals)
+    (let loop ([tries 0])
+      (unless (= tries 3)
+	(put-preferences names vals 
+			 (lambda (lock-file)
+			   (sleep 0.2)
+			   (loop (add1 tries)))))))
+
   (define (set-plt-browser!)
-    (put-preferences (list help-browser-preference) '(plt))
+    (try-put-preferences (list help-browser-preference) '(plt))
     (fw:preferences:set help-browser-preference 'plt))
 
   (define unix-browser-names
@@ -143,6 +164,8 @@
   (define (make-help-browser-preference-panel set-help? ask-later? mk)
     (unless synchronized?
       ;; Keep low-level pref in sync. Yes, this is clumsy and bad.
+      
+      ;; For internal vs. external browser:
       ;; At start-up, let low-level preference dominate if it has
       ;; a value and is different, because Help Desk might have set it.
       (let ([low-level (get-preference help-browser-preference (lambda () #f))])
@@ -151,13 +174,19 @@
 	  (fw:preferences:set help-browser-preference low-level)))
       (fw:preferences:add-callback help-browser-preference
 				   (lambda (name browser)
-				     (put-preferences (list help-browser-preference) (list browser)))))
+				     (try-put-preferences (list help-browser-preference) (list browser))))
+      
+      (fw:preferences:add-callback http-proxy-preference
+				   (lambda (name proxy)
+				     (try-put-preferences (list http-proxy-preference) (list proxy)))))
     
     (mk
      (lambda (parent)
        (define callbacks null)
        (let ([pref-panel (instantiate vertical-panel% ()
 				       (parent parent) (alignment '(center center)))])
+
+	 ;; -------------------- internal vs. external browser --------------------
 	 (when set-help?
 	   (let* ([help-desk-radio
 		   (instantiate radio-box% ()
@@ -180,12 +209,13 @@
 		    callbacks))
 	     (refresh-control #f (fw:preferences:get help-browser-preference))))
 
+	 ;; -------------------- external browser for Unix --------------------
 	 (when (unix-browser?)
 	   (unless synchronized?
 	     ;; Keep 'external-browser in sync, too
 	     (fw:preferences:add-callback 'external-browser
 					  (lambda (name browser)
-					    (put-preferences (list 'external-browser) (list browser)))))
+					    (try-put-preferences (list 'external-browser) (list browser)))))
 
 	   (letrec ([v-panel (instantiate vertical-panel% ()
 					  (parent pref-panel)
@@ -262,6 +292,72 @@
 		[else (unless (find-executable-path (symbol->string (car x)) #f)
 			(send r enable n #f))
 		      (disable (cdr x) (add1 n))]))))
+
+	 ;; -------------------- proxy for doc downloads --------------------
+	 (when set-help?
+	   (letrec ([p (instantiate vertical-panel% ()
+				    (parent pref-panel)
+				    (stretchable-height #f)
+				    (style '(border))
+				    (alignment '(left top)))]
+		    [rb (make-object radio-box% 
+				     #f (list (string-constant proxy-direct-connection)
+					      (string-constant proxy-use-proxy))
+				     p
+				     (lambda (r e)
+				       (let ([proxy? (= 1 (send r get-selection))])
+					 (send proxy-spec enable proxy?)
+					 (if proxy?
+					     (update-proxy)
+					     (fw:preferences:set http-proxy-preference #f)))))]
+		    [proxy-spec (instantiate horizontal-panel% (p)
+					     [stretchable-width #f]
+					     [stretchable-height #f]
+					     [alignment '(left center)])]
+		    [update-proxy (lambda ()
+				    (let ([host (send host get-value)]
+					  [port (send port get-value)])
+				      (let ([ok? (and (regexp-match "^[0-9a-zA-Z.]+$" host)
+						      (regexp-match "^[0-9]+$" port)
+						      (string->number port)
+						      (<= 1 (string->number port) 65535))])
+					(when ok?
+					  (fw:preferences:set 
+					   http-proxy-preference
+					   (list "http" host (string->number port))))
+					(send bad-host show (not ok?)))))]
+		    [host (make-object text-field%
+				       (string-constant proxy-host)
+				       proxy-spec (lambda (x y) (update-proxy))
+				       "www.someplacethatisaproxy.domain.comm")]
+		    [port (make-object text-field%
+				       (string-constant proxy-port)
+				       proxy-spec (lambda (x y) (update-proxy)) "65535")]
+		    [bad-host (make-object message%
+					   (string-constant proxy-bad-host)
+					   p)]
+		    [update-gui
+		     (lambda (proxy-val)
+		       (send bad-host show #f)
+		       (if proxy-val 
+			   (begin
+			     (send rb set-selection 1)
+			     (send proxy-spec enable #t)
+			     (unless (string=? (cadr proxy-val) (send host get-value))
+			       (send host set-value (cadr proxy-val)))
+			     (unless (equal? (caddr proxy-val) (string->number (send port get-value)))
+			       (send port set-value (number->string (caddr proxy-val)))))
+			   (begin
+			     (send rb set-selection 0)
+			     (send proxy-spec enable #f)
+			     (send host set-value "")
+			     (send port set-value ""))))])
+      
+	     (fw:preferences:add-callback http-proxy-preference
+					  (lambda (name val)
+					    (update-gui val)))
+	     (update-gui (fw:preferences:get http-proxy-preference))
+	     (send bad-host show #f)))
 
 	 (set! synchronized? #t)
 	 (values pref-panel callbacks)))))
