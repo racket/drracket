@@ -413,7 +413,10 @@
                           (loop (cdr ordered) (+ n 1))]
                          [else
                           (loop (cdr ordered) n)]))]))))
-                
+            (send manual-ordering-text change-style
+                  (make-object style-delta% 'change-family 'system)
+                  0
+                  (send manual-ordering-text last-position))
             (send manual-ordering-text set-position 0)
             (send manual-ordering-text lock #t)
             (send manual-ordering-text end-edit-sequence))
