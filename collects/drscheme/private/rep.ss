@@ -685,7 +685,7 @@ TODO
             (inner (void) after-insert start len)
             (unless inserting-prompt?
               (reset-highlighting))
-            (when (and prompt-position (<= start prompt-position))
+            (when (and prompt-position (< start prompt-position))
               
               ;; trim extra space, according to preferences
               #;
