@@ -92,18 +92,27 @@
                          (string-constant drscheme)
                          'disallow-close
                          parent)])
-              (if stand-alone?
-                  (make-embedding-executable
-                   executable-filename
-                   gui?
-                   #f ;; verbose?
-                   (list (list #f `(file ,program-filename)))
-                   null
-                   null
-                   (list (if gui? "-Zmvqt" "-mvqt") program-filename))
-                  ((if gui? make-mred-launcher make-mzscheme-launcher)
-                   (list "-mvqt" program-filename)
-                   executable-filename))))
+              
+              ;; make-embedding-executable may fail if the defn's window doesn't contain a module.
+              (with-handlers ([not-break-exn?
+                               (lambda (exn)
+                                 (message-box
+                                  (string-constant drscheme)
+                                  (if (exn? exn)
+                                      (exn-message exn)
+                                      (format "~s" exn))))])
+                (if stand-alone?
+                    (make-embedding-executable
+                     executable-filename
+                     gui?
+                     #f ;; verbose?
+                     (list (list #f `(file ,program-filename)))
+                     null
+                     null
+                     (list (if gui? "-Zmvqt" "-mvqt") program-filename))
+                    ((if gui? make-mred-launcher make-mzscheme-launcher)
+                     (list "-mvqt" program-filename)
+                     executable-filename)))))
           
           (super-instantiate ()
             (module '(lib "plt-mred.ss" "lang"))

@@ -51,6 +51,7 @@
           create-executable
           
           get-language-position
+          get-language-name
           get-style-delta
           get-language-numbers
           get-one-line-summary))
@@ -445,6 +446,14 @@
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
                    get-init-code use-mred-launcher? get-reader)
 	  (rename [super-on-execute on-execute])
+
+          (inherit get-language-position)
+          (define/public (get-language-name)
+            (let ([pos (get-language-position)])
+              (if (null? pos)
+                  "<<unknown>>"
+                  (car (last-pair pos)))))
+
           (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)
@@ -500,7 +509,9 @@
 		   (string-append
 		    raw-message
 		    "\n\n"
-		    (string-constant inline-saved-program-in-executable/windows))]
+		    (format
+		     (string-constant inline-saved-program-in-executable/windows/path)
+		     (normalize-path (build-path (collection-path "mzlib") 'up 'up))))]
 		  [else raw-message])])
 	  (gui-utils:get-choice
 	   message

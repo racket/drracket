@@ -348,8 +348,8 @@
               (drscheme:language-configuration:language-settings-settings language-settings)))
 
       (define (extract-language-name language-settings)
-        (car (last-pair (send (drscheme:language-configuration:language-settings-language language-settings)
-                              get-language-position))))
+        (send (drscheme:language-configuration:language-settings-language language-settings)
+              get-language-name))
       (define (extract-language-style-delta language-settings)
         (send (drscheme:language-configuration:language-settings-language language-settings)
               get-style-delta))
