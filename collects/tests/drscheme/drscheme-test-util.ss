@@ -291,7 +291,9 @@
                   (let* ([editor (send (send snip get-admin) get-editor)]
                          [between-threshold (send editor get-between-threshold)])
                     (send editor get-snip-location snip b1 b2)
-                    (let-values ([(gx gy) (send editor editor-location-to-dc-location (unbox b1) (unbox b2))])
+                    (let-values ([(gx gy) (send editor editor-location-to-dc-location
+                                                (unbox b1)
+                                                (unbox b2))])
                       (let ([x (inexact->exact (+ gx between-threshold 1))]
                             [y (inexact->exact (+ gy between-threshold 1))])
                         (fw:test:mouse-click 'left x y)))))])
@@ -415,28 +417,17 @@
 				 strings))]))]
 	       [(is-a? snip image-snip%)
 		(loop (send snip previous)
-		      (cons (format "{image ~s}" (send snip get-filename)) 
+		      (cons (format "{image}")
 			    strings))]
+
 	       [;; this test is an approximation of
-                ;; (is-a? snip drscheme:snip:whole/part-number-snip%)
-                (and (method-in-interface? 'get-number (object-interface snip))
-                     (method-in-interface? 'get-formatted-string (object-interface snip)))
+                ;; (is-a? snip drscheme:snip:number-snip%)
+                (and (method-in-interface? 'get-fraction-view (object-interface snip)))
 		(loop (send snip previous)
-		      (cons (format "{number ~s ~s}"
+		      (cons (format "{number ~s ~s ~s}"
 				    (send snip get-number)
-				    (send snip get-formatted-string))
+				    (send snip get-text 0 (send snip get-count))
+                                    (send snip get-fraction-view))
 			    strings))]
-               [;; this is an approximation of the test:
-                ;; (is-a? snip drscheme:snip:repeat-snip%)
-                (and (method-in-interface? 'get-number (object-interface snip))
-                     (method-in-interface? 'get-whole-digits (object-interface snip))
-                     (method-in-interface? 'get-non-repeat-digits (object-interface snip))
-                     (method-in-interface? 'get-repeat-digits (object-interface snip)))
-		(loop (send snip previous)
-		      (cons (format "{repeating-decimal ~s ~s ~s ~s}"
-				    (send snip get-number)
-				    (send snip get-whole-digits)
-                                    (send snip get-non-repeat-digits)
-                                    (send snip get-repeat-digits))
-			    strings))]
+
 	       [else (error 'find-output "{unknown snip: ~e}~n" snip)])])))])))

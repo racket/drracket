@@ -371,9 +371,9 @@
                 #f
                 #f)))
   
-  (define docs-image-string "{image #f}")
-  (define backtrace-image-string "{image #f}")
-  (define file-image-string "{image #f}")
+  (define docs-image-string "{image}")
+  (define backtrace-image-string "{image}")
+  (define file-image-string "{image}")
   
   (define drscheme-frame (wait-for-drscheme-frame))
   

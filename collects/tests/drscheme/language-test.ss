@@ -52,7 +52,7 @@
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" (regexp "class: bad syntax in: class"))
-      (test-expression "shared" "{image #f} reference to undefined identifier: shared")
+      (test-expression "shared" "{image} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       (test-expression "'(1 . 2)" "(1 . 2)")
@@ -63,18 +63,18 @@
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
-      (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
       
       (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
-                       "{image #f} reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "{image #f} reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "{image #f} reference to undefined identifier: set-posn-y!")
+                       "{image} reference to undefined identifier: make-posn")
+      (test-expression "set-posn-x!" "{image} reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "{image} reference to undefined identifier: set-posn-y!")
       
-      (test-expression "true" "{image #f} reference to undefined identifier: true")
-      (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
+      (test-expression "true" "{image} reference to undefined identifier: true")
+      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
       (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
@@ -94,17 +94,17 @@
       
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
-      (test-expression "1/2" "{number 1/2 \"1/2\"}")
-      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\" #t}")
+      (test-expression "1/3" "{number 1/3 \" 1/3\" #t}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\" #t}")
+      (test-expression "-1/3" "{number -1/3 \"- 1/3\" #t}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\" #t}")
+      (test-expression "1/2" "{number 1/2 \" 1/2\" #t}")
+      (test-expression "-1/2" "{number -1/2 \"- 1/2\" #t}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\" #t}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+1/2i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\" #t}")
       (test-expression "(exact? 1.5)" "#f")
       
       (test-expression "(list 1)" "(1)")
@@ -146,8 +146,8 @@
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image #f} reference to undefined identifier: class")
-      (test-expression "shared" "{image #f} reference to undefined identifier: shared")
+      (test-expression "class" "{image} reference to undefined identifier: class")
+      (test-expression "shared" "{image} reference to undefined identifier: shared")
       
       (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       (test-expression "'(1 . 2)" "(1 . 2)")
@@ -158,18 +158,18 @@
       
       (test-expression "call/cc" "#<primitive:call-with-current-continuation>")
       
-      (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
-      (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
+      (test-expression "(error 'a \"~a\" 1)" "{image} a: 1")
+      (test-expression "(error \"a\" \"a\")" "{image} a \"a\"")
       
       (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
-                       "{image #f} reference to undefined identifier: make-posn")
-      (test-expression "set-posn-x!" "{image #f} reference to undefined identifier: set-posn-x!")
-      (test-expression "set-posn-y!" "{image #f} reference to undefined identifier: set-posn-y!")
+                       "{image} reference to undefined identifier: make-posn")
+      (test-expression "set-posn-x!" "{image} reference to undefined identifier: set-posn-x!")
+      (test-expression "set-posn-y!" "{image} reference to undefined identifier: set-posn-y!")
       
-      (test-expression "true" "{image #f} reference to undefined identifier: true")
-      (test-expression "mred^" "{image #f} reference to undefined identifier: mred^")
+      (test-expression "true" "{image} reference to undefined identifier: true")
+      (test-expression "mred^" "{image} reference to undefined identifier: mred^")
       (test-expression "(eq? 'a 'A)" "#t")
       (test-expression "(set! x 1)" "{image} set!: cannot set undefined identifier: x")
       (test-expression "(cond [(= 1 2) 3])" "")
@@ -186,17 +186,17 @@
 
       (test-expression "1.0" "1.0")
       (test-expression "#i1.0" "1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
-      (test-expression "3/2" "{number 3/2 \"1 1/2\"}")
-      (test-expression "1/2" "{number 1/2 \"1/2\"}")
-      (test-expression "-1/2" "{number -1/2 \"-1/2\"}")
-      (test-expression "-3/2" "{number -3/2 \"-1 1/2\"}")
+      (test-expression "4/3" "{number 4/3 \"1 1/3\" #t}")
+      (test-expression "1/3" "{number 1/3 \" 1/3\" #t}")
+      (test-expression "-4/3" "{number -4/3 \"-1 1/3\" #t}")
+      (test-expression "-1/3" "{number -1/3 \"- 1/3\" #t}")
+      (test-expression "3/2" "{number 3/2 \"1 1/2\" #t}")
+      (test-expression "1/2" "{number 1/2 \" 1/2\" #t}")
+      (test-expression "-1/2" "{number -1/2 \"- 1/2\" #t}")
+      (test-expression "-3/2" "{number -3/2 \"-1 1/2\" #t}")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+1/2i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\" #t}")
       (test-expression "(exact? 1.5)" "#f")
 
       (test-expression "(let ([f (lambda (x) x)]) f)" "#<procedure:f>")
@@ -278,17 +278,17 @@
       
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
@@ -373,17 +373,17 @@
       
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" 
@@ -465,17 +465,17 @@
       
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "function:f")
@@ -557,17 +557,17 @@
       
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -649,17 +649,17 @@
 
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -740,17 +740,17 @@
       
       (test-expression "1.0" "1")
       (test-expression "#i1.0" "#i1.0")
-      (test-expression "4/3" "{number 4/3 \"1 1/3\"}")
-      (test-expression "1/3" "{number 1/3 \"1/3\"}")
-      (test-expression "-4/3" "{number -4/3 \"-1 1/3\"}")
-      (test-expression "-1/3" "{number -1/3 \"-1/3\"}")
+      (test-expression "4/3" "{number 4/3 \"1.3\" #f}")
+      (test-expression "1/3" "{number 1/3 \".3\" #f}")
+      (test-expression "-4/3" "{number -4/3 \"-1.3\" #f}")
+      (test-expression "-1/3" "{number -1/3 \"-.3\" #f}")
       (test-expression "3/2" "1.5")
       (test-expression "1/2" "0.5")
       (test-expression "-1/2" "-0.5")
       (test-expression "-3/2" "-1.5")
       (test-expression "+1/3i" "0+1/3i")
       (test-expression "+1/2i" "0+0.5i")
-      (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\"}")
+      (test-expression "779625/32258" "{number 779625/32258 \"24.16842333684667369334738669477338954677909355818711...\" #f}")
       (test-expression "(exact? 1.5)" "true")
       
       (test-expression "(let ([f (lambda (x) x)]) f)" "(lambda (a1) ...)")
@@ -838,12 +838,12 @@
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Mixed fractions"))
      "Fraction Style -- Mixed fractions"
      "4/3"
-     "{number 4/3 \"1 1/3\"}")
+     "{number 4/3 \"1 1/3\" #t}")
     (test-setting
      (lambda () (fw:test:set-radio-box! "Fraction Style" "Repeating decimals"))
      "Fraction Style -- Repeating decimals"
      "4/3"
-     "{repeating-decimal 4/3 \"1\" \"\" \"3\"}"))
+     "{number 4/3 \"1.3\" #f}"))
   
   ;; plt-language-fraction-output : -> void
   ;; tests that the PLT languages properly handle repeating decimals
@@ -851,13 +851,13 @@
     (test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #f))
      "Use decimal notation for rationals -- #f"
-     "4/3 1/2"
-     "{number 4/3 \"1 1/3\"}\n{number 1/2 \"1/2\"}")
+     "4/3 1/2 -1/3"
+     "{number 4/3 \"1 1/3\" #t}\n{number 1/2 \" 1/2\" #t}\n{number -1/3 \"- 1/3\" #t}")
     (test-setting
      (lambda () (fw:test:set-check-box! "Use decimal notation for rationals" #t))
      "Use decimal notation for rationals -- #t"
-     "4/3 1/2"
-     "{repeating-decimal 4/3 \"1\" \"\" \"3\"}\n{repeating-decimal 1/2 \"\" \"5\" \"\"}"))
+     "4/3 1/2 -1/3"
+     "{number 4/3 \"#e1.3\" #f}\n{number 1/2 \"#e.5\" #f}\n{number -1/3 \"#e-.3\" #f}"))
   
   (define (generic-settings false/true?)
     (test-setting
@@ -867,16 +867,11 @@
     (test-setting
      (lambda () (fw:test:set-check-box! "Case sensitive" #f))
      "Case sensitive -- #f"
-     "(eq? 'g 'G)" (if false/true? "true" "#t"))
-;    (set-language #f)
-;    (test-setting "Unmatched cond/case is an error" #f
-;                  (format "(cond [~a 1])" (if false/true? "false" "#f"))
-;                  "")
-    )
+     "(eq? 'g 'G)" (if false/true? "true" "#t")))
   
   (define (generic-output list? quasi-quote? has-sharing?)
     (let* ([drs (wait-for-drscheme-frame)]
-           [expression (format "(define x (list 4/3))~n(list x x)")]
+           [expression (format "(define x (list 2))~n(list x x)")]
            [set-output-choice
             (lambda (option show-sharing pretty?)
               (set-language #f)
@@ -912,23 +907,23 @@
       (clear-definitions drs)
       (type-in-definitions drs expression)
       
-      (test "write" 'off #t "(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
+      (test "write" 'off #t "((2) (2))")
       (when has-sharing?
-        (test "write" 'on #t "(#0=({number 4/3 \"1 1/3\"}) #0#)"))
+        (test "write" 'on #t "(#0=(2) #0#)"))
       (when quasi-quote?
-        (test "Quasiquote" 'off #t "`(({number 4/3 \"1 1/3\"}) ({number 4/3 \"1 1/3\"}))")
+        (test "Quasiquote" 'off #t "`((2) (2))")
         (when has-sharing?
-          (test "Quasiquote" 'on #t "(shared ((-1- `({number 4/3 \"1 1/3\"}))) `(,-1- ,-1-))")))
+          (test "Quasiquote" 'on #t "(shared ((-1- `(2))) `(,-1- ,-1-))")))
       
       (test "Constructor" 'off #t
             (if list?
-                "(list (list {number 4/3 \"1 1/3\"}) (list {number 4/3 \"1 1/3\"}))"
-                "(cons (cons {number 4/3 \"1 1/3\"} empty) (cons (cons {number 4/3 \"1 1/3\"} empty) empty))"))
+                "(list (list 2) (list 2))"
+                "(cons (cons 2 empty) (cons (cons 2 empty) empty))"))
       (when has-sharing?
         (test "Constructor" 'on #t
               (if list?
-                  "(shared ((-1- (list {number 4/3 \"1 1/3\"}))) (list -1- -1-))"
-                  "(shared ((-1- (cons {number 4/3 \"1 1/3\"} empty))) (cons -1- (cons -1- empty)))")))
+                  "(shared ((-1- (list 2))) (list -1- -1-))"
+                  "(shared ((-1- (cons 2 empty))) (cons -1- (cons -1- empty)))")))
       
       ;; setup comment box
       (clear-definitions drs)
