@@ -313,9 +313,89 @@
       (sequence
 	(super-init))))
 
-  (define name-message-inset 2)
+  (define button-label-inset 1)
+  (define drop-shadow-size 2)
 
   (define black-color (make-object mred:color% "BLACK"))
+
+  (define button-label-font
+    (send mred:the-font-list find-or-create-font
+	  (case (system-type)
+	    [(windows) 8]
+	    [else 10])
+	  'decorative 'normal 'normal #f))
+
+  (define (calc-button-min-sizes dc label)
+    (send dc set-font button-label-font)
+    (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
+      (values
+       (+ button-label-inset button-label-inset
+	  drop-shadow-size
+	  1 ;; for the outer drop shadow
+	  1 ;; becuase "(define ...)" has the wrong size under windows
+	  (inexact->exact (ceiling w)))
+       (+ button-label-inset button-label-inset
+	  drop-shadow-size
+	  1 ;; for the outer drop shadow
+	  (inexact->exact (ceiling h))))))
+
+  (define (offset-color color offset-one)
+    (make-object mred:color%
+      (offset-one (send color red))
+      (offset-one (send color green))
+      (offset-one (send color blue))))
+
+  (define light-button-color (offset-color (mred:get-panel-background)
+					   (lambda (v) (floor (+ v (/ (- 255 v) 2))))))
+  (define dark-button-color (offset-color (mred:get-panel-background)
+					  (lambda (v) (floor (- v (/ v 2))))))
+
+  (define (draw-button-label dc label w h inverted?)
+    (send dc set-text-foreground black-color)
+    (send dc set-text-background (mred:get-panel-background))
+    (send dc set-pen (send mred:the-pen-list find-or-create-pen
+			   (mred:get-panel-background) 1 'solid))
+    (send dc set-brush (send mred:the-brush-list find-or-create-brush
+			     (mred:get-panel-background) 'solid))
+
+    (send dc draw-rectangle 0 0 w h)
+
+    (send dc set-pen (send mred:the-pen-list find-or-create-pen
+			   "BLACK" 1 'solid))
+    (send dc set-brush
+	  (send mred:the-brush-list find-or-create-brush
+		(if inverted? dark-button-color light-button-color) 'solid))
+
+    (let ([border
+	   (lambda (d)
+	     (send dc draw-rectangle
+		   d d
+		   (- w drop-shadow-size)
+		   (- h drop-shadow-size)))])
+      (if inverted?
+	  (let loop ([n 0])
+	    (cond
+	     [(= n drop-shadow-size) (void)]
+	     [else
+	      (border n)
+	      (loop (+ n 1))]))
+	  (let loop ([n drop-shadow-size])
+	    (cond
+	     [(zero? n) (void)]
+	     [else
+	      (border (- n 1))
+	      (loop (- n 1))]))))
+
+    (when label
+      (send dc set-font button-label-font)
+      (let-values ([(tw th _2 _3) (send dc get-text-extent label)])
+
+	;; 1 is for the outer drop shadow box
+	(send dc draw-text label
+	      (+ button-label-inset
+		 (if inverted? drop-shadow-size 1))
+	      (+ button-label-inset
+		 (if inverted? drop-shadow-size 1))))))
 
   (define name-message%
     (class/d mred:canvas% (parent)
@@ -323,11 +403,6 @@
        (public set-message) ;; set-message : (union #f string) string -> void
        (override on-event on-paint))
 
-      (define font (send mred:the-font-list find-or-create-font
-			 (case (system-type)
-			   [(windows) 8]
-			   [else 10])
-			 'decorative 'normal 'normal #f))
       ;(define font (send parent get-label-font))
       
       (define label #f)
@@ -373,48 +448,22 @@
           [else (void)]))
 		
       (define (update-min-sizes)
-	(let ([dc (get-dc)])
-	  (send dc set-font font)
-	  (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
-	    (min-width (+ name-message-inset name-message-inset (inexact->exact (floor tw))))
-            (min-height (+ name-message-inset name-message-inset (inexact->exact (floor th)))))
-	  (send parent reflow-container)))
+	(let-values ([(w h) (calc-button-min-sizes (get-dc) short-label)])
+	  (min-width w)
+	  (min-height h))
+	(send parent reflow-container))
 
       (define inverted? #f)
 
       (define (on-paint)
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
-            ;(send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
-	    (cond
-	     [inverted?
-	      (send dc set-text-foreground (mred:get-panel-background))
-	      (send dc set-text-background black-color)
-	      (send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
-	      (send dc set-brush (send mred:the-brush-list find-or-create-brush "BLACK" 'solid))]
-	     [else
-	      (send dc set-text-foreground black-color)
-	      (send dc set-text-background (mred:get-panel-background))
-	      (send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
-	      ;(send dc set-pen (send mred:the-pen-list find-or-create-pen "BLACK" 1 'solid))
-	      (send dc set-brush (send mred:the-brush-list find-or-create-brush (mred:get-panel-background) 'solid))])
-	    (send dc draw-rectangle 0 0 w h)
-	    (when short-label
-	      (send dc set-font font)
-	      (let-values ([(tw th _2 _3) (send dc get-text-extent short-label)])
-		(send dc draw-text short-label
-		      (max 0
-			   (- (/ w 2)
-                              (/ tw 2)))
-                      (max 0
-                           (- (/ h 2)
-			      (/ th 2)))))))))
+	    (draw-button-label dc short-label w h inverted?))))
 
       (super-init parent)
       (stretchable-width #f)
       (stretchable-height #f)))
 
-  
   (define func-defs-canvas%
     (class/d mred:canvas% (parent text)
       ((override on-paint on-event)
@@ -498,62 +547,56 @@
 
       (define inverted? #f)
 
-      (define font (send mred:the-font-list find-or-create-font
-			 (case (system-type)
-			   [(windows) 8]
-			   [else 10])
-			 'decorative 'normal 'normal #f))
-      (define label "(define")
-      (define black (make-object mred:color% "BLACK"))
-      (define white (make-object mred:color% "WHITE"))
+      (define label "(define ...)")
 
       (define (on-paint)
 	(let ([dc (get-dc)])
 	  (let-values ([(w h) (get-client-size)])
-	    (if inverted?
-		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen black-color 1 'solid))
-		       (send dc set-brush (send mred:the-brush-list find-or-create-brush black-color 'solid))
-		       (send dc set-text-foreground (mred:get-panel-background)))
-		(begin (send dc set-pen (send mred:the-pen-list find-or-create-pen (mred:get-panel-background) 1 'solid))
-		       (send dc set-brush (send mred:the-brush-list find-or-create-brush (mred:get-panel-background) 'solid))
-		       (send dc set-text-foreground black-color)))
-	    (send dc set-font font)
-	    (send dc draw-rectangle 0 0 w h)
-	    (send dc draw-text label name-message-inset name-message-inset))))
+	    (draw-button-label dc label w h inverted?))))
 
       (define (on-event evt)
 	(cond
 	 [(send evt button-down?)
 	  (set! inverted? #t)
 	  (on-paint)
-	  (let ([menu (make-object mred:popup-menu% #f)])
-	    (let loop ([defns (get-definitions)])
-	      (unless (null? defns)
-		(let* ([defn (car defns)]
-		       [next-start (if (null? (cdr defns))
-				       (send text last-position)
-				       (defn-pos (car (cdr defns))))]
-					      
-		       [checked? (and (<= (defn-pos defn)
-                                          (send text get-start-position))
-                                      (<  (send text get-end-position)
-                                          next-start))]
-		       [item
-			(make-object (if checked?
-					 mred:checkable-menu-item%
-					 mred:menu-item%)
-			  (defn-name defn)
-			  menu
-			  (lambda x
-			    (set! inverted? #f)
-			    (on-paint)
-			    (send text set-position (defn-pos defn) (defn-pos defn))
-                            (let ([canvas (send text get-canvas)])
-                              (when canvas
-                                (send canvas focus)))))])
-		  (when checked?
-		    (send item check #t))
-		  (loop (cdr defns)))))
+	  (let ([menu (make-object mred:popup-menu% #f
+				   (lambda x
+				     (set! inverted? #f)
+				     (on-paint)))]
+		[defns (get-definitions)])
+	    (if (null? defns)
+		(send (make-object mred:menu-item%
+			"<< no definitions found >>"
+			menu
+			void)
+		      enable #f)
+		(let loop ([defns defns])
+		  (unless (null? defns)
+		    (let* ([defn (car defns)]
+			   [next-start (if (null? (cdr defns))
+					   (+ (send text last-position) 1)
+					   (defn-pos (car (cdr defns))))]
+			   
+			   [checked? (and (<= (defn-pos defn)
+					      (send text get-start-position))
+					  (<  (send text get-end-position)
+					      next-start))]
+			   [item
+			    (make-object (if checked?
+					     mred:checkable-menu-item%
+					     mred:menu-item%)
+			      (defn-name defn)
+			      menu
+			      (lambda x
+				(set! inverted? #f)
+				(on-paint)
+				(send text set-position (defn-pos defn) (defn-pos defn))
+				(let ([canvas (send text get-canvas)])
+				  (when canvas
+				    (send canvas focus)))))])
+		      (when checked?
+			(send item check #t))
+		      (loop (cdr defns))))))
 	    (popup-menu menu
 			0
 			height))]
@@ -564,12 +607,7 @@
 
       (super-init parent)
 
-      (define-values (width height)
-	(let-values ([(w h a d) (send (get-dc) get-text-extent label font)])
-	  (values
-	   (+ name-message-inset name-message-inset (inexact->exact (ceiling w)))
-	   (+ name-message-inset name-message-inset (inexact->exact (ceiling h))))))
-
+      (define-values (width height) (calc-button-min-sizes (get-dc) label))
       (min-width width)
       (min-height height)
       (stretchable-width #f)
@@ -918,6 +956,14 @@
 	     (fw:preferences:get 'framework:menu-bindings)
 	     #\b)
 	    "Break the current evaluation")
+	  (make-object mred:menu-item%
+	    "Kill"
+	    scheme-menu
+	    (lambda (_1 _2) (send interactions-text kill-evaluation))
+	    (and
+	     (fw:preferences:get 'framework:menu-bindings)
+	     #\k)
+	    "Kill the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
 	  (make-object mred:menu-item%
 	    "&Reindent"
@@ -1068,18 +1114,8 @@
 		  (mzlib:file:normalize-path filename)
 		  #f)
 	      (or (get-label) "Untitled"))
-	'(send name-message set-message
-	      filename
-	      (if (get-label)   
-		  (mzlib:file:file-name-from-path (get-label))
-		  "Untitled"))
 
 	(update-save-button #f)
-
-	 '(let ([fn (send definitions-text get-filename)])
-	   (cond
-	    [(and fn (mzlib:file:file-name-from-path fn)) => (lambda (x) x)]
-	    [else (next-untitled-name)]))
 
 	(send interactions-text initialize-console)
 

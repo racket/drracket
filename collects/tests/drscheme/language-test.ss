@@ -303,8 +303,8 @@
     (test-expression "(time 1)" (format "[cpu time: 0 real time: 0 gc time: 0]~n1"))
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
-    (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
-    (test-expression "set-posn-y!" "reference to undefined identifier: set-posn-y!")
+    (test-expression "set-posn-x!" "set-posn-x!")
+    (test-expression "set-posn-y!" "set-posn-y!")
 
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
