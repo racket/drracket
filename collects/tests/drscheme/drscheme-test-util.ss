@@ -358,7 +358,9 @@
   ;; clears the definitions, clicks execute and checks the interactions window.
   (define (check-language-level lang-spec)
     (let* ([drs-frame (get-top-level-focus-window)]
-           [interactions (send drs-frame get-interactions-text)])
+           [interactions (send drs-frame get-interactions-text)]
+           [definitions-canvas (send drs-frame get-definitions-canvas)])
+      (fw:test:new-window definitions-canvas)
       (fw:test:menu-select "Edit" "Select All")
       (fw:test:menu-select "Edit" "Delete")
       (do-execute drs-frame)

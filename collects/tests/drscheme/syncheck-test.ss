@@ -310,7 +310,9 @@
                   ("syntax-case"   imported-syntax)
                   (" "             #f)
                   ("stx"           lexically-bound-variable)
-                  (" () (_ "       #f)
+                  (" () ("         #f)
+                  ("_"             lexically-bound-syntax)
+                  (" "             #f)
                   ("123"           constant)
                   ("))))"          #f))
                 (list '((26 29) (44 47))))
@@ -341,10 +343,6 @@
                   ("s"             lexically-bound-syntax)
                   (" ())"          #f)))
      
-     
-     ;; sure would be nice if `s' in the second instance came
-     ;; out as lexically bound syntax and were bound to the 
-     ;; first s...
      (build-test "(define-struct s ()) (define-struct (t s) ())"
                 '(("("             #f)
                   ("define-struct" imported-syntax)
@@ -354,7 +352,10 @@
                   ("define-struct" imported-syntax)
                   (" ("            #f)
                   ("t"             lexically-bound-syntax)
-                  (" s) ())"       #f))) 
+                  (" "             #f)
+                  ("s"             lexically-bound-syntax)
+                  (") ())"         #f))
+                (list '((15 16) (39 40))))
      
      (build-test "(let () (define-struct s (x)) 1)"
                  '())
@@ -422,13 +423,13 @@
                   (" "             #f)
                   ("s"             lexically-bound-syntax)
                   (" (a)) "        #f)
-                  ("s-a"           lexically-bound-identifier)
+                  ("s-a"           lexically-bound-variable)
                   (" "             #f)
-                  ("make-s"        lexically-bound-identifier)
+                  ("make-s"        lexically-bound-variable)
                   (" "             #f)
-                  ("s?"            lexically-bound-identifier)
+                  ("s?"            lexically-bound-variable)
                   (" "             #f)
-                  ("set-s-a!"      lexically-bound-identifier)
+                  ("set-s-a!"      lexically-bound-variable)
                   (")"             #f))
                 (list '((10 18) (20 33))))
      
