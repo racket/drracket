@@ -130,16 +130,6 @@
 		       (regexp-match re:plain args))])
 	    (and m (caddr m)))))))
 
-  ;; To implement non-breaking spaces:
-  (define non-breaking-snip-class
-    (make-object snip-class%))
-  (define non-breaking-space-snip%
-    (class snip% ()
-      (inherit set-snipclass)
-      (sequence
-        (super-init)
-        (set-snipclass non-breaking-snip-class))))
-
   (define face-list #f)
 
   (define latin-1-symbols
@@ -201,6 +191,7 @@
 	   [position-paragraph (ivar b position-paragraph)]
 	   [set-paragraph-margins (ivar b set-paragraph-margins)]
 	   [set-paragraph-alignment (ivar b set-paragraph-alignment)]
+	   [find-string-all (ivar b find-string-all)]
 	   [add-document-note (ivar b add-document-note)]
 
 	   [inserted-chars #f]
@@ -472,9 +463,7 @@
 			  [result
 			   (lambda (l1-val)
 			     (flush-i-buffer)
-			     (let ([v (if (= l1-val 160) ; non-breaking space
-					  (make-object non-breaking-space-snip%)
-					  (or (latin-1-integer->char l1-val) #\?))])
+			     (let ([v (or (latin-1-integer->char l1-val) #\?)])
 			       (insert v pos)
 			       (find-bracket (add1 pos) #f)))])
 		      (if (char=? #\# ch)
@@ -782,15 +771,13 @@
 	       (lambda () (translate pos #t del-white? 0))
 	       loop))))
 
-        ;; Replace non-breaking space snips with regular spaces:
-        (let loop ([snip (find-first-snip)])
-          (when snip
-            (let ([next (send snip next)])
-              (when (is-a? snip non-breaking-space-snip%)
-                (let ([p (get-snip-position snip)])
-                  (insert " " (add1 p)) ; important: gets style from predecessor
-                  (delete p (add1 p))))
-              (loop next))))
+        ;; Replace non-breaking spaces with regular spaces:
+	(let ([l (find-string-all (string (latin-1-integer->char 160)) 'forward 0)])
+	  (for-each
+	   (lambda (p)
+	     (insert " " (add1 p)) ; important: gets style from predecessor
+	     (delete p (add1 p)))
+	   l))
 
 	;; Install indentation
 	(btree-for-each
