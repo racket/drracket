@@ -84,10 +84,16 @@
           
           (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x))
                      "a"
-                     "reference to undefined-identifier: a")
+                     ". reference to undefined identifier: a")
           (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x))
                      "a"
-                     "reference to undefined-identifier: a")
+                     ". reference to undefined identifier: a")
+	  (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x (define a 77)))
+                     "a"
+                     "77")
+          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x (define a 78)))
+                     "a"
+                     "78")
           ))
   
   ;; set up language for last test.
@@ -153,5 +159,5 @@
                     after-int-output))))))
   
   (define (run-test)
-    (set-language-level! '("module") #t)
+    (set-language-level! '("(module ...)") #t)
     (for-each single-test tests)))
