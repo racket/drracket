@@ -26,7 +26,7 @@
     (run-string-test "(define (f x) (* x 2))\n(+ 1 (f (+ 1 1)))")
     (run-string-test "(sqrt 2)")
     (run-string-test "(car)")
-    (for-each
+    '(for-each
       (lambda (file) (run-file-test (build-path sample-solutions-directory file)))
       (directory-list sample-solutions-directory))
     
@@ -212,20 +212,15 @@
            (poll-until
             (lambda () (send next-button is-enabled?))
             1
-            void)
+            void) ;; no error signalled if button doesn't show up.
            
            ;; wait for the stepper-canvas to have an editor
-           (poll-until
-            (lambda () (send stepper-canvas get-editor))
-            1
-            void)
+           (poll-until (lambda () (send stepper-canvas get-editor)))
            
-           (if (send stepper-canvas get-editor)
-               (let ([step (get-step stepper-frame)])
-                 (if step
-                     (cons step (loop (- n 1)))
-                     (loop (- n 1))))
-               null)]
+           (let ([step (get-step stepper-frame)])
+             (if step
+                 (cons step (loop (- n 1)))
+                 (loop (- n 1))))]
           [else null]))))
   
   ;; get-step : frame -> (union step #f)
