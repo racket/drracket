@@ -130,26 +130,26 @@
               (lambda (start end)
                 (change-style hyper-delta start end))]
             [define/public get-url (lambda () (and (url? url) url))]
-            [define/private make-clickback-funct
+            
+            (define/public post-url
               (opt-lambda (url-string [post-data #f])
-                (lambda (edit start end)
-                  (on-url-click
-                   (lambda (url-string post-data)
-                     (with-handlers ([(lambda (x) #t)
-                                      (lambda (x)
-                                        (unless (or (exn:break? x)
-                                                    (exn:file-saved-instead? x)
-                                                    (exn:cancelled? x))
-                                          (message-box
-                                           (string-constant error)
-                                           (format (string-constant cannot-display-url) 
-                                                   url-string
-                                                   (if (exn? x)
-                                                       (exn-message x)
-                                                       x)))))])
-                       (send (get-canvas) goto-url url-string (get-url) void post-data)))
-                   url-string
-                   post-data)))]
+                (on-url-click
+                 (lambda (url-string post-data)
+                   (with-handlers ([(lambda (x) #t)
+                                    (lambda (x)
+                                      (unless (or (exn:break? x)
+                                                  (exn:file-saved-instead? x)
+                                                  (exn:cancelled? x))
+                                        (message-box
+                                         (string-constant error)
+                                         (format (string-constant cannot-display-url) 
+                                                 url-string
+                                                 (if (exn? x)
+                                                     (exn-message x)
+                                                     x)))))])
+                     (send (get-canvas) goto-url url-string (get-url) void post-data)))
+                 url-string
+                 post-data)))
             [define/public on-url-click (lambda (f x post-data) 
                                           (let ([c (get-canvas)])
                                             (if c
@@ -194,7 +194,9 @@
             [define/public add-link 
               (lambda (start end url-string)
                 (let* ([new-link (make-hyperlink start end url-string)])
-                  (set-clickback start end (make-clickback-funct url-string))))]
+                  (set-clickback start end 
+                                 (lambda (x y z)
+                                   (post-url url-string)))))]
             
             ;; remember the directory when the callback is added (during parsing)
             ;; and restore it during the evaluation of the callback.
@@ -215,10 +217,6 @@
                  start end 
                  (lambda (edit start end)
                    (thunk))))]
-            
-            [define/public post-url 
-              (lambda (url post-data)
-                ((make-clickback-funct url post-data) this 0 1))]
             
             [define/public eval-scheme-string
               (lambda (s)
