@@ -53,6 +53,13 @@
         (interface ()
           ))
       
+      (define (sk-bday?)
+        (let ([date (seconds->date (current-seconds))])
+          (and (= (date-month date) 4)
+               (= (date-day date) 8))))
+
+      (define sk-bitmap (make-object bitmap% (build-path (collection-path "icons") "sk.jpg")))
+      
       (define hyper-text-mixin
         (lambda (super%)
           (class* super% (hyper-text<%>)
@@ -62,6 +69,31 @@
                      find-snip get-snip-position set-clickback get-canvas
                      get-visible-position-range insert last-position hide-caret
                      get-end-position set-autowrap-bitmap)
+            
+            (rename [super-on-paint on-paint])
+            (inherit get-admin editor-location-to-dc-location)
+            (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+              (when before?
+                (when (sk-bday?)
+                  (let ([admin (get-admin)])
+                    (when admin
+                      (let ([wb (box 0)]
+                            [hb (box 0)]
+                            [xb (box 0)]
+                            [yb (box 0)])
+                        (send admin get-view xb yb wb hb)
+                        (let-values ([(x-center y-bot)
+                                      (editor-location-to-dc-location 
+                                       (+ (unbox xb) (/ (unbox wb) 2))
+                                       (+ (unbox yb) (unbox hb)))]
+                                     [(x-zero y-zero) 
+                                      (editor-location-to-dc-location
+                                       (unbox xb)
+                                       (unbox yb))])
+                          (send dc draw-bitmap sk-bitmap
+                                (floor (- x-center (/ (send sk-bitmap get-width) 2)))
+                                (max x-zero (- y-bot (send sk-bitmap get-height))))))))))
+              (super-on-paint before? dc left top right bottom dx dy draw-caret))
             
             (init-field url top-level-window)
             (init progress 
