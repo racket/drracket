@@ -393,16 +393,14 @@
             (define/override (on-mouse-over-snips snips)
               (mouse-currently-over snips))
             
-            (rename [super-on-double-click on-double-click])
             (define/override (on-double-click snip event)
               (cond
                 [(is-a? snip boxed-word-snip<%>) 
                  (let ([fn (send snip get-filename)])
                    (when fn
                      (handler:edit-file fn)))]
-                [else (super-on-double-click snip event)]))
+                [else (super on-double-click snip event)]))
               
-            (rename [super-on-event on-event])
             (define/override (on-event evt)
               (cond
                 [(send evt button-down? 'right)
@@ -429,7 +427,7 @@
                                  right-button-menu
                                  (+ (send evt get-x) 1)
                                  (+ (send evt get-y) 1)))))))]
-                [else (super-on-event evt)]))
+                [else (super on-event evt)]))
             
             (super-instantiate ())))
         
@@ -881,9 +879,8 @@
           (define/override (edit-menu:create-clear?) #f)
           (define/override (edit-menu:create-select-all?) #f)
           
-          (rename [super-on-size on-size])
           (define/override (on-size w h)
             (preferences:set 'drscheme:module-overview:window-width w)
             (preferences:set 'drscheme:module-overview:window-height h)
-            (super-on-size w h))
+            (super on-size w h))
           (super-instantiate ()))))))

@@ -329,9 +329,8 @@ TODO
       ;;     (is-a? (send (send x get-canvas) get-top-level-frame) drscheme:unit:frame%)
       (define drs-bindings-keymap-mixin
 	(mixin (editor:keymap<%>) (editor:keymap<%>)
-	  (rename [super-get-keymaps get-keymaps])
 	  (define/override (get-keymaps)
-	    (cons drs-bindings-keymap (super-get-keymaps)))
+	    (cons drs-bindings-keymap (super get-keymaps)))
 	  (super-instantiate ())))
       
       ;; Max length of output queue (user's thread blocks if the
@@ -864,11 +863,10 @@ TODO
           ;;  specialization
           ;;
           
-          (rename [super-get-keymaps get-keymaps])
           
           (define/override get-keymaps
             (lambda ()
-              (cons scheme-interaction-mode-keymap (super-get-keymaps))))
+              (cons scheme-interaction-mode-keymap (super get-keymaps))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
@@ -1012,7 +1010,7 @@ TODO
                              (after-many-evals)
                              (cleanup-interaction))))))))))))
           
-          (define/public (after-many-evals) (void))
+          (define/pubment (after-many-evals) (inner (void) after-many-evals))
           
           (define shutdown-user-custodian ; =Kernel=, =Handler=
             ; Use this procedure to shutdown when in the middle of other cleanup
@@ -1200,7 +1198,6 @@ TODO
           
           (field (shutting-down? #f))
 
-          (rename [super-can-close? can-close?])
           (define/override (can-close?)
             (and (cond
                    [in-evaluation?
@@ -1229,17 +1226,16 @@ TODO
                              2)
                             1)]
                    [else #t])
-                 (super-can-close?)))
+                 (super can-close?)))
           
-          (rename [super-on-close on-close])
-          (define/override (on-close)
+          (define/augment (on-close)
             (shutdown)
             (preferences:set 'drscheme:console-previous-exprs 
                              (trim-previous-exprs
                               (append 
                                (preferences:get 'drscheme:console-previous-exprs)
                                local-previous-exprs)))
-            (super-on-close))
+            (inner (void) on-close))
           
           (define/public (shutdown) ; =Kernel=, =Handler=
             (set! shutting-down? #t)

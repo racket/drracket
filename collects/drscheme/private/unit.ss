@@ -333,10 +333,7 @@ tab panels new behavior:
         (let* ([program-editor-mixin
                 (mixin (editor:basic<%> (class->interface text%)) () 
                   (init-rest args) 
-                  (override after-insert after-delete) 
                   (inherit get-top-level-window) 
-                  (rename [super-after-insert after-insert] 
-                          [super-after-delete after-delete]) 
                   
                   (define (reset-highlighting) 
                     (let ([f (get-top-level-window)]) 
@@ -346,13 +343,13 @@ tab panels new behavior:
                           (when (object? interactions-text) 
                             (send interactions-text reset-highlighting)))))) 
                   
-                  (define (after-insert x y) 
+                  (define/augment (after-insert x y) 
                     (reset-highlighting) 
-                    (super-after-insert x y)) 
+                    (inner (void) after-insert x y)) 
                   
-                  (define (after-delete x y) 
+                  (define/augment (after-delete x y) 
                     (reset-highlighting) 
-                    (super-after-delete x y)) 
+                    (inner (void) after-delete x y)) 
                   
                   (apply super-make-object args))]
                [get-program-editor-mixin
@@ -372,11 +369,10 @@ tab panels new behavior:
         (lambda (%)
           (class %
             (inherit get-top-level-window)
-            (rename [super-on-focus on-focus])
             (define/override (on-focus on?)
               (when on?
                 (send (get-top-level-window) make-searchable this))
-              (super-on-focus on?))
+              (super on-focus on?))
             (super-new))))
       
       (define interactions-canvas% (make-searchable-canvas%
@@ -464,8 +460,7 @@ tab panels new behavior:
                                   (set-current-mode mode))
                                 (loop (cdr modes))))]))))
             
-            (rename [super-after-save-file after-save-file])
-            (define/override (after-save-file success?)
+            (define/augment (after-save-file success?)
               (when success?
                 (let ([filename (get-filename)])
                   (when filename
@@ -474,13 +469,11 @@ tab panels new behavior:
                     (with-handlers ([exn:fail:filesystem? void])
                       (let-values ([(creator type) (file-creator-and-type filename)])
                         (file-creator-and-type filename #"DrSc" type))))))
-              (super-after-save-file success?))
+              (inner (void) after-save-file success?))
               
-            (rename [super-set-modified set-modified]
-                    [super-set-filename set-filename])
             (inherit is-modified? run-after-edit-sequence)
             (define/override (set-modified mod?)
-              (super-set-modified mod?)
+              (super set-modified mod?)
               (run-after-edit-sequence
                (lambda ()
                  (let ([f (get-top-level-window)])
@@ -491,22 +484,20 @@ tab panels new behavior:
               (case-lambda
                 [(fn) (set-filename fn #f)]
                 [(fn tmp?)
-                 (super-set-filename fn tmp?)
+                 (super set-filename fn tmp?)
                  (let ([f (get-top-level-window)])
                    (when (and f
                               (is-a? f -frame<%>))
                      (send f update-save-message)))]))
             
-            (rename [super-after-insert after-insert]
-                    [super-after-delete after-delete])
             (field
              [needs-execution-state #f]
              [already-warned-state #f]
              [execute-settings (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
              [next-settings execute-settings])
             
-            (define/public (get-next-settings) next-settings)
-            (define/public (set-next-settings _next-settings)
+            (define/pubment (get-next-settings) next-settings)
+            (define/pubment (set-next-settings _next-settings)
               (set! next-settings _next-settings)
               (change-mode-to-match))
             
@@ -514,22 +505,22 @@ tab panels new behavior:
               (or needs-execution-state
                   (not (equal? execute-settings next-settings))))
             
-            (define/public (teachpack-changed)
+            (define/pubment (teachpack-changed)
               (set! needs-execution-state #t))
-            (define/public (just-executed)
+            (define/pubment (just-executed)
               (set! execute-settings next-settings)
               (set! needs-execution-state #f)
               (set! already-warned-state #f))
-            (define/public (already-warned?)
+            (define/pubment (already-warned?)
               already-warned-state)
-            (define/public (already-warned)
+            (define/pubment (already-warned)
               (set! already-warned-state #t))
-            (define/override (after-insert x y)
+            (define/augment (after-insert x y)
               (set! needs-execution-state #t)
-              (super-after-insert x y))
-            (define/override (after-delete x y)
+              (inner (void) after-insert x y))
+            (define/augment (after-delete x y)
               (set! needs-execution-state #t)
-              (super-after-delete x y))
+              (inner (void) after-delete x y))
             
             (inherit get-filename)
             (field
@@ -542,7 +533,6 @@ tab panels new behavior:
                " "
                (get-filename/untitled-name)))
             
-            (rename [super-on-paint on-paint])
             (define/override (on-paint before dc left top right bottom dx dy draw-caret)
               (when (and before
                          (or (is-a? dc post-script-dc%)
@@ -550,7 +540,7 @@ tab panels new behavior:
                 (set! tmp-date-string (get-date-string))
                 (let-values ([(w h d s) (send dc get-text-extent tmp-date-string)])
                   (send (current-ps-setup) set-editor-margin 0 (inexact->exact (ceiling h)))))
-              (super-on-paint before dc left top right bottom dx dy draw-caret)
+              (super on-paint before dc left top right bottom dx dy draw-caret)
               (when (and (not before)
                          (or (is-a? dc post-script-dc%)
                              (is-a? dc printer-dc%)))
@@ -676,7 +666,6 @@ tab panels new behavior:
 	  (inherit get-client-size get-dc popup-menu min-height min-width
 		   stretchable-width
 		   stretchable-height)
-	  (rename [super-on-event on-event])
                     
           (define inverted? #f)
           
@@ -756,7 +745,7 @@ tab panels new behavior:
                  (popup-menu menu
                              0
                              height))]
-              [else (super-on-event evt)]))
+              [else (super on-event evt)]))
           
           (super-make-object parent)
           
@@ -900,13 +889,14 @@ tab panels new behavior:
         (class panel:vertical-dragable%
           (init-field unit-frame)
           (inherit get-percentages)
-          (define/override (after-percentage-change)
+          (define/augment (after-percentage-change)
             (let ([percentages (get-percentages)])
               (when (and (= 1
                             (length (send unit-frame get-definitions-canvases))
                             (length (send unit-frame get-interactions-canvases)))
                          (= 2 (length percentages)))
-                (preferences:set 'drscheme:unit-window-size-percentage (car percentages)))))
+                (preferences:set 'drscheme:unit-window-size-percentage (car percentages))))
+            (inner (void) after-percentage-change))
           (super-new)))
       
       (define super-frame%
@@ -983,7 +973,7 @@ tab panels new behavior:
                     'copy)))
           
           ;; pad-two : number -> string
-          ;; pads a number to two digitsﬂ
+          ;; pads a number to two digits?
           (define (pad-two n)
             (cond
               [(<= 0 n 9) (format "0~a" n)]
@@ -1066,9 +1056,8 @@ tab panels new behavior:
                                    dir-list)
                          #t)])))))
 
-          (rename [super-make-root-area-container make-root-area-container])
           (define/override (make-root-area-container cls parent)
-            (let* ([outer-panel (super-make-root-area-container module-browser-dragable-panel% parent)]
+            (let* ([outer-panel (super make-root-area-container module-browser-dragable-panel% parent)]
                    [saved-p (preferences:get 'drscheme:module-browser-size-percentage)]
                    [_module-browser-panel (new vertical-panel%
                                             (parent outer-panel)
@@ -1115,7 +1104,6 @@ tab panels new behavior:
             (lambda ()
               (send interactions-text reset-highlighting))]
           
-          (rename [super-update-shown update-shown])
           (public get-directory needs-execution?)
           [define get-directory
             (lambda ()
@@ -1278,7 +1266,6 @@ tab panels new behavior:
           (define file-menu:print-transcript-item #f)
           (define file-menu:create-new-tab-item #f)
           
-          (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
             (set! file-menu:create-new-tab-item
                   (new menu:can-restore-menu-item%
@@ -1288,12 +1275,10 @@ tab panels new behavior:
                        (callback
                         (lambda (x y)
                           (create-new-tab))))))
-          (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define/override file-menu:between-open-and-revert
             (lambda (file-menu)
-              (super-file-menu:between-open-and-revert file-menu)
+              (super file-menu:between-open-and-revert file-menu)
               (make-object separator-menu-item% file-menu))]
-          (rename [super-file-menu:between-close-and-quit file-menu:between-close-and-quit])
           (define/override (file-menu:between-close-and-quit file-menu)
             (new menu:can-restore-menu-item%
                  (label (string-constant close-tab))
@@ -1302,7 +1287,7 @@ tab panels new behavior:
                  (callback
                   (lambda (x y)
                     (close-current-tab))))
-            (super-file-menu:between-close-and-quit file-menu))
+            (super file-menu:between-close-and-quit file-menu))
           
           [define/override file-menu:save-string (lambda () (string-constant save-definitions))]
           [define/override file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
@@ -1347,7 +1332,6 @@ tab panels new behavior:
                 (make-object separator-menu-item% file-menu)))]
           
           [define/override file-menu:print-string (lambda () (string-constant print-definitions))]
-          (rename [super-file-menu:between-print-and-close file-menu:between-print-and-close])
           (define/override (file-menu:between-print-and-close file-menu)
             (set! file-menu:print-transcript-item
                   (make-object menu:can-restore-menu-item%
@@ -1358,12 +1342,10 @@ tab panels new behavior:
                             #t 
                             #t
                             (preferences:get 'framework:print-output-mode)))))
-            (super-file-menu:between-print-and-close file-menu))
+            (super file-menu:between-print-and-close file-menu))
           
-          (rename [super-edit-menu:between-find-and-preferences 
-                   edit-menu:between-find-and-preferences])
           (define/override (edit-menu:between-find-and-preferences edit-menu)
-            (super-edit-menu:between-find-and-preferences edit-menu)
+            (super edit-menu:between-find-and-preferences edit-menu)
             (add-modes-submenu edit-menu))
                     
           
@@ -1677,7 +1659,7 @@ tab panels new behavior:
               (set! definitions-shown? #t)))
           
           (define/override (update-shown)
-	    (super-update-shown)
+	    (super update-shown)
 	    
 	    (let ([new-children
 		   (foldl
@@ -1743,7 +1725,6 @@ tab panels new behavior:
 		   (lambda () (file-menu:get-print-item))))
 	    (send file-menu:print-transcript-item enable interactions-shown?))
           
-          (rename [super-on-close on-close])
           (define/override (on-close)
             (when (eq? this created-frame)
               (set! created-frame #f))
@@ -1751,7 +1732,7 @@ tab panels new behavior:
               (stop-logging))
             (remove-logging-pref-callback)
             (send interactions-text on-close)
-            (super-on-close))
+            (super on-close))
           
           (field [thread-to-break-box (make-weak-box #f)]
                  [custodian-to-kill-box (make-weak-box #f)]
@@ -1847,12 +1828,11 @@ tab panels new behavior:
           (inherit get-menu-bar get-focus-object get-edit-target-object)
           (define language-menu 'uninited-language-menu)
           
-          (rename [super-on-size on-size])
           (define/override on-size
             (lambda (w h)
               (preferences:set 'drscheme:unit-window-width w)
               (preferences:set 'drscheme:unit-window-height h)
-              (super-on-size w h)))
+              (super on-size w h)))
           
           (define/override (get-editor) definitions-text)
           (define/override (get-canvas)
@@ -2049,9 +2029,8 @@ tab panels new behavior:
             (get-area-container))
           
           (inherit delegated-text-shown? hide-delegated-text show-delegated-text)
-          (rename [super-add-show-menu-items add-show-menu-items])
           (define/override (add-show-menu-items show-menu)
-            (super-add-show-menu-items show-menu)
+            (super add-show-menu-items show-menu)
             (set! definitions-item
                   (make-object menu:can-restore-menu-item%
                     (string-constant hide-definitions-menu-item-label)
@@ -2696,13 +2675,14 @@ tab panels new behavior:
       (define module-browser-dragable-panel%
         (class panel:horizontal-dragable%
           (inherit get-percentages)
-          (define/override (after-percentage-change)
+          (define/augment (after-percentage-change)
             (let ([percentages (get-percentages)])
               (when (and (pair? percentages)
                          (pair? (cdr percentages))
                          (null? (cddr percentages)))
                 (preferences:set 'drscheme:module-browser-size-percentage
-                                 (car percentages)))))
+                                 (car percentages))))
+            (inner (void) after-percentage-change))
           (super-new)))
       
       (define drs-name-message%

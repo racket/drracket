@@ -16,12 +16,11 @@
   
   (define registering-frame%
     (class frame%
-      (rename [super-set-label set-label])
       (define/override (set-label x)
         (semaphore-wait label-sema)
         (hash-table-put! label-ht this x)
         (semaphore-post label-sema)
-        (super-set-label x))
+        (super set-label x))
       (inherit get-label)
       (super-instantiate ())
       (semaphore-wait label-sema)

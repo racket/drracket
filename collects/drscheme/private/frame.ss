@@ -127,7 +127,6 @@
           (define (file-menu:new-string) (string-constant new-menu-item))
           (define (file-menu:open-string) (string-constant open-menu-item))
 
-          (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define/override file-menu:between-open-and-revert
             (lambda (file-menu) 
               (make-object menu-item% 
@@ -135,11 +134,10 @@
                 file-menu
                 (lambda (item evt)
                   (install-plt-file this)))
-              (super-file-menu:between-open-and-revert file-menu))]
+              (super file-menu:between-open-and-revert file-menu))]
           
-          (rename [super-file-menu:between-print-and-close file-menu:between-print-and-close])
           (define/override (file-menu:between-print-and-close menu)
-            (super-file-menu:between-print-and-close menu)
+            (super file-menu:between-print-and-close menu)
             (instantiate menu-item% ()
               (label (string-constant mfs-multi-file-search-menu-item))
               (parent menu)
@@ -332,12 +330,11 @@
       
       (define keybindings-dialog%
         (class dialog%
-          (rename [super-on-size on-size])
           (override on-size)
           [define on-size
             (lambda (w h)
               (preferences:set 'drscheme:keybindings-window-size (cons w h))
-              (super-on-size w h))]
+              (super on-size w h))]
           (super-instantiate ())))
       
       (define (show-keybindings-to-user bindings frame)
@@ -389,7 +386,6 @@
       (define -mixin
         (mixin (frame:editor<%> frame:text-info<%> basics<%>) (<%>)
           (inherit get-editor get-menu% get-menu-bar)
-          (rename [super-file-menu:print-callback file-menu:print-callback])
           (define show-menu #f)
           (define/public get-show-menu (lambda () show-menu))
           (define/public update-shown (lambda () (void)))

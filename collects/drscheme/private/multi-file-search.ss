@@ -342,12 +342,11 @@
       (define searching-canvas%
         (class canvas:basic%
           (init-field frame)
-          (rename [super-on-focus on-focus])
           (inherit get-editor)
           (define/override (on-focus on?)
             (when on?
               (send frame set-text-to-search (get-editor)))
-            (super-on-focus on?))
+            (super on-focus on?))
           (super-instantiate ())))
       
       ;; thread: eventspace main thread
@@ -356,7 +355,6 @@
                 (frame:searchable-mixin
                  frame:standard-menus%))
           (init-field name)
-          (rename [super-on-size on-size])
           
           (field [text-to-search #f])
           (define/public (set-text-to-search text) (set! text-to-search text))
@@ -364,7 +362,7 @@
           
           (define/override (on-size w h)
             (preferences:set 'drscheme:multi-file-search:frame-size (cons w h))
-            (super-on-size w h))
+            (super on-size w h))
           (let ([size (preferences:get 'drscheme:multi-file-search:frame-size)])
             (super-instantiate ()
               (label name)
@@ -378,11 +376,10 @@
       (define saved-vertical-resizable%
         (class panel:vertical-dragable%
           (inherit get-percentages)
-          (rename [super-after-percentage-change after-percentage-change])
-          (define/override (after-percentage-change)
+          (define/augment (after-percentage-change)
             (preferences:set 'drscheme:multi-file-search:percentages
                              (get-percentages))
-            (super-after-percentage-change))
+            (inner (void) after-percentage-change))
           (super-instantiate ())))
       
       ;; configure-search : -> (union #f search-info)

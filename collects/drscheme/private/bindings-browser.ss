@@ -202,7 +202,6 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
         (set-box/f! w arrow-snip-width)
         (set-box/f! h arrow-snip-height))
       
-      (rename [super-on-event on-event])
       (define/override (on-event dc x y editorx editory evt)
         (let ([snip-evt-x (- (send evt get-x) x)]
               [snip-evt-y (- (send evt get-y) y)])
@@ -243,7 +242,7 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
                           [(down down-click) 'down]
                           [else 'up-click]))]
             [else
-             (super-on-event dc x y editorx editory evt)])))
+             (super on-event dc x y editorx editory evt)])))
 
       (inherit get-admin)
       (define/private (set-state new-state)

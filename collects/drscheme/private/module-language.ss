@@ -48,8 +48,6 @@
       (define (module-mixin %)
         (class* % (module-language<%>)
           (define/override (use-namespace-require/copy?) #t)
-          (rename [super-on-execute on-execute]
-                  [super-front-end/complete-program front-end/complete-program])
           (field [iteration-number 0])
           
           ;; config-panel : as in super class
@@ -58,9 +56,8 @@
           (define/override (config-panel parent)
             (module-language-config-panel parent))
           
-          (rename [super-default-settings default-settings])
           (define/override (default-settings)
-            (let ([super-defaults (super-default-settings)])
+            (let ([super-defaults (super default-settings)])
               (apply make-module-language-settings
                      (append
                       (vector->list (drscheme:language:simple-settings->vector super-defaults))
@@ -68,22 +65,19 @@
                             #())))))
           
           ;; default-settings? : -> boolean
-          (rename [super-default-settings? default-settings?])
           (define/override (default-settings? settings)
-            (and (super-default-settings? settings)
+            (and (super default-settings? settings)
                  (and (equal? (module-language-settings-collection-paths settings)
                               '(default))
                       (eq? (module-language-settings-command-line-args settings)
                            #()))))
           
-          (rename [super-marshall-settings marshall-settings])
           (define/override (marshall-settings settings)
-            (let ([super-marshalled (super-marshall-settings settings)])
+            (let ([super-marshalled (super marshall-settings settings)])
               (list super-marshalled
                     (module-language-settings-collection-paths settings)
                     (module-language-settings-command-line-args settings))))
           
-          (rename [super-unmarshall-settings unmarshall-settings])
           (define/override (unmarshall-settings marshalled)
             (and (pair? marshalled)
                  (pair? (cdr marshalled))
@@ -94,7 +88,7 @@
                  (andmap string? (vector->list (caddr marshalled)))
                  (andmap (lambda (x) (or (string? x) (symbol? x)))
                          (cadr marshalled))
-                 (let ([super (super-unmarshall-settings (car marshalled))])
+                 (let ([super (super unmarshall-settings (car marshalled))])
                    (and super
                         (apply make-module-language-settings
                                (append 
@@ -104,7 +98,7 @@
           
           (define/override (on-execute settings run-in-user-thread)
             (set! iteration-number 0)
-            (super-on-execute settings run-in-user-thread)
+            (super on-execute settings run-in-user-thread)
             (run-in-user-thread
              (lambda ()
                (current-command-line-arguments (module-language-settings-command-line-args settings))
@@ -123,7 +117,7 @@
           (define/override (get-style-delta) module-language-style-delta)
           
           (define/override (front-end/complete-program port settings teachpack-cache)
-            (let ([super-thunk (super-front-end/complete-program port settings teachpack-cache)]
+            (let ([super-thunk (super front-end/complete-program port settings teachpack-cache)]
                   [filename (get-filename port)]
                   [module-name #f])
               (lambda ()
@@ -465,7 +459,6 @@
       (define module-language-put-file-mixin
         (mixin (text:basic<%>) ()
           (inherit get-text last-position get-character get-top-level-window)
-          (rename [super-put-file put-file])
           (define/override (put-file directory default-name)
             (let ([tlw (get-top-level-window)])
               (if (and tlw 
@@ -477,8 +470,8 @@
                                  module-language<%>)]
                          [module-default-filename
                           (and module-language? (get-module-filename))])
-                    (super-put-file directory module-default-filename))
-                  (super-put-file directory default-name))))
+                    (super put-file directory module-default-filename))
+                  (super put-file directory default-name))))
       
           ;; returns the name after "(module " suffixed with .scm
           ;; in the beginning of the editor

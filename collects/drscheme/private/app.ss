@@ -34,7 +34,7 @@
             [define/override edit-menu:copy-callback (lambda (menu evt) (edit-menu:do 'copy))]
             [define/override edit-menu:select-all-callback (lambda (menu evt) (edit-menu:do 'select-all))]
             [define/override edit-menu:create-find? (lambda () #f)]
-          (super-instantiate ()
+          (super-new
             (label (string-constant about-drscheme-frame-title)))))
       
       ;; check-new-version : -> void
@@ -110,7 +110,7 @@
                         0
                         (- h (send wizard-image-bitmap get-height))))))
             
-            (super-instantiate ())
+            (super-new)
             (inherit stretchable-width min-width min-height)
             (stretchable-width #f)
             (min-width (send wizard-image-bitmap get-width))
@@ -389,29 +389,27 @@
         (class text:hide-caret/selection%
           (inherit begin-edit-sequence end-edit-sequence
                    get-max-width find-snip position-location)
-          (rename [super-after-set-size-constraint after-set-size-constraint])
-          [define/override on-set-size-constraint
-            (lambda ()
-              (begin-edit-sequence)
-              (let ([snip (find-snip 1 'after-or-none)])
-                (when (is-a? snip editor-snip%)
-                  (send (send snip get-editor) begin-edit-sequence))))]
-          [define/override after-set-size-constraint
-            (lambda ()
-              (super-after-set-size-constraint)
-              (let ([width (get-max-width)]
-                    [snip (find-snip 1 'after-or-none)])
-                (when (is-a? snip editor-snip%)
-                  (let ([b (box 0)])
-                    (position-location 1 b #f #f #t)
-                    (let ([new-width (- width 4 (unbox b))])
-                      (when (> new-width 0)
-                        (send snip resize new-width
-                              17) ; smallest random number
-                        (send snip set-max-height 'none))))
-                  (send (send snip get-editor) end-edit-sequence)))
-              (end-edit-sequence))]
-          (super-instantiate ())))
+          (define/augment (on-set-size-constraint)
+            (begin-edit-sequence)
+            (let ([snip (find-snip 1 'after-or-none)])
+              (when (is-a? snip editor-snip%)
+                (send (send snip get-editor) begin-edit-sequence)))
+            (inner (void) on-set-size-constraint))
+          (define/augment (after-set-size-constraint)
+            (inner (void) after-set-size-constraint)
+            (let ([width (get-max-width)]
+                  [snip (find-snip 1 'after-or-none)])
+              (when (is-a? snip editor-snip%)
+                (let ([b (box 0)])
+                  (position-location 1 b #f #f #t)
+                  (let ([new-width (- width 4 (unbox b))])
+                    (when (> new-width 0)
+                      (send snip resize new-width
+                            17) ; smallest random number
+                      (send snip set-max-height 'none))))
+                (send (send snip get-editor) end-edit-sequence)))
+            (end-edit-sequence))
+          (super-new)))
       
       (define (get-plt-bitmap)
         (make-object bitmap%
@@ -427,32 +425,18 @@
       
       (define tour-frame%
         (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
-	  (init-rest args)
-
-          (override edit-menu:create-undo?
-		    edit-menu:create-redo?
-		    edit-menu:create-cut?
-		    edit-menu:create-copy?
-		    edit-menu:create-paste?
-		    edit-menu:create-clear?
-		    edit-menu:create-select-all?
-		    edit-menu:between-select-all-and-find
-		    edit-menu:between-find-and-preferences
-		    edit-menu:between-redo-and-cut
-		    file-menu:between-print-and-close)
-          (define (edit-menu:create-undo?) #f)
-          (define (edit-menu:create-redo?) #f)
-          (define (edit-menu:create-cut?) #f)
-          (define (edit-menu:create-copy?) #f)
-          (define (edit-menu:create-paste?) #f)
-          (define (edit-menu:create-clear?) #f)
-          (define (edit-menu:create-select-all?) #f)
-          (define (edit-menu:between-select-all-and-find x) (void))
-          (define (edit-menu:between-find-and-preferences x) (void))
-          (define (edit-menu:between-redo-and-cut x) (void))
-          (define (file-menu:between-print-and-close x) (void))
-          
-          (apply super-make-object args)))
+          (define/override (edit-menu:create-undo?) #f)
+          (define/override (edit-menu:create-redo?) #f)
+          (define/override (edit-menu:create-cut?) #f)
+          (define/override (edit-menu:create-copy?) #f)
+          (define/override (edit-menu:create-paste?) #f)
+          (define/override (edit-menu:create-clear?) #f)
+          (define/override (edit-menu:create-select-all?) #f)
+          (define/override (edit-menu:between-select-all-and-find x) (void))
+          (define/override (edit-menu:between-find-and-preferences x) (void))
+          (define/override (edit-menu:between-redo-and-cut x) (void))
+          (define/override (file-menu:between-print-and-close x) (void))
+          (super-new)))
       
       (define (invite-tour)
         (let* ([f (make-object tour-frame% (format (string-constant welcome-to-something) 

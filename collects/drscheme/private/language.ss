@@ -463,7 +463,6 @@
 	(mixin (module-based-language<%>) (language<%>)
 	  (inherit get-module get-transformer-module use-namespace-require/copy?
                    get-init-code use-mred-launcher get-reader)
-	  (rename [super-on-execute on-execute])
 
           (define/public (order-manuals x) (values x #t))
           
@@ -475,7 +474,7 @@
                   (car (last-pair pos)))))
           (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
-	    (super-on-execute setting run-in-user-thread)
+	    (super on-execute setting run-in-user-thread)
             (initialize-module-based-language (use-namespace-require/copy?)
                                               (get-module)
                                               (get-transformer-module)

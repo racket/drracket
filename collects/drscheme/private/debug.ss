@@ -90,9 +90,8 @@ profile todo:
           (define mouse-x #f)
           (define mouse-y #f)
           
-          (rename [super-draw draw])
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
-            (super-draw dc x y left top right bottom dx dy draw-caret)
+            (super draw dc x y left top right bottom dx dy draw-caret)
             (when clicked?
               (let ([brush (send dc get-brush)]
                     [pen (send dc get-pen)])
@@ -384,23 +383,20 @@ profile todo:
       ;; backtrace-frame% : (extends frame:basic<%>)
       (define backtrace-frame%
         (class (drscheme:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
-          (rename [super-on-size on-size]
-                  [super-on-move move])
           (define/override (on-size x y)
             (preferences:set 'drscheme:backtrace-window-width x)
             (preferences:set 'drscheme:backtrace-window-height y)
-            (super-on-size x y))
+            (super on-size x y))
           (define/override (on-move x y)
             (preferences:set 'drscheme:backtrace-window-x x)
             (preferences:set 'drscheme:backtrace-window-y y)
-            (super-on-move x y))
+            (super on-move x y))
           (define/override (edit-menu:between-find-and-preferences edit-menu) (void))
           (define/override (edit-menu:between-select-all-and-find edit-menu) (void))
           (define/override (file-menu:between-save-as-and-print file-menu) (void))
-          (rename [super-on-close on-close])
           (define/override (on-close) 
             (set! current-backtrace-window #f)
-            (super-on-close))
+            (super on-close))
           (super-instantiate ())))
             
       ;; show-backtrace-window : string
@@ -700,9 +696,8 @@ profile todo:
               (set! ask-about-reset? ask?)))
           (define/public (get-test-coverage-info) test-coverage-info)
           
-          (rename [super-after-many-evals after-many-evals])
           (inherit get-top-level-window)
-          (define/override (after-many-evals)
+          (define/augment (after-many-evals)
             (let ([tlw (get-top-level-window)])
               (when (and (is-a? tlw test-coverage-frame<%>)
                          test-coverage-info)
@@ -711,7 +706,7 @@ profile todo:
                       test-coverage-on-style
                       test-coverage-off-style
                       ask-about-reset?)))
-            (super-after-many-evals))
+            (inner (void) after-many-evals))
           
           (super-instantiate ())))
       
@@ -757,27 +752,23 @@ profile todo:
                         (not (send frame ask-about-clearing-test-coverage?))
                         (clear-test-coverage?))))))
             
-          (rename [super-can-insert? can-insert?])
-          (define/override (can-insert? x y)
-            (and (super-can-insert? x y)
+          (define/augment (can-insert? x y)
+            (and (inner #t can-insert? x y)
                  (can-clear-coverage?)))
           
-          (rename [super-can-delete? can-delete?])
-          (define/override (can-delete? x y)
-            (and (super-can-delete? x y)
+          (define/augment (can-delete? x y)
+            (and (inner #t can-delete? x y)
                  (can-clear-coverage?)))
           
-          (rename [super-after-insert after-insert])
-          (define/override (after-insert x y)
-            (super-after-insert x y)
+          (define/augment (after-insert x y)
+            (inner (void) after-insert x y)
             (clear-test-coverage))
           
-          (rename [super-after-delete after-delete])
-          (define/override (after-delete x y)
-            (super-after-delete x y)
+          (define/augment (after-delete x y)
+            (inner (void) after-delete x y)
             (clear-test-coverage))
           
-          (super-instantiate ())))
+          (super-new)))
       
       ;(define test-covered-color (send the-color-database find-color "lime green"))
       ;(define test-not-covered-color (send the-color-database find-color "pink"))
@@ -963,9 +954,8 @@ profile todo:
                                (when locked? (send txt lock #t)))
                              (send txt end-edit-sequence)))))))))
 
-          (rename [super-clear-annotations clear-annotations])
           (define/override (clear-annotations)
-            (super-clear-annotations)
+            (super clear-annotations)
             (clear-test-coverage-display))
           
           (super-instantiate ())))
@@ -1124,27 +1114,24 @@ profile todo:
                               '(yes-no))
                  'yes))
 
-          (rename [super-can-insert? can-insert?])
-          (define/override (can-insert? x y)
-            (and (super-can-insert? x y)
+          (define/augment (can-insert? x y)
+            (and (inner #t can-insert? x y)
                  (let ([canvas (get-canvas)])
                    (or (not canvas)
                        (let ([frame (send canvas get-top-level-window)])
                          (or (not (send frame get-profile-info-visible?))
                              (clear-profiling?)))))))
           
-          (rename [super-can-delete? can-delete?])
-          (define/override (can-delete? x y)
-            (and (super-can-delete? x y)
+          (define/augment (can-delete? x y)
+            (and (inner #t can-delete? x y)
                  (let ([canvas (get-canvas)])
                    (or (not canvas)
                        (let ([frame (send canvas get-top-level-window)])
                          (or (not (send frame get-profile-info-visible?))
                              (clear-profiling?)))))))
           
-          (rename [super-on-insert on-insert])
-          (define/override (on-insert x y)
-            (super-on-insert x y)
+          (define/augment (on-insert x y)
+            (inner (void) on-insert x y)
             (let ([canvas (get-canvas)])
               (when canvas
                 (let ([frame (send canvas get-top-level-window)])
@@ -1152,9 +1139,8 @@ profile todo:
                     (send frame clear-profile-display)
                     (send frame clear-profile-info))))))
           
-          (rename [super-on-delete on-delete])
-          (define/override (on-delete x y)
-            (super-on-delete x y)
+          (define/augment (on-delete x y)
+            (inner (void) on-delete x y)
             (let ([canvas (get-canvas)])
               (when canvas
                 (let ([frame (send canvas get-top-level-window)])
@@ -1162,7 +1148,7 @@ profile todo:
                     (send frame clear-profile-display)
                     (send frame clear-profile-info))))))
 
-          (super-instantiate ())))
+          (super-new)))
 
       (define profile-interactions-text<%>
         (interface ()
@@ -1219,22 +1205,19 @@ profile todo:
                 #f)))
 
           ;; execute-callback : -> void
-          (rename [super-execute-callback execute-callback])
           (define/override (execute-callback)
             (send (get-interactions-text) set-profile-info (make-hash-table))
-            (super-execute-callback))
+            (super execute-callback))
 
           ;; clear-annotations
-          (rename [super-clear-annotations clear-annotations])
           (define/override (clear-annotations)
-            (super-clear-annotations)
+            (super clear-annotations)
             (clear-profile-display))
           
           ;; update-shown : -> void
           ;; updates the state of the profile item's show menu
-          (rename [super-update-shown update-shown])
           (define/override (update-shown)
-            (super-update-shown)
+            (super update-shown)
             (send show-profile-menu-item set-label
                   (if profile-info-visible?
                       (string-constant profiling-hide-profile)
@@ -1242,9 +1225,8 @@ profile todo:
           
           ;; add-show-menu-items : menu -> void
           ;; adds the show profile menu item
-          (rename [super-add-show-menu-items add-show-menu-items])
           (define/override (add-show-menu-items show-menu)
-            (super-add-show-menu-items show-menu)
+            (super add-show-menu-items show-menu)
             (set! show-profile-menu-item 
                   (instantiate menu:can-restore-menu-item% ()
                     (label (string-constant profiling-hide-profile))
@@ -1281,11 +1263,10 @@ profile todo:
           ;; returns #t when the profiling information is visible in the frame.
           (define/public (get-profile-info-visible?) profile-info-visible?)
           
-          (rename [super-make-root-area-container make-root-area-container])
           (field [profile-info-outer-panel #f])
           (define/override (make-root-area-container % parent)
             (set! profile-info-outer-panel
-                  (super-make-root-area-container
+                  (super make-root-area-container
                    vertical-panel%
                    parent))
             (make-object % profile-info-outer-panel))

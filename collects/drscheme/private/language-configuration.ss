@@ -126,12 +126,11 @@
         (opt-lambda (show-welcome? language-settings-to-show [parent #f] [manuals? #f])
           (define ret-dialog%
             (class dialog%
-              (rename [super-on-subwindow-char on-subwindow-char])
               (define/override (on-subwindow-char receiver evt)
                 (case (send evt get-key-code)
                   [(escape) (cancel-callback)]
                   [(#\return numpad-enter) (ok-callback)]
-                  [else (super-on-subwindow-char receiver evt)]))
+                  [else (super on-subwindow-char receiver evt)]))
               (super-instantiate ())))
           
 	  (define dialog (instantiate ret-dialog% ()
@@ -226,14 +225,13 @@
             (class hierarchical-list%
               (init parent)
 
-              (rename [super-on-char on-char])
               (inherit get-selected)
               (define/override (on-char evt)
                 (let ([code (send evt get-key-code)])
                   (cond
                     [(eq? code 'up) (select-next sub1 (lambda (v) (- (vector-length v) 1)))]
                     [(eq? code 'down) (select-next add1 (lambda (v) 0))]
-                    [else (super-on-char evt)])))
+                    [else (super on-char evt)])))
               
               (inherit get-items)
               
@@ -786,7 +784,6 @@
       (define panel-background-editor-canvas% 
         (class editor-canvas%
           (inherit get-dc get-client-size)
-          (rename [super-on-paint on-paint])
           (define/override (on-paint)
             (let-values ([(cw ch) (get-client-size)])
               (let* ([dc (get-dc)]
@@ -797,12 +794,11 @@
                 (send dc draw-rectangle 0 0 cw ch)
                 (send dc set-pen old-pen)
                 (send dc set-brush old-brush)))
-            (super-on-paint))
+            (super on-paint))
           (super-new)))
       
       (define panel-background-text% 
         (class text%
-          (rename [super-on-paint on-paint])
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
             (when before?
               (let ([old-pen (send dc get-pen)]
@@ -812,7 +808,7 @@
                 (send dc draw-rectangle (+ dx left) (+ dy top) (- right left) (- bottom top))
                 (send dc set-pen old-pen)
                 (send dc set-brush old-brush)))
-            (super-on-paint before? dc left top right bottom dx dy draw-caret))
+            (super on-paint before? dc left top right bottom dx dy draw-caret))
           (super-new)))
       
       (define section-style-delta (make-object style-delta% 'change-bold))
@@ -857,14 +853,12 @@
                                                    -5  ;; unknown space
                                                    )])
                             (send before-text set-max-width (max 0 before-snip-w)))))))
-                  (rename [super-on-superwindow-show on-superwindow-show])
                   (define/override (on-superwindow-show shown?)
                     (update-size)
-                    (super-on-superwindow-show shown?))
-                  (rename [super-on-size on-size])
+                    (super on-superwindow-show shown?))
                   (define/override (on-size w h)
                     (update-size)
-                    (super-on-size w h))
+                    (super on-size w h))
                   (super-instantiate ()))]
                [before-ec (instantiate before-ec% ()
                             (parent welcome-before-panel)
@@ -1214,12 +1208,10 @@
       ;; overrides front-end to make the language a language that expands its arguments
       (define (add-expand-to-front-end %)
         (class %
-          (rename [super-front-end/complete-program front-end/complete-program]
-                  [super-front-end/interaction front-end/interaction])
           (define/override (front-end/complete-program input settings teachpack-cache)
-            (wrap-front-end (super-front-end/complete-program input settings teachpack-cache)))
+            (wrap-front-end (super front-end/complete-program input settings teachpack-cache)))
           (define/override (front-end/interaction input settings teachpack-cache)
-            (wrap-front-end (super-front-end/interaction input settings teachpack-cache)))
+            (wrap-front-end (super front-end/interaction input settings teachpack-cache)))
           (define/private (wrap-front-end thnk)
             (lambda ()
               (let ([res (thnk)])
