@@ -25,16 +25,21 @@
             [text : drscheme:text^ (text@)]
             [snip : drscheme:snip^ (snip@)]
 	    [teachpack : drscheme:teachpack^ (teachpack@ init)]
-            [rep : drscheme:rep^ (rep@ init snip language-configuration language app frame unit text help-desk teachpack)]
+            [rep : drscheme:rep^
+                 (rep@ init snip language-configuration language app frame unit text help-desk teachpack)]
             [language : drscheme:language^ (language@ rep snip)]
             [frame : drscheme:frame^ (frame@ unit app help-desk)]
-            [unit : drscheme:unit^ (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
+            [unit : drscheme:unit^ 
+                  (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
-            [language-configuration : drscheme:language-configuration/internal^ (language-configuration@ unit rep teachpack)]            
+            [language-configuration : drscheme:language-configuration/internal^ 
+                                    (language-configuration@ unit rep teachpack)]            
             [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
 	    [app : drscheme:app^ (app@ unit frame help-desk tool)]
             [main-before : () (main-before@ app unit get/extend language-configuration language teachpack)]
-            [tool : drscheme:tools^ (tools@ frame unit rep get/extend language (language-configuration : drscheme:language-configuration^) help-desk init)]
+            [tool : drscheme:tools^ (tools@ frame unit rep get/extend language
+                                          (language-configuration : drscheme:language-configuration^)
+                                          help-desk init snip)]
             [main : drscheme:main^ (main@ app unit get/extend language-configuration)])
       (export
        (unit teachpack drscheme:teachpack)
