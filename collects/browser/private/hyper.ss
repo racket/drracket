@@ -398,7 +398,6 @@
                                    [wait-to-continue (make-semaphore 0)]
                                    [wait-to-break (make-semaphore 0)]
                                    [wait-to-show (make-semaphore 1)]
-                                   [timeout-running (make-semaphore 0)]
                                    [directory
                                     (or (if (and (url? url)
                                                  (string=? "file" (url-scheme url)))
@@ -409,16 +408,17 @@
                                                     #f)))
                                             #f)
                                         (current-load-relative-directory))]
-                                   [timeout-thread (thread (lambda () 
-                                                             (error-display-handler void) 
-                                                             (semaphore-post timeout-running)
-                                                             (sleep 1)))]
+                                   [timeout-thread
+                                    (parameterize ([break-enabled #f])
+                                      (thread (lambda () 
+                                                (error-display-handler void) 
+                                                (break-enabled #t)
+                                                (sleep 1))))]
                                    ; Thread to perform the download:
                                    [t (parameterize ([break-enabled #f])
                                         (thread
                                          (lambda ()
                                            (with-handlers ([void (lambda (x)
-                                                                   (printf "handler\n")
                                                                    (set! exn x))])
                                              (parameterize ([break-enabled #t])
                                                (semaphore-post wait-to-break)
@@ -431,18 +431,12 @@
                                                               [current-load-relative-directory directory]
                                                               [html-eval-ok url-allows-evaling?])
                                                  (html-convert p this))))
-                                           (printf "finishing.1\n")
                                            (semaphore-wait wait-to-show)
-                                           (printf "finishing.2\n")
                                            (set! done? #t)
                                            (show-progress "")
-                                           (printf "finishing.3\n")
                                            (when progress-dlg
                                              (send progress-dlg show #f))
-                                           (printf "finishing.4\n")
-                                           (semaphore-wait timeout-running)
                                            (break-thread timeout-thread)
-                                           (printf "finishing.5\n")
                                            (semaphore-post wait-to-show)
                                            (semaphore-post wait-to-continue))))]
                                    [make-dialog
@@ -480,12 +474,9 @@
                                            (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
                                       (semaphore-post wait-to-show))])
                               (thread-wait timeout-thread)
-                              (printf "woke up\n")
                               (unless done?
                                 (make-dialog))
-                              (printf "yielding\n")
                               (yield wait-to-continue)
-                              (printf "work up.2 ~s\n" exn)
                               (when exn (raise exn)))]
                            [else
                             ; Text
@@ -567,12 +558,7 @@
             (super-instantiate ())
             (add-h-link-style)
             ;; load url, but the user might break:
-            (with-handlers ([exn:break? void]
-                            [(lambda (x) #t)
-                             (lambda (x)
-                               (if (exn? x)
-                                   (printf "exn: ~a\n" (exn-message x))
-                                   (printf "exn: ~s\n" x)))])
+            (with-handlers ([exn:break? void])
               (reload progress)))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))
