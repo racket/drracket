@@ -9,7 +9,8 @@
 	   (lib "url-sig.ss" "net")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
-	   (lib "external.ss" "browser"))
+	   (lib "external.ss" "browser")
+           (lib "macro.ss" "framework"))
            
   (define-values/invoke-unit/sig 
    html^
@@ -36,10 +37,8 @@
   (define url-delta (make-object style-delta% 'change-underline #t))
   (send url-delta set-delta-foreground "blue")
 
-  (define (html-text-mixin %)
-    (unless (% . implementation? . (class->interface text%))
-      (raise-type-error 'render-html-to-text "subclass of text%" %))
-    (class* % (html-text<%>)
+  (define html-text-mixin
+    (mixin ((class->interface text%)) (html-text<%>)
       (inherit change-style set-clickback)
       
       (define/public (get-url) #f)
@@ -59,7 +58,7 @@
 		     (format "Cannot perform post: ~e"
 			     post-data)
 		     '(stop ok)))
-      (super-instantiate ())))
+      (super-new)))
 
   (define (render-html-to-text port text%-obj img-ok? eval-ok?)
     (unless (input-port? port)

@@ -66,8 +66,8 @@
 
       (define scheme-code-delta (make-color-delta "brown"))
       (define scheme-code-delta/keyword
-	(let ([d (make-object style-delta% 'change-bold)])
-	  (send d set-delta-foreground (make-object color% #x99 0 0))
+	(let ([d (make-color-delta (make-object color% #x99 0 0))])
+          (send d set-weight-on 'bold)
 	  d))
       (define scheme-code-delta/variable (make-color-delta "navy"))
       (define scheme-code-delta/global (make-color-delta "purple"))
@@ -400,10 +400,7 @@
 			  [delete (a-text delete)]
 			  [get-character (a-text get-character)]
 			  [change-style (a-text change-style)])
-	      (letrec ([normal-style (send (send a-text get-style-list)
-					   find-named-style
-					   "Standard")]
-		       [insert 
+	      (letrec ([insert 
 			(lambda (what)
 			  (a-text-insert what (current-pos)))]
 		       
@@ -431,6 +428,7 @@
 		       
 		       [whitespaces (string #\space #\tab #\newline #\return)]
 		       
+                       [delta:swiss (make-object style-delta% 'change-family 'swiss)]
 		       [delta:fixed (make-object style-delta% 'change-family 'modern)]
 		       [delta:bold (make-object style-delta% 'change-bold)] 
 		       [delta:underline (make-object style-delta% 'change-underline #t)]
@@ -817,7 +815,7 @@
 						      [(end-pos) (current-pos)])
 					  (values
 					   (lambda ()
-					     (change-style normal-style pos (+ 1 pos))
+					     (change-style delta:swiss pos (+ 1 pos))
 					     (let ([end-para (send a-text position-paragraph 
 								   (backover-newlines end-pos pos))]
 						   [left-margin (* 2 (get-bullet-width) enum-depth)])
@@ -1036,7 +1034,7 @@
 						 (send a-text make-link-style pos end-pos)
 						 (send a-text add-thunk-callback pos end-pos cb)]
 						[else
-						 (change-style normal-style pos end-pos)])
+						 (change-style delta:swiss pos end-pos)])
 					       (r))
 					     rfl))))]
 				     [(option)
