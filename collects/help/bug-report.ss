@@ -12,32 +12,32 @@
      (preferences:set-default 'drscheme:email "" string?)
      (preferences:set-default 'drscheme:full-name "" string?)
      
+     (define frame-mixin
+       (lambda (super)
+	 (class/d super args
+	   ((override file-menu:new
+		      file-menu:open
+		      file-menu:between-save-as-and-print
+		      file-menu:between-print-and-close
+
+		      edit-menu:preferences
+		      edit-menu:between-find-and-preferences
+		      edit-menu:between-select-all-and-find))
+
+	   (define file-menu:new #f)
+	   (define file-menu:open #f)
+	   (define (file-menu:between-save-as-and-print menu) (void))
+	   (define (file-menu:between-print-and-close menu) (void))
+	   (define edit-menu:preferences #f)
+	   (define (edit-menu:between-find-and-preferences menu) (void))
+	   (define (edit-menu:between-select-all-and-find menu) (void))
+	   (apply super-init args))))
+
      (define bug-frame%
-       (class/d frame:editor% (title)
+       (class/d (frame-mixin frame:standard-menus%) (title)
 
-	 ((override get-editor get-canvas)
-	  (inherit get-area-container close))
-
-	 (define (get-editor)
-	   (cond
-	    [(and (is-a? description canvas%)
-		  (send description has-focus?))
-	     (send description get-editor)]
-	    [(and (is-a? reproduce canvas%)
-		  (send reproduce has-focus?))
-	     (send reproduce get-editor)]
-	    [else #f]))
-	 
-	 (define (get-canvas)
-	   (cond
-	    [(and (is-a? description canvas%)
-		  (send description has-focus?))
-	     description]
-	    [(and (is-a? reproduce canvas%)
-		  (send reproduce has-focus?))
-	     reproduce]
-	    [else #f]))
-
+	 ((inherit get-area-container close))
+		    
 	 (super-init title)
 
 	 (define top-panel (make-object vertical-panel% (get-area-container)))
@@ -148,6 +148,17 @@
 	    #f))
 	 (send priority set-selection 1)
 	 
+	 (define modern-style-list (make-object style-list%))
+	 (let ([delta (make-object style-delta% 'change-normal)]
+	       [style (send modern-style-list find-named-style "Standard")])
+	   (send delta set-delta 'change-family 'modern)
+	   (if style
+	       (send style set-delta delta)
+	       (send modern-style-list new-named-style "Standard"
+		     (send modern-style-list find-or-create-style
+			   (send modern-style-list find-named-style "Basic")
+			   delta))))
+
 	 (define (make-big-text label)
 	   (let ([canvas 
 		  (build/label 
@@ -155,12 +166,14 @@
 		   (lambda (panel)
 		     (let* ([text (make-object (editor:keymap-mixin text:basic%))]
 			    [canvas (make-object editor-canvas% panel text)])
+		       (send text set-style-list modern-style-list)
 		       canvas))
 		   #t
 		   #t)])
-	     (send canvas min-width 400)
-	     (send canvas min-height 100)
+	     (send canvas min-width 500)
+	     (send canvas min-height 130)
 	     (send canvas get-editor)
+	     (send canvas allow-tab-exit #t)
 	     canvas))
 	 
 	 (define description (make-big-text "Description"))
@@ -168,17 +181,19 @@
 	 
 	 (define synthesized-outer-panel (make-object vertical-panel% top-panel))
 	 (define synthesized-panel (make-object vertical-panel% synthesized-outer-panel))
+	 (send synthesized-panel stretchable-height #f)
+	 (send synthesized-outer-panel stretchable-height #f)
 	 (define synthesized-info-shown? #t)
 	 (define (toggle-synthesized-info)
 	   (cond
 	    [synthesized-info-shown?
-	     (set! synthesized-info-shown? #t)
+	     (set! synthesized-info-shown? #f)
 	     (send synthesized-button set-label "Show Synthesized Info")
-	     (send synthesized-outer-panel change-children (lambda () null))]
+	     (send synthesized-outer-panel change-children (lambda (l) null))]
 	    [else
 	     (set! synthesized-info-shown? #t)
 	     (send synthesized-button set-label "Hide Synthesized Info")
-	     (send synthesized-outer-panel change-children (lambda () (list synthesized-panel)))]))
+	     (send synthesized-outer-panel change-children (lambda (l) (list synthesized-panel)))]))
 
 	 (define version
 	   (build/label
@@ -344,6 +359,8 @@
 				(send t paragraph-end-position n))
 			  (loop (+ n 1)))])))
 	 
+	 (toggle-synthesized-info)
+
 	 (define (ok)
 	   (when (send-bug-report)
 	     (cleanup-frame)))
@@ -357,7 +374,6 @@
 
      (define bug-frame (make-object bug-frame% "Bug Report Form"))
      (send bug-frame show #t))
-
    mred^
    framework^
    mzlib:smtp^

@@ -45,11 +45,11 @@
   (load/link-tool))
 
 (define-signature drscheme:get/extend^
-  (extend-interactions-text%
-   extend-definitions-text%
-   extend-interactions-canvas%
-   extend-definitions-canvas%
-   extend-unit-frame%
+  (extend-interactions-text
+   extend-definitions-text
+   extend-interactions-canvas
+   extend-definitions-canvas
+   extend-unit-frame
    get-interactions-text%
    get-definitions-text%
    get-interactions-canvas%
