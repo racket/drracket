@@ -108,10 +108,16 @@
       (parameterize ([current-eventspace (make-eventspace)])
         (let* ([f (new frame% (label "Break DrScheme"))]
                [b (new button% 
-                       (label "Break")
+                       (label "Break Main Thread")
                        (callback
                         (lambda (x y)
                           (break-thread to-break)))
+                       (parent f))]
+               [b (new button% 
+                       (label "Break All Threads")
+                       (callback
+                        (lambda (x y)
+                          ((dynamic-require '(lib "key.ss" "drscheme" "private") 'break-threads))))
                        (parent f))])
           (send f show #t)))))
   

@@ -381,7 +381,6 @@ profile todo:
       ;;                         -> 
       ;;                         void
       (define (show-backtrace-window error-text dis)
-        (printf "~s\n" (list 'show-backtrace-window error-text dis))
         (reset-backtrace-window)
         (letrec ([text (make-object text:hide-caret/selection%)]
                  [mf-bday-note (when (mf-bday?)

@@ -1,4 +1,6 @@
 (module drscheme mzscheme
+  (require "private/key.ss")
+  
   (define debugging? (getenv "PLTDRDEBUG"))
   
   (define install-cm? (and (not debugging?)

@@ -180,6 +180,9 @@
            (make-check-box 'drscheme:open-in-tabs 
                            (string-constant open-files-in-tabs)
                            editor-panel)
+
+           ;; come back to this one.
+           #;
            (letrec ([hp (new horizontal-panel% 
                              (parent editor-panel)
                              (alignment '(left top))

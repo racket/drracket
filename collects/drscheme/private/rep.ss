@@ -104,7 +104,7 @@ TODO
       ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
-        (printf "msg: ~s\n" msg)
+        #;(printf "msg: ~s\n" msg)
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
           (cond
@@ -983,7 +983,6 @@ TODO
                   (let ([max-space (* 1000 (cdr pref))])
                     (when (space . > . max-space)
                       (let ([to-delete-end (+ start (- space max-space))])
-                        (printf "deleting ~s ~s\n" start to-delete-end)
                         (delete/io start to-delete-end))))))
               
               (set! prompt-position (get-unread-start-point))
