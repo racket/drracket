@@ -968,7 +968,7 @@
                                                                   (lambda () 
 								    (send select get-value))))]
 						       [(or (and (eq? tag 'input)
-                                                            	 (eq? type 'text))
+                                                            	 (or (not type) (eq? type 'text)))
 							    (eq? tag 'textarea))
                                                         (let* ([text (make-object text%)]
                                                                [snip (make-object editor-snip% text)]
