@@ -20,6 +20,7 @@
   
   (define module-browser-progress-constant "Module Browser: ~a")
   (define status-compiling-definitions "Module Browser: compiling definitions")
+  (define show-lib-paths "Follow lib requires")
   (define refresh "Refresh")
   
   (define unit@
@@ -1678,8 +1679,7 @@
                        (preferences:set 'framework:show-delegate? #t)
                        (show-delegated-text))))))
             
-            ;; comment out module browser for now, until I can work more on it.
-            '(instantiate menu:can-restore-menu-item% ()
+            (instantiate menu:can-restore-menu-item% ()
               (label (if module-browser-shown?
                          (string-constant hide-module-browser)
                          (string-constant show-module-browser)))
@@ -1698,6 +1698,7 @@
                  [module-browser-panel #f]
                  [module-browser-ec #f]
                  [module-browser-button #f]
+                 [module-browser-lib-path-check-box #f]
                  [module-browser-pb #f])
 
           (inherit open-status-line close-status-line update-status-line)
@@ -1736,6 +1737,16 @@
               (set! module-browser-ec (make-object editor-canvas%
                                         module-browser-panel
                                         module-browser-pb))
+              (set! module-browser-lib-path-check-box
+                    (instantiate check-box% ()
+                      (parent module-browser-panel)
+                      (label show-lib-paths)
+                      (value (preferences:get 'drscheme:module-browser:show-lib-paths?))
+                      (callback 
+                       (lambda (x y) 
+                         (let ([val (send module-browser-lib-path-check-box get-value)])
+                           (preferences:set 'drscheme:module-browser:show-lib-paths? val)
+                           (send module-browser-pb show-lib-paths val))))))
               (set! module-browser-button (instantiate button% ()
                                             (parent module-browser-panel)
                                             (label refresh)
@@ -1812,6 +1823,7 @@
                    [shutdown
                     (lambda ()
                       (send module-browser-button enable #t)
+                      (send module-browser-lib-path-check-box enable #t)
                       (close-status-line 'plt:module-browser))]
                    [language-settings (send (get-definitions-text) get-next-settings)]
                    [kill-termination (lambda () (shutdown))]
@@ -1831,6 +1843,7 @@
                          (update-status-line 'plt:module-browser status-compiling-definitions)
                          (cont)]))])
               (send module-browser-button enable #f)
+              (send module-browser-lib-path-check-box enable #f)
               ((drscheme:eval:traverse-program/multiple
                 language-settings init kill-termination)
                text-pos iter complete-program?)))

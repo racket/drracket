@@ -2,10 +2,6 @@
 
 todo : 
 
- - abstract out progress frame (use progress bar sometimes)
-   use framework for that one. also include check syntax
-   (and talk to philippe about spidey)
-   
  - the flag that controls the new font size and also re-lays out the snips needs to be re-instated
 
  - add a way to hide lib-based paths to show-menu version of graph
