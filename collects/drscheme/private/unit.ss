@@ -1,19 +1,15 @@
 #|
 
-tab panels bug fixes:
+tab panels todo:
   - can-close? needs to account for all tabs
-  - module browser (esp. clicking on files to open them in new tabs and bring back old tabs)
-  - contour
+  - closing a single tab
+  - save all tabs (pr 6689?)
 
 waiting for matthew:
   - tabs don't have the right names when files are opened
   - when switching tabs automatically (say for an error) the tab bar doesn't update
   - when creating a new tab, the tab bar doesn't update
 
-tab panels new behavior:
-  - closing a single tab
-  - open files in new tabs (not new windows)
-  - save all tabs (pr 6689?)
 |#
 
 (module unit mzscheme
@@ -1312,19 +1308,29 @@ tab panels new behavior:
           (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
           (define/override (file-menu:between-new-and-open file-menu)
             (set! file-menu:create-new-tab-item
-                  (new menu-item%
+                  (new menu:can-restore-menu-item%
                        (label (string-constant new-tab))
                        (shortcut #\=)
                        (parent file-menu)
                        (callback
                         (lambda (x y)
                           (create-new-tab))))))
-          (rename
-           [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
+          (rename [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           [define/override file-menu:between-open-and-revert
             (lambda (file-menu)
               (super-file-menu:between-open-and-revert file-menu)
               (make-object separator-menu-item% file-menu))]
+          (rename [super-file-menu:between-close-and-quit file-menu:between-close-and-quit])
+          (define/override (file-menu:between-close-and-quit file-menu)
+            (new menu:can-restore-menu-item%
+                 (label (string-constant close-tab))
+                 (shortcut #\-)
+                 (parent file-menu)
+                 (callback
+                  (lambda (x y)
+                    (close-current-tab))))
+            (super-file-menu:between-close-and-quit file-menu))
+          
           [define/override file-menu:save-string (lambda () (string-constant save-definitions))]
           [define/override file-menu:save-as-string (lambda () (string-constant save-definitions-as))]
           [define/override file-menu:between-save-as-and-print
@@ -1939,18 +1945,38 @@ tab panels new behavior:
           ;; updates current-tab, definitions-text, and interactactions-text
           ;; to be the nth tab. Also updates the GUI to show the new tab
           (define/private (change-to-tab tab)
-            (save-visible-tab-regions)
-            (set! current-tab tab)
-            (set! definitions-text (tab-defs current-tab))
-            (set! interactions-text (tab-ints current-tab))
-            (for-each (lambda (defs-canvas) (send defs-canvas set-editor definitions-text))
-                      definitions-canvases)
-            (for-each (lambda (ints-canvas) (send ints-canvas set-editor interactions-text))
-                      interactions-canvases)
-            (restore-visible-tab-regions)
-            (update-save-message)
-            (update-save-button)
-            (send definitions-text update-frame-filename))
+            (let ([old-delegate (send definitions-text get-delegate)])
+              (save-visible-tab-regions)
+              (send definitions-text set-delegate #f)
+              (set! current-tab tab)
+              (set! definitions-text (tab-defs current-tab))
+              (set! interactions-text (tab-ints current-tab))
+              (for-each (lambda (defs-canvas) (send defs-canvas set-editor definitions-text))
+                        definitions-canvases)
+              (for-each (lambda (ints-canvas) (send ints-canvas set-editor interactions-text))
+                        interactions-canvases)
+              (restore-visible-tab-regions)
+              (update-save-message)
+              (update-save-button)
+              (send definitions-text update-frame-filename)
+              (send definitions-text set-delegate old-delegate)))
+          
+          (define/private (close-current-tab)
+            (let loop ([tabs tabs]
+                       [acc null])
+              (cond
+                [(null? tabs) (error 'close-current-tab "uh oh")]
+                [else
+                 (let ([tab (car tabs)])
+                   (if (eq? tab current-tab)
+                       (let ([new-tabs (append (reverse acc) (cdr tabs))])
+                         (error 'on-close "need lots of stuff here to close only a tab!! ack...")
+                         (change-to-tab (if (null? acc)
+                                            (car tabs)
+                                            (car acc)))
+                         (set! tabs new-tabs))
+                       (loop (cdr tabs)
+                             (cons tab acc))))])))
           
           (define/public (open-in-new-tab filename)
             (if evaluation-enabled?
