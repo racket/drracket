@@ -2,7 +2,6 @@
   (require (lib "unitsig.ss"))
   
   (provide relative-btree^
-           bullet^
            bullet-export^
            hyper^
            html-export^
@@ -20,11 +19,6 @@
   
   (define-signature bullet-export^
     (bullet-size))
-  
-  (define-signature bullet^
-    (bullet-snip%
-     get-bullet-width
-     (open bullet-export^)))
   
   (define-signature hyper^
     (open-url

@@ -19,11 +19,14 @@
               (mred : mred^)
               (tcp : net:tcp^)
               (url : net:url^))
-      (link [bullet : bullet^ (bullet@ mred)]
-            [html : html^ (html@ bullet mred url)]
-            [hyper : hyper^ (hyper@ html mred plt-installer url)])
+      (link [html : html^ (html@ mred url)]
+            [hyper : hyper^ (hyper@ html mred plt-installer url)]
+	    [bullet-size : bullet-export^ ((unit/sig bullet-export^
+					     (import)
+					     (rename (html:bullet-size bullet-size))
+					     (define html:bullet-size bullet-size)))])
       (export (open hyper)
-              (open (bullet : bullet-export^))
+	      (open bullet-size)
               (open (html : html-export^)))))
   
   

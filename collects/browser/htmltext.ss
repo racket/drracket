@@ -16,8 +16,7 @@
      html^
      (compound-unit/sig
        (import (MRED : mred^) (URL : net:url^))
-       (link [HTML : html^ (html@ BULLET MRED URL)]
-	     [BULLET : bullet^ (bullet@ MRED)])
+       (link [HTML : html^ (html@ MRED URL)])
        (export (open HTML)))
      #f
      mred^

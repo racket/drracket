@@ -14,6 +14,7 @@
 	   (rename (lib "html.ss" "html") use-html-spec use-html-spec)
 	   (all-except (lib "xml.ss" "xml") read-comments)
            (lib "class.ss")
+	   "bullet.ss"
 	   "option-snip.ss"
 	   "entity-names.ss")
 
@@ -21,8 +22,7 @@
 
   (define html@
     (unit/sig html^
-      (import bullet^
-              mred^
+      (import mred^
               net:url^)
       
       ;; CACHE
