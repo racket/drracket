@@ -291,7 +291,8 @@
 	     (send execute-menu-item enable #t))
 	   (send execute-button enable #t)
 	   (send definitions-edit lock #f)
-	   (send interactions-edit lock #f))])
+	   (unless (send interactions-edit eval-busy?)
+	     (send interactions-edit lock #f)))])
       
       (inherit set-label)
       (public
@@ -418,7 +419,7 @@
 		     (send interactions-edit print
 			   #t 
 			   #t
-			   (fw:preferences:get 'mred:print-output-mode)))))
+			   (fw:preferences:get 'framework:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
       (private
 	[item->child
