@@ -5,6 +5,8 @@
 (reference-library "gusrspcs.ss" "gusrspce")
 (reference-library "pconvers.ss")
 
+(define-signature drscheme:main^ ())
+
 (define-signature drscheme:init^
   (primitive-eval
    primitive-load
@@ -69,7 +71,7 @@
    interactions-canvas%))
 
 (define-signature drscheme:frame^
-  (frame%))
+  (make-frame%))
 
 (define-signature drscheme:compound-unit^
   (frame% snip%))

@@ -223,7 +223,8 @@
 
     (define super-frame% (mred:make-searchable-frame%
 			  (mred:make-info-frame%
-			   drscheme:frame:frame%)))
+			   (drscheme:frame:make-frame%
+			    mred:simple-menu-frame%))))
     (define frame%
       (class super-frame% (filename snip [show? #t])
 	(inherit get-canvas get-edit imports-panel
@@ -622,6 +623,13 @@
 	    (set! created-frame this))
 	  (mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
 
+    (define BLACK-PEN (send wx:the-pen-list find-or-create-pen
+			    "BLACK" 0 wx:const-solid))
+    (define WHITE-BRUSH (send wx:the-brush-list find-or-create-brush
+			      "WHITE" wx:const-solid))
+    (define BLACK (make-object wx:colour% "BLACK"))
+    (define WHITE (make-object wx:colour% "WHITE"))
+
     (define snip%
       (let ([f% frame%])
       (class wx:snip% (n fn)
@@ -709,6 +717,10 @@
 		  [ybox (box 0)]
 		  [wbox (box 0)]
 		  [hbox (box 0)])
+	      (send dc set-pen BLACK-PEN)
+	      (send dc set-brush WHITE-BRUSH)
+	      (send dc set-text-foreground BLACK)
+	      (send dc set-text-background WHITE)
 	      (send dc get-clipping-region xbox ybox wbox hbox)
 	      (let* ([old-left (unbox xbox)]
 		     [old-top (unbox ybox)]

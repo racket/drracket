@@ -1,16 +1,10 @@
 
   (unit/sig drscheme:app^
-    (import [drscheme:unit : drscheme:unit^]
-	    [drscheme:frame : drscheme:frame^]
-	    [drscheme:parameters : drscheme:parameters^]
-	    [I : mred:application-imports^]
-	    [mred : mred^]
+    (import [mred : mred^]
 	    [mzlib : mzlib:core^])
     
     (mred:debug:printf 'invoke "drscheme:application@")
 
-    (define app-name "DrScheme")
-    
     (define about-drscheme
       (lambda ()
 	(let* ([names (string-append
@@ -136,18 +130,7 @@
 		 (lock #t))
 	  (send f show #t)
 	  f)))
-
-    (mred:debug:printf 'super-init "before console")
-    (define console #f)
-    (mred:debug:printf 'super-init "after console")
-    (define eval-string (lambda args (void)))
-
-    (for-each (lambda (x)
-		(let ([f (mred:edit-file x)])
-		  (unless console
-		    (set! console f))))
-	      (reverse (vector->list I:argv)))
     
-    (unless console
-      (set! console (make-object (drscheme:parameters:current-frame%) #f #f))
-      (send console show #t)))
+    (define app-name "DrScheme")
+    (define console #f)
+    (define eval-string (lambda args (void))))
