@@ -398,6 +398,7 @@
                                    [wait-to-continue (make-semaphore 0)]
                                    [wait-to-break (make-semaphore 0)]
                                    [wait-to-show (make-semaphore 1)]
+                                   [timeout-running (make-semaphore 0)]
                                    [directory
                                     (or (if (and (url? url)
                                                  (string=? "file" (url-scheme url)))
@@ -408,31 +409,46 @@
                                                     #f)))
                                             #f)
                                         (current-load-relative-directory))]
+                                   [timeout-thread (thread (lambda () 
+                                                             (error-display-handler void) 
+                                                             (semaphore-post timeout-running)
+                                                             (sleep 1)))]
                                    ; Thread to perform the download:
                                    [t (parameterize ([break-enabled #f])
                                         (thread
                                          (lambda ()
-                                           (with-handlers ([void (lambda (x) (set! exn x))])
+                                           (with-handlers ([void (lambda (x)
+                                                                   (printf "got exn ~s\n" x)
+                                                                   (set! exn x))])
                                              (parameterize ([break-enabled #t])
                                                (semaphore-post wait-to-break)
                                                (parameterize ([html-status-handler
                                                                (lambda (s) 
                                                                  (set! e-text s)
+                                                                 (printf "wait.1 wait-to-show\n")
                                                                  (semaphore-wait wait-to-show)
                                                                  (show-progress s)
+                                                                 (printf "post.1 wait-to-show\n")
                                                                  (semaphore-post wait-to-show))]
                                                               [current-load-relative-directory directory]
                                                               [html-eval-ok url-allows-evaling?])
-                                                 (html-convert p this))))
+                                                 (printf "converting\n")
+                                                 (html-convert p this)
+                                                 (printf "converted\n"))))
+                                           (printf "wait.2 wait-to-show\n")
                                            (semaphore-wait wait-to-show)
                                            (set! done? #t)
                                            (show-progress "")
                                            (when progress-dlg
                                              (send progress-dlg show #f))
+                                           (semaphore-wait timeout-running)
+                                           (break-thread timeout-thread)
+                                           (printf "post.2 wait-to-show\n")
                                            (semaphore-post wait-to-show)
                                            (semaphore-post wait-to-continue))))]
                                    [make-dialog
                                     (lambda ()
+                                      (printf "wait.3 wait-to-show\n")
                                       (semaphore-wait wait-to-show)
                                       (unless done?
                                         (cond
@@ -463,15 +479,18 @@
                                                  focus)
                                            (send progress-dlg center)
                                            (thread (lambda () (send progress-dlg show #t)))
-                                           (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))])
-                                        (semaphore-post wait-to-show)))])
-                              (thread (lambda ()
-                                        (sleep 1)
-                                        (unless done? (semaphore-post wait-to-continue))))
-                              (semaphore-wait wait-to-continue)
+                                           (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
+                                      (printf "post.3 wait-to-show\n")
+                                      (semaphore-post wait-to-show))])
+                              (printf "1\n")
+                              (thread-wait timeout-thread)
+                              (printf "2\n")
                               (unless done?
-                                (make-dialog)
-                                (yield wait-to-continue))
+                                (printf "3\n")
+                                (make-dialog))
+                              (printf "4\n")
+                              (yield wait-to-continue)
+                              (printf "5\n")
                               (when exn (raise exn)))]
                            [else
                             ; Text
@@ -852,25 +871,20 @@
                         (lambda (b ev) 
                           (forward))))])
           
-          (field (home-page #f))
-          (define/public (set-home-page url)
-            (set! home-page url))
+          ;(field (home-page #f))
+          ;(define/public (set-home-page url)
+          ;  (set! init-page url))
           
           [define/private home-callback
             (lambda () 
               (cond
-                [(or home-page
-                     (url? init-page)
+                [(or (url? init-page)
                      (string? init-page))
                  
                  ; handle stopping when loading the home page
                  (with-handlers ([exn:break? 
                                   (lambda (x) (void))])
-                   (send c goto-url
-                         (if home-page
-                             home-page
-                             init-page)
-                         #f)
+                   (send c goto-url init-page #f)
                    (set! init-page (send c current-page))
                    (update-buttons init-page))]
                 [else 
@@ -882,17 +896,11 @@
                           (home-callback))))])
           [define/private update-buttons
             (lambda (page)
-              (when (or (not init-page)
-                        (pair? init-page))
+              (unless init-page
                 (set! init-page page))
               (when control-bar?
                 (send back enable (pair? past))
                 (send forw enable (pair? future))
-                
-                (send home enable (and init-page
-                                       (or (string? init-page)
-                                           (url? init-page)
-                                           (not (same-page? init-page page)))))
                 
                 (send choice clear)
                 (for-each

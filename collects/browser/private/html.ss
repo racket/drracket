@@ -375,7 +375,9 @@
 
       (define html-convert
         (lambda (a-port a-text)	    
-	  (let ([content (parse-html a-port)])
+	  (printf "parsingn content\n")
+          (let ([content (parse-html a-port)])
+            (printf "parsed content\n")
 	    (with-method ([a-text-insert (a-text insert)]
 			  [current-pos (a-text last-position)]
 			  [delete (a-text delete)]
