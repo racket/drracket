@@ -119,8 +119,8 @@
       ;; drscheme-error-display-handler : (string (union #f exn) -> void
       ;; =User=
       ;; the timing is a little tricky here. 
-      ;; the file icon must appear before the error message in the text, so tha happens first.
-      ;; the highlight must be set after the error message because inserting into the text resets
+      ;; the file icon must appear before the error message in the text, so that happens first.
+      ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
 	(let-values ([(src position other-position module form)
@@ -128,7 +128,7 @@
 			  (extract-info-from-exn exn)
 			  (values #f #f #f #f #f))])
 	  (let ([rep (current-rep)])
-	    
+            
             (let ([locked? (send rep is-locked?)])
               (send rep lock #f)
               (when (string? src)
@@ -138,7 +138,10 @@
                   (send rep set-clickback pos (+ pos 1)
                         (lambda (txt start end)
                           (open-file-and-highlight src position other-position)))))
-              (when module
+
+              ;; disable all docs icons. 
+              ;; for now, we only use check syntax to find documentation.
+              (when (and #f module)
                 (let ([pos (send rep last-position)])
                   (send rep insert (if (string? docs-icon)
 				       docs-icon
@@ -148,6 +151,7 @@
                   (send rep set-clickback pos (+ pos 1)
                         (lambda (txt start end)
                           (show-documentation module form)))))
+
               (send rep lock locked?))
             
 	    (display msg (current-error-port))
@@ -495,6 +499,10 @@
           (sequence
             (super-init (build-path (collection-path "icons") "eof.gif"))
             (set-flags (cons 'handles-events (get-flags))))))
+      
+      (define error-range #f)
+      (define (reset-callback) (void))
+      (define error-range/reset-callback-semaphore (make-semaphore 1))
       
       (define (make-text% super%)
         (rec rep-text%
@@ -1049,10 +1057,7 @@
 	    (rename [super-after-insert after-insert]
 		    [super-after-delete after-delete])
 	    (inherit get-inserting-prompt)
-	    (field (error-range #f)
-		   (reset-callback void)
-                   (error-range/reset-callback-semaphore 
-                    (make-semaphore 1)))
+	    
             (public get-error-range)
             (define (get-error-range) error-range)
 
@@ -1242,14 +1247,13 @@
                                    (if (eof-object? rd)
                                        rd
                                        (expand rd)))))])
-                      (unless (eof-object? in)
-                        (iter
-                         exn-raised?
-                         (if exn-raised? (cons err-msg err-exn) in)
-                         run-in-eventspace
-                         (if exn-raised?
-                             (lambda () (void))
-                             (lambda () (loop))))))))))
+                      (cond
+                        [(eof-object? in)
+                         (iter #f in run-in-eventspace (lambda () (void)))]
+                        [exn-raised?
+                         (iter #t (cons err-msg err-exn) run-in-eventspace (lambda () (void)))]
+                        [else
+                         (iter #f in run-in-eventspace (lambda () (loop)))]))))))
             
             (define (get-prompt) "> ")
             (define (eval-busy?)
@@ -1738,7 +1742,8 @@
 	      (when (thread? thread-killed)
 		(kill-thread thread-killed))
 	      (let ([fr (send (get-canvas) get-top-level-window)])
-		(send context clear-annotations))
+		(send context clear-annotations)
+                (reset-highlighting))
 	      (shutdown-user-custodian)
 	      (cleanup-transparent-io)
 	      (clear-previous-expr-positions)

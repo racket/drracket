@@ -204,7 +204,7 @@
                           (label native-lang-string)
                           (parent bottom-vp)
                           (stretchable-width #t)
-                          (callback (lambda (x1 x2) (switch-language-to language))))))
+                          (callback (lambda (x1 x2) (switch-language-to f language))))))
                     (string-constants is-this-your-native-language)
                     (all-languages))
           (send bottom-vp stretchable-height #f)
@@ -223,20 +223,60 @@
           (preferences:set 'drscheme:last-language (this-language))
           (send f show #t)))
 
-      (define (switch-language-to language)
-        (when (gui-utils:get-choice
-               (string-constant are-you-sure-you-want-to-switch-languages)
-               (case (system-type)
-                 [(windows) (string-constant exit-cap)]
-                 [else (string-constant quit-cap)])
-               (string-constant cancel)
-               (string-constant drscheme)
-               #f)
+      (define (switch-language-to parent other-language)
+        (define-values (other-are-you-sure other-cancel other-quit)
+          (let loop ([languages (all-languages)]
+                     [are-you-sures (string-constants are-you-sure-you-want-to-switch-languages)]
+                     [cancels (string-constants cancel)]
+                     [quits (string-constants quit-cap)])
+            (cond
+              [(null? languages) (error 'app.ss "")]
+              [(equal? other-language (car languages))
+               (values (car are-you-sures)
+                       (car cancels)
+                       (car quits))]
+              [else (loop (cdr languages)
+                          (cdr are-you-sures)
+                          (cdr cancels)
+                          (cdr quits))])))
+        (define dialog (make-object dialog% (string-constant drscheme) parent 400))
+        (define (make-section are-you-sure cancel-label quit-label)
+          (define text (make-object text:hide-caret/selection%))
+          (define ec (instantiate editor-canvas% ()
+                       (parent dialog)
+                       (editor text)
+                       (style '(no-hscroll))))
+          (define bp (instantiate horizontal-panel% ()
+                       (parent dialog)
+                       (alignment '(right center))))
+          (define quit (make-object button% quit-label bp
+                         (lambda (x y)
+                           (set! cancelled? #f)
+                           (send dialog show #f))))
+          (define cancel (make-object button% cancel-label bp
+                           (lambda (x y)
+                             (send dialog show #f))))
+          (send ec set-line-count 3)
+          (send text auto-wrap #t)
+          (send text set-autowrap-bitmap #f)
+          (send text insert are-you-sure)
+          (send text set-position 0 0))
+        (define cancelled? #t)
+        
+        (make-section other-are-you-sure
+                      other-cancel
+                      other-quit)
+        (make-section (string-constant are-you-sure-you-want-to-switch-languages)
+                      (string-constant cancel)
+                      (string-constant quit-cap))
+        (send dialog show #t)
+        
+        (unless cancelled?
           (let ([set-language? #t])
             (exit:insert-on-callback 
              (lambda ()
                (when set-language?
-                 (write-resource "mred" "gui_language" language))))
+                 (write-resource "mred" "gui_language" other-language))))
             (exit:exit #t)
             (set! set-language? #f))))
       
@@ -400,6 +440,6 @@
                         (instantiate menu-item% ()
                           (label native-lang-string)
                           (parent help-menu)
-                          (callback (lambda (x1 x2) (switch-language-to language))))))
+                          (callback (lambda (x1 x2) (switch-language-to #f language))))))
                     (string-constants is-this-your-native-language)
                     (all-languages)))))))

@@ -101,13 +101,13 @@
 				  bug-note
 				  (lambda ()
 				    (show-backtrace-window rep msg cms)))
-		  
 		(let ([debug-source (car (car cms))])
 		  (when (symbol? debug-source)
-		    (insert/clickback rep file-note
-				      (lambda ()
-					(handler:edit-file (symbol->string debug-source))))))
-		  (send rep lock locked?)))
+		    (insert/clickback 
+                     rep file-note
+                     (lambda ()
+                       (open-and-highlight-in-file (car cms)))))
+		  (send rep lock locked?))))
             
             (orig-error-display-handler msg exn)
             
@@ -121,7 +121,6 @@
                            (number? position))
                   (send rep highlight-error/forward-sexp src position))))))
         debug-tool-error-display-handler)
-      
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
       ;; inserts `note' and a space at the end of `rep'
@@ -303,7 +302,7 @@
             (send text set-clickback
                   start-pos end-pos
                   (lambda x
-                    (open-and-highlight-in-file rep di))))
+                    (open-and-highlight-in-file di))))
           
           (insert-context editor-canvas text debug-source start)
           (send text insert #\newline)))
@@ -384,13 +383,12 @@
                    (or (send file get-filename) 
                        untitled)))])))
 
-      ;; open-and-highlight-in-file : (union #f (instanceof drscheme:rep:text%))
-      ;;                              (cons debug-source number)
+      ;; open-and-highlight-in-file : (cons debug-source number)
       ;;                              -> 
       ;;                              void
       ;; opens the window displaying this piece of syntax (if there is one)
       ;; and highlights the right position in the file
-      (define (open-and-highlight-in-file rep di)
+      (define (open-and-highlight-in-file di)
         (let* ([debug-source (car di)]
                [position (cdr di)]
                [frame (cond
@@ -407,7 +405,9 @@
                             [(and frame (is-a? frame frame:editor<%>))
                              (send frame get-editor)]
                             [else #f])]
-                         [(is-a? debug-source editor<%>) debug-source])])
+                         [(is-a? debug-source editor<%>) debug-source])]
+               [rep (and (is-a? frame drscheme:unit:frame%)
+                         (send frame get-interactions-text))])
           (when frame
             (send frame show #t))
           (when (and rep editor)

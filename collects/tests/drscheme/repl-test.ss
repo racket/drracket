@@ -49,24 +49,24 @@
      
      ;; basic tests
      (make-test "("
-                "read: expected a ')'; started in~a"
-                "read: expected a ')'; started in~a"
+                "~a: read: expected a ')'"
+                "~a: read: expected a ')'"
                 #f
                 (cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
                 #f)
      (make-test "."
-                "read: illegal use of \".\" in~a"
-                "read: illegal use of \".\" in~a"
+                "~a: read: illegal use of \".\""
+                "~a: read: illegal use of \".\""
                 #f
 		(cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
                 #f)
      (make-test "(lambda ())"
-                "lambda: bad syntax in~a: (lambda ())"
-                "lambda: bad syntax in~a: (lambda ())"
+                "~a: lambda: bad syntax in: (lambda ())"
+                "~a: lambda: bad syntax in: (lambda ())"
                 #f
                 (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand
@@ -195,26 +195,26 @@
                 #f
                 #f)
      
-   ;; error in the middle
+     ;; error in the middle
      (make-test "1 2 ( 3 4"
-                "1\n2\nread: expected a ')'; started in~a"
-                "read: expected a ')'; started in~a"
+                "1\n2\n~a: read: expected a ')'"
+                "~a: read: expected a ')'"
 		#f
-		(cons (make-loc 0 5 4) (make-loc 0 5 5))
+		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
                 #f)
      (make-test "1 2 . 3 4"
-                "1\n2\nread: illegal use of \".\" in~a"
-                "read: illegal use of \".\" in~a"
+                "1\n2\n~a: read: illegal use of \".\""
+                "~a: read: illegal use of \".\""
 		#f
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
                 #f)
      (make-test "1 2 (lambda ()) 3 4"
-                "1\n2\nlambda: bad syntax in~a: (lambda ())"
-                "lambda: bad syntax in~a: (lambda ())"
+                "1\n2\n~a: lambda: bad syntax in: (lambda ())"
+                "~a: lambda: bad syntax in: (lambda ())"
 		#f
 		(cons (make-loc 0 4 4) (make-loc 0 15 15))
                 'expand
@@ -223,7 +223,7 @@
      (make-test "1 2 x 3 4"
                 "1\n2\nreference to undefined identifier: x"
                 "reference to undefined identifier: x"
-		#f
+		#t
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 #f
                 #f
@@ -247,19 +247,19 @@
      
      ;; new namespace test
      (make-test "(current-namespace (make-namespace))\nif"
-                "compile: bad syntax in~a: if"
-                "compile: bad syntax in~a: if"
+                "~a: if: bad syntax in: if"
+                "~a: if: bad syntax in: if"
                 #f
-		(cons (make-loc 0 37 37) (make-loc 0 39 39))
+		(cons (make-loc 1 0 37) (make-loc 1 2 39))
                 'expand
                 #t
                 #f)
 
      (make-test "(current-namespace (make-namespace 'empty))\nif"
-                "compile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in~a: if"
+                "~a: compile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in: if"
                 #f
                 #f
-		(cons (make-loc 0 44 44) (make-loc 0 46 46))
+		(cons (make-loc 1 0 44) (make-loc 1 0 46))
                 'expand
                 #t
                 #f)
@@ -401,6 +401,10 @@
       (build-path (collection-path "tests" "drscheme")
                   tmp-load-short-filename))))
   
+  (define short-tmp-load-filename
+    (let-values ([(base name dir?) (split-path tmp-load-filename)])
+      name))
+  
 
   ;; setup-fraction-sum-interactions : -> void 
   ;; clears the definitions window, and executes `1/2' to
@@ -436,32 +440,36 @@
                [execute-answer (test-execute-answer in-vector)]
 	       [source-location (test-source-location in-vector)]
 	       [source-location-in-message (test-source-location-in-message in-vector)]
+               [start-line (and source-location-in-message
+                                (number->string (+ 1 (loc-line (car source-location)))))]
+               [start-col (and source-location-in-message
+                               (number->string (+ 1 (loc-col (car source-location)))))]
 	       [error-start (and source-location-in-message
 				 (number->string (+ 1 (loc-offset (car source-location)))))]
 	       [formatted-execute-answer
-		(let* ([pre
-			(if source-location-in-message
-			    (format execute-answer
-                                    (string-append
-                                     " "
-                                     (case source-location-in-message
-                                       [(read) "USERPORT"]
-                                       [(expand) "#<struct:object:definitions-text%>"]
-                                       [else (error 'source-location-in-message "unk: ~s" 
-                                                    source-location-in-message)])
-                                     ":"
-                                     error-start))
-			    execute-answer)]
-		       [w/backtrace
+		(let* ([w/backtrace
 			(if (and (test-has-backtrace? in-vector)
 				 (not raw?))
-			    (string-append backtrace-image-string " " pre)
-			    pre)]
+			    (string-append backtrace-image-string " ")
+			    "")]
 		       [w/docs-icon
-			(if (test-docs-icon? in-vector)
+			(if (and #f (test-docs-icon? in-vector))
 			    (string-append docs-image-string " " w/backtrace)
-			    w/backtrace)])
-		  w/docs-icon)]
+			    w/backtrace)]
+		       [final
+                        ;; if there is a source-location for the message, but the
+                        ;; icons just before it. Otherwise, but the icons at
+                        ;; the beginning of the entire string.
+			(if source-location-in-message
+			    (format execute-answer
+                                    (string-append 
+                                     w/docs-icon
+                                     (format
+                                      "#<struct:object:derived-from-definitions-text%>:~a:~a"
+                                      start-line
+                                      start-col)))
+			    (string-append w/docs-icon execute-answer))])
+		  final)]
                [load-answer (test-load-answer in-vector)]
                [formatted-load-answer
 		(and load-answer
@@ -482,11 +490,14 @@
                                      (string-append file-image-string " " w/backtrace)
                                      w/backtrace))]
                             [w/docs-icon
-                             (if (test-docs-icon? in-vector)
+                             (if (and #f (test-docs-icon? in-vector))
                                  (string-append docs-image-string " " w/file-icon)
                                  w/file-icon)])
                        (if source-location-in-message
-                           (format w/docs-icon (string-append " " tmp-load-filename ":" error-start))
+                           (format w/docs-icon 
+                                   (format "~a::~a"
+                                           short-tmp-load-filename
+                                           error-start))
                            w/docs-icon)))]
                [breaking-test? (test-breaking-test? in-vector)])
           

@@ -40,10 +40,10 @@
 
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:105: class")
+      (test-expression "class" (regexp "class: bad syntax in: class"))
       (test-expression "shared" "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -54,7 +54,8 @@
       (test-expression "(error 'a \"~a\" 1)" "a: 1")
       (test-expression "(error \"a\" \"a\")" "a \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
                        "reference to undefined identifier: make-posn")
@@ -72,7 +73,7 @@
                        "(#&1 #&1)")
       (test-expression
        "(local ((define x x)) 1)"
-       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
+       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
       
@@ -117,7 +118,7 @@
       (test-expression "class" "reference to undefined identifier: class")
       (test-expression "shared" "reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -128,7 +129,8 @@
       (test-expression "(error 'a \"~a\" 1)" "a: 1")
       (test-expression "(error \"a\" \"a\")" "a \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)" "reference to undefined identifier: make-posn")
       (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -145,7 +147,7 @@
                        "(#&1 #&1)")
       (test-expression
        "(local ((define x x)) 1)"
-       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
+       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
       
@@ -193,10 +195,10 @@
       
       (test-expression "(sqrt -1)" "0+1i")
 
-      (test-expression "class" "{image #f} class: bad syntax in #<struct:object:derived-from-rep-text%>:87: class")
+      (test-expression "class" (regexp "class: bad syntax in: class"))
       (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -207,7 +209,7 @@
       (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
       (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
                        "{image #f} reference to undefined identifier: make-posn")
@@ -225,7 +227,7 @@
                        "(#&1 #&1)")
       (test-expression 
        "(local ((define x x)) 1)"
-       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
+       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
@@ -269,7 +271,7 @@
       (test-expression "class" "{image #f} reference to undefined identifier: class")
       (test-expression "shared" "{image #f} reference to undefined identifier: shared")
       
-      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\" in USERPORT:[0-9]*"))
+      (test-expression "(define (. x y) (* x y)) ." (regexp "read: illegal use of \"\\.\""))
       
       (test-expression "(define (f define) 1)" "")
       (test-expression "(define (f car) 1)" "")
@@ -280,7 +282,7 @@
       (test-expression "(error 'a \"~a\" 1)" "{image #f} a: 1")
       (test-expression "(error \"a\" \"a\")" "{image #f} a \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)"
                        "{image #f} reference to undefined identifier: make-posn")
@@ -298,7 +300,7 @@
                        "(#&1 #&1)")
       (test-expression 
        "(local ((define x x)) 1)"
-       (regexp "{image #f} define-values: illegal use \\(not at top-level\\) in #<struct:object:derived-from-rep-text%>:[0-9]*: \\(define-values \\(x\\) x\\)"))
+       (regexp "define-values: illegal use \\(not at top-level\\) in: \\(define-values \\(x\\) x\\)"))
       (test-expression "(letrec ([x x]) 1)" "1")
       (test-expression "(if 1 1 1)" "1")
       (test-expression "(+ 1)" "1")
@@ -425,7 +427,8 @@
       (test-expression "(error \"a\" \"a\")"
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
       (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -486,18 +489,20 @@
       (test-expression "(sqrt -1)" "0+1i")
 
       (test-expression "class" "reference to undefined identifier: class")
-      (test-expression "shared" "reference to undefined identifier: shared")
+
+      (test-expression "shared" "shared: found a use of `shared' that does not follow an open parenthesis")
       
       (test-expression "(define (. x y) (* x y)) ." ".")
       
-      (test-expression "call/cc" "call-with-current-continuation")
+      (test-expression "call/cc" "reference to undefined identifier: call/cc")
       
       (test-expression "(error 'a \"~a\" 1)"
                        "procedure error: expects 2 arguments, given 3: 'a \"~a\" 1")
       (test-expression "(error \"a\" \"a\")"
                        "error: expected a symbol and a string, got \"a\" and \"a\"")
       
-      (test-expression "(time 1)" (format "{embedded \"cpu time: 0 real time: 0 gc time: 0\"}~n1"))
+      (test-expression "(time 1)" 
+                       (regexp "{embedded \"cpu time: [0-9]+ real time: [0-9]+ gc time: [0-9]+\"}\n1"))
       
       (test-expression "(list make-posn posn-x posn-y posn?)" "(list make-posn posn-x posn-y posn?)")
       (test-expression "set-posn-x!" "set-posn-x!")

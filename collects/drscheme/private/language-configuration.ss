@@ -106,17 +106,27 @@
 	  (define selectable-hierlist%
             (class hierarchical-list%
               (init parent)
-              (override on-select)
-              (rename [super-on-select on-select])
-              (define (on-select i)
+              (define/override (on-select i)
                 (cond
 		  [(and i (is-a? i hieritem-language<%>))
 		   (send i selected)]
-		  [else
+                  [else
 		   (nothing-selected)]))
+              (define/override (on-click i)
+                (when (and i (is-a? i hierarchical-list-compound-item<%>))
+                  (send i toggle-open/closed)))
               (super-instantiate (parent))))
 
-	  (define dialog (make-object dialog% (string-constant language-dialog-title)
+          (define ret-dialog%
+            (class dialog%
+              (rename [super-on-subwindow-char on-subwindow-char])
+              (define/override (on-subwindow-char receiver evt)
+                (case (send evt get-key-code)
+                  [(#\return numpad-enter) (ok-callback)]
+                  [else (super-on-subwindow-char receiver evt)]))
+              (super-instantiate ())))
+          
+	  (define dialog (make-object ret-dialog% (string-constant language-dialog-title)
                            parent #f #f #f #f '(resize-border)))
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
@@ -194,6 +204,7 @@
                               (lambda ()
                                 (let* ([new-list (send hier-list new-list)]
                                        [x (cons (make-hash-table) new-list)])
+                                  (send new-list set-allow-selection #f)
                                   (send new-list open)
                                   (send (send new-list get-editor) insert (car lng))
                                   (hash-table-put! ht (string->symbol (car lng)) x)

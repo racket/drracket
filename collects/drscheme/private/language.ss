@@ -254,30 +254,35 @@
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy? module-spec transformer-module-spec run-in-user-thread)
-
-        ;; to be deleted
-        (dynamic-require module-spec (void)) 
-        (dynamic-require transformer-module-spec (void))
-        
-        ;; must call the resolver before setting the namespace
-	(dynamic-require module-spec #f)
-        (dynamic-require transformer-module-spec #f)
-        (let* ([orig-namespace (current-namespace)]
-               [get-name
-                (lambda (spec)
-                  (if (symbol? module-spec)
-                      module-spec
-                      ((current-module-name-resolver) module-spec #f #f)))]
-               [lang-name (get-name module-spec)]
-               [transformer-lang-name (get-name transformer-module-spec)])
-          (run-in-user-thread
-	   (lambda ()
-	     (namespace-attach-module orig-namespace lang-name)
-	     (namespace-attach-module orig-namespace transformer-lang-name)
-	     (if use-copy?
-		 (namespace-require/copy module-spec)
-		 (namespace-require module-spec))
-	     (namespace-transformer-require transformer-module-spec)))))
+        (let ([to-be-copied-specs (list 'mzscheme
+                                        '(lib "mred.ss" "mred")
+                                        ;'(lib "class.ss")
+                                        ;'(lib "unit.ss")
+                                        ;'(lib "unitsig.ss")
+                                        ;'(lib "mred.ss" "mred")
+                                        )])
+          (for-each (lambda (x) (dynamic-require x #f)) to-be-copied-specs)
+          
+          (let* ([orig-namespace (current-namespace)]
+                 [get-name
+                  (lambda (spec)
+                    (if (symbol? spec)
+                        spec
+                        ((current-module-name-resolver) spec #f #f)))]
+                 [to-be-copied-names (map get-name to-be-copied-specs)])
+            (run-in-user-thread
+             (lambda ()
+               (with-handlers ([(lambda (x) #t)
+                                (lambda (x)
+                                  (display (exn-message x))
+                                  (newline))])
+                 (for-each (lambda (x) 
+                             (namespace-attach-module orig-namespace x))
+                           to-be-copied-names)
+                 (if use-copy?
+                     (namespace-require/copy module-spec)
+                     (namespace-require module-spec))
+                 (namespace-transformer-require transformer-module-spec)))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)

@@ -808,11 +808,9 @@
           [define file-menu:print-transcript-item #f]
           
           (rename
-           [super-file-menu:between-open-and-revert file-menu:between-open-and-revert]
-           [super-edit-menu:between-select-all-and-find edit-menu:between-select-all-and-find])
+           [super-file-menu:between-open-and-revert file-menu:between-open-and-revert])
           (override file-menu:between-open-and-revert file-menu:save-string file-menu:save-as-string
-                    file-menu:between-save-as-and-print file-menu:print-string file-menu:between-print-and-close
-                    edit-menu:between-select-all-and-find)
+                    file-menu:between-save-as-and-print file-menu:print-string file-menu:between-print-and-close)
           [define file-menu:between-open-and-revert
             (lambda (file-menu)
               (super-file-menu:between-open-and-revert file-menu)
@@ -859,12 +857,6 @@
                               #t
                               (preferences:get 'framework:print-output-mode)))))
               (make-object separator-menu-item% file-menu))]
-          [define edit-menu:between-select-all-and-find
-            (lambda (edit-menu)
-              (super-edit-menu:between-select-all-and-find edit-menu)
-              (make-object menu-item% (string-constant split-menu-item-label) edit-menu (lambda x (split)))
-              (make-object menu-item% (string-constant collapse-menu-item-label) edit-menu (lambda x (collapse)))
-              (make-object separator-menu-item% edit-menu))]
           
           (inherit get-edit-target-window)
           [define (split)
@@ -927,7 +919,27 @@
                          interactions-canvas%
                          interactions-text)]
                 [else (bell)]))]
+
+          ;; split-demand : menu-item -> void
+          ;; enables the menu-item if splitting is allowed, disables otherwise
+          (define (split-demand item)
+            (let ([canvas-to-be-split (get-edit-target-window)])
+              (send item enable
+                    (or (memq canvas-to-be-split definitions-canvases)
+                        (memq canvas-to-be-split interactions-canvases))))) 
           
+          ;; collapse-demand : menu-item -> void
+          ;; enables the menu-item if collapsing is allowed, disables otherwise
+          (define (collapse-demand item)
+            (let ([canvas-to-be-split (get-edit-target-window)])
+              (cond
+                [(memq canvas-to-be-split definitions-canvases)
+                 (send item enable (2 . <= . (length definitions-canvases)))]
+                [(memq canvas-to-be-split interactions-canvases)
+                 (send item enable (2 . <= . (length interactions-canvases)))]
+                [else
+                 (send item enable #f)])))
+              
           ;; get-visible-region : editor-canvas -> number number number number (union #f number)
           ;; calculates the visible region of the editor in this editor-canvas, returning
           ;; four numbers for the x, y, width and height of the visible region
@@ -1297,7 +1309,8 @@
             
 
 	  (frame:reorder-menus this)
-            
+          
+          
           (set! definitions-item
                 (make-object menu:can-restore-menu-item%
                   (string-constant hide-definitions-menu-item-label)
@@ -1316,6 +1329,20 @@
                     (update-shown))
                   #\e
                   (string-constant interactions-menu-item-help-string)))
+          
+          (make-object separator-menu-item% (get-show-menu))
+          
+          (instantiate menu-item% ()
+            (label (string-constant split-menu-item-label))
+            (parent (get-show-menu))
+            (callback (lambda (x y) (split)))
+            (demand-callback (lambda (item) (split-demand item))))
+          (instantiate menu-item% () 
+            (label (string-constant collapse-menu-item-label))
+            (parent (get-show-menu))
+            (callback (lambda (x y) (collapse)))
+            (demand-callback (lambda (item) (collapse-demand item))))
+          
           [define top-panel (make-object horizontal-panel% (get-area-container))]
           [define name-panel (make-object vertical-panel% top-panel)]
           [define resizable-panel (instantiate vertical-dragable/pref% ()
