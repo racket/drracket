@@ -722,9 +722,10 @@
                       
                       (list? reader-specs)
                       (andmap (lambda (x)
-                                (or (symbol? x)
-                                    (and (list? x)
-                                         (andmap string? x))))
+				;; approximation (no good test, really)
+				;; since it depends on the value of a mz
+				;; parameter to interpret the module spec
+                                (or (symbol? x) (pair? x)))
                               reader-specs)
                       
                       (= (length lang-positions)
@@ -767,10 +768,15 @@
                   summaries
                   reader-specs)]
                 [else
-                 (message-box (string-constant drscheme)
-                              (format (string-constant bad-module-language-specs)
-                                      lang-positions
-                                      lang-modules))])))))
+                 (message-box
+		  (string-constant drscheme)
+		  (format
+		   "The drscheme-language-position, drscheme-language-modules, drscheme-language-numbers, and drscheme-language-readers specifications aren't correct. Expected (listof (cons string (listof string))), (listof (listof string)), (listof (listof number)), (listof string), and (listof module-spec) respectively, where the lengths of the outer lists are the same. Got ~e, ~e, ~e, ~e, and ~e"
+		  lang-positions
+		  lang-modules
+		  numberss
+		  summaries
+		  reader-specs))])))))
       
       
 
