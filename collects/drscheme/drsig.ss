@@ -103,7 +103,8 @@
   (about-drscheme))
 
 (define-signature drscheme:export^
-  ((unit basis : userspace:basis^)
+  ((unit interface : drscheme:interface^)
+   (unit basis : userspace:basis^)
    (unit frame : drscheme:frame^)
    (unit unit : drscheme:unit^)
    (unit program : drscheme:program^)

@@ -327,7 +327,7 @@
 		 (let* ([fname (and name (mzlib:file:file-name-from-path name))]
 			[msg (make-object mred:message% (or fname "") top-panel)])
 		   (set! name-message msg)
-		   (set-label name)
+		   (set-label fname)
 		   (send top-panel change-children
 			 (lambda (l) (build-top-panel-children))))))])
       (override
