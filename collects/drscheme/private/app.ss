@@ -13,7 +13,7 @@
     (unit/sig drscheme:app^
       (import [drscheme:unit : drscheme:unit^]
               [drscheme:frame : drscheme:frame^]
-              [help-desk : drscheme:help-interface^]
+              [help-desk : drscheme:help-desk^]
               [drscheme:tools : drscheme:tools^])
 
       (define about-frame%

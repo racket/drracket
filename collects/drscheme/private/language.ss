@@ -93,9 +93,9 @@
                (printing-style write)
                (show-sharing #f)
                (insert-newlines #t))))
-          (define (default-settings? x) (equal?
-					 (settings->vector x)
-					 (settings->vector (default-settings))))
+          (define (default-settings? x)
+	    (equal? (simple-settings->vector x)
+		    (simple-settings->vector (default-settings))))
           (define (config-panel parent)
 	    (simple-module-based-language-config-panel parent))
 	  (define (on-execute setting run-in-user-thread)
@@ -242,9 +242,10 @@
 			     module-spec
 			     ((current-module-name-resolver) module-spec #f #f))])
           (run-in-user-thread
-           (lambda ()
-             (namespace-attach-module orig-namespace lang-name)
-             (namespace-require module-spec)))))
+	   (let ([o (current-output-port)])
+	     (lambda ()
+	       (namespace-attach-module orig-namespace lang-name)
+	       (namespace-require module-spec))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)

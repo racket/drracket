@@ -34,6 +34,8 @@
             [help-desk : drscheme:help-desk^ (help-desk@ frame language-configuration)]
 	    [app : drscheme:app^ (app@ unit frame help-desk tool)]
             [main-before : () (main-before@ app unit get/extend language-configuration language teachpack)]
-            [tool : drscheme:tools^ (tools@ frame unit rep get/extend language (language-configuration : drscheme:language-configuration^) init)]
+            [tool : drscheme:tools^ (tools@ frame unit rep get/extend language (language-configuration : drscheme:language-configuration^) help-desk init)]
             [main : drscheme:main^ (main@ app unit get/extend language-configuration)])
-      (export))))
+      (export
+       (unit teachpack drscheme:teachpack)
+       (unit language-configuration drscheme:language-configuration)))))

@@ -16,7 +16,7 @@
   
   (define unit@
     (unit/sig drscheme:unit^
-      (import [help-desk : drscheme:help-interface^]
+      (import [help-desk : drscheme:help-desk^]
               [drscheme:app : drscheme:app^]
               [drscheme:frame : drscheme:frame^]
               [drscheme:text : drscheme:text^]
@@ -1165,7 +1165,7 @@
                              (width (preferences:get 'drscheme:unit-window-width))
                              (height (preferences:get 'drscheme:unit-window-height)))
             
-          (let* ([mb (get-menu-bar)]
+	  (let* ([mb (get-menu-bar)]
                  [language-menu-on-demand
                   (lambda (menu-item)
                     (update-teachpack-menu))]
@@ -1225,7 +1225,8 @@
               scheme-menu
               (send-method (lambda (x) (send x uncomment-selection)))))
             
-            (frame:reorder-menus this)
+
+	  (frame:reorder-menus this)
             
           (set! definitions-item
                   (make-object menu:can-restore-menu-item%
@@ -1309,14 +1310,12 @@
                   (list name-panel save-button
                         (make-object vertical-panel% top-panel) ;; spacer
                         button-panel)))
+
           (send top-panel stretchable-height #f)
-          
           (inherit get-label)
-            
           (let ([m (send definitions-canvas get-editor)])
             (set-save-init-shown?
              (and m (send m is-modified?))))
-          
 	  (send name-message set-message
                 (if filename #t #f)
                 (or filename (get-label) (string-constant untitled)))
@@ -1357,8 +1356,8 @@
               (begin (send created-frame change-to-file name)
                      (send created-frame show #t)
                      created-frame)
-              (let* ([frame% (drscheme:get/extend:get-unit-frame%)]
-                     [frame (instantiate frame% () (filename name))])
+              (let* ([drs-frame% (drscheme:get/extend:get-unit-frame%)]
+		     [frame (instantiate drs-frame% () (filename name))])
                 (send frame show #t)
                 frame))]))
       

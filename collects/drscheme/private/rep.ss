@@ -31,7 +31,7 @@
               (drscheme:frame : drscheme:frame^)
               (drscheme:unit : drscheme:unit^)
               (drscheme:text : drscheme:text^)
-              (drscheme:help : drscheme:help-interface^)
+              (drscheme:help : drscheme:help-desk^)
               (drscheme:teachpack : drscheme:teachpack^))
       
       (define sized-snip<%>
@@ -1399,7 +1399,7 @@
 			on-execute
 			(drscheme:language-configuration:language-settings-settings user-language-settings)
 			queue-user/wait)
-                
+
 		  (parameterize ([current-eventspace user-eventspace])
 		    (queue-callback
 		     (lambda ()

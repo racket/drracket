@@ -256,10 +256,6 @@
 
 	  ;; ok-callback : -> void
           (define (ok-callback)
-	    (preferences:set settings-preferences-symbol
-			     (make-language-settings
-			      selected-language
-			      (get/set-selected-language-settings)))
 	    (send dialog show #f))
           
           ;; cancel-callback : -> void
@@ -320,7 +316,10 @@
 	  (open-current-language)
           (get/set-selected-language-settings 
            (send selected-language default-settings))
-          (send dialog show #t)))
+          (send dialog show #t)
+	  (make-language-settings
+	   selected-language
+	   (get/set-selected-language-settings))))
  
       ;; system-font-space->= : string string -> boolean
       ;; determines which string is wider, when drawn in the system font
@@ -403,9 +402,9 @@
                              (preferences:get settings-preferences-symbol)
                              frame)])
           (when new-settings
-            '(preferences:set
-	      settings-preferences-symbol
-	      new-settings))))
+            (preferences:set
+	     settings-preferences-symbol
+	     new-settings))))
       
       (define (fill-language-menu frame language-menu)
         (make-object menu:can-restore-menu-item%

@@ -14,7 +14,7 @@
     (unit/sig drscheme:frame^
       (import (drscheme:unit : drscheme:unit^)
               (drscheme:app : drscheme:app^)
-              (help : drscheme:help-interface^))
+              (help : drscheme:help-desk^))
       (rename [-mixin mixin])
       
       (define button-label-font

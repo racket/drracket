@@ -386,17 +386,17 @@
               [(is-a? editor text:basic<%>)
                (send rep highlight-error editor position (+ position 1))]))))
       
-      ;; debug-lang% : (implements drscheme:language-tower:language<%>)
+      ;; debug-lang% : (implements drscheme:language:language<%>)
       (define debug-lang%
         (debug-lang-mixin 
-         (drscheme:language-tower:module-based-language->language-mixin
-          (drscheme:language-tower:simple-module-based-language->module-based-language-mixin
-           drscheme:language-tower:simple-module-based-language%))))
+         (drscheme:language:module-based-language->language-mixin
+          (drscheme:language:simple-module-based-language->module-based-language-mixin
+           drscheme:language:simple-module-based-language%))))
       
       ;; add-debug-lang : module-spec (cons string (listof string)) -> void
       ;; adds a debugging language to drscheme's list of languages
       (define (add-debug-lang module position)
-        (drscheme:language:add-language
+        (drscheme:language-configuration:add-language
          (instantiate debug-lang% ()
            (module module)
            (language-position position)

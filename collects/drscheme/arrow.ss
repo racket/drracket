@@ -1,5 +1,10 @@
-(unit/sig drscheme:draw-arrow^
-  (import mred^)
+(module arrow mzscheme
+  (require (lib "unitsig.ss")
+	   (lib "class.ss")
+	   (lib "mred.ss" "mred"))
+
+  (provide draw-arrow)
+
 
   (define pi (* 2 (asin 1)))
   (define arrow-head-angle (/ pi 8))

@@ -12,10 +12,10 @@
     (with-handlers ([(lambda (x) (not (exn:break? x)))
                      (lambda (x) (lambda () 'unknown))])
       (namespace-variable-binding 'get-language-level)))
-  (define get-teachpack-names
+  (define get-teachpack-filenames
     (with-handlers ([(lambda (x) (not (exn:break? x)))
                      (lambda (x) (lambda () 'unknown))])
-      (namespace-variable-binding 'get-teachpack-names)))
+      (namespace-variable-binding 'get-teachpack-filenames)))
   
   (preferences:set-default 'drscheme:email "" string?)
   (preferences:set-default 'drscheme:full-name "" string?)
@@ -463,7 +463,7 @@
                   (with-handlers ([(lambda (x) #t)
                                    (lambda (x) "none")])
                     (directory-list (collection-path "doc")))))
-    (send teachpacks set-value (format "~s" (get-teachpack-names)))
+    (send teachpacks set-value (format "~s" (get-teachpack-filenames)))
     (send language-level set-value (format "~s" (get-language-level)))
     
     (send synthesized-panel stretchable-height #f)

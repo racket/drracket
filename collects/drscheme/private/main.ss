@@ -73,16 +73,15 @@
   ;; the initial window doesn't set the 
   ;; unit object's state correctly, yet.
       (define (make-basic)
-        (let* ([frame (drscheme:unit:open-drscheme-window)])
-          
-          (let* ([interactions-edit (send frame get-interactions-text)]
-                 [definitions-edit (send frame get-interactions-text)]
-                 [filename (send definitions-edit get-filename)])
-            (unless filename
-              (send interactions-edit reset-console)
-              (send interactions-edit insert-prompt)
-              (send frame update-shown)
-              (send (send frame get-interactions-canvas) focus)))
+	(let* ([frame (drscheme:unit:open-drscheme-window)]
+	       [interactions-edit (send frame get-interactions-text)]
+	       [definitions-edit (send frame get-interactions-text)]
+	       [filename (send definitions-edit get-filename)])
+	  (unless filename
+	    (send interactions-edit reset-console)
+	    (send interactions-edit insert-prompt)
+	    (send frame update-shown)
+	    (send (send frame get-interactions-canvas) focus))
           (send frame show #t)))
       
       (define (remove-duplicates files)

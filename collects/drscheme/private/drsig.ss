@@ -21,7 +21,8 @@
            drscheme:help-desk^
            drscheme:language^
            drscheme:teachpack^
-           drscheme:tool^)
+           drscheme:tool^
+	   drscheme^)
   
   (define-signature drscheme:get-collection^
     (get-file/collection))
@@ -54,7 +55,7 @@
      get-languages
      fill-language-menu
      settings-preferences-symbol
-     language-dialog))
+     choose-language))
   
   (define-signature drscheme:tools^
     ((struct successful-tool (spec bitmap name))
@@ -156,4 +157,8 @@
      (unit drscheme:get/extend : drscheme:get/extend^)
      (unit drscheme:language-configuration : drscheme:language-configuration^)
      (unit drscheme:language : drscheme:language^)
-     (unit drscheme:help-desk : drscheme:help-desk^))))
+     (unit drscheme:help-desk : drscheme:help-desk^)))
+
+  (define-signature drscheme^
+    ((unit drscheme:teachpack : drscheme:teachpack^)
+     (unit drscheme:language-configuration : drscheme:language-configuration/internal^))))
