@@ -537,19 +537,13 @@
 	[running? #t]; is this necessary?
 	[execute-callback
 	 (lambda ()
-	   (let* ([definitions-edit definitions-edit]
-		  [interactions-edit interactions-edit])
-	     (ensure-interactions-shown)
-	     (send definitions-edit just-executed)
-	     (send interactions-canvas set-focus)
-	     (dynamic-wind
-	      (lambda () (send interactions-edit begin-edit-sequence))
-	      (lambda ()
-		(send interactions-edit reset-console)
-		(send interactions-edit do-many-buffer-evals
-		      definitions-edit 0
-		      (send definitions-edit last-position)))
-	      (lambda () (send interactions-edit end-edit-sequence)))))])
+	   (ensure-interactions-shown)
+	   (send definitions-edit just-executed)
+	   (send interactions-canvas set-focus)
+	   (send interactions-edit reset-console)
+	   (send interactions-edit do-many-buffer-evals
+		 definitions-edit 0
+		 (send definitions-edit last-position)))])
   
       (public
 	[after-change-name void]
