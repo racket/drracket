@@ -79,6 +79,7 @@
              [interactions-text (send drs-frame get-interactions-text)])
         
         ;; update the program (cheat to hack around gc bug -- should really use file|open)
+        ;; (this is also much more efficient, tho)
         (send definitions-text load-file (build-path sample-solutions-dir filename))
         
         ;; only bother changing the language dialog when necessary.
@@ -142,6 +143,8 @@
             (fw:test:button-push "OK")
             (wait-for-drscheme-frame #f)))
         
+        (check-for-red-text filename definitions-text)
+        
         ;; still check equal pairs when there is a sanctioned error.
         (cond
           [(and (not errors-ok?)
@@ -176,5 +179,27 @@
                                   teachpacks))
                         (loop after (+ equal-count 1)))]
                      [else (loop sexp equal-count)])))))]))))
+  
+  (define (check-for-red-text filename definitions-text)
+    (let loop ([snip (send definitions-text find-first-snip)])
+      (when snip
+        (let* ([style (send snip get-style)]
+               [foreground (send style get-foreground)])
+          (if (black? foreground)
+              (loop (send snip next))
+              (let* ([pos (send definitions-text get-snip-position snip)]
+                     [para (send definitions-text position-paragraph pos)]
+                     [para-start (send definitions-text paragraph-start-position para)])
+                (printf "ERROR: ~a: found non-black snip at ~a:~a (pos ~a)\n"
+                        filename
+                        (+ para 1)
+                        (- pos para-start)
+                        pos)))))))
+  
+  (define (black? c)
+    (and (zero? (send c red))
+         (zero? (send c green))
+         (zero? (send c blue))))
+    
   (define (run-test)
     (for-each test-single-file sample-solutions)))
