@@ -49,10 +49,13 @@
 		 (equal? (url-params a) (url-params b))
 		 (equal? (url-query a) (url-query b)))))
 		 
-
+      (define hyper-text<%>
+        (interface ()
+          ))
+      
       (define hyper-text-mixin
         (lambda (super%)
-          (class super%
+          (class* super% (hyper-text<%>)
             (inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
                      change-style get-style-list set-style-list
                      set-modified auto-wrap get-view-size
@@ -79,6 +82,11 @@
                       [else #f])])
             
             (rename [super-after-set-position after-set-position])
+      
+            (rename [super-get-keymaps get-keymaps])
+            (define/override (get-keymaps)
+              (cons browser-keymap
+                    (super-get-keymaps)))
             
             [define/override after-set-position
               (lambda ()
@@ -545,9 +553,44 @@
             ;; load url, but the user might break:
             (with-handlers ([exn:break? void])
               (reload progress)))))
-      
+
       (define hyper-text% (hyper-text-mixin text:keymap%))
+
+      (define browser-keymap (make-object keymap%))
+      (send browser-keymap add-function "rewind" 
+            (lambda (txt evt)
+              (call-with-hyper-panel
+               txt
+               (lambda (panel)
+                 (send panel rewind)))))
+      (send browser-keymap add-function "forward" 
+            (lambda (txt evt)
+              (call-with-hyper-panel
+               txt
+               (lambda (panel)
+                 (send panel forward)))))
+      (send browser-keymap map-function "d:[" "rewind")
+      (send browser-keymap map-function "a:[" "rewind")
+      (send browser-keymap map-function "c:[" "rewind")
+      (send browser-keymap map-function "d:left" "rewind")
+      (send browser-keymap map-function "a:left" "rewind")
+      (send browser-keymap map-function "c:left" "rewind")
+      (send browser-keymap map-function "d:]" "forward")
+      (send browser-keymap map-function "a:]" "forward")
+      (send browser-keymap map-function "c:]" "forward")
+      (send browser-keymap map-function "d:right" "forward")
+      (send browser-keymap map-function "a:right" "forward")
+      (send browser-keymap map-function "c:right" "forward")
       
+      ;; call-with-hyper-panel : object ((is-a?/c hyper-panel<%>) -> void) -> void
+      (define (call-with-hyper-panel text f)
+        (when (is-a? text hyper-text<%>)
+          (let* ([canvas (send text get-canvas)]
+                 [panel
+                  (and canvas
+                       (send (send canvas get-top-level-window) get-hyper-panel))])
+            (f panel))))
+            
       ;; path-below? : string[normalized-path] string[normalized-path] -> boolean
       ;; returns #t if subpath points to a place below top
       (define (path-below? top longer)
