@@ -76,7 +76,7 @@
               (for-each (load/invoke-tool coll) tools tool-icons tool-names)))))
       
       ;; load/invoke-tool :    string[collection-name] 
-      ;;                    -> (listof string[sub-collection-names]) 
+      ;;                    -> (listof string[sub-collection-name]) 
       ;;                       (union #f (cons string[filename] (listof string[collection-name])))
       ;;                       (union #f string)
       ;;                    -> void
