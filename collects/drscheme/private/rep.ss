@@ -59,15 +59,13 @@
       ;; must escape. this is called if the user's error-escape-handler doesn't escape
       (define bottom-escape-handler (make-parameter void))
 
-      ;; (parameter (string (union #f syntax) exn -> void))
+      ;; (parameter (string (union #f exn) -> void))
       (define error-display/debug-handler
         (make-parameter
-         (lambda (msg debug exn)
-           ((error-display-handler) msg)
-           (if (syntax? debug)
-               (string-append (format-source-loc debug debug)
-                              msg)
-               msg))))
+         (lambda (msg exn)
+	   (when (exn:syntax? exn)
+	     (send (current-rep) ...))
+           ((error-display-handler) msg))))
       
       ;; drscheme-error-value->string-handler : TST number -> string
       (define (drscheme-error-value->string-handler x n)
@@ -76,7 +74,7 @@
           ;; using a string port here means no snips allowed,
           ;; even though this string may eventually end up
           ;; displayed in a place where snips are allowed.
-          (print port)
+          (print x port)
           
           (let* ([long-string (get-output-string port)])
             (close-output-port port)
@@ -96,9 +94,8 @@
       (define (drscheme-exception-handler exn)
         (let ([dh (error-display/debug-handler)])
           (if (exn? exn)
-              (let* ([marks (exn-continuation-marks exn)])
-                (dh (format "~a" (exn-message exn)) #f exn))
-              (dh (format "uncaught exception: ~e" exn) #f #f)))
+	      (dh (format "~a" (exn-message exn)) exn)
+              (dh (format "uncaught exception: ~e" exn) #f)))
         ((error-escape-handler))
         ((error-display-handler) "Exception handler did not escape")
         ((bottom-escape-handler)))
@@ -295,24 +292,41 @@
             [else #f])))
       
       ;; instances of this interface provide a context for a rep:text%
-      ;; its connection to its environment (eg frame) for error display and general
-      ;; status infromation is all mediated through an instance of this
-      ;; interface.
+      ;; its connection to its graphical environment (ie frame) for
+      ;; error display and status infromation is all mediated
+      ;; through an instance of this interface.
       (define context<%>
         (interface ()
           ensure-rep-shown   ;; (-> void)
-          ensure-defs-shown  ;; (-> void)
+	  ;; make the rep visible in the frame
+
           needs-execution?   ;; (-> boolean)
+	  ;; ask if things have changed that would mean the repl is out
+	  ;; of sync with the program being executed in it.
           
           enable-evaluation  ;; (-> void)
+	  ;; make the context enable all methods of evaluation
+	  ;; (disable buttons, menus, etc)
+
           disable-evaluation ;; (-> void)
+	  ;; make the context enable all methods of evaluation
+	  ;; (disable buttons, menus, etc)
           
           running            ;; (-> void)
+	  ;; a callback to indicate that the repl is evaluating code
+
           not-running        ;; (-> void)
+	  ;; a callback to indicate that the repl is not evaluating code
           
           clear-annotations  ;; (-> void)
+	  ;; clear any error highlighting context
           
-          get-directory))    ;; (-> directory-exists)
+          get-directory      ;; (-> (union #f string[existing directory]))
+	  ;; returns the directory that should be the default for
+	  ;; the `current-directory' and `current-load-relative-directory'
+	  ;; parameters in the repl.
+	  ))
+
       
       (define file-icon
         (let ([bitmap
@@ -1595,23 +1609,13 @@
 				(semaphore-post wait))))
 			   (semaphore-wait wait)))])
 
-                  (let ([errortrace-name ((current-module-name-resolver) '(lib "errortrace.ss" "errortrace") #f #f)]
-                        [orig-namespace (current-namespace)]
-			)
 		  ;; setup standard parameters
-                    (queue-user/wait
-                     (lambda () ; =User=, =No-Breaks=
+		  (queue-user/wait
+		   (lambda () ; =User=, =No-Breaks=
 		     ;; No user code has been evaluated yet, so we're in the clear...
-                       (break-enabled #f)
-                       (set! user-thread (current-thread))
-                       (initialize-parameters)
-		       (printf "1~n")
-                       (namespace-attach-module orig-namespace errortrace-name)
-		       (printf "2~n")
-                       ;(namespace-require '(lib "errortrace.ss" "errortrace"))
-                       (namespace-require errortrace-name)
-		       (printf "3~n")
-		       )))
+		     (break-enabled #f)
+		     (set! user-thread (current-thread))
+		     (initialize-parameters)))
 
 		  ;; initialize the language
 		  (send (drscheme:language:language-settings-language user-language-settings)
@@ -1737,14 +1741,15 @@
                 (error-display-handler
                  (rec drscheme-error-display-handler
                    (lambda (msg)
-                     (message-box
-                      "Uncaught Error"
-                      msg
-		      (let ([rep (current-rep-text)])
-			(and rep
-			     (let ([canvas (send rep get-active-canvas)])
-			       (and canvas
-				    (send canvas get-top-level-window)))))))))
+		     (fprintf (current-error-port) msg)
+		     '(message-box
+		       "Uncaught Error"
+		       msg
+		       (let ([rep (current-rep-text)])
+			 (and rep
+			      (let ([canvas (send rep get-active-canvas)])
+				(and canvas
+				     (send canvas get-top-level-window)))))))))
                 
                 (let ([dir (or (send context get-directory)
                                drscheme:init:first-dir)])
