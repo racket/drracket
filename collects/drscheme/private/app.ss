@@ -414,7 +414,7 @@
           (build-path (collection-path "icons")
                       (if (< (get-display-depth) 8)
                           "pltbw.gif"
-                          "PLTnolarval.png"))))
+                          "PLT-206.png"))))
       
       (define (make-release-notes-button button-panel)
         (make-object button% (string-constant release-notes) button-panel

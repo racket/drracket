@@ -18,12 +18,12 @@
   (define larval-bitmap #f)
   (define (get-larval-bitmap)
     (unless larval-bitmap
-      (set! larval-bitmap (make-object bitmap% (build-path (collection-path "icons") "PLTylarval.png"))))
+      (set! larval-bitmap (make-object bitmap% (build-path (collection-path "icons") "PLT-206-larval.png"))))
     larval-bitmap)
   (define no-larval-bitmap #f)
   (define (get-no-larval-bitmap)
     (unless no-larval-bitmap
-      (set! no-larval-bitmap  (make-object bitmap% (build-path (collection-path "icons") "PLTnolarval.png"))))
+      (set! no-larval-bitmap  (make-object bitmap% (build-path (collection-path "icons") "PLT-206.png"))))
     no-larval-bitmap)
   
   ;; reversed version of the actual string we care about
@@ -63,7 +63,7 @@
                (cond
                  [texas-independence-day?
                   "texas-plt-bw.gif"]
-                 [high-color? "PLTnolarval.png"]
+                 [high-color? "PLT-206.png"]
                  [(= (get-display-depth) 1)
                   "pltbw.gif"]
                  [else
