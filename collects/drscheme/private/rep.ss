@@ -1531,24 +1531,15 @@
                 
                 (let* ([init-thread-complete (make-semaphore 0)]
 		       [goahead (make-semaphore)]
-		       [exn #f]
-		       [exn-raised? #f]
 		       [queue-user/wait
 			(lambda (thnk)
 			  (let ([wait (make-semaphore 0)])
 			    (parameterize ([current-eventspace user-eventspace])
 			      (queue-callback
 			       (lambda ()
-				 (with-handlers ([(lambda (x) #t)
-						  (lambda (x)
-						    (set! exn-raised? #t)
-						    (set! exn x)
-						    (void))])
-				   (thnk))
+				 (thnk)
 				 (semaphore-post wait))))
-			    (semaphore-wait wait)
-			    (when exn-raised?
-			      (raise exn))))])
+			    (semaphore-wait wait)))])
 
 		  ; setup standard parameters
                   (let ([snip-classes

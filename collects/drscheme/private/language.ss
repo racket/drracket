@@ -254,8 +254,13 @@
       
       ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
       (define (initialize-module-based-language use-copy? module-spec transformer-module-spec run-in-user-thread)
+
+        ;; to be deleted
+        (dynamic-require module-spec (void)) 
+        (dynamic-require transformer-module-spec (void))
+        
         ;; must call the resolver before setting the namespace
-        (dynamic-require module-spec #f)
+	(dynamic-require module-spec #f)
         (dynamic-require transformer-module-spec #f)
         (let* ([orig-namespace (current-namespace)]
                [get-name
@@ -266,14 +271,13 @@
                [lang-name (get-name module-spec)]
                [transformer-lang-name (get-name transformer-module-spec)])
           (run-in-user-thread
-	   (let ([o (current-output-port)])
-	     (lambda ()
-	       (namespace-attach-module orig-namespace lang-name)
-               (namespace-attach-module orig-namespace transformer-lang-name)
-	       (if use-copy?
-                   (namespace-require/copy module-spec)
-                   (namespace-require module-spec))
-               (namespace-transformer-require transformer-module-spec))))))
+	   (lambda ()
+	     (namespace-attach-module orig-namespace lang-name)
+	     (namespace-attach-module orig-namespace transformer-lang-name)
+	     (if use-copy?
+		 (namespace-require/copy module-spec)
+		 (namespace-require module-spec))
+	     (namespace-transformer-require transformer-module-spec)))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
       (define (module-based-language-front-end input)
