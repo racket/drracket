@@ -68,7 +68,15 @@
 	(pop-status)
 	(let* ([upath (url-path url)]
 	       [bitmap (make-object bitmap% tmp-filename)])
-	  (delete-file tmp-filename)
+	  (with-handlers ([(lambda (x) #t)
+			   (lambda (x)
+			     (message-box "Warning"
+					  (format "Could not delete file ~s~n~n~a"
+						  tmp-filename
+						  (if (exn? x)
+						      (exn-message x)
+						      x))))])
+	    (delete-file tmp-filename))
 	  (if (send bitmap ok?)
 	      (let ([is (make-object image-snip% #f)])
 		(send is set-bitmap bitmap)
