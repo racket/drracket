@@ -15,23 +15,44 @@
 	  [drscheme:graph : drscheme:graph^])
   
   (define (create-launcher frame)
-    (when (eq? (mred:message-box "Create Launcher"
-                                 "This will create a separately launchable application to run the program in the definitions window. The current language settings and teachpacks will be hardwired into the launcher. Continue?"
-                                 frame
-                                 '(yes-no))
-               'yes)
-      (let ([filename (mred:put-file "Save a Launcher" frame)])
-        (when filename
-          (let* ([settings (fw:preferences:get 'drscheme:settings)]
-                 [v-settings (struct->vector settings)]
-                 [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
-                 [definitions (list "-e" (format "(define settings ~s)" v-settings)
-                                    "-e" (format "(define teachpacks ~s)" teachpacks))])
-            (if (regexp-match "MzScheme" (basis:setting-name settings))
-                (launcher:make-mzscheme-launcher (append definitions '("-L" "mz-launcher.ss" "userspce"))
-                                                 filename)
-                (launcher:make-mred-launcher '(append definitions "-L" "mr-launcher.ss" "userspce")
-                                             filename)))))))
+    (let ([program-filename (send (ivar frame definitions-text) get-filename)])
+      (cond
+        [(not program-filename)
+         (mred:message-box "Create Launcher" "You must save your program before creating a launcher")]
+        [else
+         (when (eq? (mred:message-box 
+                     "Create Launcher"
+                     (format
+                      "This will create a separately launchable application to ~
+                      run the program in the definitions window. The current language ~
+                      settings and teachpacks will be hardwired into the launcher. Continue?")
+                     frame
+                     '(yes-no))
+                    'yes)
+           (let* ([settings (fw:preferences:get 'drscheme:settings)]
+                  [v-settings (struct->vector settings)]
+                  [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
+                  [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))])
+             (when (if (and in-mz?
+                            (not (null? teachpacks)))
+                       (eq? 'yes
+                            (mred:message-box 
+                             "Create Launcher"
+                             (format
+                              "Although MzScheme is the current language, you have a teachpack selected,~
+                              so this will create a MrEd launcher. Continue?")
+                             '(yes-no)))
+                       #t)
+               (let ([filename (mred:put-file "Save a Launcher" frame)])
+                 (when filename
+                   (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
+                                            "-e" (format "(define settings ~s)" v-settings)
+                                            "-e" (format "(define teachpacks ~s)" teachpacks))])
+                     (if (and in-mz? (null? teachpacks))
+                         (launcher:make-mzscheme-launcher (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
+                                                          filename)
+                         (launcher:make-mred-launcher (append '("-mV") definitions '("-L" "mr-launcher.ss" "userspce"))
+                                                      filename))))))))])))
   
   (define make-bitmap 
     (case-lambda 
@@ -984,7 +1005,7 @@
 	     #\k)
 	    "Kill the current evaluation")
 	  (make-object mred:separator-menu-item% scheme-menu)
-          (make-object mred:menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher)))
+          (make-object mred:menu-item% "Create Launcher..." scheme-menu (lambda x (create-launcher this)))
 	  (make-object mred:separator-menu-item% scheme-menu)
 	  (make-object mred:menu-item%
 	    "&Reindent"
