@@ -235,8 +235,8 @@
 	      [super-do-close do-close]
 	      [help-menu:super-insert-items help-menu:insert-items])
       (public
-	[definitions-id #f]
-	[interactions-id #f]
+	[definitions-item #f]
+	[interactions-item #f]
 	;[imports-id #f]
 	
 	[name-message #f]
@@ -517,42 +517,52 @@
 	(super-init unit)
 
 	(let ([mb (get-menu-bar)]
-	      [language-menu (make-menu)])
+	      [language-menu (make-object (get-menu%) "&Language" mb)]
 
-	     (set! scheme-menu (make-menu))
-
-	     (send* mb
-	       (append scheme-menu "S&cheme")
-	       (append language-menu "&Language"))
+	     (set! scheme-menu (make-object (get-menu%) "S&cheme" mb))
 	     
 	     (drscheme:language:fill-language-menu language-menu)
 	     
 	     (set! execute-menu-item
-		   (send scheme-menu
-			 append-item "Execute"
-			 (lambda ()
-			   (execute-callback))
-			 "Restart the program in the definitions window" #f "t"))
+		   (make-object (get-menu-item%)
+		     scheme-menu
+		     "Execute"
+		     (lambda (_1 _2) (execute-callback))
+		     "Restart the program in the definitions window" #f "t"))
 	     (send* scheme-menu
-	       (append-item "Break"
-			    (lambda ()
-			      (send interactions-edit break))
-			    "Break the current evaluation" #f "b")
-	       (append-separator)
-	       (append-item "&Indent" 
-			    (lambda () 
+
+		    label parent callback shortcut help
+
+
+		    (make-object (get-menu-item%)
+		      "Break"
+		      scheme-menu
+		      (lambda (_1 _2)
+			(send interactions-edit break))
+		      "b" "Break the current evaluation")
+	       (make-object separator-menu-item% scheme-menu)
+	       (make-object (get-menu-item%)
+		 "&Indent"
+		 scheme-menu
+			    (lambda (_1 _2) 
 			      (send (ivar (active-edit) mode) 
 				    tabify-selection (active-edit))))
-	       (append-item "Indent &All"
-			    (lambda ()
+	       (make-object (get-menu-item%)
+		 "Indent &All"
+		 scheme-menu
+			    (lambda (_1 _2)
 			      (send (ivar (active-edit) mode) tabify-all (active-edit)))
-			    "" #f "i")
-	       (append-item "&Comment Out"
-			    (lambda ()
+			    "i")
+	       (make-object (get-menu-item%)
+		 "&Comment Out"
+		 scheme-menu
+			    (lambda (_1 _2)
 			      (send (ivar (active-edit) mode) 
 				    comment-out-selection (active-edit))))
-	       (append-item "&Uncomment"
-			    (lambda ()
+	       (make-object (get-menu-item%)
+		 "&Uncomment"
+		 scheme-menu
+			    (lambda (_1 _2)
 			      (send (ivar (active-edit) mode)
 				    uncomment-selection (active-edit)))))
 	     
@@ -581,7 +591,7 @@
 			 "Show the interactions window"
 			 #f
 			 "e"))
-	     mb))]
+	     mb))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% panel)])
