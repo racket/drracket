@@ -5,11 +5,14 @@
            "my-macros.ss")
   
   (provide
+   skipto-mark?
+   skipto-mark
+   strip-skiptos
    mark-list?
    cheap-mark?
    make-cheap-mark
    cheap-mark-source
-   make-full-mark ; : (syntax[location] symbol[label] (listof identifier)[bindings] -> syntax[mark])
+   make-full-mark ; : make-full-mark-contract
    stx-protector-stx ; : (protector -> identifier) FOR TESTING ONLY
    mark-source
    mark-bindings
@@ -23,24 +26,25 @@
    debug-key
    extract-mark-list)
 
-  (define (identifier-list? idl)
-    (and (list? idl) (andmap identifier? idl)))
+  (define identifier-list? (listof identifier?))
 
-  (make-contract-checker SYNTAX-OBJECT
-                         syntax?)
+  (define-struct skipto-mark-struct ())
+  (define skipto-mark? skipto-mark-struct?)
+  (define skipto-mark (make-skipto-mark-struct))
+  (define (strip-skiptos mark-list)
+    (filter (lx (not (skipto-mark? _))) mark-list))
   
-  (define (mark-list? ml)
-    (andmap procedure? ml))
+  (define mark? procedure?)
+  (define mark-list? (listof mark?))
 
-  (make-contract-checker MARK-LIST
-                         mark-list?)
+  (define make-full-mark-contract (-> syntax? symbol? identifier-list? syntax?)) ; (location label bindings -> mark-stx)
   
   ; debug-key: this key will be used as a key for the continuation marks.
   (define-struct debug-key-struct ())
   (define debug-key (make-debug-key-struct))
   
   (define (extract-mark-list mark-set)
-    (continuation-mark-set->list mark-set debug-key))
+    (strip-skiptos (continuation-mark-set->list mark-set debug-key)))
   
   ; get-label-num : symbol -> num
   ;  returns a number n. get-label-num is a one-to-one mapping from
@@ -77,7 +81,7 @@
   ; see module top for type
   (define make-full-mark
     (contract
-     (-> syntax? symbol? identifier-list? syntax?) 
+     make-full-mark-contract 
      (lambda (location label bindings)
        (datum->syntax-object #'here `(lambda () (,make-full-mark-varargs 
                                                  (quote-syntax ,location) 
@@ -151,14 +155,18 @@
           matches)))
   
   (define lookup-binding
-    (checked-lambda ((mark-list MARK-LIST) (binding SYNTAX-OBJECT))
-                    (if (null? mark-list)
-                        (error 'lookup-binding "variable not found in environment: ~a~n" (syntax-e binding))
-                        (let ([matches (binding-matches (car mark-list) binding)])
-                          (cond [(null? matches)
-                                 (lookup-binding (cdr mark-list) binding)]
-                                [else
-                                 (car matches)])))))
+    (contract 
+     (-> mark-list? syntax? any)
+     (lambda (mark-list binding)
+       (if (null? mark-list)
+           (error 'lookup-binding "variable not found in environment: ~a~n" (syntax-e binding))
+           (let ([matches (binding-matches (car mark-list) binding)])
+             (cond [(null? matches)
+                    (lookup-binding (cdr mark-list) binding)]
+                   [else
+                    (car matches)]))))
+     'marks.ss
+     'caller))
   
   (define (lookup-binding-list mark-list binding)
     (apply append (map (lambda (x) (binding-matches x binding)) mark-list))))
