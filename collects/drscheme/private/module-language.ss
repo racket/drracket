@@ -199,10 +199,9 @@
             (stretchable-height #f)
             (stretchable-width #f)))
         (define simple-case-lambda (drscheme:language:simple-module-based-language-config-panel new-parent))
-        (define cp-message (make-object message% (string-constant ml-cp-collection-paths) new-parent))
-        (define cp-panel (instantiate vertical-panel% ()
+        (define cp-panel (instantiate group-box-panel% ()
                            (parent new-parent)
-                           (style '(border))))
+                           (label (string-constant ml-cp-collection-paths))))
         
         ;; data associated with each item in listbox : boolean
         ;; indicates if the entry is the default paths.

@@ -589,12 +589,14 @@
           (define (update-show/hide-details)
             (send details-button set-label 
                   (if details-shown? hide-details-label show-details-label))
+            (send parent begin-container-sequence)
             (send revert-to-defaults-outer-panel change-children
                   (lambda (l)
                     (if details-shown? (list revert-to-defaults-button) null)))
             (send details-outer-panel change-children
                   (lambda (l)
-                    (if details-shown? (list details-panel) null))))
+                    (if details-shown? (list details-panel) null)))
+            (send parent end-container-sequence))
 
           ;; revert-to-defaults-callback : -> void
           (define (revert-to-defaults-callback)

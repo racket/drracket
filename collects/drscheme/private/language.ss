@@ -207,22 +207,19 @@
                            (parent _parent)
                            (alignment '(center center)))]
                  
-                 [input-msg (make-object message% (string-constant input-syntax) parent)]
-                 [input-panel (instantiate vertical-panel% ()
+                 [input-panel (instantiate group-box-panel% ()
+                                (label (string-constant input-syntax))
                                 (parent parent)
-                                (style '(border))
                                 (alignment '(left center)))]
                  
-                 [dynamic-msg (make-object message% (string-constant dynamic-properties) parent)]
-                 [dynamic-panel (instantiate vertical-panel% ()
+                 [dynamic-panel (instantiate group-box-panel% ()
+                                  (label (string-constant dynamic-properties))
                                   (parent parent)
-                                  (style '(border))
                                   (alignment '(left center)))]
                  
-                 [output-msg (make-object message% (string-constant output-syntax) parent)]
-                 [output-panel (instantiate vertical-panel% ()
+                 [output-panel (instantiate group-box-panel% ()
+                                 (label (string-constant output-syntax))
                                  (parent parent)
-                                 (style '(border))
                                  (alignment '(left center)))]
                  
                  [case-sensitive (make-object check-box%
