@@ -13,6 +13,52 @@
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:graph : drscheme:graph^])
 
+  (define (get-fraction-from-user)
+    (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
+	   [hp (make-object mred:horizontal-panel% dlg)]
+	   [_1 (make-object mred:message% "Whole Part" hp)]
+	   [whole (make-object mred:text-field% #f hp void)]
+	   [vp (make-object mred:vertical-panel% hp)]
+	   [hp2 (make-object mred:horizontal-panel% vp)]
+	   [num (make-object mred:text-field% #f hp2 void)]
+	   [num-m (make-object mred:message% "Numerator" hp2)]
+	   [hp3 (make-object mred:horizontal-panel% vp)]
+	   [den (make-object mred:text-field% #f hp3 void)]
+	   [den-m (make-object mred:message% "Denominator" hp3)]
+	   [bp (make-object mred:horizontal-panel% dlg)]
+	   [ok? #f]
+	   [validate-number
+	    (lambda ()
+	      (let ([num-s (string->number (send num get-value))]
+		    [den-s (string->number (send den get-value))]
+		    [whole-s (string->number (send whole get-value))])
+		(if (and num-s den-s whole-s)
+		    (let ([ans (+ whole-s (/ num-s den-s))])
+		      (if (and (exact? ans)
+			       (real? ans)
+			       (not (integer? ans)))
+			  ans
+			  #f))
+		    #f)))]
+	   [ok (make-object mred:button% "OK" bp 
+			    (lambda x
+			      (cond
+			       [(validate-number)
+				(set! ok? #t)
+				(send dlg show #f)]
+			       [else 
+				(mred:message-box
+				 "DrScheme"
+				 "Invalid number: must be an exact, real, non-integral number.")]))
+			    '(border))]
+	   [cancel (make-object mred:button% "Cancel" bp (lambda x (send dlg show #f)))])
+      (let ([mw (max (send den-m get-width) (send num-m get-width))])
+	(send den-m min-width mw)
+	(send num-m min-width mw))
+      (send bp set-alignment 'right 'center)
+      (send dlg show #t)
+      (and ok? (validate-number))))
+
   (define (basename fn)
     (if fn
 	(let* ([file-name (mzlib:file:file-name-from-path fn)]
@@ -753,6 +799,32 @@
 			   #t
 			   (fw:preferences:get 'framework:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
+
+      (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
+      (override
+       [add-edit-menu-snip-items
+	(lambda (edit-menu)
+	  (super-add-edit-menu-snip-items edit-menu)
+	  (let ([c% (class (get-menu-item%) args
+		      (inherit enable)
+		      (rename [super-on-demand on-demand])
+		      (override
+		       [on-demand
+			(lambda ()
+			  (let ([edit (get-edit-target-object)])
+			    (enable (and edit (is-a? edit editor<%>)))))])
+		      (sequence (apply super-init args)))])
+	    (make-object c% "Insert Fraction" edit-menu
+			 (lambda (menu evt)
+			   (let ([edit (get-edit-target-object)])
+			     (when (and edit
+					(is-a? edit editor<%>))
+			       (let ([number (get-fraction-from-user)])
+				 (when number
+				   (send edit insert
+					 (make-object drscheme:snip:whole/part-number-snip%
+					   number)))))
+			     #t)))))])
       (private
 	[item->child
 	 (lambda (item)
