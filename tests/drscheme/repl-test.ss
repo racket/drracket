@@ -1,6 +1,6 @@
 ;;; repl-test.ss
 
-(require-library "function.ss")
+(require-library/proc "function.ss")
 
 (load "drscheme-test-util.ss")
 
