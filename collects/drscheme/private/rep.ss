@@ -1600,10 +1600,16 @@
                     (cons (send (get-the-snip-class-list) nth (- n 1))
                           (loop (- n 1))))))
 
+	    (inherit get-top-level-window)
             (define init-evaluation-thread ; =Kernel=
               (lambda ()
                 (set! user-language-settings
-		      (preferences:get drscheme:language-configuration:settings-preferences-symbol))
+		      (let ([default (preferences:get drscheme:language-configuration:settings-preferences-symbol)]
+			    [f (get-top-level-window)])
+			(if f
+			    (let ([defs (send f get-definitions-text)])
+			      (send defs get-next-settings))
+			    default)))
                 (set! user-custodian (make-custodian))
                 (set! user-eventspace (parameterize ([current-custodian user-custodian])
                                         (make-eventspace)))
