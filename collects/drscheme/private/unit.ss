@@ -1236,7 +1236,6 @@ tab panels new behavior:
           [define/override get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas))]
           
           (define/public (update-running running?)
-            ;(printf "update-running ~s\n" running?)
             (send running-message set-label 
                   (if running?
                       (string-constant running)
