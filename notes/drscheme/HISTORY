@@ -1,3 +1,17 @@
+101d9
+
+ - PRS: 1183
+ 
+ FUNCTIONALITY CHANGES
+   
+ - Bug reports can now be submitted using Help Desk. Please use this
+   in favor of the emacs or web-based submission, if possible.
+   [Steck's PR was premature; none of those problems exist]
+
+ MINOR CHANGES AND BUG FIXES
+   
+; ------------------------------------------------------------
+
 101d8
 
  - PRS: 1115, 1173, 1168, 1169
