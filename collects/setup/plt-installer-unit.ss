@@ -5,7 +5,7 @@
            (lib "class.ss")
            (lib "etc.ss")
            "plt-installer-sig.ss"
-	   (prefix single: "plt-single-installer.ss")
+           (prefix single: "plt-single-installer.ss")
            (lib "string-constant.ss" "string-constants"))
   
   (provide plt-installer@)
@@ -28,8 +28,8 @@
               [inst-eventspace (make-eventspace)])
           (parameterize ([current-eventspace inst-eventspace])
             (letrec ([dlg (make-object (class dialog% ()
-                                         (define/override can-close? (lambda () (send done is-enabled?)))
-                                         (define/override on-close (lambda () (done-callback)))
+                                         (define/augment can-close? (lambda () (send done is-enabled?)))
+                                         (define/augment on-close (lambda () (done-callback)))
                                          (super-make-object
                                           (string-constant plt-installer-progress-window-title)
                                           #f 600 300 #f #f '(resize-border))))]
@@ -115,16 +115,17 @@
         (opt-lambda (file [cleanup-thunk void])
           (with-installer-window 
            (lambda (frame)
-             (run-single-installer file
-				   (lambda ()
-				     (sleep 0.2) ; kludge to allow f to appear first
-				     (end-busy-cursor)
-				     ;; do these strings ever appear? (should move to string-constants, if so)
-				     (let ([d (get-directory 
-					       "Select the destination for unpacking"
-					       frame)])
-				       (unless d
-					 (printf ">>> Cancelled <<<~n"))
-				       (begin-busy-cursor)
-				       d))))
+             (run-single-installer 
+              file
+              (lambda ()
+                (sleep 0.2) ; kludge to allow f to appear first
+                (end-busy-cursor)
+                ;; do these strings ever appear? (should move to string-constants, if so)
+                (let ([d (get-directory 
+                          "Select the destination for unpacking"
+                          frame)])
+                  (unless d
+                    (printf ">>> Cancelled <<<~n"))
+                  (begin-busy-cursor)
+                  d))))
            cleanup-thunk))))))

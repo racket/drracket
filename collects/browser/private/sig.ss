@@ -38,6 +38,7 @@
      hyper-canvas-mixin
      hyper-canvas%
      
+     hyper-panel<%>
      hyper-panel-mixin
      hyper-panel%
      

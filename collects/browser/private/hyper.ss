@@ -46,18 +46,6 @@ A test case:
   
   (provide hyper@)
   
-  (define cs-break "Break")
-  
-  (define error-evalling-scheme-format
-    (string-append
-     "<html><head><title>Error Evaluating Scheme</title></head>"
-     "<body>"
-     "<h2>Error Evaluating Scheme Code</h2>"
-     "<pre>\n~a\n</pre>"
-     "<p><p>"
-     "<font color=\"red\">~a</font>"
-     "</body></html>"))
-  
   (define hyper@
     (unit/sig hyper^
       (import html^
@@ -228,18 +216,9 @@ A test case:
                    (dynamic-wind
                     begin-busy-cursor
                     (lambda () 
-                      (with-handlers ([exn:fail?
-                                       (lambda (exn)
-                                         (format
-                                          error-evalling-scheme-format
-                                          s
-                                          (if (exn? exn)
-                                              (exn-message exn)
-                                              (format "~s" exn))))])
-                        (printf "evalling ~s\n" s)
+                      (with-handlers ([exn:fail? (build-html-error-message s)])
                         (eval-string s)))
                     end-busy-cursor)])
-              (printf "v ~s\n" v)
               (when (string? v)
                 (send (get-canvas) goto-url
                       (open-input-string v)
@@ -367,19 +346,20 @@ A test case:
                                                "Package Cancelled"
                                                (current-continuation-marks))))
                                      i?))]
-                             [f (if install?
-                                    (make-temporary-file "tmp~a.plt")
-                                    (put-file 
-                                     (if size
-                                         (format 
-                                          (string-constant save-downloaded-file/size)
-                                          size)
-                                         (string-constant save-downloaded-file))
-                                     #f ; should be calling window!
-                                     #f
-                                     orig-name))])
+                             [tmp-plt-filename
+                              (if install?
+                                  (make-temporary-file "tmp~a.plt")
+                                  (put-file 
+                                   (if size
+                                       (format 
+                                        (string-constant save-downloaded-file/size)
+                                        size)
+                                       (string-constant save-downloaded-file))
+                                   #f ; should be calling window!
+                                   #f
+                                   orig-name))])
                         (begin-busy-cursor) ; turn the cursor back on
-                        (when f
+                        (when tmp-plt-filename
                           (let* ([d (make-object dialog% (string-constant downloading) top-level-window)]
                                  [message (make-object message% 
                                             (string-constant downloading-file...)
@@ -402,24 +382,24 @@ A test case:
                                                           (when (not (exn:break? x))
                                                             (set! exn x)))])
                                          (semaphore-post wait-to-break)
-                                         (with-output-to-file f
+                                         (with-output-to-file tmp-plt-filename
                                            (lambda ()
                                              (let loop ([total 0])
                                                (when gauge
                                                  (send gauge set-value 
                                                        (inexact->exact
                                                         (floor (* 100 (/ total size))))))
-                                               (let ([s (read-string 1024 p)])
-                                                 (unless (eof-object? s)
-                                                   (display s)
-                                                   (loop (+ total (string-length s)))))))
+                                               (let ([bts (read-bytes 1024 p)])
+                                                 (unless (eof-object? bts)
+                                                   (write-bytes bts)
+                                                   (loop (+ total (bytes-length bts)))))))
                                            'binary 'truncate))
                                        (send d show #f)))])
                             (send d center)
                             (make-object button% (string-constant &stop)
                               d (lambda (b e)
                                   (semaphore-wait wait-to-break)
-                                  (set! f #f)
+                                  (set! tmp-plt-filename #f)
                                   (send d show #f)
                                   (break-thread t)))
                             ; Let thread run only after the dialog is shown
@@ -427,19 +407,19 @@ A test case:
                             (send d show #t)
                             (when exn (raise exn)))
                           (let ([sema (make-semaphore 0)])
-                            (when (and f install?)
-                              (run-installer f
+                            (when (and tmp-plt-filename install?)
+                              (run-installer tmp-plt-filename
                                              (lambda ()
                                                (semaphore-post sema)))
                               (yield sema))))
                         (raise
-                         (if f
+                         (if tmp-plt-filename
                              (make-exn:file-saved-instead
                               (if install?
                                   (string-constant package-was-installed)
                                   (string-constant download-was-saved))
                               (current-continuation-marks)
-                              f)
+                              tmp-plt-filename)
                              (make-exn:cancelled "The download was cancelled."
                                                  (current-continuation-marks)))))]
                      [(or (and (url? url)
@@ -536,7 +516,19 @@ A test case:
           (with-handlers ([exn:break? void])
             ;(printf "url: ~a\n" (if (url? url) (url->string url) url)) ;; handy for debugging help desk
             (reload progress))))
-
+      
+      ;; build-html-error-message : exn -> string[html]
+      (define ((build-html-error-message str) exn)
+        (string-append
+         "<html><head><title>Error Evaluating Scheme</title></head>"
+         "<body>"
+         "<h2>Error Evaluating Scheme Code</h2>"
+         (format "<pre>\n~a\n</pre>" str)
+         "<p><p>"
+         (format "<font color=\"red\">~a</font>" 
+                 (regexp-replace* #rx"<" (regexp-replace* #rx">" (exn-message exn) "&lt;") "&gt;"))
+         "</body></html>"))
+        
       (define hyper-text% (hyper-text-mixin text:keymap%))
 
       (define hyper-keymap (make-object keymap%))
@@ -632,12 +624,7 @@ A test case:
           (inherit get-editor set-editor refresh get-parent get-top-level-window)
           
           (define/public (get-editor%) hyper-text%)
-          (define/public (make-editor url progress post-data)
-            (new (get-editor%) 
-                 [url url]
-                 [top-level-window (get-top-level-window)]
-                 [progress progress]
-                 [post-data post-data]))
+          
           (define/public (current-page)
             (let ([e (get-editor)])
               (and e 
@@ -649,69 +636,54 @@ A test case:
             (send (get-parent) on-url-click k url post-data))
           (define/public goto-url
             (opt-lambda (in-url relative [progress void] [post-data #f])
-              (let* ([pre-url (cond
-                                [(url? in-url) in-url]
-                                [(port? in-url) in-url]
-                                [(string? in-url)
-                                 (if relative
-                                     (combine-url/relative relative in-url)
-                                     (string->url in-url))]
-                                [else (error 'goto-url "unknown url ~e\n" in-url)])])
-                (let-values ([(e url)
-                              (let ([e-now (get-editor)])
-                                (if (and e-now
-                                         (not post-data)
-                                         (same-page-url? pre-url (send e-now get-url)))
-                                    (begin
-                                      (progress #t)
-                                      (values e-now pre-url))
-                                    (make-editor/follow-redirections pre-url progress post-data)))])
-                  (when e
-                    (let* ([tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
-                      
-                      (unless (and tag-pos (positive? tag-pos))
-                        (send e hide-caret #t))
-                      (set-page (list e (or tag-pos 0) (send e last-position)) #t)
-                      (send (get-parent) update-url-display
-                            (format "~s"
-                                    (if (url? url)
-                                        (list (url->string url) (url-fragment url))
-                                        url)))
-                      (when tag-pos (send e set-position tag-pos))))))))
+              (let ([tlw (get-top-level-window)])
+                (when (and tlw
+                           (is-a? tlw hyper-frame<%>))
+                  (let ([pre-url (cond
+                                   [(url? in-url) in-url]
+                                   [(port? in-url) in-url]
+                                   [(string? in-url)
+                                    (if relative
+                                        (combine-url/relative relative in-url)
+                                        (string->url in-url))]
+                                   [else (error 'goto-url "unknown url ~e\n" in-url)])]
+                        [killable-cust (make-custodian)]
+                        [hyper-panel (send tlw get-hyper-panel)])
+                    (let-values ([(e url)
+                                  (let ([e-now (get-editor)])
+                                    (cond
+                                      [(and e-now
+                                            (not post-data)
+                                            (same-page-url? pre-url (send e-now get-url)))
+                                       (progress #t)
+                                       (values e-now pre-url)]
+                                      [else
+                                       (send hyper-panel set-stop-callback 
+                                             (lambda (x) (custodian-shutdown-all killable-cust)))
+                                       (send hyper-panel enable-browsing #f)
+                                       (begin0
+                                         (make-editor/setup-kill killable-cust 
+                                                                 (get-editor%)
+                                                                 tlw
+                                                                 pre-url
+                                                                 progress
+                                                                 post-data
+                                                                 (lambda (x) (remap-url x)))
+                                         (send hyper-panel set-stop-callback void)
+                                         (send hyper-panel enable-browsing #t))]))])
+                      (when e
+                        (let* ([tag-pos (send e find-tag (and (url? url) (url-fragment url)))])
+                          
+                          (unless (and tag-pos (positive? tag-pos))
+                            (send e hide-caret #t))
+                          (set-page (list e (or tag-pos 0) (send e last-position)) #t)
+                          (when tag-pos (send e set-position tag-pos))))))))))
           
           ;; remap-url : url? -> (union #f url?)
           ;; this method is intended to be overridden so that derived classes can change
-          ;; the behavior of the browser.
+          ;; the behavior of the browser. Calls to this method may be killed.
           (define/public (remap-url url)
             url)
-          
-          ;; make-editor/follow-redirections : url (boolean??? -> void) ??? -> (values (union #f editor) (union #f url))
-          ;; builds an html editor using make-editor and follows any redictions,
-          ;; but stops after 10 redirections (just in case there are too many
-          ;; of these things, give the user a chance to stop)
-          (define/private (make-editor/follow-redirections init-url progress post-data)
-            (let loop ([n 10]
-                       [unmapped-url init-url])
-              (let ([url (if (url? unmapped-url)
-                             (let ([rurl (remap-url unmapped-url)])
-                               (unless (or (url? rurl)
-                                           (not rurl))
-                                 (error 'remap-url
-                                        "expected a url struct, a string, an input-port, or #f, got ~e"
-                                        rurl))
-                               rurl)
-                             unmapped-url)])
-                (if url
-                    (let ([html-editor (make-editor url progress post-data)])
-                      (cond
-                        [(zero? n) 
-                         (values html-editor url)]
-                        [(send html-editor get-redirection)
-                         =>
-                         (lambda (new-url) (loop (- n 1) new-url))]
-                        [else
-                         (values html-editor url)]))
-                    (values #f #f)))))
           
           (define/public (after-set-page) (void))
           (define/public (set-page page notify?)
@@ -736,6 +708,72 @@ A test case:
               (when (or (positive? spos) (not current) (positive? (cadr current)))
                 (refresh))))
           (super-new)))
+      
+      ;; make-editor/setup-kill : custodian editor-class frame%-instance 
+      ;;                          url (boolean??? -> void) ??? (url -> (union port #f url))
+      ;;                       -> (values (union #f editor) (union #f url))
+      ;; if cust is shutdown, the url will stop being loaded and a dummy editor is returned.
+      (define (make-editor/setup-kill cust html-editor% tlw init-url progress post-data remap-url)
+        (let* ([c (make-channel)]
+               [t (parameterize ([current-custodian cust])
+                    (thread
+                     (lambda ()
+                       (channel-put
+                        c
+                        (make-editor/follow-redirections html-editor%
+                                                         tlw
+                                                         init-url
+                                                         progress
+                                                         post-data
+                                                         remap-url)))))]
+               [ans #f])
+          (yield
+           (choice-evt
+            (handle-evt c (lambda (x) (set! ans x)))
+            (handle-evt (thread-dead-evt t)
+                        (lambda (_)
+                          (let ([t (new hyper-text% 
+                                        (url #f)
+                                        (top-level-window tlw)
+                                        (progress void))])
+                            (send t insert "Stopped.")
+                            (set! ans (cons t #f)))))))
+          (values (car ans) (cdr ans))))
+      
+      ;; make-editor/follow-redirections : editor-class frame%-instance
+      ;;                                   url (boolean??? -> void) ??? (url -> (union port #f url))
+      ;;                                -> (cons (union #f editor) (union #f url))
+      ;; builds an html editor using make-editor and follows any redictions,
+      ;; but stops after 10 redirections (just in case there are too many
+      ;; of these things, give the user a chance to stop)
+      (define (make-editor/follow-redirections html-editor% tlw init-url progress post-data remap-url)
+        (let loop ([n 10]
+                   [unmapped-url init-url])
+          (let ([url (if (url? unmapped-url)
+                         (let ([rurl (remap-url unmapped-url)])
+                           (unless (or (url? rurl)
+                                       (input-port? rurl)
+                                       (not rurl))
+                             (error 'remap-url
+                                    "expected a url struct, an input-port, or #f, got ~e"
+                                    rurl))
+                           rurl)
+                         unmapped-url)])
+            (if url
+                (let ([html-editor (new html-editor%
+                                        [url url]
+                                        [top-level-window tlw]
+                                        [progress progress]
+                                        [post-data post-data])])
+                  (cond
+                    [(zero? n) 
+                     (cons html-editor url)]
+                    [(send html-editor get-redirection)
+                     =>
+                     (lambda (new-url) (loop (- n 1) new-url))]
+                    [else
+                     (cons html-editor url)]))
+                (cons #f #f)))))
       
       (define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
       
@@ -776,67 +814,81 @@ A test case:
             (let-values ([(w h d a) (send dc get-text-extent "X" font)])
               (min-client-height (+ 4 (inexact->exact (ceiling h))))))))
       
+      (define hyper-panel<%>
+        (interface ()
+          current-page
+          rewind
+          forward
+          can-rewind?
+          can-forward?
+          get-canvas%
+          make-canvas
+          make-control-bar-panel
+          
+          set-init-page
+          goto-init-page
+          
+          on-navigate
+          filter-notes
+          get-canvas
+          on-url-click 
+          reload
+          leaving-page
+          get-stop-button
+          set-stop-callback
+          
+          enable-browsing))
+      
       (define hyper-panel-mixin
-        (mixin (area-container<%>) ()
+        (mixin (area-container<%>) (hyper-panel<%>)
           (init info-line?)
           (inherit reflow-container)
-          (super-instantiate ())
+          (super-new)
           
-          (field
-           [url-message ;; doesn't work for forwards and backwards in the history
-            (and #f
-                 (directory-exists? (build-path (collection-path "mzlib")
-                                                "CVS"))
-                 (make-object message% "" this))])
-          (when url-message
-            (send url-message stretchable-width #t))
-          [define/public update-url-display
-            (lambda (str)
-              (when url-message
-                (send url-message set-label str)))]
+          (define browsing-on? #t)
+          (define/public (enable-browsing on?)
+            (set! browsing-on? on?)
+            #;(cond
+                [on?
+                 (send stop-button enable #f)
+                 '...?]
+                [else 
+                 (send stop-button enable #t)
+                 (send home enable #f)
+                 (send forw enable #f)
+                 (send back enable #f)
+                 (send choice enable #f)]))
           
+          (define/private (clear-info)
+            (when info 
+              (send info erase-info)))
+          (define/private (update-info page)
+            (when (and info page)
+              (let ([notes (send (page->editor page) get-document-notes)])
+                (send info set-info
+                      (filter-notes notes (send (page->editor page) get-url))))))
+          (define/private (go page)
+            (clear-info)
+            (send c set-page page #f)
+            (update-info page)
+            (update-buttons/set-page page)
+            (on-navigate))
           
-          [define/private clear-info
-            (lambda () 
-              (when info 
-                (send info erase-info)))]
-          [define/private update-info
-            (lambda (page) 
-              (when (and info page)
-                (let ([notes (send (page->editor page) get-document-notes)])
-                  (send info set-info
-                        (filter-notes notes (send (page->editor page) get-url))))))]
-          [define/private go
-            (lambda (page)
-              (clear-info)
-              (send c set-page page #f)
-              (update-info page)
-              (update-buttons page)
-              (on-navigate))]
-          
-          [define/public current-page
-            (lambda ()
-              (send c current-page))]
-          [define/public rewind 
-            (lambda ()
-              (unless (null? past)
-                (let ([page (car past)])
-                  (set! future (cons (send c current-page) future))
-                  (set! past (cdr past))
-                  (go page))))]
-          [define/public forward
-            (lambda ()
-              (unless (null? future)
-                (let ([page (car future)])
-                  (set! past (cons (send c current-page) past))
-                  (set! future (cdr future))
-                  (go page))))]
-          [define/public can-forward?
-            (lambda ()
-              (not (null? future)))]
-          [define/public can-rewind?
-            (lambda ()
-              (not (null? past)))]
+          (define/public (current-page) (send c current-page))
+          (define/public (rewind)
+            (unless (null? past)
+              (let ([page (car past)])
+                (set! future (cons (send c current-page) future))
+                (set! past (cdr past))
+                (go page))))
+          (define/public (forward)
+            (unless (null? future)
+              (let ([page (car future)])
+                (set! past (cons (send c current-page) past))
+                (set! future (cdr future))
+                (go page))))
+          (define/public (can-forward?) (and browsing-on? (not (null? future))))
+          (define/public (can-rewind?) (and browsing-on? (not (null? past))))
           [define/public get-canvas% (lambda () hyper-canvas%)]
           [define/public make-canvas (lambda (f) (make-object (get-canvas%) f))]
           [define/public make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))]
@@ -850,8 +902,7 @@ A test case:
            ;;         url                           -- delayed init page
            ;;         (list editor number numer))   -- forced init page
            [init-page #f]
-           
-           
+
            [hp (make-control-bar-panel this)]
            [control-bar? (is-a? hp area-container<%>)]
            [back (and control-bar?
@@ -867,51 +918,47 @@ A test case:
                         (lambda (b ev) 
                           (forward))))])
           
-          ;(field (home-page #f))
-          ;(define/public (set-home-page url)
-          ;  (set! init-page url))
-          
-          [define/private home-callback
-            (lambda () 
-              (cond
-                [(or (url? init-page)
-                     (string? init-page))
-                 
-                 ; handle stopping when loading the home page
-                 (with-handlers ([exn:break? 
-                                  (lambda (x) (void))])
-                   (send c goto-url init-page #f)
-                   (set! init-page (send c current-page))
-                   (update-buttons init-page))]
-                [else 
-                 (send c set-page init-page #t)]))]
+          (define/private (home-callback)
+            (cond
+              [(or (url? init-page)
+                   (string? init-page))
+               
+               ; handle stopping when loading the home page
+               (with-handlers ([exn:break? 
+                                (lambda (x) (void))])
+                 (send c goto-url init-page #f)
+                 (set! init-page (send c current-page))
+                 (update-buttons/set-page init-page))]
+              [else 
+               (send c set-page init-page #t)]))
           (field
            [home (and control-bar?
                       (make-object button% (string-constant home) hp
                         (lambda (b ev)
                           (home-callback))))])
-          [define/private update-buttons
-            (lambda (page)
-              (unless init-page
-                (set! init-page page))
-              (when control-bar?
-                (send back enable (pair? past))
-                (send forw enable (pair? future))
-                
-                (send choice clear)
-                (for-each
-                 (lambda (p)
-                   (send choice append 
-                         (let ([s (send (car p) get-title)])
-                           (if s 
-                               (gui-utils:trim-string s 200)
-                               (string-constant untitled)))))
-                 (append (reverse future)
-                         (if page (list page) null)
-                         past))
-                (let ([c (send choice get-number)])
-                  (unless (zero? c)
-                    (send choice set-selection (length future))))))]
+          (define/private (update-buttons/set-page page)
+            (unless init-page
+              (set! init-page page))
+            (update-buttons page)) ;; want to remove this "page" argument so update-buttons can be called from elsewhere
+          (define/private (update-buttons page)
+            (when control-bar?
+              (send back enable (pair? past))
+              (send forw enable (pair? future))
+              
+              (send choice clear)
+              (for-each
+               (lambda (p)
+                 (send choice append 
+                       (let ([s (send (car p) get-title)])
+                         (if s 
+                             (gui-utils:trim-string s 200)
+                             (string-constant untitled)))))
+               (append (reverse future)
+                       (if page (list page) null)
+                       past))
+              (let ([c (send choice get-number)])
+                (unless (zero? c)
+                  (send choice set-selection (length future))))))
           (field
            [choice (and control-bar?
                         (make-object choice% #f null hp
@@ -929,19 +976,18 @@ A test case:
                                   [else (loop (cdr l)
                                               (cons (car l) pre)
                                               (sub1 pos))]))))))]
-           [break-callback void]
-           [break-button
+           [stop-callback void]
+           [stop-button
             (and control-bar?
                  (new button%
-                      (label cs-break)
+                      (label (string-constant stop))
                       (parent hp)
                       (callback
                        (lambda (x y)
-                         (break-callback)))))])
-          (define/public (get-break-button) break-button)
-          (define/public (set-break-callback bc) (set! break-callback bc))
-          (when break-button
-            (send break-button enable #f))
+                         (stop-callback)))))])
+          (define/public (get-stop-button) stop-button)
+          (define/public (set-stop-callback bc) (set! stop-callback bc))
+          (when stop-button (send stop-button enable #f))
           
           (field
            [info (and info-line?
@@ -956,7 +1002,6 @@ A test case:
             (lambda ()
               (home-callback))]
           
-          ; [get-progress (lambda () progress)]
           [define/public on-navigate (lambda () (void))]
           [define/public filter-notes (lambda (l) (apply string-append l))]
           [define/public get-canvas (lambda () c)]
@@ -970,24 +1015,23 @@ A test case:
                        (and e
                             (send e reload))))))]
           
-          [define/public leaving-page
-            (lambda (page new-page)
-              (set! future null)
-              (when page
-                (set! past (cons page past)))
-              (when (> (length past) history-limit)
-                (set! past
-                      (let loop ([l past])
-                        (if (null? (cdr l))
-                            null
-                            (cons (car l) (loop (cdr l)))))))
-              (clear-info)
-              (update-buttons new-page)
-              (update-info new-page))]
+          (define/public (leaving-page page new-page)
+            (set! future null)
+            (when page
+              (set! past (cons page past)))
+            (when (> (length past) history-limit)
+              (set! past
+                    (let loop ([l past])
+                      (if (null? (cdr l))
+                          null
+                          (cons (car l) (loop (cdr l)))))))
+            (clear-info)
+            (update-buttons/set-page new-page)
+            (update-info new-page))
           (when control-bar?
             (send choice stretchable-width #t)
             (send hp stretchable-height #f))
-          (update-buttons #f)))
+          (update-buttons/set-page #f)))
       
       (define hyper-panel% (hyper-panel-mixin vertical-panel%))
       

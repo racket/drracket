@@ -405,11 +405,7 @@
                (check-filename-matches filename
                                        (syntax-object->datum (syntax name)) 
                                        unexpanded-stx))
-             (values
-              v-name
-              (syntax (module name lang
-                        (#%plain-module-begin 
-                         bodies ...)))))]
+             (values v-name stx))]
           [else
            (raise-syntax-error 'module-language
                                "only module expressions are allowed"
