@@ -266,10 +266,11 @@
 	      (lambda (s)
 		(get-src s)))]
 	   
-	   [get-mzscheme-arg (let ([get (make-get-field "mzscheme")])
-			       (lambda (s)
-				 (let ([v (get s)])
-				   (and v (regexp-replace* "[|]" v "\"")))))]
+	   [get-mzscheme-arg
+	    (let ([get (make-get-field "mzscheme")])
+	      (lambda (s)
+		(let ([v (get s)])
+		  (and v (regexp-replace* "[|]" v "\"")))))]
 		  
 	   [parse-href
 	    (let ([get-href (make-get-field "href")]
@@ -602,7 +603,13 @@
 		     (let ([skip-one? #f])
 		       (let ([code (parse-mzscheme args)])
 			 (when code
-			   (let ([s (with-handlers ([not-break void])
+			   (let ([s (with-handlers ([not-break
+						     (lambda (exn)
+						       (format
+							"<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
+							(if (exn? exn)
+							    (exn-message exn)
+							    (format "~s" exn))))])
 				      (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
 			     (when (string? s)
 			       ; Put result back into the input stream:

@@ -1,2 +1,0 @@
-
-MrEdBoundaryClass _beta_;

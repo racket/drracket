@@ -1,8 +1,0 @@
-
-This is the MrEd source code directory. See ../README for information
-on compiling it. MrEd has not been ported to BeOS, and cannot be
-compiled for Windows using the Cygwin tools.
-
-Compiled binaries, documentation, and up-to-date information about
-MrEd are at
-  http://www.cs.rice.edu/CS/PLT/packages/mred/
