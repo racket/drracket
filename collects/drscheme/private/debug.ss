@@ -20,7 +20,7 @@ profile todo:
            (lib "bday.ss" "framework" "private")
 	   "bindings-browser.ss"
            (lib "marks.ss" "stepper" "private"))
-  
+
   (define orig (current-output-port))
   
   (provide debug@)
@@ -101,6 +101,26 @@ profile todo:
                              (make-object image-snip% b)
                              "[file]")))
       
+      ;; display-stats : (syntax -> syntax)
+      ;; count the number of syntax expressions & number of with-continuation-marks in an 
+      ;; expanded expression ... except that it counts keywords, too.
+      ;; returns its argument.
+      ;(define (display-stats stx)
+      ;  (let ([exps 0]
+      ;        [wcms 0])
+      ;    (let loop ([stx stx])
+      ;      (kernel-syntax-case stx ()
+      ;        [(#%with-continuation-mark key mark body)
+      ;         (set! wcms (+ wcms 1))
+      ;         (loop #`body)]
+      ;        [(subexps ...)
+      ;         (set! exps (+ exps 1))
+      ;         (for-each loop (syntax->list stx))]
+      ;        [exp
+      ;         (set! exps (+ exps 1))]))
+      ;    (fprintf (current-error-port) "exps: ~v\nwcms: ~v\n" exps wcms))
+      ;  stx)
+      
       ;; make-debug-eval-handler : (sexp -> value) -> sexp -> value
       ;; adds debugging information to `sexp' and calls `oe'
       (define (make-debug-eval-handler oe)
@@ -121,7 +141,7 @@ profile todo:
                                 (if (compiled-expression? (if (syntax? exp)  
                                                               (syntax-e exp)  
                                                               exp))
-                                    exp 
+                                    exp
                                     (annotate-top (expand top-e) #f))])
                           (oe annotated))]))))])
           debug-tool-eval-handler))
@@ -153,6 +173,8 @@ profile todo:
 				(continuation-mark-set->list 
                                  (exn-continuation-marks exn)
                                  cm-key))]
+                      [k (and (exn:break? exn)
+                              (exn:break-continuation exn))]
 		      [src-to-display (find-src-to-display exn 
                                                            (and cms
                                                                 (map mark-source cms)))])
@@ -168,7 +190,7 @@ profile todo:
                         (insert/clickback text
                                           (if (mf-bday?) mf-note bug-note)
                                           (lambda ()
-                                            (show-backtrace-window msg cms))))
+                                            (show-backtrace-window msg cms k))))
                       (when src-to-display
                         (let ([src (car src-to-display)])
                           (when (symbol? src)
@@ -362,15 +384,21 @@ profile todo:
             
       ;; show-backtrace-window : string
       ;;                         (listof mark?)
+      ;;                         (union continuation? #f)
       ;;                         -> 
       ;;                         void
-      (define (show-backtrace-window error-text dis)
+      (define (show-backtrace-window error-text dis k)
         (reset-backtrace-window)
         (letrec ([text (make-object text:hide-caret/selection%)]
                  [mf-bday-note (when (mf-bday?)
                                  (instantiate message% ()
                                    (label (string-constant happy-birthday-matthias))
                                    (parent (send current-backtrace-window get-area-container))))]
+                 [k-button (when k
+                             (make-object button%
+                               "Continue"
+                               (send current-backtrace-window get-area-container)
+                               (lambda (a b) (k (void)))))] ; should also foreground DrS window?
                  [ec (make-object canvas:wide-snip% 
                        (send current-backtrace-window get-area-container)
                        text)]
@@ -392,7 +420,7 @@ profile todo:
                           [else
                            (set! index n)]))
                       
-                      ;; add continuation link
+                      ;; add 'more frames' link
                       (when (< index (vector-length di-vec))
                         (let ([end-of-current (send text last-position)])
                           (send text insert #\newline)
