@@ -24,6 +24,7 @@
                     (filter
                      (lambda (x) 
                        (and (not (string-ci=? "CVS" x))
+                            (directory-exists? (build-path (collection-path "drscheme" "tools") x))
                             (file-exists? 
                              (build-path 
                               (collection-path "drscheme" "tools" x)
