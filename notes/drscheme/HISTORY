@@ -1,3 +1,88 @@
+103d102
+
+ PRS
+
+  1719:  insert fraction isn't one step
+
+ FUNCTIONALITY CHANGES
+ 
+ - check syntax now shows teaching language primitive docs in drscheme window,
+   viar right-button popup menu.
+ 
+ - check syntax now opens full scheme primitive docs in help desk, 
+   via right-button popup menu.
+
+ - (without checking the syntax) the right click context-sensitive menu
+   has an entry to search based either on the selection, or on the text
+   that was clicked on.
+
+ - the project manager has split up the files in the project
+   into two lists: elaboration files and regular files. The
+   elaboration files are loaded before the regular files.
+
+ - check syntax has been integrated with the project manager. When both
+   are installed, check syntax will load the files in the
+   project-manager's "elaboration" window before checking the syntax.
+   This means that you can stick signature definitions in a project's
+   elaboration window and check syntax on individual files in the project.
+
+   Using this feature, I was able to check the syntax of help-win.ss
+   in the help collection and finally rename `f' to help-desk-frame! (that
+   had been bugging me for quite some time.... it is not an
+   easy search-and-replace kind of change :)
+
+ - added clear-annotations to definitions-text% class for tools.
+   
+ - Thanks to Philippe Meunier and Paul Steckler, a preliminary version 
+   of a spidey rewrite is available. To get it, you need to cvs two 
+   new directories:
+   
+      plt/collects/newspidey
+     
+   and
+   
+      plt/collects/drscheme/tools/spidey2
+     
+   Note that this is _very_ preliminary. So far, it only handles 
+   lambda, case-lambda, variables, application, car, cdr and cons
+   and only in the full scheme language.
+      
+MINOR CHANGES AND BUG FIXES
+ 
+ - the "drscheme jr" test suite now runs in both drscheme and
+   drscheme jr The guts have been abstracted out from the support
+   for running the test. See readme.txt in plt/tests/drscheme-jr
+   for details.
+
+ - when in "sort by name" mode for the "(define ...)" button, 
+   the check marks are now correct.
+
+ - error message from turtle primitives when window is not
+   open has been fixed.
+
+ - added turtle primitives to the documented functions in
+   advanced.
+
+ - the main drscheme window remembers how big it was last
+   resized to, and uses that size to as the default for
+   the next frame that is created.
+
+ - new language detail: teaching language primitives and
+   syntax. It only applies to the 2 mred language levels and
+   it adds the core libraries, the turtles library, and the
+   posn structs to drscheme.
+
+ - internal errors that happen on the user's thread no
+   longer wedge drscheme.
+
+ - check syntax now creates its own eventspace, etc. to check the
+   syntax. That means that checking the syntax of this program:
+    
+      (begin-elaboration-time (eval '(define x 1)))
+    
+   no longer defines x in the repl. Ditto for other things,
+   like killing threads and such.
+
 103d101
 
  PRS
