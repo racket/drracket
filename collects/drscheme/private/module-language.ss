@@ -366,6 +366,7 @@
                                        unexpanded-stx))
              (with-syntax ([(to-provide-specs ...)
                             (get-provide-specs
+                             (syntax module)
                              (cons
                               (syntax (require lang))
                               (syntax->list
@@ -436,8 +437,8 @@
                        filename)
                unexpanded-stx)))))
       
-      ;; get-provide-specs : (listof syntax) -> (listof syntax) 
-      (define (get-provide-specs bodies)
+      ;; get-provide-specs : syntax (listof syntax) -> (listof syntax) 
+      (define (get-provide-specs orig-stx bodies)
         (let ([required-specs (make-hash-table 'equal)])
           (let loop ([bodies bodies]
                      [vars null])
@@ -450,16 +451,23 @@
                           (with-syntax ([x value])
                             (syntax (all-from x))))))]
               [else
-               (let ([body (car bodies)])
-                 (syntax-case body (define-values define-syntaxes require prefix all-except rename)
+               (let ([body (car bodies)]
+                     [loop-with-ids
+                      (lambda (ids)
+                        (loop (cdr bodies)
+                              (append (filter (lambda (x)
+                                                (module-identifier=? 
+                                                 x
+                                                 (datum->syntax-object 
+                                                  orig-stx 
+                                                  (syntax-e x))))
+                                              (syntax->list ids))
+                                      vars)))])
+                 (syntax-case body (define-values define-syntaxes require)
                    [(define-values (new-vars ...) body)
-                    (loop (cdr bodies)
-                          (append (syntax->list (syntax (new-vars ...)))
-                                  vars))]
+                    (loop-with-ids (syntax (new-vars ...)))]
                    [(define-syntaxes (new-vars ...) body)
-                    (loop (cdr bodies)
-                          (append (syntax->list (syntax (new-vars ...)))
-                                  vars))]
+                    (loop-with-ids (syntax (new-vars ...)))]
                    [(require specs ...)
                     (for-each (lambda (spec)
                                 (syntax-case spec (prefix all-except rename)

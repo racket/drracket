@@ -81,6 +81,13 @@
           (make-test (format "~s" '(module m mzscheme (define-syntax s (syntax 1)) (provide s)))
                      "s"
                      "s: illegal use of syntax in: s")
+          
+          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x))
+                     "a"
+                     "reference to undefined-identifier: a")
+          (make-test (format "~s" '(module m mzscheme (define-syntax (x stx) #'(define-syntax (a stx) #'10)) x x))
+                     "a"
+                     "reference to undefined-identifier: a")
           ))
   
   ;; set up language for last test.
