@@ -977,14 +977,14 @@ TODO
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
-          (inherit send-eof-to-in-port)
+          (inherit send-eof-to-in-port flush-output-ports)
           (define/override (on-submit)
-            (printf "on-submit start\n")
+            (flush-output-ports)
             (send-eof-to-in-port)
-            (do-single-language-eval (get-in-port) this))
+            (handle-repl-evaluation))
           
           ; =Kernel, =Handler=
-          (define/public (do-single-language-eval port source)
+          (define/private (handle-repl-evaluation) ; =Kernel=, =Handler=
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (printf "do-many-language-evals.1\n")
@@ -992,29 +992,48 @@ TODO
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
-                       (send lang front-end/interaction port source settings user-teachpack-cache)])
+                       (send lang front-end/interaction (get-in-port) this settings user-teachpack-cache)]
+                      [already-exited? #f]
+                      [got-eof? #f])
                  (let loop ()
-                   (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                     (printf "do-many-language-evals.2 ~s\n" sexp/syntax/eof)
-                     (cond
-                       [(eof-object? sexp/syntax/eof)
-                        (printf "do-many-language-evals.7\n")
-                        (void)]
-                       [else
-                        (single-loop-eval
-                         (lambda ()
-                           (printf "do-many-language-evals.3\n")
-                           (call-with-values
+                   (dynamic-wind
+                    void
+                    (lambda ()
+                      (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                        (cond
+                          [(eof-object? sexp/syntax/eof)
+                           (printf "do-many-language-evals.7 got eof\n")
+                           (set! got-eof? #t)
+                           (void)]
+                          [else
+                           (printf "do-many-language-evals.2 ~s\n" 
+                                   (if (syntax? sexp/syntax/eof)
+                                       `(d->s-o
+                                         ,(syntax-object->datum
+                                           sexp/syntax/eof))
+                                       sexp/syntax/eof))
+                           (single-loop-eval
                             (lambda ()
-                              (printf "do-many-language-evals.4\n")
-                              (eval-syntax sexp/syntax/eof))
-                            (lambda x 
-                              (printf "do-many-language-evals.5\n")
-                              (display-results x)))
+                              (printf "do-many-language-evals.3\n")
+                              (call-with-values
+                               (lambda ()
+                                 (printf "do-many-language-evals.4\n")
+                                 (eval-syntax sexp/syntax/eof))
+                               (lambda x 
+                                 (printf "do-many-language-evals.5\n")
+                                 (display-results x)))))
+                           (printf "do-many-language-evals.6\n")])))
+                    (lambda ()
+                      (cond
+                        [got-eof?
+                         (unless already-exited?
+                           (set! already-exited? #t)
+                           (printf "do-many-language-evals.8 printing prompt\n")
+                           ;; want to do this for errors, but not for continuation jumps
                            (fprintf (get-out-port) (get-prompt))
-                           (flush-output (get-value-port))))
-                        (printf "do-many-language-evals.6\n")
-                        (loop)])))))))
+                           (flush-output (get-value-port)))]
+                        [else
+                         (loop)]))))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
           (define/public do-many-evals ; =Kernel=, =Handler=
@@ -1063,10 +1082,8 @@ TODO
                     (queue-system-callback/sync
                      (get-user-thread)
                      (lambda () ; =Kernel=, =Handler= 
-                       (printf "cleanup\n")
                        (after-many-evals)
-                       (cleanup-interaction)
-                       (printf "cleanup done\n")))))))))
+                       (cleanup-interaction)))))))))
           
           (define/public (after-many-evals) (void))
           
@@ -1115,7 +1132,6 @@ TODO
           (define protect-user-evaluation ; =User=, =Handler=, =No-Breaks=
             (lambda (thunk cleanup)
               
-              (printf "protect-user-evaluation.1\n")
               ;; We only run cleanup if thunk finishes normally or tries to
               ;; error-escape. Otherwise, it must be a continuation jump
               ;; into a different call to protect-user-evaluation.
@@ -1129,22 +1145,17 @@ TODO
               (let/ec k
                 (let ([saved-error-escape-k (current-error-escape-k)]
                       [cleanup? #f])
-                  (printf "protect-user-evaluation.2\n")
                   (dynamic-wind
                    (lambda ()
-                     (printf "protect-user-evaluation.3\n")
                      (set! cleanup? #f)
                      (current-error-escape-k (lambda () 
 					       (set! cleanup? #t)
 					       (k (void)))))
 		  (lambda () 
-                    (printf "protect-user-evaluation.4\n")
                      (thunk) 
                      ; Breaks must be off!
-                     (set! cleanup? #t)
-                    (printf "protect-user-evaluation.5\n"))
+                     (set! cleanup? #t))
                    (lambda () 
-                     (printf "protect-user-evaluation.6\n")
                      (current-error-escape-k saved-error-escape-k)
                      (when cleanup?
                        (set! in-evaluation? #f)
@@ -1152,12 +1163,10 @@ TODO
                        (cleanup))))))))
           
           (define/public (run-in-evaluation-thread thunk) ; =Kernel=
-            (printf "run-in-evaluation-thread.1\n")
             (semaphore-wait eval-thread-state-sema)
             (set! eval-thread-thunks (append eval-thread-thunks (list thunk)))
             (semaphore-post eval-thread-state-sema)
-            (semaphore-post eval-thread-queue-sema)
-            (printf "run-in-evaluation-thread.2\n"))
+            (semaphore-post eval-thread-queue-sema))
           
           (define init-evaluation-thread ; =Kernel=
             (lambda ()
@@ -1251,7 +1260,6 @@ TODO
                          (semaphore-post eval-thread-state-sema)
                          ; This thunk evals the user's expressions with appropriate
                          ;   protections.
-                         (printf "running a thunk\n")
                          (thunk))
                        (loop)))))
                 (semaphore-wait init-thread-complete)
@@ -1376,7 +1384,6 @@ TODO
                              (send context reset-offer-kill)
                              (send context set-breakables (get-user-thread) (get-user-custodian))
                              
-                             (printf "dispatching\n")
                              (protect-user-evaluation
                               ; Run the dispatch:
                               (lambda () ; =User=, =Handler=, =No-Breaks=
@@ -1400,7 +1407,6 @@ TODO
                                 ;; be many little events that the user won't quite
                                 ;; be able to break.
                                 (send context set-breakables #f #f)))
-                             (printf "done dispatching\n")
                              
                              ; Restore break:
                              (when ub?
