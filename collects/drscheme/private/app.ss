@@ -224,21 +224,23 @@
           (send f show #t)))
 
       (define (switch-language-to parent other-language)
-        (define-values (other-are-you-sure other-cancel other-quit)
+        (define-values (other-are-you-sure other-cancel other-accept-and-quit)
           (let loop ([languages (all-languages)]
                      [are-you-sures (string-constants are-you-sure-you-want-to-switch-languages)]
                      [cancels (string-constants cancel)]
-                     [quits (string-constants quit-cap)])
+                     [accept-and-quits (if (eq? (system-type) 'windows)
+                                           (string-constants accept-and-exit)
+                                           (string-constants accept-and-quit))])
             (cond
               [(null? languages) (error 'app.ss "")]
               [(equal? other-language (car languages))
                (values (car are-you-sures)
                        (car cancels)
-                       (car quits))]
+                       (car accept-and-quits))]
               [else (loop (cdr languages)
                           (cdr are-you-sures)
                           (cdr cancels)
-                          (cdr quits))])))
+                          (cdr accept-and-quits))])))
         (define dialog (make-object dialog% (string-constant drscheme) parent 400))
         (define (make-section are-you-sure cancel-label quit-label)
           (define text (make-object text:hide-caret/selection%))
@@ -265,10 +267,14 @@
         
         (make-section other-are-you-sure
                       other-cancel
-                      other-quit)
+                      other-accept-and-quit)
+
         (make-section (string-constant are-you-sure-you-want-to-switch-languages)
                       (string-constant cancel)
-                      (string-constant quit-cap))
+                      (if (eq? (system-type) 'windows)
+                          (string-constant accept-and-exit)
+                          (string-constant accept-and-quit)))
+
         (send dialog show #t)
         
         (unless cancelled?

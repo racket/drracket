@@ -140,46 +140,70 @@
       ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
-	(let-values ([(src position other-position module form)
-		      (if (exn? exn)
-			  (extract-info-from-exn exn)
-			  (values #f #f #f #f #f))])
-	  (let ([rep (current-rep)])
+        (let ([rep (current-rep)])
+          (send rep begin-edit-sequence)
+          
+          (let ([insert-file-name/icon
+                 (lambda (filename start span)
+                   (let ([locked? (send rep is-locked?)])
+                     (send rep lock #f)
+                     (let-values ([(icon-start icon-end) (insert/delta rep (send file-icon copy))]
+                                  [(space-start space-end) (insert/delta rep " ")]
+                                  [(filename-start filename-end) (insert/delta rep filename)])
+                       (when (and (number? start)
+                                  (number? span))
+                         (send rep set-clickback icon-start filename-end
+                               (lambda (_1 _2 _3)
+                                 (open-file-and-highlight filename (- start 1) (+ start -1 span))))))
+                     (insert/delta rep ": ")
+                     (send rep lock locked?)))])
             
-            (let ([locked? (send rep is-locked?)])
-              (send rep lock #f)
-              (when (string? src)
-                (let ([pos (send rep last-position)])
-                  (send rep insert file-icon pos pos)
-                  (send rep insert #\space (+ pos 1) (+ pos 1))
-                  (send rep set-clickback pos (+ pos 1)
-                        (lambda (txt start end)
-                          (open-file-and-highlight src position other-position)))))
-
-              ;; disable all docs icons. 
-              ;; for now, we only use check syntax to find documentation.
-              (when (and #f module)
-                (let ([pos (send rep last-position)])
-                  (send rep insert (if (string? docs-icon)
-				       docs-icon
-				       (send docs-icon copy))
-			pos pos)
-                  (send rep insert #\space (+ pos 1) (+ pos 1))
-                  (send rep set-clickback pos (+ pos 1)
-                        (lambda (txt start end)
-                          (show-documentation module form)))))
-
-              (send rep lock locked?))
+            (cond
+              [(exn:syntax? exn)
+               (let* ([expr (exn:syntax-expr exn)]
+                      [src (and expr (syntax-source expr))]
+                      [pos (and expr (syntax-position expr))]
+                      [span (and expr (syntax-span expr))])
+                 (when (string? src)
+                   (insert-file-name/icon 
+                    (syntax-source expr)
+                    (syntax-position expr)
+                    (syntax-span expr)))
+                 (display (exn-message exn) (current-error-port))
+                 (send rep wait-for-io-to-complete/user)
+                 (when (syntax? expr)
+                   (let ([locked? (send rep is-locked?)])
+                     (send rep lock #f)
+                     (insert/delta rep " in ")
+                     (insert/delta rep (format "~s" (syntax-object->datum expr)) error-text-style-delta)
+                     (send rep lock locked?)))
+                 (when (and (is-a? src text:basic%)
+                            (number? pos)
+                            (number? span))
+                   (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+              [(exn:read? exn)
+               (let ([src (exn:read-source exn)]
+                     [pos (exn:read-position exn)]
+                     [span (exn:read-span exn)])
+                 (when (string? src)
+                   (insert-file-name/icon src pos span))
+                 (display (exn-message exn) (current-error-port))
+                 (send rep wait-for-io-to-complete/user)
+                 (when (and (is-a? src text:basic%)
+                            (number? pos)
+                            (number? span))
+                   (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+              [(exn? exn)
+               (display (exn-message exn) (current-error-port))
+               (newline (current-error-port))
+               (send rep wait-for-io-to-complete/user)]
+              [else
+               (display "uncaught exn: " (current-error-port))
+               (write exn (current-error-port))
+               (newline (current-error-port))
+               (send rep wait-for-io-to-complete/user)])
             
-	    (display msg (current-error-port))
-            (newline (current-error-port))
-
-            (send rep wait-for-io-to-complete/user)
-	    
-	    (when (and (object? src) (is-a? src text:basic%))
-	      (if other-position
-		  (send rep highlight-error src position other-position)
-		  (send rep highlight-error/forward-sexp src position))))))
+            (send rep end-edit-sequence))))
 
       ;; open-file-and-highlight : string (union number #f) (union number #f)
       ;; =Kernel, =Handler=
@@ -345,6 +369,9 @@
       (send result-delta set-delta-foreground (make-object color% 0 0 175))
       (send output-delta set-delta-foreground (make-object color% 150 0 150))
       
+      (define error-text-style-delta (make-object style-delta%))
+      (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
+
       (define grey-delta (make-object style-delta%))
       (send grey-delta set-delta-foreground "GREY")
       
@@ -525,6 +552,19 @@
       (define (reset-callback) (void))
       (define error-range/reset-callback-semaphore (make-semaphore 1))
       
+      ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%) *-> (values number number)
+      ;; inserts the string/stnip into the text at the end and changes the
+      ;; style of the newly inserted text based on the style deltas.
+      (define (insert/delta text s . deltas)
+        (let ([before (send text last-position)])
+          (send text insert s before before #f)
+          (let ([after (send text last-position)])
+            (for-each (lambda (delta)
+                        (when (is-a? delta style-delta%)
+                          (send text change-style delta before after)))
+                      deltas)
+            (values before after))))
+
       (define (make-text% super%)
         (rec rep-text%
           (class super%
@@ -1666,17 +1706,6 @@
 	;;;					     ;;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
-            (define insert-delta
-              (lambda (s . deltas)
-                (let ([before (last-position)])
-                  (insert s before before #f)
-                  (let ([after (last-position)])
-                    (for-each (lambda (delta)
-				(when (is-a? delta style-delta%)
-				  (change-style delta before after)))
-                              deltas)
-                    (values before after)))))
-            
             (field (repl-initially-active? #f))
             
             ;; initialize-paramters : (listof snip-class%) -> void
@@ -1685,6 +1714,7 @@
                 
               	(current-language-settings user-language-settings)
                 (error-value->string-handler drscheme-error-value->string-handler)
+                (error-print-source-location #f)
 		(error-display-handler drscheme-error-display-handler)
                 (current-load-relative-directory #f)
                 (current-custodian user-custodian)
@@ -1798,20 +1828,21 @@
 	      (set-resetting #f)
 	      (set-position (last-position) (last-position))
 	      
-	      (insert-delta (string-append (string-constant language) ": ") welcome-delta)
-	      (insert-delta (extract-language-name user-language-settings)
+	      (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
+	      (insert/delta this (extract-language-name user-language-settings)
                             dark-green-delta
                             (extract-language-style-delta user-language-settings))
 	      (unless (is-default-settings? user-language-settings)
-		(insert-delta (string-append " " (string-constant custom)) dark-green-delta))
-	      (insert-delta (format ".~n") welcome-delta)
+		(insert/delta this (string-append " " (string-constant custom)) dark-green-delta))
+	      (insert/delta this (format ".~n") welcome-delta)
 	      
 	      (for-each
 	       (lambda (fn)
-		 (insert-delta (string-append (string-constant teachpack) ": ")
+		 (insert/delta this
+                               (string-append (string-constant teachpack) ": ")
                                welcome-delta)
-		 (insert-delta fn dark-green-delta)
-		 (insert-delta (format ".~n") welcome-delta))
+		 (insert/delta this fn dark-green-delta)
+		 (insert/delta this (format ".~n") welcome-delta))
 	       (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
 	      
 	      (set! repl-initially-active? #t)
@@ -1823,10 +1854,10 @@
               (lambda ()
                 (super-initialize-console)
                 
-                (insert-delta (string-append (string-constant welcome-to) " ") welcome-delta)
+                (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
                 (let-values ([(before after)
-                              (insert-delta (string-constant drscheme) click-delta drs-font-delta)])
-                  (insert-delta (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
+                              (insert/delta this (string-constant drscheme) click-delta drs-font-delta)])
+                  (insert/delta this (format (string-append ", " (string-constant version) " ~a.~n") (version:version))
                                 welcome-delta)
                   (set-clickback before after 
                                  (lambda args (drscheme:app:about-drscheme))

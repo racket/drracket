@@ -259,7 +259,7 @@
           (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)
-	    (initialize-module-based-language (use-namespace-require/copy?)
+            (initialize-module-based-language (use-namespace-require/copy?)
                                               (get-module)
                                               (get-transformer-module)
                                               run-in-user-thread))

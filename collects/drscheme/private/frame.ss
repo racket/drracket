@@ -22,6 +22,7 @@
         (send the-font-list find-or-create-font
               (case (system-type)
                 [(windows) 8]
+                [(macosx) 13]
                 [else 10])
               'decorative 'normal 'normal #f))
       

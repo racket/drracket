@@ -93,6 +93,8 @@
                            (exn-continuation-marks exn)
                            cm-key))]
                 [rep (drscheme:rep:current-rep)])
+
+            (send rep begin-edit-sequence)
             
 	    (when (and cms
 		       (not (null? cms)))
@@ -124,7 +126,9 @@
                      [span (cddr first-cms)])
                 (when (and (object? src)
                            (is-a? src text:basic%))
-                  (send rep highlight-error src position (+ position span)))))))
+                  (send rep highlight-error src position (+ position span)))))
+            
+            (send rep end-edit-sequence)))
         debug-error-display-handler)
 
       ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
