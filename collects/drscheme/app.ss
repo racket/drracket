@@ -39,7 +39,7 @@
              [early-names
               (string-append
                "Thanks to "
-               "Gann Bierner, Richard Cobbe, Moy Easwaran, Sebastian Good, Mark Krentel, and Stephanie Weirich "
+               "Gann Bierner, Richard Cobbe, Moy Easwaran, Sebastian Good, Paul Granke, Mark Krentel, Mike Sperber, and Stephanie Weirich "
                "for contributions of prototypes, libraries, and criticisms of early drafts.")]
              [wrap-edit% 
               (class-asi mred:text%
