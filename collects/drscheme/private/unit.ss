@@ -101,7 +101,7 @@
       ;; a divider between symbols (approx)
       (define (non-letter? x)
         (or (char-whitespace? x)
-            (memq x '(#\` #\' #\, #\;
+            (memq x '(#\` #\' #\, #\; #\"
                        #\{ #\( #\[ #\] #\) #\}))))      
       (define (shorten-str str len)
         (if ((string-length str) . <= . len)
