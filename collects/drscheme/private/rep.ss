@@ -1967,6 +1967,7 @@
              (drscheme:teachpack:teachpack-cache-filenames (preferences:get 'drscheme:teachpacks)))
             
             (set! repl-initially-active? #t)
+            (set! already-warned? #f)
             (end-edit-sequence)
             
             (super-reset-console))
