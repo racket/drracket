@@ -132,8 +132,10 @@
       
             (rename [super-get-keymaps get-keymaps])
             (define/override (get-keymaps)
-              (cons browser-keymap
+              (cons hyper-keymap
                     (super-get-keymaps)))
+	    (define/public (get-hyper-keymap)
+	      hyper-keymap)
             
             [define/override after-set-position
               (lambda ()
@@ -673,33 +675,43 @@
 
       (define hyper-text% (hyper-text-mixin text:keymap%))
 
-      (define browser-keymap (make-object keymap%))
-      (send browser-keymap add-function "rewind" 
+      (define hyper-keymap (make-object keymap%))
+      (send hyper-keymap add-function "rewind" 
             (lambda (txt evt)
               (call-with-hyper-panel
                txt
                (lambda (panel)
                  (send panel rewind)))))
-      (send browser-keymap add-function "forward" 
+      (send hyper-keymap add-function "forward" 
             (lambda (txt evt)
               (call-with-hyper-panel
                txt
                (lambda (panel)
                  (send panel forward)))))
-      (send browser-keymap map-function "d:[" "rewind")
-      (send browser-keymap map-function "a:[" "rewind")
-      (send browser-keymap map-function "c:[" "rewind")
-      (send browser-keymap map-function "d:left" "rewind")
-      (send browser-keymap map-function "a:left" "rewind")
-      (send browser-keymap map-function "c:left" "rewind")
-      (send browser-keymap map-function "m:left" "rewind")
-      (send browser-keymap map-function "d:]" "forward")
-      (send browser-keymap map-function "a:]" "forward")
-      (send browser-keymap map-function "c:]" "forward")
-      (send browser-keymap map-function "d:right" "forward")
-      (send browser-keymap map-function "a:right" "forward")
-      (send browser-keymap map-function "c:right" "forward")
-      (send browser-keymap map-function "m:right" "forward")
+      (send hyper-keymap add-function "do-wheel" 
+            (lambda (txt evt)
+	      ;; Redirect the event to the canvas, which should
+	      ;;  handle the event
+	      (send (send txt get-canvas) on-char evt)))
+      (add-text-keymap-functions hyper-keymap)
+      (send hyper-keymap map-function "d:[" "rewind")
+      (send hyper-keymap map-function "a:[" "rewind")
+      (send hyper-keymap map-function "c:[" "rewind")
+      (send hyper-keymap map-function "d:left" "rewind")
+      (send hyper-keymap map-function "a:left" "rewind")
+      (send hyper-keymap map-function "c:left" "rewind")
+      (send hyper-keymap map-function "m:left" "rewind")
+      (send hyper-keymap map-function "d:]" "forward")
+      (send hyper-keymap map-function "a:]" "forward")
+      (send hyper-keymap map-function "c:]" "forward")
+      (send hyper-keymap map-function "d:right" "forward")
+      (send hyper-keymap map-function "a:right" "forward")
+      (send hyper-keymap map-function "c:right" "forward")
+      (send hyper-keymap map-function "m:right" "forward")
+      (send hyper-keymap map-function "wheelup" "do-wheel")
+      (send hyper-keymap map-function "pageup" "previous-page")
+      (send hyper-keymap map-function "wheeldown" "do-wheel")
+      (send hyper-keymap map-function "pagedown" "next-page")
       
       ;; call-with-hyper-panel : object ((is-a?/c hyper-panel<%>) -> void) -> void
       (define (call-with-hyper-panel text f)
