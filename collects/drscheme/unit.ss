@@ -711,7 +711,6 @@
 		  (fw:preferences:get 'drscheme:repl-always-active))
 	  (toggle-show/hide interactions-item))
 	
-	(send interactions-edit enable-autoprompt)
 	(send interactions-edit insert-prompt)
 	(send interactions-edit clear-undos)
 	
