@@ -12,7 +12,7 @@
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:graph : drscheme:graph^])
-  
+
   (define (basename fn)
     (if fn
 	(let* ([file-name (mzlib:file:file-name-from-path fn)]
@@ -257,7 +257,8 @@
   (define definitions-super%
     (program-editor-mixin
      (fw:scheme:text-mixin
-      fw:text:info%)))
+      (drscheme:rep:drs-bindings-keymap-mixin
+       fw:text:info%))))
 
   (define definitions-text%
     (class definitions-super% ()
@@ -556,9 +557,9 @@
 	       file-menu:get-save-as-item
 	       file-menu:get-revert-item
 	       file-menu:get-print-item)
+
       (rename [super-update-shown update-shown]
 	      [super-on-close on-close])
-
       (public
 	[get-directory
 	 (lambda ()

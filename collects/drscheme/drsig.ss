@@ -102,7 +102,8 @@
   (do-setup))
 
 (define-signature drscheme:rep^
-  (text%
+  (drs-bindings-keymap-mixin
+   text%
    context<%>
    show-interactions-history))
 
