@@ -793,7 +793,8 @@
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
                 (send dc draw-rectangle 0 0 cw ch)
                 (send dc set-pen old-pen)
-                (send dc set-brush old-brush))))
+                (send dc set-brush old-brush)))
+            (super-on-paint))
           (super-new)))
       
       (define panel-background-text% 
@@ -805,7 +806,7 @@
                     [old-brush (send dc get-brush)])
                 (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
-                (send dc draw-rectangle left top (- right left) (- bottom top))
+                (send dc draw-rectangle (+ dx left) (+ dy top) (- right left) (- bottom top))
                 (send dc set-pen old-pen)
                 (send dc set-brush old-brush)))
             (super-on-paint before? dc left top right bottom dx dy draw-caret))
