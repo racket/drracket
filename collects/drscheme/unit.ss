@@ -922,42 +922,41 @@
       (override
 	[update-shown
 	 (lambda ()
-	   (let ([panel (get-area-container)])
-	     (super-update-shown)
-	     (send resizable-panel change-children
-		   (lambda (l)
-		     top-panel
-		     (mzlib:function:foldl
-		      (lambda (item sofar)
-			(if (hidden? item)
-			    sofar
-			    (cons (item->child item) sofar)))
-		      null
-		      (get-sub-items))))
-	     (when (ormap (lambda (child)
-			    (and (is-a? child mred:editor-canvas%)
-				 (not (send child has-focus?))))
-			  (send panel get-children))
-	       (let loop ([children (send panel get-children)])
-		 (cond
-                   [(null? children) (void)]
-                   [else (let ([child (car children)])
-                           (if (is-a? child mred:editor-canvas%)
-                               (send child focus)
-                               (loop (cdr children))))])))
-	     
-             
-	     (let ([defs-show? (not (hidden? definitions-item))])
-	       (for-each
-		(lambda (get-item)
-		  (send (get-item) enable defs-show?))
-		(list file-menu:get-revert-item
-		      file-menu:get-save-item
-		      file-menu:get-save-as-item
-		      ;file-menu:save-as-text-item ; Save As Text...
-		      file-menu:get-print-item)))
-	     (send file-menu:print-transcript-item enable
-		   (not (hidden? interactions-item)))))]
+           (super-update-shown)
+           (send resizable-panel change-children
+                 (lambda (l)
+                   top-panel
+                   (mzlib:function:foldl
+                    (lambda (item sofar)
+                      (if (hidden? item)
+                          sofar
+                          (cons (item->child item) sofar)))
+                    null
+                    (get-sub-items))))
+           (when (ormap (lambda (child)
+                          (and (is-a? child mred:editor-canvas%)
+                               (not (send child has-focus?))))
+                        (send resizable-panel get-children))
+             (let loop ([children (send resizable-panel get-children)])
+               (cond
+                 [(null? children) (void)]
+                 [else (let ([child (car children)])
+                         (if (is-a? child mred:editor-canvas%)
+                             (send child focus)
+                             (loop (cdr children))))])))
+           
+           
+           (let ([defs-show? (not (hidden? definitions-item))])
+             (for-each
+              (lambda (get-item)
+                (send (get-item) enable defs-show?))
+              (list file-menu:get-revert-item
+                    file-menu:get-save-item
+                    file-menu:get-save-as-item
+                    ;file-menu:save-as-text-item ; Save As Text...
+                    file-menu:get-print-item)))
+           (send file-menu:print-transcript-item enable
+                 (not (hidden? interactions-item))))]
 	
 	[on-close
 	 (lambda ()
@@ -1018,7 +1017,7 @@
 		    #f
 		    (fw:preferences:get 'drscheme:unit-window-width)
 		    (fw:preferences:get 'drscheme:unit-window-height))
-        
+
 	(let* ([mb (get-menu-bar)]
 	       [_ (set! language-menu (make-object (get-menu%) "&Language" mb))]
 	       [scheme-menu (make-object (get-menu%) "S&cheme" mb)]
@@ -1082,7 +1081,7 @@
 		  (toggle-show/hide definitions-item)
 		  (update-shown/ensure-one interactions-item))
                 #\d
-		"Show the definitions window"))
+		"Show/Hide the definitions window"))
 	(set! interactions-item
 	      (make-object fw:menu:can-restore-menu-item%
                 "Show &Interactions"
@@ -1091,12 +1090,12 @@
                   (toggle-show/hide interactions-item)
                   (update-shown/ensure-one definitions-item))
                 #\e
-                "Show the interactions window")))
+                "Show/Hide the interactions window")))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% (get-area-container))]
 	[name-panel (make-object mred:vertical-panel% top-panel)]
-	[resizable-panel (make-object fw:panel:vertical-resizable% top-panel)])
+	[resizable-panel (make-object fw:panel:vertical-resizable% (get-area-container))])
       (sequence
 	(send name-panel stretchable-width #f)
 	(send name-panel stretchable-height #f))
@@ -1108,10 +1107,9 @@
                                resizable-panel)])
       
       (sequence
-	(send* interactions-canvas 
-	  ;(scroll-with-bottom-base #t)
-	  (set-editor interactions-text))
 	(send interactions-text auto-wrap #t)
+        (send interactions-canvas set-editor interactions-text)
+        (send definitions-canvas set-editor definitions-text)
         
 	(set! save-button
 	      (make-object mred:button% 
