@@ -135,15 +135,15 @@
                  bindings))))
   
   (define (display-mark mark)
-    (let ([exposed (expose-mark mark)])
-      (printf "source: ~a~n" (let ([read (cp:read-getter (car exposed))])
-                               (and read
-                                    (z:sexp->raw read))))
-      (printf "label: ~a~n" (cadr exposed))
-      (printf "bindings:~n")
-      (for-each (lambda (binding-pair)
-                  (printf " ~a : ~a~n" (car binding-pair) (cadr binding-pair)))
-                (caddr exposed))))
+    (apply
+     string-append
+     (format "source: ~a~n" (syntax-object->datum (mark-source mark)))
+     (format "label: ~a~n" (mark-label mark))
+     (format "bindings:~n")
+     (map (lambda (binding)
+                 (format " ~a : ~a~n" (syntax-e (mark-binding-binding binding))
+                         (mark-binding-value binding)))
+               (mark-bindings mark))))
   
   (define (binding-matches mark binding)
     (let ([matches
