@@ -788,27 +788,40 @@
           
           (override get-editor%)
           [define get-editor% (lambda () (drscheme:get/extend:get-definitions-text%))]
-          (public still-untouched? change-to-file)
-          [define still-untouched?
-            (lambda ()
-              (and (= (send definitions-text last-position) 0)
-                   (not (send definitions-text is-modified?))
-                   (not (send definitions-text get-filename))
+          (define/public (still-untouched?)
+            (and (= (send definitions-text last-position) 0)
+                 (not (send definitions-text is-modified?))
+                 (not (send definitions-text get-filename))
+                 (let* ([prompt (send interactions-text get-prompt)]
+                        [first-prompt-para
+                         (let loop ([n 0])
+                           (cond
+                             [(n . <= . (send interactions-text last-paragraph))
+                              (if (string=?
+                                   (send interactions-text get-text 
+                                         (send interactions-text paragraph-start-position n)
+                                         (+ (send interactions-text paragraph-start-position n)
+                                            (string-length prompt)))
+                                   prompt)
+                                  n
+                                  (loop (+ n 1)))]
+                             [else #f]))])
                    
-                   (= (send interactions-text last-paragraph) 2)
-                   (equal? (send interactions-text get-text
-                                 (send interactions-text paragraph-start-position 2)
-                                 (send interactions-text paragraph-end-position 2))
-                           (send interactions-text get-prompt))))]
-          [define change-to-file
-            (lambda (name)
-              (cond
-                [(and name (file-exists? name))
-                 (send definitions-text load-file name)]
-                [name
-                 (send definitions-text set-filename name)]
-                [else (send definitions-text clear)])
-              (send definitions-canvas focus))]
+                   (and first-prompt-para
+                        (= first-prompt-para (send interactions-text last-paragraph))
+                        (equal? 
+                         (send interactions-text get-text
+                               (send interactions-text paragraph-start-position first-prompt-para)
+                               (send interactions-text paragraph-end-position first-prompt-para))
+                         (send interactions-text get-prompt))))))
+          (define/public (change-to-file name)
+            (cond
+              [(and name (file-exists? name))
+               (send definitions-text load-file name)]
+              [name
+               (send definitions-text set-filename name)]
+              [else (send definitions-text clear)])
+            (send definitions-canvas focus))
           
           [define save-as-text-from-text
             (lambda (text)

@@ -122,7 +122,7 @@
           (define label (string-constant untitled))
           (define (set-message file-name? path-name)
             (set! paths (if (and file-name? (file-exists? path-name))
-                            (mzlib:file:explode-path (mzlib:file:normalize-path path-name))
+			    (mzlib:file:explode-path (mzlib:file:normalize-path path-name))
                             #f))
             (let ([new-label (if (and paths (not (null? paths)))
                                  (car (mzlib:list:last-pair paths))
