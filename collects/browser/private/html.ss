@@ -1109,16 +1109,17 @@
                                                                        (form-parts form)))])
                                                             (send a-text post-url
                                                                   (form-action form)
-                                                                  (if add-self?
-                                                                      ;; Add this button
-                                                                      (format "~a~a=~a" 
-                                                                              post-string 
-                                                                              (get-field e 'name) 
-                                                                              (protect-chars (get-field e 'value)))
-                                                                      ;; remove trailing &
-                                                                      (substring post-string 
-                                                                                 0 
-                                                                                 (max 0 (sub1 (string-length post-string))))))))])
+								  (string->bytes/utf-8
+								   (if add-self?
+								       ;; Add this button
+								       (format "~a~a=~a" 
+									       post-string 
+									       (get-field e 'name) 
+									       (protect-chars (get-field e 'value)))
+								       ;; remove trailing &
+								       (substring post-string 
+										  0 
+										  (max 0 (sub1 (string-length post-string)))))))))])
                                          (let-values ([(name cb get-val)
                                                        (cond
                                                          [(eq? tag 'select)

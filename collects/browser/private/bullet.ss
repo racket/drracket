@@ -66,7 +66,7 @@
               (make-object bullet-snip% depth))]
           [define/override write
             (lambda (stream)
-              (send stream << depth))]
+              (send stream put depth))]
           [define/override get-text
             (lambda (offset num flattened?)
               (if (< num 1)

@@ -57,6 +57,7 @@
 	(message-box "HTML" 
 		     (format "Cannot perform post: ~e"
 			     post-data)
+		     #f
 		     '(stop ok)))
       (super-new)))
 
