@@ -34,24 +34,33 @@
 	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n"
 		(language) expression result got)))))
 
-(define (test-teaching-language-primitives)
+(define (test-teaching-language-primitives debug?)
   (set-language #f)
-  (test-setting "Teaching language primitives" #f
+  (test-setting "Teaching language primitives and syntax" #f
 		"make-posn"
 		"reference to undefined identifier: make-posn")
   (set-language #f)
-  (test-setting "Teaching language primitives" #f
+  (test-setting "Teaching language primitives and syntax" #f
 		"first"
 		"reference to undefined identifier: first")
   (set-language #f)
-  (test-setting "Teaching language primitives" #f
+  (test-setting "Teaching language primitives and syntax" #f
 		"turtles"
 		"reference to undefined identifier: turtles")
+
+  (set-language #f)
+  (test-setting "Teaching language primitives and syntax" #f
+		"(define (. x y) (* x y)) ."
+		(if debug?
+		    "syntax error: can't put `.' as first item in list"
+		    "read: illegal use of \".\" at position 10 in USERPORT"))
+
   (set-language #f)
   (test-setting
-   "Teaching language primitives" #t
-   "make-posn first turtles"
-   (format "#<struct-procedure:make-posn>~n#<procedure:first>~n#<procedure:turtles>")))
+   "Teaching language primitives and syntax" #t
+   (format "make-posn first turtles~n(define (. x y) (* x y)) .")
+   (format "#<struct-procedure:make-posn>~n#<procedure:first>~n#<procedure:turtles>~
+          ~n#<procedure:.>")))
 
 (define (mred)
   (parameterize ([language "Graphical without Debugging (MrEd)"])
@@ -63,13 +72,15 @@
 		  "(cond [#f 1])" "cond or case: no matching clause")
     
     (test-hash-bang)
-    (test-teaching-language-primitives)
+    (test-teaching-language-primitives #f)
 
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
+
     (test-expression "(define (f #%define) 1)" "lambda: illegal use of keyword at: #%define in: (#%lambda (#%define) 1)")
     (test-expression "(define (f define) 1)" "")
     (test-expression "(define (f #%car) 1)" "lambda: illegal use of keyword at: #%car in: (#%lambda (#%car) 1)")
@@ -124,6 +135,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." "read: illegal use of \".\" at position 10 in USERPORT")
+
     (test-expression "(define (f #%define) 1)" "lambda: illegal use of keyword at: #%define in: (#%lambda (#%define) 1)")
     (test-expression "(define (f define) 1)" "")
     (test-expression "(define (f #%car) 1)" "lambda: illegal use of keyword at: #%car in: (#%lambda (#%car) 1)")
@@ -178,13 +191,15 @@
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
     (test-hash-bang)
-    (test-teaching-language-primitives)
+    (test-teaching-language-primitives #t)
 
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
+
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
@@ -246,6 +261,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." "syntax error: can't put `.' as first item in list")
+
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
@@ -300,6 +317,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." ".")
+
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
@@ -361,6 +380,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." ".")
+
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
@@ -420,6 +441,8 @@
       (set-language #t)
       (do-execute drs))
     
+    (test-expression "(define (. x y) (* x y)) ." ".")
+
     (test-expression "(define (f #%define) 1)" "keyword: invalid use of keyword #%define")
     (test-expression "(define (f define) 1)" "keyword: invalid use of keyword define")
     (test-expression "(define (f #%car) 1)" "keyword: invalid use of keyword #%car")
