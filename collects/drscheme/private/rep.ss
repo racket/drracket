@@ -1422,9 +1422,16 @@
           ;; need one arrow for each pair of locations they point to.
           (define/private (remove-duplicate-error-arrows error-arrows)
             (let ([ht (make-hash-table 'equal)])
-              (for-each (lambda (arr) (hash-table-put! ht arr #f)) error-arrows)
-              (hash-table-map ht (lambda (x y) x))))
-              
+              (let loop ([arrs error-arrows]
+                         [n 0])
+                (unless (null? arrs)
+                  (hash-table-put! ht (car arrs) n)
+                  (loop (cdr arrs) (+ n 1))))
+              (let* ([unsorted (hash-table-map ht list)]
+                     [sorted (quicksort unsorted (lambda (x y) (<= (cadr x) (cadr y))))]
+                     [arrs (map car sorted)])
+                arrs)))
+                    
           (define/private (embedded-in? txt-inner txt-outer)
             (let loop ([txt-inner txt-inner])
               (cond
