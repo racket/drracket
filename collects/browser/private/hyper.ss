@@ -1,6 +1,7 @@
 (module hyper mzscheme
   (require (lib "unitsig.ss")
            "sig.ss"
+           "../browser-sig.ss"
            (lib "file.ss")
            (lib "list.ss")
            (lib "string.ss")
@@ -12,7 +13,7 @@
   
   (define hyper@
     (unit/sig browser^
-      (import browser:html^
+      (import html^
               (bullet : bullet-snip^)
               mred^
               setup:plt-installer^)

@@ -16,6 +16,6 @@
               (mred : mred^))
       (link [btree : relative-btree^ (btree@)]
             [bullet : bullet^ (bullet@ mred)]
-            [html : browser:html^ (html@ btree bullet mred)]
+            [html : html^ (html@ btree bullet mred)]
             [hyper : browser^ (hyper@ html bullet mred plt-installer)])
       (export (open hyper)))))

@@ -3,9 +3,9 @@
   
   (provide relative-btree^
            bullet^
-           browser:html^)
+           html^)
 
-  (define-signature browser:html^
+  (define-signature html^
     (html-convert
      html-status-handler))
   
