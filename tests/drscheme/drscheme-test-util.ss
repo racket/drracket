@@ -38,7 +38,6 @@
    (lambda ()
      (let ([active (mred:test:get-active-frame)])
        (if (and active
-		(is-a? active drscheme:export:unit:frame%)
 		(not (eq? active old-frame)))
 	   active
 	   #f)))))
@@ -120,7 +119,20 @@
   (mred:test:button-push button)
   (wait-for-button button))
 
-			   
+; set language level in a given DrScheme frame
+
+(define (set-language-level! level drs-frame)
+  (mred:test:menu-select "Language" "Configure Language...")
+  (mred:test:new-window (wx:find-window-by-name "Language" null))
+  (let* ([frame (wait-for-new-drscheme-frame drs-frame)]
+	 [o-panel (send frame get-top-panel)]
+	 [o-children (ivar o-panel children)]
+	 [i-panel (car o-children)]
+	 [i-children (ivar i-panel children)]
+	 [choice (cadr i-children)])
+    (mred:test:set-choice! choice level)
+    (mred:test:button-push "OK")))
+
 
 
 
