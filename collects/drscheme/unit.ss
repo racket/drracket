@@ -664,9 +664,9 @@
   (define vertical-resizable/pref%
     (class fw:panel:vertical-resizable% args
       (override
-        [on-percentage
-         (lambda (new)
-           (fw:preferences:set 'drscheme:unit-window-size-percentage new))])
+        [on-percentage-change
+         (lambda ()
+           '(fw:preferences:set 'drscheme:unit-window-size-percentage percentages))])
       (sequence (apply super-init args))))
 
   (define frame%
@@ -674,7 +674,6 @@
       (inherit set-label-prefix show-menu
 	       show get-menu%
 	       get-area-container
-	       make-canvas
 	       update-info
 	       get-file-menu
 	       file-menu:get-open-item
@@ -883,6 +882,60 @@
 			   (fw:preferences:get 'framework:print-output-mode)))))
 	   (make-object mred:separator-menu-item% file-menu))])
       
+      (inherit get-edit-target-window)
+      (private
+	[split (lambda ()
+		 (let ([target (get-edit-target-window)])
+		   (cond
+		    [(memq target definitions-canvases)
+		     (set! definitions-canvases
+			   (cons (make-object definitions-canvas%
+				   resizable-panel definitions-text)
+				 definitions-canvases))
+		     (send resizable-panel change-children
+			   (lambda (l)
+			     (append definitions-canvases interactions-canvases)))]
+		    [(memq target interactions-canvases)
+		     (set! interactions-canvases
+			   (cons (make-object interactions-canvas%
+				   resizable-panel interactions-text)
+				 interactions-canvases))
+		     (send resizable-panel change-children
+			   (lambda (l)
+			     (append definitions-canvases interactions-canvases)))]
+		    [else (mred:bell)])))]
+	[collapse (lambda ()
+		    (let ([target (get-edit-target-window)])
+		      (cond
+		       [(memq target definitions-canvases)
+			(if (= 1 (length definitions-canvases))
+			    (mred:bell)
+			    (begin
+			     (set! definitions-canvases (mzlib:function:remq target definitions-canvases))
+			     (send resizable-panel change-children
+				   (lambda (l)
+				     (append definitions-canvases interactions-canvases)))
+			     (send (car definitions-canvases) focus)))]
+		       [(memq target interactions-canvases)
+			(if (= 1 (length interactions-canvases))
+			    (mred:bell)
+			    (begin
+			     (set! interactions-canvases (mzlib:function:remq target interactions-canvases))
+			     (send resizable-panel change-children
+				   (lambda (l)
+				     (append definitions-canvases interactions-canvases)))
+			     (send (car interactions-canvases) focus)))]
+		       [else (mred:bell)])))])
+      (rename [super-edit-menu:between-select-all-and-find
+	       edit-menu:between-select-all-and-find])
+      (override
+       [edit-menu:between-select-all-and-find
+	(lambda (edit-menu)
+	  (super-edit-menu:between-select-all-and-find edit-menu)
+	  (make-object mred:menu-item% "&Split" edit-menu (lambda x (split)))
+	  (make-object mred:menu-item% "C&ollapse" edit-menu (lambda x (collapse)))
+	  (make-object mred:separator-menu-item% edit-menu))])
+
       (rename [super-add-edit-menu-snip-items add-edit-menu-snip-items])
       (inherit get-menu-item%)
       (override
@@ -910,12 +963,12 @@
                                  number)))))
                    #t)))))])
       (private
-	[item->child
+	[item->children
 	 (lambda (item)
 	   (cond
-	     [(eq? item interactions-item) interactions-canvas]
-	     [(eq? item definitions-item) definitions-canvas]
-	     [else (error 'item->child "unknown item: ~a" item)]))])
+	     [(eq? item interactions-item) interactions-canvases]
+	     [(eq? item definitions-item) definitions-canvases]
+	     [else (error 'item->children "unknown item: ~a" item)]))])
       (private
 	[get-sub-items
 	 (lambda ()
@@ -938,7 +991,7 @@
                     (lambda (item sofar)
                       (if (hidden? item)
                           sofar
-                          (cons (item->child item) sofar)))
+                          (append (item->children item) sofar)))
                     null
                     (get-sub-items))))
            (when (ormap (lambda (child)
@@ -1105,16 +1158,17 @@
 	[name-panel (make-object mred:vertical-panel% top-panel)]
 	[resizable-panel (make-object vertical-resizable/pref% (get-area-container))])
       (sequence
-        (send resizable-panel set-percentage 
-              (fw:preferences:get 'drscheme:unit-window-size-percentage))
+        ;(send resizable-panel set-percentages (fw:preferences:get 'drscheme:unit-window-size-percentage))
 	(send name-panel stretchable-width #f)
 	(send name-panel stretchable-height #f))
 
       (public
 	[definitions-canvas (make-object (drscheme:get/extend:get-definitions-canvas%)
 			      resizable-panel)]
+	[definitions-canvases (list definitions-canvas)]
 	[interactions-canvas (make-object (drscheme:get/extend:get-interactions-canvas%)
-                               resizable-panel)])
+                               resizable-panel)]
+	[interactions-canvases (list interactions-canvas)])
       
       (sequence
 	(send interactions-text auto-wrap #t)
