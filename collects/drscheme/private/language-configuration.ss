@@ -801,6 +801,10 @@
                                          (lambda ()
                                            (map (lambda (lang-position) "")
                                                 lang-positions)))]
+                   [urls      (info-proc 'drscheme-language-urls 
+                                         (lambda ()
+                                           (map (lambda (lang-position) "")
+                                                lang-positions)))]
                    [reader-specs
                     (info-proc 'drscheme-language-readers
                                (lambda ()
@@ -825,6 +829,9 @@
                               lang-modules)
                       (list? summaries)
                       (andmap string? summaries)
+
+                      (list? urls)
+                      (andmap string? urls)
                       
                       (list? reader-specs)
                       (andmap (lambda (x)
@@ -837,9 +844,10 @@
                       (= (length lang-positions)
                          (length lang-modules)
                          (length summaries)
+                         (length urls)
                          (length reader-specs)))
                  (for-each
-                  (lambda (lang-module lang-position lang-numbers one-line-summary reader-spec)
+                  (lambda (lang-module lang-position lang-numbers one-line-summary url reader-spec)
                     (let ([%
                            ((drscheme:language:get-default-mixin)
                             (drscheme:language:module-based-language->language-mixin
@@ -867,21 +875,24 @@
                                       (language-position lang-position)
                                       (language-numbers lang-numbers)
                                       (one-line-summary one-line-summary)
+                                      (language-url url)
                                       (reader reader)))))
                   lang-modules
                   lang-positions
                   numberss
                   summaries
+                  urls
                   reader-specs)]
                 [else
                  (message-box
 		  (string-constant drscheme)
 		  (format
-		   "The drscheme-language-position, drscheme-language-modules, drscheme-language-numbers, and drscheme-language-readers specifications aren't correct. Expected (listof (cons string (listof string))), (listof (listof string)), (listof (listof number)), (listof string), and (listof module-spec) respectively, where the lengths of the outer lists are the same. Got ~e, ~e, ~e, ~e, and ~e"
+		   "The drscheme-language-position, drscheme-language-modules, drscheme-language-numbers, and drscheme-language-readers specifications aren't correct. Expected (listof (cons string (listof string))), (listof (listof string)), (listof (listof number)), (listof string), (listof string), and (listof module-spec) respectively, where the lengths of the outer lists are the same. Got ~e, ~e, ~e, ~e, ~e, and ~e"
 		  lang-positions
 		  lang-modules
 		  numberss
 		  summaries
+                  urls
 		  reader-specs))])))))
       
       

@@ -54,7 +54,8 @@
           get-language-name
           get-style-delta
           get-language-numbers
-          get-one-line-summary))
+          get-one-line-summary
+          get-language-url))
       
       (define module-based-language<%>
 	(interface ()
@@ -79,7 +80,8 @@
           
           get-language-position 
           get-language-numbers
-          get-one-line-summary))
+          get-one-line-summary
+          get-language-url))
       
       (define simple-module-based-language<%>
 	(interface ()
@@ -87,6 +89,7 @@
           get-language-position
           get-language-numbers
           get-one-line-summary
+          get-language-url
           get-reader))
       
       
@@ -111,12 +114,14 @@
                       language-position
                       (language-numbers (map (lambda (x) 0) language-position))
                       (one-line-summary "")
+                      (language-url #f)
                       (documentation-reference #f)
                       (reader read-syntax))
           (define/public (get-module) module)
 	  (define/public (get-language-position) language-position)
           (define/public (get-language-numbers) language-numbers)
           (define/public (get-one-line-summary) one-line-summary)
+          (define/public (get-language-url) language-url)
 	  (define/public (get-reader) reader)
           (super-instantiate ())))
       
@@ -466,7 +471,6 @@
               (if (null? pos)
                   "<<unknown>>"
                   (car (last-pair pos)))))
-
           (define/public (get-style-delta) #f)
 	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)

@@ -23,7 +23,8 @@
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
 	   (lib "moddep.ss" "syntax")
-           (lib "toplevel.ss" "syntax"))
+           (lib "toplevel.ss" "syntax")
+           (lib "browser.ss" "net"))
   
   (provide rep@)
   
@@ -367,6 +368,9 @@
       (define (extract-language-style-delta language-settings)
         (send (drscheme:language-configuration:language-settings-language language-settings)
               get-style-delta))
+      (define (extract-language-url language-settings)
+        (send (drscheme:language-configuration:language-settings-language language-settings)
+              get-language-url))
 
       (define-struct sexp (left right prompt))
       
@@ -1976,9 +1980,16 @@
             (set-position (last-position) (last-position))
             
             (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
-            (insert/delta this (extract-language-name user-language-settings)
-                          dark-green-delta
-                          (extract-language-style-delta user-language-settings))
+            (let-values (((before after)
+                          (insert/delta
+                           this
+                           (extract-language-name user-language-settings)
+                           dark-green-delta
+                           (extract-language-style-delta user-language-settings)))
+                         ((url) (extract-language-url user-language-settings)))
+              (when url
+                (set-clickback before after (lambda args (send-url url))
+                               click-delta)))
             (unless (is-default-settings? user-language-settings)
               (insert/delta this (string-append " " (string-constant custom)) dark-green-delta))
             (insert/delta this (format ".~n") welcome-delta)
