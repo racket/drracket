@@ -96,7 +96,7 @@
 		 (change-style d-dr)
 		 (insert "DrScheme")
 		 (change-style d-usual)
-		 (insert ", written by the PLT group at Rice University.")
+		 (insert ", by PLT, Rice University.")
 		 (insert #\newline)
 		 (insert names)
 		 (insert #\newline)
