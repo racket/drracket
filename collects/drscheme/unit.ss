@@ -311,8 +311,8 @@
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))]
 	[ensure-interactions-shown
 	 (lambda ()
-	   (unless (send show-menu checked? interactions-id)
-	     (send show-menu check interactions-id #t)
+	   (when (hidden? show-menu interactions-id)
+	     (toggle-show/hide show-menu interactions-id)
 	     (update-shown)))])
       
       (public
@@ -334,6 +334,30 @@
 	      (send definitions-edit set-filename name)]
 	     [else (send definitions-edit clear)])
 	   (send definitions-canvas set-focus))])
+
+      (private
+	[hidden?
+	 (lambda (menu id)
+	   (let ([item (send menu get-label id)])
+	     (and (string? item)
+		  (>= (string-length item) 4)
+		  (string=? (substring item 0 4) "Show"))))])
+      (public
+	[toggle-show/hide
+	 (lambda (menu id)
+	   (let ([label (send menu get-label id)])
+	     (when (and (string? label)
+			(>= (string-length label) 4))
+	       (let ([new-front
+		      (if (string=? "Hide" (substring label 0 4))
+			  "Show"
+			  "Hide")])
+		 (let loop ([i (string-length new-front)])
+		   (unless (zero? i)
+		     (string-set! label (sub1 i) 
+				  (string-ref new-front (sub1 i)))
+		     (loop (sub1 i))))
+		 (send menu set-label id label)))))])
 
       (public
 	[file-menu:between-open-and-save
@@ -391,9 +415,9 @@
 		   (cons top-panel
 			 (mzlib:function@:foldl
 			  (lambda (id sofar)
-			    (if (send show-menu checked? id)
-				(cons (id->child id) sofar)
-				sofar))
+			    (if (hidden? show-menu id)
+				sofar
+				(cons (id->child id) sofar)))
 			  null
 			  (list interactions-id definitions-id 
 				;imports-id
@@ -411,7 +435,8 @@
 		 1)
 	   (map 
 	    (lambda (id)
-	      (send file-menu enable id (send show-menu checked? definitions-id)))
+	      (send file-menu enable id 
+		    (not (hidden? show-menu definitions-id))))
 	    (list file-menu:open-id
 		  file-menu:new-id
 		  file-menu:save-id
@@ -419,13 +444,13 @@
 		  file-menu:revert-id
 		  file-menu:print-id))
 	   (send file-menu enable file-menu:print-transcript-id 
-		 (send show-menu checked? interactions-id)))]
+		 (not (hidden? show-menu interactions-id))))]
 	[make-menu-bar
 	 (lambda ()
 	   (let ([mb (super-make-menu-bar)]
 		 [scheme-menu (make-menu)]
 		 [language-menu (make-menu)])
-	     
+
 	     (send* mb
 	       (append scheme-menu "S&cheme")
 	       (append language-menu "&Language"))
@@ -469,19 +494,24 @@
 	     '(set! imports-id 
 		   (send show-menu append-item
 			 "&Imports"
-			 (lambda () (update-shown))
+			 (lambda () 
+			   (toggle-show/hide show-menu imports-id)
+			   (update-shown))
 			 "Show the imports to this unit"
 			 #t))
 	     (set! definitions-id
-		   (send show-menu append-item "&Definitions"
-			 (lambda () (update-shown))
-			 "Show the definitions in this unit"
-			 #t))
+		   (send show-menu append-item "Hide &Definitions"
+			 (lambda () 
+			   (toggle-show/hide show-menu definitions-id)
+			   (update-shown))
+			 "Show the definitions window"))
 	     (set! interactions-id
-		   (send show-menu append-item "&Interactions"
-			 (lambda () (update-shown))
-			 "Show the interactions with this unit"
-			 #t))
+		   (send show-menu append-item 
+			 "Show &Interactions"
+			 (lambda () 
+			   (toggle-show/hide show-menu interactions-id)
+			   (update-shown))
+			 "Show the interactions window"))
 	     mb))]
 	
 	[do-close
@@ -643,13 +673,12 @@
 		 button-panel))])
       
       (sequence
-	;(send show-menu check imports-id #f)
-	(send show-menu check definitions-id #t)
-	(send show-menu check interactions-id 
-	      (or (ivar interactions-edit repl-initially-active?)
-		  (mred:get-preference 'drscheme:repl-always-active)))
-	
 	(send interactions-edit initialize-console)
+
+	(when (or (ivar interactions-edit repl-initially-active?)
+		  (mred:get-preference 'drscheme:repl-always-active))
+	  (toggle-show/hide show-menu interactions-id))
+	
 	(send interactions-edit enable-autoprompt)
 	(send interactions-edit insert-prompt)
 	(send interactions-edit clear-undos)
