@@ -1,5 +1,7 @@
 (module info (lib "infotab.ss" "setup")
   (define name "DrScheme")
-  ;(define tools (list "syncheck.ss"))
+  (define tools (list "syncheck.ss"))
+  (define tool-icons (list '("syncheck.gif" "icons")))
+  (define tool-names (list "Check Syntax"))
   (define mred-launcher-libraries (list "drscheme.ss"))
   (define mred-launcher-names (list "DrScheme")))

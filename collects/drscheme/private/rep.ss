@@ -1085,43 +1085,6 @@
       ;;;                Parameters                  ;;;
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-            ;; expand-program : language-settings ((union sexp syntax) ((-> void) -> void) (-> void) -> void) -> void
-            (define (expand-program language-settings iter)
-              (let ([eventspace (make-eventspace)]
-                    [language (drscheme:language-configuration:language-settings-language language-settings)]
-                    [settings (drscheme:language-configuration:language-settings-settings language-settings)]
-                    [user-custodian (make-custodian)]
-                    [run-in-eventspace
-                     (lambda (thnk)
-                       (parameterize ([current-eventspace eventspace])
-                         (let ([s (make-semaphore 0)]
-                               [ans #f])
-                           (queue-callback
-                            (lambda ()
-                              (set! ans (thnk))
-                              (semaphore-post sema)))
-                           (semaphore-wait s)
-                           ans)))]
-                    [drs-snip-classes (get-snip-classes)])
-                (run-in-eventspace
-                 (lambda ()
-                   (current-custodian user-custodian)
-                   (set-basic-parameters drs-snip-classes)
-                   (current-language-settings language-settings)
-                   (break-enabled #t)))
-                (send language on-execute settings run-in-eventspace)
-                (let ([read-thnk
-                       (run-in-eventspace
-                        (lambda ()
-                          (send language front-end input settings)))])
-                  (let loop ()
-                    (let ([in (run-in-eventspace read-thnk)])
-                      (unless (eof-object? in)
-                        (iter
-                         in
-                         run-in-eventspace
-                         (lambda () (loop)))))))))
             
             ;; set-basic-parameters : -> void
             ;; sets the parameters that are shared between the repl's initialization
@@ -1203,6 +1166,44 @@
       ;;;                Evaluation                  ;;;
       ;;;                                            ;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            
+            (define (expand-program input language-settings iter)
+              (let* ([eventspace (make-eventspace)]
+                     [language (drscheme:language-configuration:language-settings-language
+                                language-settings)]
+                     [settings (drscheme:language-configuration:language-settings-settings
+                                language-settings)]
+                     [user-custodian (make-custodian)]
+                     [run-in-eventspace
+                      (lambda (thnk)
+                        (parameterize ([current-eventspace eventspace])
+                          (let ([s (make-semaphore 0)]
+                                [ans #f])
+                            (queue-callback
+                             (lambda ()
+                               (set! ans (thnk))
+                               (semaphore-post s)))
+                            (semaphore-wait s)
+                            ans)))]
+                     [drs-snip-classes (get-snip-classes)])
+                (run-in-eventspace
+                 (lambda ()
+                   (current-custodian user-custodian)
+                   (set-basic-parameters drs-snip-classes)
+                   (current-language-settings language-settings)
+                   (break-enabled #t)))
+                (send language on-execute settings run-in-eventspace)
+                (let ([read-thnk
+                       (run-in-eventspace
+                        (lambda ()
+                          (send language front-end input settings)))])
+                  (let loop ()
+                    (let ([in (run-in-eventspace read-thnk)])
+                      (unless (eof-object? in)
+                        (iter
+                         in
+                         run-in-eventspace
+                         (lambda () (loop)))))))))
             
             (define (get-prompt) "> ")
             (define (eval-busy?)
