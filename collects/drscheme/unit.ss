@@ -20,41 +20,32 @@
         [(not program-filename)
          (mred:message-box "Create Launcher" "You must save your program before creating a launcher")]
         [else
-         (when (eq? (mred:message-box 
-                     "Create Launcher"
-                     (format
-                      "This will create a separately launchable application to ~
-                      run the program in the definitions window. The current language ~
-                      settings and teachpacks will be hardwired into the launcher. Continue?")
-                     frame
-                     '(yes-no))
-                    'yes)
-           (let* ([settings (fw:preferences:get 'drscheme:settings)]
-                  [v-settings (struct->vector settings)]
-                  [teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
-                  [in-mz? (regexp-match "MzScheme" (basis:setting-name settings))])
-             (when (if (and in-mz?
-                            (not (null? teachpacks)))
-                       (eq? 'yes
-                            (mred:message-box 
-                             "Create Launcher"
-                             (format
-                              "Although MzScheme is the current language, you have a teachpack~
+	 (let* ([settings (fw:preferences:get 'drscheme:settings)]
+		[v-settings (struct->vector settings)]
+		[teachpacks (fw:preferences:get 'drscheme:teachpack-file)]
+		[in-mz? (regexp-match "MzScheme" (basis:setting-name settings))])
+	   (when (if (and in-mz?
+			  (not (null? teachpacks)))
+		     (eq? 'yes
+			  (mred:message-box 
+			   "Create Launcher"
+			   (format
+			    "Although MzScheme is the current language, you have a teachpack~
                                selected, so this will create a MrEd launcher. Continue?")
-                             '(yes-no)))
-                       #t)
-               (let ([filename (mred:put-file "Save a Launcher" frame #f #f "exe")])
-                 (when filename
-                   (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
-                                            "-e" (format "(define settings ~s)" v-settings)
-                                            "-e" (format "(define teachpacks '~s)" teachpacks))])
-                     (if (and in-mz? (null? teachpacks))
-                         (launcher:make-mzscheme-launcher
-			  (append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
-			  filename)
-                         (launcher:make-mred-launcher
-			  (append '("-mv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
-			  filename))))))))])))
+			   '(yes-no)))
+		     #t)
+	     (let ([filename (fw:finder:put-file "Save a Launcher")])
+	       (when filename
+		 (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
+					  "-e" (format "(define settings ~s)" v-settings)
+					  "-e" (format "(define teachpacks '~s)" teachpacks))])
+		   (if (and in-mz? (null? teachpacks))
+		       (launcher:make-mzscheme-launcher
+			(append '("-mv") definitions '("-L" "mz-launcher.ss" "userspce"))
+			filename)
+		       (launcher:make-mred-launcher
+			(append '("-mv") definitions '("-L" "launcher-bootstrap.ss" "userspce"))
+			filename)))))))])))
   
   (define make-bitmap 
     (case-lambda 
