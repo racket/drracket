@@ -2365,13 +2365,13 @@ tab panels new behavior:
               (send-method (lambda (x) (send x tabify-all)))
               #\i)
             (make-object menu:can-restore-menu-item%
-              (string-constant semicolon-comment-out-menu-item-label)
-              scheme-menu
-              (send-method (lambda (x) (send x comment-out-selection))))
-            (make-object menu:can-restore-menu-item%
               (string-constant box-comment-out-menu-item-label)
               scheme-menu
               (send-method (lambda (x) (send x box-comment-out-selection))))
+            (make-object menu:can-restore-menu-item%
+              (string-constant semicolon-comment-out-menu-item-label)
+              scheme-menu
+              (send-method (lambda (x) (send x comment-out-selection))))
             (make-object menu:can-restore-menu-item%
               (string-constant uncomment-menu-item-label)
               scheme-menu

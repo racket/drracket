@@ -36,11 +36,10 @@
 
       (define/override (file-menu:between-print-and-close menu) (void))
       
-      (override can-close?)
       (field (ok-to-close? #f))
       (public set-ok-to-close)
       (define (set-ok-to-close ok?) (set! ok-to-close? #t))
-      (define (can-close?)
+      (define/augment (can-close?)
         (or ok-to-close?
             (ask-yes-or-no (string-constant cancel-bug-report?)
                            (string-constant are-you-sure-cancel-bug-report?)
