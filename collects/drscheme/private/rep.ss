@@ -1212,6 +1212,8 @@
                 (current-directory dir)
                 (current-load-relative-directory dir))
               
+	      (current-ps-setup (make-object ps-setup%))
+
               (let ([user-custodian (current-custodian)])
                 (exit-handler (lambda (arg) ; =User=
                                 (custodian-shutdown-all user-custodian))))
