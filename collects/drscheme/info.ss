@@ -6,13 +6,8 @@
 	       (lambda(plt-dir)
 		 (require-library "launcher.ss" "launcher")
 		 (make-mred-launcher
-		  (list "-maqgL" "drscheme.ss" "drscheme")
+		  (list "-mvaqgL" "drscheme.ss" "drscheme")
 		  (mred-program-launcher-path "DrScheme")))]
-;	      [(splash-image-path)
-;	       (with-handlers ([void (lambda (x) "mred.gif")]) 
-;		 (build-path (collection-path "icons") "plt.gif"))]
-;	      [(splash-max) 138]
-;	      [(splash-depth) 6]
 	      [(compile-prefix) 
 	       '(begin
 		  (read-case-sensitive #t)
