@@ -907,7 +907,7 @@
                                            (string-constant drscheme)
                                            (format (string-constant error-erasing-log-directory)
                                                    (if (exn? exn)
-                                                       (exn-message exn)
+                                                       (format "~a" (exn-message exn))
                                                        (format "~s" exn)))
                                            this)
                                           #f)])

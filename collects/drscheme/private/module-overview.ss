@@ -668,7 +668,7 @@
                            (lambda (x) 
                              (set! error
                                    (if (exn? x)
-                                       (exn-message x)
+                                       (format "~a" (exn-message x))
                                        (format "~s" x))))])
             (let loop ([filename (normalize-path filename)])
               (let ([visited-key (string->symbol filename)])

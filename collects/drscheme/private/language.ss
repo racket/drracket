@@ -785,7 +785,7 @@
                            (message-box 
                             (string-constant drscheme)
                             (if (exn? x)
-                                (exn-message x)
+                                (format "~a" (exn-message x))
                                 (format "uncaught exception: ~s" x))))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
@@ -908,7 +908,7 @@
                            (message-box 
                             (string-constant drscheme)
                             (if (exn? x)
-                                (exn-message x)
+                                (format "~a" (exn-message x))
                                 (format "uncaught exception: ~s" x))))])
           
           ((if gui? make-mred-launcher make-mzscheme-launcher)

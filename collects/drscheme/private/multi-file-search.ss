@@ -497,7 +497,8 @@
                (if (string? _searcher)
                    (message-box message-box-title _searcher dialog)
                    (let ([regexp (with-handlers ([(lambda (x) #t)
-                                                  (lambda (exn) (exn-message exn))])
+                                                  (lambda (exn)
+						    (format "~a" (exn-message exn)))])
                                    (and (send filter-check-box get-value)
                                         (regexp (send filter-text-field get-value))))])
                      (if (string? regexp)
@@ -669,7 +670,7 @@
       (define (regexp-match-searcher parmas key)
         (let ([re:key (with-handlers ([(lambda (x) #t)
                                        (lambda (exn)
-                                         (exn-message exn))])
+                                         (format "~a" (exn-message exn)))])
                         (regexp key))])
           (if (string? re:key)
               re:key

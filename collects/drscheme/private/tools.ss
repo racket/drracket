@@ -202,7 +202,7 @@
                         title])
           ((error-display-handler)
            (if (exn? x)
-               (exn-message x)
+               (format "~a" (exn-message x))
                (format "uncaught exception: ~s" x))
            x)))
 

@@ -278,7 +278,7 @@
                          (lambda (exn)
                            (message-box (string-constant drscheme)
                                         (if (exn? exn)
-                                            (exn-message exn)
+                                            (format "~a" (exn-message exn))
                                             (format "~s" exn))))])
           (let* ([url (string->url s-url)]
                  [tmp-filename (make-temporary-file "tmp~a.plt")]

@@ -180,7 +180,7 @@
                     [line (and expr (syntax-line expr))])
                (when (string? src)
                  (insert-file-name/icon src pos span line col))
-               (insert/delta text (exn-message exn) error-delta)
+               (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (when (syntax? expr)
                  (insert/delta text " in: ")
                  (insert/delta text (format "~s" (syntax-object->datum expr)) error-text-style-delta))
@@ -197,7 +197,7 @@
                    [col (exn:read-column exn)])
                (when (string? src)
                  (insert-file-name/icon src pos span line col))
-               (insert/delta text (exn-message exn) error-delta)
+               (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (insert/delta text "\n")
                (when (and (is-a? src text:basic%)
                           (number? pos)
@@ -205,11 +205,11 @@
                  (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
             [(exn:locs? exn)
              (let ([locs (exn:locs-locs exn)])
-               (insert/delta text (exn-message exn) error-delta)
+               (insert/delta text (format "~a" (exn-message exn)) error-delta)
                (insert/delta text "\n")
 	       (highlight-errors locs))]
             [(exn? exn)
-             (insert/delta text (exn-message exn) error-delta)
+             (insert/delta text (format "~a" (exn-message exn)) error-delta)
              (insert/delta text "\n")]
             [else
              (insert/delta text "uncaught exception: " error-delta)

@@ -152,7 +152,7 @@
                                      (message-box
                                       (string-constant drscheme)
                                       (if (exn? x)
-                                          (exn-message x)
+                                          (format "~a" (exn-message x))
                                           (format "uncaught exception: ~s" x))))])
                     (if stand-alone?
                         (make-embedding-executable
