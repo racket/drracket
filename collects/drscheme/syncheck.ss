@@ -22,6 +22,7 @@ If the namespace does not, they are colored the unbound color.
            (lib "list.ss")
            (lib "toplevel.ss" "syntax")
            (lib "boundmap.ss" "syntax")
+           (lib "bitmap-label.ss" "mrlib")
            (prefix drscheme:arrow: (lib "arrow.ss" "drscheme"))
            (prefix fw: (lib "framework.ss" "framework"))
            (lib "mred.ss" "mred"))
@@ -755,7 +756,7 @@ If the namespace does not, they are colored the unbound color.
               (super-new)))))
       
       (define syncheck-bitmap
-        (drscheme:unit:make-bitmap
+        (bitmap-label-maker
          (string-constant check-syntax)
          (build-path (collection-path "icons") "syncheck.png")))
       

@@ -126,7 +126,6 @@
   (define-signature drscheme:unit^
     (frame% 
      frame<%>
-     make-bitmap
      definitions-canvas%
      get-definitions-text%
      definitions-text<%>
