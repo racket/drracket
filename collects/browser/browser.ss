@@ -1,4 +1,3 @@
-(define start-file "file:~/proj/plt/src/doc/mz/index.htm")
 
 (require-library "url.ss" "net")
 (load-relative "html.ss")
@@ -47,44 +46,7 @@
 	 (lambda (start end)
 	   (map-shift-style start end 
 			    (send (get-style-list) find-named-style "h-link-style")))]
-	[make-editor (lambda (url) (make-object (object-class this) url))]
 	[get-url (lambda () url)]
-	[goto-url
-	 (lambda (url-string)
-	   (let* ([url
-		   (if (get-url)
-		       (combine-url/relative 
-			(get-url)
-			url-string)
-		       (string->url url-string))]
-		  [e (make-editor url)]
-		  [tag-pos (send e find-tag (url-fragment url))])
-	     (set-page (list e (or tag-pos 0) (send e last-position)) #t)))]
-	[set-page
-	 (lambda (page notify?)
-	   (let ([e (car page)]
-		 [spos (cadr page)]
-		 [epos (caddr page)]
-		 [c (get-canvas)]
-		 [current (current-page)])
-	     ; Pre-size the editor to avoid visible reflow
-	     (let ([wbox (box 0)])
-	       (get-view-size wbox (box 0))
-	       (send e set-max-width (unbox wbox)))
-	     (send e begin-edit-sequence)
-	     (when notify?
-	       (send (send c get-top-level-window) leaving-page current (list e 0 0)))
-	     (send c set-editor e (and (zero? (cadr current)) (zero? spos)))
-	     (send e scroll-to-position spos #f epos 'start)
-	     (send e end-edit-sequence)
-	     (when (or (positive? spos) (positive? (cadr current)))
-	       (send c refresh))))]
-	[current-page
-	 (lambda ()
-	   (let ([sbox (box 0)]
-		 [ebox (box 0)])
-	     (get-visible-position-range sbox ebox)
-	     (list this (unbox sbox) (unbox ebox))))]
 	[make-clickback-funct
 	 (lambda (url-string)
 	   (lambda (edit start end)
@@ -96,7 +58,7 @@
 					      (if (exn? x)
 						  (exn-message x)
 						  x))))])
-	       (goto-url url-string))))]	
+	       (send (get-canvas) goto-url url-string (get-url)))))]	
 	[install-clickbacks 
 	 (lambda ()
 	   (let install-loop ([links-left hyperlinks-list])
@@ -182,9 +144,59 @@
 
 (define hyper-text% (hyper-text-mixin text%))
 
-(define (hyper-frame-mixin super%)
+(define (hyper-canvas-mixin super%)
   (class super% args
-    (inherit show)
+    (inherit get-editor set-editor refresh get-top-level-window)
+    (public
+      [make-editor (lambda (url) (make-object hyper-text% url))]
+      [current-page
+       (lambda ()
+	 (let ([e (get-editor)])
+	   (and e 
+		(let ([sbox (box 0)]
+		      [ebox (box 0)])
+		  (send e get-visible-position-range sbox ebox)
+		  (list e (unbox sbox) (unbox ebox))))))]
+      [goto-url
+       (lambda (url-string relative)
+	 (let* ([url (if (url? url-string)
+			 url-string
+			 (if relative
+			     (combine-url/relative 
+			      relative
+			      url-string)
+			     (string->url url-string)))]
+		[e (make-editor url)]
+		[tag-pos (send e find-tag (url-fragment url))])
+	   (set-page (list e (or tag-pos 0) (send e last-position)) (get-editor))))]
+      [set-page
+       (lambda (page notify?)
+	 (let ([e (car page)]
+	       [spos (cadr page)]
+	       [epos (caddr page)]
+	       [curr (get-editor)]
+	       [current (current-page)])
+	   ; Pre-size the editor to avoid visible reflow
+	   (when curr
+	     (let ([wbox (box 0)])
+	       (send curr get-view-size wbox (box 0))
+	       (send e set-max-width (unbox wbox))))
+	   (send e begin-edit-sequence)
+	   (when notify?
+	     (send (get-top-level-window) leaving-page current (list e 0 0)))
+	   (set-editor e (or (not current) (and (zero? (cadr current)) (zero? spos))))
+	   (send e scroll-to-position spos #f epos 'start)
+	   (send e end-edit-sequence)
+	   (when (or (positive? spos) (positive? (cadr current)))
+	     (refresh))))])
+    (sequence
+      (apply super-init args))))
+
+(define hyper-canvas% (hyper-canvas-mixin editor-canvas%))
+
+(define (hyper-frame-mixin super%)
+  (class super% (start-url . args)
+    (inherit show reflow-container)
     (sequence
       (apply super-init args))
     (private
@@ -192,20 +204,18 @@
       [hp (make-object horizontal-panel% this)]
       [back (make-object button% "< Backward" hp
 			 (lambda (b ev) 
-			   (let ([page (car past)]
-				 [e (send c get-editor)])
-			     (set! future (cons (send e current-page) future))
+			   (let ([page (car past)])
+			     (set! future (cons (send c current-page) future))
 			     (set! past (cdr past))
 			     (update-buttons page)
-			     (send (send c get-editor) set-page page #f))))]
+			     (send c set-page page #f))))]
       [forward (make-object button% "Forward >" hp
 			 (lambda (b ev) 
-			   (let ([page (car future)]
-				 [e (send c get-editor)])
-			     (set! past (cons (send e current-page) past))
+			   (let ([page (car future)])
+			     (set! past (cons (send c current-page) past))
 			     (set! future (cdr future))
 			     (update-buttons page)
-			     (send e set-page page #f))))]
+			     (send c set-page page #f))))]
       [update-buttons (lambda (page)
 			(send back enable (pair? past))
 			(send forward enable (pair? future))
@@ -219,9 +229,8 @@
 			(send choice set-selection (length future)))]
       [choice (make-object choice% #f null hp
 			   (lambda (ch e)
-			     (let* ([e (send c get-editor)]
-				    [l (append (reverse past)
-					       (list (send e current-page))
+			     (let* ([l (append (reverse past)
+					       (list (send c current-page))
 					       future)]
 				    [pos (- (length l) (send choice get-selection) 1)])
 			       (let loop ([l l][pre null][pos pos])
@@ -230,11 +239,11 @@
 				   (set! past pre)
 				   (set! future (cdr l))
 				   (update-buttons (car l))
-				   (send e set-page (car l) #f)]
+				   (send c set-page (car l) #f)]
 				  [else (loop (cdr l)
 					      (cons (car l) pre)
 					      (sub1 pos))])))))]
-      [c (make-object editor-canvas% this)])
+      [c (make-object hyper-canvas% this)])
     (public
       [leaving-page (lambda (page new-page)
 		      (set! future null)
@@ -249,8 +258,9 @@
     (sequence
       (send choice stretchable-width #t)
       (send hp stretchable-height #f)
-      (send c set-editor (make-object hyper-text% (string->url start-file)))
-      (update-buttons (send (send c get-editor) current-page))
-      (show #t))))
+      (show #t)
+      (send c goto-url start-url #f)
+      (update-buttons (send c current-page)))))
 
-(define f (make-object (hyper-frame-mixin frame%) "Browser" #f 500 450))
+(define (open-url file)
+  (make-object (hyper-frame-mixin frame%) file "Browser" #f 500 450))

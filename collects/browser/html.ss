@@ -165,16 +165,27 @@
 	 
 	 ;; Make sure newline strength before pos is count; returns number inserted
 	 [try-newline
-	  (lambda (pos count)
+	  (lambda (pos count maybe-tabbed?)
 	    (cond
 	     [(zero? count) 0]
 	     [(zero? pos) 0]
-	     [(eq? #\newline (get-character (sub1 pos))) 
-	      (try-newline (sub1 pos) (sub1 count))]
-	     [else
-	      (insert #\newline pos)
-	      (add1 (try-newline pos (sub1 count)))]))]
-
+	     [else (let ([c (get-character (sub1 pos))])
+		     (cond
+		      [(eq? #\newline c) 
+		       (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
+		      [(and maybe-tabbed? (char-whitespace? c))
+		       ; Some whitespace is messing up the newlines (perhaps added
+		       ; by a spurious <P> in a list item); delete it all
+		       (let loop ([p (sub1 pos)])
+			 (cond
+			  [(or (zero? p) (not (char-whitespace? (get-character (sub1 p)))))
+			   (delete p pos)
+			   (+ (- p pos) (try-newline p count #f))]
+			  [else (loop (sub1 p))]))]
+		      [else
+		       (insert #\newline pos)
+		       (add1 (try-newline pos (sub1 count) #f))]))]))]
+	 
 	 [find-string 
 	  (lambda (str pos keep?)
 	    (let ([first (string-ref str 0)]
@@ -263,6 +274,7 @@
 				   [(gt) #\>]
 				   [(lt) #\<]
 				   [(quot) #\"]
+				   [(amp) #\&]
 				   [else ""]))
 				(loop (cons ch l)))))))]
 		 [else 
@@ -357,20 +369,21 @@
 			      (when bullet?
 				(insert "* " (+ pos enum-depth)))
 			      (atomic-values (+ pos enum-depth 
-						(try-newline pos newlines)
+						(try-newline pos newlines #t)
 						(if bullet? 2 0))
 					     #t))])
 		(case tag
 		  [(!) (atomic-values pos del-white?)]
 		  [(br) (break #f 1)]
-		  [(p hr) (break #f 2)]
+		  [(p hr) (break #f (if del-white? 2 1))] ; del-white? = #f => <P> in <PRE>
 		  [(li) (break #t 1)]
-		  [(dd) (break #f 1)]
-		  [(dt) (break #t 2)]
+		  [(dt) (break #f 1)]
+		  [(dt) (atomic-values pos del-white?)]
 		  [(img)
 		   (let* ([url (parse-image-source args)]
 			  [b (cache-image url)])
-		     (insert b pos))
+		     (insert b pos)
+		     (change-style (make-object style-delta% 'change-alignment 'bottom) pos (add1 pos)))
 		   (atomic-values (add1 pos) #f)]
 		  [else 
 		   (html-error "unimplemented (atomic) tag: ~a" tag)
@@ -409,7 +422,7 @@
 			 [heading (lambda (delta)
 				    (insert (string #\newline #\newline) end-pos)
 				    (change-style delta pos end-pos)
-				    (result (+ end-pos 2 (try-newline pos 1)) #t))])
+				    (result (+ end-pos 2 (try-newline pos 1 #f)) #t))])
 		    (case tag
 		      [(head body center) (normal)]
 		      [(title)
@@ -432,7 +445,7 @@
 		       (change-style delta:fixed pos end-pos)
 		       (normal)]
 		      [(pre)
-		       (result (+ end-pos (try-newline end-pos 2) (try-newline pos 2)) #t)]
+		       (result (+ end-pos (try-newline end-pos 2 #f) (try-newline pos 2 #f)) #t)]
 		      [(h1) (heading delta:h1)]
 		      [(h2) (heading delta:h2)]
 		      [(h3) (heading delta:h3)]
