@@ -1,3 +1,42 @@
+199d5
+
+PRs: 2062 2086 2116
+  
+New language level: module. It behaves like `require'ing the
+  definitions window, except that the REPL will contain
+  every defined identifier in the module, not just those
+  that are provided.
+
+TeachPacks are back.
+
+THINGS STILL MISSING (and promised to be broken :)
+
+ - launchers
+ - project manager
+
+FUNCTIONALITY CHANGES
+
+- TeachPacks are now implemented as modules.
+  They are just loaded when execute is clicked.
+
+- the get-teachpack-names method is gone from
+  the language<%> interface.
+
+- the expand-program method is now called after
+  expansion is finished, with eof. This is a good
+  time to kill the eventspace that was created
+  for the expansion.
+
+MINOR CHANGES AND BUG FIXES
+
+- moved the Windows menu to the 
+  second to last position of the menubar.
+
+- split/collapse are now in the show menu
+
+- check syntax now works properly behind 
+  define-syntax, and other misc. bugs fixed.
+
 199d4
 
 TRANSLATIONS
