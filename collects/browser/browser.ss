@@ -9,6 +9,6 @@
   
   (provide-signature-elements browser^)
   
-  (define-values/invoke-unit/sig browser^ browser@ #f 
-                                 mred^
-                                 setup:plt-installer^))
+  (define-values/invoke-unit/sig browser^ browser@ #f
+                                 setup:plt-installer^
+                                 mred^))
