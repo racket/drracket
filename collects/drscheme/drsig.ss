@@ -18,6 +18,7 @@
 (require-library "links.ss" "dynext")
 (require-relative-library "load-handlers.ss")
 (require-library "plt-installers.ss" "setup")
+(require-library "get-infos.ss" "setup")
 
 (require-library "sig.ss" "help")
 
@@ -44,10 +45,6 @@
   (fill-language-menu
    settings-preferences-symbol
    language-dialog))
-
-(define-signature drscheme:tool^
-  ((struct tool (name file callback))
-   tools))
 
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
@@ -130,8 +127,22 @@
    (unit help-info : help:get-info^)))
 
 (define-signature drscheme^
-  ((unit drscheme:export : drscheme:export^)
-   (open framework^)))
+  ((open mzlib:core^)
+   (open mzlib:print-convert^)
+   (open framework^)
+   (open setup:plt-installer^)
+   (open setup:info^)
+
+   (unit zodiac : zodiac:system^)
+   (unit plt:aries : plt:aries^)
+
+   (unit drscheme:init : drscheme:init^)
+   (unit drscheme:prefs : drscheme:prefs^)
+   (unit drscheme:text : drscheme:text^)
+   (unit drscheme:snip : drscheme:snip^)
+   (unit drscheme:export : drscheme:export^)
+   (unit drscheme:app : drscheme:app^)
+   (unit drscheme:main : drscheme:main^)))
 
 (begin-elaboration-time
  (define drscheme:tool-directories (directory-list (collection-path "drscheme" "tools")))
