@@ -228,8 +228,6 @@
     #f
     #f)
    
-   
-
    ;; non-strings snip test
    (make-test 'abc-text-box
 	      "[abc]"
