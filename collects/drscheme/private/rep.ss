@@ -442,18 +442,6 @@
       
       (define error-color (make-object color% "PINK"))
       (define color? ((get-display-depth) . > . 8))
-      
-      (define (in-canvas? text)
-        (let ([editor-admin (send text get-admin)])
-          (cond
-            [(is-a? editor-admin editor-snip-editor-admin<%>)
-             (let* ([snip (send editor-admin get-snip)]
-                    [snip-admin (send snip get-admin)])
-               (and snip-admin
-                    (in-canvas? (send snip-admin get-editor))))]
-            [(is-a? editor-admin editor-admin%)
-             (send text get-canvas)]
-            [else #f])))
             
       ;; instances of this interface provide a context for a rep:text%
       ;; its connection to its graphical environment (ie frame) for
@@ -1363,7 +1351,9 @@
             (highlight-errors (list (list file start end))))
           
           ;; =User= and =Kernel= (maybe simultaneously)
-          ;; highlight-errors : (cons (list file number number) (listof (list file number number)))
+          ;; highlight-errors :    (cons (list file number number) (listof (list file number number)))
+          ;;                       (union #f (listof (list (is-a?/c text:basic<%>) number number)))
+          ;;                    -> (void)
           (define/public highlight-errors
             (opt-lambda (locs [error-arrows #f])
               (reset-highlighting)  ;; grabs error-range/reset-callback-sempahore

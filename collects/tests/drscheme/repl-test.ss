@@ -12,7 +12,15 @@
   ;; loc = (make-loc number number number)
   ;; numbers in loc structs start at zero.
   
-  (define-struct test (program               ;; : (union string 'fraction-sum)
+  (define-struct test (program
+                       ;; : (union 
+                       ;;    string 
+                       ;;    'fraction-sum
+                       ;;    (listof
+                       ;;      (union string?  // typed in
+                       ;;             'left    // left arrow key
+                       ;;             (list string? string?)))) // menu item select
+                       
                        execute-answer        ;; : string
                        load-answer           ;; : (union #f string)
                        
@@ -41,11 +49,37 @@
                        docs-icon?                  ;; : boolean 
                        ;; true if this should have a docs icon in front of the response.
                        
-                       breaking-test?))            ;; : boolean
+                       breaking-test?              ;; : boolean
+                       
+                       ;; setup is called before the test case is run.
+                       setup ;; : -> void
+                       ;; teardown is called after the test case is complete.
+                       teardown ;; : -> void
+                       ))
   
   (define test-data
     (list
 
+     (let ([tmp-filename (make-temporary-file "dr-repl-test~a.ss")])
+       (make-test
+        (format "(load ~s) (f (lambda () (+ 1 (car 1))))" tmp-filename)
+        "car: expects argument of type <pair>; given 1"
+        "car: expects argument of type <pair>; given 1"
+        #t
+        (cons (make-loc -1 -1 (+ (string-length tmp-filename) 29))
+              (make-loc -1 -1 (+ (string-length tmp-filename) 36)))
+        #f
+        #f
+        #f
+        (lambda ()
+          (call-with-output-file tmp-filename
+            (lambda (port)
+              (write '(define (f t) (+ 1 (t)))
+                     port))
+            'truncate))
+        (lambda ()
+          (delete-file tmp-filename))))
+     
      ;; XML tests
      (make-test
       '(("Special" "Insert XML Box")
@@ -56,7 +90,9 @@
       'interactions
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      (make-test
       '(("Special" "Insert XML Box")
@@ -69,7 +105,9 @@
       'interactions
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      (make-test
       '(("Special" "Insert XML Box")
@@ -82,7 +120,9 @@
       'interactions
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      (make-test
       '(("Special" "Insert XML Box")
@@ -95,7 +135,9 @@
       'definitions
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      ;; basic tests
      (make-test "("
@@ -105,7 +147,9 @@
                 (cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "."
                 "~aread: illegal use of \".\""
                 "~aread: illegal use of \".\""
@@ -113,7 +157,9 @@
 		(cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(lambda ())"
                 "~alambda: bad syntax in: (lambda ())"
                 "~alambda: bad syntax in: (lambda ())"
@@ -121,7 +167,9 @@
                 (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand
                 #t
-                #f)
+                #f
+                void
+                void)
      (make-test "xx"
                 "reference to undefined identifier: xx"
                 "reference to undefined identifier: xx"
@@ -129,7 +177,9 @@
                 (cons (make-loc 0 0 0) (make-loc 0 2 2))
 		#f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(raise 1)"
                 "uncaught exception: 1"
                 "uncaught exception: 1"
@@ -137,7 +187,9 @@
                 'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(raise #f)"
                 "uncaught exception: #f"
                 "uncaught exception: #f"
@@ -145,7 +197,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(raise (make-exn:syntax 1 2 3 4 5))"
                 "1"
                 "1"
@@ -153,7 +207,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      (make-test "(values 1 2)"
                 "1\n2"
@@ -162,7 +218,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(list 1 2)"
                 "(1 2)"
                 "(1 2)"
@@ -170,7 +228,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      ;; top-level semantics test
      (make-test "(define (f) (+ 1 1)) (define + -) (f)"
@@ -180,7 +240,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
 
      (make-test "(begin (define-struct a ()) (define-struct (b a) ()))"
 		""
@@ -189,7 +251,9 @@
 		'interactions
 		#f
 		#f
-		#f)
+		#f
+                void
+                void)
      
      ;; leading comment test
      (make-test "#!\n1"
@@ -199,7 +263,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      (make-test (list "#!\n" 
                       '("Special" "Insert XML Box")
@@ -210,7 +276,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      ;; eval tests
      (make-test "    (eval '(values 1 2))"
@@ -220,7 +288,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "    (eval '(list 1 2))"
                 "(1 2)"
                 "(1 2)"
@@ -228,7 +298,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "    (eval '(lambda ()))"
                 "lambda: bad syntax in: (lambda ())"
                 "lambda: bad syntax in: (lambda ())"
@@ -236,7 +308,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 23 23))
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "    (eval 'x)"
                 "reference to undefined identifier: x"
                 "reference to undefined identifier: x"
@@ -244,7 +318,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 13 13))
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      (make-test "(eval (box 1))"
 		"#&1"
@@ -253,7 +329,9 @@
 		'interactions
 		#f
                 #f
-		#f)
+		#f
+                void
+                void)
      
      (make-test "(eval '(box 1))"
 		"#&1"
@@ -262,7 +340,9 @@
 		'interactions
 		#f
                 #f
-		#f)
+		#f
+                void
+                void)
      
      ; printer setup test
      (make-test "(car (void))"
@@ -272,7 +352,9 @@
 		(cons (make-loc 0 0 0) (make-loc 0 12 12))
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      ;; error in the middle
      (make-test "1 2 ( 3 4"
@@ -282,7 +364,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 9 9))
                 'read
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "1 2 . 3 4"
                 "1\n2\n~aread: illegal use of \".\""
                 "~aread: illegal use of \".\""
@@ -290,7 +374,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 'read
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "1 2 (lambda ()) 3 4"
                 "1\n2\n~alambda: bad syntax in: (lambda ())"
                 "~alambda: bad syntax in: (lambda ())"
@@ -298,7 +384,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 15 15))
                 'expand
                 #t
-                #f)
+                #f
+                void
+                void)
      (make-test "1 2 x 3 4"
                 "1\n2\nreference to undefined identifier: x"
                 "reference to undefined identifier: x"
@@ -306,7 +394,9 @@
 		(cons (make-loc 0 4 4) (make-loc 0 5 5))
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "1 2 (raise 1) 3 4"
                 "1\n2\nuncaught exception: 1"
                 "uncaught exception: 1"
@@ -314,7 +404,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "1 2 (raise #f) 3 4"
                 "1\n2\nuncaught exception: #f"
                 "uncaught exception: #f"
@@ -322,7 +414,9 @@
 		'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      ;; new namespace test
      (make-test "(current-namespace (make-namespace))\nif"
@@ -332,7 +426,9 @@
 		(cons (make-loc 1 0 37) (make-loc 1 2 39))
                 'expand
                 #t
-                #f)
+                #f
+                void
+                void)
      
      (make-test "(current-namespace (make-namespace 'empty))\nif"
                 "~acompile: bad syntax; reference to top-level identifiers is not allowed, because no #%top syntax transformer is bound in: if"
@@ -341,7 +437,9 @@
 		(cons (make-loc 1 0 44) (make-loc 1 0 46))
                 'expand
                 #t
-                #f)
+                #f
+                void
+                void)
      
      ;; macro tests
      (make-test "(define-syntax (c stx) (syntax-case stx () [(_ p q r) (syntax (+ p q r))]))"
@@ -351,7 +449,9 @@
 		'interactions
 		#f
                 #f
-		#f)
+		#f
+                void
+                void)
      
      
      
@@ -364,7 +464,9 @@
       'definitions
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      ; fraction snip test
      (make-test 'fraction-sum
@@ -374,7 +476,9 @@
                 'interactions
                 #f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      (make-test
       ;; the begin/void combo is to make sure that no value printout
@@ -386,7 +490,9 @@
       (cons (make-loc 0 99 99) (make-loc 0 104 104))
       #f
       #f
-      #f)
+      #f
+      void
+      void)
      
      ;; breaking tests
      (make-test "(semaphore-wait (make-semaphore 0))"
@@ -396,7 +502,9 @@
 		(cons (make-loc 0 0 0) (make-loc 0 35 35))
                 #f
                 #f
-                #t)
+                #t
+                void
+                void)
      
      (make-test "(let l()(l))"
                 "user break"
@@ -405,7 +513,9 @@
 		(cons (make-loc 0 8 8) (make-loc 0 11 11))
                 #f
                 #f
-                #t)
+                #t
+                void
+                void)
      
      ;; continuation tests
      (make-test "(define k (call/cc (lambda (x) x)))\n(k 17)\nk"
@@ -414,21 +524,27 @@
 		'interactions
 		#f
                 #f
-		#f)
+		#f
+                void
+                void)
      (make-test "(define v (vector (call/cc (lambda (x) x))))\n((vector-ref v 0) 2)\nv"
 		"#1(2)" "#1(2)"
                 #f
 		'interactions
 		#f
                 #f
-                #f)
+                #f
+                void
+                void)
      (make-test "(define v (vector (eval '(call/cc (lambda (x) x)))))\n((vector-ref v 0) 2)\nv"
 		"#1(2)" "#1(2)"
                 #f
 		'interactions
 		#f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      (make-test "(define x 1)\n(begin (set! x (call/cc (lambda (x) x)))\n(x 3))"
 		"procedure application: expected procedure, given: 3; arguments were: 3"
@@ -437,7 +553,9 @@
 		(cons (make-loc 3 7 61) (make-loc 3 12 66))
 		#f
                 #f
-                #f)
+                #f
+                void
+                void)
      
      ;; thread tests
      (make-test "(begin (thread (lambda () x)) (sleep 1/10))"
@@ -447,7 +565,9 @@
 		(cons (make-loc 0 26 26) (make-loc 0 27 27))
                 #f
                 #f
-                #f)))
+                #f
+                void
+                void)))
   
   (define docs-image-string "{image}")
   (define backtrace-image-string "{image}")
@@ -521,6 +641,8 @@
                  [execute-answer (test-execute-answer in-vector)]
                  [source-location (test-source-location in-vector)]
                  [source-location-in-message (test-source-location-in-message in-vector)]
+                 [setup (test-setup in-vector)]
+                 [teardown (test-teardown in-vector)]
                  [start-line (and source-location-in-message
                                   (number->string (+ 1 (loc-line (car source-location)))))]
                  [start-col (and source-location-in-message
@@ -566,6 +688,8 @@
                                              start-col))
                              w/file-icon)))]
                  [breaking-test? (test-breaking-test? in-vector)])
+            
+            (setup)
             
             (clear-definitions drscheme-frame)
             ; load contents of test-file into the REPL, recording
@@ -669,6 +793,8 @@
                       (printf "FAILED load test for ~s\n  expected: ~s\n       got: ~s\n"
                               program formatted-load-answer received-load)))))
               
+              (teardown)
+              
               ; check for edit-sequence
               (when (repl-in-edit-sequence?)
                 (printf "FAILED: repl in edit-sequence")
@@ -739,5 +865,5 @@
     
     ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
-    (run-test-in-language-level #t)
-    (run-test-in-language-level #f)))
+    (run-test-in-language-level #f)
+    (run-test-in-language-level #t)))
