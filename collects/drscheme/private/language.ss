@@ -786,7 +786,8 @@
                             (string-constant drscheme)
                             (if (exn? x)
                                 (format "~a" (exn-message x))
-                                (format "uncaught exception: ~s" x))))])
+                                (format "uncaught exception: ~s" x)))
+                           (void))])
           (define init-code-tmp-filename (make-temporary-file "drs-standalone-exectable-init~a"))
           (define bootstrap-tmp-filename (make-temporary-file "drs-standalone-exectable-bootstrap~a"))
           
@@ -852,7 +853,8 @@
                  (list "-mvqZ")
                  (list "-mvq"))))
           (delete-file init-code-tmp-filename)
-          (delete-file bootstrap-tmp-filename)))
+          (delete-file bootstrap-tmp-filename)
+          (void)))
 
       (define (condense-scheme-code-string s)
         (let ([i (open-input-string s)]
@@ -909,7 +911,8 @@
                             (string-constant drscheme)
                             (if (exn? x)
                                 (format "~a" (exn-message x))
-                                (format "uncaught exception: ~s" x))))])
+                                (format "uncaught exception: ~s" x)))
+                           (void))])
           
           ((if gui? make-mred-launcher make-mzscheme-launcher)
            (list
