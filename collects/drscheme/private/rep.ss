@@ -1639,9 +1639,10 @@
                       [settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
-                      [get-sexp/syntax/eof (if complete-program?
-                                               (send lang front-end/complete-program text/pos settings)
-                                               (send lang front-end/interaction text/pos settings))])
+                      [get-sexp/syntax/eof 
+                       (if complete-program?
+                           (send lang front-end/complete-program text/pos settings user-teachpack-cache)
+                           (send lang front-end/interaction text/pos settings user-teachpack-cache))])
                  (let loop () 
                    (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                      (cond

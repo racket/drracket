@@ -476,9 +476,9 @@
                                               (get-module)
                                               (get-transformer-module)
                                               run-in-user-thread))
-          (define/public (front-end/complete-program input settings)
+          (define/public (front-end/complete-program input settings teachpack-cache)
             (module-based-language-front-end input (get-reader)))
-          (define/public (front-end/interaction input settings)
+          (define/public (front-end/interaction input settings teachpack-cache)
             (module-based-language-front-end input (get-reader)))
           (define/public (create-executable setting parent program-filename)
             (create-module-based-language-executable parent 

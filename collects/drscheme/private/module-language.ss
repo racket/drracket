@@ -111,8 +111,8 @@
           
           (define/override (get-style-delta) module-language-style-delta)
           
-          (define/override (front-end/complete-program input settings)
-            (let ([super-thunk (super-front-end/complete-program input settings)]
+          (define/override (front-end/complete-program input settings teachpack-cache)
+            (let ([super-thunk (super-front-end/complete-program input settings teachpack-cache)]
                   [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
                   [module-name #f])
               (lambda ()

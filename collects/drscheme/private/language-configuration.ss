@@ -1074,10 +1074,10 @@
         (class %
           (rename [super-front-end/complete-program front-end/complete-program]
                   [super-front-end/interaction front-end/interaction])
-          (define/override (front-end/complete-program input settings)
-            (wrap-front-end (super-front-end/complete-program input settings)))
-          (define/override (front-end/interaction input settings)
-            (wrap-front-end (super-front-end/interaction input settings)))
+          (define/override (front-end/complete-program input settings teachpack-cache)
+            (wrap-front-end (super-front-end/complete-program input settings teachpack-cache)))
+          (define/override (front-end/interaction input settings teachpack-cache)
+            (wrap-front-end (super-front-end/interaction input settings teachpack-cache)))
           (define/private (wrap-front-end thnk)
             (lambda ()
               (let ([res (thnk)])

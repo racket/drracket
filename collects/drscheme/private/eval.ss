@@ -3,9 +3,9 @@
   (require (lib "mred.ss" "mred")
            (lib "unitsig.ss")
            (lib "class.ss")
-           (lib "etc.ss")
 	   (lib "toplevel.ss" "syntax")
-           "drsig.ss")
+           "drsig.ss"
+           (lib "framework.ss" "framework"))
   
   (define op (current-output-port))
   (define (oprintf . args) (apply fprintf op args))
@@ -16,15 +16,17 @@
       (import [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:rep : drscheme:rep^]
               [drscheme:init : drscheme:init^]
-              [drscheme:language : drscheme:language^])
+              [drscheme:language : drscheme:language^]
+              [drscheme:teachpack : drscheme:teachpack^])
       
       (define (traverse-program/multiple language-settings
                                          init
                                          kill-termination)
-        (let-values ([(eventspace custodian) (build-user-eventspace/custodian
-                                              language-settings
-                                              init
-                                              kill-termination)])
+        (let-values ([(eventspace custodian teachpack-cache) 
+                      (build-user-eventspace/custodian
+                       language-settings
+                       init
+                       kill-termination)])
           (let ([language (drscheme:language-configuration:language-settings-language
                            language-settings)]
                 [settings (drscheme:language-configuration:language-settings-settings
@@ -35,8 +37,8 @@
                  (lambda ()
                    (let ([read-thnk 
                           (if complete-program?
-                              (send language front-end/complete-program input settings)
-                              (send language front-end/interaction input settings))])
+                              (send language front-end/complete-program input settings teachpack-cache)
+                              (send language front-end/interaction input settings teachpack-cache))])
                      (let loop ()
                        (let ([in (read-thnk)])
                          (cond
@@ -80,6 +82,7 @@
       
       (define (build-user-eventspace/custodian language-settings init kill-termination)
         (let* ([user-custodian (make-custodian)]
+               [user-teachpack-cache (preferences:get 'drscheme:teachpacks)]
 	       [eventspace (parameterize ([current-custodian user-custodian])
 			     (make-eventspace))]
                [language (drscheme:language-configuration:language-settings-language
@@ -113,13 +116,14 @@
           (run-in-eventspace
            (lambda ()
              (set! eventspace-main-thread (current-thread))
+             (drscheme:teachpack:install-teachpacks user-teachpack-cache)
              (init)
              (break-enabled #t)))
           (thread
            (lambda ()
              (thread-wait eventspace-main-thread)
              (kill-termination)))
-          (values eventspace user-custodian)))
+          (values eventspace user-custodian user-teachpack-cache)))
       
       ;; get-snip-classes : -> (listof snipclass)
       ;; returns a list of the snip classes in the current eventspace
