@@ -167,8 +167,12 @@
 	  (send (get-top-level-window) set-save-init-shown?
 		(and m (send m is-modified?)))))))
   
+  (define definitions-super%
+    (fw:scheme:text-mixin
+     fw:text:info%))
+
   (define definitions-edit%
-    (class fw:scheme:text% ()
+    (class definitions-super% ()
       (inherit get-top-level-window)
       (rename
        [super-set-modified set-modified]

@@ -13,25 +13,31 @@
 		       "Paul Steckler, and Stephanie Weirich")]
 	       [wrap-edit% 
 		(class-asi mred:text%
-		  (inherit get-max-width find-snip  set-autowrap-bitmap position-location)
+		  (inherit begin-edit-sequence end-edit-sequence
+			   get-max-width find-snip position-location)
 		  (rename [super-after-set-size-constraint after-set-size-constraint])
-		  (public
+		  (override
+		   [on-set-size-constraint
+		    (lambda ()
+		      (begin-edit-sequence)
+		      (let ([snip (find-snip 1 'after-or-none)])
+			(when (is-a? snip mred:original:editor-snip%)
+			  (send (send snip get-editor) begin-edit-sequence))))]
 		    [after-set-size-constraint
 		     (lambda ()
 		       (super-after-set-size-constraint)
-		       (let ([width (get-max-width)])
-			 (let* ([snip (find-snip 1 'after-or-none)])
-			   (when (is-a? snip mred:editor-snip%)
-			     (let ([b (box 0)]
-				   [media (send snip get-this-media)])
-			       (position-location 1 b null #f #t)
-			       (send snip resize (if (< width 0)
-						     width
-						     (- width 4 (unbox b)))
-				     17) ; smallest random number
-			       (send snip set-max-height -1))))))]
-		    [auto-set-wrap? #t]
-		    [autowrap-bitmap null]))]
+		       (let ([width (get-max-width)]
+			     [snip (find-snip 1 'after-or-none)])
+			 (when (is-a? snip mred:original:editor-snip%)
+			   (let ([b (box 0)])
+			     (position-location 1 b #f #f #t)
+			     (let ([new-width (- width 4 (unbox b))])
+			       (when (> new-width 0)
+				 (send snip resize new-width
+				       17) ; smallest random number
+				 (send snip set-max-height 'none))))
+			   (send (send snip get-editor) begin-edit-sequence)))
+		       (end-edit-sequence))]))]
 	       [e (make-object wrap-edit%)]
 	       [main-media (make-object wrap-edit%)]
 	       [image-snip 
@@ -51,34 +57,24 @@
 				 (private
 				   [edit-menu:do 
 				    (lambda (const)
-				      (lambda () 
-					(send main-media do-edit const)))])
-				 (public
-				   [get-panel%
-				    (lambda ()
-				      (class-asi mred:vertical-panel%
-					(public
-					  [default-x-stretch #t]
-					  [default-y-stretch #t])))]
-				   [file-menu:new #f]
-				   [file-menu:revert #f]
-				   [file-menu:save #f]
-				   [file-menu:save-as #f]
-				   [file-menu:between-close-and-quit (lambda (x) (void))]
-				   [file-menu:between-open-and-save  (lambda (x) (void))]
-				   [file-menu:between-print-and-close (lambda (x) (void))]
-				   [file-menu:between-save-and-quit (lambda (x) (void))]
-				   [edit-menu:between-redo-and-cut (lambda (x) (void))]
-				   [edit-menu:between-select-all-and-preferences (lambda (x) (void))]
-				   [edit-menu:between-select-all-and-find (lambda (x) (void))]
-				   [edit-menu:copy (edit-menu:do 'copy)]
-				   [edit-menu:select-all (edit-menu:do 'select-all)]
-				   [edit-menu:find #f]
-				   [help-menu:about (lambda () (about-drscheme))]
-				   [help-menu:about-string "DrScheme"]))
-			       '() "About DrScheme")]
-	       [p (ivar f panel)]
-	       [c (make-object mred:editor-canvas% p)]
+				      (lambda (_1 _2)
+					(send main-media do-edit-operation const)))])
+				 (override
+				  [file-menu:new #f]
+				  [file-menu:revert #f]
+				  [file-menu:save #f]
+				  [file-menu:save-as #f]
+				  [file-menu:between-close-and-quit (lambda (x) (void))]
+				  [file-menu:between-print-and-close (lambda (x) (void))]
+				  [edit-menu:between-redo-and-cut (lambda (x) (void))]
+				  [edit-menu:between-select-all-and-find (lambda (x) (void))]
+				  [edit-menu:copy (edit-menu:do 'copy)]
+				  [edit-menu:select-all (edit-menu:do 'select-all)]
+				  [edit-menu:find #f]
+				  [help-menu:about (lambda (_1 _2) (about-drscheme))]
+				  [help-menu:about-string (lambda () "DrScheme")]))
+		    "About DrScheme")]
+	       [c (make-object mred:editor-canvas% (send f get-area-container))]
 	       [top (make-object mred:style-delta% 'change-alignment 'top)]
 	       [d-usual (make-object mred:style-delta% 'change-family 'decorative)]
 	       [d-dr (make-object mred:style-delta%)]
@@ -91,10 +87,9 @@
 	    (set-delta-foreground "BLACK")
 	    (set-delta 'change-underline #f))
 
-	  (send* p (user-min-width 600) (user-min-height 400))
 	  (send* d-dr (copy d-usual) (set-delta 'change-bold))
 	  (send d-usual set-weight-on 'normal)
-	  (send* c (set-media main-media) (stretchable-in-x #t) (stretchable-in-y #t))
+	  (send* c (set-editor main-media) (stretchable-width #t) (stretchable-height #t))
 	  (send* e 
 		 (change-style d-dr)
 		 (insert "DrScheme")
@@ -110,7 +105,10 @@
 		 [_ (send e insert url)]
 		 [after (send e get-start-position)])
 	    (send e set-clickback before after 
-		  (lambda args (mred:message-box "Browser not yet supported in DrScheme 100"))
+		  (lambda args (mred:message-box
+				"DrScheme"
+				(format "Browser not yet supported in DrScheme ~a"
+					(version))))
 		  d-http))
 	  (send* e
 	    (insert #\newline)
@@ -123,13 +121,19 @@
 	    (insert (fw:version:version))
 	    (insert ", Copyright (c) 1995-1998 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
 	    (insert #\newline)
-	    ;(insert (mred:credits-proc "  "))
+	    (auto-wrap #t)
+	    (set-autowrap-bitmap #f)
 	    (lock #t))
 	  (send* main-media 
+		 (set-autowrap-bitmap #f)
+		 (auto-wrap #t)
 		 (insert image-snip) (insert media-snip)
-		 (change-style top 0 1)
+		 (change-style top 0 2)
 		 (set-position 1)
 		 (scroll-to-position 0)
 		 (lock #t))
+	  (send f reflow-container)
+	  (send f min-width 550)
+	  (send f min-height 400)
 	  (send f show #t)
 	  f))))
