@@ -76,9 +76,9 @@
       ;; set to the current language and its setting on the user's thread.
       (define current-language-settings (make-parameter #f))
       
-      ;; current-rep : (parameter (instanceof rep:text%))
+      ;; current-rep : (parameter (union #f (instanceof rep:text%)))
       ;; the repl that controls the evaluation in this thread.
-      (define current-rep (make-parameter 'current-rep-not-yet-set))
+      (define current-rep (make-parameter #f))
 
       ;; a port that accepts values for printing in the repl
       (define current-value-port (make-parameter 'uninitialized-value-port))
