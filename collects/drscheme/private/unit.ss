@@ -2021,6 +2021,13 @@
                                 (is-a? edit editor<%>))
                        (send edit insert (instantiate lambda-snip% ()))))
                    #t)]
+                [insert-delta
+                 (lambda ()
+                   (let ([edit (get-edit-target-object)])
+                     (when (and edit
+                                (is-a? edit editor<%>))
+                       (send edit insert (instantiate define-snip% ()))))
+                   #t)]
                 [insert-large-semicolon-letters
                  (lambda ()
                    (let ([edit (get-edit-target-object)])
@@ -2084,6 +2091,12 @@
               special-menu
               (lambda (x y) (insert-lambda))
               #\\
+              #f
+              has-editor-on-demand)
+            (make-object c% (string-constant insert-delta)
+              special-menu
+              (lambda (x y) (insert-delta))
+              #f
               #f
               has-editor-on-demand))
           
@@ -2251,30 +2264,44 @@
       (send lambda-snipclass set-classname "drscheme:lambda-snip%")
       (send (get-the-snip-class-list) add lambda-snipclass)
       
-      (define lambda-snip% 
+      (define define-snipclass
+        (make-object (class snip-class% ()
+                       (define/override (read p)
+                         (make-object define-snip%))
+                       (super-instantiate ()))))
+      (send define-snipclass set-version 1)
+      (send define-snipclass set-classname "drscheme:define-snip%")
+      (send (get-the-snip-class-list) add define-snipclass)
+      
+      (define greek-char-snip% 
         (class* snip% (readable-snip<%>)
+          (init-field symbol one-char-string)
           (define/public (read-one-special index source line column position)
-            (values 'lambda 1 #t))
+            (values symbol 1 #t))
           
           (define/private (get-normal-font)
             (send the-font-list find-or-create-font
                   (preferences:get 'drscheme:font-size)
                   'modern 'normal 'normal #f))
-          (define/private (get-lambda-font)
+          (define/private (get-greek-font)
             (send the-font-list find-or-create-font 
                   (preferences:get 'drscheme:font-size)
                   'symbol 'normal 'normal #f))
-          (define/public (get-string) "lambda")
+          (define/public (get-string) (string->symbol symbol))
           (define/override get-text
             (case-lambda
-              [(x y) " lambda "]
-              [(x y z) " lambda "]))
+              [(x y) (string-append " " 
+                                    (symbol->string symbol)
+                                    " ")]
+              [(x y z) (string-append " " 
+                                      (symbol->string symbol)
+                                      " ")]))
           (define/override (copy)
             (make-object lambda-snip%))
           (define/override (write p)
             (void))
           (define/override (get-extent dc x y wb hb descentb spaceb lspaceb rspaceb)
-            (let-values ([(w h d s) (send dc get-text-extent "W" (get-normal-font))])
+            (let-values ([(w h d s) (send dc get-text-extent one-char-string (get-greek-font))])
               (set-box/f! wb w)
               (set-box/f! hb h)
               (set-box/f! descentb d)
@@ -2283,16 +2310,32 @@
               (set-box/f! rspaceb 0)))
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (let ([font (send dc get-font)])
-              (let-values ([(ww wh wd ws) (send dc get-text-extent "W" (get-normal-font))])
-                (send dc set-font (get-lambda-font))
-                (let-values ([(lw lh ld ls) (send dc get-text-extent "l")])
-                  (send dc draw-text "l" 
-                        (+ x (/ (- ww lw) 2))
-                        (+ y (- (- wh wd) (- lh ld)))))
-                (send dc set-font font))))
+              (send dc set-font (get-greek-font))
+              (let-values ([(lw lh ld ls) (send dc get-text-extent one-char-string)])
+                (send dc draw-text one-char-string x y
+                      ;(+ x (/ (- ww lw) 2))
+                      ;(+ y (- (- wh wd) (- lh ld)))
+                      ))
+              (send dc set-font font)))
+          (super-instantiate ())))
+
+      (define lambda-snip%
+        (class greek-char-snip%
+          (define/override (copy) (instantiate lambda-snip% ()))
+          (super-instantiate ()
+            (symbol 'lambda)
+            (one-char-string "l"))
           (inherit set-snipclass)
-          (super-instantiate ())
           (set-snipclass lambda-snipclass)))
+      
+      (define define-snip%
+        (class greek-char-snip%
+          (define/override (copy) (instantiate define-snip% ()))
+          (super-instantiate ()
+            (symbol 'define)
+            (one-char-string "d"))
+          (inherit set-snipclass)
+          (set-snipclass define-snipclass)))
       
       (define created-frame 'nothing-yet)
       
