@@ -90,6 +90,7 @@
               [doc-notes null]
               [title #f]
               [htmling? #f]
+	      [is-forward? #f]
               [hypertags-list (list (make-hypertag "top" 0))])
             
             (public
@@ -539,9 +540,11 @@
 		       (when m
 			 (let ([loc (extract-field "location" headers)])
 			   (when loc
-			    (queue-callback
-			     (lambda ()
-			       ((make-clickback-funct loc #f) this 0 1))))))))))])
+			     (set! is-forward? #t)
+			     (queue-callback
+			      (lambda ()
+				((make-clickback-funct loc #f) this 0 1))))))))))]
+	      [is-forward (lambda () is-forward?)])
             (sequence
               (apply super-init args)
               (add-h-link-style)
@@ -816,7 +819,9 @@
           (private
             [update-buttons
              (lambda (page)
-               (unless init-page
+               (when (or (not init-page)
+			 (and (pair? init-page)
+			      (send (car init-page) is-forward)))
                  (set! init-page page))
                (when control-bar?
                  (send back enable (pair? past))
