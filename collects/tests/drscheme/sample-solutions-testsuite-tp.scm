@@ -31,8 +31,4 @@
                    (syntax
                     (begin
                       (include-at/relative-to orig orig full-fn)
-                      (void))))))]))))
-  
-  (provide sqr)
-
-  (define (sqr x) (* x x)))
+                      (void))))))])))))

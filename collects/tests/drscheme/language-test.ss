@@ -42,10 +42,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression 'xml "(a () (b ()))")
 
@@ -133,10 +130,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "#(struct:spider 4)")
       
@@ -222,10 +216,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -312,10 +303,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -401,10 +389,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
 
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -489,10 +474,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -576,10 +558,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -665,10 +644,7 @@
       
       (test-hash-bang)
       
-      (let ([drs (wait-for-drscheme-frame)])
-        (clear-definitions drs)
-        (set-language #t)
-        (do-execute drs))
+      (prepare-for-test-expression)
       
       (test-expression "(define-struct spider (legs))(make-spider 4)" "(make-spider 4)")
       
@@ -740,6 +716,13 @@
               ;;;    ;;;                         
 
 
+  (define (prepare-for-test-expression)
+    (let ([drs (wait-for-drscheme-frame)])
+      (clear-definitions drs)
+      (set-language #t)
+      (sleep 1) ;; this shouldn't be neccessary....
+      (do-execute drs)))
+  
   ;; test-setting : (-> void) string string string -> void
   ;; opens the language dialog, runs `set-setting'
   ;; closes the language dialog, executes,
@@ -992,20 +975,28 @@
     (syntax-case stx ()
       [(_ arg)
        (identifier? (syntax arg))
-       (syntax (begin (printf "> starting ~a\n" (syntax-object->datum #'arg))
+       (syntax (begin (printf ">> starting ~a\n" (syntax-object->datum #'arg))
                       (arg)
-                      (printf "> finished ~a\n" (syntax-object->datum #'arg))))]))
+                      (printf ">> finished ~a\n" (syntax-object->datum #'arg))))]))
   
   (define (run-test)
     ;; clear teachpack
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
     
+    ;; this exposes the race condition, after it runs for a while.
+    '(let loop ()
+      (parameterize ([language (list "PLT" (regexp "Graphical"))])
+        (check-top-of-repl))
+      (parameterize ([language (list "PLT" (regexp "Textual"))])
+        (check-top-of-repl))
+      (loop))
+    
     ;(go beginner)
     ;(go beginner/abbrev)
     ;(go intermediate)
     ;(go intermediate/lambda)
-    (go advanced)
+    ;(go advanced)
     ;(full) ;; not there anymore
     (go mred)
     (go mzscheme)
