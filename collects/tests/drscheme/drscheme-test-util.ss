@@ -29,7 +29,7 @@
 
 (define (wait-for-drscheme-frame)
   (let* ([pred (lambda ()
-		(let ([active (mred:test:get-active-frame)])
+		(let ([active (get-top-level-focus-window)])
 		  (if (and active
 			   (is-a? active drscheme:export:unit:frame%))
 		      active
@@ -42,26 +42,26 @@
 (define (wait-for-new-drscheme-frame old-frame)
   (poll-until 
    (lambda ()
-     (let ([active (mred:test:get-active-frame)])
+     (let ([active (get-top-level-focus-window)])
        (if (and active
 		(not (eq? active old-frame)))
 	   active
 	   #f)))))
 
 (define (clear-definitions frame)
-  (mred:test:new-window (ivar frame definitions-canvas))
-  (mred:test:menu-select "Edit" "Select All")
-  (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
+  (fw:test:new-window (ivar frame definitions-canvas))
+  (fw:test:menu-select "Edit" "Select All")
+  (fw:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
 				    "Clear"
 				    "Delete")))
 
 (define (type-in-definitions frame str)
   (let ([len (string-length str)])
-    (mred:test:new-window (ivar frame definitions-canvas))
+    (fw:test:new-window (ivar frame definitions-canvas))
     (let loop ([i 0])
       (unless (>= i len)
 	(let ([c (string-ref str i)])
-	  (mred:test:keystroke
+	  (fw:test:keystroke
 	   (if (char=? c #\newline)
 	       #\return
 	       c)))
@@ -80,9 +80,9 @@
 		(loop (+ sofar int))])))]))
 
 (define (wait-pending)
-  (wait (lambda () (= 0 (mred:test:number-pending-actions)))
+  (wait (lambda () (= 0 (fw:test:number-pending-actions)))
 	"Pending actions didn't terminate")
-  (mred:test:reraise-error))
+  (fw:test:reraise-error))
 
 
 ;;; get-sub-panel takes 
@@ -99,7 +99,7 @@
   (letrec ([loop 
 	    (lambda (path curr-panel)
 	      (if (null? path)
-		  (if (is-a? mred:panel% panel)
+		  (if (is-a? panel% panel)
 		      panel
 		      (test-util-error "not a panel")) 
 		  (loop
@@ -123,26 +123,26 @@
      (send button is-enabled?))))
 
 (define (push-button-and-wait button)
-  (mred:test:button-push button)
+  (fw:button-push button)
   (poll-until
    (lambda ()
-     (mred:test:reraise-error)
-     (= 0 (mred:test:number-pending-actions))))
+     (fw:test:reraise-error)
+     (= 0 (fw:test:number-pending-actions))))
   (wait-for-button button))
 
 ; set language level in a given DrScheme frame
 
 (define (set-language-level! level drs-frame)
-  (mred:test:menu-select "Language" "Configure Language...")
-  (mred:test:new-window (wx:find-window-by-name "Language" null))
+  (fw:test:menu-select "Language" "Configure Language...")
+  (fw:test:new-window (wx:find-window-by-name "Language" null))
   (let* ([frame (wait-for-new-drscheme-frame drs-frame)]
 	 [o-panel (send frame get-top-panel)]
 	 [o-children (ivar o-panel children)]
 	 [i-panel (car o-children)]
 	 [i-children (ivar i-panel children)]
 	 [choice (cadr i-children)])
-    (mred:test:set-choice! choice level)
-    (mred:test:button-push "OK")))
+    (fw:test:set-choice! choice level)
+    (fw:test:button-push "OK")))
 
 (define (repl-in-edit-sequence?)
   (send (ivar (wait-for-drscheme-frame) interactions-edit) refresh-delayed?))

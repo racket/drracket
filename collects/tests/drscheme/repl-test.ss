@@ -7,7 +7,7 @@
 
 (let-struct test (program r4rs-load-answer prepend-filename? r4rs-execute-answer r4rs-execute-location
 			  mred-execute-answer mred-load-answer mred-read-test? breaking-test?)
-(letrec*([test-data
+(letrec ([test-data
 	   (list
 
 	    ;; basic tests
@@ -293,8 +293,8 @@
 	       (unless (= n (string-length string))
 		 (let ([c (string-ref string n)])
 		   (if (char=? c #\newline)
-		       (mred:test:keystroke #\return)
-		       (mred:test:keystroke c)))
+		       (fw:test:keystroke #\return)
+		       (fw:test:keystroke c)))
 		 (loop (+ n 1)))))]
 	  [wait-for-execute (lambda () (wait-for-button execute-button))]
 	  [get-int-pos (lambda () (get-text-pos interactions-edit))]
@@ -374,7 +374,7 @@
 		       (printf "FAILED execute test for ~s~n  expected: ~s~n       got: ~s~n"
 			       program expected received-execute)))
 
-		   (mred:test:new-window interactions-canvas)
+		   (fw:test:new-window interactions-canvas)
 		   
 		   ; construct the load file
 
@@ -384,7 +384,7 @@
 
 		   ; stuff the load command into the REPL 
 		   
-		   (for-each mred:test:keystroke
+		   (for-each fw:test:keystroke
 			     (string->list (format "(load ~s)"
 						   (find-relative-path
 						    user-directory
@@ -394,7 +394,7 @@
 		   
 		   (let ([load-text-start (+ 1 (send interactions-edit last-position))])
 		     
-		     (mred:test:keystroke #\return)
+		     (fw:test:keystroke #\return)
 		     
 		     (wait-for-execute)
 		     
@@ -425,9 +425,9 @@
 	     (let ([level (if mred? "MrEd" "R4RS+")])
 	       (printf "running ~a tests~n" level)
 	       (set-language-level! level drscheme-frame)
-	       (mred:test:new-window definitions-canvas)
-	       (mred:test:menu-select "Edit" "Select All")
-	       (mred:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
+	       (fw:test:new-window definitions-canvas)
+	       (fw:test:menu-select "Edit" "Select All")
+	       (fw:test:menu-select "Edit" (if (eq? wx:platform 'macintosh)
 						 "Clear"
 						 "Delete"))
 	       (do-execute)
