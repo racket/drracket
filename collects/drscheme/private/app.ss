@@ -261,10 +261,18 @@
                                             (parent sp)
                                             (alignment '(center center))))
 
+        ;; note that `cu-message' is bound to the last message% object,
+        ;; but it is not used anyway.
         (define cu-message
-          (instantiate message% ()
-            (label "Do you want DrScheme to\ncheck for updates now?")
-            (parent check-updates-state-panel)))
+          (let ([add (lambda (str)
+                       (instantiate message% ()
+                         (label str)
+                         (parent check-updates-state-panel)))])
+            (let loop ([message (format (string-constant
+                                         vc-wizard-check-prompt))])
+              (cond [(regexp-match #rx"^(.+?)\n(.+)$" message) =>
+                     (lambda (m) (add (cadr m)) (loop (caddr m)))]
+                    [else (add message)]))))
 
         (define cu-space
           (instantiate horizontal-panel% ()
@@ -274,7 +282,7 @@
 
         (define cu-button
           (instantiate button% ()
-            (label "Check!")
+            (label (string-constant vc-wizard-check-button))
             (parent check-updates-state-panel)
             (callback (lambda (x y) (check-version dlg)))))
         
