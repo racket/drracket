@@ -626,7 +626,7 @@ tab panels new behavior:
           (define (on-paint)
             (let ([dc (get-dc)])
               (let-values ([(w h) (get-client-size)])
-                (draw-button-label dc label w h inverted?))))
+                (draw-button-label dc label w h inverted? #f))))
           
           (define sort-by-name? #f)
           (define sorting-name (string-constant sort-by-name))
@@ -2223,7 +2223,7 @@ tab panels new behavior:
           (super-new
             (filename filename)
             (style (case (system-type)
-                     [(macosx) '(toolbar-button #;metal)]
+                     [(macosx) '(toolbar-button metal)]
                      [else '(toolbar-button)]))
             (width (preferences:get 'drscheme:unit-window-width))
             (height (preferences:get 'drscheme:unit-window-height)))
