@@ -130,7 +130,6 @@
             (make-object text-field% #f panel void))))
        #f))
     
-    
     (define severity
       (build/label 
        (string-constant bug-report-field-severity) 
@@ -193,7 +192,7 @@
     
     (define description (make-big-text (string-constant bug-report-field-description)))
     (define reproduce (make-big-text (list (string-constant bug-report-field-reproduce1)
-                                           (string-constant bug-report-field-reproduce1))))
+                                           (string-constant bug-report-field-reproduce2))))
     
     (define synthesized-outer-panel (make-object vertical-panel% top-panel))
     (define synthesized-panel (make-object vertical-panel% synthesized-outer-panel))
