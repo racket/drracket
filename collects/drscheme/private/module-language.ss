@@ -144,7 +144,12 @@
                            new-module))]
                     [(= 2 iteration-number)
                      (if (eof-object? super-result)
-                         (with-syntax ([name module-name])
+                         (with-syntax ([name 
+                                        ;; "clearing out" the module-name in this fashion ensures
+                                        ;; that check syntax doesn't think the original module name
+                                        ;; is being used in this require (so it doesn't get turned
+                                        ;; red)
+                                        (datum->syntax-object #'here (syntax-object->datum module-name))])
                            (syntax (require name)))
                          (raise-syntax-error
                           'module-language
