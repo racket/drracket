@@ -678,20 +678,18 @@
 	
 	[home-callback
          (lambda () 
-           (when init-page
-             
-             (cond
-               [(not init-page) (void)]
-               [(or (url? init-page) (string? init-page))
-                
-                ; handle stopping when loading the home page
-                (with-handlers ([exn:misc:user-break? 
-                                 (lambda (x) (void))])
-                  (send c goto-url init-page #f)
-                  (set! init-page (send c current-page))
-                  (update-buttons init-page))]
-               [else 
-                (send c set-page init-page #t)])))]
+           (cond
+             [(not init-page) (void)]
+             [(or (url? init-page) (string? init-page))
+              
+              ; handle stopping when loading the home page
+              (with-handlers ([exn:misc:user-break? 
+                               (lambda (x) (void))])
+                (send c goto-url init-page #f)
+                (set! init-page (send c current-page))
+                (update-buttons init-page))]
+             [else 
+              (send c set-page init-page #t)]))]
         [home (and control-bar?
 		   (make-object button% "Home" hp
 				(lambda (b ev)
