@@ -21,7 +21,8 @@
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
-	   (lib "external.ss" "browser"))
+	   (lib "external.ss" "browser")
+           (lib "default-lexer.ss" "syntax-color"))
   
   (provide rep@)
   
@@ -2675,8 +2676,13 @@
               (do-post-eval))]
           (inherit insert-prompt)
           (super-make-object)
-          (insert-prompt)))
-      
+          (insert-prompt)
+          (inherit start-colorer)
+          (start-colorer symbol->string default-lexer '((|(| |)|)
+                                                        (|[| |]|)
+                                                        (|{| |}|)))))
+          
+          
       (define -text% 
         (drs-bindings-keymap-mixin
          (text-mixin 
