@@ -181,20 +181,20 @@ profile todo:
       (define (make-debug-eval-handler oe)
         (let ([debug-tool-eval-handler
                (lambda (orig-exp)
-		 (if (compiled-expression? (if (syntax? orig-exp)  
-					       (syntax-e orig-exp)  
-					       orig-exp))
-		     (oe orig-exp)
-		     (let loop ([exp (if (syntax? orig-exp)
-					 orig-exp
-					 (namespace-syntax-introduce
-					  (datum->syntax-object #f orig-exp)))])
-		       (let ([top-e (expand-syntax-to-top-form exp)]) 
-			 (syntax-case top-e (begin) 
-			   [(begin expr ...)
-			    ;; Found a `begin', so expand/eval each contained 
-			    ;; expression one at a time 
-			    (let i-loop ([exprs (syntax->list #'(expr ...))]
+                 (if (compiled-expression? (if (syntax? orig-exp)  
+                                               (syntax-e orig-exp)  
+                                               orig-exp))
+                     (oe orig-exp)
+                     (let loop ([exp (if (syntax? orig-exp)
+                                         orig-exp
+                                         (namespace-syntax-introduce
+                                          (datum->syntax-object #f orig-exp)))])
+                       (let ([top-e (expand-syntax-to-top-form exp)]) 
+                         (syntax-case top-e (begin) 
+                           [(begin expr ...)
+                            ;; Found a `begin', so expand/eval each contained 
+                            ;; expression one at a time 
+                            (let i-loop ([exprs (syntax->list #'(expr ...))]
                                          [last-one (list (void))])
                               (cond
                                 [(null? exprs) (apply values last-one)]
@@ -202,10 +202,10 @@ profile todo:
                                               (call-with-values
                                                (lambda () (loop (car exprs)))
                                                list))]))]
-			   [_else 
-			    ;; Not `begin', so proceed with normal expand and eval 
-			    (let* ([annotated (annotate-top (expand-syntax top-e) #f)])
-			      (oe annotated))])))))])
+                           [_else 
+                            ;; Not `begin', so proceed with normal expand and eval 
+                            (let* ([annotated (annotate-top (expand-syntax top-e) #f)])
+                              (oe annotated))])))))])
 	  debug-tool-eval-handler))
       
       ;; make-debug-error-display-handler/text  : (-> (union #f (is-a?/c text%)))
@@ -219,8 +219,8 @@ profile todo:
             (cond
               [rep
                (let* ([cms (and (exn? exn) 
-				(continuation-mark-set? (exn-continuation-marks exn))
-				(continuation-mark-set->list 
+                                (continuation-mark-set? (exn-continuation-marks exn))
+                                (continuation-mark-set->list 
                                  (exn-continuation-marks exn)
                                  cm-key))])
                  
@@ -1028,8 +1028,8 @@ profile todo:
                 (send rep set-profile-info ht)))))
         (let ([profile-info (current-profile-info)])
           (hash-table-put! profile-info
-			   key 
-			   (make-prof-info #f 0 0 (and (syntax? name) (syntax-e name)) expr))))
+                           key 
+                           (make-prof-info #f 0 0 (and (syntax? name) (syntax-e name)) expr))))
   
       ;; register-profile-start : sym -> (union #f number)
       ;; =user=
@@ -1051,9 +1051,8 @@ profile todo:
 	  (let ([info (hash-table-get (current-profile-info) key)])
 	    (set-prof-info-nest! info #f)
 	    (set-prof-info-time! info
-				 (+ (- (current-process-milliseconds) start)
-				    (prof-info-time info))))))
-     
+                                 (+ (- (current-process-milliseconds) start)
+                                    (prof-info-time info))))))
 
       ;; get-color-value : number number -> (is-a?/c color%)
       ;; returns the profiling color

@@ -1344,7 +1344,7 @@ TODO
             (and (inner #t can-change-style? start len)
                  (or setting-up-repl?
                      (start . >= . (get-repl-header-end)))))
-                    
+          
           (define/private (last-str l)
             (if (null? (cdr l))
                 (car l)

@@ -31,18 +31,18 @@
                        source-location ;; : (union 'definitions
                        ;;                          'interactions
                        ;;                          (cons loc loc))
-		       ;; if cons, the car and cdr are the start and end positions resp.
-		       ;; if 'interactions, no source location and
-		       ;;    the focus must be in the interactions window
-		       ;; if 'definitions, no source location and
-		       ;;     the focus must be in the definitions window
+                       ;; if cons, the car and cdr are the start and end positions resp.
+                       ;; if 'interactions, no source location and
+                       ;;    the focus must be in the interactions window
+                       ;; if 'definitions, no source location and
+                       ;;     the focus must be in the definitions window
                        
                        source-location-in-message  ;; : (union #f 'read 'expand)
-		       ;; 'read indicates that the error message is a read error, so
-		       ;; the source location is the port info, and 'expand indicates
-		       ;; that the error messsage is an expansion time error, so the
-		       ;; the source location is the repl.
-		       ;; #f indicates no source location error message
+                       ;; 'read indicates that the error message is a read error, so
+                       ;; the source location is the port info, and 'expand indicates
+                       ;; that the error messsage is an expansion time error, so the
+                       ;; the source location is the repl.
+                       ;; #f indicates no source location error message
                        ;; if this field is not #f, the execute-answer and load-answer fields
                        ;; are expected to be `format'able strings with one ~a in them.
                        
@@ -106,7 +106,7 @@
      (make-test "("
                 "~aread: expected a ')'"
                 "~aread: expected a ')'"
-                #f
+                #t
                 (cons (make-loc 0 0 0) (make-loc 0 1 1))
 		'read
                 #f
@@ -116,9 +116,9 @@
      (make-test "."
                 "~aread: illegal use of \".\""
                 "~aread: illegal use of \".\""
-                #f
-		(cons (make-loc 0 0 0) (make-loc 0 1 1))
-		'read
+                #t
+                (cons (make-loc 0 0 0) (make-loc 0 1 1))
+                'read
                 #f
                 #f
                 void
@@ -126,7 +126,7 @@
      (make-test "(lambda ())"
                 "~alambda: bad syntax in: (lambda ())"
                 "~alambda: bad syntax in: (lambda ())"
-                #f
+                #t
                 (cons (make-loc 0 0 0) (make-loc 0 11 11))
 		'expand
                 #t
@@ -138,7 +138,7 @@
                 "reference to undefined identifier: xx"
                 #t
                 (cons (make-loc 0 0 0) (make-loc 0 2 2))
-		#f
+                #f
                 #f
                 #f
                 void
@@ -738,25 +738,7 @@
                                    (if (or (eq? source-location 'definitions)
                                            (pair? source-location))
                                        (string-append backtrace-image-string " " w/file-icon)
-                                       w/file-icon))]
-                              #;
-                              [w/backtrace
-                               (if raw?
-                                   load-answer
-                                   (if (or (eq? source-location 'definitions)
-                                           (pair? source-location))
-                                       (string-append backtrace-image-string " " load-answer)
-                                       load-answer))]
-                              #;
-                              [w/file-icon
-                               (if raw?
-                                   (if source-location-in-message
-                                       (string-append file-image-string " " w/backtrace)
-                                       w/backtrace)
-                                   (if (or (eq? source-location 'definitions)
-                                           (pair? source-location))
-                                       (string-append file-image-string " " w/backtrace)
-                                       w/backtrace))])
+                                       w/file-icon))])
                          (if source-location-in-message
                              (format w/file-icon 
                                      (format "~a:~a:~a: "
