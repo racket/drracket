@@ -103,6 +103,15 @@
                                (lambda (x) (memq x '(sqrt linear square))))
 
       (preferences:set-default 'drscheme:test-coverage-ask-about-clearing? #t boolean?)
+
+      ;; size is in editor positions
+      (preferences:set-default 'drscheme:repl-buffer-size 
+                               '(#t . 1000)
+                               (lambda (x)
+                                 (and (pair? x)
+                                      (boolean? (car x))
+                                      (integer? (cdr x))
+                                      (<= 1 (cdr x) 10000))))
       
       (let ([marshall-color 
              (lambda (c)
@@ -170,7 +179,42 @@
          (lambda (editor-panel)
            (make-check-box 'drscheme:open-in-tabs 
                            (string-constant open-files-in-tabs)
-                           editor-panel)))
+                           editor-panel)
+           (letrec ([hp (new horizontal-panel% 
+                             (parent editor-panel)
+                             (alignment '(left top))
+                             (stretchable-height #f))]
+                    [cb (new check-box%
+                             (label (string-constant limit-interactions-size))
+                             (parent hp)
+                             (callback (lambda (cb v) (cb-callback))))]
+                    
+                    [sl (new slider% 
+                             (label #f)
+                             (parent hp)
+                             (min-value 1)
+                             (max-value 10000)
+                             (callback
+                              (lambda (sl _) (sl-callback))))]
+                    [cb-callback
+                     (lambda ()
+                       (preferences:set 'drscheme:repl-buffer-size
+                                        (cons (send cb get-value)
+                                              (cdr (preferences:get 'drscheme:repl-buffer-size)))))]
+                    [sl-callback
+                     (lambda ()
+                       (preferences:set 'drscheme:repl-buffer-size
+                                        (cons (car (preferences:get 'drscheme:repl-buffer-size))
+                                              (send sl get-value))))]
+                    [update-controls
+                     (lambda (v)
+                       (let ([on? (car v)])
+                         (send sl enable on?)
+                         (send cb set-value on?)
+                         (send sl set-value (cdr v))))])
+             (preferences:add-callback 'drscheme:repl-buffer-size (lambda (p v) (update-controls v)))
+             (update-controls (preferences:get 'drscheme:repl-buffer-size)))))
+        
         (preferences:add-to-warnings-checkbox-panel
          (lambda (warnings-panel)
            (make-check-box 'drscheme:execute-warning-once 
