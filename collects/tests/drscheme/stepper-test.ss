@@ -10,7 +10,7 @@
   (provide run-test)
   
   (define next-button-label "Step >")
-  (define no-more-steps-message "evaluation of program is complete.")
+  (define no-more-steps-message "All of the definitions have been successfully evaluated.")
   
   ;; type contents = (listof (union snip string contents))
   ;; type error = (make-error string)
@@ -79,18 +79,14 @@
            (or false false true)
            (and true true)
            false)
-     '(and (or false false true)
-           (and true true)
-           false)
-     '(and (or false true)
+     '(and true
+           true
            (and true true)
            false)
      '(and true
-           (and true true)
+           true
+           true
            false)
-     '(and (and true true)
-           false)
-     '(and true false)
      'false)
 
     (fully-specified-test
