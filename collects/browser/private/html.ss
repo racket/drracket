@@ -419,7 +419,7 @@
       (define re:quot (regexp "[&][qQ][uU][oO][tT][;]"))
       (define re:amp (regexp "[&][aA][mM][pP][;]"))
 
-      (define re:empty (regexp (format "^[ ~c]*$" (latin-1-integer->char 160))))
+      (define re:empty (regexp (format "^[ ~c]*$" (integer->char 160))))
 
       (define-struct form (action target method parts active-select))
       (define (protect-chars s)
@@ -429,7 +429,7 @@
                               (char-numeric? c))
                           (string c)
                           (format "%~a"
-                                  (let ([s (format "0~x" (or (char->latin-1-integer c) 65))])
+                                  (let ([s (format "0~x" (or (char->integer c) 65))])
                                     (substring s (- (string-length s) 2) (string-length s))))))
                       (string->list s))))
       
@@ -835,7 +835,7 @@
                         (lambda (e)
                           (cond
                             [(<= 0 e 255)
-                             (insert (or (latin-1-integer->char e) #\?))
+                             (insert (or (integer->char e) #\?))
                              void]
                             [(<= 913 e 969)
                              (let ([lp (current-pos)])
