@@ -2738,6 +2738,8 @@ tab panels new behavior:
              created-frame]
             [(preferences:get 'drscheme:open-in-tabs)
              (let ([fr (send (group:get-the-frame-group) get-active-frame)])
+               (when (equal? (getenv "USER") "robby")
+                 (printf "PLTDRFRAME: ~s ~s\n" fr (is-a? fr -frame<%>)))
                (if (is-a? fr -frame<%>)
                    (begin (send fr open-in-new-tab name)
                           fr)
