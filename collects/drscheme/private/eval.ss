@@ -14,7 +14,7 @@
               [drscheme:init : drscheme:init^]
               [drscheme:language : drscheme:language^])
       
-      (define (expand-program input language-settings init error-termination kill-termination iter)
+      (define (expand-program input language-settings init kill-termination iter)
         (let* ([eventspace (make-eventspace)]
                [language (drscheme:language-configuration:language-settings-language
                           language-settings)]
@@ -48,9 +48,6 @@
           (run-in-eventspace
            (lambda ()
              (set! eventspace-main-thread (current-thread))
-             (error-display-handler
-              (lambda (msg exn)
-                (error-termination msg exn)))
              (init)
              (break-enabled #t)))
           (thread
