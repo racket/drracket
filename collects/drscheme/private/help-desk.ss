@@ -102,7 +102,7 @@
                     (new lang-message% 
                          (button-release (λ () (change-language-callback)))
                          (parent choices-panel)
-                         (font (send choices-panel get-control-font)))]
+                         (font normal-control-font))]
                    [language-item (new menu-item%
                                        (label (string-constant choose-language-menu-item-label))
                                        (parent language-menu)

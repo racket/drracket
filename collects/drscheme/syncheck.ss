@@ -875,10 +875,6 @@ If the namespace does not, they are colored the unbound color.
               (set! rest-panel r-root)
               (set! docs-panel (make-object vertical-panel% super-root))
               (set! docs-messages null)
-              (send docs-panel set-label-font
-                    (send the-font-list find-or-create-font 
-                          (send (send docs-panel get-label-font) get-point-size)
-                          'modern 'normal 'normal #f))
               (send docs-panel stretchable-height #f)
 
               (update-docs-visibility)
@@ -907,7 +903,12 @@ If the namespace does not, they are colored the unbound color.
                        (cond
                          [(zero? n) null]
                          [else
-                          (let ([m (make-object message% "" docs-panel)])
+                          (let ([m (new message% 
+					[label ""] 
+					[parent docs-panel]
+					[font (send the-font-list find-or-create-font 
+						    (send normal-control-font get-point-size)
+						    'modern 'normal 'normal #f)])])
                             (send m stretchable-width #t)
                             (cons m (loop (- n 1))))])))))
             (let ([to-be-shown

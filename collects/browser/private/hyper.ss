@@ -816,9 +816,8 @@ A test case:
           (stretchable-height #f)
           (enable #f)
           (show #f)
-          (let ([font (make-object font% 
-                        (send (send (get-parent) get-label-font) get-point-size) 
-                        'default 'normal 'normal)]
+          (let ([font (make-object font% (send normal-control-font get-point-size) 
+				   'default 'normal 'normal)]
                 [dc (get-dc)])
             (send dc set-font font)
             (send dc set-text-foreground (make-object color% "FOREST GREEN"))

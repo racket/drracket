@@ -199,16 +199,10 @@
                                    (stretchable-height #f)
                                    (alignment '(center center))))
         
-        (define stupid-internal-define-syntax2
-          (begin
-            (send nl-welcome-panel set-label-font
-                  (send the-font-list find-or-create-font 24 'default 'normal 'normal #f))
-            '(send nl-welcome-panel set-control-font
-                  (send the-font-list find-or-create-font 24 'default 'normal 'normal #f))))
-        
         (define nl-welcome-msg (instantiate message%  ()
                                  (label (string-constant welcome-to-drscheme))
-                                 (parent nl-welcome-panel)))
+                                 (parent nl-welcome-panel)
+				 (font (send the-font-list find-or-create-font 24 'default 'normal 'normal #f))))
         (define nl-lang-msg (instantiate message%  ()
                                  (label (format (string-constant version/language)
                                                 (version)
