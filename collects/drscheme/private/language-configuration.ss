@@ -144,11 +144,12 @@
                   [else (super-on-subwindow-char receiver evt)]))
               (super-instantiate ())))
           
-	  (define dialog (make-object ret-dialog% 
-                           (if show-welcome?
-                               (string-constant welcome-to-drscheme)
-                               (string-constant language-dialog-title))
-                           parent #f #f #f #f '(resize-border)))
+	  (define dialog (instantiate ret-dialog% ()
+                           (label (if show-welcome?
+                                    (string-constant welcome-to-drscheme)
+                                    (string-constant language-dialog-title)))
+                           (parent parent)
+                           (style '(resize-border))))
           (define welcome-before-panel (instantiate horizontal-panel% ()
                                          (parent dialog)
                                          (stretchable-height #f)))
@@ -158,7 +159,9 @@
                                         (parent dialog)
                                         (stretchable-height #f)))
           
-          (define button-panel (make-object horizontal-panel% dialog))
+          (define button-panel (instantiate horizontal-panel% ()
+                                 (parent dialog)
+                                 (stretchable-height #f)))
           
           (define-values (get-selected-language get-selected-language-settings)
             (fill-language-dialog language-dialog-meat-panel button-panel language-settings-to-show))
@@ -675,6 +678,7 @@
           (send (send (car (send languages-hier-list get-items)) get-editor) delete 0 1)
           
 	  (send languages-hier-list stretchable-width #t)
+	  (send languages-hier-list stretchable-height #t)
 	  (send parent reflow-container)
           (send languages-hier-list min-client-width (text-width (send languages-hier-list get-editor)))
 	  (send languages-hier-list min-client-height (text-height (send languages-hier-list get-editor)))
