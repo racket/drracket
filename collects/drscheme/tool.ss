@@ -1,4 +1,4 @@
-(begin-elaboration-time
+(begin-construction-time
  `(compound-unit/sig
       (import [mred : mred^]
 	      [mzlib : mzlib:core^]
