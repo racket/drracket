@@ -206,10 +206,15 @@
                  (display (exn-message exn) (current-error-port))
                  (newline (current-error-port))
                  (send rep wait-for-io-to-complete/user)
-                 (when (and (is-a? src text:basic%)
-                            (number? pos)
-                            (number? span))
-                   (send rep highlight-error src (- pos 1) (+ pos -1 span))))]
+                 (cond
+                   [(and (is-a? src text:basic%)
+                         (number? line)
+                         (number? col))
+                    (send rep highlight-error src (- pos 1) (+ pos -1 span))]
+                   [(and (is-a? src text:basic%)
+                         (number? pos)
+                         (number? span))
+                    (send rep highlight-error src (- pos 1) (+ pos -1 span))]))]
               [(exn? exn)
                (display (exn-message exn) (current-error-port))
                (newline (current-error-port))
@@ -1147,6 +1152,16 @@
                              (+ start 1))])
                 (highlight-error text start end)))
 
+            ;; =User= and =Kernel=
+            (define (highlight-error/line-col text start-line start-col span)
+              (let ([start
+                     (+ (send text paragraph-start-position start-line)
+                        start-col)])
+                (highlight-error
+                 text
+                 start
+                 (+ start span))))
+            
             ;; =User= and =Kernel= (maybe simultaneously)
 	    (define (highlight-error file start finish)
               (when (is-a? file text:basic<%>)
@@ -1300,6 +1315,7 @@
                                                           (set! exn-raised? #t)
                                                           (k (void)))])
                                                    drscheme-expand-program-error-escape-handler)])
+                                   (printf "running: ~s~n" thnk)
                                    (set! ans (thnk))))
                                (semaphore-post sema)))
                             (semaphore-wait sema)
@@ -1323,11 +1339,15 @@
                   (let loop ()
                     (let ([in (run-in-eventspace
                                (lambda ()
+                                 (printf "1~n")
                                  (let ([rd (read-thnk)])
+                                   (printf "2~n")
                                    (if (eof-object? rd)
                                        rd
                                        (let ([expanded (expand rd)])
+                                         (printf "3.expanded~n")
                                          (eval-compile-time-part-of-top-level expanded)
+                                         (printf "4.compile-time-eval'd~n")
                                          expanded)))))])
                       (cond
                         [(eof-object? in)
