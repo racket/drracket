@@ -120,6 +120,21 @@
       ;;                        ->
       ;;                        void?
       (define (insert-error-in-text text interactions-text msg exn user-dir)
+        (insert-error-in-text/highlight-errors
+         text
+         (lambda (l) (send interactions-text highlight-errors l))
+         msg
+         exn
+         user-dir))
+      
+      ;; insert-error-in-text/highlight-errors : (is-a?/c text%)
+      ;;                                         ((listof (list text% number number)) -> void)
+      ;;                                         string?
+      ;;                                         exn?
+      ;;                                         (union false? (and/f string? directory-exists?))
+      ;;                                         ->
+      ;;                                         void?
+      (define (insert-error-in-text/highlight-errors text highlight-errors msg exn user-dir)
         (let ([locked? (send text is-locked?)]
               [insert-file-name/icon
                ;; insert-file-name/icon : string number number number number -> void
@@ -172,9 +187,8 @@
                (insert/delta text "\n")
                (when (and (is-a? src text:basic%)
                           (number? pos)
-                          (number? span)
-			  interactions-text)
-                 (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
+                          (number? span))
+                 (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
             [(exn:read? exn)
              (let ([src (exn:read-source exn)]
                    [pos (exn:read-position exn)]
@@ -187,15 +201,13 @@
                (insert/delta text "\n")
                (when (and (is-a? src text:basic%)
                           (number? pos)
-                          (number? span)
-			  interactions-text)
-                 (send interactions-text highlight-error src (- pos 1) (+ pos -1 span))))]
+                          (number? span))
+                 (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
             [(exn:locs? exn)
              (let ([locs (exn:locs-locs exn)])
                (insert/delta text (exn-message exn) error-delta)
                (insert/delta text "\n")
-	       (when interactions-text
-		 (send interactions-text highlight-errors locs)))]
+	       (highlight-errors locs))]
             [(exn? exn)
              (insert/delta text (exn-message exn) error-delta)
              (insert/delta text "\n")]
