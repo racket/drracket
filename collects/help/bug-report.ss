@@ -69,7 +69,7 @@
     (define response-reset (new button%
                                 (parent response-button-panel)
                                 (enabled #f)
-                                (label (string-constant plt:hd:reset))
+                                (label (string-constant wizard-back))
                                 (callback
                                  (lambda (x y)
                                    (switch-to-compose-view)))))
@@ -91,7 +91,7 @@
     
     (define (switch-to-respose-view) (send single active-child response-panel))
     (define (switch-to-compose-view) 
-      (send reponse-text erase)
+      (send response-text erase)
       (send single active-child outermost-panel))
     
     (define lps null)
@@ -398,8 +398,11 @@
                               bug-www-server
                               bug-www-server-port
                               (list "cgi-bin" "bug-report")
-                              query
+                              '() ;query
                               #f)]
+               [post-data 
+                (parameterize ([current-alist-separator-mode 'amp])
+                  (string->bytes/utf-8 (alist->form-urlencoded query)))]
                [http-thread
                 (parameterize ([current-custodian (make-custodian)])
                   (thread
@@ -420,7 +423,9 @@
                        (parameterize ([current-alist-separator-mode 'amp])
                          (call/input-url 
                           url
-                          get-pure-port
+                          (case-lambda
+                            [(x) (post-pure-port x post-data)]
+                            [(x y) (post-pure-port x post-data y)])
                           (lambda (port) (render-html-to-text port response-text #t #f))))
                        (queue-callback
                         (lambda ()
