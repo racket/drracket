@@ -535,13 +535,21 @@ profile todo:
         (let-values ([(from-text close-text)
                       (cond
                         [(symbol? file)
+                         ;; can this case happen?
                          (let ([text (new text:basic%)])
                            (if (send text load-file (symbol->string file))
 			       (values text 
 				       (lambda () (send text on-close)))
 			       (values #f (lambda () (void)))))]
+                        [(path? file)
+                         (let ([text (new text:basic%)])
+                           (if (send text load-file file)
+			       (values text 
+				       (lambda () (send text on-close)))
+			       (values #f (lambda () (void)))))]
                         [(is-a? file editor<%>)
-                         (values file void)])])
+                         (values file void)]
+                        [else (error 'insert-context "unknown file spec ~e" file)])])
 	  (when from-text
 	    (let* ([finish (+ start span)]
 		   [context-text (copy/highlight-text from-text start finish)])
