@@ -163,8 +163,8 @@
                 (k (void)))
               (let* ([tool-path
                       (if (string? in-path) 
-                          `(lib ,in-path ,coll)
-                          `(lib ,(car in-path) ,coll ,@(cdr in-path)))]
+                          `(lib ,in-path ,(path->string coll))
+                          `(lib ,(car in-path) ,(path->string coll) ,@(cdr in-path)))]
                      [unit 
                        (with-handlers ([exn:fail? 
                                         (lambda (x)
