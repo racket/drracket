@@ -949,26 +949,56 @@
 		       interactions-text)]
 	      [else (mred:bell)])))]
 	[collapse (lambda ()
-		    (let ([target (get-edit-target-window)])
+		    (let* ([target (get-edit-target-window)]
+			   [handle-collapse
+			    (lambda (get-canvases set-canvases!)
+			      (if (= 1 (length (get-canvases)))
+				  (mred:bell)
+				  (let* ([old-percentages (send resizable-panel get-percentages)]
+					 [percentages
+					 (if (eq? (car (get-canvases)) target)
+					     (cons (+ (car old-percentages)
+						      (cadr old-percentages))
+						   (cddr old-percentages))
+					     (let loop ([canvases (get-canvases)]
+							[prev-percentage
+							 (car old-percentages)]
+							[percentages (cdr old-percentages)])
+					       (cond
+						[(null? canvases)
+						 (error 'collapse "internal error.1")]
+						[(null? percentages)
+						 (error 'collapse "internal error.2")]
+						[else
+						 (if (eq? (car canvases) target)
+						     (if prev-percentage
+							 (cons (+ (car percentages)
+								  prev-percentage)
+							       (cdr percentages))
+							 (cons (+ (car percentages)
+								  (cadr percentages))
+							       (cddr percentages)))
+						     (cons prev-percentage
+							   (loop (cdr canvases)
+								 (car percentages)
+								 (cdr percentages))))])))])
+				    (set-canvases!
+				     (mzlib:function:remq target (get-canvases)))
+				    (send resizable-panel change-children
+					  (lambda (l)
+					    (append definitions-canvases
+						    interactions-canvases)))
+				    (send resizable-panel set-percentages percentages)
+				    (send (car (get-canvases)) focus))))])
 		      (cond
 		       [(memq target definitions-canvases)
-			(if (= 1 (length definitions-canvases))
-			    (mred:bell)
-			    (begin
-			     (set! definitions-canvases (mzlib:function:remq target definitions-canvases))
-			     (send resizable-panel change-children
-				   (lambda (l)
-				     (append definitions-canvases interactions-canvases)))
-			     (send (car definitions-canvases) focus)))]
+			(handle-collapse
+			 (lambda () definitions-canvases)
+			 (lambda (c) (set! definitions-canvases c)))]
 		       [(memq target interactions-canvases)
-			(if (= 1 (length interactions-canvases))
-			    (mred:bell)
-			    (begin
-			     (set! interactions-canvases (mzlib:function:remq target interactions-canvases))
-			     (send resizable-panel change-children
-				   (lambda (l)
-				     (append definitions-canvases interactions-canvases)))
-			     (send (car interactions-canvases) focus)))]
+			(handle-collapse
+			 (lambda () interactions-canvases)
+			 (lambda (c) (set! interactions-canvases c)))]
 		       [else (mred:bell)])))])
       (rename [super-edit-menu:between-select-all-and-find
 	       edit-menu:between-select-all-and-find])
