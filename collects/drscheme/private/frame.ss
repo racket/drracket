@@ -34,8 +34,8 @@
           (inherit get-edit-target-window get-edit-target-object get-menu-bar)
           [define/private get-menu-bindings
             (lambda ()
-              (let ([name-ht (make-hash-table)]
-                    [fun-ht (make-hash-table)])
+              (let ([name-ht (make-hash-table 'equal)]
+                    [fun-ht (make-hash-table 'equal)])
                 (let loop ([menu-container (get-menu-bar)])
                   (for-each
                    (lambda (item)
@@ -69,7 +69,7 @@
           
           [define/private copy-hash-table
             (lambda (ht)
-              (let ([res (make-hash-table)])
+              (let ([res (make-hash-table 'equal)])
                 (hash-table-for-each
                  ht
                  (lambda (x y) (hash-table-put! res x y)))
