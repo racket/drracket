@@ -868,9 +868,15 @@
 	   (send interactions-canvas focus)
 	   (send interactions-text reset-console)
 	   (send interactions-text clear-undos)
-	   (send interactions-text do-many-text-evals
-		 definitions-text 0
-		 (send definitions-text last-position))
+
+	   (let ([start (if (and (>= (send definitions-text last-position) 2)
+				 (char=? (send definitions-text get-character 0) #\#)
+				 (char=? (send definitions-text get-character 1) #\!))
+			    (send definitions-text paragraph-start-position 1)
+			    0)])
+	     (send interactions-text do-many-text-evals
+		   definitions-text start
+		   (send definitions-text last-position)))
 	   (send interactions-text clear-undos))])
   
       (public

@@ -21,6 +21,19 @@
 	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n" (language) expression result got)))
     '(dump-memory-stats)))
 
+(define (test-hash-bang)
+  (let* ([expression (format "#!~n1")]
+	 [result "1"]
+	 [drs (get-top-level-focus-window)]
+	 [interactions (ivar drs interactions-text)])
+    (clear-definitions drs)
+    (type-in-definitions drs expression)
+    (do-execute drs)
+    (let* ([got (fetch-output drs)])
+      (unless (string=? "1" got)
+	(printf "FAILED: ~a ~a test~n expected: ~a~n     got: ~a~n"
+		(language) expression result got)))))
+
 (define (mred)
   (parameterize ([language "Graphical without Debugging (MrEd)"])
     (generic-settings #f)
@@ -28,6 +41,8 @@
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -65,6 +80,8 @@
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -107,6 +124,8 @@
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -150,6 +169,8 @@
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(letrec ([x x]) 1)" "1")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -186,6 +207,8 @@
     (zodiac)
     (generic-output #f #f #t)
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -227,6 +250,8 @@
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
@@ -268,6 +293,8 @@
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
+    (test-hash-bang)
+
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
       (set-language #t)
