@@ -817,6 +817,7 @@
                   (for-each (lambda (t) (semaphore-post limiting-sema) (t))
                             (reverse io-thunks))
                   (for-each (lambda (e) (send e end-edit-sequence)) io-collected-texts)
+		  (set! io-collected-texts null)
                   (scroll-to-position (last-position))
                   (end-edit-sequence))))
             
