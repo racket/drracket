@@ -635,8 +635,7 @@
             (number? . -> . number?)
             (lambda (start) 
               (let ([last-pos (last-position)])
-                (let loop ([pos start]
-                           [comment-depth 0])
+                (let loop ([pos start])
                   (cond
                     [(pos . >= . last-pos) last-pos]
                     [else 
