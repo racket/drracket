@@ -263,6 +263,18 @@
                 'expand
                 #t
                 #f)
+
+     ;; macro tests
+     (make-test "(define-syntax (c stx) (syntax-case stx () [(_ p q r) (syntax (+ p q r))]))"
+		""
+		""
+                #f
+		'interactions
+		#f
+                #f
+		#f)
+
+
      
    ;; error escape handler test
      (make-test

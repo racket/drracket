@@ -61,6 +61,9 @@
         (class %
           (override on-execute)
           (rename [super-on-execute on-execute])
+
+          (define/override (use-namespace-require/copy?) #t)
+
           (define (on-execute settings run-in-user-thread)
             (super-on-execute settings run-in-user-thread)
             (run-in-user-thread
@@ -431,6 +434,8 @@
            (teachpack-names null))
          #t))
 
+      (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant full-languages)
+                                                         (string-constant r5rs-w/debug)))
       (add-debug-lang '(lib "full-mzscheme.ss" "lang") (list (string-constant full-languages)
                                                              (string-constant mzscheme-w/debug)))
       (add-debug-lang '(lib "full-mred.ss" "lang") (list (string-constant full-languages)

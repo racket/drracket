@@ -53,6 +53,7 @@
 
           get-module
           get-transformer-module
+          use-namespace-require/copy?
 	  config-panel
 	  on-execute
           get-teachpack-names
@@ -84,9 +85,10 @@
                   render-value/format render-value
                   default-settings? default-settings marshall-settings unmarshall-settings)
 
-          (inherit get-module)
           (define/public (get-transformer-module) 'mzscheme)
+          (define/public (use-namespace-require/copy?) #f)
 
+          (inherit get-module)
           (define (marshall-settings settings)
 	    (simple-settings->vector settings))
           (define (unmarshall-settings printable)
@@ -238,17 +240,20 @@
       ;; given a module-based-language, implements a language
       (define module-based-language->language-mixin
 	(mixin (module-based-language<%>) (language<%>)
-	  (inherit get-module get-transformer-module)
+	  (inherit get-module get-transformer-module use-namespace-require/copy?)
 	  (rename [super-on-execute on-execute])
 	  (define/override (on-execute setting run-in-user-thread)
 	    (super-on-execute setting run-in-user-thread)
-	    (initialize-module-based-language (get-module) (get-transformer-module) run-in-user-thread))
+	    (initialize-module-based-language (use-namespace-require/copy?)
+                                              (get-module)
+                                              (get-transformer-module)
+                                              run-in-user-thread))
           (define/public (front-end input settings)
             (module-based-language-front-end input))
           (super-instantiate ())))
       
-      ;; initialize-module-based-language : module-spec module-spec ((-> void) -> void)
-      (define (initialize-module-based-language module-spec transformer-module-spec run-in-user-thread)
+      ;; initialize-module-based-language : boolean module-spec module-spec ((-> void) -> void)
+      (define (initialize-module-based-language use-copy? module-spec transformer-module-spec run-in-user-thread)
         ;; must call the resolver before setting the namespace
         (dynamic-require module-spec #f)
         (dynamic-require transformer-module-spec #f)
@@ -265,7 +270,9 @@
 	     (lambda ()
 	       (namespace-attach-module orig-namespace lang-name)
                (namespace-attach-module orig-namespace transformer-lang-name)
-	       (namespace-require module-spec)
+	       (if use-copy?
+                   (namespace-require/copy module-spec)
+                   (namespace-require module-spec))
                (namespace-transformer-require transformer-module-spec))))))
 
       ;; module-based-language-front-end : (input settings -> (-> (union sexp syntax eof)))
