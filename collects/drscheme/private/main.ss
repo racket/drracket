@@ -282,32 +282,22 @@
            main)))
       
       (scheme:add-preferences-panel)
-      (preferences:add-general-panel)
-      (preferences:add-panel
-       (string-constant general-ii)
-       (lambda (panel)
-         (let* ([main (make-object vertical-panel% panel)]
-                [right-align-in-main
-                 (lambda (f)
-                   (let ([hp (make-object horizontal-panel% main)])
-                     (send hp stretchable-height #f)
-                     (begin0 (f hp)
-                             (make-object horizontal-panel% hp))))]
-                [make-check-box
-                 (lambda (pref-sym string)
-                   (right-align-in-main
-                    (lambda (p)
-                      (let ([q (make-object check-box%
-                                 string
-                                 p
-                                 (lambda (checkbox evt)
-                                   (preferences:set 
-                                    pref-sym 
-                                    (send checkbox get-value))))])
-                        (send q set-value (preferences:get pref-sym))))))])
-           (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once))
-           (make-object vertical-panel% main)
-           main)))
+      (preferences:add-editor-checkbox-panel)
+      (preferences:add-misc-checkbox-panel)
+      (preferences:add-scheme-checkbox-panel)
+      (preferences:add-to-misc-checkbox-panel
+       (lambda (misc-panel)
+         (let ([make-check-box
+                (lambda (pref-sym string)
+                  (let ([q (make-object check-box%
+                             string
+                             misc-panel
+                             (lambda (checkbox evt)
+                               (preferences:set 
+                                pref-sym 
+                                (send checkbox get-value))))])
+                    (send q set-value (preferences:get pref-sym))))])
+           (make-check-box 'drscheme:execute-warning-once (string-constant only-warn-once)))))
       (add-proxy-prefs-panel)
       (drscheme:debug:add-prefs-panel)
       
