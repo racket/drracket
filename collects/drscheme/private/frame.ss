@@ -431,6 +431,8 @@
                 (set! currently-running? #f)
                 (send running-message set-label sleepy-bitmap)))]
           
+          (define/public (get-currently-running?) currently-running?)
+          
           (inherit get-menu% get-menu-bar)
           (super-instantiate ())
           (set! show-menu (make-object (get-menu%) (string-constant show-menu-label)

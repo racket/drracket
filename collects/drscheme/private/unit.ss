@@ -817,6 +817,7 @@
                     'copy)))
           
           ;; pad-two : number -> string
+          ;; pads a number to two digitsﬂ
           (define (pad-two n)
             (cond
               [(<= 0 n 9) (format "0~a" n)]
@@ -909,6 +910,36 @@
               (unless (preferences:get 'framework:show-status-line)
                 (send logging-parent-panel change-children (lambda (l) null)))
               root))
+
+          (inherit get-currently-running?)
+          (define/override (can-close?)
+            (cond
+              [(get-currently-running?)
+               (equal? (message-box/custom
+                        (string-constant drscheme)
+                        (string-constant program-is-still-running)
+                        (string-constant yes)
+                        (string-constant no)
+                        #f
+                        this
+                        '(default=1 caution)
+                        2)
+                       1)]
+              [(let ([user-eventspace (send interactions-text get-user-eventspace)])
+                 (and user-eventspace
+                      (parameterize ([current-eventspace user-eventspace])
+                        (not (null? (get-top-level-windows))))))
+               (equal? (message-box/custom
+                        (string-constant drscheme)
+                        (string-constant program-has-open-windows)
+                        (string-constant yes)
+                        (string-constant no)
+                        #f
+                        this
+                        '(default=1 caution)
+                        2)
+                       1)]
+              [else #t]))
           
           (public clear-annotations)
           [define clear-annotations
