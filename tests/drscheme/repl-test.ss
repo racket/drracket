@@ -114,10 +114,10 @@
 		    (vector 16 21))
 	    (vector
 	     (format "(define-macro m (lambda () (car)))~n(m)")
-	     "1.1-1.3: car: expects 1 argument, given 0"
+	     "0.27-0.31: car: expects 1 argument, given 0"
 	     #t
 	     "car: expects 1 argument, given 0"
-	     (vector 35 38))
+	     (vector 27 32))
 	    (vector
 	     (format "(define-macro m (lambda (x) `(+ ,x 1)))~n(m #t)")
 	     "1.1-1.6: +: expects type <number> as 1st argument, given: #t; other arguments were: 1"
@@ -138,10 +138,10 @@
 	     (vector 16 82))
 	    (vector
 	     (format "(define-macro m (lambda (x) (values x x)))~n(m 1)")
-	     "1.1-1.5: context expected 1 value, received 2 values: 1 1"
+	     "0.28-0.39: context expected 1 value, received 2 values: 1 1"
 	     #t
 	     "context expected 1 value, received 2 values: 1 1"
-	     (vector 43 48)))]
+	     (vector 28 40)))]
 
 	  [drscheme-frame (wait-for-drscheme-frame)]
 	  [user-directory
