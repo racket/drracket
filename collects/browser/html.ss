@@ -146,7 +146,7 @@
 		  [re:href (regexp "[hH][rR][eE][fF][ ]*=[ ]*([^ ]*)")]
 		  [re:quote-name (regexp "[nN][aA][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		  [re:name (regexp "[nN][aA][mM][eE][ ]*=[ ]*([^ ]*)")]
-		  [re:quote-scheme (regexp "[sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
+		  [re:quote-scheme (regexp "[Mm][Zz][sS][cC][hH][eE][mM][eE][ ]*=[ ]*\"([^\"]*)\"")]
 		  [href-error
 		   (lambda (s)
 		     (html-error "bad reference in ~s" s))])

@@ -240,7 +240,7 @@
 	       (on-navigate))))]
 	[make-canvas (lambda () (make-object hyper-canvas% this))])
       (private
-	[past null] [future null]
+	[past null] [future null] [init-page #f]
 	[hp (make-object horizontal-panel% this)]
 	[back (make-object button% "< Rewind" hp
 			   (lambda (b ev) 
@@ -248,27 +248,35 @@
 	[forw (make-object button% "Forward >" hp
 			   (lambda (b ev) 
 			     (forward)))]
+	[home (make-object button% "Home" hp
+			   (lambda (b ev)
+			     (when init-page
+			       (send c set-page init-page #t))))]
 	[update-buttons (lambda (page)
+			  (unless init-page
+			    (set! init-page page))
 			  (send back enable (pair? past))
 			  (send forw enable (pair? future))
+			  (send home enable (and init-page
+						 (not (same-page? init-page page))))
 			  (send choice clear)
 			  (for-each
 			   (lambda (p)
 			     (send choice append 
 				   (let ([s (send (car p) get-title)])
 				     (or s "Untitled"))))
-			   (append (reverse past)
+			   (append (reverse future)
 				   (if page (list page) null)
-				   future))
+				   past))
 			  (let ([c (send choice get-number)])
 			    (unless (zero? c)
-			      (send choice set-selection (length past)))))]
+			      (send choice set-selection (length future)))))]
 	[choice (make-object choice% #f null hp
 			     (lambda (ch e)
 			       (let* ([l (append (reverse past)
 						 (list (send c current-page))
 						 future)]
-				      [pos (send choice get-selection)])
+				      [pos (- (send choice get-number) (send choice get-selection) 1)])
 				 (let loop ([l l][pre null][pos pos])
 				   (cond
 				    [(zero? pos)
@@ -315,6 +323,9 @@
 
   (define (editor->page e) (list e 0 0))
   (define (page->editor e) (car e))
+
+  (define (same-page? a b)
+    (eq? (car a) (car b)))
 
   (define (open-url file)
     (make-object hyper-frame% file "Browser" #f 500 450)))
