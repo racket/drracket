@@ -77,7 +77,7 @@
                         (if (compiled-expression? 
                              (if (syntax? exp) (syntax-e exp) exp))
                             exp
-                            (annotate-top (expand exp) null #f))])
+                            (annotate-top (expand exp) #f))])
                    (oe annotated)))])
           debug-tool-eval-handler))
 
