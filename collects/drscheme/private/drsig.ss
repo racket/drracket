@@ -25,6 +25,7 @@
            drscheme:language^
            drscheme:teachpack^
            drscheme:multi-file-search^
+           drscheme:tool-exports^
            drscheme:tool^
 	   drscheme^)
 

@@ -1135,7 +1135,7 @@
                                                           this)])
                              (when str
                                (let ()
-                                 (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 1)))
+                                 (define bdc (make-object bitmap-dc% (make-object bitmap% 1 1 #t)))
                                  (define-values (tw th td ta) (send bdc get-text-extent str))
                                  (define tmp-color (make-object color%))
                                  (define (get-char x y)
@@ -1161,7 +1161,7 @@
                                  (send bdc set-bitmap (make-object bitmap% 
                                                         (inexact->exact tw)
                                                         (inexact->exact th) 
-                                                        1))
+                                                        #t))
                                  (send bdc clear)
                                  (send bdc draw-text str 0 0)
                                  
