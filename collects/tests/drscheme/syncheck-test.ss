@@ -229,7 +229,7 @@
 		  ("1"             constant)
 		  (" "             base)
 		  ("2"             constant)
-                  (")"             base)))
+                  ("))"            base)))
      
      (make-test "(module m mzscheme (require (lib \"list.ss\")))"
                 '(("("                 base)
@@ -405,11 +405,11 @@
                   (" (lib \"list.ss\")) " base)
                   ("foldl"                bound-variable)
                   (")"                    base)))
-     (make-test "(module m (lib \"htdp-beginner.ss\" \"lang\") +)"
+     (make-test "(module m (lib \"htdp-beginner.ss\" \"lang\") empty)"
                 '(("("                                         base)
                   ("module"                                    keyword)
                   (" m (lib \"htdp-beginner.ss\" \"lang\") "   base)
-                  ("+"                                         bound-variable)
+                  ("empty"                                     bound-variable)
                   (")"                                         base)))
      (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\"))) x:foldl)"
                 '(("("                                base)

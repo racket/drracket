@@ -200,7 +200,7 @@
                                    (alignment '(center center))))
         
         (define stupid-internal-define-syntax2
-          (unless (eq? (system-type) 'macosx)
+          (begin
             (send nl-welcome-panel set-label-font
                   (send the-font-list find-or-create-font 36 'default 'normal 'normal #f))
             (send nl-welcome-panel set-control-font
