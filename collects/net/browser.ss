@@ -155,18 +155,18 @@
 					  (lambda (name browser)
 					    (try-put-preferences (list 'external-browser) (list browser)))))
 
-	   (letrec ([v-panel (instantiate vertical-panel% ()
+	   (letrec ([v-panel (instantiate group-box-panel% ()
 					  (parent pref-panel)
 					  (alignment '(right center))
 					  (stretchable-height #f)
-					  (style '(border)))]
+					  (label (string-constant external-browser-choice-title)))]
 		    [h-panel (instantiate horizontal-panel% ()
 					  (parent v-panel)
 					  (alignment '(center bottom)))]
 		    [none-index (length raw:unix-browser-list)]
 		    [custom-index (add1 none-index)]
 		    [r (instantiate radio-box% ()
-				    (label (string-constant external-browser-choice-title))
+				    (label #f)
 				    (choices (append unix-browser-names
 						     (list (string-constant no-browser)
 							   (string-constant browser-command-line-label))))
@@ -233,10 +233,10 @@
 
 	 ;; -------------------- proxy for doc downloads --------------------
 	 (when set-help?
-	   (letrec ([p (instantiate vertical-panel% ()
+	   (letrec ([p (instantiate group-box-panel% ()
+				    (label (string-constant http-proxy))
 				    (parent pref-panel)
 				    (stretchable-height #f)
-				    (style '(border))
 				    (alignment '(left top)))]
 		    [rb (make-object radio-box% 
 				     #f (list (string-constant proxy-direct-connection)
