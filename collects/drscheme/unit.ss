@@ -1,10 +1,8 @@
 
 (unit/sig drscheme:unit^
-  (import [wx : wx^]
-	  [mred : mred^]
+  (import [mred : mred^]
 	  [mzlib : mzlib:core^]
 	  [drscheme:app : drscheme:app^]
-	  [drscheme:setup : drscheme:setup^]
 	  [drscheme:compound-unit : drscheme:compound-unit^]
 	  [drscheme:frame : drscheme:frame^]
 	  [drscheme:edit : drscheme:edit^]
@@ -12,8 +10,6 @@
 	  [drscheme:language : drscheme:language^]
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:face : drscheme:face^])
-  
-  (mred:debug:printf 'invoke "drscheme:unit@")
   
   (define make-bitmap
     (let* ([font (send wx:the-font-list find-or-create-font
@@ -180,9 +176,7 @@
 	   (send frame update-save-button mod?)
 	   (super-edit-modified mod?))])
       (sequence
-	(mred:debug:printf 'super-init "before drscheme:frame::get-canvas%")
 	(apply super-init args)
-	(mred:debug:printf 'super-init "after drscheme:frame::get-canvas%")
 	(let ([m (get-media)])
 	  (send frame set-save-init-shown?
 		(and (not (null? m)) (send m modified?)))))))
@@ -526,13 +520,6 @@
 			    (lambda ()
 			      (send (ivar (active-edit) mode)
 				    uncomment-selection (active-edit)))))
-	     (when (mred:get-preference 'drscheme:use-setup?)
-	       (send* scheme-menu
-		 (append-separator)
-		 (append-item "Setup H&omework..." 
-			      (lambda () (drscheme:setup:do-setup "hw")))
-		 (append-item "Setup &Lab..."
-			      (lambda () (drscheme:setup:do-setup "lab")))))
 	     
 	     '(set! imports-id 
 		   (send show-menu append-item
@@ -592,9 +579,7 @@
 	[get-unit (lambda () unit)])
 
       (sequence
-	(mred:debug:printf 'super-init "before drscheme:unit-frame%")
-	(super-init unit)
-	(mred:debug:printf 'super-init "after drscheme:unit-frame%"))
+	(super-init unit))
       
       (private
 	[top-panel (make-object mred:horizontal-panel% panel)])
@@ -731,8 +716,7 @@
 	   (set! created-frame this)]
 	  [created-frame
 	   (set! created-frame #f)]
-	  [else (void)])
-	(mred:debug:printf 'super-init "drscheme:frame% finished ivars~n"))))
+	  [else (void)]))))
   
   (define snip%
     (class* mred:node-snip% (drscheme:face:unit-snipI) (unit)

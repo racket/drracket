@@ -2,11 +2,16 @@
 (require-library "sig.ss" "mred")
 (require-library "zsigs.ss" "zodiac")
 (require-library "sigs.ss" "zodiac")
-(require-library "sparams.ss" "backward")
 (require-library "ariess.ss" "cogen")
 (require-library "sig.ss" "userspce")
 (require-library "gusrspcs.ss" "gusrspce")
 (require-library "pconvers.ss")
+(require-library "frameworks.ss" "framework")
+
+(require-library "mred-interfaces.ss" "framework")
+
+(require-library "errortrace.ss" "errortrace")
+(error-print-width 80)
 
 (define-signature drscheme:get-collection^
   (get-file/collection))

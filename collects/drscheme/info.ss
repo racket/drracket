@@ -2,12 +2,17 @@
 	  (lambda (request failure)
 	    (case request
 	      [(name) "DrScheme"]
-	      [(app-unit-library) "link.ss"]
-	      [(app-sig-library) "drsig.ss"]
-	      [(splash-image-path) (with-handlers ([void (lambda (x) "mred.gif")]) 
-				     (build-path (collection-path "icons") "plt.gif"))]
-	      [(splash-max) 138]
-	      [(splash-depth) 6]
+	      [(install-collection)
+	       (lambda(plt-dir)
+		 (require-library "launcher.ss" "launcher")
+		 (make-mred-launcher
+		  (list "-maqgvL" "drscheme.ss" "drscheme")
+		  (mred-program-launcher-path "DrScheme")))]
+;	      [(splash-image-path)
+;	       (with-handlers ([void (lambda (x) "mred.gif")]) 
+;		 (build-path (collection-path "icons") "plt.gif"))]
+;	      [(splash-max) 138]
+;	      [(splash-depth) 6]
 	      [(compile-prefix) 
 	       '(begin
 		  (read-case-sensitive #t)
@@ -37,6 +42,5 @@
 		  (require-library "debug.ss" "system"))]
 	      [(compile-elaboration-zos)
 	       (list "drsig.ss")]
-	      [(mred-launcher-name) "DrScheme"]
 	      [else (failure)]))])
   drscheme-info)

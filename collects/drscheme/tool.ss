@@ -1,7 +1,6 @@
 (begin-construction-time
  `(compound-unit/sig
-      (import [wx : wx^]
-	      [mred : mred^]
+      (import [mred : mred^]
 	      [mzlib : mzlib:core^]
 	      [print-convert : mzlib:print-convert^]
 	      [zodiac : drscheme:zodiac^]

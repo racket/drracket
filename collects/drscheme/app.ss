@@ -1,11 +1,8 @@
 
   (unit/sig drscheme:app^
-    (import [wx : wx^]
-	    [mred : mred^]
+    (import [mred : mred^]
 	    [mzlib : mzlib:core^])
     
-    (mred:debug:printf 'invoke "drscheme:application@")
-
     (define about-drscheme
       (lambda ()
 	(let* ([names (string-append

@@ -1,15 +1,15 @@
 (unit/sig drscheme:edit^
-  (import [mred : mred^]
+  (import [fw : framework^]
 	  [aries : plt:aries^]
 	  [zodiac : drscheme:zodiac^])
   
   (define edit%
-    (class mred:scheme-mode-edit% args
+    (class fw:scheme:text% args
       (public
 	[get-zodiac-sexp
 	 (lambda ()
 	   (let* ([loc (zodiac:make-location 0 0 0 this)]
-		  [port (mred:read-snips/chars-from-buffer this)]
+		  [port (fw:gui-utils:read-snips/chars-from-buffer this)]
 		  [reader (zodiac:read port loc)]
 		  [bodies (let read-loop ()
 			    (let ([expr (reader)])
