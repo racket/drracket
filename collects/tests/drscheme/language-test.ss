@@ -239,7 +239,7 @@
     (test-expression "(error \"a\" \"a\")"
 		     "error: expected a symbol and a string, got \"a\" and \"a\"")
     
-    (test-expression "(time 1)" "<image> reference to undefined identifier: time")
+    (test-expression "(time 1)" "reference to undefined identifier: time")
 
     (test-expression "(list make-posn posn-x posn-y posn?)" "(cons make-posn (cons posn-x (cons posn-y (cons posn? empty))))")
     (test-expression "set-posn-x!" "reference to undefined identifier: set-posn-x!")
@@ -248,8 +248,8 @@
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
-    (test-expression "(set! x 1)" "<image> reference to undefined identifier: set!")
-    (test-expression "(cond [(= 1 2) 3])" "<image> no matching cond clause")
+    (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+    (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "quote: misused: '(1) is not a symbol")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
@@ -273,7 +273,7 @@
     (generic-output #t #f #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
-		  "<image> Variable x referenced before definition or initialization")
+		  "Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
@@ -298,14 +298,14 @@
     (test-expression "true" "true")
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
-    (test-expression "(set! x 1)" "<image> reference to undefined identifier: set!")
-    (test-expression "(cond [(= 1 2) 3])" "<image> no matching cond clause")
+    (test-expression "(set! x 1)" "reference to undefined identifier: set!")
+    (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "(list 1)")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(list (box 1) (box 1))")
-    (test-expression "(local ((define x x)) 1)" "<image> Variable x referenced before definition or initialization")
-    (test-expression "(letrec ([x x]) 1)" "<image> Variable x referenced before definition or initialization")
+    (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
+    (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "Condition value is neither true nor false: 1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
@@ -321,7 +321,7 @@
     (generic-output #t #t #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
-		  "<image> Variable x referenced before definition or initialization")
+		  "Variable x referenced before definition or initialization")
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #f "(local ((define x x)) 1)" "1")
     
@@ -347,13 +347,13 @@
     (test-expression "mred^" "reference to undefined identifier: mred^")
     (test-expression "(eq? 'a 'A)" "false")
     (test-expression "(set! x 1)" "set!: cannot set undefined identifier: x")
-    (test-expression "(cond [(= 1 2) 3])" "<image> no matching cond clause")
+    (test-expression "(cond [(= 1 2) 3])" "no matching cond clause")
     (test-expression "(cons 1 2)" "cons: second argument must be of type <list>, given 1 and 2")
     (test-expression "'(1)" "(list 1)")
     (test-expression "(define shrd (box 1)) (list shrd shrd)"
 		     "(shared ((-1- (box 1))) (list -1- -1-))")
-    (test-expression "(local ((define x x)) 1)" "<image> Variable x referenced before definition or initialization")
-    (test-expression "(letrec ([x x]) 1)" "<image> Variable x referenced before definition or initialization")
+    (test-expression "(local ((define x x)) 1)" "Variable x referenced before definition or initialization")
+    (test-expression "(letrec ([x x]) 1)" "Variable x referenced before definition or initialization")
     (test-expression "(if 1 1 1)" "1")
     (test-expression "(+ 1)" "+: expects at least 2 arguments, given 1: 1")
     (test-expression "1.0" "1")
@@ -373,7 +373,7 @@
   
   (set-language #f)
   (test-setting "Unmatched cond/case is an error" #t "(cond [false 1])"
-		"<image> no matching cond clause"))
+		"no matching cond clause"))
 
 (define (generic-settings false/true?)
   (set-language #f)

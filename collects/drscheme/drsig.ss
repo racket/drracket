@@ -16,6 +16,7 @@
 (require-library "frameworks.ss" "framework")
 (require-library "compiles.ss" "dynext")
 (require-library "links.ss" "dynext")
+(require-relative-library "load-handlers.ss")
 
 (require-library "sig.ss" "help")
 
@@ -110,12 +111,6 @@
   (check-new-version
    invite-tour
    about-drscheme))
-
-(define-signature drscheme:load-handler^
-  (process-text/zodiac
-   process-text/no-zodiac
-   process-text
-   drscheme-load-handler))
 
 (define-signature drscheme:export^
   ((unit interface : drscheme:interface^)

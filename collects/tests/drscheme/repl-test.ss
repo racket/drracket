@@ -200,9 +200,9 @@
    
    ;; new namespace test
    (make-test (format "(current-namespace (make-namespace))~nif")
-	      "2.1-2.3: keyword: Invalid use of keyword if"
+	      "2.1-2.3: keyword: invalid use of keyword if"
 	      2
-	      "keyword: Invalid use of keyword if"
+	      "keyword: invalid use of keyword if"
 	      (vector 37 39)
 
 	      "compile: illegal use of a syntactic form name in: if"
