@@ -41,7 +41,7 @@
 	  (send (find-labelled-window "Full pathname") focus)
 	  (fw:test:keystroke #\a (list (case (system-type)
 					 [(windows) 'control]
-					 [(macos) 'command]
+					 [(macos) 'meta]
 					 [(unix) 'meta])))
 	  (for-each fw:test:keystroke (string->list filename))
 	  (fw:test:button-push "OK")
@@ -73,19 +73,23 @@
   (define (drscheme-frame? frame)
     (ivar-in-interface? 'execute-button (object-interface frame)))
   
-  (define (wait-for-drscheme-frame)
-    (let ([wait-for-drscheme-frame-pred
-	   (lambda ()
-	     (yield)
-	     (let ([active (get-top-level-focus-window)])
-	       (if (and active
-			(drscheme-frame? active))
-		   active
-		   #f)))])
-      (or (wait-for-drscheme-frame-pred)
-	  (begin
-	    (printf "Select DrScheme frame~n")
-	    (poll-until wait-for-drscheme-frame-pred)))))
+  (define wait-for-drscheme-frame
+    (case-lambda
+     [() (wait-for-drscheme-frame #t)]
+     [(print-message?)
+      (let ([wait-for-drscheme-frame-pred
+             (lambda ()
+               (yield)
+               (let ([active (get-top-level-focus-window)])
+                 (if (and active
+                          (drscheme-frame? active))
+                     active
+                     #f)))])
+        (or (wait-for-drscheme-frame-pred)
+            (begin
+              (when print-message?
+                (printf "Select DrScheme frame~n"))
+              (poll-until wait-for-drscheme-frame-pred))))]))
   
   (define (wait-for-new-frame old-frame)
     (let ([wait-for-new-frame-pred
