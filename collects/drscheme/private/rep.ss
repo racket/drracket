@@ -1631,8 +1631,8 @@
                 (lock c-locked?)))
             (cleanup)
             (end-edit-sequence)
-            (send context enable-evaluation)
-            (send context set-breakables #f #f))
+            (send context set-breakables #f #f)
+            (send context enable-evaluation))
           
           ; =Kernel, =Handler=
           (define (do-many-text-evals text start end complete-program?)

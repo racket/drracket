@@ -267,8 +267,7 @@
                        (instantiate message% ()
                          (label str)
                          (parent check-updates-state-panel)))])
-            (let loop ([message (format (string-constant
-                                         vc-wizard-check-prompt))])
+            (let loop ([message (format (string-constant vc-wizard-check-prompt))])
               (cond [(regexp-match #rx"^(.+?)\n(.+)$" message) =>
                      (lambda (m) (add (cadr m)) (loop (caddr m)))]
                     [else (add message)]))))
@@ -284,6 +283,11 @@
             (label (string-constant vc-wizard-check-button))
             (parent check-updates-state-panel)
             (callback (lambda (x y) (check-version dlg)))))
+        (define cu-no-button
+          (instantiate button% ()
+            (label (string-constant vc-wizard-no-check-button))
+            (parent check-updates-state-panel)
+            (callback (lambda (x y) (next-state)))))
         
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

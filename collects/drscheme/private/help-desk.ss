@@ -156,7 +156,7 @@
                 (send dc draw-rectangle 0 0 cw ch)
                 (cond
                   [(tw . <= . cw)
-                   (send dc draw-text msg (- (/ cw 2) (/ tw 2)) (- (/ ch 2) (/ th 2)))]
+                   (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)))]
                   [(cw . <= . dw)  ;; just give up if there's not enough room to draw the dots
                    (void)]
                   [else
