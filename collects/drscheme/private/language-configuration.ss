@@ -329,10 +329,11 @@
 	  (define details-panel (make-object panel:single% details/manual-parent-panel))
           (define manual-ordering-panel (new vertical-panel% (parent details/manual-parent-panel)))
           
-          (define manual-ordering-text (new text%))
-          (define manual-ordering-canvas (new editor-canvas% 
+          (define manual-ordering-text (new panel-background-text%))
+          (define manual-ordering-canvas (new panel-background-editor-canvas% 
                                               (parent manual-ordering-panel)
                                               (editor manual-ordering-text)
+                                              (style '(no-hscroll #;control-border))
                                               (min-width 300)))
           
           (define one-line-summary-message (instantiate message% ()
@@ -779,6 +780,37 @@
              (and get/set-selected-language-settings
                   (get/set-selected-language-settings))))))
 
+      (define panel-background-editor-canvas% 
+        (class editor-canvas%
+          (inherit get-dc get-client-size)
+          (rename [super-on-paint on-paint])
+          (define/override (on-paint)
+            (let-values ([(cw ch) (get-client-size)])
+              (let* ([dc (get-dc)]
+                     [old-pen (send dc get-pen)]
+                     [old-brush (send dc get-brush)])
+                (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
+                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+                (send dc draw-rectangle 0 0 cw ch)
+                (send dc set-pen old-pen)
+                (send dc set-brush old-brush))))
+          (super-new)))
+      
+      (define panel-background-text% 
+        (class text%
+          (rename [super-on-paint on-paint])
+          (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+            (when before?
+              (let ([old-pen (send dc get-pen)]
+                    [old-brush (send dc get-brush)])
+                (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
+                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+                (send dc draw-rectangle left top (- right left) (- bottom top))
+                (send dc set-pen old-pen)
+                (send dc set-brush old-brush)))
+            (super-on-paint before? dc left top right bottom dx dy draw-caret))
+          (super-new)))
+      
       (define section-style-delta (make-object style-delta% 'change-bold))
       (send section-style-delta set-delta-foreground "medium blue")
       (define small-size-delta (make-object style-delta% 'change-size 9))

@@ -7,6 +7,7 @@
            (lib "help-desk.ss" "help")
            (lib "framework.ss" "framework")
            (lib "class.ss")
+           (lib "list.ss")
 	   "drsig.ss")
   
   (provide help-desk@)
@@ -93,26 +94,73 @@
           (super-new)
           
           (inherit get-menu-bar)
-          (let* ([language-menu (new menu% 
-                                     (parent (get-menu-bar))
-                                     (label (string-constant language-menu-name)))]
-                 [language-item (new menu-item%
-                                     (label (string-constant choose-language-menu-item-label))
-                                     (parent language-menu)
-                                     (shortcut #\l)
-                                     (callback
-                                      (lambda (x y)
-                                        (let ([new-settings (drscheme:language-configuration:language-dialog
-                                                             #f
-                                                             current-language
-                                                             this 
-                                                             #t)])
-                                          (when new-settings
-                                            (set! current-language new-settings)
-                                            (preferences:set
-                                             drscheme:language-configuration:settings-preferences-symbol
-                                             new-settings))))))])
-            (frame:reorder-menus this))))
+          (inherit-field choices-panel)
+          (letrec ([language-menu (new menu% 
+                                       (parent (get-menu-bar))
+                                       (label (string-constant language-menu-name)))]
+                   [change-language-callback
+                    (lambda ()
+                      (let ([new-settings (drscheme:language-configuration:language-dialog
+                                           #f
+                                           current-language
+                                           this 
+                                           #t)])
+                        (when new-settings
+                          (set! current-language new-settings)
+                          (send lang-message set-msg (get-language-name))
+                          (preferences:set
+                           drscheme:language-configuration:settings-preferences-symbol
+                           new-settings))))]
+                   [lang-message
+                    (new lang-message% 
+                         (button-release (lambda () (change-language-callback)))
+                         (parent choices-panel))]
+                   [language-item (new menu-item%
+                                       (label (string-constant choose-language-menu-item-label))
+                                       (parent language-menu)
+                                       (shortcut #\l)
+                                       (callback
+                                        (lambda (x y)
+                                          (change-language-callback))))])
+            (frame:reorder-menus this)
+            (send lang-message set-msg (get-language-name))
+            
+            ;; move the grow box spacer pane to the end
+            (send choices-panel change-children
+                  (lambda (l)
+                    (append
+                     (filter (lambda (x) (not (is-a? x grow-box-spacer-pane%))) l)
+                     (list (car (filter (lambda (x) (is-a? x grow-box-spacer-pane%)) l)))))))))
+      
+      (define lang-message%
+        (class canvas%
+          (init-field button-release)
+          (define/override (on-event evt)
+            (when (send evt button-up?)
+              (button-release)))
+          (field [msg ""])
+          (define/public (set-msg l) (set! msg l) (on-paint))
+          (inherit get-dc get-client-size)
+          (define/override (on-paint)
+            (let ([dc (get-dc)]
+                  [dots "..."])
+              (let-values ([(tw th _1 _2) (send dc get-text-extent msg)]
+                           [(dw dh _3 _4) (send dc get-text-extent dots)]
+                           [(cw ch) (get-client-size)])
+                (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
+                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+                (send dc draw-rectangle 0 0 cw ch)
+                (cond
+                  [(tw . <= . cw)
+                   (send dc draw-text msg (- (/ cw 2) (/ tw 2)) (- (/ ch 2) (/ th 2)))]
+                  [(cw . <= . dw)  ;; just give up if there's not enough room to draw the dots
+                   (void)]
+                  [else
+                   (send dc set-clipping-rect 0 0 (- cw dw 2) ch)
+                   (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)))
+                   (send dc set-clipping-region #f)
+                   (send dc draw-text dots (- cw dw) (- (/ ch 2) (/ th 2)))]))))
+          (super-new)))
       
       (define (goto-help manual link)
         (with-handlers ([not-break-exn?
