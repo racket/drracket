@@ -134,8 +134,14 @@
                             module-specs))]
               [else
                (let ([body (car bodies)])
-                 (syntax-case body (define-values require prefix all-except rename)
+                 (syntax-case body (define-values define-syntaxes require prefix all-except rename)
                    [(define-values (new-vars ...) body)
+                    (loop (cdr bodies)
+                          (append (syntax->list (syntax (new-vars ...)))
+                                  vars)
+                          module-specs
+                          module-syms)]
+                   [(define-syntaxes (new-vars ...) body)
                     (loop (cdr bodies)
                           (append (syntax->list (syntax (new-vars ...)))
                                   vars)
@@ -161,7 +167,7 @@
                           module-syms)]))]))))
       
       ;; maybe-add : syntax (listof module-spec-sym) -> (listof module-spec-sym)
-        (define (maybe-add syntax-module-spec other-specs)
+      (define (maybe-add syntax-module-spec other-specs)
         (let ([module-spec-sym ((current-module-name-resolver) 
                                 (syntax-object->datum syntax-module-spec)
                                 #f
