@@ -22,6 +22,6 @@
 	       '(begin
 		  (require-library "refer.ss"))]
 	      [(compile-elaboration-zos)
-	       (list "drsig.ss")]
+	       (list "load-handlers.ss" "drsig.ss")]
 	      [else (failure)]))])
   drscheme-info)
