@@ -39,12 +39,19 @@
       ;; error-color : (instanceof color%)
       (define error-color (make-object color% "PINK"))
       
-      ;; bug-snip : (union string (instanceof snip%))
-      (define bug-snip (let ([b (make-object bitmap% 
+      ;; bug-note : (union string (instanceof snip%))
+      (define bug-note (let ([b (make-object bitmap% 
                                   (build-path (collection-path "icons") "bug09.gif"))])
                          (if (send b ok?)
                              (make-object image-snip% b)
-                             "[err]")))
+                             "[err trace]")))
+      
+      ;; file-note : (union string (instanceof snip%))
+      (define file-note (let ([b (make-object bitmap% 
+                                  (build-path (collection-path "icons") "file.gif"))])
+                         (if (send b ok?)
+                             (make-object image-snip% b)
+                             "[file]")))
       
       ;; simple-scheme-text% : (implements scheme:text<%>)
       (define simple-scheme-text% (scheme:text-mixin (editor:keymap-mixin text:basic%)))
@@ -76,27 +83,33 @@
                    (oe annotated)))])
           debug-tool-eval-handler))
 
-      ;; debug-tool-error-display-handler : (string exn -> void) -> string exn -> void
+      ;; debug-tool-error-display-handler : (string (union TST exn) -> void) -> string exn -> void
       ;; adds in the bug icon, if there are contexts to display
       (define (make-debug-tool-error-display-handler orig-error-display-handler)
         (define (debug-tool-error-display-handler msg exn)
-          (let ([cms (continuation-mark-set->list (exn-continuation-marks exn) cm-key)]
+          (let ([cms (and (exn? exn) (continuation-mark-set->list (exn-continuation-marks exn) cm-key))]
                 [rep (drscheme:rep:current-rep)])
           
-            (let ([locked? (send rep is-locked?)])
-              (send rep lock #f)
-              (let ([before (send rep last-position)])
-                (send rep insert (send bug-snip copy) before before)
-                (let ([after (send rep last-position)])
-                  (send rep insert #\space after after)
-                  (send rep set-clickback before after
-                        (lambda (txt start end)
-                          (show-backtrace-window rep msg cms))))
-                (send rep lock locked?)))
+	    (when (and cms
+		       (not (null? cms)))
+	      (let ([locked? (send rep is-locked?)])
+		(send rep lock #f)
+		(insert/clickback rep
+				  bug-note
+				  (lambda ()
+				    (show-backtrace-window rep msg cms)))
+		  
+		(let ([debug-source (car (car cms))])
+		  (when (symbol? debug-source)
+		    (insert/clickback rep file-note
+				      (lambda ()
+					(handler:edit-file (symbol->string debug-source))))))
+		  (send rep lock locked?)))
             
             (orig-error-display-handler msg exn)
             
-            (unless (null? cms)
+            (when (and cms
+		       (not (null? cms)))
               (let* ([first-cms (car cms)]
                      [src (car first-cms)]
                      [position (cdr first-cms)])
@@ -106,6 +119,22 @@
                   (send rep highlight-error/forward-sexp src position))))))
         debug-tool-error-display-handler)
       
+
+      ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
+      ;; inserts `note' and a space at the end of `rep'
+      ;; also sets a clickback on the inserted `note' (but not the space).
+      (define (insert/clickback rep note clickback)
+	(let ([before (send rep last-position)])
+	  (send rep insert (if (string? note)
+			       note
+			       (send note copy))
+		before before)
+	  (let ([after (send rep last-position)])
+	    (send rep insert #\space after after)
+	    (send rep set-clickback before after
+		  (lambda (txt start end)
+		    (clickback))))))
+
       ;; wrap : syntax syntax -> syntax
       ;; a member of stacktrace-imports^
       ;; guarantees that the continuation marks associated with cm-key are
