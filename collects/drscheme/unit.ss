@@ -1,3 +1,4 @@
+
 (unit/sig drscheme:unit^
   (import [mred : mred^]
 	  [mzlib : mzlib:core^]
@@ -5,6 +6,7 @@
 	  [fw : framework^]
           [launcher : launcher-maker^]
 	  [basis : plt:basis^]
+	  [drscheme:help-desk : help:drscheme-interface^]
 	  [drscheme:app : drscheme:app^]
 	  [drscheme:frame : drscheme:frame^]
 	  [drscheme:text : drscheme:text^]
@@ -13,6 +15,49 @@
 	  [drscheme:get/extend : drscheme:get/extend^]
 	  [drscheme:graph : drscheme:graph^]
 	  [drscheme:snip : drscheme:snip^])
+
+  (fw:keymap:add-to-right-button-menu
+   (lambda (menu text event)
+     (when (and (is-a? text mred:text%)
+		(is-a? event mred:mouse-event%))
+       (let* ([end (send text get-end-position)]
+	      [start (send text get-start-position)]
+	      [non-letter? (lambda (x)
+			     (or (char-whitespace? x)
+				 (memq x ' (#\` #\' #\, #\;
+					    #\{ #\( #\[ #\] #\) #\}))))])
+	 (unless (= 0 (send text last-position))
+	   (let ([str
+		  (if (= end start)
+		      (let* ([pos (send text find-position
+					(send event get-x)
+					(send event get-y))]
+			     [before
+			      (let loop ([i (- pos 1)]
+					 [chars null])
+				(if (< i 0)
+				    chars
+				    (let ([char (send text get-character i)])
+				      (if (non-letter? char)
+					  chars
+					  (loop (- i 1)
+						(cons char chars))))))]
+			     [after
+			      (let loop ([i pos])
+				(if (< i (send text last-position))
+				    (let ([char (send text get-character i)])
+				      (if (non-letter? char)
+					  null
+					  (cons char (loop (+ i 1)))))
+				    null))])
+			(apply string (append before after)))
+		      (send text get-text start end))])
+	     (unless (string=? str "")
+	       (make-object mred:separator-menu-item% menu)
+	       (make-object mred:menu-item%
+		 (format "Search in Help Desk for \"~a\"" str)
+		 menu
+		 (lambda x (drscheme:help-desk:help-desk str #f 'keyword+index 'contains))))))))))
 
   (define (get-fraction-from-user)
     (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
