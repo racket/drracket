@@ -229,7 +229,6 @@
       ;;   the autosave information window may appear and then
       ;;   go away (leaving no frames temporarily) but we are
       ;;   not going to be exiting yet.
-      (send (group:get-the-frame-group) set-ignore-empty-test #t)
       (autosave:restore-autosave-files/gui)
       
       ;; the initial window doesn't set the 
@@ -274,9 +273,4 @@
 				(lambda () (drscheme:unit:open-drscheme-window f))))
 		   no-dups)])
 	(when (null? (filter (lambda (x) x) frames))
-	  (make-basic)))
-
-      ;;
-      ;;  Turn the framework test back on.
-      ;;
-      (send (group:get-the-frame-group) set-ignore-empty-test #f))))
+	  (make-basic))))))
