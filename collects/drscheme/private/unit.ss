@@ -24,7 +24,8 @@
               [drscheme:language-configuration : drscheme:language-configuration/internal^]
               [drscheme:get/extend : drscheme:get/extend^]
               [drscheme:snip : drscheme:snip^]
-              [drscheme:teachpack : drscheme:teachpack^])
+              [drscheme:teachpack : drscheme:teachpack^]
+              [drscheme:module-overview : drscheme:module-overview^])
       
       (rename [-frame% frame%])
       
@@ -1434,7 +1435,11 @@
             (make-object menu:can-restore-menu-item%
               (string-constant create-executable-menu-item-label)
               scheme-menu
-              (lambda x (create-executable this)))
+              (lambda (x y) (create-executable this)))
+            (make-object menu:can-restore-menu-item%
+              (string-constant module-browser...)
+              scheme-menu
+              (lambda (x y) (drscheme:module-overview:module-overview this)))
             (make-object separator-menu-item% scheme-menu)
             (make-object menu:can-restore-menu-item%
               (string-constant reindent-menu-item-label)

@@ -25,6 +25,7 @@
            drscheme:language^
            drscheme:teachpack^
            drscheme:multi-file-search^
+           drscheme:module-overview^
            drscheme:tool-exports^
            drscheme:tool^
 	   drscheme^)
@@ -183,6 +184,9 @@
   (define-signature drscheme:multi-file-search^
     (multi-file-search))
   
+  (define-signature drscheme:module-overview^
+    (module-overview))
+
   (define-signature drscheme:tool-exports^
     (phase1 
      phase2))
