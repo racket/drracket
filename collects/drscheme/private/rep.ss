@@ -1259,8 +1259,9 @@
               (for-each 
                (lambda (v)
                  (unless (void? v)
-                   (print v this-result)))
-                 anss))
+                   (print v this-result)
+                   (newline this-result)))
+               anss))
             
             (define (reset-highlighting) (void))
             
@@ -1292,9 +1293,12 @@
             ;; default setting for the behavior of the `print' primitive.
             (define (drscheme-port-print-handler value port)
               (let ([language (drscheme:language:language-settings-language
-			       (current-language-settings))])
+			       (current-language-settings))]
+                    [settings (drscheme:language:language-settings-settings
+                               (current-language-settings))])
                 (send language render-value
-		      value 
+		      value
+                      settings
                       port 
                       (cond
                         [(eq? port this-out) (lambda (x) (this-out-write x))]
