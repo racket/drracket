@@ -2,8 +2,6 @@
         Version 300
 ------------------------------
 
-;;; unannounced above -- add to iplt/misc/announcements
-
  - changed the defaults for frame:standard-menus-mixin --
    the method file-menu:between-save-as-and-print method no
    longer creates a separator menu item. 
@@ -25,11 +23,6 @@
  - Help Desk's status messages are now in the frame and
    it's break button is also in the frame (no more modal
    dialog)
-
- - Check Syntax can now jump from the use of a
-   module-provided variable to its definition. Either
-   control-click (aka right click) on the variable or use
-   the c-x;d keyboard shortcut.
 
  - Check Syntax now does a better job of navigating amoung
    occurrences of a single variable. The popup menu lets you
