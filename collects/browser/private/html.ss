@@ -96,13 +96,17 @@
           (define/public (add-area shape coords href)
             (when (and (equal? shape "rect")
                        (= 4 (length coords)))
-              (set! rects (cons (make-image-map-rect
-                                 href
-                                 (car coords)
-                                 (cadr coords)
-                                 (caddr coords)
-                                 (cadddr coords))
-                                rects))))
+              (let ([x1 (car coords)]
+                    [y1 (cadr coords)]
+                    [x2 (caddr coords)]
+                    [y2 (cadddr coords)])
+                (set! rects (cons (make-image-map-rect
+                                   href
+                                   (min x1 x2)
+                                   (min y1 y2)
+                                   (max x1 x2)
+                                   (max y1 y2))
+                                  rects)))))
           
           (rename [super-on-event on-event])
           (define/override (on-event dc x y editor-x editor-y evt)
