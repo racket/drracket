@@ -23,7 +23,7 @@
 
  - added get-field and field-bound to (lib "class.ss")
 
-;;; unannounced aboe
+;;; unannounced above -- add to iplt/misc/announcements
 
  - contracts internal interface changed; much faster now (3x
    speedup for checking the contract (any? . -> . any?) for
