@@ -4,6 +4,7 @@
            "my-macros.ss")
   
   (provide
+   mark-list?
    cheap-mark?
    make-cheap-mark
    cheap-mark-source
@@ -23,9 +24,11 @@
   (make-contract-checker SYNTAX-OBJECT
                          syntax?)
   
+  (define (mark-list? ml)
+    (andmap procedure? ml))
+
   (make-contract-checker MARK-LIST
-                         (lambda (x)
-                           (andmap procedure? x)))
+                         mark-list?)
   
   ; debug-key: this key will be used as a key for the continuation marks.
   (define-struct debug-key-struct ())
