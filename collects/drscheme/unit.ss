@@ -228,12 +228,17 @@
       (inherit get-canvas
 	       set-label-prefix show-menu
 	       show get-menu%
-	       active-edit active-canvas panel update-info
-	       file-menu file-menu:open-id file-menu:new-id file-menu:save-id 
-	       file-menu:save-as-id file-menu:revert-id file-menu:print-id)
+	       get-editor
+	       get-area-container update-info
+	       get-file-menu
+	       file-menu:get-open-item
+	       file-menu:get-new-item
+	       file-menu:get-save-item
+	       file-menu:get-save-as-item
+	       file-menu:get-revert-item
+	       file-menu:get-print-item)
       (rename [super-update-shown update-shown]
-	      [super-do-close do-close]
-	      [help-menu:super-insert-items help-menu:insert-items])
+	      [super-on-close on-close])
       (public
 	[definitions-item #f]
 	[interactions-item #f]
@@ -255,32 +260,32 @@
 	[make-searchable
 	 (lambda (canvas)
 	   (update-info)
-	   (set! search-canvas canvas))]
-	[get-edit-to-search
+	   (set! search-canvas canvas))])
+      (override
+	[get-text-to-search
 	 (lambda ()
 	   (if search-canvas
 	       (send search-canvas get-editor)
-	       (get-edit)))]
-	[get-info-edit
+	       (get-editor)))]
+	[get-info-editor
 	 (lambda ()
-	   (get-edit-to-search))])
+	   (get-text-to-search))])
       
       (private [was-locked? #f]
-	       [execute-menu-item #f]
-	       [scheme-menu #f])
+	       [execute-menu-item #f])
       (public
 	[disable-evaluation
 	 (lambda ()
-	   (when (and scheme-menu execute-menu-item)
-	     (send scheme-menu enable execute-menu-item #f))
+	   (when execute-menu-item
+	     (send execute-menu-item enable #f))
 	   (send execute-button enable #f)
 	   (set! was-locked? (ivar definitions-edit locked?))
 	   (send definitions-edit lock #t)
 	   (send interactions-edit lock #t))]
 	[enable-evaluation
 	 (lambda ()
-	   (when (and scheme-menu execute-menu-item)
-	     (send scheme-menu enable execute-menu-item #t))
+	   (when execute-menu-item
+	     (send execute-menu-item enable #t))
 	   (send execute-button enable #t)
 	   (send definitions-edit lock was-locked?)
 	   (send interactions-edit lock #f))])
@@ -302,12 +307,14 @@
 				 "Untitlesd")))])
 	       (set! name-message msg)
 	       (send top-panel change-children
-		     (lambda (l) (build-top-panel-children))))))]
-	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))]
+		     (lambda (l) (build-top-panel-children))))))])
+      (override
+	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
+      (public
 	[ensure-interactions-shown
 	 (lambda ()
-	   (when (hidden? show-menu interactions-id)
-	     (toggle-show/hide show-menu interactions-id)
+	   (unless (send interactions-item is-checked?)
+	     (toggle-show/hide interactions-item)
 	     (update-shown)))])
       
       (public
@@ -334,11 +341,11 @@
        [drscheme-manual 
 	"PLT DrScheme: Programming Environment Manual"]
        [hidden?
-	(lambda (menu id)
-	  (let ([item (send menu get-label id)])
-	    (and (string? item)
-		 (>= (string-length item) 4)
-		 (string=? (substring item 0 4) "Show"))))]
+	(lambda (item)
+	  (let ([label (send item get-label)])
+	    (and (string? label)
+		 (>= (string-length label) 4)
+		 (string=? (substring label 0 4) "Show"))))]
 	[save-as-text-from-edit
 	 (lambda (win)
 	   (let ([file (mred:put-file)])
@@ -347,28 +354,27 @@
 
       (public
 	[toggle-show/hide
-	 (lambda (menu id)
-	   (let ([label (send menu get-label id)])
+	 (lambda (item)
+	   (let ([label (send item get-label)])
 	     (when (and (string? label)
 			(>= (string-length label) 4))
 	       (let ([new-front
 		      (if (string=? "Hide" (substring label 0 4))
 			  "Show"
-			  "Hide")])
-		 (let loop ([i (string-length new-front)])
-		   (unless (zero? i)
-		     (string-set! label (sub1 i) 
-				  (string-ref new-front (sub1 i)))
-		     (loop (sub1 i))))
-		 (send menu set-label id label)))))])
+			  "Hide")]
+		     [back (substring label 4 (string-length label))])
+		 (send item set-label (string-append new-front back))))))])
 
-      (public
-	[file-menu:between-open-and-save
+      (private
+	[file-menu:print-transcript-item #f])
+
+      (override
+	[file-menu:between-open-and-revert
 	 (lambda (file-menu)
-	   (send file-menu append-separator))]
+	   (make-object mred:separator-menu-item% file-menu))]
 	[file-menu:save-string "Definitions"]
 	[file-menu:save-as-string "Definitions"]
-	[file-menu:between-save-and-print
+	[file-menu:between-save-as-and-print
 
 	 (lambda (file-menu)
 
@@ -390,107 +396,93 @@
 		 "Save Interactions As Text..."
 		 (lambda ()
 		   (save-as-text-from-edit interactions-edit)))
-	   (send file-menu append-separator)
-	   (send file-menu append-item
-		 "Show Interactions History"
-		 drscheme:rep:show-interactions-history)
-	   (send file-menu append-separator))]
+	   (make-object mred:separator-menu-item% file-menu)
+	   (make-object mred:menu-item%
+	     "Show Interactions History"
+	     file-menu
+	     (lambda (_1 _2) (drscheme:rep:show-interactions-history)))
+	   (make-object mred:separator-menu-item% file-menu))]
 	[file-menu:print-string "Definitions"]
-	[file-menu:print-transcript-id #f]
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)
-	   (set! file-menu:print-transcript-id
-		 (send file-menu append-item "Print Interactions..."
-		       (lambda () (send interactions-edit print '()
-					#t 
-					#t
-					(fw:preferences:get 'mred:print-output-mode)))))
-	   (send file-menu append-separator))]
-
-	[help-menu:compare
-
-	 ; override default comparison so drscheme-manual is first
-
-	 (lambda (s1 s2)
-	   (if (string=? s1 drscheme-manual)
-	       -1
-	       (if (string=? s2 drscheme-manual)
-		   1
-		   (string-ci<? s1 s2))))]
-	[help-menu:insert-items
-	    (lambda (items)
-	      (if (string=? (caar items) drscheme-manual)
-		  (begin
-		    (apply (ivar (ivar this help-menu) append-item) 
-			   (car items))
-		    (send (ivar this help-menu) append-separator)
-		    (help-menu:super-insert-items (cdr items)))
-		  (help-menu:super-insert-items items)))]
-	[id->child
-	 (lambda (id)
+	   (set! file-menu:print-transcript-item
+		 (make-object mred:menu-item%
+		   "Print Interactions..."
+		   file-menu
+		   (lambda () (send interactions-edit print
+				    #t 
+				    #t
+				    (fw:preferences:get 'mred:print-output-mode)))))
+	   (make-object mred:separator-menu-item% file-menu))])
+      (private
+	[item->child
+	 (lambda (item)
 	   (cond
-	     [(= id interactions-id) interactions-canvas]
-	     [(= id definitions-id) definitions-canvas]
-	     ;[(= id imports-id) imports-panel]
-	     [else (error 'id->child "unknown id: ~a" id)]))]
+	     [(eq? item interactions-item) interactions-canvas]
+	     [(eq? item definitions-item) definitions-canvas]
+	     ;[(eq? item imports-item) imports-panel]
+	     [else (error 'item->child "unknown item: ~a" item)]))])
+      (override
 	[update-shown
 	 (lambda ()
-	   (super-update-shown)
-	   (send panel change-children
-		 (lambda (l)
-		   (cons top-panel
-			 (mzlib:function:foldl
-			  (lambda (id sofar)
-			    (if (hidden? show-menu id)
-				sofar
-				(cons (id->child id) sofar)))
-			  null
-			  (list interactions-id definitions-id 
-				;imports-id
-				)))))
-	   (when (ormap (lambda (child)
-			  (and (is-a? child mred:editor-canvas%)
-			       (not (send child is-focus-on?))))
-			(ivar panel children))
-	     (let loop ([children (ivar panel children)])
-	       (cond
-		[(null? children) (void)]
-		[else (let ([child (car children)])
-			(if (is-a? child mred:editor-canvas%)
-			    (send child set-focus)
-			    (loop (cdr children))))])))
-	   
-	   (send interactions-edit scroll-to-position 
-		 (send interactions-edit get-end-position)
-		 #f
-		 (send interactions-edit get-start-position)
-		 1)
-	   (send definitions-edit scroll-to-position 
-		 (send definitions-edit get-end-position)
-		 #f
-		 (send definitions-edit get-start-position)	
-		 1)
-	   (let ([defs-show? (not (hidden? show-menu definitions-id))])
-	     (for-each
-	      (lambda (id)
-		(send file-menu enable id defs-show?))
-	      (list file-menu:revert-id
-		    file-menu:save-id
-		    file-menu:save-as-id 
-		    (add1 file-menu:save-as-id) ; Save As Text...
-		    file-menu:print-id)))
-	   (send file-menu enable file-menu:print-transcript-id 
-		 (not (hidden? show-menu interactions-id))))]
+	   (let ([panel (get-area-container)])
+	     (super-update-shown)
+	     (send panel change-children
+		   (lambda (l)
+		     (cons top-panel
+			   (mzlib:function:foldl
+			    (lambda (item sofar)
+			      (if (send item is-checked?)
+				  sofar
+				  (cons (item->child item) sofar)))
+			    null
+			    (list interactions-item definitions-item
+				  ;imports-item
+				  )))))
+	     (when (ormap (lambda (child)
+			    (and (is-a? child mred:editor-canvas%)
+				 (not (send child is-focus-on?))))
+			  (send panel children))
+	       (let loop ([children (ivar panel children)])
+		 (cond
+		  [(null? children) (void)]
+		  [else (let ([child (car children)])
+			  (if (is-a? child mred:editor-canvas%)
+			      (send child set-focus)
+			      (loop (cdr children))))])))
+	     
+	     (send interactions-edit scroll-to-position 
+		   (send interactions-edit get-end-position)
+		   #f
+		   (send interactions-edit get-start-position)
+		   1)
+	     (send definitions-edit scroll-to-position 
+		   (send definitions-edit get-end-position)
+		   #f
+		   (send definitions-edit get-start-position)	
+		   1)
+	     (let ([defs-show? (not (hidden? definitions-item))])
+	       (for-each
+		(lambda (get-item)
+		  (send (get-item) enable defs-show?))
+		(list file-menu:get-revert-item
+		      file-menu:get-save-item
+		      file-menu:get-save-as-item
+		      ;file-menu:save-as-text-item ; Save As Text...
+		      file-menu:get-print-item)))
+	     (send file-menu:print-transcript-item enable
+		   (not (hidden? interactions-item)))))]
 	
-	[do-close
+	[on-close
 	 (lambda ()
 	   (remove-library-callback)
 	   (when (eq? this created-frame)
 	     (set! created-frame #f))
 	   (send unit frame-closed)
 	   (send interactions-edit shutdown)
-	   (super-do-close))]
+	   (super-on-close))])
 	
+      (public
 	[running? #t]; is this necessary?
 	[execute-callback
 	 (lambda ()
@@ -512,96 +504,88 @@
 	[after-remove-export (lambda () (update-imports))]
 	[get-unit (lambda () unit)])
 
-      (inherit get-menu-bar)
+      (inherit get-menu-bar get-focus-object)
       (sequence
 	(super-init unit)
 
-	(let ([mb (get-menu-bar)]
-	      [language-menu (make-object (get-menu%) "&Language" mb)]
-
-	     (set! scheme-menu (make-object (get-menu%) "S&cheme" mb))
+	(let* ([mb (get-menu-bar)]
+	       [language-menu (make-object (get-menu%) "&Language" mb)]
+	       [scheme-menu (make-object (get-menu%) "S&cheme" mb)]
+	       [send-method
+		(lambda (method)
+		  (lambda (_1 _2)
+		    (let ([text (get-focus-object)])
+		      (when (or (eq? text definitions-edit)
+				(eq? text interactions-edit))
+			((ivar/proc text method))))))])
+	  
+	  (drscheme:language:fill-language-menu language-menu)
+	  
+	  (set! execute-menu-item
+		(make-object mred:menu-item%
+		  scheme-menu
+		  "Execute"
+		  (lambda (_1 _2) (execute-callback))
+		  "Restart the program in the definitions window" #f "t"))
+	  (make-object mred:menu-item%
+	    "Break"
+	    scheme-menu
+	    (lambda (_1 _2) (send interactions-edit break))
+	    "b"
+	    "Break the current evaluation")
+	  (make-object mred:separator-menu-item% scheme-menu)
+	  (make-object mred:menu-item%
+	    "&Indent"
+	    scheme-menu
+	    (send-method 'tabify-selection))
+	  (make-object mred:menu-item%
+	    "Indent &All"
+	    scheme-menu
+	    (send-method 'tabify-all)
+	    "i")
+	  (make-object mred:menu-item%
+	    "&Comment Out"
+	    scheme-menu
+	    (send-method 'comment-out-selection))
+	  (make-object mred:menu-item%
+	    "&Uncomment"
+	    scheme-menu
+	    (send-method 'uncomment-selection)))
 	     
-	     (drscheme:language:fill-language-menu language-menu)
-	     
-	     (set! execute-menu-item
-		   (make-object (get-menu-item%)
-		     scheme-menu
-		     "Execute"
-		     (lambda (_1 _2) (execute-callback))
-		     "Restart the program in the definitions window" #f "t"))
-	     (send* scheme-menu
-
-		    label parent callback shortcut help
-
-
-		    (make-object (get-menu-item%)
-		      "Break"
-		      scheme-menu
-		      (lambda (_1 _2)
-			(send interactions-edit break))
-		      "b" "Break the current evaluation")
-	       (make-object separator-menu-item% scheme-menu)
-	       (make-object (get-menu-item%)
-		 "&Indent"
-		 scheme-menu
-			    (lambda (_1 _2) 
-			      (send (ivar (active-edit) mode) 
-				    tabify-selection (active-edit))))
-	       (make-object (get-menu-item%)
-		 "Indent &All"
-		 scheme-menu
-			    (lambda (_1 _2)
-			      (send (ivar (active-edit) mode) tabify-all (active-edit)))
-			    "i")
-	       (make-object (get-menu-item%)
-		 "&Comment Out"
-		 scheme-menu
-			    (lambda (_1 _2)
-			      (send (ivar (active-edit) mode) 
-				    comment-out-selection (active-edit))))
-	       (make-object (get-menu-item%)
-		 "&Uncomment"
-		 scheme-menu
-			    (lambda (_1 _2)
-			      (send (ivar (active-edit) mode)
-				    uncomment-selection (active-edit)))))
-	     
-	     '(set! imports-id 
-		   (send show-menu append-item
-			 "&Imports"
-			 (lambda () 
-			   (toggle-show/hide show-menu imports-id)
-			   (update-shown))
-			 "Show the imports to this unit"
-			 #t))
-	     (set! definitions-id
-		   (send show-menu append-item "Hide &Definitions"
-			 (lambda () 
-			   (toggle-show/hide show-menu definitions-id)
-			   (update-shown))
-			 "Show the definitions window"
-			 #f
-			 "d"))
-	     (set! interactions-id
-		   (send show-menu append-item 
-			 "Show &Interactions"
-			 (lambda () 
-			   (toggle-show/hide show-menu interactions-id)
-			   (update-shown))
-			 "Show the interactions window"
-			 #f
-			 "e"))
-	     mb))
+	'(set! imports-item
+	       (send show-menu append-item
+		     "&Imports"
+		     (lambda () 
+		       (toggle-show/hide imports-item)
+		       (update-shown))
+		     "Show the imports to this unit"
+		     #t))
+	(set! definitions-item
+	      (make-object mred:menu-item%
+		"Hide &Definitions"
+		show-menu
+		(lambda (_1 _2) 
+		  (toggle-show/hide definitions-item)
+		  (update-shown))
+		"d"
+		"Show the definitions window"))
+	(set! interactions-item
+	      (make-object mred:menu-item%
+		"Show &Interactions"
+		show-menu
+		(lambda (_1 _2) 
+		  (toggle-show/hide interactions-item)
+		  (update-shown))
+		"Show the interactions window"
+		"e")))
       
       (private
-	[top-panel (make-object mred:horizontal-panel% panel)])
+	[top-panel (make-object mred:horizontal-panel% (get-area-container))])
       
       (public
-	[imports-panel (make-object mred:horizontal-panel% panel)]
-	[imports-message
-	 (make-object mred:message% imports-panel "imports")]
-	[imports-space
-	 (make-object mred:horizontal-panel% imports-panel)]
+	[imports-panel (make-object mred:horizontal-panel% (get-area-container))]
+	[imports-message (make-object mred:message% imports-panel "imports")]
+	[imports-space (make-object mred:horizontal-panel% imports-panel)]
 	[update-imports
 	 (lambda ()
 	   (let ([make-message
@@ -617,10 +601,10 @@
       
       (public
 	[definitions-canvas (get-canvas)]
-	[definitions-edit (get-edit)]
+	[definitions-edit (get-editor)]
 	[interactions-canvas (make-object 
 			      (drscheme:get/extend:get-interactions-canvas%)
-			      panel)]
+			      (get-area-container))]
 	[interactions-edit (make-object 
 			    (drscheme:get/extend:get-interactions-edit%))])
 
@@ -710,7 +694,7 @@
 
 	(when (or (ivar interactions-edit repl-initially-active?)
 		  (fw:preferences:get 'drscheme:repl-always-active))
-	  (toggle-show/hide show-menu interactions-id))
+	  (toggle-show/hide interactions-item))
 	
 	(send interactions-edit enable-autoprompt)
 	(send interactions-edit insert-prompt)
@@ -743,7 +727,7 @@
 
       (rename
 	[super-release-from-owner release-from-owner])
-      (public
+      (override
 	[release-from-owner
 	 (lambda ()
 	   (and (super-release-from-owner)
@@ -761,7 +745,8 @@
 	(public
 	  [snip% s%] 
 	  [classname "drscheme:unit:snip%"]
-	  [version 3]
+	  [version 3])
+	(override
 	  [write-header
 	   (lambda (p)
 	     (send p put "h"))]
