@@ -868,6 +868,12 @@ If the namespace does not, they are colored the unbound color.
               (erase))
             
             (send report-error-text insert message)
+            (when (exn:fail:syntax? exn)
+              (send report-error-text insert " in:")
+              (for-each (lambda (stx) 
+                          (send report-error-text insert
+                                (format " ~s" (syntax-object->datum stx))))
+                        (exn:fail:syntax-exprs exn)))
             
             (send* report-error-text
               (set-position 0 0)
