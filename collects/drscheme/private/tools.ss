@@ -70,10 +70,11 @@
                       (dynamic-require `(lib ,(car path) ,coll ,@(cdr path)) 'tool@))])
               (with-handlers ([not-break-exn?
                                (lambda (x)
-                                 (message-box (string-constant error-invoking-tool-title) coll path)
-                                 (if (exn? x)
-                                     (exn-message x)
-                                     (format "~s" x)))])
+                                 (message-box 
+                                  (format (string-constant error-invoking-tool-title) coll path)
+                                  (if (exn? x)
+                                      (exn-message x)
+                                      (format "~s" x))))])
                 (invoke-unit/sig unit
                                  [drscheme:frame^ : drscheme:frame^]
                                  [drscheme:unit^ : drscheme:unit^]
