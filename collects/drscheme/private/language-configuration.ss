@@ -394,9 +394,9 @@
             (let ([docs (drscheme:help-desk:get-docs)]
                   [manual-name-style-delta
                    (make-object style-delta%)])
-              (let-values ([(ordered doc.txt?)
+              (let-values ([(ordered-bytes doc.txt?)
                             (send language order-manuals (map path->bytes (map car docs)))])
-                (let loop ([ordered ordered]
+                (let loop ([ordered (map bytes->path ordered-bytes)]
                            [n 1])
                   (cond
                     [(null? ordered) 
@@ -1239,7 +1239,7 @@
             (drscheme:language:make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
           (define/override (order-manuals x)
             (values 
-             (map bytes->path (list #"r5rs" #"drscheme" #"tour" #"help"))
+             (list #"r5rs" #"drscheme" #"tour" #"help")
              #f))
           (super-new)))
       
