@@ -315,6 +315,7 @@
           [define help-menu:about-string (lambda () (string-constant about-drscheme))]
           [define help-menu:create-about? (lambda () #t)]
           
+          (define/public (get-additional-important-urls) '())
           (define/override (help-menu:after-about menu)
             (instantiate menu-item% ()
               (label (string-constant help-menu-check-for-updates))
@@ -329,7 +330,9 @@
 			this
 			'(yes-no)))
                  (check-version this)))))
-            (drscheme:app:add-important-urls-to-help-menu menu)
+            (drscheme:app:add-important-urls-to-help-menu
+             menu 
+             (get-additional-important-urls))
             (drscheme:app:add-language-items-to-help-menu menu))
           
           [define (file-menu:open-callback item evt) (handler:open-file)]

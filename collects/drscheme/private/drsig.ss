@@ -120,6 +120,7 @@
      definitions-text<%>
      interactions-canvas%
      open-drscheme-window
+     find-symbol
      get-program-editor-mixin
      add-to-program-editor-mixin))
   

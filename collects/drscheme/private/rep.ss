@@ -262,9 +262,18 @@
                       (when (is-a? frame drscheme:unit:frame%)
                         (send frame execute-callback))))))))
       (send drs-bindings-keymap add-function
-            "help-desk"
+            "search-help-desk"
             (lambda (obj evt)
-              (drscheme:help-desk:goto-front-page)))
+              (cond
+                [(is-a? obj text%)
+                 (let* ([start (send obj get-start-position)]
+                        [end (send obj get-end-position)]
+                        [str (if (= start end)
+                                 (drscheme:unit:find-symbol obj start)
+                                 (send obj get-text start end))])
+                   (drscheme:help-desk:help-desk str #f 'keyword+index 'contains))]
+                [else                   
+                 (drscheme:help-desk:goto-front-page)])))
       (send drs-bindings-keymap add-function
             "toggle-focus-between-definitions-and-interactions"
             (lambda (obj evt)
@@ -281,7 +290,7 @@
       
       (send drs-bindings-keymap map-function "c:x;o" "toggle-focus-between-definitions-and-interactions")
       (send drs-bindings-keymap map-function "f5" "execute")
-      (send drs-bindings-keymap map-function "f1" "help-desk")
+      (send drs-bindings-keymap map-function "f1" "search-help-desk")
       
       (define (get-drs-bindings-keymap) drs-bindings-keymap)
 

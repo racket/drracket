@@ -747,16 +747,20 @@
             (exit:exit #t)
             (set! set-language? #f))))
       
-      (define (add-important-urls-to-help-menu help-menu)
-	(let* ([important-urls
+      (define (add-important-urls-to-help-menu help-menu additional)
+        (let* ([important-urls
                 (instantiate menu% ()
                   (parent help-menu)
                   (label (string-constant web-materials)))]
+               [tool-urls-menu
+                (instantiate menu% ()
+                  (parent help-menu)
+                  (label (string-constant tool-web-sites)))]
                [add
-                (lambda (name url)
+                (lambda (name url . parent)
                   (instantiate menu-item% ()
                     (label name)
-                    (parent important-urls)
+                    (parent (if (null? parent) important-urls (car parent)))
                     (callback
                      (lambda (x y)
                        (send-url url)))))])
@@ -764,7 +768,26 @@
           (add (string-constant plt-homepage) "http://www.plt-scheme.org/")
           (add (string-constant teachscheme!-homepage) "http://www.teach-scheme.org/")
           (add (string-constant how-to-design-programs) "http://www.htdp.org/")
-          (add (string-constant how-to-use-scheme) "http://www.htus.org/")))
+          (add (string-constant how-to-use-scheme) "http://www.htus.org/")
+          
+          (for-each (lambda (tool)
+                      (cond ((drscheme:tools:successful-tool-url tool) =>
+                             (lambda (url)
+                               (add (drscheme:tools:successful-tool-name tool) url tool-urls-menu)))))
+                    (drscheme:tools:get-successful-tools))
+          
+          (let loop ([additional additional])
+            (cond
+              [(pair? additional)
+               (let ([x (car additional)])
+                 (when (and (pair? x)
+                            (pair? (cdr x))
+                            (null? (cddr x))
+                            (string? (car x))
+                            (string? (cadr x)))
+                   (add (car x) (cadr x))))
+               (loop (cdr additional))]
+              [else (void)]))))
 
       (define (add-language-items-to-help-menu help-menu)
         (let ([added-any? #f])

@@ -40,42 +40,18 @@
                           (is-a? text drscheme:rep:text%))
                       (is-a? event mouse-event%))
              (let* ([end (send text get-end-position)]
-                    [start (send text get-start-position)]
-                    [non-letter? (lambda (x)
-                                   (or (char-whitespace? x)
-                                       (memq x '(#\` #\' #\, #\;
-                                                  #\{ #\( #\[ #\] #\) #\}))))])
+                    [start (send text get-start-position)])
                (unless (= 0 (send text last-position))
-                 (let ([str
-                        (if (= end start)
-                            (let* ([pos 
-                                    (call-with-values
-                                     (lambda ()
-                                       (send text dc-location-to-editor-location
-                                             (send event get-x)
-                                             (send event get-y)))
-                                     (lambda (x y)
-                                       (send text find-position x y)))]
-                                   [before
-                                    (let loop ([i (- pos 1)]
-                                               [chars null])
-                                      (if (< i 0)
-                                          chars
-                                          (let ([char (send text get-character i)])
-                                            (if (non-letter? char)
-                                                chars
-                                                (loop (- i 1)
-                                                      (cons char chars))))))]
-                                   [after
-                                    (let loop ([i pos])
-                                      (if (< i (send text last-position))
-                                          (let ([char (send text get-character i)])
-                                            (if (non-letter? char)
-                                                null
-                                                (cons char (loop (+ i 1)))))
-                                          null))])
-                              (apply string (append before after)))
-                            (send text get-text start end))])
+                 (let ([str (if (= end start)
+                                (find-symbol 
+                                 (call-with-values
+                                  (lambda ()
+                                    (send text dc-location-to-editor-location
+                                          (send event get-x)
+                                          (send event get-y)))
+                                  (lambda (x y)
+                                    (send text find-position x y))))
+                                (send text get-text start end))])
                    (unless (string=? str "")
                      (make-object separator-menu-item% menu)
                      (make-object menu-item%
@@ -94,6 +70,36 @@
                        (lambda x (help-desk:help-desk str #t 'keyword+index 'exact)))
 		     (void)))))))))
       
+      ;; find-symbol : number -> string
+      ;; finds the symbol around the position `pos' (approx)
+      (define (find-symbol text pos)
+        (let* ([before
+                (let loop ([i (- pos 1)]
+                           [chars null])
+                  (if (< i 0)
+                      chars
+                      (let ([char (send text get-character i)])
+                        (if (non-letter? char)
+                            chars
+                            (loop (- i 1)
+                                  (cons char chars))))))]
+               [after
+                (let loop ([i pos])
+                  (if (< i (send text last-position))
+                      (let ([char (send text get-character i)])
+                        (if (non-letter? char)
+                            null
+                            (cons char (loop (+ i 1)))))
+                      null))])
+          (apply string (append before after))))
+      
+      ;; non-letter? : char -> boolean
+      ;; returns #t if the character belongs in a symbol (approx) and #f it is
+      ;; a divider between symbols (approx)
+      (define (non-letter? x)
+        (or (char-whitespace? x)
+            (memq x '(#\` #\' #\, #\;
+                       #\{ #\( #\[ #\] #\) #\}))))      
       (define (shorten-str str len)
         (if ((string-length str) . <= . len)
             str
