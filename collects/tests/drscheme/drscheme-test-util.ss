@@ -35,16 +35,14 @@
 		       (lambda (x)
 			 (fw:preferences:set 'framework:file-dialogs old-pref)
 			 (raise x))])
-	(printf "setting pref~n")
 	(fw:preferences:set 'framework:file-dialogs 'common)
-	(printf "opening dialog~n")
 	(open-dialog)
 	(let ([dlg (wait-for-new-frame drs)])
 	  (send (find-labelled-window "Full pathname") focus)
 	  (fw:test:keystroke #\a (list (case (system-type)
 					 [(windows) 'control]
 					 [(macos) 'command]
-					 [(unix) 'alt])))
+					 [(unix) 'meta])))
 	  (for-each fw:test:keystroke (string->list filename))
 	  (fw:test:button-push "OK")
 	  (wait-for-new-frame dlg))

@@ -34,7 +34,9 @@
                                selected, so this will create a MrEd launcher. Continue?")
 			   '(yes-no)))
 		     #t)
-	     (let ([filename (fw:finder:put-file "Save a Launcher")])
+	     (let ([filename 
+		    (parameterize ([fw:finder:dialog-parent-parameter frame])
+		      (fw:finder:put-file "Save a Launcher"))])
 	       (when filename
 		 (let ([definitions (list "-e" (format "(define filename ~s)" program-filename)
 					  "-e" (format "(define settings ~s)" v-settings)
