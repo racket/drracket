@@ -14,6 +14,8 @@
 (require-library "classd.ss")
 (require-library "launchers.ss" "launcher")
 (require-library "frameworks.ss" "framework")
+(require-library "compiles.ss" "dynext")
+(require-library "links.ss" "dynext")
 
 (require-library "sig.ss" "help")
 
