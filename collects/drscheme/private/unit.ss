@@ -2400,7 +2400,7 @@ tab panels new behavior:
                    (let ([edit (get-edit-target-object)])
                      (when (and edit
                                 (is-a? edit editor<%>))
-                       (send edit insert (new lambda-snip%))))
+                       (send edit insert #;"λ" (new lambda-snip%))))
                    #t)]
                 [insert-delta
                  (lambda ()
