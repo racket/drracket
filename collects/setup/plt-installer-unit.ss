@@ -1,6 +1,10 @@
 (module plt-installer-unit mzscheme
   (require (lib "unitsig.ss")
-           (lib "mred-sig.ss" "mred"))
+           (lib "mred-sig.ss" "mred")
+           (lib "class.ss")
+           (lib "class100.ss")
+           "plt-installer-sig.ss")
+  
   (provide plt-installer@)
   
   (define plt-installer@
@@ -11,7 +15,7 @@
         (make-parameter void))
       
       (define (run-installer file)
-        (letrec ([f (make-object (class dialog% ()
+        (letrec ([f (make-object (class100 dialog% ()
                                    (override
                                      [can-close? (lambda () (send done is-enabled?))])
                                    (sequence
@@ -42,8 +46,8 @@
                         (parameterize ([current-namespace (make-namespace 'mred)]
                                        [exit-handler (lambda (v) (custodian-shutdown-all cust))])
                           (printf "Loading installer...~n")
-                          (global-defined-value 'argv (vector file))
-                          (require-library "setup.ss" "setup")))))])
+                          (namespace-variable-binding 'argv (vector file))
+                          (dynamic-require '(lib "setup.ss" "setup") #f)))))])
             (thread (lambda () (send f show #t) (semaphore-post s)))
             (thread (lambda () 
                       (thread-wait t) 

@@ -174,12 +174,12 @@
       
       
       (define html-convert
-        (lambda (p b)
+        (lambda (a-port a-text)
           (letrec 
               ([indents (make-btree)]
                [centers (make-btree)]
                
-               [normal-style (send (send b get-style-list)
+               [normal-style (send (send a-text get-style-list)
                                    find-named-style
                                    "Standard")]
                [insert 
@@ -189,12 +189,12 @@
                                  1)])
                     (btree-shift! indents pos len)
                     (btree-shift! centers pos len))
-                  (send b insert what pos))]
+                  (send a-text insert what pos))]
                [delete 
                 (lambda (start end)
                   (btree-shift! indents end (- start end))
                   (btree-shift! centers end (- start end))
-                  (send b delete start end))]
+                  (send a-text delete start end))]
                
                [inserted-chars #f]
                [get-char (lambda ()
@@ -202,12 +202,12 @@
                                (begin0
                                  (car inserted-chars)
                                  (set! inserted-chars (cdr inserted-chars)))
-                               (let ([v (read-char p)])
+                               (let ([v (read-char a-port)])
                                  (if (eof-object? v)
                                      #\nul
                                      v))))]
                
-               [base-path (send b get-url)]
+               [base-path (send a-text get-url)]
                
                [whitespaces (string #\space #\tab #\newline #\return)]
                
@@ -405,7 +405,7 @@
                   (cond
                     [(zero? count) 0]
                     [(zero? pos) 0]
-                    [else (let ([c (send b get-character (sub1 pos))])
+                    [else (let ([c (send a-text get-character (sub1 pos))])
                             (cond
                               [(eq? #\newline c)
                                (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
@@ -416,12 +416,12 @@
                                (let loop ([p (sub1 pos)][nl 0])
                                  (cond
                                    [(or (zero? p) (not (try-newline-whitespace? 
-                                                        (send b get-character (sub1 p)))))
+                                                        (send a-text get-character (sub1 p)))))
                                     (delete p pos)
                                     (insert (make-string nl #\newline) p)
                                     (+ (- p pos) nl (try-newline (+ p nl) count #f))]
                                    [else (loop (sub1 p) 
-                                               (if (char=? #\newline (send b get-character (sub1 p)))
+                                               (if (char=? #\newline (send a-text get-character (sub1 p)))
                                                    (add1 nl)
                                                    nl))]))]
                               [else
@@ -474,7 +474,7 @@
                         [(char=? #\null ch) 
                          (flush-i-buffer)
                          (when (> pos start-pos)
-                           (send b change-style normal-style start-pos pos))
+                           (send a-text change-style normal-style start-pos pos))
                          (values -1 #f)]
                         [(and (char-whitespace? ch) dewhite?)
                          (if del-white?
@@ -485,7 +485,7 @@
                         [(char=? #\< ch) 
                          (flush-i-buffer)
                          (when (> pos start-pos)
-                           (send b change-style normal-style start-pos pos))
+                           (send a-text change-style normal-style start-pos pos))
                          (values pos del-white?)]
                         [(char=? #\& ch) 
                          (let ([ch (get-char)]
@@ -583,7 +583,7 @@
                     (if (= pos -1)
                         (begin
                           (html-error "couldn't find </~a>" tag)
-                          (values (send b last-position) del-white? #f #f))
+                          (values (send a-text last-position) del-white? #f #f))
                         (let ([cmd (read-bracket)]
                               [found-end
                                (lambda (pos del-white? found-tag args)
@@ -616,7 +616,7 @@
                                      (let ([pos (+ pos (try-newline pos newlines #t))])
                                        (when bullet?
                                          (insert (make-object bullet-snip% (sub1 enum-depth)) pos)
-                                         (send b change-style normal-style pos (+ 1 pos)))
+                                         (send a-text change-style normal-style pos (+ 1 pos)))
                                        (let ([data (list enum-depth bullet?)])
                                          (btree-put! indents pos data))
                                        (atomic-values (+ pos (if bullet? 1 0))
@@ -642,7 +642,7 @@
                                     (set! skip-one? #t)))))
                             (let ([note (parse-docnote args)])
                               (when note
-                                (send b add-document-note note)))
+                                (send a-text add-document-note note)))
                             (atomic-values (if skip-one? (add1 pos) pos) (or del-white? skip-one?)))]
                          [(br) 
                           (break #f 1)]
@@ -657,8 +657,8 @@
                             (cond
                               [(or b (not alt))
                                (insert (or b (make-object image-snip%)) pos)
-                               (send b change-style (make-object style-delta% 'change-alignment 'center) 
-                                             pos (add1 pos))
+                               (send a-text change-style (make-object style-delta% 'change-alignment 'center) 
+                                     pos (add1 pos))
                                (atomic-values (add1 pos) #f)]
                               [else
                                (insert alt pos)
@@ -667,7 +667,7 @@
                           (let* ([unsupported (make-unsupported tag args)]
                                  [len (string-length unsupported)])
                             (insert unsupported pos)
-                            (send b change-style normal-style pos (+ pos len))
+                            (send a-text change-style normal-style pos (+ pos len))
                             (atomic-values (+ pos len) #f))]
                          [else 
                           (html-error "unimplemented (atomic) tag: ~a" tag)
@@ -679,9 +679,9 @@
                         (if (= -1 end-pos)
                             (begin
                               (html-error "verbatim closing tag </~a> not found" tag)
-                              (send b last-position))
+                              (send a-text last-position))
                             (begin
-                              (send b change-style delta:fixed pos end-pos)
+                              (send a-text change-style delta:fixed pos end-pos)
                               end-pos))
                         #t #f #f))]
                     [(memq tag comment-tags)
@@ -713,7 +713,7 @@
                                 [restart (lambda () (result pos del-white?))]
                                 [heading (lambda (delta)
                                            (insert (string #\newline #\newline) end-pos)
-                                           (send b change-style delta pos end-pos)
+                                           (send a-text change-style delta pos end-pos)
                                            (result (+ end-pos 2) #t))])
                            (case tag
                              [(head body) (normal)]
@@ -722,8 +722,8 @@
                                 
                                 (let ([align (parse-div-align args)])
                                   (when (and align (string-ci=? align "center"))
-                                    (let ([start (send b position-paragraph pos)]
-                                          [end (send b position-paragraph end-pos)])
+                                    (let ([start (send a-text position-paragraph pos)]
+                                          [end (send a-text position-paragraph end-pos)])
                                       (btree-put! centers pos (- end start)))))
                                 
                                 ; At end, make sure indentation is reset:
@@ -732,12 +732,12 @@
                                     (set-car! m (sub1 (car m)))))
                                 (result new-end #t))]
                              [(center)
-                              (let ([start (send b position-paragraph pos)]
-                                    [end (send b position-paragraph end-pos)])
+                              (let ([start (send a-text position-paragraph pos)]
+                                    [end (send a-text position-paragraph end-pos)])
                                 (btree-put! centers pos (- end start)))
                               (normal)]
                              [(title)
-                              (send b set-title (send b get-text pos end-pos))
+                              (send a-text set-title (send a-text get-text pos end-pos))
                               (delete pos end-pos)
                               (result pos #t)]
                              [(dl ul menu table tr)
@@ -748,31 +748,31 @@
                                     (set-car! m (sub1 (car m)))))
                                 (result new-end #t))]
                              [(b strong)
-                              (send b change-style delta:bold pos end-pos)
+                              (send a-text change-style delta:bold pos end-pos)
                               (normal)]
                              [(u)
-                              (send b change-style delta:underline pos end-pos)
+                              (send a-text change-style delta:underline pos end-pos)
                               (normal)]
                              [(i em var dfn cite)
-                              (send b change-style delta:italic pos end-pos)
+                              (send a-text change-style delta:italic pos end-pos)
                               (normal)]
                              [(tt code samp kbd)
-                              (send b change-style delta:fixed pos end-pos)
+                              (send a-text change-style delta:fixed pos end-pos)
                               (normal)]
                              [(pre)
 			 ; If it starts with a newline, delete it:
                               (let ([end-pos (if (and (< xpos end-pos)
-                                                      (eq? (send b get-character xpos) #\newline))
+                                                      (eq? (send a-text get-character xpos) #\newline))
                                                  (begin
                                                    (delete xpos (add1 xpos))
                                                    (sub1 end-pos))
                                                  end-pos)])
-                                (send b change-style delta:fixed pos end-pos)
+                                (send a-text change-style delta:fixed pos end-pos)
                                 (result (+ end-pos (try-newline end-pos 2 #t)) #t))]
                              [(font)
                               (let ([delta (parse-font args)])
                                 (when delta
-                                  (send b change-style delta pos end-pos)))
+                                  (send a-text change-style delta pos end-pos)))
                               (normal)]
                              [(h1) (heading delta:h1)]
                              [(h2) (heading delta:h2)]
@@ -781,17 +781,17 @@
                                     (let ([style (get-style args)])
                                       (cond
                                         [url-string
-                                         (send b add-link pos end-pos url-string)
+                                         (send a-text add-link pos end-pos url-string)
                                          (when (or (not style)
                                                    (not (regexp-match re:transparent style)))
-                                           (send b make-link-style pos end-pos))]
+                                           (send a-text make-link-style pos end-pos))]
                                         [label
-                                         (send b add-tag label pos)]
+                                         (send a-text add-tag label pos)]
                                         [scheme
-                                         (send b add-scheme-callback pos end-pos scheme)
+                                         (send a-text add-scheme-callback pos end-pos scheme)
                                          (when (or (not style)
                                                    (not (regexp-match re:transparent style)))
-                                           (send b make-link-style pos end-pos))]
+                                           (send a-text make-link-style pos end-pos))]
                                         [else (void)])
                                       (normal)))]
                              [(select textarea)
@@ -799,7 +799,7 @@
                                      [len (string-length unsupported)])
                                 (delete pos end-pos)
                                 (insert unsupported pos)
-                                (send b change-style normal-style pos (+ pos len))
+                                (send a-text change-style normal-style pos (+ pos len))
                                 (result (+ pos len) #f))]
                              [(style)
                               (delete pos end-pos)
@@ -826,7 +826,7 @@
             
             (load-status #f "page" base-path)
             
-            (send b add-tag "top" 0)
+            (send a-text add-tag "top" 0)
             (let loop ([pos 0][del-white? #t])
               (let-values ([(pos del-white?) (find-bracket pos #t del-white?)])
                 (unless (= pos -1)
@@ -840,8 +840,8 @@
              (lambda (pos data)
                (let ([depth (max 0 (car data))]
                      [bullet? (cadr data)])
-                 (send b set-paragraph-margins
-                       (send b position-paragraph pos)
+                 (send a-text set-paragraph-margins
+                       (send a-text position-paragraph pos)
                        (max 0 (- (* 2 (get-bullet-width) depth)
                                  (if bullet?
                                      (get-bullet-width)
@@ -853,10 +853,10 @@
             (btree-for-each
              centers
              (lambda (pos para-len)
-               (let ([p (send b position-paragraph pos)])
+               (let ([p (send a-text position-paragraph pos)])
                  (let loop ([p p][len para-len])
-                   (send b set-paragraph-alignment p 'center)
+                   (send a-text set-paragraph-alignment p 'center)
                    (unless (zero? len)
                      (loop (add1 p) (sub1 len)))))))
             
-            (send b set-position 0)))))))
+            (send a-text set-position 0)))))))
