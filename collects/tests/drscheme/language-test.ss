@@ -24,7 +24,7 @@
 (define (mred)
   (parameterize ([language "Graphical without Debugging (MrEd)"])
     (generic-settings #f)
-    (generic-output #t #t)
+    (generic-output #t #t #f)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
     
@@ -59,7 +59,7 @@
 (define (mzscheme)
   (parameterize ([language "Textual without Debugging (MzScheme)"])
     (generic-settings #f)
-    (generic-output #t #t)
+    (generic-output #t #t #f)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "cond or case: no matching clause")
     
@@ -94,7 +94,7 @@
 (define (mred-debug)
   (parameterize ([language "Graphical (MrEd)"])
     (generic-settings #f)
-    (generic-output #t #t)
+    (generic-output #t #t #t)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "no matching cond clause")
     (set-language #f)
@@ -135,7 +135,7 @@
 (define (mzscheme-debug)
   (parameterize ([language "Textual (MzScheme)"])
     (generic-settings #f)
-    (generic-output #t #t)
+    (generic-output #t #t #t)
     (set-language #f)
     (test-setting "Unmatched cond/case is an error" #t "(cond [#f 1])" "no matching cond clause")
     (set-language #f)
@@ -176,7 +176,7 @@
 (define (zodiac-beginner)
   (parameterize ([language "Beginning Student"])
     (zodiac)
-    (generic-output #f #f)
+    (generic-output #f #f #t)
     
     (let ([drs (wait-for-drscheme-frame)])
       (clear-definitions drs)
@@ -210,7 +210,7 @@
 (define (zodiac-intermediate)
   (parameterize ([language "Intermediate Student"])
     (zodiac)
-    (generic-output #t #f)
+    (generic-output #t #f #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)"
 		  "Variable x referenced before definition or initialization")
@@ -249,7 +249,7 @@
 (define (zodiac-advanced)
   (parameterize ([language "Advanced Student"])
     (zodiac)
-    (generic-output #t #t)
+    (generic-output #t #t #t)
     (set-language #f)
     (test-setting "Signal undefined variables when first referenced" #t "(local ((define x x)) 1)" 
 		  "Variable x referenced before definition or initialization")
@@ -306,7 +306,7 @@
 		(format "(cond [~a 1])" (if false/true? "false" "#f"))
 		""))
 
-(define (generic-output list? quasi-quote?)
+(define (generic-output list? quasi-quote? zodiac?)
   (let* ([drs (wait-for-drscheme-frame)]
 	 [expression (format "(define x (box 4/3))~n(list x x)")]
 	 [set-output-choice
@@ -354,7 +354,24 @@
 				     (format "(shared ((-1- (box 4/3))) (cons -1- (cons -1- empty)))")))
     (test "Constructor" 'on 'on (if list?
 				    "(shared ((-1- (box (+ 1 1/3)))) (list -1- -1-))"
-				    (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))))
+				    (format "(shared ((-1- (box (+ 1 1/3)))) (cons -1- (cons -1- empty)))")))
+
+
+    ;; setup comment box
+    (clear-definitions drs)
+    (fw:test:menu-select "Edit" "Insert Text Box")
+    (fw:test:keystroke #\a)
+    (fw:test:keystroke #\b)
+    (fw:test:keystroke #\c)
+    (do-execute drs)
+    (let ([result (fetch-output drs)])
+      (unless (string=? result "[abc]")
+	(printf "FAILED comment-boxes, got ~s expected \"[abc]\"~n"
+		result)))
+
+    ;; test comment box in print-convert and print-convert-less settings
+    (test "Constructor" 'on 'on (if zodiac? "[abc]" "'non-string-snip"))
+    (test "write" 'on #f (if zodiac? "[abc]" "'non-string-snip"))))
 
 (define (whitespace-string=? string1 string2)
   (let loop ([i 0]
@@ -440,6 +457,11 @@
       (unless (whitespace-string=? got expected)
 	(printf "FAILED: ~a expected ~s to produce ~s, got ~s instead~n"
 		(language) expression expected got)))))
+
+
+;; clear teachpack
+(let ([drs (wait-for-drscheme-frame)])
+  (fw:test:menu-select "Language" "Clear Teachpack"))
 
 (zodiac-beginner)
 (zodiac-intermediate)

@@ -81,6 +81,12 @@
   (define (clear-definitions frame)
     (verify-drscheme-frame-frontmost 'clear-definitions frame)
     (fw:test:new-window (ivar frame definitions-canvas))
+    (let ([window (send frame get-focus-window)])
+      (let-values ([(cw ch) (send window get-client-size)]
+		   [(w h) (send window get-size)])
+	(fw:test:mouse-click 'left
+			     (+ cw (floor (/ (- w cw) 2)))
+			     (+ ch (floor (/ (- h ch) 2))))))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
