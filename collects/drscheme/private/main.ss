@@ -223,7 +223,11 @@
       (preferences:set-default 'drscheme:last-version #f (lambda (x) (or (string? x) (not x))))
       (preferences:set-default 'drscheme:last-language #f (lambda (x) (or (symbol? x) (not x))))
       (drscheme:app:check-new-version)
-      (define autosave/restore-frame (autosave:restore-autosave-files/gui))
+      
+      ;;
+      ;; Check for any files lost last time.
+      ;;
+      (autosave:restore-autosave-files/gui)
       
       ;; the initial window doesn't set the 
       ;; unit object's state correctly, yet.
@@ -267,7 +271,4 @@
 				(lambda () (drscheme:unit:open-drscheme-window f))))
 		   no-dups)])
 	(when (null? (filter (lambda (x) x) frames))
-	  (make-basic)))
-      
-      (when autosave/restore-frame
-        (send autosave/restore-frame show #t)))))
+	  (make-basic))))))
