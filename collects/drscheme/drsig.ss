@@ -8,8 +8,8 @@
 
 	))
 
-(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "sigs.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
+(reference (begin-elaboration-time (build-path plt:home-directory "zodiac" "sigs.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "lib" "sparams.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "lib" "ariess.ss")))
 (reference (begin-elaboration-time (build-path plt:home-directory "lib" "gusrspcs.ss")))
