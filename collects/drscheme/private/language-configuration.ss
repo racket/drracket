@@ -1100,7 +1100,8 @@
                   [(syntax? res) (with-syntax ([res res]
                                                [expand-syntax-top-level-with-compile-time-evals
                                                 expand-syntax-top-level-with-compile-time-evals])
-                                   #'(expand-syntax-top-level-with-compile-time-evals #'res))]
+                                   #'(expand-syntax-top-level-with-compile-time-evals
+                                      (quote-syntax res)))]
                   [(eof-object? res) res]
                   [else `(expand ',res)]))))
           (super-instantiate ())))
