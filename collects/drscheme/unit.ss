@@ -154,10 +154,12 @@
 	       (send (get-top-level-window) make-searchable this))
 	     (super-on-focus on?))]))))
   
-  (define interactions-canvas% (make-searchable-canvas% fw:canvas:wide-snip%))
+  (define interactions-canvas% (make-searchable-canvas%
+				(fw:canvas:info-mixin
+				 fw:canvas:wide-snip%)))
   
   (define definitions-canvas%
-    (class (make-searchable-canvas% mred:editor-canvas%) args
+    (class (make-searchable-canvas% fw:canvas:info%) args
       (inherit get-top-level-window get-editor)
       (sequence
 	(apply super-init args)
@@ -291,10 +293,7 @@
 	 (lambda ()
 	   (if search-canvas
 	       (send search-canvas get-editor)
-	       (get-editor)))]
-	[get-info-editor
-	 (lambda ()
-	   (get-text-to-search))])
+	       (get-editor)))])
       
       (private [was-locked? #f]
 	       [execute-menu-item #f])
