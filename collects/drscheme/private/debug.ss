@@ -784,9 +784,10 @@ profile todo:
                                 (hash-table-put! actions-ht key (list #t stx)))])))
                        can-annotate)
                       (hash-table-map actions-ht (lambda (k v) v)))])
-                   
-              ;; if everything is covered, do no coloring.
-              (unless (andmap car filtered)
+              
+              ;; if everything is covered *and* no coloring has been done, do no coloring.
+              (unless (and (andmap car filtered)
+                           (not (get-test-coverage-info-visible?)))
                 (let (;; sorted : (listof (list boolean syntax))
                       ;; sorting predicate:
                       ;;  x < y if
@@ -825,14 +826,19 @@ profile todo:
                           (send src begin-edit-sequence #f)
                           (when (send src is-locked?)
                             (hash-table-put! locked-ht src #t)
-                            (send src lock #f))
-                          (send src freeze-colorer)))))
+                            (send src lock #f))))))
                    sorted)
                   
-                  ;; clear out old annotations
+                  ;; clear out old annotations (and thaw colorers)
                   (when internal-clear-test-coverage-display
                     (internal-clear-test-coverage-display)
                     (set! internal-clear-test-coverage-display #f))
+                  
+                  ;; freeze the colorers (possibly re-freeze them)
+                  (hash-table-for-each
+                   edit-sequence-ht
+                   (lambda (src _)
+                     (send src freeze-colorer)))
                   
                   ;; set new annotations
                   (for-each
@@ -883,7 +889,10 @@ profile todo:
                           (hash-table-for-each
                            edit-sequence-ht
                            (lambda (txt _) 
-                             (send txt thaw-colorer)
+                             (let ([locked? (send txt is-locked?)])
+                               (when locked? (send txt lock #f))
+                               (send txt thaw-colorer)
+                               (when locked? (send txt lock #t)))
                              (send txt end-edit-sequence)))))))))
 
           (rename [super-clear-annotations clear-annotations])
