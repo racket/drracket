@@ -445,7 +445,7 @@
                          (list x 
                                (if (directory-exists? x)
                                    (directory-list x)
-                                   "non-existant path")))
+                                   "non-existent path")))
                        (current-library-collection-paths))))
     
     (send human-language set-value (format "~a" (this-language)))
