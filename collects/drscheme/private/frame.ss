@@ -4,7 +4,7 @@
            (lib "unitsig.ss")
            (lib "class.ss")
            "drsig.ss"
-           (lib "version.ss" "version")
+           (lib "check-gui.ss" "version")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix mzlib:file: (lib "file.ss"))
