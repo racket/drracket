@@ -1,15 +1,9 @@
 (reference (begin-construction-time (build-path plt:home-directory "zodiac" "zsigs.ss")))
-(printf "1~n")
 (reference (begin-construction-time (build-path plt:home-directory "zodiac" "sigs.ss")))
-(printf "2~n")
 (reference-library "sparams.ss" "backward")
-(printf "3~n")
 (reference-library "ariess.ss" "cogen")
-(printf "4~n")
 (reference-library "gusrspcs.ss" "userspce")
-(printf "5~n")
 (reference-library "pconvers.ss")
-(printf "6~n")
 
 (define-signature drscheme:snip^ 
   (prompt-snip% equal-snip% separator-snip%))
