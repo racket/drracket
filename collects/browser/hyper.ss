@@ -167,11 +167,14 @@
 	(yield s)
 	((on-installer-run)))))
 
+  (define hyper-style-list (make-object style-list%))
+
   (define hyper-text-mixin
     (lambda (super%)
       (class super% (url top-level-window . args)
 	(inherit begin-edit-sequence end-edit-sequence lock erase clear-undos
-		 change-style get-style-list set-modified auto-wrap get-view-size
+		 change-style get-style-list set-style-list
+		 set-modified auto-wrap get-view-size
 		 find-snip get-snip-position set-clickback get-canvas
 		 get-visible-position-range insert last-position hide-caret
 		 get-end-position)
@@ -256,7 +259,7 @@
 	     (let ([style-list (get-style-list)])
 	       (send style-list replace-named-style  "h-link-style"
 		     (send style-list find-or-create-style  
-			   (send style-list find-named-style "Standard") 
+			   (send style-list find-named-style "Standard")
 			   hyper-delta))))])
 
 	(public
@@ -541,6 +544,7 @@
 					; (send progress stop)
 		    (set! htmling? #f)
 		    (close-input-port p)))
+	      (set-style-list hyper-style-list)
 	      (set-modified #f)
 	      (auto-wrap wrapping-on?)
 	      (lock #t)))))))
