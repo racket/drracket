@@ -153,6 +153,7 @@
 		    file-menu:print-id))
 	     (send file-menu enable file-menu:print-transcript-id 
 		   (send show-menu checked? interactions-id)))]
+
 	  [make-menu-bar
 	   (lambda ()
 	     (let ([mb (super-make-menu-bar)]
@@ -213,7 +214,7 @@
 			   "Show the interactions with this unit"
 			   #t))
 	       mb))]
-	  
+
 	  [on-close
 	   (lambda ()
              (when snip
@@ -237,6 +238,8 @@
 	   (lambda (button evt)
 	     (let* ([definitions-edit definitions-edit]
 		    [interactions-edit interactions-edit])
+	       (send show-menu check interactions-id #t)
+	       (update-shown)
 	       (send interactions-edit reset-console)
 	       (send interactions-edit do-many-buffer-evals
 		     definitions-edit
