@@ -375,7 +375,9 @@
 	[file-menu:save-string "Definitions"]
 	[file-menu:save-as-string "Definitions"]
 	[file-menu:between-save-and-print
+
 	 (lambda (file-menu)
+
 	   (send file-menu append-item
 		 "Save Definitions As Text..."
 		 (lambda ()
@@ -443,16 +445,15 @@
 		 #f
 		 (send definitions-edit get-start-position)	
 		 1)
-	   (map 
-	    (lambda (id)
-	      (send file-menu enable id 
-		    (not (hidden? show-menu definitions-id))))
-	    (list file-menu:open-id
-		  file-menu:new-id
-		  file-menu:save-id
-		  file-menu:save-as-id 
-		  file-menu:revert-id
-		  file-menu:print-id))
+	   (let ([defs-show? (not (hidden? show-menu definitions-id))])
+	     (for-each
+	      (lambda (id)
+		(send file-menu enable id defs-show?))
+	      (list file-menu:revert-id
+		    file-menu:save-id
+		    file-menu:save-as-id 
+		    (add1 file-menu:save-as-id) ; Save As Text...
+		    file-menu:print-id)))
 	   (send file-menu enable file-menu:print-transcript-id 
 		 (not (hidden? show-menu interactions-id))))]
 	[make-menu-bar
