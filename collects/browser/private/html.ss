@@ -708,10 +708,10 @@
 						  (loop (add1 para) #f))))
 					    (r))))]
 				     [(ul ol dl)
-				      (insert-newlines 2 para-base)
+				      (insert-newlines (if (zero? enum-depth) 2 1) para-base)
 				      (begin0
 				       (rest/base/depth para-base (add1 enum-depth))
-				       (insert-newlines 2 para-base))]
+				       (insert-newlines (if (zero? enum-depth) 2 1) para-base))]
 				     [(p)
 				      (insert-newlines 2 para-base)
 				      (begin0
