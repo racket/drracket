@@ -6,10 +6,10 @@
            (lib "framework.ss" "framework")
            (lib "string-constant.ss" "string-constants"))
   
-  (define sc-smoothing-label "Font smoothing")
-  (define sc-smoothing-none "None")
-  (define sc-smoothing-some "Some")
-  (define sc-smoothing-all "All")
+  (define sc-smoothing-label (string-constant font-smoothing-label))
+  (define sc-smoothing-none (string-constant font-smoothing-none))
+  (define sc-smoothing-some (string-constant font-smoothing-some))
+  (define sc-smoothing-all (string-constant font-smoothing-all))
   
   (provide font@)
   
@@ -72,6 +72,7 @@
       (define (setup-preferences)
         (set-font-size (preferences:get 'drscheme:font-size))
         (set-font-name (preferences:get 'drscheme:font-name))
+        (set-font-smoothing (preferences:get 'drscheme:font-smoothing))
         (preferences:add-callback 'drscheme:font-size (lambda (p v) (set-font-size v)))
         (preferences:add-callback 'drscheme:font-name (lambda (p v) (set-font-name v)))
         (preferences:add-callback 'drscheme:font-smoothing (lambda (p v) (set-font-smoothing v)))

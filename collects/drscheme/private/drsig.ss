@@ -44,8 +44,14 @@
      profile-definitions-text-mixin
      profile-interactions-text-mixin
      profiling-enabled
-     add-prefs-panel
 
+     test-coverage-enabled
+     test-coverage-unit-frame-mixin
+     test-coverage-interactions-text-mixin
+     test-coverage-definitions-text-mixin
+
+     add-prefs-panel
+     
      open-and-highlight-in-file
      show-backtrace-window
      get-cm-key))

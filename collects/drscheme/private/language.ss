@@ -165,7 +165,7 @@
                          repeating-decimal-e))
                  (boolean? (vector-ref printable 3))
                  (boolean? (vector-ref printable 4))
-                 (memq (vector-ref printable 5) '(none debug debug/profile))
+                 (memq (vector-ref printable 5) '(none debug debug/profile test-coverage))
                  (apply make-simple-settings (vector->list printable))))
           (define/public (default-settings) 
             (make-simple-settings #f 'write 'mixed-fraction-e #f #t 'debug))
@@ -198,7 +198,7 @@
       ;;  fraction-style  : (union 'mixed-fraction 'mixed-fraction-e 'repeating-decimal 'repeating-decimal-e)
       ;;  show-sharing    : boolean
       ;;  insert-newlines : boolean
-      ;;  annotations     : (union 'none 'debug 'debug/profile)
+      ;;  annotations     : (union 'none 'debug 'debug/profile 'test-coverage)
       (define simple-settings->vector (make-->vector simple-settings))
 
       ;; simple-module-based-language-config-panel : parent -> (case-> (-> settings) (settings -> void))
@@ -231,7 +231,8 @@
                               (choices 
                                (list (string-constant no-debugging-or-profiling)
                                      (string-constant debugging)
-                                     (string-constant debugging-and-profiling)))
+                                     (string-constant debugging-and-profiling)
+                                     (string-constant test-coverage)))
                               (parent dynamic-panel)
                               (callback void))]
                  [output-style (make-object radio-box%
@@ -276,7 +277,8 @@
               (case (send debugging get-selection)
                 [(0) 'none]
                 [(1) 'debug]
-                [(2) 'debug/profile]))]
+                [(2) 'debug/profile]
+                [(3) 'test-coverage]))]
             [(settings)
              (send case-sensitive set-value (simple-settings-case-sensitive settings))
              (send output-style set-selection
@@ -297,7 +299,8 @@
                    (case (simple-settings-annotations settings)
                      [(none) 0]
                      [(debug) 1]
-                     [(debug/profile) 2]))])))
+                     [(debug/profile) 2]
+                     [(test-coverage) 3]))])))
 
       ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) number -> void
       (define (simple-module-based-language-render-value/format value settings port put-snip width)
@@ -375,14 +378,15 @@
         (run-in-user-thread
          (lambda ()
            (let ([annotations (simple-settings-annotations setting)])
-             (when (memq annotations '(debug debug/profile))
+             (when (memq annotations '(debug debug/profile test-coverage))
                (current-eval 
                 (drscheme:debug:make-debug-eval-handler
                  (current-eval)))
                (error-display-handler 
                 (drscheme:debug:make-debug-error-display-handler
                  (error-display-handler))))
-             (drscheme:debug:profiling-enabled (eq? annotations 'debug/profile)))
+             (drscheme:debug:profiling-enabled (eq? annotations 'debug/profile))
+             (drscheme:debug:test-coverage-enabled (eq? annotations 'test-coverage)))
            (current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
@@ -424,7 +428,7 @@
                                  [show-sharing ,(simple-settings-show-sharing setting)])
                     (print-convert value))]))
            
-           ,(if (memq (simple-settings-annotations setting) '(debug debug/profile))
+           ,(if (memq (simple-settings-annotations setting) '(debug debug/profile test-coverage))
                 `(require (lib "errortrace.ss" "errortrace"))
                 `(void))
 

@@ -565,6 +565,205 @@ profile todo:
                (send rep highlight-error editor position (+ position span))]))))
 
       
+ 
+;                                                                                      
+;                                                                                      
+;                                                                                      
+;                                                                                      
+;                                                                                      
+;   ;                  ;                                                               
+;  ;;;;   ;;;    ;;;  ;;;;       ;;;    ;;;   ;     ;  ;;;   ; ;  ;;;     ;; ;    ;;;  
+;   ;    ;   ;  ;      ;        ;   ;  ;   ;   ;   ;  ;   ;  ;;  ;   ;   ;  ;;   ;   ; 
+;   ;   ;    ;  ;;     ;       ;      ;     ;  ;   ; ;    ;  ;       ;  ;    ;  ;    ; 
+;   ;   ;;;;;;   ;;    ;       ;      ;     ;   ; ;  ;;;;;;  ;    ;;;;  ;    ;  ;;;;;; 
+;   ;   ;          ;   ;       ;      ;     ;   ; ;  ;       ;   ;   ;  ;    ;  ;      
+;   ;    ;         ;   ;        ;   ;  ;   ;     ;    ;      ;   ;   ;   ;  ;;   ;     
+;    ;;   ;;;;  ;;;     ;;       ;;;    ;;;      ;     ;;;;  ;    ;;;;;   ;; ;    ;;;; 
+;                                                                            ;         
+;                                                                       ;    ;         
+;                                                                        ;;;;          
+
+      
+      (define test-coverage-enabled (make-parameter #f))
+
+      (define current-test-coverage-info (make-parameter #f))
+
+      (define (initialize-test-coverage-point key expr)
+        (unless (current-test-coverage-info)
+	  (let ([ht (make-hash-table)])
+	    (current-test-coverage-info ht)
+	    (send (drscheme:rep:current-rep) set-test-coverage-info ht)))
+        (hash-table-put! (current-test-coverage-info) key (list #f expr)))
+  
+      (define (test-covered key)
+        (let ([v (hash-table-get (current-test-coverage-info) key)])
+          (set-car! v #t)))
+      
+      (define test-coverage-interactions-text<%>
+        (interface ()
+          set-test-coverage-info
+          get-test-coverage-info))
+      
+      (define test-coverage-frame<%>
+        (interface ()
+          show-test-coverage-annotations
+          get-test-coverage-info-visible?))
+      
+      (define test-coverage-interactions-text-mixin
+        (mixin (drscheme:rep:text<%> text:basic<%>) (test-coverage-interactions-text<%>)
+          (field [test-coverage-info #f])
+          (define/public (set-test-coverage-info ht) (set! test-coverage-info ht))
+          (define/public (get-test-coverage-info) test-coverage-info)
+          
+          (rename [super-after-many-evals after-many-evals])
+          (inherit get-top-level-window)
+          (define/override (after-many-evals)
+            (let ([tlw (get-top-level-window)])
+              (when (and (is-a? tlw test-coverage-frame<%>)
+                         test-coverage-info)
+                (send tlw show-test-coverage-annotations test-coverage-info)))
+            (super-after-many-evals))
+          
+          (super-instantiate ())))
+      
+      (define test-coverage-definitions-text-mixin
+        (mixin ((class->interface text%) drscheme:unit:definitions-text<%>) ()
+          (inherit get-canvas)
+          
+          (define/private (clear-test-coverage?)
+            (eq? (message-box (string-constant drscheme)
+                              (string-constant test-coverage-clear?)
+                              (send (get-canvas) get-top-level-window)
+                              '(yes-no))
+                 'yes))
+          
+          (define/private (clear-test-coverage)
+            (let ([canvas (get-canvas)])
+              (when canvas
+                (let ([frame (send canvas get-top-level-window)])
+                  (when (send frame get-test-coverage-info-visible?)
+                    (send frame clear-test-coverage-display)
+                    (let ([it (send frame get-interactions-text)])
+                      (when (is-a? it test-coverage-interactions-text<%>)
+                        (send it set-test-coverage-info #f))))))))
+          
+          (rename [super-can-insert? can-insert?])
+          (define/override (can-insert? x y)
+            (and (super-can-insert? x y)
+                 (let ([canvas (get-canvas)])
+                   (or (not canvas)
+                       (let ([frame (send canvas get-top-level-window)])
+                         (or (not (send frame get-test-coverage-info-visible?))
+                             (clear-test-coverage?)))))))
+          
+          (rename [super-can-delete? can-delete?])
+          (define/override (can-delete? x y)
+            (and (super-can-delete? x y)
+                 (let ([canvas (get-canvas)])
+                   (or (not canvas)
+                       (let ([frame (send canvas get-top-level-window)])
+                         (or (not (send frame get-test-coverage-info-visible?))
+                             (clear-test-coverage?)))))))
+          
+          (rename [super-on-insert on-insert])
+          (define/override (on-insert x y)
+            (super-on-insert x y)
+            (clear-test-coverage))
+          
+          (rename [super-on-delete on-delete])
+          (define/override (on-delete x y)
+            (super-on-delete x y)
+            (clear-test-coverage))
+          
+          (super-instantiate ())))
+      
+      (define test-covered-color (send the-color-database find-color "lime green"))
+      (define test-not-covered-color (send the-color-database find-color "pink"))
+      
+      ;; test-coverage-unit-frame-mixin
+      (define test-coverage-unit-frame-mixin
+        (mixin (drscheme:unit:frame<%>) (test-coverage-frame<%>)
+          
+          (field [internal-clear-test-coverage-display #f])
+          
+          (define/public (clear-test-coverage-display)
+            (when internal-clear-test-coverage-display
+              (internal-clear-test-coverage-display)
+              (set! internal-clear-test-coverage-display #f)))
+      
+          (define/public (get-test-coverage-info-visible?)
+            (not (not internal-clear-test-coverage-display)))
+          
+          (define/public (show-test-coverage-annotations ht)
+            (let* ([edit-sequence-ht (make-hash-table)]
+                   [on/syntaxes (hash-table-map ht (lambda (_ pr) pr))]
+                   [filtered (filter (lambda (pr)
+                                       (let ([stx (cadr pr)])
+                                         (and (syntax? stx)
+                                              (let ([src (syntax-source stx)]
+                                                    [pos (syntax-position stx)]
+                                                    [span (syntax-span stx)])
+                                                (and (is-a? src text:basic<%>)
+                                                     pos
+                                                     span)))))
+                                     on/syntaxes)]
+                   [sorted
+                    (quicksort
+                     filtered
+                     (lambda (x y)
+                       (<= (syntax-span (cadr x))
+                           (syntax-span (cadr y)))))]
+                   [thunks null])
+              (when internal-clear-test-coverage-display
+                (internal-clear-test-coverage-display)
+                (set! internal-clear-test-coverage-display #f))
+              (for-each
+               (lambda (pr)
+                 (let ([stx (cadr pr)]
+                       [on? (car pr)])
+                   (when (syntax? stx)
+                     (let ([src (syntax-source stx)]
+                           [pos (syntax-position stx)]
+                           [span (syntax-span stx)])
+                       (hash-table-get 
+                        edit-sequence-ht
+                        src
+                        (lambda ()
+                          (hash-table-put! edit-sequence-ht src #f)
+                          (send src begin-edit-sequence)))
+                       (set! thunks
+                             (cons
+                              (send src highlight-range 
+                                    (- pos 1)
+                                    (+ (- pos 1) span) 
+                                    (if on?
+                                        test-covered-color
+                                        test-not-covered-color))
+                              thunks))))))
+               sorted)
+              (hash-table-for-each 
+               edit-sequence-ht
+               (lambda (txt _) (send txt end-edit-sequence)))
+              (set! internal-clear-test-coverage-display
+                    (lambda ()
+                      (hash-table-for-each
+                       edit-sequence-ht
+                       (lambda (txt _) (send txt begin-edit-sequence)))
+                      (for-each (lambda (thnk) (thnk)) thunks)
+                      (hash-table-for-each
+                       edit-sequence-ht
+                       (lambda (txt _) (send txt end-edit-sequence)))))))
+                     
+          (rename [super-clear-annotations clear-annotations])
+          (define/override (clear-annotations)
+            (super-clear-annotations)
+            (clear-test-coverage-display))
+          
+          (super-instantiate ())))
+      
+ 
+      
+      
       
                                                                
                         ;;;    ;    ;;;      ;                 
@@ -604,7 +803,10 @@ profile todo:
       (define (any-info? prof-info)
         (or (not (zero? (prof-info-num prof-info)))
             (not (zero? (prof-info-time prof-info)))))
-                  
+     
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; profiling runtime support
+
       ;; parameter
       ;; imported into errortrace
       (define profiling-enabled (make-parameter #f))
@@ -613,6 +815,8 @@ profile todo:
       ;; holds a hash-table for the profiling information
       (define current-profile-info (make-parameter #f))
 
+      
+      
       ;; initialize-profile-point : sym syntax syntax -> void
       ;; called during compilation to register this point as
       ;; a profile point. 
@@ -753,8 +957,7 @@ profile todo:
         (interface ()
           get-profile-info
           set-profile-info))
-
-      ;; profile-interactions-text-mixin : mixin
+                
       (define profile-interactions-text-mixin
         (mixin (drscheme:rep:text<%>) (profile-interactions-text<%>)
           ;; profile-info : symbol -o> prof-info
@@ -762,7 +965,7 @@ profile todo:
           (define/public (set-profile-info ht) (set! profile-info ht))
           (define/public (get-profile-info) profile-info)
           (super-instantiate ())))
-
+          
       ;; profile-unit-frame-mixin : mixin
       ;; adds profiling to the unit frame
       (define profile-unit-frame-mixin

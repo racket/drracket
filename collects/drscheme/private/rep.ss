@@ -629,6 +629,7 @@
           run-in-evaluation-thread
           do-many-evals
           do-many-text-evals
+          after-many-evals
           
           shutdown
           
@@ -1705,7 +1706,10 @@
                     (queue-system-callback/sync
                      (get-user-thread)
                      (lambda () ; =Kernel=, =Handler= 
+                       (after-many-evals)
                        (cleanup-interaction)))))))))
+          
+          (define/public (after-many-evals) (void))
           
           (define shutdown-user-custodian ; =Kernel=, =Handler=
             ; Use this procedure to shutdown when in the middle of other cleanup

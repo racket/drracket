@@ -61,20 +61,25 @@
         (make-extender get-base-definitions-canvas% 'definitions-canvas%))  
       
       (define (get-base-unit-frame%)
-        (drscheme:debug:profile-unit-frame-mixin drscheme:unit:frame%))
+        (drscheme:debug:test-coverage-unit-frame-mixin
+         (drscheme:debug:profile-unit-frame-mixin
+          drscheme:unit:frame%)))
 
       (define-values (extend-unit-frame get-unit-frame)
         (make-extender get-base-unit-frame% 'drscheme:unit:frame))
       
       (define (get-base-interactions-text%)
-        (drscheme:debug:profile-interactions-text-mixin drscheme:rep:text%))
+        (drscheme:debug:test-coverage-interactions-text-mixin
+         (drscheme:debug:profile-interactions-text-mixin
+          drscheme:rep:text%)))
 
       (define-values (extend-interactions-text get-interactions-text)
         (make-extender get-base-interactions-text% 'interactions-text%))
 
       (define (get-base-definitions-text%)
-        (drscheme:debug:profile-definitions-text-mixin
-         (drscheme:unit:get-definitions-text%)))
+        (drscheme:debug:test-coverage-definitions-text-mixin
+         (drscheme:debug:profile-definitions-text-mixin
+          (drscheme:unit:get-definitions-text%))))
 
       (define-values (extend-definitions-text get-definitions-text)
         (make-extender get-base-definitions-text% 'definitions-text%)))))
