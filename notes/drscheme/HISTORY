@@ -2,6 +2,11 @@
         Version 300
 ------------------------------
 
+ - Check Syntax now properly distinguishes between require'd
+   and locally defined variables, and between macro
+   variables and regular variables (for a total of four
+   categories).
+
  - added command-line specs to the module language details.
 
 *'d items have been revoked.
