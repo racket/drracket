@@ -14,7 +14,7 @@
 	    (let* ([dir (car dirs)]
 		   [full-dir (collection-path "drscheme" "tools" dir)])
 	      (if (and (directory-exists? full-dir)
-		       (not (string=? "RCS" dir)))
+		       (not (string=? "CVS" dir)))
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
 			 [link-sym (string->symbol dir)])
 		    `((,link-sym : () ((reference-unit/sig ,unit-path)
