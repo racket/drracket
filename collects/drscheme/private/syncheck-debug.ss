@@ -151,11 +151,14 @@
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
   (define (make-text-port text)
-    (make-custom-output-port #f
-			     (lambda (s start end flush?) 
-			       (send text insert (substring s start end)
-				     (send text last-position)
-				     (send text last-position))
-			       (- end start))
-			     void
-			     void)))
+    (let-values ([(in out) (make-pipe)])
+      (thread
+       (lambda ()
+         (let loop ()
+           (let ([c (read-char in)])
+             (unless (eof-object? c)
+               (send text insert (string c)
+                     (send text last-position)
+                     (send text last-position))
+               (loop))))))
+      out)))
