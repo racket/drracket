@@ -5,6 +5,7 @@
            (lib "etc.ss")
 	   (lib "unitsig.ss")
 	   (lib "class.ss")
+           (lib "string-constant.ss" "string-constants")
            (lib "url.ss" "net")
            (lib "plt-installer.ss" "setup")
            (lib "plt-installer-sig.ss" "setup")
@@ -57,9 +58,23 @@
             [(intermediate) 102]
             [(beginning) 103]
             [else #f])))
+
+      (define (new-help-desk-menu-mixin %)
+        (class %
+          (rename [super-file-menu:between-new-and-open file-menu:between-new-and-open])
+          (define/override (file-menu:between-new-and-open menu)
+            (instantiate menu-item% ()
+              (parent menu)
+              (label (string-constant new-help-desk))
+              (callback (lambda (x y)
+                          (set! help-desk-frame #f)
+                          (help-desk))))
+            (super-file-menu:between-new-and-open menu)
+            (make-object separator-menu-item% menu))
+          (super-instantiate ())))
       
       (define (load-help-desk)
-        (define frame-mixin drscheme:frame:basics-mixin)
+        (define frame-mixin (compose drscheme:frame:basics-mixin new-help-desk-menu-mixin))
         (let-values ([(_new-help-frame
                        _open-url-from-user
                        _doc-collections-changed
