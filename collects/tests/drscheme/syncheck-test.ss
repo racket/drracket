@@ -316,7 +316,9 @@
                   ("define-struct" keyword)
                   (" ("            base)
                   ("t"             keyword)
-                  (" s) ())"       base)))
+                  (" "             base)
+                  ("s"             constant)
+                  (") ())"         base)))
      
      (make-test "`(1 ,x 2)"
                 '(("`"        keyword)
@@ -372,6 +374,16 @@
                   (") ("      base)
                   ("provide"  keyword)
                   ("))"       base)))
+     
+     (make-test "(define tordu3 '(a . #0=(b c d . #0#)))"
+                '(("("        base)
+                  ("define"   keyword)
+                  (" "        base)
+                  ("tordu3"   bound-variable)
+                  (" "        base)
+                  ("'"        keyword)
+                  ("(a . #0=(b c d . #0#))" constant)
+                  (")"        base)))
 
      
                                                                              
