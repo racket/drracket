@@ -629,8 +629,8 @@
 				    (change-style normal-style pos (+ 1 pos)))
 				  (let ([data (list enum-depth bullet?)])
 				    (btree-put! indents pos data))
-				  (atomic-values (+ pos (if bullet? 1 0))
-						 #t)))])
+				(atomic-values (+ pos (if bullet? 1 0))
+					       #t)))])
 		  (case tag
 		    [(!--)
 		     (let ([skip-one? #f])
@@ -710,7 +710,7 @@
 		      [pre-newlines
 		       (case tag
 			 [(dl ul menu table) (if (< enum-depth 1) 2 1)]
-			 [(tr) 1]
+			 [(div tr) 1]
 			 [(pre) 2]
 			 [(h1 h2 h3) 2]
 			 [else 0])])
@@ -728,12 +728,19 @@
 		      (case tag
 			[(head body) (normal)]
 			[(div)
-			 (let ([align (parse-div-align args)])
-			   (when (and align (string-ci=? align "center"))
-			     (let ([start (position-paragraph pos)]
-				   [end (position-paragraph end-pos)])
-			       (btree-put! centers pos (- end start))))
-			   (normal))]
+			 (let ([new-end (+ end-pos (try-newline end-pos pre-newlines #t))])
+
+			   (let ([align (parse-div-align args)])
+			     (when (and align (string-ci=? align "center"))
+			       (let ([start (position-paragraph pos)]
+				     [end (position-paragraph end-pos)])
+				 (btree-put! centers pos (- end start)))))
+
+			   ; At end, make sure indentation is reset:
+			   (let ([m (btree-get indents new-end)])
+			     (when m
+			       (set-car! m (sub1 (car m)))))
+			   (result new-end #t))]
 			[(center)
 			 (let ([start (position-paragraph pos)]
 			       [end (position-paragraph end-pos)])
