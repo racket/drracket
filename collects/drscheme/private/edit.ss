@@ -1,5 +1,5 @@
 
-(module mzscheme text
+(module text mzscheme
   (require (lib "unitsig.ss")
            "drsig.ss"
            "date.ss"

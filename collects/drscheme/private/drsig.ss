@@ -1,6 +1,8 @@
 (module drsig mzscheme
   (require (lib "unitsig.ss")
-           (lib "sig.ss" "userspce"))
+           (lib "sig.ss" "userspce")
+	   (lib "framework-sig.ss" "framework")
+	   (lib "sig.ss" "stepper"))
   
   (provide drscheme:get-collection^
            drscheme:main^
@@ -141,17 +143,11 @@
      (unit load-handler : drscheme:load-handler^)
      (unit rep : drscheme:rep^)
      (unit language : drscheme:language^)
-     (unit help-desk : drscheme:help-interface^)
-     (unit help-info : help:get-info^)))
+     (unit help-desk : drscheme:help-interface^)))
   
   (define-signature drscheme^
-    ((open mzlib:core^)
-     (open mzlib:print-convert^)
-     (open framework^)
-     (open setup:plt-installer^)
-     (open setup:info^)
+    ((open framework^)
      
-     (unit zodiac : zodiac:system^)
      (unit plt:aries : plt:aries^)
      
      (unit drscheme:init : drscheme:init^)
