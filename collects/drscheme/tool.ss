@@ -1,7 +1,8 @@
 (begin-construction-time
  `(compound-unit/sig
-      (import [mred : mred^]
+      (import [mred : mred-interfaces^]
 	      [mzlib : mzlib:core^]
+	      [framework : framework^]
 	      [print-convert : mzlib:print-convert^]
 	      [zodiac : drscheme:zodiac^]
 	      [export : drscheme:export^])
@@ -17,7 +18,7 @@
 		  (let* ([unit-path (build-path full-dir "unit.ss")]
 			 [link-sym (string->symbol dir)])
 		    `((,link-sym : () ((require-unit/sig ,unit-path)
-				       wx mred mzlib print-convert export zodiac))
+				       mred mzlib framework print-convert export zodiac))
 		      .
 		      ,(loop (cdr dirs))))
 		  (loop (cdr dirs))))])))

@@ -1,7 +1,8 @@
 
   (unit/sig drscheme:app^
-    (import [mred : mred^]
-	    [mzlib : mzlib:core^])
+    (import [mred : mred-interfaces^]
+	    [mzlib : mzlib:core^]
+	    [fw : framework^])
     
     (define about-drscheme
       (lambda ()
@@ -11,7 +12,7 @@
 		       "Sebastian Good, Mark Krentel, Shriram Krishnamurthi, "
 		       "Paul Steckler, and Stephanie Weirich")]
 	       [wrap-edit% 
-		(class-asi mred:media-edit%
+		(class-asi mred:text%
 		  (inherit get-max-width find-snip  set-autowrap-bitmap position-location)
 		  (rename [super-after-set-size-constraint after-set-size-constraint])
 		  (public
@@ -19,8 +20,8 @@
 		     (lambda ()
 		       (super-after-set-size-constraint)
 		       (let ([width (get-max-width)])
-			 (let* ([snip (find-snip 1 wx:const-snip-after-or-null)])
-			   (when (is-a? snip wx:media-snip%)
+			 (let* ([snip (find-snip 1 'after-or-none)])
+			   (when (is-a? snip mred:editor-snip%)
 			     (let ([b (box 0)]
 				   [media (send snip get-this-media)])
 			       (position-location 1 b null #f #t)
@@ -35,18 +36,18 @@
 	       [main-media (make-object wrap-edit%)]
 	       [image-snip 
 		(let ([filename (build-path (collection-path "icons")
-					    (if (< (wx:display-depth) 8)
+					    (if (< (mred:get-display-depth) 8)
 						"pltbw.gif"
 						"plt.gif"))])
 		  (if (file-exists? filename)
-		      (make-object wx:image-snip% 
+		      (make-object mred:image-snip% 
 				   filename
-				   wx:const-bitmap-type-gif)
-		      (let ([i (make-object wx:text-snip%)])
+				   'gif)
+		      (let ([i (make-object mred:string-snip%)])
 			(send i insert "[lambda]")
 			i)))]
-	       [media-snip (make-object wx:media-snip% e #f)]
-	       [f (make-object (class-asi mred:standard-menus-frame%
+	       [media-snip (make-object mred:editor-snip% e #f)]
+	       [f (make-object (class-asi fw:frame:standard-menus%
 				 (private
 				   [edit-menu:do 
 				    (lambda (const)
@@ -70,29 +71,29 @@
 				   [edit-menu:between-redo-and-cut (lambda (x) (void))]
 				   [edit-menu:between-select-all-and-preferences (lambda (x) (void))]
 				   [edit-menu:between-select-all-and-find (lambda (x) (void))]
-				   [edit-menu:copy (edit-menu:do wx:const-edit-copy)]
-				   [edit-menu:select-all (edit-menu:do wx:const-edit-select-all)]
+				   [edit-menu:copy (edit-menu:do 'copy)]
+				   [edit-menu:select-all (edit-menu:do 'select-all)]
 				   [edit-menu:find #f]
 				   [help-menu:about (lambda () (about-drscheme))]
 				   [help-menu:about-string "DrScheme"]))
 			       '() "About DrScheme")]
 	       [p (ivar f panel)]
-	       [c (make-object mred:wrapping-canvas% p)]
-	       [top (make-object wx:style-delta% wx:const-change-alignment wx:const-align-top)]
-	       [d-usual (make-object wx:style-delta% wx:const-change-family wx:const-decorative)]
-	       [d-dr (make-object wx:style-delta%)]
-	       [d-http (make-object wx:style-delta%)])
+	       [c (make-object mred:editor-canvas% p)]
+	       [top (make-object mred:style-delta% 'change-alignment 'top)]
+	       [d-usual (make-object mred:style-delta% 'change-family 'decorative)]
+	       [d-dr (make-object mred:style-delta%)]
+	       [d-http (make-object mred:style-delta%)])
 	  (send* d-http 
 	    (copy d-usual)
 	    (set-delta-foreground "BLUE")
-	    (set-delta wx:const-change-underline #t))
+	    (set-delta 'change-underline #t))
 	  (send* d-usual 
 	    (set-delta-foreground "BLACK")
-	    (set-delta wx:const-change-underline #f))
+	    (set-delta 'change-underline #f))
 
 	  (send* p (user-min-width 600) (user-min-height 400))
-	  (send* d-dr (copy d-usual) (set-delta wx:const-change-bold))
-	  (send d-usual set-weight-on wx:const-normal)
+	  (send* d-dr (copy d-usual) (set-delta 'change-bold))
+	  (send d-usual set-weight-on 'normal)
 	  (send* c (set-media main-media) (stretchable-in-x #t) (stretchable-in-y #t))
 	  (send* e 
 		 (change-style d-dr)
@@ -109,7 +110,7 @@
 		 [_ (send e insert url)]
 		 [after (send e get-start-position)])
 	    (send e set-clickback before after 
-		  (lambda args (make-object mred:hyper-view-frame% url))
+		  (lambda args (mred:message-box "Browser not yet supported in DrScheme 100"))
 		  d-http))
 	  (send* e
 	    (insert #\newline)
@@ -119,10 +120,10 @@
 	    (insert "Based on:")
 	    (insert #\newline)
 	    (insert "  MrEd version ")
-	    (insert (mred:version))
+	    (insert (fw:version:version))
 	    (insert ", Copyright (c) 1995-1998 PLT, Rice University (Matthew Flatt and Robert Bruce Findler)")
 	    (insert #\newline)
-	    (insert (mred:credits-proc "  "))
+	    ;(insert (mred:credits-proc "  "))
 	    (lock #t))
 	  (send* main-media 
 		 (insert image-snip) (insert media-snip)
