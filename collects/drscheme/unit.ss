@@ -48,9 +48,7 @@
 			       outside-margin)]
 		 [new-height (+ outside-margin
 				(max img-height
-				     (+ (unbox height)
-					(unbox descent)
-					(unbox leading)))
+				     (unbox height))
 				outside-margin)]
 		 [memory-dc (make-object wx:memory-dc%)]
 		 [new-bitmap (make-object wx:bitmap% new-width new-height -1)])
