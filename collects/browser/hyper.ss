@@ -290,7 +290,11 @@
 					(eval-scheme-string scheme-string))))]
 	  [eval-scheme-string
 	   (lambda (s)
-	     (let ([v (eval-string s)])
+	     
+	     (let ([v (dynamic-wind
+		       begin-busy-cursor
+		       (lambda () (eval-string s))
+		       end-busy-cursor)])
 	       (when (string? v)
 		 (send (get-canvas) goto-url (open-input-string v) (get-url)))))])
 	(sequence
