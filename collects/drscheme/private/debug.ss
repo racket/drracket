@@ -162,8 +162,9 @@ profile todo:
 				(continuation-mark-set->list 
                                  (exn-continuation-marks exn)
                                  cm-key))]
-                      [k (and (exn:break? exn)
-                              (exn:break-continuation exn))]
+                      [k #f; no continuing from exceptions for the moment.
+			 ;(and (exn:break? exn)
+                         ;     (exn:break-continuation exn))]
 		      [src-to-display (find-src-to-display exn 
                                                            (and cms
                                                                 (map st-mark-source cms)))])
