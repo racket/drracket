@@ -203,6 +203,16 @@
                            (regexp-match re:plain args))])
                 (and m (caddr m)))))))
       
+      (define get-mzscheme-arg
+	(let ([get-mz (make-get-field "mzscheme")])
+	  (lambda (str)
+	    (let ([v (get-mz str)])
+	      (and v (filter-mzscheme v))))))
+
+      (define filter-mzscheme 
+	(lambda (v)
+	  (regexp-replace* "[|]" v "\"")))
+		      		       
       (define face-list #f)
       
       (define latin-1-symbols
@@ -237,14 +247,37 @@
 					li dt dd
 					ul ol dl
 					samp kbd pre blockquote
-					table tr td
-					|Comment|))
+					table tr td))
 
       (define whitespace-string "[ \t\n\r\v\f]+")
       (define re:whitespace (regexp whitespace-string))
       (define re:starting-whitespace (regexp (format "^~a" whitespace-string)))
       (define re:ending-whitespace (regexp (format "~a$" whitespace-string)))
+      (define re:leading-newline (regexp "\r|\n|(\r\n)"))
       
+      (define (remove-leading-newline c)
+	(cond
+	 [(string? c)
+	  (let ([s (regexp-match-positions re:leading-newline c)])
+	    (cond
+	     [(and s (= (cdar s) (length s)))
+	      ;; It's all newline:
+	      (values "" #t)]
+	     [s (values (substring c (cdar s) (string-length c)) #t)]
+	     [else (values c #t)]))]
+	 [(pair? c)
+	  (let loop ([b (cddr c)][accum null])
+	    (if (null? b)
+		(values (list* (car c) (cadr c) (reverse accum)) #f)
+		(let-values ([(d done?) (remove-leading-newline (car b))])
+		  (if done?
+		      (values (list* (car c) (cadr c) (append (reverse accum)
+							      (list d)
+							      (cdr b)))
+			      #t)
+		      (loop (cdr b) (cons d accum))))))]
+	 [else (values c #f)]))
+
       (define (fixup-whitespace c leading-ok?)
 	(cond
 	 [(string? c)
@@ -274,11 +307,25 @@
 	 [(symbol? c) (values c #t)]
 	 [(number? c) (values c #t)]
 	 [(comment? c)
-	  (values (list '|Comment| '() (comment-text c))
-		  leading-ok?)]
+	  (let ([code (get-mzscheme-arg (comment-text c))])
+	    (if code
+		(let ([s (with-handlers ([not-break-exn?
+					  (lambda (exn)
+					    (format
+					     "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
+					     (if (exn? exn)
+						 (exn-message exn)
+						 (format "~s" exn))))])
+			   (eval (read (open-input-string code))))])
+		  (if (string? s)
+		      (let ([content (read-html (open-input-string s))])
+			(fixup-whitespace content leading-ok?))
+		      (values "" leading-ok?)))
+		(values "" leading-ok?)))]
 	 [else (let ([tag (car c)])
 		 (if (memq tag exact-whitespace-tags)
-		     (values c #t)
+		     (let-values ([(s done?) (remove-leading-newline c)])
+		       (values s #f))
 		     (let-values ([(body leading-ok?)
 				   (let loop ([l (cddr c)][leading-ok? 
 							   (and leading-ok?
@@ -298,10 +345,13 @@
 			(and leading-ok?
 			     (not (memq tag space-eating-tags)))))))]))
 
+      (define (read-html a-port)
+	`(html () ,@(map xml->xexpr (parameterize ([read-html-comments #t]
+						   [use-html-spec #f])
+				      (read-html-as-xml a-port)))))
+
       (define (parse-html a-port)
-	(let ([raw `(html () ,@(map xml->xexpr (parameterize ([read-html-comments #t]
-							      [use-html-spec #f])
-						 (read-html-as-xml a-port))))])
+	(let ([raw (read-html a-port)])
 	  (let-values ([(v ?) (fixup-whitespace raw #f)])
 	    v)))
 
@@ -395,15 +445,6 @@
 			(let ([get-src (make-get-field "alt")])
 			  (lambda (s)
 			    (get-src s)))]
-		       
-		       [filter-mzscheme (lambda (v)
-					  (regexp-replace* "[|]" v "\""))]
-
-		       [get-mzscheme-arg
-			(let ([get-mz (make-get-field "mzscheme")])
-			  (lambda (str)
-			    (let ([v (get-mz str)])
-			      (and v (filter-mzscheme v)))))]
 		       
 		       [parse-href
 			(let ([href-error
@@ -622,22 +663,6 @@
 						(send a-text make-link-style pos end-pos))
 					      (r))]
 					   [else r])))]
-				     [(|Comment|)
-				      (let ([code (get-mzscheme-arg (caddr e))])
-					(if code
-					    (let ([s (with-handlers ([not-break-exn?
-								      (lambda (exn)
-									(format
-									 "<font color=\"red\">Error during &lt;!-- MZSCHEME=... --&gt;: <i>~a</i></font>"
-									 (if (exn? exn)
-									     (exn-message exn)
-									     (format "~s" exn))))])
-						       (eval (read (open-input-string (regexp-replace* "[|]" code "\"")))))])
-					      (if (string? s)
-						  (let ([content (parse-html (open-input-string s))])
-						    (translate content para-base enum-depth))
-						  void))
-					    void))]
 				     [(style) void]
 				     [(h1) (heading delta:h1 rest para-base)]
 				     [(h2) (heading delta:h2 rest para-base)]
@@ -756,15 +781,18 @@
 				     [(tt code samp kbd pre blockquote)
 				      (when (memq tag '(pre blockquote))
 					(insert-newlines 2 para-base))
-				      (let* ([class (get-field e 'class)]
-					     [delta (and class (lookup-class-delta class))])
-					(styler (if delta
-						    (let ([d (make-object style-delta% 'change-nothing)])
-						      (send d copy delta)
-						      (send d collapse delta:fixed)
-						      d)
-						    delta:fixed)
-						rest))]
+				      (begin0
+				       (let* ([class (get-field e 'class)]
+					      [delta (and class (lookup-class-delta class))])
+					 (styler (if delta
+						     (let ([d (make-object style-delta% 'change-nothing)])
+						       (send d copy delta)
+						       (send d collapse delta:fixed)
+						       d)
+						     delta:fixed)
+						 rest))
+				       (when (memq tag '(pre blockquote))
+					 (insert-newlines 2 para-base)))]
 				     [(span)
 				      (let* ([class (get-field e 'class)]
 					     [delta (and class (lookup-class-delta class))])
