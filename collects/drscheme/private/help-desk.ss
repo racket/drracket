@@ -22,16 +22,16 @@
       (define (use-internal-browser? browser)
         (eq? 'plt browser))
 
+      (define help-browser-pref 'plt:help-browser)
+
       (define get-hd-cookie
         (let ([hd-cookie #f]
-              [internal (use-internal-browser? (fw:preferences:get 'external-browser))])
+              [internal (use-internal-browser? (fw:preferences:get help-browser-pref))])
           (fw:preferences:add-callback
-           'external-browser
+           help-browser-pref
            (lambda (k v)
              (let ([new-internal (use-internal-browser? v)])
-               (unless new-internal
-                 (external-browser v))
-               (unless (eq? new-internal internal)
+	        (unless (eq? new-internal internal)
                  (when hd-cookie
                    ((hd-cookie->exit-proc hd-cookie))
                    (set! hd-cookie #f)))
