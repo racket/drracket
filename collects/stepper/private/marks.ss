@@ -24,9 +24,6 @@
    skipto-mark
    strip-skiptos
    mark-list?
-   cheap-mark?
-   make-cheap-mark
-   cheap-mark-source
    stx-protector-stx ; : (protector -> identifier) FOR TESTING ONLY
    mark-source
    mark-bindings
@@ -104,23 +101,16 @@
                                               ,(make-label-protector label)
                                               ,@(apply append (map make-mark-binding-stx bindings))))))
   
-  (define-struct cheap-mark (source))
-  
   (define (mark-source mark)
-    (if (cheap-mark? mark)
-        (cheap-mark-source mark)
-        (stx-protector-stx (full-mark-struct-source (mark)))))
+    (stx-protector-stx (full-mark-struct-source (mark))))
   
   ;; extract-locations : mark-set -> (listof syntax-object)
   (define (extract-locations mark-set)
     (map mark-source (extract-mark-list mark-set)))
     
-  (define-struct not-captured-struct ())
-  (define not-captured (make-not-captured-struct))
-  
-  ; : identifier -> (list identifier TST)
+  ; : identifier -> (list/p stx-protector? identifier?)
   (define (make-mark-binding-stx id)
-    (list (make-stx-protector id) id)) ; 3D!
+    `(,(make-stx-protector id) ,id)) ; 3D!
   
   (define (mark-bindings mark)
     (letrec ([pair-off
@@ -138,7 +128,7 @@
     (cadr mark-binding))
   
   (define (mark-binding-binding mark-binding)
-    (stx-protector-stx (car mark-binding)))
+    (car mark-binding))
 
   (define (expose-mark mark)
     (let ([source (mark-source mark)]
