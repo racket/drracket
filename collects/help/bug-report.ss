@@ -156,17 +156,6 @@
     (define (translate-class class)
       (cadr (assoc class bug-classes)))
     
-    (define priority
-      (build/label
-       (string-constant bug-report-field-priority)
-       (lambda (panel)
-         (make-object choice%
-           #f
-           (list "high" "medium" "low")
-           panel
-           void))
-       #f))
-    
     (define (make-big-text label . args)
       (let ([canvas 
              (apply
@@ -301,7 +290,7 @@
          ,(format ">Synopsis:       ~a" (send summary get-value))
          ">Confidential:   no"
          ,(format ">Severity:       ~a" (send severity get-string-selection))
-         ,(format ">Priority:       ~a" (send priority get-string-selection))
+         ,(format ">Priority:       medium")
          ,(format ">Class:          ~a" (translate-class (send bug-class get-string-selection)))
          ">Submitter-Id:   unknown"
          ,(format ">Originator:     ~a" (preferences:get 'drscheme:full-name))
@@ -430,7 +419,6 @@
       (send bug-frame close))
         
     (send severity set-selection 1)
-    (send priority set-selection 1)
     (send version set-value   
           (format "~a"
                   (version:version)))
