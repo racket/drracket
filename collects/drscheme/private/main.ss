@@ -44,7 +44,8 @@
        (let ([default (application-quit-handler)])
          (lambda ()
            (if (null? (get-top-level-windows))
-               (exit:exit)
+               (when (exit:user-oks-exit)
+                 (exit:exit))
                (default)))))
       
       (application-about-handler
@@ -59,10 +60,6 @@
                                      '("Scheme (.ss)" "*.ss")
                                      (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
-
-      (when (current-eventspace-has-menu-root?)
-        (drscheme:frame:create-root-menubar)
-        (preferences:set 'framework:exit-when-no-frames #f))
       
       (preferences:set-default 'drscheme:show-interactions-on-execute #f boolean?)
       (preferences:set-default 'drscheme:open-in-tabs #f boolean?)
@@ -231,7 +228,7 @@
                            warnings-panel))))
       (drscheme:debug:add-prefs-panel)
       (install-help-browser-preference-panel)
-      
+
       (handler:current-create-new-window
        (let ([drscheme-current-create-new-window
 	      (lambda (filename)
@@ -320,6 +317,14 @@
 
       ;; no more preferences defaults can be set after this
       (preferences:read)
+      
+      (cond
+        [(current-eventspace-has-menu-root?)
+         (drscheme:frame:create-root-menubar)
+         (preferences:set 'framework:exit-when-no-frames #f)]
+        [else
+         (preferences:set 'framework:exit-when-no-frames #t)])
+      
       
       (drscheme:app:check-new-version)
       
