@@ -313,6 +313,16 @@
                   ("t"             keyword)
                   (" s) ())"       base)))
      
+     (make-test "`(1 ,x 2)"
+                '(("`"        keyword)
+                  ("("        base)
+                  ("1"        constant)
+                  (" ,"       base)
+                  ("x"        unbound-variable)
+                  (" "        base)
+                  ("2"        constant)
+                  (")"        base)))
+     
      (make-test "(module m mzscheme (lambda (x) x) (provide))"
                 '(("("        base)
                   ("module"   keyword)

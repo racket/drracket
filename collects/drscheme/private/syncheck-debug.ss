@@ -59,11 +59,12 @@
                (- (car (cdr y)) (cdr (cdr y)))))))
       
       (define (show-info stx)
-        (fprintf info-port "datum: ~s\nsource: ~a\nposition: ~s\noffset: ~s\nbound-in-source: ~s\n\n"
+        (fprintf info-port "datum: ~s\nsource: ~a\nposition: ~s\noffset: ~s\noriginal: ~s\nbound-in-source: ~s\n\n"
                  (syntax-object->datum stx)
                  (syntax-source stx)
                  (syntax-position stx)
                  (syntax-span stx)
+                 (syntax-original? stx)
                  (syntax-property stx 'bound-in-source))
         (let loop ([origin (syntax-property stx 'origin)])
           (cond
