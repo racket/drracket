@@ -80,13 +80,15 @@
       ;; allows the user to configure their language. The input language-setting is used
       ;; as the defaults in the dialog and the output language setting is the user's choice
       (define language-dialog
-        (opt-lambda (settings-to-show [parent #f])
+        (opt-lambda (language-settings-to-show [parent #f])
+	  (define language-to-show (language-settings-language language-settings-to-show))
+	  (define settings-to-show (language-settings-settings language-settings-to-show))
           
           ;; hier-list items that implement this interface correspond to
 	  ;; actual language selections
 	  (define hieritem-language<%>
 	    (interface (hierarchical-list-item<%>)
-	      show-details))
+	      selected))
 
 	  ;; language-container-mixin : (implements hierlist<%>) -> (implements hierlist<%>)
 	  ;; a mixin that delegates item clicks to the item clicked on, if it
@@ -97,8 +99,11 @@
               (override on-select)
               (rename [super-on-select on-select])
               (define (on-select i)
-                (when (is-a? i hieritem-language<%>)
-                  (send i show-details)))
+                (cond
+		  [(is-a? i hieritem-language<%>)
+		   (send i selected)]
+		  [else
+		   (nothing-selected)]))
               (super-instantiate (parent))))
 
           (define dialog (make-object dialog% (string-constant language-dialog-title)
@@ -106,41 +111,58 @@
           (define outermost-panel (make-object horizontal-panel% dialog))
           (define languages-hier-list (make-object selectable-hierlist% outermost-panel))
 	  (define details-panel (make-object panel:single% outermost-panel))
+	  (define button-panel (make-object horizontal-panel% dialog))
+
+	  (define no-details-panel (make-object panel% details-panel))
+
           (define languages-table (make-hash-table))
           (define languages (get-languages))
 
-	  ;; details-panels-associations : (listof (list language panel (-> settings)))
-	  (define details-panels-associations
-	    (map (lambda (language)
-		   (let ([panel (make-object vertical-panel% details-panel)])
-		     (list
-		      language
-		      panel
-		      (send language config-panel panel))))
-		 languages))
+	  ;; selected-language : (union (instanceof language<%>) #f)
+	  ;; invariant: selected-language and get-selected-language-settings
+	  ;;            match the user's selection in the language-hier-list.
+	  ;;            or #f if the user is not selecting a language.
+	  (define selected-language #f)
+	  ;; get-selected-language-settings (union #f (-> settings))
+	  (define get-selected-language-settings #f)
 
 	  ;; language-mixin : (implements language<%>) -> ((implements hierlist<%>) -> (implements hierlist<%>))
 	  ;; a mixin that responds to language selections and updates the details-panel
-	  (define (language-mixin language)
+	  (define (language-mixin language language-details-panel get-settings)
             (lambda (%)
               (class* % (hieritem-language<%>)
                 (init-rest args)
-                (public show-details)
-                (define (show-details)
-                  (send details-panel active-child
-                        (second (assoc language details-panels-associations))))
+                (public selected)
+                (define (selected)
+                  (send details-panel active-child language-details-panel)
+		  (send ok-button enable #t)
+		  (set! get-selected-language-settings get-settings)
+		  (set! selected-language language))
                 (apply super-make-object args))))
+
+	  ;; nothing-selected : -> void
+	  ;; updates the GUI and selected-language and get-selected-language-settings
+	  ;; for when no language is selected.
+	  (define (nothing-selected)
+	    (send ok-button enable #f)
+	    (send details-panel active-child no-details-panel)
+	    (set! get-selected-language-settings #f)
+	    (set! selected-language #f))
 
 	  ;; add-language : (instanceof language<%>) -> void
 	  ;; adds the language to the dialog
+	  ;; opens all of the turn-down tags
           (define (add-language language)
             (let add-sub-language ([ht languages-table]
                                    [hier-list languages-hier-list]
                                    [lng (send language get-language-position)])
               (cond
                 [(null? (cdr lng))
-		 (let ([item (send hier-list new-item (language-mixin language))])
-		   (send (send item get-editor) insert (car lng)))]
+		 (let-values ([(language-details-panel get-settings) (make-details-panel language)])
+		   (let ([item
+			  (send hier-list new-item
+				(language-mixin language details-panel get-settings))])
+		   (send (send item get-editor) insert (car lng))))]
                 [else (let ([sub-lng (car lng)]
                             [sub-ht/sub-hier-list
                              (hash-table-get
@@ -149,6 +171,7 @@
                               (lambda ()
                                 (let* ([new-list (send hier-list new-list)]
 				       [x (cons (make-hash-table) new-list)])
+				  (send new-list open)
 				  (send (send new-list get-editor) insert (car lng))
                                   (hash-table-put! ht (string->symbol (car lng)) x)
                                   x)))])
@@ -156,13 +179,86 @@
                                           (cdr sub-ht/sub-hier-list)
                                           (cdr lng)))])))
           
+	  ;; make-details-panel : ((instanceof language<%>) -> (values panel (-> settings)))
+	  (define (make-details-panel language)
+	    (let ([panel (make-object vertical-panel% details-panel)])
+	      (values
+	       panel
+	       (send language config-panel panel))))
+
+	  ;; close-all-languages : -> void
+	  ;; closes all of the tabs in the language hier-list.
+	  (define (close-all-languages)
+	    (define (close-children list)
+	      (for-each close-this-one (send list get-items)))
+	    (define (close-this-one item)
+	      (cond
+		[(is-a? item hierarchical-list-compound-item<%>)
+		 (send item close)
+		 (close-children item)]
+		[else (void)]))
+	    (close-children languages-hier-list))
+
+	  ;; open-current-language : -> void
+	  ;; opens the tabs that lead to the current language
+	  (define (open-current-language)
+	    (let loop ([hi languages-hier-list]
+		       [position (send language-to-show get-language-position)])
+	      (cond
+		[(null? position) (void)]
+		[(null? (cdr position)) (void)]
+		[else
+		 (let ([child (filter (lambda (x)
+					(equal? (send (send x get-editor) get-text)
+						(car position)))
+				      (send hi get-items))])
+		   ;; know child is a singleton list by construction of the dialog,
+		   ;; but lets check the condition here again and just fail gracefully.
+		   (unless (null? child)
+		     (send (car child) open)
+		     (loop (car child)
+			   (cdr position))))])))
+
+	  (define (ok-callback) (void))
+	  (define (cancel-callback) (void))
+
+	  (define ok-button (make-object button% "OK" button-panel (lambda (x y) (ok-callback))))
+	  (define cancel-button (make-object button% "Cancel" button-panel (lambda (x y) (cancel-callback))))
+
+	  (send button-panel set-alignment 'right 'center)
+	  (send button-panel stretchable-height #f)
+
           (for-each add-language languages)
 	  (send dialog reflow-container)
 	  (send languages-hier-list stretchable-width #f)
-	  (send languages-hier-list min-width 500)
+	  (send languages-hier-list min-client-width
+		(text-width (send languages-hier-list get-editor)))
+	  (close-all-languages)
+	  (open-current-language)
           (send dialog show #t)))
  
-      
+      ;; text-width : (isntanceof text%) -> exact-integer
+      ;; calculates the width of widest line in the
+      ;; editor. This only makes sense if auto-wrap
+      ;; is turned off. Otherwise, you could just use
+      ;; the admin's width.
+      (define (text-width text)
+	(let loop ([n (+ (send text last-line) 1)]
+		   [current-max-width 0])
+	  (cond
+	    [(zero? n)
+	     (+
+	      10 ;; this should be some magic small constant (hopefully less than 10 on all platforms)
+	      (floor (inexact->exact current-max-width)))]
+	    [else (let* ([line-number (- n 1)]
+			 [box (box 0.0)]
+			 [eol-pos (send text line-end-position line-number)]
+			 [eol-snip (send text find-snip eol-pos 'before)])
+		    (when eol-snip
+		      (send text get-snip-location eol-snip box #f #t))
+		    (loop (- n 1)
+			  (max current-max-width (unbox box))))])))
+
       (define teachpack-directory 
         (let ([lib-dir (build-path 
                         (collection-path "mzlib")
