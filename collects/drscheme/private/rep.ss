@@ -107,6 +107,10 @@ TODO
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
           (printf "msg: ~s\n" msg)
+          #;
+          ((dynamic-require '(lib "errortrace-lib.ss" "errortrace") 'print-error-trace)
+           drscheme:init:original-output-port
+           exn)
           (display msg (current-error-port))
           (newline (current-error-port))
           (when (and (is-a? rep -text<%>)
@@ -973,8 +977,10 @@ TODO
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
+          (inherit send-eof-to-in-port)
           (define/override (on-submit)
             (printf "on-submit start\n")
+            (send-eof-to-in-port)
             (do-single-language-eval (get-in-port) this))
           
           ; =Kernel, =Handler=
@@ -987,26 +993,28 @@ TODO
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
                       [get-sexp/syntax/eof 
                        (send lang front-end/interaction port source settings user-teachpack-cache)])
-                 (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
-                   (printf "do-many-language-evals.2 ~s\n" sexp/syntax/eof)
-                   (cond
-                     [(eof-object? sexp/syntax/eof)
-                      (printf "do-many-language-evals.7\n")
-                      (void)]
-                     [else
-                      (single-loop-eval
-                       (lambda ()
-                         (printf "do-many-language-evals.3\n")
-                         (call-with-values
-                          (lambda ()
-                            (printf "do-many-language-evals.4\n")
-                            (eval-syntax sexp/syntax/eof))
-                          (lambda x 
-                            (printf "do-many-language-evals.5\n")
-                            (display-results x)))
-                         (fprintf (get-out-port) (get-prompt))
-                         (flush-output (get-value-port))))
-                      (printf "do-many-language-evals.6\n")]))))))
+                 (let loop ()
+                   (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
+                     (printf "do-many-language-evals.2 ~s\n" sexp/syntax/eof)
+                     (cond
+                       [(eof-object? sexp/syntax/eof)
+                        (printf "do-many-language-evals.7\n")
+                        (void)]
+                       [else
+                        (single-loop-eval
+                         (lambda ()
+                           (printf "do-many-language-evals.3\n")
+                           (call-with-values
+                            (lambda ()
+                              (printf "do-many-language-evals.4\n")
+                              (eval-syntax sexp/syntax/eof))
+                            (lambda x 
+                              (printf "do-many-language-evals.5\n")
+                              (display-results x)))
+                           (fprintf (get-out-port) (get-prompt))
+                           (flush-output (get-value-port))))
+                        (printf "do-many-language-evals.6\n")
+                        (loop)])))))))
           
           ;; do-many-evals : ((((-> void) -> void) -> void) -> void)
           (define/public do-many-evals ; =Kernel=, =Handler=
