@@ -526,8 +526,9 @@
             (queue-callback (lambda () (semaphore-post wait-to-start))) 
             (send d show #t) 
             (when exn (raise exn))
-            (run-installer tmp-filename) 
-            (delete-file tmp-filename))))
+            (run-installer tmp-filename
+                           (lambda ()
+                             (delete-file tmp-filename))))))
       
       
       (define keybindings-dialog%
