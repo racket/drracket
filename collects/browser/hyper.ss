@@ -555,6 +555,7 @@
   (define (hyper-canvas-mixin super%)
     (class super% args
       (inherit get-editor set-editor refresh get-parent get-top-level-window)
+
       (public
 	[make-editor (lambda (url) (make-object hyper-text% url (get-top-level-window)))]
 	[current-page
