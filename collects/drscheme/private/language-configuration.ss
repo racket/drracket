@@ -1229,7 +1229,7 @@
         (class %
           (define/override (order-manuals x)
             (values 
-             (list "r5rs" "drscheme" "tour" "help")
+             (map bytes->path (list #"r5rs" #"drscheme" #"tour" #"help"))
              #f))
           (super-new)))
       
