@@ -1,4 +1,30 @@
+#|
+enable-evaluation: (-> void)
 
+(send (get-top-level-window) enable-evaluation)
+
+disable-evaluation: (-> void)
+
+(send (get-top-level-window) disable-evaluation)
+
+running, not-running: (-> void)
+
+(send context running)
+(send context not-running)
+
+get-directory: (-> (union string #f))
+
+(if (get-top-level-window)
+    (let-values ([(filename) (send (ivar (get-top-level-window) definitions-text)
+                                   get-filename)]
+                 [(normalized) (if (string? filename)
+                                   (mzlib:file:normalize-path filename)
+                                   (k drscheme:init:first-dir))]
+                 [(base _1 _2) (split-path normalized)])
+      base)
+    #f)
+
+|#
 (unit/sig drscheme:unit^
   (import [mred : mred^]
 	  [mzlib : mzlib:core^]
@@ -414,7 +440,7 @@
      (drscheme:frame:basics-mixin fw:frame:text-info-file%)))
   
   (define frame%
-    (class* super-frame% () (filename)
+    (class* super-frame% (drscheme:rep:context<%>) (filename)
       (inherit get-canvas
 	       set-label-prefix show-menu
 	       show get-menu%
@@ -429,6 +455,12 @@
 	       file-menu:get-print-item)
       (rename [super-update-shown update-shown]
 	      [super-on-close on-close])
+
+      (public
+        [needs-execution?
+         (lambda ()
+           (send definitions-text needs-execution?))])
+
       (public
 	[definitions-item #f]
 	[interactions-item #f]
@@ -494,7 +526,7 @@
       (override
 	[get-canvas% (lambda () (drscheme:get/extend:get-definitions-canvas%))])
       (public
-	[ensure-interactions-shown
+	[ensure-rep-shown
 	 (lambda ()
 	   (when (hidden? interactions-item)
 	     (toggle-show/hide interactions-item)
@@ -684,7 +716,7 @@
 	[running? #t]; is this necessary?
 	[execute-callback
 	 (lambda ()
-	   (ensure-interactions-shown)
+	   (ensure-rep-shown)
 	   (send definitions-text just-executed)
 	   (send interactions-canvas focus)
 	   (send interactions-text reset-console)
@@ -787,7 +819,8 @@
 			      (drscheme:get/extend:get-interactions-canvas%)
 			      (get-area-container))]
 	[interactions-text (make-object 
-			    (drscheme:get/extend:get-interactions-text%))])
+			    (drscheme:get/extend:get-interactions-text%)
+                             this)])
 
       (sequence
 	(send* interactions-canvas 
@@ -842,7 +875,7 @@
 		button-panel
 		(lambda args
 		  (send interactions-text break)
-		  (ensure-interactions-shown)
+		  (ensure-rep-shown)
 		  (send (send interactions-text get-canvas) focus))))
 	(send button-panel stretchable-height #f)
 	(send button-panel stretchable-width #f) 
