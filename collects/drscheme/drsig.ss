@@ -6,6 +6,7 @@
 (require-library "zsigs.ss" "zodiac")
 (require-library "sigs.ss" "zodiac")
 (require-library "ariess.ss" "cogen")
+(require-library "sig.ss" "stepper")
 (require-library "params.ss" "userspce")
 (require-library "sig.ss" "userspce")
 (require-library "turtles.ss" "graphics")
