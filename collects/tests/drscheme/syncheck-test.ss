@@ -323,6 +323,22 @@
                   ("2"        constant)
                   (")"        base)))
      
+     (make-test "#!"
+                '(("#!" base)))
+     
+     (make-test "#!\n"
+                '(("#!\n" base)))
+     
+     (make-test "#!\n1"
+                '(("#!\n" base)
+                  ("1"    constant)))
+     
+     (make-test "#!\n1\n1"
+                '(("#!\n" base)
+                  ("1"    constant)
+                  ("\n"   base)
+                  ("1"    constant)))
+     
      (make-test "(module m mzscheme (lambda (x) x) (provide))"
                 '(("("        base)
                   ("module"   keyword)
@@ -442,6 +458,7 @@
       (clear-definitions drs)
       (type-in-definitions drs input)
       (test:button-push (send drs syncheck:get-button))
+      (wait-for-computation drs)
       (let ([got (get-annotated-output drs)])
         (compare-output expected got input))))
   

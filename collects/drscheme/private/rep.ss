@@ -89,7 +89,8 @@
       ;; the highlight must be set after the error message, because inserting into the text resets
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
-        (let ([rep (current-rep)])
+        (let ([rep (current-rep)]
+              [user-dir (current-directory)])
           (cond
             [(and (is-a? rep -text<%>)
                   (eq? (current-error-port) (send rep get-this-err)))
@@ -109,7 +110,7 @@
                                 (if (file-exists? source-name)
                                     (let* ([normalized-name (normalize-path source-name)]
                                            [short-name
-                                            (find-relative-path (current-directory) normalized-name)])
+                                            (find-relative-path user-dir normalized-name)])
                                       (let-values ([(icon-start icon-end) 
                                                     (insert/delta rep (send file-icon copy))]
                                                    [(space-start space-end) (insert/delta rep " ")]
@@ -1838,7 +1839,12 @@
                              ; Restore break:
                              (when ub?
                                (break-enabled break-ok?))
-                             (send context set-breakables #f #f)]
+                             ;; in principle, the commented line below should be here,
+                             ;; but this cases "race conditions" in the GUI. So, instead
+                             ;; we just be sure to set the breakables each time an
+                             ;; evaluation might be broken.
+                             ;(send context set-breakables #f #f)
+                             ]
                             [else
                              ; Nested dispatch; don't adjust interface, and restore break:
                              (break-enabled break-ok?)

@@ -658,12 +658,13 @@
                                  (values port input 0 0 0))))]
                         [else 
                          (let* ([text (text/pos-text input)]
-                                [start (text/pos-start input)]
+                                [pre-start (text/pos-start input)]
+                                [start (if (= pre-start 0)
+                                           (get-post-hash-bang-start text)
+                                           pre-start)]
                                 [end (text/pos-end input)]
                                 [start-line (send text position-paragraph start)]
                                 [start-col (- start (send text paragraph-start-position start-line))])
-                           (send text split-snip start)
-                           (send text split-snip end)
                            (let ([port (open-input-text text start end)])
                              (port-count-lines! port)
                              (values port
@@ -737,9 +738,10 @@
        ;;;                                       ;;;                                                     
 
       
-      ;; open-input-text : (instanceof text%) num num -> input-port
+      ;; open-input-text : (instanceof text%) num num boolean -> input-port
       ;; creates a user port whose input is taken from the text%,
-      ;; starting at position `start' and ending at position `end'
+      ;; starting at position `start-in' (taking into account #!)
+      ;; and ending at position `end'.
       (define (open-input-text text start end)
         (send text split-snip start)
         (send text split-snip end)
@@ -780,23 +782,38 @@
                                  (next-snip))]))]
                [char-ready? (lambda () #t)]
                [close (lambda () (void))]
-	       ;; We create a slow port for now; in the future, try
-	       ;; grabbing more characters:
+               ;; We create a slow port for now; in the future, try
+               ;; grabbing more characters:
                [port (make-custom-input-port 
-		      #f
-		      (lambda (s)
-			(let ([c (read-char)])
-			  (if (char? c)
-			      (begin
-				(string-set! s 0 c)
-				1)
-			      c)))
-		      #f ; no peek
-		      close)])
+                      #f
+                      (lambda (s)
+                        (let ([c (read-char)])
+                          (if (char? c)
+                              (begin
+                                (string-set! s 0 c)
+                                1)
+                              c)))
+                      #f ; no peek
+                      close)])
           (update-str-to-snip)
           (port-count-lines! port)
           port))
       
+      ;; get-post-hash-bang-start : text -> number
+      ;; returns the beginning of the line after #! if there
+      ;; is a #! or `pos'.
+      (define (get-post-hash-bang-start text)
+        (if (1 . < . (send text last-position))
+            (let ([c1 (send text get-character 0)]
+                  [c2 (send text get-character 1)])
+              (if (and (char=? c1 #\#)
+                       (char=? c2 #\!))
+                  (if (1 . <= . (send text last-paragraph))
+                      (send text paragraph-start-position 1)
+                      (send text last-position))
+                  0))
+            0))
+
                                                                       
                                              ;                        
                 ;                                                     

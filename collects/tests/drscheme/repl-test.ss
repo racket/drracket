@@ -4,8 +4,7 @@
            (lib "class.ss")
            (lib "file.ss")
            (lib "mred.ss" "mred")
-           (lib "framework.ss" "framework")
-           (prefix fw: (lib "framework.ss" "framework")))
+           (lib "framework.ss" "framework"))
   
   (provide run-test)
   
@@ -299,8 +298,8 @@
      
      ; fraction snip test
      (make-test 'fraction-sum
-                "{number 5/6 \"5/6\"}"
-                "{number 5/6 \"5/6\"}"
+                "{number 5/6 \"5/6\" #t}"
+                "{number 5/6 \"5/6\" #t}"
                 #f
                 'interactions
                 #f
@@ -387,8 +386,8 @@
       (unless (= n (string-length string))
 	(let ([c (string-ref string n)])
 	  (if (char=? c #\newline)
-	      (fw:test:keystroke #\return)
-	      (fw:test:keystroke c)))
+	      (test:keystroke #\return)
+	      (test:keystroke c)))
 	(loop (+ n 1)))))
   
   (define wait-for-execute (lambda () (wait-for-button execute-button)))
@@ -422,10 +421,10 @@
            ;; this test will fail.
            [end (+ start 1)])
       (send interactions-text set-position start end)
-      (fw:test:menu-select "Edit" "Copy"))
+      (test:menu-select "Edit" "Copy"))
     (clear-definitions drscheme-frame)
     (type-in-definitions drscheme-frame "(+ ")
-    (fw:test:menu-select "Edit" "Paste")
+    (test:menu-select "Edit" "Paste")
     (type-in-definitions drscheme-frame " 1/3)"))
   
   
@@ -504,14 +503,14 @@
             [(eq? program 'fraction-sum)
              (setup-fraction-sum-interactions)]
             [(eq? program 'abc-text-box)
-             (fw:test:menu-select "Edit" "Insert Text Box")
-             (fw:test:keystroke #\a)
-             (fw:test:keystroke #\b)
-             (fw:test:keystroke #\c)])
+             (test:menu-select "Edit" "Insert Text Box")
+             (test:keystroke #\a)
+             (test:keystroke #\b)
+             (test:keystroke #\c)])
 	  
           (do-execute drscheme-frame #f)
           (when breaking-test?
-            (fw:test:button-push (send drscheme-frame get-break-button)))
+            (test:button-push (send drscheme-frame get-break-button)))
 	  (wait-for-execute)
           
           (let* ([execute-text-end (- (get-int-pos) 1)] ;; subtract one to skip last newline
@@ -549,10 +548,10 @@
 		      raw?
 		      formatted-execute-answer received-execute))
             
-            (fw:test:new-window interactions-canvas)
+            (test:new-window interactions-canvas)
             
             ; save the file so that load is in sync
-            (fw:test:menu-select "File" "Save Definitions")
+            (test:menu-select "File" "Save Definitions")
             
             ; make sure that a prompt is available at end of the REPL
             (unless (and (char=? #\>
@@ -561,19 +560,19 @@
                          (char=? #\space
                                  (send interactions-text get-character
                                        (- (send interactions-text last-position) 1))))
-              (fw:test:keystroke #\return))
+              (test:keystroke #\return))
             
             ; stuff the load command into the REPL 
-            (for-each fw:test:keystroke
+            (for-each test:keystroke
                       (string->list (format "(load ~s)" tmp-load-short-filename)))
             
             ; record current text position, then stuff a CR into the REPL
             (let ([load-text-start (+ 1 (send interactions-text last-position))])
               
-              (fw:test:keystroke #\return)
+              (test:keystroke #\return)
               
               (when breaking-test?
-                (fw:test:button-push (send drscheme-frame get-break-button)))
+                (test:button-push (send drscheme-frame get-break-button)))
               (wait-for-execute)
               
               (when load-answer
@@ -595,17 +594,16 @@
     (let ([level (list "PLT" "Graphical (MrEd)")]
           [drs (wait-for-drscheme-frame)])
       (printf "running ~s tests\n" level)
-
       (if raw?
           (begin
             (set-language-level! level #f)
-            (fw:test:set-check-box! "Debugging" #f)
+            (test:set-radio-box-item! "No debugging or profiling")
             (let ([f (get-top-level-focus-window)])
-              (fw:test:button-push "OK")
+              (test:button-push "OK")
               (wait-for-new-frame f)))
           (set-language-level! level))
 
-      (fw:test:new-window definitions-canvas)
+      (test:new-window definitions-canvas)
       (clear-definitions drscheme-frame)
       (do-execute drscheme-frame)
       (let/ec escape 
@@ -616,10 +614,10 @@
       (clear-definitions drs)
       (do-execute drs)
       
-      (fw:test:menu-select "Scheme" "Kill")
+      (test:menu-select "Scheme" "Kill")
       
       (let ([win (wait-for-new-frame drs)])
-        (fw:test:button-push "OK")
+        (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
           (unless (eq? drs2 drs)
             (error 'kill-test1 "expected original drscheme frame to come back to the front"))))
@@ -627,7 +625,7 @@
       (type-in-definitions drs "(kill-thread (current-thread))")
       (do-execute drs #f)
       (let ([win (wait-for-new-frame drs)])
-        (fw:test:button-push "OK")
+        (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
           (unless (eq? drs2 drs)
             (error 'kill-test2 "expected original drscheme frame to come back to the front"))))
@@ -639,9 +637,9 @@
        "(define (f) (queue-callback f) (error 'ouch)) (f)")
       (do-execute drs #f)
       (sleep 1/2)
-      (fw:test:menu-select "Scheme" "Kill")
+      (test:menu-select "Scheme" "Kill")
       (let ([win (wait-for-new-frame drs null 360)])
-        (fw:test:button-push "OK")
+        (test:button-push "OK")
         (let ([drs2 (wait-for-new-frame win)])
           (unless (eq? drs2 drs)
             (error
@@ -656,8 +654,8 @@
       (delete-file tmp-load-filename))
     (save-drscheme-window-as tmp-load-filename)
     
-    (set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
+    ;(set-language-level! (list "PLT" "Graphical (MrEd)")) (kill-tests)
     
+    (run-test-in-language-level #t)
     ;(run-test-in-language-level #f)
-    ;(run-test-in-language-level #t)
     ))

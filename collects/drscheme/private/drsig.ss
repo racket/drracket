@@ -188,6 +188,7 @@
      create-module-based-stand-alone-executable
 
      open-input-text
+     get-post-hash-bang-start
 
      ;(struct loc (source position line column span) -setters)
 
