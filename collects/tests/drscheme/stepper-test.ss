@@ -119,7 +119,132 @@
           (s-a (make-s 'c 'd))
           'ack)
      '(s-a (make-s 'c 'd))
-     ''c))
+     ''c)
+
+    (test-transcript/defns
+     (list '(define x 1))
+     '(+ x x)
+     '(+ 1 x)
+     '(+ 1 1)
+     '2)
+    
+    (test-transcript/defns
+     (list '(define-struct con (hd tl))
+           '(define-struct mt ())
+           '(define (sum l)
+              (cond
+                [(mt? l) 0]
+                [(con? l) (+ (con-hd l) (sum (con-tl l)))])))
+     '(sum (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+     '(cond
+        [(mt? (make-con 5 (make-con 6 (make-con 7 (make-mt))))) 0]
+        [(con? (make-con 5 (make-con 6 (make-con 7 (make-mt))))) 
+         (+ (con-hd (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+            (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))])
+     '(cond
+        [false 0]
+        [(con? (make-con 5 (make-con 6 (make-con 7 (make-mt))))) 
+         (+ (con-hd (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+            (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))])
+     '(cond
+        [(con? (make-con 5 (make-con 6 (make-con 7 (make-mt))))) 
+         (+ (con-hd (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+            (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))])
+     '(cond
+        [true
+         (+ (con-hd (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+            (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))])
+     '(+ (con-hd (make-con 5 (make-con 6 (make-con 7 (make-mt)))))
+         (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))
+     '(+ 5
+         (sum (con-tl (make-con 5 (make-con 6 (make-con 7 (make-mt)))))))
+     '(+ 5
+         (sum (make-con 6 (make-con 7 (make-mt)))))
+     '(+ 5
+         (cond
+           [(mt? (make-con 6 (make-con 7 (make-mt)))) 0]
+           [(con? (make-con 6 (make-con 7 (make-mt)))) 
+            (+ (con-hd (make-con 6 (make-con 7 (make-mt))))
+               (sum (con-tl (make-con 6 (make-con 7 (make-mt))))))]))
+     '(+ 5
+         (cond
+           [false 0]
+           [(con? (make-con 6 (make-con 7 (make-mt)))) 
+            (+ (con-hd (make-con 6 (make-con 7 (make-mt))))
+               (sum (con-tl (make-con 6 (make-con 7 (make-mt))))))]))
+     '(+ 5
+         (cond
+           [(con? (make-con 6 (make-con 7 (make-mt)))) 
+            (+ (con-hd (make-con 6 (make-con 7 (make-mt))))
+               (sum (con-tl (make-con 6 (make-con 7 (make-mt))))))]))
+     '(+ 5
+         (cond
+           [true
+            (+ (con-hd (make-con 6 (make-con 7 (make-mt))))
+               (sum (con-tl (make-con 6 (make-con 7 (make-mt))))))]))
+     '(+ 5
+         (+ (con-hd (make-con 6 (make-con 7 (make-mt))))
+            (sum (con-tl (make-con 6 (make-con 7 (make-mt)))))))
+     '(+ 5
+         (+ 6
+            (sum (con-tl (make-con 6 (make-con 7 (make-mt)))))))
+     '(+ 5
+         (+ 6
+            (sum (make-con 7 (make-mt)))))
+     '(+ 5
+         (+ 6
+            (cond
+              [(mt? (make-con 7 (make-mt))) 0]
+              [(con? (make-con 7 (make-mt))) 
+               (+ (con-hd (make-con 7 (make-mt))) 
+                  (sum (con-tl (make-con 7 (make-mt)))))])))
+     '(+ 5
+         (+ 6
+            (cond
+              [false 0]
+              [(con? (make-con 7 (make-mt))) 
+               (+ (con-hd (make-con 7 (make-mt))) 
+                  (sum (con-tl (make-con 7 (make-mt)))))])))
+     '(+ 5
+         (+ 6
+            (cond
+              [(con? (make-con 7 (make-mt))) 
+               (+ (con-hd (make-con 7 (make-mt))) 
+                  (sum (con-tl (make-con 7 (make-mt)))))])))
+     '(+ 5
+         (+ 6
+            (cond
+              [true
+               (+ (con-hd (make-con 7 (make-mt))) 
+                  (sum (con-tl (make-con 7 (make-mt)))))])))
+     '(+ 5
+         (+ 6
+            (+ (con-hd (make-con 7 (make-mt))) 
+               (sum (con-tl (make-con 7 (make-mt)))))))
+     '(+ 5
+         (+ 6
+            (+ 7
+               (sum (con-tl (make-con 7 (make-mt)))))))
+     '(+ 5
+         (+ 6
+            (+ 7
+               (sum (make-mt)))))
+     '(+ 5
+         (+ 6
+            (+ 7
+               (cond
+                [(mt? (make-mt)) 0]
+                [(con? (make-mt)) (+ (con-hd (make-mt)) (sum (con-tl (make-mt))))]))))
+     '(+ 5
+         (+ 6
+            (+ 7
+               (cond
+                [true 0]
+                [(con? (make-mt)) (+ (con-hd (make-mt)) (sum (con-tl (make-mt))))]))))
+     '(+ 5 (+ 6 (+ 7 0)))
+     '(+ 5 (+ 6 7))
+     '(+ 5 13)
+     '18))
      
   (define (fully-specified-test init . steps)
     (let ([actual (step-and-extract-program init)])
@@ -127,7 +252,7 @@
         (printf "FAILED: ~s\nexpected: ~s\n     got: ~s\n" init steps actual))))
 
   (define (test-transcript/defns defns init . sexp-steps)
-    (let* ([str-defns (apply string-append (map to-string defns))]
+    (let* ([str-defns (apply string-append (map (lambda (x) (string-append (to-string x) "\n")) defns))]
            [actual-steps (step-and-extract-program (format "~a~a" str-defns (to-string init)))]
            [failed
             (lambda (msg . args)
@@ -163,7 +288,7 @@
                  [sexp (car sexps)])
              (cond
                [(not (ws-equal? (stringify (step-definitions step)) str-defns))
-                (failed "mismatch at ~a defnitions ~s and ~s" n 
+                (failed "mismatch at ~a defnitions ~s and ~s" 
                         n
                         (stringify (step-definitions step))
                         str-defns)]
@@ -423,9 +548,10 @@
                    (lambda ()
                      (let ([editor (send stepper-canvas get-editor)])
                        (and editor
-                            (not (eq? before-editor editor))
-                            (not (send editor refresh-delayed?))
-                            (send next-button is-enabled?))))])
+                            (or (and (not (eq? before-editor editor))
+                                     (not (send editor refresh-delayed?))
+                                     (send next-button is-enabled?))
+                                (editor-has-stepper-done-message editor)))))])
              (test:button-push next-button)
              (poll-until new-step-available? 2 void)
              (if (new-step-available?)
@@ -435,6 +561,11 @@
                        (loop (- n 1))))
                  null))]
           [else null]))))
+  
+  ;; editor-has-stepper-done-message : editor->boolean
+  (define (editor-has-stepper-done-message editor)
+    (string=? (send editor get-text 0 (send editor last-position))
+              no-more-steps-message))
   
   ;; get-step : frame editor -> (union step #f)
   ;; extracts a step from the stepper window. Only returns #f for
