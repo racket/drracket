@@ -294,7 +294,7 @@
 	 [else (values c #f)]))
 
       (define (fixup-whitespace c leading-ok?)
-	(cond
+        (cond
 	 [(string? c)
 	  (let ([s (regexp-match-positions re:starting-whitespace c)]
 		[e (regexp-match-positions re:ending-whitespace c)])
@@ -364,10 +364,12 @@
 			     (not (memq tag space-eating-tags)))))))]))
 
       (define (read-html a-port)
-	`(html () ,@(map xml->xexpr (parameterize ([read-html-comments #t]
-						   [use-html-spec #f])
-				      (read-html-as-xml a-port)))))
-
+        (let* ([xml (parameterize ([read-html-comments #t]
+                                   [use-html-spec #f])
+                      (read-html-as-xml a-port))]
+               [xexpr `(html () ,@(map xml->xexpr xml))])
+          xexpr))
+          
       (define (parse-html a-port)
 	(let ([raw (read-html a-port)])
 	  (let-values ([(v ?) (fixup-whitespace raw #f)])
@@ -375,9 +377,7 @@
 
       (define html-convert
         (lambda (a-port a-text)	    
-	  (printf "parsingn content\n")
           (let ([content (parse-html a-port)])
-            (printf "parsed content\n")
 	    (with-method ([a-text-insert (a-text insert)]
 			  [current-pos (a-text last-position)]
 			  [delete (a-text delete)]
@@ -595,7 +595,6 @@
 				   (if (and drop-empty?
 					    (regexp-match re:empty (send a-text get-text start-pos end-pos)))
 				       (begin
-					 (printf "empty~n")
 					 (delete start-pos end-pos)
 					 void)
 				       (lambda ()

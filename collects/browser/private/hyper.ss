@@ -101,7 +101,7 @@
              [hypertags-list (list (make-hypertag "top" 0))])
             
             ;; get-redirection : -> (union false? url?)
-            ;; #f indicates no redirection, string is where it redirects to
+            ;; #f indicates no redirection, url is where it redirects to
             (define/public (get-redirection) redirection)
             
             [define/public add-document-note
@@ -134,7 +134,7 @@
                 (lambda (edit start end)
                   (on-url-click
                    (lambda (url-string post-data)
-                     (with-handlers ([void
+                     (with-handlers ([(lambda (x) #t)
                                       (lambda (x)
                                         (unless (or (exn:break? x)
                                                     (exn:file-saved-instead? x)
@@ -418,37 +418,35 @@
                                         (thread
                                          (lambda ()
                                            (with-handlers ([void (lambda (x)
-                                                                   (printf "got exn ~s\n" x)
+                                                                   (printf "handler\n")
                                                                    (set! exn x))])
                                              (parameterize ([break-enabled #t])
                                                (semaphore-post wait-to-break)
                                                (parameterize ([html-status-handler
                                                                (lambda (s) 
                                                                  (set! e-text s)
-                                                                 (printf "wait.1 wait-to-show\n")
                                                                  (semaphore-wait wait-to-show)
                                                                  (show-progress s)
-                                                                 (printf "post.1 wait-to-show\n")
                                                                  (semaphore-post wait-to-show))]
                                                               [current-load-relative-directory directory]
                                                               [html-eval-ok url-allows-evaling?])
-                                                 (printf "converting\n")
-                                                 (html-convert p this)
-                                                 (printf "converted\n"))))
-                                           (printf "wait.2 wait-to-show\n")
+                                                 (html-convert p this))))
+                                           (printf "finishing.1\n")
                                            (semaphore-wait wait-to-show)
+                                           (printf "finishing.2\n")
                                            (set! done? #t)
                                            (show-progress "")
+                                           (printf "finishing.3\n")
                                            (when progress-dlg
                                              (send progress-dlg show #f))
+                                           (printf "finishing.4\n")
                                            (semaphore-wait timeout-running)
                                            (break-thread timeout-thread)
-                                           (printf "post.2 wait-to-show\n")
+                                           (printf "finishing.5\n")
                                            (semaphore-post wait-to-show)
                                            (semaphore-post wait-to-continue))))]
                                    [make-dialog
                                     (lambda ()
-                                      (printf "wait.3 wait-to-show\n")
                                       (semaphore-wait wait-to-show)
                                       (unless done?
                                         (cond
@@ -480,17 +478,14 @@
                                            (send progress-dlg center)
                                            (thread (lambda () (send progress-dlg show #t)))
                                            (let loop () (sleep) (unless (send progress-dlg is-shown?) (loop)))]))
-                                      (printf "post.3 wait-to-show\n")
                                       (semaphore-post wait-to-show))])
-                              (printf "1\n")
                               (thread-wait timeout-thread)
-                              (printf "2\n")
+                              (printf "woke up\n")
                               (unless done?
-                                (printf "3\n")
                                 (make-dialog))
-                              (printf "4\n")
+                              (printf "yielding\n")
                               (yield wait-to-continue)
-                              (printf "5\n")
+                              (printf "work up.2 ~s\n" exn)
                               (when exn (raise exn)))]
                            [else
                             ; Text
@@ -572,7 +567,12 @@
             (super-instantiate ())
             (add-h-link-style)
             ;; load url, but the user might break:
-            (with-handlers ([exn:break? void])
+            (with-handlers ([exn:break? void]
+                            [(lambda (x) #t)
+                             (lambda (x)
+                               (if (exn? x)
+                                   (printf "exn: ~a\n" (exn-message x))
+                                   (printf "exn: ~s\n" x)))])
               (reload progress)))))
 
       (define hyper-text% (hyper-text-mixin text:keymap%))
