@@ -680,7 +680,8 @@
 	[update-info (lambda (page) 
 		       (when (and info page)
 			 (let ([notes (send (page->editor page) get-document-notes)])
-			   (send info set-info (filter-notes notes)))))]
+			   (send info set-info
+				 (filter-notes notes (send (page->editor page) get-url))))))]
 	[go (lambda (page)
 	      (clear-info)
 	      (send c set-page page #f)
