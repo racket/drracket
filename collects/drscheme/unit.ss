@@ -315,7 +315,7 @@
 
   (define name-message%
     (class/d mred:canvas% (parent)
-      ((inherit get-dc get-client-size min-width min-height stretchable-width stretchable-height)
+      ((inherit get-dc get-size get-client-size min-width min-height stretchable-width stretchable-height)
        (public set-message) ;; set-message : (union #f string) string -> void
        (override on-event on-paint))
 
@@ -337,27 +337,31 @@
 	     "Full Name"
 	     "The file does not have a full name because it has not yet been saved")))
 
+      (define mouse-grabbed? #f)
       (define (on-event evt)
 	(cond
-	 [(send evt button-up? 'left)
-	  (cond
-	   [inverted?
-	    (set! inverted? #f)
-	    (on-paint)
-	    (show-full-name-window)]
-	   [else
-	    (void)])]
-	 [(send evt button-down? 'left)
-	  (set! inverted? #t)
-	  (on-paint)]
-	 [(send evt leaving?)
-	  (set! inverted? #f)
-	  (on-paint)]
-	 [(send evt entering?)
-	  (when (send evt get-left-down)
-	    (set! inverted? #t)
-	    (on-paint))]
-	 [else (void)]))
+          [(send evt moving?)
+           (when mouse-grabbed?
+             (let-values ([(max-x max-y) (get-size)])
+               (let ([inside? (and (<= 0 (send evt get-x) max-x)
+                                   (<= 0 (send evt get-y) max-y))])
+                 (unless (eq? inside? inverted?)
+                   (set! inverted? inside?)
+                   (on-paint)))))]
+          [(send evt button-up? 'left)
+           (set! mouse-grabbed? #f)
+           (cond
+             [inverted?
+              (set! inverted? #f)
+              (on-paint)
+              (show-full-name-window)]
+             [else
+              (void)])]
+          [(send evt button-down? 'left)
+           (set! mouse-grabbed? #t)
+           (set! inverted? #t)
+           (on-paint)]
+          [else (void)]))
 		
       (define (update-min-sizes)
 	(let ([dc (get-dc)])
