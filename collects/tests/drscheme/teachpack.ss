@@ -62,12 +62,13 @@
 	  (unless (string=? got expected-error)
 	    (printf "FAILED:       tp: ~s~n        expected: ~s~n             got: ~s~n"
 		    tp-exp expected-error got))
-	  (fw:test:button-push "Ok"))]
+	  (fw:test:button-push "Ok")
+          (wait-for-new-frame dialog))]
        [else
 	(printf "FAILED: no error message appeared~n              tp: ~s~n        expected: ~s~n"
 		tp-exp expected-error)]))))
 
-(define (test-bad/execute-teachpack tp-exp expected-error)
+(define (test-bad/execute-teachpack tp-exp expected)
   (fw:test:menu-select "Language" "Clear All Teachpacks")
   (let ([tp-name (normal-case-path
 		  (normalize-path
@@ -100,16 +101,25 @@
 	       (poll-until wait-for-error-pred)))])
       (cond
        [dialog
-	(let ([got (send dialog get-message)])
+	(let ([got (send dialog get-message)]
+              [expected-error
+               (string-append (format "Invalid Teachpack: ~a~n" tp-name)
+                              expected)])
 	  (unless (string=? got expected-error)
 	    (printf "FAILED:       tp: ~s~n        expected: ~s~n             got: ~s~n"
 		    tp-exp expected-error got))
-	  (fw:test:button-push "Ok"))]
+	  (fw:test:button-push "Ok")
+          (wait-for-new-frame dialog))]
        [else
 	(printf "FAILED: no error message appeared~n              tp: ~s~n        expected: ~s~n"
-		tp-exp expected-error)]))))
+		tp-exp error)]))))
 
 (define (generic-tests)
+  (test-good-teachpack
+   "(unit/sig () (import plt:userspace^))"
+   "1"
+   "1")
+  
   (test-good-teachpack
    "(unit/sig (not-a-primitive) (import plt:userspace^) (define not-a-primitive 1))"
    "not-a-primitive"
@@ -124,7 +134,12 @@
   (test-good-teachpack
    "(unit/sig (first) (import [p : plt:userspace^]) (define first \"not-firsts-original-defn\"))"
    "first"
-   "\"not-firsts-original-defn\""))
+   "\"not-firsts-original-defn\"")
+  
+  (test-good-teachpack
+   "(cons (unit/sig () (import plt:userspace^)) (unit/sig () (import plt:userspace^)))"
+   "1"
+   "1"))
 
 (define (good-tests)
   (set-language-level! "Graphical (MrEd)")
@@ -151,12 +166,44 @@
 
   (test-bad/execute-teachpack
    "(unit/sig () (import))"
-   "import mis-match")
+   "global-define-values/invoke-unit/sig: invoke unit imports 0 units, but 1 units were provided")
 
   (test-bad/execute-teachpack
-   "(unit/sig () (import plt:userspace^) (car null))"
-   "car: null"))
+   "(unit/sig () (import plt:userspace^) (car 1))"
+   "car: expects argument of type <pair>; given 1"))
 
-(bad-tests)
-(good-tests)
+;(bad-tests)
+;(good-tests)
 
+(set-language-level! "Beginning Student")
+(test-good-teachpack
+ "(cons (unit/sig () (import plt:userspace^)) 
+        (unit/sig (m) 
+          (import plt:userspace^)
+          (define m (lambda (x) `(+ ,x 1)))))"
+ "m"
+ "bad keyword: m")
+
+(test-good-teachpack
+ "(cons (unit/sig () (import plt:userspace^)) 
+        (unit/sig (m) 
+          (import plt:userspace^)
+          (define m (lambda (x) `(+ ,x 1)))))"
+ "(m 1)"
+ "2")
+
+(test-good-teachpack
+ "(cons (unit/sig () (import plt:userspace^)) 
+        (unit/sig (m) 
+          (import plt:userspace^)
+          (define m (lambda (x) `(+ ,x 1)))))"
+ "(let ([y 2]) (m y))"
+ "2")
+
+(test-good-teachpack
+ "(cons (unit/sig () (import plt:userspace^)) 
+        (unit/sig (m) 
+          (import plt:userspace^)
+          (define m (lambda (x) `(+ ,x 1)))))"
+ "(let ([x 2]) (m x))"
+ "2")

@@ -97,7 +97,7 @@
   (define wait-for-new-frame
     (case-lambda
      [(old-frame) (wait-for-new-frame old-frame null)]
-     [(wait-for-new-frame extra-eventspaces)
+     [(old-frame extra-eventspaces)
       (let ([wait-for-new-frame-pred
 	     (lambda ()
 	       (let ([active (or (get-top-level-focus-window)
