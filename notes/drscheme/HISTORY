@@ -2,6 +2,9 @@
         Version 300
 ------------------------------
 
+- added object contracts. See mzlib docs on object-contract
+  for details.
+
  - added flat-rec-contract, for specifying recursive flat
    contracts. For example, to specify (a simplified form of)
    s-expressions you can now write:
@@ -17,6 +20,8 @@
    the filename
 
  - show menu => view menu, added show/hide for the toolbar
+
+ - added get-field and field-bound to (lib "class.ss")
 
 ;;; unannounced aboe
 
