@@ -220,12 +220,14 @@ profile todo:
                                  (exn-continuation-marks exn)
                                  cm-key))])
                  
-                 (let ([note% (if (mf-bday?) mf-note% bug-note%)])
-                   (when note%
-                     (let ([note (new note%)])
-                       (send note set-callback (lambda () (show-backtrace-window msg cms)))
-                       (write-special note (current-error-port))
-                       (display #\space (current-error-port)))))
+                 (when (and cms
+                            (pair? cms))
+                   (let ([note% (if (mf-bday?) mf-note% bug-note%)])
+                     (when note%
+                       (let ([note (new note%)])
+                         (send note set-callback (lambda () (show-backtrace-window msg cms)))
+                         (write-special note (current-error-port))
+                         (display #\space (current-error-port))))))
                  
                  (let ([src-to-display (find-src-to-display exn cms)])
                    (when src-to-display
@@ -310,7 +312,7 @@ profile todo:
       ;; a member of stacktrace-imports^
       ;; guarantees that the continuation marks associated with cm-key are
       ;; members of the debug-source type, after unwrapped with st-mark-source
-      (define (with-mark src-stx mark-maker expr)
+      (define (with-mark src-stx expr)
         (let ([source (cond
                         [(string? (syntax-source src-stx))
                          (string->symbol (syntax-source src-stx))]

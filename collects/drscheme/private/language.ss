@@ -119,8 +119,8 @@
                       (one-line-summary "")
                       (language-url #f)
                       (documentation-reference #f)
-                      (reader (lambda (src port offsets)
-				(let ([v (read-syntax src port offsets)])
+                      (reader (lambda (src port)
+				(let ([v (read-syntax src port)])
                                   (if (eof-object? v)
 				      v
 				      (namespace-syntax-introduce v))))))
@@ -948,7 +948,8 @@
       ;; module-based-language-front-end : (port reader -> (-> (union sexp syntax eof)))
       ;; type reader = type-spec-of-read-syntax (see mz manual for details)
       (define (module-based-language-front-end port reader)
-        (lambda () (reader (object-name port) port (list 1 0 0))))
+        (lambda () 
+          (reader (object-name port) port)))
 
                                                                       
                                              ;                        

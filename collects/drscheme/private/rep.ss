@@ -105,11 +105,6 @@ TODO
       ;;     the highlighting.
       (define (drscheme-error-display-handler msg exn)
         (printf "msg: ~s\n" msg)
-        #;
-        (parameterize ([current-eventspace drscheme:init:system-eventspace])
-          (queue-callback
-           (lambda ()
-             (raise exn))))
         (let ([rep (current-rep)]
               [user-dir (current-directory)])
           (cond
@@ -698,7 +693,6 @@ TODO
           ;; display-results : (listof TST) -> void
           ;; prints each element of anss that is not void as values in the REPL.
           (define/public (display-results anss) ; =User=, =Handler=, =Breaks=
-            (printf "display-results ~s\n" anss)
             (for-each 
              (lambda (v)
                (unless (void? v)
@@ -934,7 +928,8 @@ TODO
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
-          (define/override (on-submit)
+          (define/augment (on-submit)
+            (inner (void) on-submit)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
             ;; an eof really does come thru the calls to `read'. 
@@ -1424,6 +1419,9 @@ TODO
             (thaw-colorer)
             (send context disable-evaluation)
             (reset-console)
+            (insert (get-prompt) (last-position) (last-position))
+            (set-unread-start-point (last-position))
+            (set-insertion-point (last-position))
             (send context enable-evaluation)
             (end-edit-sequence)
             (clear-undos))

@@ -1805,8 +1805,8 @@ tab panels new behavior:
                 (send interactions-text evaluate-from-port
                       (open-input-text-editor definitions-text start)
                       #t
-                      void))
-              (send interactions-text clear-undos)))
+                      (lambda ()
+                        (send interactions-text clear-undos))))))
           
           (inherit revert save)
           (define/private (check-if-save-file-up-to-date)
