@@ -362,7 +362,7 @@
                                      canvas:wide-snip%)))
       
       (define definitions-canvas%
-        (class100 (make-searchable-canvas% canvas:info%) args
+        (class100 (make-searchable-canvas% (canvas:delegate-mixin canvas:info%)) args
           (sequence
             (apply super-init args))))
       
