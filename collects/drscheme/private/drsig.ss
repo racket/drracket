@@ -24,6 +24,7 @@
            drscheme:help-desk^
            drscheme:language^
            drscheme:teachpack^
+           drscheme:multi-file-search^
            drscheme:tool^
 	   drscheme^)
 
@@ -170,6 +171,9 @@
      teachpack-cache?
      teachpack-cache-filenames
      set-teachpack-cache-filenames!))
+
+  (define-signature drscheme:multi-file-search^
+    (multi-file-search))
   
   (define-signature drscheme:tool^
     ((unit drscheme:frame : drscheme:frame^)

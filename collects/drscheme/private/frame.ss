@@ -16,7 +16,9 @@
     (unit/sig drscheme:frame^
       (import (drscheme:unit : drscheme:unit^)
               (drscheme:app : drscheme:app^)
-              (help : drscheme:help-desk^))
+              (help : drscheme:help-desk^)
+              [drscheme:multi-file-search : drscheme:multi-file-search^])
+      
       (rename [-mixin mixin])
       
       (define button-label-font
@@ -339,6 +341,12 @@
           
           [define edit-menu:between-find-and-preferences
             (lambda (menu)
+              (instantiate menu-item% ()
+                (label (string-constant mfs-multi-file-search-menu-item))
+                (parent menu)
+                (callback
+                 (lambda (_1 _2)
+                   (drscheme:multi-file-search:multi-file-search))))
               (make-object separator-menu-item% menu)
               (let ([keybindings-on-demand
                      (lambda (menu-item)

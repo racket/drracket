@@ -1,5 +1,6 @@
 (module link mzscheme
-  (require "debug.ss"
+  (require "multi-file-search.ss"
+           "debug.ss"
            "module-language.ss"
            "teachpack.ss"
 	   "tools.ss"
@@ -31,9 +32,10 @@
                  (rep@ init snip language-configuration language app 
                      frame unit text help-desk teachpack debug)]
             [language : drscheme:language^ (language@ rep snip debug)]
-            [frame : drscheme:frame^ (frame@ unit app help-desk)]
+            [frame : drscheme:frame^ (frame@ unit app help-desk multi-file-search)]
             [unit : drscheme:unit^ 
                   (unit@ help-desk app frame text rep language-configuration get/extend snip teachpack)]
+            [multi-file-search : drscheme:multi-file-search^ (multi-file-search@ frame)]
             [get/extend : drscheme:get/extend^ (get-extend@ unit frame rep)]
             [language-configuration : drscheme:language-configuration/internal^ 
                                     (language-configuration@ unit rep teachpack init language app)]
