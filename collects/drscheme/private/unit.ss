@@ -178,7 +178,8 @@
                            (basename program-filename))]
                       [executable-filename 
                        (parameterize ([finder:dialog-parent-parameter frame]
-                                      [finder:default-extension "exe"])
+                                      [finder:default-filters
+                                       '(("Executable" "*.exe") ("Any" "*.*"))])
                          (finder:put-file
                           default-executable-filename
                           #f #f
