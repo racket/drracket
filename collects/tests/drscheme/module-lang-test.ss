@@ -2,6 +2,7 @@
   (require "drscheme-test-util.ss"
            (lib "class.ss")
            (lib "file.ss")
+           (lib "etc.ss")
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (prefix fw: (lib "framework.ss" "framework")))
@@ -46,8 +47,26 @@
                      (regexp "foldl>"))
           (make-test "(module m mzscheme (require (prefix x: (lib \"list.ss\")) (lib \"list.ss\")))" 
                      "x:foldl"
-                     (regexp "foldl>"))))
+                     (regexp "foldl>"))
+          
+          (make-test (format "(module m (file \"~a\") x)"
+                             (build-path 
+                              (this-expression-source-directory)
+                              "module-lang-test-tmp.ss"))
+                     "x"
+                     "1")))
   
+  ;; set up language for last test.
+  (call-with-output-file (build-path (this-expression-source-directory) "module-lang-test-tmp.ss")
+    (lambda (port)
+      (write `(module module-lang-test-tmp mzscheme
+                (provide (all-from mzscheme)
+                         x)
+                (define x 1))
+             port))
+    'truncate
+    'text)
+
   (define drs (wait-for-drscheme-frame))
   (define interactions-text (send drs get-interactions-text))
   
