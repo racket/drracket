@@ -11,7 +11,7 @@
       [(windows) "\\"]
       [else ":"])))
 
-(letrec* ([_ (wait-for-drscheme-frame)]
+(letrec* ([drs-frame (wait-for-drscheme-frame)]
 	  [test-file-nums ; list of test file numbers in repl-test subdirectory
 	  '(1 2 3 4 5 6 7 8 11 12 13 14 15 16 17 18 19 24)]
 	  [dir (build-path (current-load-relative-directory) "repl-tests")]
@@ -113,9 +113,11 @@
 		      (unless (string=? received-load answer-load)
 			(printf "FAILED load test for ~a~n" file))))))))])
 
-  (printf "Starting REPL tests~n")
+   	 (set-language-level! "Quasi-R4RS" drs-frame)
 
-  (for-each run-test test-files)
-
-  (printf "Finished REPL tests~n"))
+	 (printf "Starting REPL tests~n")
+	 
+	 (for-each run-test test-files)
+	 
+	 (printf "Finished REPL tests~n"))
 
