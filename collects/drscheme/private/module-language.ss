@@ -42,7 +42,7 @@
         (class %
           (define/override (use-namespace-require/copy?) #t)
           (rename [super-on-execute on-execute]
-                  [super-front-end front-end])
+                  [super-front-end/complete-program front-end/complete-program])
           (field [iteration-number 0])
           
           ;; config-panel : as in super class
@@ -106,39 +106,35 @@
           
           (define/override (get-style-delta) module-language-style-delta)
           
-          (define/override (front-end input settings)
-            (if (and (drscheme:language:text/pos? input)
-                     (is-a? (drscheme:language:text/pos-text input)
-                            (drscheme:unit:get-definitions-text%)))
-                (let ([super-thunk (super-front-end input settings)]
-                      [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
-                      [module-name #f])
-                  (lambda ()
-                    (set! iteration-number (+ iteration-number 1))
-                    (let ([super-result (super-thunk)])
-                      (cond
-                        [(= iteration-number 1)
-                         (if (eof-object? super-result)
-                             (raise-syntax-error
-                              'module-language
-                              "the definitions window must contain a module")
-                             (let-values ([(name new-module)
-                                           (transform-module-to-export-everything
-                                            filename
-                                            (expand super-result)
-                                            super-result)])
-                               (set! module-name name)
-                               new-module))]
-                        [(= 2 iteration-number)
-                         (if (eof-object? super-result)
-                             (with-syntax ([name module-name])
-                               (syntax (require name)))
-                             (raise-syntax-error
-                              'module-language
-                              "there can only be one expression in the definitions window"
-                              super-result))]
-                        [else eof]))))
-                (super-front-end input settings)))
+          (define/override (front-end/complete-program input settings)
+            (let ([super-thunk (super-front-end/complete-program input settings)]
+                  [filename (get-definitions-filename (drscheme:language:text/pos-text input))]
+                  [module-name #f])
+              (lambda ()
+                (set! iteration-number (+ iteration-number 1))
+                (let ([super-result (super-thunk)])
+                  (cond
+                    [(= iteration-number 1)
+                     (if (eof-object? super-result)
+                         (raise-syntax-error
+                          'module-language
+                          "the definitions window must contain a module")
+                         (let-values ([(name new-module)
+                                       (transform-module-to-export-everything
+                                        filename
+                                        (expand super-result)
+                                        super-result)])
+                           (set! module-name name)
+                           new-module))]
+                    [(= 2 iteration-number)
+                     (if (eof-object? super-result)
+                         (with-syntax ([name module-name])
+                           (syntax (require name)))
+                         (raise-syntax-error
+                          'module-language
+                          "there can only be one expression in the definitions window"
+                          super-result))]
+                    [else eof])))))
           
           ;; printer settings are just ignored here.
           (define/override (create-executable setting parent program-filename)

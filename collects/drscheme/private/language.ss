@@ -42,7 +42,8 @@
           default-settings
 	  default-settings?
           
-          front-end
+          front-end/complete-program
+          front-end/interaction
 	  config-panel
 	  on-execute
           render-value/format
@@ -475,7 +476,9 @@
                                               (get-module)
                                               (get-transformer-module)
                                               run-in-user-thread))
-          (define/public (front-end input settings)
+          (define/public (front-end/complete-program input settings)
+            (module-based-language-front-end input (get-reader)))
+          (define/public (front-end/interaction input settings)
             (module-based-language-front-end input (get-reader)))
           (define/public (create-executable setting parent program-filename)
             (create-module-based-language-executable parent 
@@ -946,7 +949,6 @@
         (let-values ([(port source offset line col)
                       (cond
                         [(string? input)
-                         (error 'module-based-front-end "got string ~e" input)
                          (let ([skip-first-line? 
                                 (let* ([tmp (open-input-file input)]
                                        [c1 (read-char tmp)]

@@ -3,9 +3,8 @@
   (require (lib "mred.ss" "mred")
            (lib "unitsig.ss")
            (lib "class.ss")
-           (lib "pconvert.ss")
-	   (lib "moddep.ss" "syntax")
-           (lib "toplevel.ss" "syntax")
+           (lib "etc.ss")
+	   (lib "toplevel.ss" "syntax")
            "drsig.ss")
   
   (define op (current-output-port))
@@ -31,11 +30,14 @@
                            language-settings)]
                 [settings (drscheme:language-configuration:language-settings-settings
                            language-settings)])
-            (lambda (input iter)
+            (lambda (input iter complete-program?)
               (parameterize ([current-eventspace eventspace])
                 (queue-callback
                  (lambda ()
-                   (let ([read-thnk (send language front-end input settings)])
+                   (let ([read-thnk 
+                          (if complete-program?
+                              (send language front-end/complete-program input settings)
+                              (send language front-end/interaction input settings))])
                      (let loop ()
                        (let ([in (let ([rd (read-thnk)])
                                    (cond
@@ -61,7 +63,8 @@
           init
           kill-termination)
          input
-         iter))
+         iter
+         #t))
          
       
       (define (build-user-eventspace/custodian language-settings init kill-termination)

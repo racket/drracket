@@ -1554,7 +1554,7 @@
                         needs-execution?)
                 (set! already-warned? #t)
                 (insert-warning)))
-            (do-many-text-evals this start end))
+            (do-many-text-evals this start end #f))
           
           (define (cleanup)
             (set! in-evaluation? #f)
@@ -1588,14 +1588,16 @@
             (send context set-breakables #f #f))
           
           ; =Kernel, =Handler=
-          (define (do-many-text-evals text start end)
+          (define (do-many-text-evals text start end complete-program?)
             (do-many-evals
              (lambda (single-loop-eval)  ; =User=, =Handler=
                (let* ([text/pos (drscheme:language:make-text/pos text start end)]
                       [settings (current-language-settings)]
                       [lang (drscheme:language-configuration:language-settings-language settings)]
                       [settings (drscheme:language-configuration:language-settings-settings settings)]
-                      [get-sexp/syntax/eof (send lang front-end text/pos settings)])
+                      [get-sexp/syntax/eof (if complete-program?
+                                               (send lang front-end/complete-program text/pos settings)
+                                               (send lang front-end/interaction text/pos settings))])
                  (let loop () 
                    (let ([sexp/syntax/eof (get-sexp/syntax/eof)])
                      (cond

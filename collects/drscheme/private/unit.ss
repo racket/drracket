@@ -1541,7 +1541,8 @@
               (send interactions-text do-many-text-evals
                     definitions-text 
                     start
-                    (send definitions-text last-position)))
+                    (send definitions-text last-position)
+                    #t))
             (send interactions-text clear-undos))
           
           (inherit revert save)
