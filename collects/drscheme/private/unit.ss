@@ -33,6 +33,8 @@
          (lambda (menu text event)
            (old menu text event)
            (when (and (is-a? text text%)
+                      (or (is-a? text definitions-text%)
+                          (is-a? text drscheme:rep:text%))
                       (is-a? event mouse-event%))
              (let* ([end (send text get-end-position)]
                     [start (send text get-start-position)]

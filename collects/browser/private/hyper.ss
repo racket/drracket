@@ -10,6 +10,8 @@
            (lib "url.ss" "net")
            (lib "head.ss" "net")
            (lib "mred-sig.ss" "mred")
+           (lib "framework.ss" "framework")
+           (lib "string-constant.ss" "string-constants")
            (lib "plt-installer-sig.ss" "setup"))
   
   (provide hyper@)
@@ -111,8 +113,8 @@
                                                           (exn:file-saved-instead? x)
                                                           (exn:cancelled? x))
                                                 (message-box
-                                                 "Error"
-                                                 (format "Cannot display ~s: ~a~n" 
+                                                 (string-constant error)
+                                                 (format (string-constant cannot-display-url) 
                                                          url-string
                                                          (if (exn? x)
                                                              (exn-message x)
@@ -239,28 +241,32 @@
 						     (and m (string->number (car m))))))]
                                     [install?
                                      (and (and orig-name (regexp-match "[.]plt$" orig-name))
-                                          (let ([d (make-object dialog% "Install?")]
+                                          (let ([d (make-object dialog% (string-constant install?))]
                                                 [d? #f]
                                                 [i? #f])
                                             (make-object message%
-                                              "You have selected an installable package." d)
-                                            (make-object message% "Do you want to install it?" d)
+                                              (string-constant you-have-selected-an-installable-package)
+                                              d)
+                                            (make-object message% 
+                                              (string-constant do-you-want-to-install-it?) d)
                                             (when size
                                               (make-object message%
-                                                (format "(The file is ~a bytes)" size) d))
+                                                (format (string-constant paren-file-size) size) d))
                                             (let ([hp (make-object horizontal-panel% d)])
                                               (send hp set-alignment 'center 'center)
-                                              (send (make-object button% "Download && Install" hp
+                                              (send (make-object button% 
+                                                      (string-constant download-and-install)
+                                                      hp
                                                       (lambda (b e)
                                                         (set! i? #t)
                                                         (send d show #f))
                                                       '(border))
                                                     focus)
-                                              (make-object button% "Download" hp
+                                              (make-object button% (string-constant download) hp
                                                 (lambda (b e)
                                                   (set! d? #t)
                                                   (send d show #f)))
-                                              (make-object button% "Cancel" hp
+                                              (make-object button% (string-constant cancel) hp
                                                 (lambda (b e)
                                                   (send d show #f))))
                                             (send d center)
@@ -271,22 +277,26 @@
                                               (begin-busy-cursor)
                                               
                                               (raise (make-exn:cancelled
-                                                      "Package cancelled"
+                                                      "Package Cancelled"
                                                       (current-continuation-marks))))
                                             i?))]
                                     [f (if install?
                                            (make-temporary-file "tmp~a.plt")
-                                           (put-file (format "Save downloaded file~a as"
-                                                             (if size
-                                                                 (format " (~a bytes)" size)
-                                                                 ""))
-                                                     #f ; should be calling window!
-                                                     #f
-                                                     orig-name))])
+                                           (put-file 
+                                             (if size
+                                                 (format 
+                                                  (string-constant save-downloaded-file/size)
+                                                  size)
+                                                 (string-constant save-downloaded-file))
+                                             #f ; should be calling window!
+                                             #f
+                                             orig-name))])
                                (begin-busy-cursor) ; turn the cursor back on
                                (when f
-                                 (let* ([d (make-object dialog% "Downloading" top-level-window)]
-                                        [message (make-object message% "Downloading file..." d)]
+                                 (let* ([d (make-object dialog% (string-constant downloading) top-level-window)]
+                                        [message (make-object message% 
+                                                   (string-constant downloading-file...)
+                                                   d)]
                                         [gauge (if size
                                                    (make-object gauge% #f 100 d)
                                                    #f)]
@@ -319,11 +329,12 @@
                                                   'binary 'truncate))
                                               (send d show #f)))])
                                    (send d center)
-                                   (make-object button% "&Stop" d (lambda (b e)
-                                                                    (semaphore-wait wait-to-break)
-                                                                    (set! f #f)
-                                                                    (send d show #f)
-                                                                    (break-thread t)))
+                                   (make-object button% (string-constant &stop)
+                                     d (lambda (b e)
+                                         (semaphore-wait wait-to-break)
+                                         (set! f #f)
+                                         (send d show #f)
+                                         (break-thread t)))
                                    ; Let thread run only after the dialog is shown
                                    (queue-callback (lambda () (semaphore-post wait-to-start)))
                                    (send d show #t)
@@ -335,8 +346,8 @@
                                 (if f
                                     (make-exn:file-saved-instead
                                      (if install?
-                                         "The package was installed."
-                                         "The downloaded file was saved.")
+                                         (string-constant package-was-installed)
+                                         (string-constant download-was-saved))
                                      (current-continuation-marks)
                                      f)
                                     (make-exn:cancelled "The download was cancelled."
@@ -392,15 +403,17 @@
                                      (lambda ()
                                        (semaphore-wait wait-to-show)
                                        (unless done?
-                                         (set! d (make-object dialog% "Getting Page" top-level-window 400))
-                                         (let ([c (make-object editor-canvas% d #f '(no-hscroll no-vscroll))])
+                                         (set! d (make-object dialog% (string-constant getting-page)
+                                                   top-level-window 400))
+                                         (let ([c (make-object editor-canvas% d #f
+                                                    '(no-hscroll no-vscroll))])
                                            (set! e (make-object text%))
                                            (send e insert e-text)
                                            (send e auto-wrap #t)
                                            (send c set-editor e)
                                            (send c set-line-count 3)
                                            (send c enable #f))
-                                         (send (make-object button% "&Stop" d
+                                         (send (make-object button% (string-constant &stop) d
                                                  (lambda (b e)
                                                    (semaphore-wait wait-to-break)
                                                    (semaphore-post wait-to-break)
@@ -448,7 +461,36 @@
               (add-h-link-style)
               (reload)))))
       
-      (define hyper-text% (hyper-text-mixin text%))
+      (define hyper-text% (hyper-text-mixin text:keymap%))
+      
+      (keymap:add-to-right-button-menu/before
+       (let ([old (keymap:add-to-right-button-menu)])
+         (lambda (menu editor event)
+           (when (is-a? editor hyper-text%)
+             (let* ([panel (let ([canvas (send editor get-canvas)])
+                             (and canvas
+                                  (send (send canvas get-top-level-window) get-hyper-panel)))]
+                    [back
+                     (instantiate menu-item% ()
+                       (label (string-append "< " (string-constant rewind-in-browser-history)))
+                       (parent menu)
+                       (callback
+                        (lambda (_1 _2)
+                          (when panel
+                            (send panel rewind)))))]
+                    [forward
+                     (instantiate menu-item% ()
+                       (label (string-append (string-constant forward-in-browser-history) " >"))
+                       (parent menu)
+                       (callback
+                        (lambda (_1 _2)
+                          (when panel
+                            (send panel forward)))))])
+               (send back enable (send panel can-rewind?))
+               (send forward enable (send panel can-forward?))
+               (instantiate separator-menu-item% ()
+                 (parent menu))))
+           (old menu editor event))))
       
       (define (hyper-canvas-mixin super%)
         (class100 super% args
@@ -612,6 +654,12 @@
                    (set! past (cons (send c current-page) past))
                    (set! future (cdr future))
                    (go page))))]
+            [can-forward?
+             (lambda ()
+               (not (null? future)))]
+            [can-rewind?
+             (lambda ()
+               (not (null? past)))]
             [get-canvas% (lambda () hyper-canvas%)]
             [make-canvas (lambda (f) (make-object (get-canvas%) f))]
             [make-control-bar-panel (lambda (f) (make-object horizontal-panel% f))])
@@ -630,11 +678,15 @@
             [hp (make-control-bar-panel this)]
             [control-bar? (is-a? hp area-container<%>)]
             [back (and control-bar?
-                       (make-object button% "< Rewind" hp
+                       (make-object button%
+                         (string-append "< " (string-constant rewind-in-browser-history))
+                         hp
                          (lambda (b ev) 
                            (rewind))))]
             [forw (and control-bar?
-                       (make-object button% "Forward >" hp
+                       (make-object button% 
+                         (string-append (string-constant forward-in-browser-history) " >")
+                         hp
                          (lambda (b ev) 
                            (forward))))])
           (private
@@ -654,7 +706,7 @@
                   (send c set-page init-page #t)]))])
           (private-field
             [home (and control-bar?
-                       (make-object button% "Home" hp
+                       (make-object button% (string-constant home) hp
                          (lambda (b ev)
                            (home-callback))))])
           (private
@@ -676,7 +728,7 @@
                   (lambda (p)
                     (send choice append 
                           (let ([s (send (car p) get-title)])
-                            (or s "Untitled"))))
+                            (or s (string-constant untitled)))))
                   (append (reverse future)
                           (if page (list page) null)
                           past))
@@ -772,4 +824,4 @@
         (eq? (car a) (car b)))
       
       (define (open-url file)
-        (make-object hyper-frame% file "Browser" #f 500 450)))))
+        (make-object hyper-frame% file (string-constant browser) #f 500 450)))))
