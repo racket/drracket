@@ -814,7 +814,8 @@
                                (cond
                                  [(string? rurl) (string->url rurl)]
                                  [(url? rurl) rurl]
-                                 [else (error 'remap-url "expected a url struct or a string, got ~e" rurl)]))
+				 [(not rurl) #f]
+                                 [else (error 'remap-url "expected a url struct, a string, or #f, got ~e" rurl)]))
                              unmapped-url)])
                 (if url
                     (let ([html-editor (make-editor url progress post-data)])
