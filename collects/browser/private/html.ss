@@ -123,69 +123,168 @@
       (define html-eval-ok (make-parameter #t))
       (define html-img-ok (make-parameter #t))
       
-      (define get-image-from-url
-        (lambda (url)
-          (if (html-img-ok)
-              (let ([tmp-filename (make-temporary-file "mredimg~a")])
-                (load-status #t "image" url)
-                (call-with-output-file* tmp-filename
-                                        (lambda (op)
-                                          (with-handlers ([not-break-exn? void])
-                                            (call/input-url 
-                                             url
-                                             get-pure-port
-                                             (lambda (ip)
-                                               (copy-port ip op)))))
-                                        'truncate)
-                (pop-status)
-                (let* ([upath (url-path url)]
-                       [bitmap (make-object bitmap% tmp-filename)])
-                  (with-handlers ([(lambda (x) #t)
-                                   (lambda (x)
-                                     (message-box "Warning"
-                                                  (format "Could not delete file ~s~n~n~a"
-                                                          tmp-filename
-                                                          (if (exn? x)
-                                                              (exn-message x)
-                                                              x))))])
-                    (delete-file tmp-filename))
-                  (if (send bitmap ok?)
-                      (let ([is (make-object image-snip% #f)])
-                        (send is set-bitmap bitmap)
-                        is)
-                      #f)))
-              #f)))
+      (define (get-bitmap-from-url url)
+        (if (html-img-ok)
+            (let ([tmp-filename (make-temporary-file "mredimg~a")])
+              (load-status #t "image" url)
+              (call-with-output-file* tmp-filename
+                                      (lambda (op)
+                                        (with-handlers ([not-break-exn? void])
+                                          (call/input-url 
+                                           url
+                                           get-pure-port
+                                           (lambda (ip)
+                                             (copy-port ip op)))))
+                                      'truncate)
+              (pop-status)
+              (let* ([upath (url-path url)]
+                     [bitmap (make-object bitmap% tmp-filename)])
+                (with-handlers ([(lambda (x) #t)
+                                 (lambda (x)
+                                   (message-box "Warning"
+                                                (format "Could not delete file ~s~n~n~a"
+                                                        tmp-filename
+                                                        (if (exn? x)
+                                                            (exn-message x)
+                                                            x))))])
+                  (delete-file tmp-filename))
+                (if (send bitmap ok?)
+                    bitmap
+                    #f)))
+            #f))
       
-      (define cache-image
-        (lambda (url)
-          (let ([url-string (url->string url)])
-            (let loop ([n 0])
-              (cond
-                [(= n NUM-CACHED)
-                 ;; Look for item to uncache
-                 (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
-                 (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
-                            (if (= n NUM-CACHED)
-                                m
-                                (begin
-                                  (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
-                                  (loop (add1 n) (min m (vector-ref cached-use n))))))])
-                   (let loop ([n 0])
-                     (if (= (vector-ref cached-use n) m)
-                         (let ([image (get-image-from-url url)])
-                           (cond
-                             [image
-                              (vector-set! cached n image)
-                              (vector-set! cached-name n url-string)
-                              (vector-set! cached-use n 5)
-                              (send image copy)]
-                             [else #f]))
-                         (loop (add1 n)))))]
-                [(equal? url-string (vector-ref cached-name n))
-                 (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
-                 (send (vector-ref cached n) copy)]
-                [else
-                 (loop (add1 n))])))))
+      ;; cache-bitmap : string -> (is-a?/c bitmap%)
+      (define (cache-bitmap url)
+        (let ([url-string (url->string url)])
+          (let loop ([n 0])
+            (cond
+              [(= n NUM-CACHED)
+               ;; Look for item to uncache
+               (vector-set! cached-use 0 (max 0 (sub1 (vector-ref cached-use 0))))
+               (let ([m (let loop ([n 1][m (vector-ref cached-use 0)])
+                          (if (= n NUM-CACHED)
+                              m
+                              (begin
+                                (vector-set! cached-use n (max 0 (sub1 (vector-ref cached-use n))))
+                                (loop (add1 n) (min m (vector-ref cached-use n))))))])
+                 (let loop ([n 0])
+                   (if (= (vector-ref cached-use n) m)
+                       (let ([bitmap (get-bitmap-from-url url)])
+                         (cond
+                           [bitmap
+                            (vector-set! cached n bitmap)
+                            (vector-set! cached-name n url-string)
+                            (vector-set! cached-use n 5)
+                            bitmap]
+                           [else #f]))
+                       (loop (add1 n)))))]
+              [(equal? url-string (vector-ref cached-name n))
+               (vector-set! cached-use n (min 10 (add1 (vector-ref cached-use n))))
+               (vector-ref cached n)]
+              [else
+               (loop (add1 n))]))))
+
+      (define-struct image-map-rect (href left top right bottom))
+      
+      (define image-map-snip%
+        (class image-snip%
+          (field [key "#key"])
+          (define/public (set-key k) (set! key k))
+          (define/public (get-key) key)
+          
+          (field [rects null])
+          
+          ;; add-area : string (listof number) string -> void
+          ;; currently only supports rect shapes
+          (define/public (add-area shape coords href)
+            (when (and (equal? shape "rect")
+                       (= 4 (length coords)))
+              (set! rects (cons (make-rect href
+                                           (car coords)
+                                           (cadr coords)
+                                           (caddr coords)
+                                           (cadddr coords))
+                                rects))))
+          
+          (rename [super-draw draw])
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
+            (super-draw dc x y left top right bottom dx dy draw-caret))
+          
+          (super-make-object)))
+      
+      (define (update-image-maps image-map-snips image-maps)
+        (let loop ([image-map-snips image-map-snips])
+          (cond
+            [(null? image-map-snips) (void)]
+            [else 
+             (let* ([image-map-snip (car image-map-snips)]
+                    [image-map-key (send image-map-snip get-key)])
+               (let loop ([image-maps image-maps])
+                 (cond
+                   [(null? image-maps) (void)]
+                   [else
+                    (let* ([image-map (car image-maps)]
+                           [name (get-field image-map 'name)])
+                      (when (and name 
+                                 (equal? (format "#~a" name)
+                                         (send image-map-snip get-key)))
+                        (find/add-areas image-map-snip image-map)))])))])))
+      
+      (define (find/add-areas image-map-snip image-map)
+        (let loop ([sexp image-map])
+          (cond
+            [(and (pair? sexp)
+                  (eq? (car sexp) 'area)
+                  (pair? (cdr sexp)))
+             (add-area image-map-snip (cadr sexp))
+             (loop (cddr sexp))]
+            [(pair? sexp)
+             (loop (car sexp))
+             (loop (cdr sexp))]
+            [else (void)])))
+      
+      ;; add-area : snip (listof (list sym string))[assoc] -> void
+      ;; the second arg type is actually `any', but if it
+      ;; matches the above, it is interprted propoerly;
+      ;; otherwise silently nothing happens.
+      (define (add-area image-map-snip sexp)
+        (let ([shape #f]
+              [coords #f]
+              [href #f])
+          (let loop ([sexp sexp])
+            (cond
+              [(pair? sexp)
+               (let ([fst (car sexp)])
+                 (when (and (pair? fst)
+                            (symbol? (car fst))
+                            (pair? (cdr fst))
+                            (string? (cadr fst)))
+                   (case (car sexp)
+                     [(shape) (set! shape (cadr sexp))]
+                     [(coords) (set! coords (cadr sexp))]
+                     [(href) (set! href (cadr sexp))]
+                     [else (void)]))
+                 (loop (cdr sexp)))]
+              [else (void)]))
+          (when (and shape coords href)
+            (let ([p-coords (parse-coords coords)])
+              (when p-coords
+                (send image-map-snip add-area shape p-coords href))))))
+      
+      ;; parse-coords : string -> (listof number)
+      ;; separates out a bunch of comma separated numbers in a string
+      ;; into a list of scheme numbers
+      (define (parse-coords str)
+        (let loop ([str str])
+          (cond
+            [(regexp-match #rx"^[ \t\n]*([0-9]+)[ \t\n],(.*)$")
+             =>
+             (lambda (m)
+               (let ([num (cadr m)]
+                     [rst (caddr m)])
+                 (cons (string->number num)
+                       (loop rst))))]
+            [else null])))
       
       (define (make-get-field str)
         (let ([s (apply
@@ -203,6 +302,10 @@
               (let ([m (or (regexp-match re:quote args)
                            (regexp-match re:plain args))])
                 (and m (caddr m)))))))
+      
+      (define (get-field e name)
+        (let ([a (assq name (cadr e))])
+          (and a (cadr a))))
       
       (define get-mzscheme-arg
 	(let ([get-mz (make-get-field "mzscheme")])
@@ -407,7 +510,10 @@
 			  [delete (a-text delete)]
 			  [get-character (a-text get-character)]
 			  [change-style (a-text change-style)])
-	      (letrec ([insert 
+	      (letrec ([image-map-snips null]
+                       [image-maps null]
+                       
+                       [insert 
 			(lambda (what)
 			  (a-text-insert what (current-pos)))]
 		       
@@ -469,10 +575,6 @@
 			(lambda args
 			  (when #f ; treat them all as ignored warnings
 			    (apply error 'html args)))]
-		       
-		       [get-field (lambda (e name)
-				    (let ([a (assq name (cadr e))])
-				      (and a (cadr a))))]
 
 		       [re:transparent "[Tt][Rr][Aa][Nn][Ss][Pp][Aa][Rr][Ee][Nn][Tt]"]
 		       
@@ -485,10 +587,6 @@
 				       (combine-url/relative base-path src)
 				       (string->url src))))))]
 		       
-		       [parse-image-alt
-			(let ([get-src (make-get-field "alt")])
-			  (lambda (s)
-			    (get-src s)))]
 		       [unescape 
 			(lambda (s)
                           (apply string-append 
@@ -516,12 +614,6 @@
 				   [scheme (let ([v (get-field s 'mzscheme)])
 					     (and v (filter-mzscheme v)))])
 			      (values url-string label scheme))))]
-		       
-		       [parse-docnote (make-get-field "docnote")]
-		       
-		       [parse-name (make-get-field "name")]
-		       
-		       [parse-type (make-get-field "type")]
 		       
 		       [parse-font
 			(let ([face-regexp (regexp "([^,]*), *(.*)")])
@@ -939,17 +1031,33 @@
                                          (values r rfl))]
                                       [(td)
                                        (maybe-bg-color e rest #t)]
+                                      [(map) 
+                                       (set! image-maps (cons e image-maps))
+                                       (rest)]
                                       [(img)
                                        (let* ([url (parse-image-source e)]
                                               [alt (get-field e 'alt)]
-                                              [b (and url (cache-image url))])
+                                              [bitmap (and url (cache-bitmap url))]
+                                              [usemap (get-field e 'usemap)])
                                          (cond
-                                           [(or b (not alt))
-                                            (let ([pos (current-pos)])
-                                              (insert (or b (make-object image-snip%)))
+                                           [(and bitmap usemap)
+                                            (let ([pos (current-pos)]
+                                                  [image-map-snip (make-object image-map-snip%)])
+                                              (send image-map-snip set-bitmap bitmap)
+                                              (send image-map-snip set-key usemap)
+                                              (insert image-map-snip)
+                                              (set! image-map-snips (cons image-map-snip image-map-snips))
                                               (change-style delta:center pos (add1 pos)))]
+                                           [bitmap
+                                            (let ([pos (current-pos)])
+                                              (insert (make-object image-snip% bitmap))
+                                              (change-style delta:center pos (add1 pos)))]
+                                           [alt
+                                            (insert alt)]
                                            [else
-                                            (insert alt)])
+                                            (let ([pos (current-pos)])
+                                              (insert (new image-snip%))
+                                              (change-style delta:center pos (add1 pos)))])
                                          (rest))]
                                       [(form)
                                        (rest/form (make-form (get-field e 'action) (get-field e 'target) (get-field e 'method) null #f))]
@@ -1112,4 +1220,6 @@
 		
 		(send a-text add-tag "top" 0)
 
+                (update-image-maps image-map-snips image-maps)
+                
 		(send a-text set-position 0)))))))))
