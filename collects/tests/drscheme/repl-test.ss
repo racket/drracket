@@ -61,43 +61,43 @@
     (list
      ;; basic tests
      (make-test "1"
-                ??
-                ??
+                "1"
+                "1"
                 #f
-                ??
-		'read
+                'interactions
+		#f
                 #f
                 #f
                 void
                 void)
      (make-test "\"a\""
-                ??
-                ??
+                "\"a\""
+                "\"a\""
                 #f
-                ??
-		'read
+                'interactions
+		#f
                 #f
                 #f
                 void
                 void)
      
      (make-test "1 2"
-                ??
-                ??
+                "1\n2"
+                "1\n2"
                 #f
-                ??
-		'read
+                'interactions
+		#f
                 #f
                 #f
                 void
                 void)
      
      (make-test "\"a\" \"b\""
-                ??
-                ??
+                "\"a\"\n\"b\""
+                "\"a\"\n\"b\""
                 #f
-                ??
-		'read
+                'interactions
+		#f
                 #f
                 #f
                 void
@@ -462,8 +462,8 @@
         "car: expects argument of type <pair>; given 1"
         "car: expects argument of type <pair>; given 1"
         #t
-        (cons (make-loc -1 -1 (+ (string-length tmp-filename) 29))
-              (make-loc -1 -1 (+ (string-length tmp-filename) 36)))
+        (cons (make-loc -1 -1 (+ (string-length (path->string tmp-filename)) 29))
+              (make-loc -1 -1 (+ (string-length (path->string tmp-filename)) 36)))
         #f
         #f
         #f

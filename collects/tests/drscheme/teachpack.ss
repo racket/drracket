@@ -104,8 +104,7 @@
        tp-name)
       (do-execute drs-frame #f)
       (let ([dialog
-             (with-handlers ([not-break-exn?
-                              (lambda (x) #f)])
+             (with-handlers ([exn:fail? (lambda (x) #f)])
                (let ([wait-for-error-pred
                       (lambda ()
                         (let ([active

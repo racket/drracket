@@ -579,8 +579,6 @@ TODO
           get-error-ranges
           
           reset-console
-          set-resetting
-          get-resetting
           
           get-inserting-prompt
           
@@ -614,11 +612,13 @@ TODO
                    begin-edit-sequence
                    change-style
                    clear-undos
+                   clear-ports
                    delete
                    end-edit-sequence
                    erase
                    find-snip
                    find-string
+                   freeze-colorer
                    get-active-canvas
                    get-admin
                    get-can-close-parent
@@ -645,15 +645,19 @@ TODO
                    position-line
                    position-paragraph
                    release-snip
-                   #;reset-region
+                   reset-region
                    run-after-edit-sequence
                    scroll-to-position
+                   send-eof-to-in-port 
+                   set-allow-edits
                    set-caret-owner
                    set-clickback
+                   set-insertion-point
                    set-position
                    set-styles-sticky
                    set-unread-start-point
-                   split-snip)
+                   split-snip
+                   thaw-colorer)
           
           (unless (is-a? context context<%>)
             (error 'drscheme:rep:text% 
@@ -661,10 +665,6 @@ TODO
                    context))
           
           (define/public (get-context) context)
-          
-          (field (resetting? #f))
-          (define/public (get-resetting) resetting?)
-          (define/public (set-resetting v) (set! resetting? v))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;					       ;;;
@@ -862,56 +862,11 @@ TODO
           ;;  specialization
           ;;
           
-          (rename [super-after-set-size-constraint after-set-size-constraint]
-                  [super-get-keymaps get-keymaps]
-                  [super-can-insert? can-insert?]
-                  [super-after-insert after-insert]
-                  [super-can-delete? can-delete?]
-                  [super-after-delete after-delete]
-                  [super-can-change-style? can-change-style?]
-                  [super-after-change-style after-change-style]
-                  [super-on-edit-sequence on-edit-sequence]
-                  [super-after-edit-sequence after-edit-sequence]
-                  [super-after-set-position after-set-position])
-          
-          (define can-something
-            (opt-lambda (super start len)
-              (cond
-                [(or resetting?
-                     (not (number? prompt-position))
-                     (>= start prompt-position))
-                 (super start len)]
-                [else 
-                 #f])))
-          (define after-something
-            (lambda (combine start len)
-              (when (or resetting?
-                        (and prompt-mode? (< start prompt-position)))
-                (set! prompt-position (combine prompt-position len)))))
+          (rename [super-get-keymaps get-keymaps])
           
           (define/override get-keymaps
             (lambda ()
               (cons scheme-interaction-mode-keymap (super-get-keymaps))))
-          
-          (define/override can-insert?
-            (lambda (start len)
-              (can-something (lambda (x y) (super-can-insert? x y)) start len)))
-          (define/override can-delete?
-            (lambda (start len)
-              (can-something (lambda (x y) (super-can-delete? x y)) start len)))
-          (define/override (can-change-style? start len)
-            (can-something (lambda (x y) (super-can-change-style? x y)) start len))
-          (define/override (after-insert start len)
-            (after-something + start len)
-            (reset-highlighting)
-            (super-after-insert start len))
-          (define/override (after-delete start len)
-            (after-something - start len)
-            (reset-highlighting)
-            (super-after-delete start len))
-          (define/override (after-change-style start len)
-            (after-something (lambda (start len) start) start len)
-            (super-after-change-style start len))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;                                            ;;;
@@ -977,7 +932,6 @@ TODO
             (send context set-breakables #f #f)
             (send context enable-evaluation))
           
-          (inherit send-eof-to-in-port flush-output-ports)
           (define/override (on-submit)
             ;; put two eofs in the port; one to terminate a potentially incomplete sexp
             ;; (or a non-self-terminating one, like a number) and the other to ensure that
@@ -1425,6 +1379,8 @@ TODO
             (send context clear-annotations)
             (drscheme:debug:hide-backtrace-window)
             (shutdown-user-custodian)
+            (clear-ports)
+            (set-allow-edits #t)
             (set! should-collect-garbage? #t)
             
             ;; in case the last evaluation thread was killed, clean up some state.
@@ -1434,9 +1390,8 @@ TODO
             
             ;; clear out repl first before doing any work.
             (begin-edit-sequence)
-            (set-resetting #t)
+            (freeze-colorer)
             (delete (paragraph-start-position 1) (last-position))
-            (set-resetting #f)
             (end-edit-sequence)
             
             ;; must init-evaluation-thread before determining
@@ -1444,9 +1399,6 @@ TODO
             (init-evaluation-thread)
             
             (begin-edit-sequence)
-            (set-resetting #t)
-            (set-prompt-mode #f)
-            (set-resetting #f)
             (set-position (last-position) (last-position))
             
             (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
@@ -1474,10 +1426,13 @@ TODO
              (drscheme:teachpack:teachpack-cache-filenames 
               user-teachpack-cache))
             
-            (set-unread-start-point (last-position))
             (set! repl-initially-active? #t)
             (set! already-warned? #f)
-            #;(reset-region 0 'end)
+            (reset-region 0 (last-position))
+            (set-unread-start-point (last-position))
+            (set-insertion-point (last-position))
+            (set-allow-edits #f)
+            (thaw-colorer)
             (end-edit-sequence))
           
           (define/public (initialize-console)
@@ -1650,8 +1605,7 @@ TODO
                 (lock c-locked?)
                 (end-edit-sequence)
                 (scroll-to-position start-selection #f (last-position) 'start)
-                #;(reset-region prompt-position 'end)
-                )))
+                (reset-region prompt-position 'end))))
           
           (define/public (ready-non-prompt)
             (when prompt-mode?

@@ -12,10 +12,13 @@
            (lib "list.ss")
            (lib "contract.ss")
            (lib "etc.ss")
-           (lib "gui.ss" "tests" "utils"))
+           (lib "gui.ss" "tests" "utils")
+           (lib "contract.ss"))
+  
+  (provide/contract 
+   [use-get/put-dialog ((-> any) path? . -> . void?)])
   
   (provide save-drscheme-window-as
-           use-get/put-dialog
            do-execute
            test-util-error
            poll-until
@@ -47,16 +50,9 @@
        (fw:test:menu-select "File" "Save Definitions As..."))
      filename))
 
-  ;; use-get/put-dialog : (-> void) string -> void
   ;; open-dialog is a thunk that should open the dialog
   ;; filename is a string naming a file that should be typed into the dialog
   (define (use-get/put-dialog open-dialog filename)
-    (unless (procedure? open-dialog)
-      (error 'use-open/close-dialog "expected procedure as first argument, got: ~e, other arg: ~e"
-	     open-dialog filename))
-    (unless (string? filename)
-      (error 'use-open/close-dialog "expected string as second argument, got: ~e, other arg: ~e"
-	     filename open-dialog))
     (let ([drs (wait-for-drscheme-frame)])
       (with-handlers ([(lambda (x) #t)
 		       (lambda (x)
@@ -72,7 +68,7 @@
 					 [(unix) 'meta]
                                          [else (error 'use-get/put-dialog "unknown platform: ~s\n"
                                                       (system-type))])))
-	  (for-each fw:test:keystroke (string->list filename))
+	  (for-each fw:test:keystroke (string->list (path->string filename)))
 	  (fw:test:button-push "OK")
 	  (wait-for-new-frame dlg))
 	(fw:preferences:set 'framework:file-dialogs 'std))))
@@ -351,8 +347,7 @@
                      (click-on-snip (send next-item get-arrow-snip)))
                    (loop next-item (cdr language-spec))]))))
           
-          (with-handlers ([not-break-exn?
-                           (lambda (x) (void))])
+          (with-handlers ([exn:fail? (lambda (x) (void))])
             (fw:test:button-push "Show Details"))
           
           (fw:test:button-push "Revert to Language Defaults")
@@ -493,9 +488,7 @@
           [anss #f])
       (fw:test:run-one
        (lambda ()
-         (with-handlers ([not-break-exn?
-                          (lambda (exn)
-                            (set! exn exn))])
+         (with-handlers ([exn:fail? (lambda (exn) (set! exn exn))])
            (call-with-values f (lambda x (set! anss x))))
          (semaphore-post s)))
       (semaphore-wait s)

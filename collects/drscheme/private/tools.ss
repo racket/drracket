@@ -74,7 +74,8 @@
                                      [(symbol? exp) (list exp)]
                                      [(pair? exp) exp]
                                      [else '()]))]
-                        [filtered (filter (lambda (x) (memq (string->symbol x) allowed)) collections)])
+                        [filtered (filter (lambda (x) (memq (string->symbol (path->string x)) allowed))
+                                          collections)])
                    (printf "PLTONLYTOOL: only loading ~s\n" filtered)
                    (for-each load/invoke-tools filtered))
                  (for-each load/invoke-tools collections)))])
