@@ -315,7 +315,7 @@
                   (define (reset-highlighting) 
                     (let ([f (get-top-level-window)]) 
                       (when (and f 
-                                 (is-a? f -frame%)) 
+                                 (is-a? f -frame<%>)) 
                         (let ([interactions-text (send f get-interactions-text)]) 
                           (when (object? interactions-text) 
                             (send interactions-text reset-highlighting)))))) 
@@ -405,7 +405,8 @@
               (run-after-edit-sequence
                (lambda ()
                  (let ([f (get-top-level-window)])
-                   (when f
+                   (when (and f
+                              (is-a? f -frame<%>))
                      (send f update-save-button (is-modified?)))))))
             (define/override set-filename
               (case-lambda
@@ -413,7 +414,9 @@
                 [(fn tmp?)
                  (super-set-filename fn tmp?)
                  (let ([f (get-top-level-window)])
-                   (when f
+                   (when (and f
+                              (is-a? f -frame<%>))
+                     (send f change-mode-to-match-filename fn)
                      (send f update-save-message fn)))]))
             
             (rename [super-after-insert after-insert]
@@ -854,7 +857,8 @@
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
-          execute-callback))
+          execute-callback
+          change-mode-to-match-filename))
 
       (define -frame%
         (class* super-frame% (drscheme:rep:context<%> -frame<%>)
@@ -1283,12 +1287,15 @@
 
 
           (define/public (set-current-mode mode)
-            (let ([surrogate (mode-surrogate)])
+            (let ([surrogate (drscheme:modes:mode-surrogate mode)])
               (send definitions-text set-surrogate surrogate)
-              (send interactions-text set-surrogate surrogate)))
+              (send interactions-text set-surrogate surrogate)
+              (send interactions-text set-submit-predicate
+                    (drscheme:modes:mode-repl-submit mode))))
 
           (define/public (is-current-mode? mode)
-            (eq? surrogate (send definitions-text get-surrogate)))
+            (let ([surrogate (drscheme:modes:mode-surrogate mode)])
+              (eq? surrogate (send definitions-text get-surrogate))))
           
           (define/private (add-modes-submenu edit-menu)
             (new menu%
@@ -1300,14 +1307,28 @@
                               (send menu get-items))
                     (for-each (lambda (mode) 
                                 (let* ([item
-                                        (new checkable-menu-item% 
-                                             (label (mode-name mode))
+                                        (new checkable-menu-item%
+                                             (label (drscheme:modes:mode-name mode))
                                              (parent menu)
                                              (callback 
-                                              (lambda (_1 _2) (set-mode mode))))])
+                                              (lambda (_1 _2) (set-current-mode mode))))])
                                   (when (is-current-mode? mode)
                                     (send item check #t))))
                               (drscheme:modes:get-modes))))))
+          
+          (define/public (change-mode-to-match-filename filename)
+            (let loop ([modes (drscheme:modes:get-modes)])
+              (cond
+                [(null? modes) (error 'change-mode-to-match-filename
+                                      "didn't find a matching mode")]
+                [else (let ([mode (car modes)])
+                        (if ((drscheme:modes:mode-matches-filename mode) filename)
+                            (unless (is-current-mode? mode)
+                              (set-current-mode mode))
+                            (loop (cdr modes))))])))
+          
+          (define/private (set-initial-mode)
+            (set-current-mode (car (last-pair (drscheme:modes:get-modes)))))
 
           
 ;                                                                                         
@@ -2251,8 +2272,6 @@
               #f
               has-editor-on-demand))
           
-          (frame:reorder-menus this)
-           
           (make-object separator-menu-item% (get-show-menu))
           
           (new menu:can-restore-menu-item%
@@ -2267,6 +2286,8 @@
             (parent (get-show-menu))
             (callback (lambda (x y) (collapse)))
             (demand-callback (lambda (item) (collapse-demand item))))
+          
+          (frame:reorder-menus this)
           
           
 ;                                                                               
@@ -2403,6 +2424,7 @@
           (set-label-prefix (string-constant drscheme))
           
           (update-toolbar-visiblity)
+          (set-initial-mode)
           
           (send definitions-canvas focus)
           (cond

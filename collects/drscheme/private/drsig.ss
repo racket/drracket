@@ -34,7 +34,10 @@
   (define-signature drscheme:modes^
     (add-mode
      get-modes
-     (struct mode (name surrogate repl-submit matches-filename) -setters -maker)))
+     add-initial-modes
+     (struct mode (name surrogate repl-submit matches-filename) 
+             -setters
+             (- make-mode))))
   
   (define-signature drscheme:font^
     (setup-preferences

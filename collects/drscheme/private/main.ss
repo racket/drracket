@@ -29,15 +29,20 @@
               [drscheme:tools : drscheme:tools^]
               [drscheme:debug : drscheme:debug^]
               [drscheme:frame : drscheme:frame^]
-              [drscheme:font : drscheme:font^])
+              [drscheme:font : drscheme:font^]
+              [drscheme:modes : drscheme:modes^])
 
       (application-about-handler
        (lambda ()
          (drscheme:app:about-drscheme)))
 
+      (drscheme:modes:add-initial-modes)
+      
       (namespace-set-variable-value! 'help-desk:frame-mixin drscheme:frame:basics-mixin)
       
-      (finder:default-filters (cons '("Scheme (.scm)" "*.scm") (finder:default-filters)))
+      (finder:default-filters (list* '("Scheme (.scm)" "*.scm")
+                                     '("Scheme (.ss)" "*.ss")
+                                     (finder:default-filters)))
       (application:current-app-name (string-constant drscheme))
       
       (preferences:set-default 'drscheme:toolbar-shown #t boolean?)

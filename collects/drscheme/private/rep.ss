@@ -351,7 +351,7 @@
           (keymap:send-map-function-meta keymap "p" "put-previous-sexp")
           (keymap:send-map-function-meta keymap "n" "put-next-sexp")))
       
-      (define scheme-interaction-mode-keymap (make-object keymap%))
+      (define scheme-interaction-mode-keymap (make-object keymap:aug-keymap%))
       (setup-scheme-interaction-mode-keymap scheme-interaction-mode-keymap)
       
       (define drs-font-delta (make-object style-delta% 'change-family 'decorative))
@@ -2413,6 +2413,12 @@
           
           (define eval-busy? (lambda () #f))
           
+          (field [submit-predicate
+                  (lambda (text prompt-position)
+                    #t)])
+          (define/public (set-submit-predicate p)
+            (set! submit-predicate p))
+          
           (define on-local-char
             (lambda (key)
               (let ([start (get-start-position)]
@@ -2452,14 +2458,11 @@
                         (not (eval-busy?)))
                    (if (and (balance-required)
                             (not (send key get-alt-down)))
-                       (let ([at-end-of-sexp?
-                              (and
-                               (only-spaces-after start)
-                               (scheme-paren:balanced? this
-                                                       prompt-position
-                                                       last))])
+                       (let ([at-end-of-expression? 
+                              (and (only-spaces-after start)
+                                   (submit-predicate this prompt-position))])
                          (cond
-                           [at-end-of-sexp?
+                           [at-end-of-expression?
                             (delete start last)
                             (do-save-and-eval prompt-position start)]
                            [(eq? 'numpad-enter code)
@@ -2472,6 +2475,8 @@
                        (begin
                          (delete start last)
                          (do-save-and-eval prompt-position start)))]
+
+;; need to change this case to bring down entire interaction always.
                   [(start . < . prompt-position)
                    (let ([match (scheme-paren:backward-match this start 0)])
                      (if match
@@ -2680,4 +2685,5 @@
              (editor:info-mixin
               (text:searching-mixin
                (text:nbsp->space-mixin
-                text:clever-file-format%))))))))))))
+                (mode:host-text-mixin
+                 text:clever-file-format%)))))))))))))

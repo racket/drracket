@@ -1,5 +1,6 @@
 (module link mzscheme
-  (require "font.ss"
+  (require "modes.ss"
+           "font.ss"
            "eval.ss"
            "module-overview.ss"
            "multi-file-search.ss"
@@ -63,7 +64,8 @@
 	    [app : drscheme:app^ (app@ unit frame language-configuration help-desk tools)]
             [main : () (main@ 
                         app unit get/extend language-configuration language teachpack
-                        module-language tools debug frame font)])
+                        module-language tools debug frame font
+                        modes)])
       (export
        (unit teachpack drscheme:teachpack)
        (unit language-configuration drscheme:language-configuration)))))
