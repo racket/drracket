@@ -17,8 +17,6 @@
       (define on-installer-run
         (make-parameter void))
       
-      (define re:newline (regexp "\n"))
-      
       ;; with-installer-window : ((union (instanceof dialog%) (instanceof frame%)) -> void) (-> void) -> void
       ;; creates a frame and sets up the current error and output ports
       ;; before calling `do-install'. 
@@ -49,15 +47,18 @@
                      [output (make-output-port
                               #f
                               always-evt
-                              (lambda (s start end flush?)
+                              (lambda (bytes start end flush? enable-break?)
                                 (parameterize ([current-eventspace inst-eventspace])
                                   (queue-callback
                                    (lambda ()
-                                     (let ([s (substring s start end)])
+                                     (let ([str (bytes->string/utf-8 (subbytes bytes start end))])
                                        (send text lock #f)
-                                       (send text insert s (send text last-position) 'same 
+                                       (send text insert
+                                             str
+                                             (send text last-position)
+                                             'same 
                                              ; Scroll on newlines only:
-                                             (regexp-match re:newline s))
+                                             (regexp-match #rx"\n" str))
                                        (send text lock #t)))))
                                 (- end start))
                               void)]

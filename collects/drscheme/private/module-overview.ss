@@ -836,8 +836,8 @@
         (send pasteboard begin-adding-connections)
         (let ([evt
                (choice-evt
-                (finish-evt progress-channel (lambda (x) (cons 'progress x)))
-                (finish-evt connection-channel (lambda (x) (cons 'connect x))))])
+                (handle-evt progress-channel (lambda (x) (cons 'progress x)))
+                (handle-evt connection-channel (lambda (x) (cons 'connect x))))])
           (let loop ()
             (let* ([evt-value (yield evt)]
                    [key (car evt-value)]
