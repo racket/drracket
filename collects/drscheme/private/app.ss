@@ -273,7 +273,8 @@
            language-config-panel
            language-config-button-panel
            (preferences:get
-            drscheme:language-configuration:settings-preferences-symbol)))
+            drscheme:language-configuration:settings-preferences-symbol)
+           dlg))
         
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;;                                                        ;;

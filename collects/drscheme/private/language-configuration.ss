@@ -208,11 +208,13 @@
                (get-selected-language-settings)))))
       
       ;; fill-language-dialog :    (vertical-panel panel language-setting -> language-setting)
+      ;;                           (union dialog #f)
       ;;                        -> (-> (union #f language<%>)) (-> settings[corresponding to fst thnk result])
       ;; allows the user to configure their language. The input language-setting is used
       ;; as the defaults in the dialog and the output language setting is the user's choice
+      ;; if re-center is a dialog, when the show details button is clicked, the dialog is recenterd.
       (define fill-language-dialog
-        (opt-lambda (parent show-details-parent language-settings-to-show)
+        (opt-lambda (parent show-details-parent language-settings-to-show [re-center #f])
 
 	  (define language-to-show (language-settings-language language-settings-to-show))
 	  (define settings-to-show (language-settings-settings language-settings-to-show))
@@ -582,7 +584,12 @@
           ;; flips the details-shown? flag and resets the GUI
           (define (details-callback)
             (set! details-shown? (not details-shown?))
-            (update-show/hide-details))
+            (when re-center
+              (send re-center begin-container-sequence))
+            (update-show/hide-details)
+            (when re-center
+              (send re-center center 'both)
+              (send re-center end-container-sequence)))
           
           ;; show/hide-details : -> void
           ;; udpates the GUI based on the details-shown? flag
