@@ -2325,7 +2325,8 @@
                    (insert-prompt)]
                   [(and (prompt-position . <= . start)
                         (not (eval-busy?)))
-                   (if (balance-required)
+                   (if (and (balance-required)
+                            (not (send key get-alt-down)))
                        (let ([at-end-of-sexp?
                               (and
                                (only-spaces-after start)
