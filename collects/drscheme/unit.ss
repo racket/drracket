@@ -242,12 +242,12 @@
 	   (lambda ()
 	     (send execute-button enable #f)
 	     (send definitions-edit lock #t)
-	     '(send interactions-edit lock #t))]
+	     (send interactions-edit lock #t))]
 	  [enable-evaluation
 	   (lambda ()
 	     (send execute-button enable #t)
 	     (send definitions-edit lock #f)
-	     '(send interactions-edit lock #f))])
+	     (send interactions-edit lock #f))])
 
 	(public
 	  [update-save-button
