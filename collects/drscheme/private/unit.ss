@@ -415,10 +415,12 @@ tab panels new behavior:
       
       (define interactions-canvas% (make-searchable-canvas%
                                     (canvas:info-mixin
-                                     canvas:wide-snip%)))
+                                     (canvas:wide-snip-mixin
+                                      (canvas:info-mixin
+                                       canvas:color%)))))
       
       (define definitions-canvas%
-        (class (make-searchable-canvas% (canvas:delegate-mixin canvas:info%))
+        (class (make-searchable-canvas% (canvas:delegate-mixin (canvas:info-mixin canvas:color%)))
           (super-new)))
       
 ;                                                                                                  

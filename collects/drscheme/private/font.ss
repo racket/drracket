@@ -137,7 +137,7 @@
                   [text (make-object (editor:standard-style-list-mixin text%))]
                   [ex-panel (make-object horizontal-panel% main)]
                   [msg (make-object message% (string-constant example-text) ex-panel)]
-                  [canvas (make-object canvas:basic% main text)]
+                  [canvas (make-object canvas:color% main text)]
                   [update-text
                    (lambda (setting)
                      (send text begin-edit-sequence)
