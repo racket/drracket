@@ -118,10 +118,10 @@
    
    ;; printer setup test
    (make-test "(car (void))"
-	      "1.1-1.8: car: expects argument of type <pair>; given #<void>"
+	      "1.1-1.13: car: expects argument of type <pair>; given #<void>"
 	      #t
 	      "car: expects argument of type <pair>; given #<void>"
-	      (vector 1 8)
+	      (vector 0 12)
 	      "car: expects argument of type <pair>; given #<void>"
 	      "car: expects argument of type <pair>; given #<void>"
 	      #f
@@ -180,7 +180,7 @@
 	      (format "5.12-5.17: car: expects 1 argument, given 0~n15")
 	      #t
 	      (format "car: expects 1 argument, given 0~n15")
-	      (vector 138 143)
+	      (vector 152 157)
 	      (format "car: expects 1 argument, given 0~n15")
 	      (format "car: expects 1 argument, given 0~n15")
 	      #f
@@ -268,7 +268,7 @@
     #f)
 
    (make-test
-    (format "(queue-callback (lambda () (car)))~n(m)")
+    (format "(queue-callback (lambda () (car)))")
     "1.26-1.31: car: expects 1 argument, given 0"
     #t
     "car: expects 1 argument, given 0"
@@ -429,7 +429,7 @@
 
 (define run-test-in-language-level
   (lambda (raw?)
-    (let ([level (if raw? "MzScheme" "MzScheme Debug")])
+    (let ([level (if raw? "MrEd" "MrEd Debug")])
       (printf "running ~a tests~n" level)
       (set-language-level! level)
       (fw:test:new-window definitions-canvas)
