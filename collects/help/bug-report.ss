@@ -350,14 +350,15 @@
 		"Bug Report Sent"
 		"Thanks for the report. You should receive a confirmation email in the next 30 minutes. If you do not, send email to scheme@cs.rice.edu."))))
 	 
-	 (define (get-strings t)
-	   (let loop ([n 0])
-	     (cond
-	      [(> n (send t last-paragraph)) null]
-	      [else (cons (send t get-text
-				(send t paragraph-start-position n)
-				(send t paragraph-end-position n))
-			  (loop (+ n 1)))])))
+	 (define (get-strings canvas)
+	   (let ([t (send canvas get-editor)])
+	     (let loop ([n 0])
+	       (cond
+		[(> n (send t last-paragraph)) null]
+		[else (cons (send t get-text
+				  (send t paragraph-start-position n)
+				  (send t paragraph-end-position n))
+			    (loop (+ n 1)))]))))
 	 
 	 (toggle-synthesized-info)
 
