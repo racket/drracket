@@ -183,8 +183,8 @@
 	  
           (define/public (on-execute setting run-in-user-thread)
 	    (initialize-simple-module-based-language setting run-in-user-thread))
-          (define/public (get-init-code setting)
-            (simple-module-based-language-get-init-code setting))
+          (define/public (get-init-code setting teachpacks)
+            (simple-module-based-language-get-init-code setting teachpacks))
           
           (define/public (render-value/format value settings port put-snip width)
             (simple-module-based-language-render-value/format value settings port put-snip width))
@@ -394,8 +394,8 @@
            (current-inspector (make-inspector))
            (read-case-sensitive (simple-settings-case-sensitive setting)))))
       
-      ;; simple-module-based-language-get-init-code : setting -> sexp[module]
-      (define (simple-module-based-language-get-init-code setting)
+      ;; simple-module-based-language-get-init-code : setting teachpack-cache -> sexp[module]
+      (define (simple-module-based-language-get-init-code setting teachpack-cache)
         `(module mod-name mzscheme
            (require (lib "pconvert.ss")
                     (lib "pretty.ss"))
@@ -434,7 +434,7 @@
                 `(void))
 
            (define (init-code)
-             ,(drscheme:teachpack:launcher-init-code (preferences:get 'drscheme:teachpacks))
+             ,(drscheme:teachpack:launcher-init-code teachpack-cache)
              (current-inspector (make-inspector))
              (error-value->string-handler executable-error-value->string-handler)
              (read-case-sensitive ,(simple-settings-case-sensitive setting)))))
@@ -484,12 +484,12 @@
             (module-based-language-front-end port (get-reader)))
           (define/public (front-end/interaction port settings teachpack-cache)
             (module-based-language-front-end port (get-reader)))
-          (define/public (create-executable setting parent program-filename)
+          (define/public (create-executable setting parent program-filename teachpacks)
             (create-module-based-language-executable parent 
                                                      program-filename
                                                      (get-module)
                                                      (get-transformer-module)
-                                                     (get-init-code setting)
+                                                     (get-init-code setting teachpacks)
                                                      (use-mred-launcher)
                                                      (use-namespace-require/copy?)))
           (super-instantiate ())))

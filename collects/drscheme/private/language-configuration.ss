@@ -1251,7 +1251,7 @@
                       (define/override (use-namespace-require/copy?) #t)
                       
                       (inherit get-module get-transformer-module get-init-code)
-                      (define/override (create-executable setting parent program-filename)
+                      (define/override (create-executable setting parent program-filename teachpacks)
                         (let ([executable-fn
 			       (drscheme:language:put-executable
 				parent
@@ -1267,7 +1267,7 @@
                              executable-fn
                              (get-module)
                              (get-transformer-module)
-                             (get-init-code setting)
+                             (get-init-code teachpacks setting)
                              mred-launcher?
                              (use-namespace-require/copy?)))))
                       (super-instantiate ()))))]

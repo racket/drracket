@@ -166,7 +166,7 @@
                     [else eof])))))
           
           ;; printer settings are just ignored here.
-          (define/override (create-executable setting parent program-filename)
+          (define/override (create-executable setting parent program-filename teachpacks)
             (let* ([executable-specs (drscheme:language:create-executable-gui
                                       parent 
                                       program-filename
