@@ -90,7 +90,8 @@
                                 str 
                                 (- 200 (string-length (string-constant exact-lucky-search-help-desk-for)))))
                        menu
-                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact)))))))))))
+                       (lambda x (help-desk:help-desk str #t 'keyword+index 'exact)))
+		     (void)))))))))
       
       (define (shorten-str str len)
         (if ((string-length str) . <= . len)
