@@ -185,13 +185,17 @@
 			 (try-newline (sub1 pos) (sub1 count) maybe-tabbed?)]
 			[(and maybe-tabbed? (char-whitespace? c))
 			 ; Some whitespace is messing up the newlines (perhaps added
-			 ; by a spurious <P> in a list item); delete it all
-			 (let loop ([p (sub1 pos)])
+			 ; by a spurious <P> in a list item); delete non-newlines
+			 (let loop ([p (sub1 pos)][nl 0])
 			   (cond
 			    [(or (zero? p) (not (char-whitespace? (get-character (sub1 p)))))
 			     (delete p pos)
-			     (+ (- p pos) (try-newline p count #f))]
-			    [else (loop (sub1 p))]))]
+			     (insert (make-string nl #\newline) p)
+			     (+ (- p pos) nl (try-newline (+ p nl) count #f))]
+			    [else (loop (sub1 p) 
+					(if (char=? #\newline (get-character (sub1 p)))
+					    (add1 nl)
+					    nl))]))]
 			[else
 			 (insert #\newline pos)
 			 (add1 (try-newline pos (sub1 count) #f))]))]))]
@@ -425,9 +429,15 @@
 					 1
 					 0))]
 		      [dewhite? (and dewhite?
-				     (not (memq tag preformatted-tags)))])
+				     (not (memq tag preformatted-tags)))]
+		      [pre-newlines
+		       (case tag
+			 [(dl ul) (if (< enum-depth 1) 2 1)]
+			 [(pre) 2]
+			 [(h1 h2 h3) 2]
+			 [else 0])])
 		  (let-values ([(end-pos del-white? extra-tag extra-args) 
-				(find-end tag pos dewhite? del-white? enum-depth)])
+				(find-end tag (+ pos (try-newline pos pre-newlines #t)) dewhite? del-white? enum-depth)])
 		    (let* ([result (lambda (pos del-white?)
 				     (values pos del-white? extra-tag extra-args))]
 			   [normal (lambda () (result end-pos del-white?))]
@@ -435,7 +445,7 @@
 			   [heading (lambda (delta)
 				      (insert (string #\newline #\newline) end-pos)
 				      (change-style delta pos end-pos)
-				      (result (+ end-pos 2 (try-newline pos 1 #f)) #t))])
+				      (result (+ end-pos 2) #t))])
 		      (case tag
 			[(head body center) (normal)]
 			[(title)
@@ -443,8 +453,7 @@
 			 (delete pos end-pos)
 			 (result pos #t)]
 			[(dl ul)
-			 (insert #\newline end-pos)
-			 (result (add1 end-pos) #t)]
+			 (result (+ end-pos (try-newline end-pos pre-newlines #t)) #t)]
 			[(b strong)
 			 (change-style delta:bold pos end-pos)
 			 (normal)]
@@ -458,7 +467,7 @@
 			 (change-style delta:fixed pos end-pos)
 			 (normal)]
 			[(pre)
-			 (result (+ end-pos (try-newline end-pos 2 #f) (try-newline pos 2 #f)) #t)]
+			 (result (+ end-pos (try-newline end-pos 2 #t)) #t)]
 			[(h1) (heading delta:h1)]
 			[(h2) (heading delta:h2)]
 			[(h3) (heading delta:h3)]
