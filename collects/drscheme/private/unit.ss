@@ -1162,6 +1162,9 @@
                          (drscheme:teachpack:teachpack-cache-filenames
                           (preferences:get 'drscheme:teachpacks)))))]
           
+          (define/public (get-definitions/interactions-panel-parent)
+            (get-area-container))
+          
           (super-instantiate ()
                              (filename filename)
                              (width (preferences:get 'drscheme:unit-window-width))
@@ -1252,7 +1255,7 @@
           [define name-panel (make-object vertical-panel% top-panel)]
           [define resizable-panel (instantiate vertical-dragable/pref% ()
                                     (unit-frame this)
-                                    (parent (get-area-container)))]
+                                    (parent (get-definitions/interactions-panel-parent)))]
           
           (send name-panel stretchable-width #f)
           (send name-panel stretchable-height #f)
