@@ -7,7 +7,8 @@
            (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "etc.ss")
-           "private/buginfo.ss")
+           "private/buginfo.ss"
+           "private/manuals.ss")
   
   (provide help-desk:report-bug)
   
@@ -466,10 +467,7 @@
           focus)
     
     (send (send docs-installed get-editor) insert
-          (format "~s"
-                  (with-handlers ([(lambda (x) #t)
-                                   (lambda (x) "none")])
-                    (directory-list (collection-path "doc")))))
+          (format "~s" (find-doc-directories)))
     
     (send bug-frame show #t))
   
