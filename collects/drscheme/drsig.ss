@@ -8,25 +8,21 @@
    level-strings
    add-basis))
 
-(define-signature drscheme:export^
-  (frame-group))
-
 (define-signature drscheme:load/link-tool^
   (load/link-tool))
 
 (define-signature drscheme:unit^
-  (snip-class% snip%))
+  (frame% snip-class% snip%))
 
 (define-signature drscheme:frame^
-  (frame-group
-   frame%
-   unit-frame%))
+  (group
+   frame%))
 
 (define-signature drscheme:compound-unit^
   (frame% snip%))
 
 (define-signature drscheme:edit^
-  (console-edit%))
+  (edit%))
 
 (define-signature drscheme:project^
   (scheme-project-frame%))
@@ -44,3 +40,8 @@
 (define-signature drscheme:app^
   ((open mred:application^)
    about-drscheme))
+
+(define-signature drscheme:export^
+  ((unit drscheme:frame : drscheme:frame^)
+   (unit drscheme:unit : drscheme:unit^)
+   (unit drscheme:compound-unit : drscheme:compound-unit^)))
