@@ -2,10 +2,23 @@ Version 200alpha1:
 
 THINGS MISSING (as compared to 103):
 
- - launchers
  - project manager
 
 GENERAL
+
+- added profiling support. DrScheme colors your program text
+  based on the time spent in each portion of the code.
+
+- Added support for other natural languages for DrScheme's
+  GUI. French and Spanish are most up to date; German and
+  Danish are also included (but incomplete).
+
+- added a module browser for seeing the entire program and
+  dependencies among modules in a single window.
+
+- added XML boxes (a quasi-quote/unquote feature for XML
+  using embedded editors). See the DrScheme manual for
+  details.
 
 - added a code ``contour'' window that is
   visible along the rhs of the drscheme
@@ -23,6 +36,10 @@ GENERAL
 
 - added "Open recent" menu item
 
+- added a preference called "Reuse existing DrScheme frame"
+  that, when opening new files, causes DrScheme to replace
+  the existing frame.
+
 - bug reports now go to the new bugs.plt-scheme.org
   server (and to bugs@plt-scheme.org)
 
@@ -34,8 +51,11 @@ GENERAL
   click on that to expand it back to the previous text.
 
 - added an emacs-like c-x c-b feature to drscheme.
-  type <menukey>-b to popup a window of the open frames
+  Type <menukey>-j to popup a window of the open frames
   and choose one without using the mouse by typing.
+
+- added <menukey>-minus and <menukey>-plus as shortcuts to
+  move to the next and previous menus
 
 - The enter key now submits the interaction in the REPL,
   even if the cursor isn't at the end of a sexpression.
@@ -108,6 +128,8 @@ GENERAL
 
 FRAMEWORK and TOOLS
 -------------------
+
+- added HO function contracts.
 
 - it is now possible to add languages to DrScheme,
   as tools.
