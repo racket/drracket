@@ -2402,13 +2402,6 @@ tab panels new behavior:
                                 (is-a? edit editor<%>))
                        (send edit insert #;"λ" (new lambda-snip%))))
                    #t)]
-                [insert-delta
-                 (lambda ()
-                   (let ([edit (get-edit-target-object)])
-                     (when (and edit
-                                (is-a? edit editor<%>))
-                       (send edit insert (new define-snip%))))
-                   #t)]
                 [insert-large-semicolon-letters
                  (lambda ()
                    (let ([edit (get-edit-target-object)])
@@ -2479,12 +2472,6 @@ tab panels new behavior:
               special-menu
               (lambda (x y) (insert-lambda))
               #\\
-              #f
-              has-editor-on-demand)
-            (make-object c% (string-constant insert-delta)
-              special-menu
-              (lambda (x y) (insert-delta))
-              #f
               #f
               has-editor-on-demand))
 
@@ -2699,15 +2686,6 @@ tab panels new behavior:
       (send lambda-snipclass set-classname "drscheme:lambda-snip%")
       (send (get-the-snip-class-list) add lambda-snipclass)
       
-      (define define-snipclass
-        (make-object (class snip-class% ()
-                       (define/override (read p)
-                         (make-object define-snip%))
-                       (super-new))))
-      (send define-snipclass set-version 1)
-      (send define-snipclass set-classname "drscheme:define-snip%")
-      (send (get-the-snip-class-list) add define-snipclass)
-      
       (define greek-char-snip% 
         (class* snip% (readable-snip<%>)
           (init-field symbol one-char-string)
@@ -2758,15 +2736,6 @@ tab panels new behavior:
             (one-char-string "l"))
           (inherit set-snipclass)
           (set-snipclass lambda-snipclass)))
-      
-      (define define-snip%
-        (class greek-char-snip%
-          (define/override (copy) (new define-snip%))
-          (super-new
-            (symbol 'define)
-            (one-char-string "d"))
-          (inherit set-snipclass)
-          (set-snipclass define-snipclass)))
       
       (define created-frame 'nothing-yet)
       
