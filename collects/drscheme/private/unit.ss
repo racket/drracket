@@ -2590,7 +2590,7 @@ tab panels new behavior:
           (make-object separator-menu-item% (get-show-menu))
           
           (new menu:can-restore-menu-item%
-            (shortcut #\m)
+            (shortcut (if (eq? (system-type) 'macosx) #f #\m))
             (label (string-constant split-menu-item-label))
             (parent (get-show-menu))
             (callback (λ (x y) (split)))
