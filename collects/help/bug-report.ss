@@ -6,7 +6,8 @@
            (lib "mred.ss" "mred")
            (lib "framework.ss" "framework")
            (lib "class.ss")
-           (lib "etc.ss"))
+           (lib "etc.ss")
+           "private/buginfo.ss")
   
   (provide help-desk:report-bug)
   
@@ -15,12 +16,6 @@
   (define bug-email-server-port 1025)
   (define bug-report-email-address 
     (string-append bug-report-recipient "@plt-scheme.org"))
-  
-  ;; hopefully these are defined by DrScheme...
-  (define get-language-level
-    (namespace-variable-value 'get-language-level #f (lambda () (lambda () 'unknown))))
-  (define get-teachpack-filenames
-    (namespace-variable-value 'get-teachpack-filenames #f (lambda () (lambda () 'unknown))))
   
   ;; this one should be defined by help desk.
   (define frame-mixin
@@ -60,7 +55,11 @@
     
     (define lps null)
     
-    ; build/label : ((union string (list-of string)) (area-container<%> -> item<%>) boolean area-container<%> -> item<%>)
+    ; build/label : ((union string (list-of string))
+    ;                (area-container<%> -> item<%>) 
+    ;                boolean
+    ;                area-container<%>
+    ;             -> item<%>)
     ; constructs and arranges the gui objects for the bug report form
     ; effect: updates lps with the new label panel, for future alignment
     (define build/label
@@ -236,39 +235,36 @@
        #f
        synthesized-panel))
     
-    (define language-level
-      (build/label
-       (string-constant bug-report-field-language)
-       (lambda (panel)
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
-    
-    (define teachpacks
-      (build/label
-       (string-constant bug-report-field-teachpacks)
-       (lambda (panel)
-         (keymap:call/text-keymap-initializer
-          (lambda ()
-            (make-object text-field% #f panel void ""))))
-       #f
-       #f
-       synthesized-panel))
-
     (define docs-installed
       (make-big-text
        (string-constant bug-report-field-docs-installed)
        #t
        synthesized-panel))
-    
+
     (define collections
       (make-big-text 
        (string-constant bug-report-field-collections)
        #t
        synthesized-panel))
+    
+    (define extras
+      (map (lambda (bri)
+             (let ([label (bri-label bri)])
+               (cons
+                label
+                (build/label
+                 label
+                 (lambda (panel)
+                   (let ([field 
+                          (keymap:call/text-keymap-initializer
+                           (lambda ()
+                             (make-object text-field% #f panel void "")))])
+                     (send field set-value (bri-value bri))
+                     field))
+                 #f
+                 #f
+                 synthesized-panel))))
+           (get-bug-report-infos)))
 
     (define button-panel (make-object horizontal-panel% (send bug-frame get-area-container)))
     (define synthesized-button (make-object button%
@@ -299,32 +295,36 @@
                    (preferences:get 'drscheme:full-name)
                    (preferences:get 'drscheme:email))
            empty-header))))
-       (append
-        (list
-         ">Category:       all"
-         (format ">Synopsis:       ~a" (send summary get-value))
+       `(">Category:       all"
+         ,(format ">Synopsis:       ~a" (send summary get-value))
          ">Confidential:   no"
-         (format ">Severity:       ~a" (send severity get-string-selection))
-         (format ">Priority:       ~a" (send priority get-string-selection))
-         (format ">Class:          ~a" (translate-class (send bug-class get-string-selection)))
+         ,(format ">Severity:       ~a" (send severity get-string-selection))
+         ,(format ">Priority:       ~a" (send priority get-string-selection))
+         ,(format ">Class:          ~a" (translate-class (send bug-class get-string-selection)))
          ">Submitter-Id:   unknown"
-         (format ">Originator:     ~a" (preferences:get 'drscheme:full-name))
+         ,(format ">Originator:     ~a" (preferences:get 'drscheme:full-name))
          ">Organization:"
          "titan"
-         (format ">Release:        ~a" (send version get-value))
+         ,(format ">Release:        ~a" (send version get-value))
          ">Environment:"
-         (format "~a" (send environment get-value))
-         "Docs Installed:" (format "~a" (send (send docs-installed get-editor) get-text))
+         ,(format "~a" (send environment get-value))
+         "Docs Installed:" 
+         ,(format "~a" (send (send docs-installed get-editor) get-text))
          "Collections: "
-         (format "~a" (send (send collections get-editor) get-text))
-         (format "Human Language: ~a" (send human-language get-value))
-         ">Fix: ")
-        (cons
+         ,(format "~a" (send (send collections get-editor) get-text))
+         " "
+         ,(format "Human Language: ~a" (send human-language get-value))
+         " "
+         ,@(map (lambda (extra)
+                  (format "~a: ~a"
+                          (car extra)
+                          (send (cdr extra) get-value)))
+                extras)
+         ">Fix: "
          ">Description:"
-         (get-strings description))
-        (cons
+         ,@(get-strings description)
          ">How-To-Repeat:"
-         (get-strings reproduce)))
+         ,@(get-strings reproduce))
        bug-email-server-port))
     
     ; send-bug-report : (-> boolean)
@@ -469,8 +469,6 @@
                   (with-handlers ([(lambda (x) #t)
                                    (lambda (x) "none")])
                     (directory-list (collection-path "doc")))))
-    (send teachpacks set-value (format "~s" (get-teachpack-filenames)))
-    (send language-level set-value (format "~s" (get-language-level)))
     
     (send bug-frame show #t))
   
