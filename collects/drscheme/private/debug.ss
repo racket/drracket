@@ -396,7 +396,7 @@ profile todo:
       ;; Matthias's birthday
       (define (mf-bday?)
         (let ([date (seconds->date (current-seconds))])
-          '(and (= (date-month date) 10)
+          (and (= (date-month date) 10)
                (= (date-day date) 29))))
       
       ;; show-frame : (instanceof editor-canvas%)
