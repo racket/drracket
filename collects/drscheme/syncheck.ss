@@ -34,10 +34,7 @@ If the namespace does not, they are colored the unbound color.
   (define status-coloring-program (string-constant cs-status-coloring-program))
   (define status-eval-compile-time (string-constant cs-status-eval-compile-time))
   (define status-expanding-expression (string-constant cs-status-expanding-expression))
-  
-  (define mouse-over-variable-import (string-constant cs-mouse-over-variable-import))
-  (define mouse-over-syntax-import (string-constant cs-mouse-over-syntax-import))
-  
+    
   (define jump-to-next-bound-occurrence (string-constant cs-jump-to-next-bound-occurrence))
   (define jump-to-binding (string-constant cs-jump-to-binding))
   (define jump-to-definition (string-constant cs-jump-to-definition))
@@ -1245,6 +1242,7 @@ If the namespace does not, they are colored the unbound color.
                                            binders varrefs high-varrefs tops
                                            requires require-for-syntaxes) 
                            (annotate-variables user-namespace
+                                               user-directory
                                                binders
                                                varrefs
                                                high-varrefs
@@ -1259,6 +1257,7 @@ If the namespace does not, they are colored the unbound color.
                 (λ (user-namespace user-directory)
                   (parameterize ([current-load-relative-directory user-directory])
                     (annotate-variables user-namespace
+                                        user-directory
                                         tl-binders
                                         tl-varrefs
                                         tl-high-varrefs
@@ -1412,7 +1411,7 @@ If the namespace does not, they are colored the unbound color.
                    (annotate-raw-keyword sexp varrefs)
                    (add-binders (syntax vars) binders)
                    (when jump-to-id
-                     (for-each (λ (id)
+                     (for-each (λ (id) 
                                  (when (module-identifier=? id jump-to-id)
                                    (jump-to id)))
                                (syntax->list (syntax vars))))
@@ -1521,10 +1520,11 @@ If the namespace does not, they are colored the unbound color.
         (unless (req/tag-used? req/tag)
           (color (req/tag-req-stx req/tag) error-style-name)))
 
-      ;; annotate-variables : namespace string id-set[four of them] (listof syntax) (listof syntax) -> void
+      ;; annotate-variables : namespace directory string id-set[four of them] (listof syntax) (listof syntax) -> void
       ;; colors in and draws arrows for variables, according to their classifications
       ;; in the various id-sets
       (define (annotate-variables user-namespace
+                                  user-directory
                                   binders
                                   varrefs
                                   high-varrefs
@@ -1554,7 +1554,9 @@ If the namespace does not, they are colored the unbound color.
                                                           unused-requires
                                                           requires
                                                           identifier-binding
-                                                          id-sets))
+                                                          id-sets
+                                                          user-namespace 
+                                                          user-directory))
                                     vars))
                     (get-idss varrefs))
           
@@ -1566,7 +1568,9 @@ If the namespace does not, they are colored the unbound color.
                                                           unused-require-for-syntaxes
                                                           require-for-syntaxes
                                                           identifier-transformer-binding
-                                                          id-sets))
+                                                          id-sets
+                                                          user-namespace 
+                                                          user-directory))
                                     vars))
                     (get-idss high-varrefs))
           
@@ -1574,7 +1578,7 @@ If the namespace does not, they are colored the unbound color.
            (λ (vars) 
              (for-each
               (λ (var) 
-                (color/connect-top user-namespace binders var id-sets))
+                (color/connect-top user-namespace user-directory binders var id-sets))
               vars))
            (get-idss tops))
           
@@ -1595,10 +1599,12 @@ If the namespace does not, they are colored the unbound color.
       ;;                      (union #f hash-table)
       ;;                      (union identifier-binding identifier-transformer-binding)
       ;;                      (listof id-set)
+      ;;                      namespace
+      ;;                      directory
       ;;                   -> void
       ;; adds arrows and rename menus for binders/bindings
-      (define (connect-identifier var all-binders unused requires get-binding id-sets)
-        (connect-identifier/arrow var all-binders unused requires get-binding)
+      (define (connect-identifier var all-binders unused requires get-binding id-sets user-namespace user-directory)
+        (connect-identifier/arrow var all-binders unused requires get-binding user-namespace user-directory)
         (when (get-ids all-binders var)
           (make-rename-menu var id-sets)))
       
@@ -1609,7 +1615,7 @@ If the namespace does not, they are colored the unbound color.
       ;;                            (union identifier-binding identifier-transformer-binding)
       ;;                         -> void
       ;; adds the arrows that correspond to binders/bindings
-      (define (connect-identifier/arrow var all-binders unused requires get-binding)
+      (define (connect-identifier/arrow var all-binders unused requires get-binding user-namespace user-directory)
         (let ([binders (get-ids all-binders var)])
           (when binders
             (for-each (λ (x)
@@ -1624,8 +1630,13 @@ If the namespace does not, they are colored the unbound color.
                   (when req-stxes
                     (hash-table-remove! unused req-path)
                     (for-each (λ (req-stx) 
-                                (add-jump-to-definition var "/home/robby/tmp.ss")
-                                (add-mouse-over-status var "mouse-over status")
+                                (unless (symbol? req-path)
+                                  (add-jump-to-definition 
+                                   var 
+                                   (get-require-filename req-path user-namespace user-directory)))
+                                (add-mouse-over var (format (string-constant cs-mouse-over-import)
+                                                            (syntax-e var)
+                                                            req-path))
                                 (connect-syntaxes req-stx var))
                               req-stxes))))))))
           
@@ -1641,8 +1652,8 @@ If the namespace does not, they are colored the unbound color.
                  [(symbol? mod-path)
                   mod-path]))))
       
-      ;; color/connect-top : namespace id-set syntax -> void
-      (define (color/connect-top user-namespace binders var id-sets)
+      ;; color/connect-top : namespace directory id-set syntax -> void
+      (define (color/connect-top user-namespace user-directory binders var id-sets)
         (let ([top-bound?
                (or (get-ids binders var)
                    (parameterize ([current-namespace user-namespace])
@@ -1650,7 +1661,7 @@ If the namespace does not, they are colored the unbound color.
           (if top-bound?
               (color var lexically-bound-variable-style-name)
               (color var error-style-name))
-          (connect-identifier var binders #f #f identifier-binding id-sets)))
+          (connect-identifier var binders #f #f identifier-binding id-sets user-namespace user-directory)))
       
       ;; color-variable : syntax (union identifier-binding identifier-transformer-binding) -> void
       (define (color-variable var get-binding)
@@ -1782,7 +1793,9 @@ If the namespace does not, they are colored the unbound color.
                   (when syncheck-text
                     (let* ([start (- (syntax-position require-spec) 1)]
                            [end (+ start (syntax-span require-spec))]
-                           [file (get-require-filename require-spec user-namespace user-directory)])
+                           [file (get-require-filename (syntax-object->datum require-spec)
+                                                       user-namespace
+                                                       user-directory)])
                       (when file
                         (send syncheck-text syncheck:add-menu
                               source
@@ -1790,11 +1803,10 @@ If the namespace does not, they are colored the unbound color.
                               #f
                               (make-require-open-menu file)))))))))))
       
-      ;; get-require-filename : syntax namespace string[directory] -> filename
+      ;; get-require-filename : sexp namespace string[directory] -> filename
       ;; finds the filename corresponding to the require in stx
-      (define (get-require-filename stx user-namespace user-directory)
-        (let* ([datum (syntax-object->datum stx)]
-               [sym 
+      (define (get-require-filename datum user-namespace user-directory)
+        (let* ([sym 
                 (and (not (symbol? datum))
                      (parameterize ([current-namespace user-namespace]
                                     [current-directory user-directory]
