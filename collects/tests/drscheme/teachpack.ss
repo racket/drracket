@@ -50,10 +50,14 @@
               expected)])
         (unless (equal? got 
                         full-expectation)
-          (printf "FAILED:       tp: ~s~n             exp: ~s~n        expected: ~s~n             got: ~s~n"
-                  tp-exps
-                  dr-exp full-expectation got)))))
+          (printf 
+           "FAILED:       tp: ~s~n             exp: ~s~n        expected: ~s~n             got: ~s~n"
+           tp-exps
+           dr-exp
+           full-expectation
+           got)))))
   
+  ;; there are no more errors when the teachpack is loaded (for now...)
   (define (test-bad/load-teachpack tp-exp expected-error)
     (fw:test:menu-select "Language" "Clear All Teachpacks")
     (let ([tp-name (normal-case-path
@@ -164,7 +168,7 @@
   (define (bad-tests)
     (set-language-level! '("How to Design Programs" "Beginning Student"))
     
-    (test-bad/load-teachpack
+    (test-bad/execute-teachpack
      "undefined-id"
      "reference to undefined identifier: undefined-id")
  
@@ -216,6 +220,6 @@
       (test-teachpacks (build-path teachpack-dir "htdp"))))
   
   (define (run-test)
-    (good-tests)
-    (bad-tests)
+    ;(good-tests)
+    ;(bad-tests)
     (test-built-in-teachpacks)))

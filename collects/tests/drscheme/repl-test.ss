@@ -503,7 +503,7 @@
                [start-line (and source-location-in-message
                                 (number->string (+ 1 (loc-line (car source-location)))))]
                [start-col (and source-location-in-message
-                               (number->string (+ 1 (loc-col (car source-location)))))]
+                               (number->string (loc-col (car source-location))))]
 	       [formatted-execute-answer
 		(let* ([w/backtrace
 			(if (and (test-has-backtrace? in-vector)
