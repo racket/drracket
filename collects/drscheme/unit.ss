@@ -57,7 +57,11 @@
 	       (make-object mred:menu-item%
 		 (format "Search in Help Desk for \"~a\"" str)
 		 menu
-		 (lambda x (drscheme:help-desk:help-desk str #f 'keyword+index 'contains))))))))))
+		 (lambda x (drscheme:help-desk:help-desk str #f 'keyword+index 'contains)))
+	       (make-object mred:menu-item%
+		 (format "Exact lucky search in Help Desk for \"~a\"" str)
+		 menu
+		 (lambda x (drscheme:help-desk:help-desk str #t 'keyword+index 'exact))))))))))
 
   (define (get-fraction-from-user)
     (let* ([dlg (make-object mred:dialog% "Enter Fraction")]
