@@ -122,7 +122,8 @@
                       (language-url #f)
                       (documentation-reference #f)
                       (reader (λ (src port)
-				(let ([v (read-syntax src port)])
+				(let ([v (parameterize ([read-accept-reader #t])
+					   (read-syntax src port))])
                                   (if (eof-object? v)
 				      v
 				      (namespace-syntax-introduce v))))))
