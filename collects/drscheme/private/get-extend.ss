@@ -50,7 +50,8 @@
       
       (define (get-base-tab%)
         (drscheme:debug:test-coverage-tab-mixin
-         drscheme:unit:tab%))
+         (drscheme:debug:profile-tab-mixin
+          drscheme:unit:tab%)))
       
       (define-values (extend-tab get-tab) (make-extender get-base-tab% 'tab%))
 
@@ -75,8 +76,7 @@
       
       (define (get-base-interactions-text%)
         (drscheme:debug:test-coverage-interactions-text-mixin
-         (drscheme:debug:profile-interactions-text-mixin
-          drscheme:rep:text%)))
+         drscheme:rep:text%))
 
       (define-values (extend-interactions-text get-interactions-text)
         (make-extender get-base-interactions-text% 'interactions-text%))

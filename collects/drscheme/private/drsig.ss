@@ -48,7 +48,7 @@
      hide-backtrace-window
      
      profile-definitions-text-mixin
-     profile-interactions-text-mixin
+     profile-tab-mixin
      profile-unit-frame-mixin
      profiling-enabled
 

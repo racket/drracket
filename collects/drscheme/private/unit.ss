@@ -832,6 +832,7 @@ module browser threading seems wrong.
 
       (define tab<%>
         (interface ()
+          get-frame
           get-defs
           get-ints
           get-visible-defs
@@ -857,6 +858,7 @@ module browser threading seems wrong.
           ;; the interactions editor should be invariant.
           (define/public (set-ints i) (set! ints i)) 
           
+          (define/public (get-frame) frame)
           (define/public (get-defs) defs)
           (define/public (get-ints) ints)
           (define/public (get-visible-defs) visible-defs)

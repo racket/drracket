@@ -106,6 +106,98 @@
    "DrScheme"
    99)
   
+  (when 'eli-bday?
+    (let ()
+      (define main-size 260)
+      (define pi (atan 0 -1))
+      
+      (define eli (make-object bitmap% (build-path (collection-path "icons") "eli-purple.jpg")))
+      (define bitmap (make-object bitmap% main-size main-size))
+      (define bdc (make-object bitmap-dc% bitmap))
+      
+      (define outer-color (send the-color-database find-color "darkorange"))
+      (define inner-color (send the-color-database find-color "green"))
+      (define omega-str "λ (x) (x x)) (λ (x) (x x))) ((")
+      (define hebrew-str "אין סופיות אין סופיות ")
+      
+      (define (draw-letter dc cx cy angle radius letter color)
+        (let ([x (+ cx (* (cos angle) radius))]
+              [y (- cy (* (sin angle) radius))])
+          (send bdc set-text-foreground color)
+          (send dc draw-text letter x y #f 0 (- angle (/ pi 2)))))
+      
+      (define (draw-single-loop str dc offset cx cy radius font-size color)
+        (send dc set-font (send the-font-list find-or-create-font font-size 'modern))
+        (let loop ([i (string-length str)])
+          (unless (zero? i)
+            (draw-letter dc 
+                         cx 
+                         cy 
+                         (normalize-angle
+                          (+ (- (* 2 pi) (* (* 2 pi) (/ (- i 1) (string-length str))))
+                             (/ pi 2)
+                             offset))
+                         radius
+                         (string (string-ref str (- i 1)))
+                         color)
+            (loop (- i 1)))))
+      
+      (define (normalize-angle angle)
+        (cond
+          [(<= 0 angle (* 2 pi)) angle]
+          [(< angle 0) (normalize-angle (+ angle (* 2 pi)))]
+          [else (normalize-angle (- angle (* 2 pi)))]))
+      
+      (define splash-canvas ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-canvas)))
+      (define (draw-single-step dc offset)
+        (send bdc draw-bitmap eli 0 0)
+        (draw-single-loop omega-str bdc offset (/ main-size 2) (/ main-size 2) 120 32 outer-color)
+        (draw-single-loop hebrew-str bdc (- (* 2 pi) offset) (/ main-size 2) (/ main-size 2) 70 20 inner-color)
+        (send splash-canvas on-paint))
+      
+      (define (eli-paint dc)
+        (send dc draw-bitmap bitmap 0 0))
+      (define (eli-event evt)
+        (cond
+          [(send evt leaving?)
+           ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-paint-callback) orig-paint)
+           (send splash-canvas refresh)
+           (when draw-thread
+             (kill-thread draw-thread)
+             (set! draw-thread #f))]
+          [(send evt entering?)
+           ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-paint-callback) eli-paint)
+           (send splash-canvas refresh)
+           (unless draw-thread
+             (start-thread))]))
+      
+      (define splash-eventspace ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-eventspace)))
+      (define draw-next-state
+        (let ([o 0])
+          (lambda ()
+            (parameterize ([current-eventspace splash-eventspace])
+              (queue-callback (λ () 
+                                (draw-single-step bdc o))))
+            (let ([next (- o (/ pi 30))])
+              (set! o (if (< next 0)
+                          (+ next (* 2 pi))
+                          next))))))
+      
+      (define draw-thread #f)
+      (define (start-thread)
+        (set! draw-thread
+              (thread
+               (λ ()
+                 (let loop ()
+                   (draw-next-state)
+                   (sleep 1/15)
+                   (loop))))))
+      (define orig-paint ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-paint-callback)))
+      
+      (draw-next-state)
+      ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-event-callback) eli-event)
+      (send splash-canvas refresh)))
+  
   (when (getenv "PLTDRBREAK")
     (printf "PLTDRBREAK: creating break frame\n")
     (let ([to-break (eventspace-handler-thread (current-eventspace))])
