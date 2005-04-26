@@ -1167,8 +1167,8 @@
 		  reader-specs))])))))
 
       (define read-syntax/namespace-introduce
-        (opt-lambda (source-name-v [input-port (current-input-port)] [offset-list (list 0 0 0)])
-          (let ([v (read-syntax source-name-v input-port offset-list)])
+        (opt-lambda (source-name-v [input-port (current-input-port)])
+          (let ([v (read-syntax source-name-v input-port)])
             (if (syntax? v)
                 (namespace-syntax-introduce v)
                 v))))
