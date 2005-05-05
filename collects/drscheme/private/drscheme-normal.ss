@@ -1,7 +1,8 @@
 
 (module drscheme-normal mzscheme
   (require (lib "mred.ss" "mred")
-	   (lib "class.ss"))
+	   (lib "class.ss")
+           (lib "bday.ss" "framework" "private"))
   
   ;; this used to be done by mred, but
   ;; since drscheme uses the -Z flag now,
@@ -106,7 +107,7 @@
    "DrScheme"
    99)
   
-  (when 'eli-bday?
+  (when (or (eb-bday?) 'eli-bday?)
     (let ()
       (define main-size 260)
       (define pi (atan 0 -1))
@@ -152,7 +153,7 @@
       (define (draw-single-step dc offset)
         (send bdc draw-bitmap eli 0 0)
         (draw-single-loop omega-str bdc offset (/ main-size 2) (/ main-size 2) 120 32 outer-color)
-        (draw-single-loop hebrew-str bdc (- (* 2 pi) offset) (/ main-size 2) (/ main-size 2) 70 20 inner-color)
+        (draw-single-loop hebrew-str bdc (+ (- (* 2 pi) offset) (* 2 pi)) (/ main-size 2) (/ main-size 2) 70 20 inner-color)
         (send splash-canvas on-paint))
       
       (define (eli-paint dc)
@@ -184,8 +185,8 @@
                           next))))))
       
       (define draw-thread #f)
-      (define (start-thread)
-        (set! draw-thread
+      (define (start-thread)        
+        '(set! draw-thread
               (thread
                (λ ()
                  (let loop ()

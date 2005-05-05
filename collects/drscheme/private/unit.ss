@@ -8,8 +8,8 @@ tab panels new behavior:
 
 tab panels todo:
   - changing tabs needs to update all kinds of things, based on new context<%> interface setup
-  - profiling info needs to be per-tab
-
+  - need to update running when switching tabs ...
+  
 module browser threading seems wrong.
 
 |#
@@ -831,7 +831,7 @@ module browser threading seems wrong.
       
 
       (define tab<%>
-        (interface ()
+        (interface (drscheme:rep:context<%>)
           get-frame
           get-defs
           get-ints
@@ -842,7 +842,9 @@ module browser threading seems wrong.
           set-i
           break-callback
           is-current-tab?
-          get-enabled))
+          get-enabled
+          on-close
+          can-close?))
       
       (define tab%
         (class* object% (drscheme:rep:context<%> tab<%>)
@@ -888,6 +890,15 @@ module browser threading seems wrong.
                   #f)))
           (define/public (needs-execution?)
             (send defs needs-execution?))
+          
+          (define/pubment (can-close?)
+            (and (send defs can-close?)
+                 (send ints can-close?)
+                 (inner #t can-close?)))
+          (define/pubment (on-close)
+            (send defs on-close)
+            (send ints on-close)
+            (inner (void) on-close))
           
           ;; this should really do something local to the tab, but
           ;; for now it doesn't.
@@ -945,10 +956,10 @@ module browser threading seems wrong.
             (set! thread-to-break-box (make-weak-box thd))
             (set! custodian-to-kill-box (make-weak-box cust)))
           
-          (define/public (clear-annotations)
+          (define/pubment (clear-annotations)
+            (inner (void) clear-annotations)
             (send ints reset-highlighting))
           
-          ;; need to update running when switching tabs ...
           (define/public (update-running b?) (send frame update-running b?))
           
           (define/public (is-current-tab?) (eq? this (send frame get-current-tab)))
@@ -961,14 +972,20 @@ module browser threading seems wrong.
         enable-evaluation-in-tab)
       
       (define -frame<%>
-        (interface ()
+        (interface (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
           get-special-menu
           get-interactions-text
           get-definitions-text
           get-interactions-canvas
           get-definitions-canvas
+          get-button-panel
           execute-callback
-          open-in-new-tab))
+          get-current-tab
+          open-in-new-tab
+          on-tab-change
+          enable-evaluation
+          disable-evaluation
+          get-definitions/interactions-panel-parent))
       
       (define frame-mixin
         (mixin (drscheme:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:open-here<%>)
@@ -2005,16 +2022,11 @@ module browser threading seems wrong.
                           (loop (cdr l-tabs))))]))]))
           
           (define/private (close-tab tab)
-            (let ([close-editor
-                   (λ (ed)
-                     (cond
-                       [(send ed can-close?)
-                        (send ed on-close)
-                        #t]
-                       [else
-                        #f]))])
-              (and (close-editor (send tab get-defs))
-                   (close-editor (send tab get-ints)))))
+            (cond
+              [(send tab can-close?)
+               (send tab on-close)
+               #t]
+              [else #f]))
           
           (define/public (open-in-new-tab filename)
             (create-new-tab)
@@ -2474,11 +2486,15 @@ module browser threading seems wrong.
               (new menu:can-restore-menu-item%
                    (label (string-constant clear-error-highlight-menu-item-label))
                    (parent scheme-menu)
-                   (callback (λ (_1 _2) (drscheme:rep:reset-error-ranges)))
+                   (callback
+                    (λ (_1 _2) 
+                      (let ([ints (send (get-current-tab) get-ints)])
+                        (send ints reset-error-ranges))))
                    (help-string (string-constant clear-error-highlight-item-help-string))
                    (demand-callback
                     (λ (item)
-                      (send item enable (drscheme:rep:get-error-ranges)))))
+                      (let ([ints (send (get-current-tab) get-ints)])
+                        (send item enable (send ints get-error-ranges))))))
               (make-object separator-menu-item% scheme-menu)
               (make-object menu:can-restore-menu-item%
                 (string-constant create-executable-menu-item-label)

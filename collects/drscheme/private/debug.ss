@@ -2,10 +2,7 @@
 
 profile todo:
   - use origin fields
-
-clearing the test coverage should go thru the tab, not the frame.
-
-clearing annotations in profiler broken (needs tabs)
+  - sort out various ways of clearing out the profiling information
 
 |#
 
@@ -752,7 +749,7 @@ clearing annotations in profiler broken (needs tabs)
             (let ([tab (get-tab)])
               (when (send tab get-test-coverage-info-visible?)
                 (send tab clear-test-coverage-display)
-                (let ([it (send tab get-interactions-text)])
+                (let ([it (send tab get-ints)])
                   (when (is-a? it test-coverage-interactions-text<%>)
                     (send it set-test-coverage-info #f))))))
           
@@ -780,9 +777,6 @@ clearing annotations in profiler broken (needs tabs)
           
           (super-new)))
       
-      ;(define test-covered-color (send the-color-database find-color "lime green"))
-      ;(define test-not-covered-color (send the-color-database find-color "pink"))
-
       (define test-covered-style-delta (make-object style-delta%))
       (send test-covered-style-delta set-delta-foreground "forest green")
       
@@ -963,8 +957,8 @@ clearing annotations in profiler broken (needs tabs)
                                (when locked? (send txt lock #t)))
                              (send txt end-edit-sequence)))))))))
 
-          (define/override (clear-annotations)
-            (super clear-annotations)
+          (define/augment (clear-annotations)
+            (inner (void) clear-annotations)
             (clear-test-coverage-display))
           
           (super-new)))
@@ -1104,91 +1098,105 @@ clearing annotations in profiler broken (needs tabs)
       (define (extract-total-time infos)
         (let ([sum 0])
           (for-each
-           (λ (val)
-             (set! sum (+ sum (prof-info-time val))))
+           (λ (val) (set! sum (+ sum (prof-info-time val))))
            infos)
           sum))
       
       ;; profile-definitions-mixin : mixin
       (define profile-definitions-text-mixin
         (mixin ((class->interface text%) drscheme:unit:definitions-text<%>) ()
-          (inherit get-canvas)
+          (inherit get-canvas get-tab)
           
-          (define/private (clear-profiling?)
-            (eq? (message-box (string-constant drscheme)
-                              (string-constant profiling-clear?)
-                              (send (get-canvas) get-top-level-window)
-                              '(yes-no))
-                 'yes))
-
           (define/augment (can-insert? x y)
             (and (inner #t can-insert? x y)
-                 (let ([canvas (get-canvas)])
-                   (or (not canvas)
-                       (let ([frame (send canvas get-top-level-window)])
-                         (or (not (send frame get-profile-info-visible?))
-                             (clear-profiling?)))))))
+                 (can-reset-profile?)))
           
           (define/augment (can-delete? x y)
             (and (inner #t can-delete? x y)
-                 (let ([canvas (get-canvas)])
-                   (or (not canvas)
-                       (let ([frame (send canvas get-top-level-window)])
-                         (or (not (send frame get-profile-info-visible?))
-                             (clear-profiling?)))))))
+                 (can-reset-profile?)))
           
           (define/augment (on-insert x y)
             (inner (void) on-insert x y)
-            (let ([canvas (get-canvas)])
-              (when canvas
-                (let ([frame (send canvas get-top-level-window)])
-                  (when (send frame get-profile-info-visible?)
-                    (send frame clear-profile-display)
-                    (send frame clear-profile-info))))))
+            (do-reset-profile))
           
           (define/augment (on-delete x y)
             (inner (void) on-delete x y)
+            (do-reset-profile))
+          
+          (define/private (can-reset-profile?)
             (let ([canvas (get-canvas)])
-              (when canvas
-                (let ([frame (send canvas get-top-level-window)])
-                  (when (send frame get-profile-info-visible?)
-                    (send frame clear-profile-display)
-                    (send frame clear-profile-info))))))
+              (or (not canvas)
+                  (let ([frame (send canvas get-top-level-window)])
+                    (or (not (send frame get-profile-info-visible?))
+                        (eq? (message-box (string-constant drscheme)
+                                          (string-constant profiling-clear?)
+                                          frame
+                                          '(yes-no))
+                             'yes))))))
+
+          (define/private (do-reset-profile)
+            (send (get-tab) reset-profile))
 
           (super-new)))
 
       (define profile-interactions-tab<%>
         (interface ()
-          get-profile-info
           add-profile-info))
         
       (define-local-member-name 
-        toggle-profile-visible
-        clear-profile-display)
+        
+        ;; tab methods
+        reset-profile  ;; erases profile display & information
+        hide-profile  ;; hides profiling info, but it is still here to be shown again
+        show-profile  ;; shows the profile info, if there is any to show
+        refresh-profile ;; shows current info in profile window
+        get-profile-info-text
+        can-show-profile?
+        get-sort-mode ;; indicates if the results are currently shown sorted by time, or not
+        set-sort-mode ;; updates the sort mode flag (only called by the gui control callback)
+        
+        ;; frame methods
+        hide-profile-gui
+        show-profile-gui
+        
+        ;; frame and tab methods
+        get-profile-info-visible?
+            ; on frame, indicates if the gui stuff shows up currently
+            ; on tab, indicates if the user has asked for the gui to show up.
+        )
       
       (define profile-tab-mixin
         (mixin (drscheme:unit:tab<%>) (profile-interactions-tab<%>)
-          (inherit get-frame)
+          (define profile-info-visible? #f)
+          (define/public (get-profile-info-visible?) profile-info-visible?)
+          
+          (define sort-mode (preferences:get 'drscheme:profile-how-to-count))
+          (define/public (get-sort-mode) sort-mode)
+          (define/public (set-sort-mode mode) (set! sort-mode mode))
+          
+          (inherit get-frame is-current-tab?)
           ;; profile-info : (listof hashtable[symbol -o> prof-info])
           (define profile-info '())
           (define/public (add-profile-info ht) (set! profile-info (cons ht profile-info)))
-          (define/public (get-profile-info) profile-info)
 
-          ;; clear-annotations
-          (define/override (clear-annotations)
-            (super clear-annotations)
-            (send (get-frame) clear-profile-display))
+          (define/public (show-profile)
+            (unless profile-info-visible?
+              (set! profile-info-visible? #t)
+              (send (get-frame) show-profile-gui)))
           
-          ;; clear-profile-info : -> void
-          ;; clears the profiling data, but doesn't change the GUI
-          (define/public (clear-profile-info)
-            (for-each (λ (ht)
-                        (hash-table-for-each
-                         ht
-                         (λ (k info)
-                           (set-prof-info-num! info 0)
-                           (set-prof-info-time! info 0))))
-                      profile-info))
+          (define/public (hide-profile)
+            (when profile-info-visible?
+              (set! profile-info-visible? #f)
+              (send profile-info-text clear-profile-display)
+              (when (is-current-tab?)
+                (send (get-frame) hide-profile-gui))))
+          
+          (define/public (reset-profile)
+            (hide-profile)
+            (set! profile-info '()))
+          
+          (define/public (refresh-profile) 
+            (send profile-info-text refresh-profile profile-info))
           
           ;; can-show-profile? : -> boolean
           ;; indicates if there is any profiling information to be shown.
@@ -1204,15 +1212,12 @@ clearing annotations in profiler broken (needs tabs)
                profile-info)
               #f))
           
-          ;; execute-callback : -> void
-          (define/augment (on-execute-callback)
-            (set! profile-info (make-hash-table))
-            (inner (void) on-execute-callback))
-          
           (define profile-info-text (new profile-text% (tab this)))
-
-          (define/public (refresh-profile) 
-            '(send profile-info-text refresh-profile profile-infos))
+          (define/public (get-profile-info-text) profile-info-text)
+          
+          (define/augment (clear-annotations)
+            (inner (void) clear-annotations)
+            (reset-profile))
           
           (super-new)))
       
@@ -1223,17 +1228,6 @@ clearing annotations in profiler broken (needs tabs)
 
           (inherit get-interactions-text get-current-tab)
           
-          ;; clear-profile-display : -> void
-          ;; clears the profiling information from the GUI.
-          (define/public (clear-profile-display)
-            (when profile-info-visible?
-              (set! profile-info-visible? #f)
-	      (when profile-gui-constructed?
-		(send profile-info-outer-panel change-children
-		      (λ (l)
-			(remq profile-info-panel l)))
-		(update-shown))))
-
           ;; update-shown : -> void
           ;; updates the state of the profile item's show menu
           (define/override (update-shown)
@@ -1253,7 +1247,7 @@ clearing annotations in profiler broken (needs tabs)
                     (parent show-menu)
                     (callback
                      (λ (x y)
-                       (toggle-profile-visible))))))
+                       (show-profile-menu-callback))))))
           
           (define show-profile-menu-item #f)
 	  (define profile-gui-constructed? #f)
@@ -1270,31 +1264,63 @@ clearing annotations in profiler broken (needs tabs)
                    parent))
             (make-object % profile-info-outer-panel))
           
-          ;; toggle-profile-visible : -> void
-          (define/public (toggle-profile-visible)
+          (define/private (show-profile-menu-callback)
             (cond
               [profile-info-visible?
-               '(clear-annotations)]
-              [(not profile-info-visible?)
-               (cond
-                 ['(can-show-profile?)
-                   (construct-profile-gui)
-                  '(clear-annotations)
-                  (set! profile-info-visible? #t)
-                  (send profile-info-outer-panel change-children
-                        (λ (l)
-                          (append l (list profile-info-panel))))
-                  (update-shown)]
-                 [else
-                  (message-box (string-constant drscheme)
-                               (string-constant profiling-no-information-available))])]))
+               (send (get-current-tab) hide-profile)]
+              [(send (get-current-tab) can-show-profile?)
+               (send (get-current-tab) show-profile)
+               (send (get-current-tab) refresh-profile)]
+              [else
+               (message-box (string-constant drscheme)
+                            (string-constant profiling-no-information-available))]))
+          
+          (define/public (hide-profile-gui)
+            (when profile-gui-constructed?
+              (when profile-info-visible?
+                (send profile-info-outer-panel change-children
+                      (λ (l)
+                        (remq profile-info-panel l)))
+                (set! profile-info-visible? #f)
+                (update-shown))))
+          
+          (define/public (show-profile-gui)
+            (unless profile-info-visible?
+              (construct-profile-gui)
+              (send profile-info-outer-panel change-children
+                    (λ (l)
+                      (append (remq profile-info-panel l)
+                              (list profile-info-panel))))
+              (set! profile-info-visible? #t)
+              (send profile-info-editor-canvas set-editor (send (get-current-tab) get-profile-info-text))
+              (send (get-current-tab) refresh-profile)
+              (update-shown)))
           
           (field (profile-info-visible? #f))
+          
+          (define/augment (on-tab-change from-tab to-tab)
+            (inner (void) on-tab-change from-tab to-tab)
+            (cond
+              [(and (not profile-info-visible?)
+                    (send to-tab get-profile-info-visible?))
+               (show-profile-gui)]
+              [(and profile-info-visible?
+                    (not (send to-tab get-profile-info-visible?)))
+               (hide-profile-gui)])
+            (when profile-choice
+              (send profile-choice set-selection
+                    (profile-mode->selection
+                     (send to-tab get-sort-mode))))
+            (when profile-info-editor-canvas
+              (send profile-info-editor-canvas set-editor 
+                    (and (send to-tab can-show-profile?)
+                         (send to-tab get-profile-info-text)))))
           
           (super-new)
           
 	  (define profile-info-panel #f)
           (define profile-info-editor-canvas #f)
+          (define profile-choice #f)
           
 	  (inherit begin-container-sequence end-container-sequence)
 	  (define/private (construct-profile-gui)
@@ -1308,22 +1334,24 @@ clearing annotations in profiler broken (needs tabs)
 					     (stretchable-height #f))))
 		(define profile-left-side (instantiate vertical-panel% (profile-info-panel)))
 		(define _3
-                  (set! profile-info-editor-canvas (new canvas:basic%)))
+                  (set! profile-info-editor-canvas (new canvas:basic% 
+                                                        (parent profile-info-panel)
+                                                        (editor (send (get-current-tab) get-profile-info-text)))))
 		(define profile-message (instantiate message% ()
 					  (label (string-constant profiling))
 					  (parent profile-left-side)))
-		(define profile-choice (instantiate radio-box% ()
+		(define _4
+                  (set! profile-choice (instantiate radio-box% ()
 					 (label #f)
 					 (parent profile-left-side)
 					 (callback
 					  (λ (x y)
-					    (preferences:set 'drscheme:profile-how-to-count
-							     (case (send profile-choice get-selection)
-							       [(0) 'time]
-							       [(1) 'count]))
-					    (send (get-current-tab) refresh-profile)))
+                                            (let ([mode (profile-selection->mode (send profile-choice get-selection))])
+                                              (preferences:set 'drscheme:profile-how-to-count mode)
+                                              (send (get-current-tab) set-sort-mode mode)
+                                              (send (get-current-tab) refresh-profile))))
 					 (choices (list (string-constant profiling-time)
-							(string-constant profiling-number)))))
+							(string-constant profiling-number))))))
 		(define _1
 		  (send profile-choice set-selection
 			(case (preferences:get 'drscheme:profile-how-to-count)
@@ -1336,26 +1364,24 @@ clearing annotations in profiler broken (needs tabs)
 		    (callback
 		     (λ (x y)
 		       (send (get-current-tab) refresh-profile)))))
-		(define clear-profile-button 
+		(define hide-profile-button 
 		  (instantiate button% ()
-		    (label (string-constant profiling-clear))
+		    (label (string-constant profiling-hide-profile))
 		    (parent profile-left-side)
 		    (callback
 		     (λ (x y)
-		       (clear-profile-display)
-		       (send (get-current-tab) clear-profile-info)))))
-		(send profile-choice set-selection (case (preferences:get 'drscheme:profile-how-to-count)
-						     [(time) 0]
-						     [(count) 1]))
+		       (send (get-current-tab) hide-profile)))))
+		(send profile-choice set-selection 
+                      (profile-mode->selection (preferences:get 'drscheme:profile-how-to-count)))
 		
 		(send profile-left-side stretchable-width #f)
 		
 		(let ([wid (max (send update-profile-button get-width)
-				(send clear-profile-button get-width)
+				(send hide-profile-button get-width)
 				(send profile-choice get-width)
 				(send profile-message get-width))])
 		  (send update-profile-button min-width wid)
-		  (send clear-profile-button min-width wid)
+		  (send hide-profile-button min-width wid)
 		  (send profile-choice min-width wid))
 		(send profile-left-side set-alignment 'left 'center)
 		
@@ -1366,6 +1392,16 @@ clearing annotations in profiler broken (needs tabs)
 		      (λ (l)
 			(remq profile-info-panel l))))
 	      (end-container-sequence)))))
+      
+      (define (profile-selection->mode sel)
+        (case sel
+          [(0) 'time]
+          [(1) 'count]))
+      
+      (define (profile-mode->selection mode)
+        (case mode
+          [(time) 0]
+          [(count) 1]))
       
       ;; profile-text% : extends text:basic%
       ;; this class keeps track of a single thread's
@@ -1418,14 +1454,14 @@ clearing annotations in profiler broken (needs tabs)
                               ht
                               (λ (key val)
                                 (when (any-info? val)
-                                  (set! infos (cons '(copy-info val) infos))))))
+                                  (set! infos (cons (copy-prof-info val) infos))))))
                            (loop (cdr profile-info))]))]
 
                    ;; each editor that gets some highlighting is put
                    ;; into this table and an edit sequence is begun for it.
                    ;; after all ranges are updated, the edit sequences are all closed.
                    [in-edit-sequence (make-hash-table)]
-                   [thnk void]
+                   [clear-highlight void]
                    [max-value (extract-maximum infos)]
                    [total-time (extract-total-time infos)]
                    [show-highlight
@@ -1447,8 +1483,8 @@ clearing annotations in profiler broken (needs tabs)
                                              (prof-info-num info))
                                          max-value)]
                                  [clr (send src highlight-range (- pos 1) (+ pos span -1) color)])
-                            (let ([old-thnk thnk])
-                              (set! thnk
+                            (let ([old-thnk clear-highlight])
+                              (set! clear-highlight
                                     (λ ()
                                       (clr)
                                       (old-thnk))))))))]
@@ -1558,7 +1594,7 @@ clearing annotations in profiler broken (needs tabs)
                       (hash-table-for-each
                        in-edit-sequence
                        (λ (key val) (send key begin-edit-sequence)))
-                      (thnk)
+                      (clear-highlight)
                       (hash-table-for-each
                        in-edit-sequence
                        (λ (key val) (send key end-edit-sequence)))

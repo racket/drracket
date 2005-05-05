@@ -40,6 +40,30 @@ If the namespace does not, they are colored the unbound color.
   (define jump-to-binding (string-constant cs-jump-to-binding))
   (define jump-to-definition (string-constant cs-jump-to-definition))
   
+  (define-local-member-name
+    syncheck:init-arrows
+    syncheck:clear-arrows
+    syncheck:add-menu
+    syncheck:add-arrow
+    syncheck:add-tail-arrow
+    syncheck:add-mouse-over-status
+    syncheck:add-jump-to-definition
+    syncheck:sort-bindings-table
+    syncheck:get-bindings-table
+    syncheck:jump-to-next-bound-occurrence
+    syncheck:jump-to-binding-occurrence
+    syncheck:jump-to-definition
+    
+    syncheck:clear-highlighting
+    syncheck:button-callback
+    syncheck:add-to-cleanup-texts
+    syncheck:error-report-visible?
+    syncheck:clear-error-message
+    
+    hide-error-report
+    get-error-report-text
+    get-error-report-visible?)
+  
   (define tool@
     (unit/sig drscheme:tool-exports^
       (import drscheme:tool^)
@@ -102,7 +126,7 @@ If the namespace does not, they are colored the unbound color.
           syncheck:jump-to-next-bound-occurrence
           syncheck:jump-to-binding-occurrence
           syncheck:jump-to-definition))
-
+      
       ;; clearing-text-mixin : (mixin text%)
       ;; overrides methods that make sure the arrows go away appropriately.
       ;; adds a begin/end-edit-sequence to the insertion and deletion
@@ -130,14 +154,13 @@ If the namespace does not, they are colored the unbound color.
 
           (define/private (clean-up)
             (let ([st (find-syncheck-text this)])
-              (when st
-                (let ([can (send st get-canvas)])
-                  (when can
-                    (let ([fr (send can get-top-level-window)])
-                      (send fr syncheck:clear-highlighting)))))))
+              (when (and st
+                         (is-a? st drscheme:unit:definitions-text<%>))
+                (let ([tab (send st get-tab)])
+                  (send tab syncheck:clear-error-message)
+                  (send tab syncheck:clear-highlighting)))))
           
 	  (super-new)))
-      
       
       (define make-graphics-text%
         (λ (super%)
@@ -759,25 +782,40 @@ If the namespace does not, they are colored the unbound color.
       
       (define syncheck-frame<%>
         (interface ()
-          syncheck:clear-highlighting
           syncheck:button-callback
-          syncheck:add-to-cleanup-texts
           syncheck:error-report-visible?))
       
       (define tab-mixin
+
         (mixin (drscheme:unit:tab<%>) ()
-          (inherit is-current-tab?)
-          (define error-report-visible #f)
+          (inherit is-current-tab? get-defs get-frame)
+          
+          (define report-error-text (new (fw:text:ports-mixin fw:scheme:text%)))
+          (define error-report-visible? #f)
+          (send report-error-text auto-wrap #t)
+          (send report-error-text set-autowrap-bitmap #f)
+          (send report-error-text lock #t)
+          
+          (define/public (get-error-report-text) report-error-text)
+          (define/public (get-error-report-visible?) error-report-visible?)
+          (define/public (turn-on-error-report) (set! error-report-visible? #t))
           (define/augment (clear-annotations)
             (inner (void) clear-annotations)
-            (set! error-report-visible? #f)
-            (when (is-current-tab?)
-              (send frame hide-error-report))
+            (syncheck:clear-error-message)
             (syncheck:clear-highlighting))
+          
+          (define/public (syncheck:clear-error-message)
+            (set! error-report-visible? #f)
+            (send report-error-text clear-output-ports)
+            (send report-error-text lock #f)
+            (send report-error-text delete/io 0 (send report-error-text last-position))
+            (send report-error-text lock #t)
+            (when (is-current-tab?)
+              (send (get-frame) hide-error-report)))
           
           (define cleanup-texts '())
           (define/public (syncheck:clear-highlighting)
-            (let* ([definitions (get-definitions-text)]
+            (let* ([definitions (get-defs)]
                    [locked? (send definitions is-locked?)])
               (send definitions begin-edit-sequence #f)
               (send definitions lock #f)
@@ -788,24 +826,39 @@ If the namespace does not, they are colored the unbound color.
               (set! cleanup-texts '())
               (send definitions lock locked?)
               (send definitions end-edit-sequence)))
+        
+          (define/augment (can-close?)
+	    (and (send report-error-text can-close?)
+                 (inner #t can-close?)))
+          
+          (define/augment (on-close)
+	    (send report-error-text on-close)
+	    (inner (void) on-close))
           
           ;; syncheck:add-to-cleanup-texts : (is-a?/c text%) -> void
           (define/public (syncheck:add-to-cleanup-texts txt)
             (unless (memq txt cleanup-texts)
               (send txt freeze-colorer)
-              (set! cleanup-texts (cons txt cleanup-texts))))))
+              (set! cleanup-texts (cons txt cleanup-texts))))
+          
+          (super-new)))
       
-      (define (make-new-unit-frame% super%)
-        (class* super% (syncheck-frame<%>)
+      (define unit-frame-mixin
+        (mixin (drscheme:unit:frame<%>) (syncheck-frame<%>)
           
           (inherit get-button-panel 
                    get-definitions-canvas 
                    get-definitions-text
                    get-interactions-text
-                   get-directory)
+                   get-current-tab)
           
-          (define button-visible? #t)
-
+          (define/augment (on-tab-change old-tab new-tab)
+            (inner (void) on-tab-change old-tab new-tab)
+            (if (send new-tab get-error-report-visible?)
+                (show-error-report)
+                (hide-error-report))
+            (send report-error-canvas set-editor (send new-tab get-error-report-text)))
+          
           (define/augment (enable-evaluation)
             (send check-syntax-button enable #t)
             (inner (void) enable-evaluation))
@@ -814,16 +867,9 @@ If the namespace does not, they are colored the unbound color.
             (send check-syntax-button enable #f)
             (inner (void) disable-evaluation))
           
-          (define/augment (on-close)
-	    (send report-error-text on-close)
-	    (inner (void) on-close))
-
           (define report-error-parent-panel 'uninitialized-report-error-parent-panel)
           (define report-error-panel 'uninitialized-report-error-panel)
-          (define report-error-text (new (fw:text:ports-mixin fw:scheme:text%)))
-          (send report-error-text auto-wrap #t)
-          (send report-error-text set-autowrap-bitmap #f)
-          (send report-error-text lock #t)
+          (define report-error-canvas 'uninitialized-report-error-editor-canvas)
           (define/override (get-definitions/interactions-panel-parent)
             (set! report-error-parent-panel
                   (make-object vertical-panel%
@@ -841,11 +887,11 @@ If the namespace does not, they are colored the unbound color.
                                    (alignment '(left center)))])
               (make-object message% (string-constant check-syntax) message-panel)
               (make-object message% (string-constant cs-error-message) message-panel))
-            (let ([editor-canvas (make-object editor-canvas% 
-                                   report-error-panel
-                                   report-error-text
-                                   '(no-hscroll))])
-              (send editor-canvas set-line-count 3))
+            (set! report-error-canvas (new editor-canvas% 
+                                           (parent report-error-panel)
+                                           (editor (send (get-current-tab) get-error-report-text))
+                                           (line-count 3)
+                                           (style '(no-hscroll))))
             (instantiate button% () 
               (label (string-constant hide))
               (parent report-error-panel)
@@ -853,27 +899,22 @@ If the namespace does not, they are colored the unbound color.
               (stretchable-height #t))
             (make-object vertical-panel% report-error-parent-panel))
           
-          (define/public (syncheck:error-report-visible?)
-            (member report-error-panel (send report-error-parent-panel get-children)))
+          (define/public-final (syncheck:error-report-visible?)
+            (and (is-a? report-error-parent-panel area-container<%>)
+                 (member report-error-panel (send report-error-parent-panel get-children))))
           
-          (define/private (hide-error-report) 
-            (when (member report-error-panel (send report-error-parent-panel get-children))
+          (define/public (hide-error-report) 
+            (when (syncheck:error-report-visible?)
               (send report-error-parent-panel change-children
-                    (λ (l) (remq report-error-panel l))))
-            (send report-error-text lock #f)
-            (send report-error-text delete/io 0 (send report-error-text last-position))
-            (send report-error-text lock #t))
+                    (λ (l) (remq report-error-panel l)))))
           
           (define/private (show-error-report)
-            (unless (member report-error-panel (send report-error-parent-panel get-children))
+            (unless (syncheck:error-report-visible?)
               (send report-error-parent-panel change-children
                     (λ (l) (cons report-error-panel l)))))
           
           (define rest-panel 'uninitialized-root)
           (define super-root 'uninitialized-super-root)
-          (define docs-panel 'uninitialized-docs-panel)
-          (define docs-panel-visible? #f)
-          (define docs-messages 'uninitialized-docs-lines)
           (define/override (make-root-area-container % parent)
             (let* ([s-root (super make-root-area-container
                             vertical-panel%
@@ -881,62 +922,9 @@ If the namespace does not, they are colored the unbound color.
                    [r-root (make-object % s-root)])
               (set! super-root s-root)
               (set! rest-panel r-root)
-              (set! docs-panel (make-object vertical-panel% super-root))
-              (set! docs-messages null)
-              (send docs-panel stretchable-height #f)
-
-              (update-docs-visibility)
-              
               r-root))
 
-          (define/private (update-docs-visibility)
-            (send super-root change-children 
-                  (λ (l) 
-                    (let* ([first (if docs-panel-visible?
-                                      (list docs-panel)
-                                      null)]
-                           [snd (cons rest-panel first)])
-                      snd))))
-
-          (define/private (hide-docs-messages)
-            (when docs-panel-visible?
-              (set! docs-panel-visible? #f)
-              (update-docs-visibility)))
-          (define/private (set-docs-messages lines)
-            (when (< (length docs-messages) (length lines))
-              (set! docs-messages
-                    (append
-                     docs-messages
-                     (let loop ([n (- (length lines) (length docs-messages))])
-                       (cond
-                         [(zero? n) null]
-                         [else
-                          (let ([m (new message% 
-					[label ""] 
-					[parent docs-panel]
-					[font (send the-font-list find-or-create-font 
-						    (send normal-control-font get-point-size)
-						    'modern 'normal 'normal #f)])])
-                            (send m stretchable-width #t)
-                            (cons m (loop (- n 1))))])))))
-            (let ([to-be-shown
-                   (let loop ([lines lines]
-                              [docs-messages docs-messages])
-                     (cond
-                       [(null? lines) null]
-                       [else
-                        (send (car docs-messages) set-label (car lines))
-                        (cons (car docs-messages)
-                              (loop (cdr lines)
-                                    (cdr docs-messages)))]))])
-              (unless (= (length to-be-shown) (length (send docs-panel get-children)))
-                (send docs-panel change-children (λ (l) to-be-shown)))
-              (unless docs-panel-visible?
-                (set! docs-panel-visible? #t)
-                (update-docs-visibility))))
-          
-          (inherit set-breakables get-breakables reset-offer-kill
-                   open-status-line close-status-line update-status-line)
+          (inherit open-status-line close-status-line update-status-line)
           ;; syncheck:button-callback : (case-> (-> void) ((union #f syntax) -> void)
           ;; this is the only function that has any code running on the user's thread
           (define/public syncheck:button-callback
@@ -946,153 +934,122 @@ If the namespace does not, they are colored the unbound color.
                (when (send check-syntax-button is-enabled?)
                  (open-status-line 'drscheme:check-syntax)
                  (update-status-line 'drscheme:check-syntax status-init)
-                 (let-values ([(expanded-expression expansion-completed) (make-traversal)]
-                              [(old-break-thread old-custodian) (get-breakables)])
+                 (let-values ([(expanded-expression expansion-completed) (make-traversal)])
                    (let* ([definitions-text (get-definitions-text)]
                           [drs-eventspace (current-eventspace)]
-                          [the-tab (get-current-tab)]
-                          [user-namespace #f]
-                          [user-directory #f]
-                          [user-custodian #f]
-                          [normal-termination? #f]
-                          [cleanup
-                           (λ () ; =drs=
-                             (set-breakables old-break-thread old-custodian)
-                             (send the-tab enable-evaluation)
-                             (send definitions-text end-edit-sequence)
-                             (send report-error-text clear-output-ports)
-                             (close-status-line 'drscheme:check-syntax))]
-                          [kill-termination
-                           (λ ()
-                             (unless normal-termination?
-                               (parameterize ([current-eventspace drs-eventspace])
-                                 (queue-callback
-                                  (λ ()
-                                    (syncheck:clear-highlighting)
-                                    (cleanup)
-                                    (custodian-shutdown-all user-custodian))))))]
-                          [error-display-semaphore (make-semaphore 0)]
-                          [uncaught-exception-raised
-                           (λ () ;; =user=
-                             (set! normal-termination? #t)
-                             (parameterize ([current-eventspace drs-eventspace])
-                               (queue-callback
-                                (λ () ;;  =drs=
-                                  (yield error-display-semaphore) ;; let error display go first
-                                  (syncheck:clear-highlighting)
-                                  (cleanup)
-                                  (custodian-shutdown-all user-custodian)))))]
-                          [error-port (send report-error-text get-err-port)]
-                          [init-proc
-                           (λ () ; =user=
-                             (set-breakables (current-thread) (current-custodian))
-                             (set-directory definitions-text)
-                             (error-display-handler 
-                              (λ (msg exn) ;; =user=
-                                (parameterize ([current-eventspace drs-eventspace])
-                                  (queue-callback
-                                   (λ () ;; =drs=
-                                     (show-error-report))))
-                                
-                                (parameterize ([current-error-port error-port])
-                                  (drscheme:debug:show-error-and-highlight 
-                                   msg exn 
-                                   (λ (src-to-display cms) ;; =user=
-                                     (parameterize ([current-eventspace drs-eventspace])
-                                       (queue-callback
-                                        (λ () ;; =drs=
-                                          (send (get-interactions-text) highlight-errors src-to-display cms)))))))
-                                
-                                (semaphore-post error-display-semaphore))
-                              
-                              #;
-                              (begin
-                                (send* report-error-text
-                                  (begin-edit-sequence)
-                                  (lock #f)
-                                  (erase))
-                                
-                                (send report-error-text insert message)
-                                (when (exn:fail:syntax? exn)
-                                  (send report-error-text insert " in:")
-                                  (for-each (λ (stx) 
-                                              (send report-error-text insert
-                                                    (format " ~s" (syntax-object->datum stx))))
-                                            (exn:fail:syntax-exprs exn)))
-                                
-                                (send* report-error-text
-                                  (set-position 0 0)
-                                  (lock #t)
-                                  (end-edit-sequence))
-                                
-                                (show-error-report)))
-                                                      
-                             #;
-                             (parameterize ([current-eventspace drs-eventspace])
-                               (queue-callback
-                                (λ () ;; =drs=
-                                  
-                                  
-                                  (thread (λ () (report-error msg exn)))
-                                  ;; tell uncaught-expception-raised to cleanup
-                                  (semaphore-post error-display-semaphore))))
-                             
-                             (error-print-source-location #f) ; need to build code to render error first
-                             (current-exception-handler
-                              (let ([oh (current-exception-handler)])
-                                (λ (exn)
-                                  (uncaught-exception-raised)
-                                  (oh exn))))
-                             (update-status-line 'drscheme:check-syntax status-expanding-expression)
-                             (set! user-custodian (current-custodian))
-                             (set! user-directory (current-directory)) ;; set by set-directory above
-                             (set! user-namespace (current-namespace)))])
-                     (send the-tab disable-evaluation) ;; this locks the editor, so must be outside.
-                     (send definitions-text begin-edit-sequence #f)
-                     (with-lock/edit-sequence
-                      definitions-text
-                      (λ ()
-                        (clear-annotations)
-                        (reset-offer-kill)
-                        (send definitions-text syncheck:init-arrows)
-                        
-                        (drscheme:eval:expand-program
-                         (drscheme:language:make-text/pos definitions-text
-                                                          0
-                                                          (send definitions-text last-position))
-                         (send definitions-text get-next-settings)
-                         #t
-                         init-proc
-                         kill-termination
-                         (λ (sexp loop) ; =user=
-                           (cond
-                             [(eof-object? sexp)
-                              (set! normal-termination? #t)
-                              (parameterize ([current-eventspace drs-eventspace])
-                                (queue-callback
-                                 (λ () ; =drs=
-                                   (with-lock/edit-sequence
-                                    definitions-text
-                                    (λ ()
-                                      (expansion-completed user-namespace user-directory)
-                                      (send definitions-text syncheck:sort-bindings-table)))
-                                   (cleanup)
-                                   (custodian-shutdown-all user-custodian))))]
-                             [else
-                              (update-status-line 'drscheme:check-syntax status-eval-compile-time)
-                              (eval-compile-time-part-of-top-level sexp)
-                              (parameterize ([current-eventspace drs-eventspace])
-                                (queue-callback
-                                 (λ () ; =drs=
-                                   (with-lock/edit-sequence
-                                    definitions-text
-                                    (λ ()
-                                      (open-status-line 'drscheme:check-syntax)
-                                      (update-status-line 'drscheme:check-syntax status-coloring-program)
-                                      (expanded-expression user-namespace user-directory sexp jump-to-id)
-                                      (close-status-line 'drscheme:check-syntax))))))
-                              (update-status-line 'drscheme:check-syntax status-expanding-expression)
-                              (loop)]))))))))]))
+                          [the-tab (get-current-tab)])
+                     (let-values ([(old-break-thread old-custodian) (send the-tab get-breakables)])
+                       (let* ([user-namespace #f]
+                              [user-directory #f]
+                              [user-custodian #f]
+                              [normal-termination? #f]
+                              [cleanup
+                               (λ () ; =drs=
+                                 (send the-tab set-breakables old-break-thread old-custodian)
+                                 (send the-tab enable-evaluation)
+                                 (send definitions-text end-edit-sequence)
+                                 (close-status-line 'drscheme:check-syntax))]
+                              [kill-termination
+                               (λ ()
+                                 (unless normal-termination?
+                                   (parameterize ([current-eventspace drs-eventspace])
+                                     (queue-callback
+                                      (λ ()
+                                        (send the-tab syncheck:clear-highlighting)
+                                        (cleanup)
+                                        (custodian-shutdown-all user-custodian))))))]
+                              [error-display-semaphore (make-semaphore 0)]
+                              [uncaught-exception-raised
+                               (λ () ;; =user=
+                                 (set! normal-termination? #t)
+                                 (parameterize ([current-eventspace drs-eventspace])
+                                   (queue-callback
+                                    (λ () ;;  =drs=
+                                      (yield error-display-semaphore) ;; let error display go first
+                                      (send the-tab syncheck:clear-highlighting)
+                                      (cleanup)
+                                      (custodian-shutdown-all user-custodian)))))]
+                              [error-port (send (send the-tab get-error-report-text) get-err-port)]
+                              [init-proc
+                               (λ () ; =user=
+                                 (send the-tab set-breakables (current-thread) (current-custodian))
+                                 (set-directory definitions-text)
+                                 (error-display-handler 
+                                  (λ (msg exn) ;; =user=
+                                    (parameterize ([current-eventspace drs-eventspace])
+                                      (queue-callback
+                                       (λ () ;; =drs=
+                                         (send the-tab turn-on-error-report)
+                                         (when (eq? (get-current-tab) the-tab)
+                                           (show-error-report)))))
+                                    
+                                    (parameterize ([current-error-port error-port])
+                                      (drscheme:debug:show-error-and-highlight 
+                                       msg exn 
+                                       (λ (src-to-display cms) ;; =user=
+                                         (parameterize ([current-eventspace drs-eventspace])
+                                           (queue-callback
+                                            (λ () ;; =drs=
+                                              (send (send the-tab get-ints) highlight-errors src-to-display cms)))))))
+                                    
+                                    (semaphore-post error-display-semaphore)))
+                                 
+                                 (error-print-source-location #f) ; need to build code to render error first
+                                 (current-exception-handler
+                                  (let ([oh (current-exception-handler)])
+                                    (λ (exn)
+                                      (uncaught-exception-raised)
+                                      (oh exn))))
+                                 (update-status-line 'drscheme:check-syntax status-expanding-expression)
+                                 (set! user-custodian (current-custodian))
+                                 (set! user-directory (current-directory)) ;; set by set-directory above
+                                 (set! user-namespace (current-namespace)))])
+                         (send the-tab disable-evaluation) ;; this locks the editor, so must be outside.
+                         (send definitions-text begin-edit-sequence #f)
+                         (with-lock/edit-sequence
+                          definitions-text
+                          (λ ()
+                            (send the-tab clear-annotations)
+                            (send the-tab reset-offer-kill)
+                            (send (send the-tab get-defs) syncheck:init-arrows)
+                            
+                            (drscheme:eval:expand-program
+                             (drscheme:language:make-text/pos definitions-text
+                                                              0
+                                                              (send definitions-text last-position))
+                             (send definitions-text get-next-settings)
+                             #t
+                             init-proc
+                             kill-termination
+                             (λ (sexp loop) ; =user=
+                               (cond
+                                 [(eof-object? sexp)
+                                  (set! normal-termination? #t)
+                                  (parameterize ([current-eventspace drs-eventspace])
+                                    (queue-callback
+                                     (λ () ; =drs=
+                                       (with-lock/edit-sequence
+                                        definitions-text
+                                        (λ ()
+                                          (expansion-completed user-namespace user-directory)
+                                          (send definitions-text syncheck:sort-bindings-table)))
+                                       (cleanup)
+                                       (custodian-shutdown-all user-custodian))))]
+                                 [else
+                                  (update-status-line 'drscheme:check-syntax status-eval-compile-time)
+                                  (eval-compile-time-part-of-top-level sexp)
+                                  (parameterize ([current-eventspace drs-eventspace])
+                                    (queue-callback
+                                     (λ () ; =drs=
+                                       (with-lock/edit-sequence
+                                        definitions-text
+                                        (λ ()
+                                          (open-status-line 'drscheme:check-syntax)
+                                          (update-status-line 'drscheme:check-syntax status-coloring-program)
+                                          (expanded-expression user-namespace user-directory sexp jump-to-id)
+                                          (close-status-line 'drscheme:check-syntax))))))
+                                  (update-status-line 'drscheme:check-syntax status-expanding-expression)
+                                  (loop)]))))))))))]))
 
           ;; set-directory : text -> void
           ;; sets the current-directory and current-load-relative-directory
@@ -1120,12 +1077,11 @@ If the namespace does not, they are colored the unbound color.
           (super-new)
           
           (define check-syntax-button
-            (make-object button%
-              (syncheck-bitmap this)
-              (get-button-panel)
-              (λ (button evt) (syncheck:button-callback))))
+            (new button%
+                 (label (syncheck-bitmap this))
+                 (parent (get-button-panel))
+                 (callback (λ (button evt) (syncheck:button-callback)))))
           (define/public (syncheck:get-button) check-syntax-button)
-          (send check-syntax-button show button-visible?)
           (send (get-button-panel) change-children
                 (λ (l)
                   (cons check-syntax-button
@@ -2029,11 +1985,10 @@ If the namespace does not, they are colored the unbound color.
       
       ;; add-to-cleanup-texts : (is-a?/c editor<%>) -> void
       (define (add-to-cleanup-texts ed)
-        (let ([canvas (send (find-outermost-editor ed) get-canvas)])
-          (when canvas
-            (let ([frame (send canvas get-top-level-window)])
-              (when (is-a? frame syncheck-frame<%>)
-                (send frame syncheck:add-to-cleanup-texts ed))))))
+        (let ([ed (find-outermost-editor ed)])
+          (when (is-a? ed drscheme:unit:definitions-text<%>)
+            (let ([tab (send ed get-tab)])
+              (send tab syncheck:add-to-cleanup-texts ed)))))
       
       (define (find-outermost-editor ed)
         (let loop ([ed ed])
@@ -2222,4 +2177,5 @@ If the namespace does not, they are colored the unbound color.
       (fw:color-prefs:add-to-preferences-panel (string-constant check-syntax)
                                                syncheck-add-to-preferences-panel)
       (drscheme:get/extend:extend-definitions-text make-graphics-text%)
-      (drscheme:get/extend:extend-unit-frame make-new-unit-frame% #f))))
+      (drscheme:get/extend:extend-unit-frame unit-frame-mixin #f)
+      (drscheme:get/extend:extend-tab tab-mixin))))

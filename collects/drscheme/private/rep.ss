@@ -390,17 +390,6 @@ TODO
          (format (string-constant evaluation-terminated-explanation))
          frame))
       
-      ;; error-ranges : (union false? (cons (list file number number) (listof (list file number number))))
-      (define error-ranges #f)
-      ;; error-arrows : (union #f (listof (cons editor<%> number)))
-      (define error-arrows #f)
-      (define (get-error-ranges) error-ranges)
-      (define internal-reset-callback void)
-      (define internal-reset-error-arrows-callback void)
-      (define (reset-error-ranges) 
-        (internal-reset-callback)
-        (internal-reset-error-arrows-callback))
-      
       ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%) *-> (values number number)
       ;; inserts the string/stnip into the text at the end and changes the
       ;; style of the newly inserted text based on the style deltas.
@@ -437,6 +426,7 @@ TODO
           shutdown
           
           get-error-ranges
+          reset-error-ranges
           
           reset-console
           
@@ -604,7 +594,16 @@ TODO
           ;;;                                            ;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
+          ;; error-ranges : (union false? (cons (list file number number) (listof (list file number number))))
+          (define error-ranges #f)
+          ;; error-arrows : (union #f (listof (cons editor<%> number)))
+          (define error-arrows #f)
           (define/public (get-error-ranges) error-ranges)
+          (define internal-reset-callback void)
+          (define internal-reset-error-arrows-callback void)
+          (define/public (reset-error-ranges) 
+            (internal-reset-callback)
+            (internal-reset-error-arrows-callback))
 
           ;; highlight-error : file number number -> void
           (define/public (highlight-error file start end)
@@ -625,8 +624,8 @@ TODO
           ;;                    -> (void)
           (define/public (highlight-errors raw-locs error-arrows)
             (let ([locs (filter (λ (loc) (and (is-a? (srcloc-source loc) text:basic<%>)
-                                                   (number? (srcloc-position loc))
-                                                   (number? (srcloc-span loc))))
+                                              (number? (srcloc-position loc))
+                                              (number? (srcloc-span loc))))
                                 raw-locs)])
               (reset-highlighting)
               

@@ -166,9 +166,7 @@
     (do-setup))
   
   (define-signature drscheme:rep^
-    (get-error-ranges
-     reset-error-ranges
-     drs-bindings-keymap-mixin
+    (drs-bindings-keymap-mixin
      current-rep
      current-language-settings
      current-value-port
