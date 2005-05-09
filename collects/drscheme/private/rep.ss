@@ -51,6 +51,89 @@ TODO
       (rename [-text% text%]
               [-text<%> text<%>])
 
+      (define -text<%>
+        (interface ()
+          reset-highlighting
+          highlight-errors
+          highlight-errors/exn
+          
+          get-user-custodian
+          get-user-eventspace
+          get-user-thread
+          get-user-namespace
+          get-user-teachpack-cache
+          set-user-teachpack-cache
+          
+          kill-evaluation
+          
+          display-results
+          
+          run-in-evaluation-thread
+          after-many-evals
+          
+          shutdown
+          
+          get-error-ranges
+          reset-error-ranges
+          
+          reset-console
+          
+          copy-prev-previous-expr
+          copy-next-previous-expr
+          copy-previous-expr
+          
+          
+          initialize-console
+          
+          reset-pretty-print-width
+          
+          get-prompt
+          insert-prompt
+          get-context))
+      
+      (define context<%>
+        (interface ()
+          ensure-rep-shown   ;; (interactions-text -> void)
+	  ;; make the rep visible in the frame
+
+          needs-execution?   ;; (-> boolean)
+	  ;; ask if things have changed that would mean the repl is out
+	  ;; of sync with the program being executed in it.
+          
+          enable-evaluation  ;; (-> void)
+	  ;; make the context enable all methods of evaluation
+	  ;; (disable buttons, menus, etc)
+
+          disable-evaluation ;; (-> void)
+	  ;; make the context enable all methods of evaluation
+	  ;; (disable buttons, menus, etc)
+          
+          set-breakables ;; (union thread #f) (union custodian #f) -> void
+          ;; the context might initiate breaks or kills to
+          ;; the thread passed to this function
+
+          get-breakables ;; -> (values (union thread #f) (union custodian #f))
+          ;; returns the last values passed to set-breakables.
+
+          reset-offer-kill ;; (-> void)
+          ;; the next time the break button is pushed, it will only
+          ;; break. (if the break button is clicked twice without
+          ;; this method being called in between, it will offer to
+          ;; kill the user's program)
+
+          update-running        ;; (boolean -> void)
+	  ;; a callback to indicate that the repl may have changed its running state
+          ;; use the repls' get-in-evaluation? method to find out what the current state is.
+          
+          clear-annotations  ;; (-> void)
+	  ;; clear any error highlighting context
+          
+          get-directory      ;; (-> (union #f string[existing directory]))
+	  ;; returns the directory that should be the default for
+	  ;; the `current-directory' and `current-load-relative-directory'
+	  ;; parameters in the repl.
+	  ))
+      
       (define sized-snip<%>
 	(interface ((class->interface snip%))
 	  ;; get-character-width : -> number
@@ -311,50 +394,7 @@ TODO
       ;; its connection to its graphical environment (ie frame) for
       ;; error display and status infromation is all mediated
       ;; through an instance of this interface.
-      (define context<%>
-        (interface ()
-          ensure-rep-shown   ;; (interactions-text -> void)
-	  ;; make the rep visible in the frame
-
-          needs-execution?   ;; (-> boolean)
-	  ;; ask if things have changed that would mean the repl is out
-	  ;; of sync with the program being executed in it.
-          
-          enable-evaluation  ;; (-> void)
-	  ;; make the context enable all methods of evaluation
-	  ;; (disable buttons, menus, etc)
-
-          disable-evaluation ;; (-> void)
-	  ;; make the context enable all methods of evaluation
-	  ;; (disable buttons, menus, etc)
-          
-          set-breakables ;; (union thread #f) (union custodian #f) -> void
-          ;; the context might initiate breaks or kills to
-          ;; the thread passed to this function
-
-          get-breakables ;; -> (values (union thread #f) (union custodian #f))
-          ;; returns the last values passed to set-breakables.
-
-          reset-offer-kill ;; (-> void)
-          ;; the next time the break button is pushed, it will only
-          ;; break. (if the break button is clicked twice without
-          ;; this method being called in between, it will offer to
-          ;; kill the user's program)
-
-          update-running        ;; (boolean -> void)
-	  ;; a callback to indicate that the repl may have changed its running state
-          ;; use the repls' get-in-evaluation? method to find out what the current state is.
-          
-          clear-annotations  ;; (-> void)
-	  ;; clear any error highlighting context
-          
-          get-directory      ;; (-> (union #f string[existing directory]))
-	  ;; returns the directory that should be the default for
-	  ;; the `current-directory' and `current-load-relative-directory'
-	  ;; parameters in the repl.
-	  ))
-
-      
+            
       (define file-icon
         (let ([bitmap
                (make-object bitmap%
@@ -403,46 +443,6 @@ TODO
                       deltas)
             (values before after))))
 
-      (define -text<%>
-        (interface ()
-          reset-highlighting
-          highlight-errors
-          highlight-errors/exn
-          
-          get-user-custodian
-          get-user-eventspace
-          get-user-thread
-          get-user-namespace
-          get-user-teachpack-cache
-          set-user-teachpack-cache
-          
-          kill-evaluation
-          
-          display-results
-          
-          run-in-evaluation-thread
-          after-many-evals
-          
-          shutdown
-          
-          get-error-ranges
-          reset-error-ranges
-          
-          reset-console
-          
-          copy-prev-previous-expr
-          copy-next-previous-expr
-          copy-previous-expr
-          
-          
-          initialize-console
-          
-          reset-pretty-print-width
-          
-          get-prompt
-          insert-prompt
-          get-context))
-      
       (define text-mixin
         (mixin ((class->interface text%)
                 text:ports<%>

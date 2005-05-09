@@ -62,6 +62,32 @@ module browser threading seems wrong.
       
       (rename [-frame% frame%]
               [-frame<%> frame<%>])
+    
+      (define-local-member-name
+        get-visible-defs
+        set-visible-defs
+        get-i
+        set-i)
+      (define tab<%>
+        (interface (drscheme:rep:context<%>)
+          get-frame
+          get-defs
+          get-ints
+          get-visible-defs
+          set-visible-defs
+          set-visible-ints
+          get-i
+          set-i
+          break-callback
+          is-current-tab?
+          get-enabled
+          on-close
+          can-close?))
+
+      (define definitions-text<%> 
+        (interface ()
+          get-tab
+          change-mode-to-match))
       
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
@@ -343,11 +369,6 @@ module browser threading seems wrong.
 ;                                                                                                  
 
 
-      (define definitions-text<%> 
-        (interface ()
-          get-tab
-          change-mode-to-match))
-      
       (define get-definitions-text%
         (let ([definitions-text% #f])
           (λ ()
@@ -829,23 +850,6 @@ module browser threading seems wrong.
                      (frame:basic-mixin
                       frame%)))))))))))))))
       
-
-      (define tab<%>
-        (interface (drscheme:rep:context<%>)
-          get-frame
-          get-defs
-          get-ints
-          get-visible-defs
-          set-visible-defs
-          set-visible-ints
-          get-i
-          set-i
-          break-callback
-          is-current-tab?
-          get-enabled
-          on-close
-          can-close?))
-      
       (define tab%
         (class* object% (drscheme:rep:context<%> tab<%>)
           (init-field frame
@@ -860,15 +864,15 @@ module browser threading seems wrong.
           ;; the interactions editor should be invariant.
           (define/public (set-ints i) (set! ints i)) 
           
-          (define/public (get-frame) frame)
-          (define/public (get-defs) defs)
-          (define/public (get-ints) ints)
-          (define/public (get-visible-defs) visible-defs)
-          (define/public (set-visible-defs vd) (set! visible-defs vd))
-          (define/public (get-visible-ints) visible-ints)
-          (define/public (set-visible-ints vi) (set! visible-ints vi))
-          (define/public (get-i) i)
-          (define/public (set-i _i) (set! i _i))
+          (define/public-final (get-frame) frame)
+          (define/public-final (get-defs) defs)
+          (define/public-final (get-ints) ints)
+          (define/public-final (get-visible-defs) visible-defs)
+          (define/public-final (set-visible-defs vd) (set! visible-defs vd))
+          (define/public-final (get-visible-ints) visible-ints)
+          (define/public-final (set-visible-ints vi) (set! visible-ints vi))
+          (define/public-final (get-i) i)
+          (define/public-final (set-i _i) (set! i _i))
           (define/public (disable-evaluation)
             (set! enabled? #f)
             (send defs lock #t)
@@ -962,7 +966,7 @@ module browser threading seems wrong.
           
           (define/public (update-running b?) (send frame update-running b?))
           
-          (define/public (is-current-tab?) (eq? this (send frame get-current-tab)))
+          (define/public-final (is-current-tab?) (eq? this (send frame get-current-tab)))
           
           (super-new)))
       
@@ -2944,7 +2948,8 @@ module browser threading seems wrong.
              (send newest-frame show #t)
              (begin0 newest-frame
                      (set! newest-frame #f))]
-            [(preferences:get 'drscheme:open-in-tabs)
+            [(and name ;; only open a tab if we have a filename
+                  (preferences:get 'drscheme:open-in-tabs))
              (let ([fr (send (group:get-the-frame-group) get-active-frame)])
                (if (is-a? fr -frame<%>)
                    (begin (send fr open-in-new-tab name)
