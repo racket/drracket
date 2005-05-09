@@ -363,7 +363,6 @@ profile todo:
                    'mark
                    expr)))
               expr)))
-
     
       ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
       ;; the currently visible backtrace window, or #f, if none

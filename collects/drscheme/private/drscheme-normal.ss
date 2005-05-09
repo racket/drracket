@@ -107,7 +107,7 @@
    "DrScheme"
    99)
   
-  (when (or (eb-bday?) 'eli-bday?)
+  (when (eb-bday?)
     (let ()
       (define main-size 260)
       (define pi (atan 0 -1))
