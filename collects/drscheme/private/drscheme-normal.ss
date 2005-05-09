@@ -176,9 +176,13 @@
       (define draw-next-state
         (let ([o 0])
           (lambda ()
-            (parameterize ([current-eventspace splash-eventspace])
-              (queue-callback (λ () 
-                                (draw-single-step bdc o))))
+            (let ([s (make-semaphore 0)])
+              (parameterize ([current-eventspace splash-eventspace])
+                (queue-callback 
+                 (λ () 
+                   (draw-single-step bdc o)
+                   (semaphore-post s))))
+              (semaphore-wait s))
             (let ([next (- o (/ pi 60))])
               (set! o (if (< next 0)
                           (+ next (* 2 pi))
@@ -191,7 +195,7 @@
                (λ ()
                  (let loop ()
                    (draw-next-state)
-                   (sleep 1/10)
+                   (sleep .01)
                    (loop))))))
       (define orig-paint ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-paint-callback)))
       
