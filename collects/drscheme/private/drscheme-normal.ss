@@ -88,24 +88,7 @@
                      (begin
                        (set! special-state (magic-image-string match))
                        (magic-image-bitmap match)))))]
-             [else (void)])))
-
-         )))
-  
-  ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
-   (build-path (collection-path "icons") 
-               (cond
-                 [texas-independence-day?
-                  "texas-plt-bw.gif"]
-                 [(and halloween? high-color?)
-                  "PLT-pumpkin.png"]
-                 [high-color? "PLT-206.png"]
-                 [(= (get-display-depth) 1)
-                  "pltbw.gif"]
-                 [else
-                  "plt-flat.gif"]))
-   "DrScheme"
-   99)
+             [else (void)]))))))
   
   (when (eb-bday?)
     (let ()
@@ -156,18 +139,64 @@
         (draw-single-loop hebrew-str bdc (+ (- (* 2 pi) offset) (* 2 pi)) (/ main-size 2) (/ main-size 2) 70 20 inner-color)
         (send splash-canvas on-paint))
       
+      (define gc-b 
+        (with-handlers ([exn:fail? (lambda (x)
+                                     (printf "~s\n" (exn-message x))
+                                     #f)])
+          (let ([b (make-object bitmap% (build-path (collection-path "icons") "recycle.gif"))])
+            (cond
+              [(send b ok?)
+               (let ([gbdc (make-object bitmap-dc% b)]
+                     [ebdc (make-object bitmap-dc% eli)]
+                     [color1 (make-object color%)]
+                     [color2 (make-object color%)]
+                     [avg (lambda (x y) (floor (* (/ x 255) y)))]
+                     [ox (floor (- (/ main-size 2) (/ (send b get-width) 2)))]
+                     [oy (floor (- (/ main-size 2) (/ (send b get-height) 2)))])
+                 (let loop ([i (send b get-width)])
+                   (unless (zero? i)
+                     (let loop ([j (send b get-height)])
+                       (unless (zero? j)
+                         (let ([x (- i 1)]
+                               [y (- j 1)])
+                           (send gbdc get-pixel x y color1)
+                           (send ebdc get-pixel (+ x ox) (+ y oy) color2)
+                           (send color1 set 
+                                 (avg (send color1 red) (send color2 red))
+                                 (avg (send color1 green) (send color2 green))
+                                 (avg (send color1 blue) (send color2 blue)))
+                           (send gbdc set-pixel x y color1)
+                           (loop (- j 1)))))
+                     (loop (- i 1))))
+                 (send gbdc set-bitmap #f)
+                 (send ebdc set-bitmap #f)
+                 b)]
+              [else #f]))))
+
+      
       (define (eli-paint dc)
         (send dc draw-bitmap bitmap 0 0))
       (define (eli-event evt)
         (cond
           [(send evt leaving?)
            ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-paint-callback) orig-paint)
+           (when gc-b
+             (unregister-collecting-blit splash-canvas))
            (send splash-canvas refresh)
            (when draw-thread
              (kill-thread draw-thread)
              (set! draw-thread #f))]
           [(send evt entering?)
            ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-paint-callback) eli-paint)
+           (when gc-b
+             (register-collecting-blit splash-canvas 
+                                       (floor (- (/ main-size 2)
+                                                 (/ (send gc-b get-width) 2)))
+                                       (floor (- (/ main-size 2)
+                                                 (/ (send gc-b get-height) 2)))
+                                       (send gc-b get-width)
+                                       (send gc-b get-height)
+                                       gc-b gc-b))
            (send splash-canvas refresh)
            (unless draw-thread
              (start-thread))]))
@@ -202,6 +231,21 @@
       (draw-next-state)
       ((dynamic-require '(lib "splash.ss" "framework") 'set-splash-event-callback) eli-event)
       (send splash-canvas refresh)))
+  
+  ((dynamic-require '(lib "splash.ss" "framework") 'start-splash)
+   (build-path (collection-path "icons") 
+               (cond
+                 [texas-independence-day?
+                  "texas-plt-bw.gif"]
+                 [(and halloween? high-color?)
+                  "PLT-pumpkin.png"]
+                 [high-color? "PLT-206.png"]
+                 [(= (get-display-depth) 1)
+                  "pltbw.gif"]
+                 [else
+                  "plt-flat.gif"]))
+   "DrScheme"
+   99)
   
   (when (getenv "PLTDRBREAK")
     (printf "PLTDRBREAK: creating break frame\n")
