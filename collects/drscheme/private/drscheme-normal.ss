@@ -107,7 +107,7 @@
    "DrScheme"
    99)
   
-  (when (eb-bday?)
+  (when '(eb-bday?)
     (let ()
       (define main-size 260)
       (define pi (atan 0 -1))
@@ -179,19 +179,19 @@
             (parameterize ([current-eventspace splash-eventspace])
               (queue-callback (λ () 
                                 (draw-single-step bdc o))))
-            (let ([next (- o (/ pi 30))])
+            (let ([next (- o (/ pi 60))])
               (set! o (if (< next 0)
                           (+ next (* 2 pi))
                           next))))))
       
       (define draw-thread #f)
       (define (start-thread)        
-        '(set! draw-thread
+        (set! draw-thread
               (thread
                (λ ()
                  (let loop ()
                    (draw-next-state)
-                   (sleep 1/15)
+                   (sleep 1/10)
                    (loop))))))
       (define orig-paint ((dynamic-require '(lib "splash.ss" "framework") 'get-splash-paint-callback)))
       
