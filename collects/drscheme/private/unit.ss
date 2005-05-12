@@ -2075,8 +2075,10 @@ module browser threading seems wrong.
             (set-visible-regions interactions-text (send current-tab get-visible-ints))
             (set-visible-regions definitions-text (send current-tab get-visible-defs)))
 
-          (define/private (pathname-equal? p1 p2) (string=? (path->string (normalize-path p1))
-                                                            (path->string (normalize-path p2))))
+          (define/private (pathname-equal? p1 p2)
+            (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
+              (string=? (path->string (normalize-path p1))
+                        (path->string (normalize-path p2)))))
           (define/override (make-visible filename)
             (let loop ([tabs tabs])
               (unless (null? tabs)
@@ -2088,15 +2090,11 @@ module browser threading seems wrong.
                       (loop (cdr tabs)))))))
           
           (define/override (editing-this-file? filename)
-            (let ([path-equal?
-                   (λ (x y)
-                     (equal? (normal-case-path (normalize-path x))
-                             (normal-case-path (normalize-path y))))])
-              (ormap (λ (tab)
-                       (let ([fn (send (send tab get-ints) get-filename)])
-                         (and fn
-                              (path-equal? fn filename))))
-                     tabs)))
+            (ormap (λ (tab)
+                     (let ([fn (send (send tab get-defs) get-filename)])
+                       (and fn
+                            (pathname-equal? fn filename))))
+                   tabs))
           
           (define/override (get-menu-item%)
             (class (super get-menu-item%)
