@@ -118,6 +118,8 @@ the settings above should match r5rs
       (test-expression "(exact? 1.5)" "#f")
       
       (test-expression "(list 1)" "(1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given ()")
+
       (test-expression "argv" "#0()")))
 
 
@@ -211,6 +213,8 @@ the settings above should match r5rs
       (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
 
       (test-expression "(list 1)" "(1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given ()")
+      
       (test-expression "argv" "#0()")))
 
   
@@ -308,6 +312,8 @@ the settings above should match r5rs
       (test-expression ",1" "unquote: not in quasiquote in: (unquote 1)")
 
       (test-expression "(list 1)" "(1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given ()")
+
       (test-expression "argv" "#0()")))
                                                         
 ;;                      ;                               
@@ -328,12 +334,12 @@ the settings above should match r5rs
     (parameterize ([language (list "How to Design Programs" "Beginning Student")])
       (check-top-of-repl)
 
-      (generic-settings #t)
-      (generic-output #f #f #f)
-      (teaching-language-fraction-output)
+      ;(generic-settings #t)
+      ;(generic-output #f #f #f)
+      ;(teaching-language-fraction-output)
       
-      (test-hash-bang)
-      (test-error-after-definition)
+      ;(test-hash-bang)
+      ;(test-error-after-definition)
       
       (prepare-for-test-expression)
 
@@ -416,9 +422,11 @@ the settings above should match r5rs
                        "let: name is not defined, not an argument, and not a primitive name"
                        "function call: expected a defined name or a primitive operation name after an open parenthesis, but found something else")
       (test-expression ",1"
-                       "read: illegal use of `,'")
+                       "read: illegal use of comma")
 
       (test-expression "(list 1)" "(cons 1 empty)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given empty")
+
       (test-expression "argv" 
                        "argv: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: argv")))
@@ -536,6 +544,8 @@ the settings above should match r5rs
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given empty")
+
       (test-expression "argv" 
                        "argv: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: argv")))
@@ -644,6 +654,7 @@ the settings above should match r5rs
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given empty")
       (test-expression "argv" 
                        "argv: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: argv")))
@@ -752,6 +763,7 @@ the settings above should match r5rs
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given empty")
       (test-expression "argv" 
                        "argv: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: argv")))
@@ -858,6 +870,7 @@ the settings above should match r5rs
                        "unquote: misuse of a comma or `unquote', not under a quasiquoting backquote")
 
       (test-expression "(list 1)" "(list 1)")
+      (test-expression "(car (list))" "car: expects argument of type <pair>; given empty")
       (test-expression "argv"
                        "argv: name is not defined, not an argument, and not a primitive name"
                        "reference to undefined identifier: argv")))
@@ -1188,11 +1201,11 @@ the settings above should match r5rs
     (let ([drs (wait-for-drscheme-frame)])
       (fw:test:menu-select "Language" "Clear All Teachpacks"))
 
-    ;(go r5rs)
-    ;(go beginner)
-    ;(go beginner/abbrev)
-    ;(go intermediate)
-    ;(go intermediate/lambda)
-    ;(go advanced)
-    ;(go mred)
+    (go beginner)
+    (go beginner/abbrev)
+    (go intermediate)
+    (go intermediate/lambda)
+    (go advanced)
+    (go r5rs)
+    (go mred)
     (go mzscheme)))
