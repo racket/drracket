@@ -2949,6 +2949,8 @@ module browser threading seems wrong.
             [(and name ;; only open a tab if we have a filename
                   (preferences:get 'drscheme:open-in-tabs))
              (let ([fr (send (group:get-the-frame-group) get-active-frame)])
+               (when (getenv "PLTDRTAB")
+                 (printf "fr ~s ~s\n" (is-a? fr -frame<%>) fr))
                (if (is-a? fr -frame<%>)
                    (begin (send fr open-in-new-tab name)
                           fr)
