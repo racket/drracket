@@ -34,7 +34,7 @@ module browser threading seems wrong.
 
            (prefix mzlib:file: (lib "file.ss"))
            (prefix mzlib:date: (lib "date.ss")))
-  
+
   (provide unit@)
   
   (define module-browser-progress-constant (string-constant module-browser-progress))
@@ -1278,10 +1278,12 @@ module browser threading seems wrong.
           (define/private (get-defs-tab-label defs)
             (let ([fn (send defs get-filename)])
               (if fn
-                  (let-values ([(base name dir?) (split-path fn)])
-                    (path->string name))
+                  (get-tab-label-from-filename fn)
                   (send defs get-filename/untitled-name))))
-
+          (define/private (get-tab-label-from-filename fn)
+            (let-values ([(base name dir?) (split-path fn)])
+              (path->string name)))
+            
           [define/override get-canvas% (λ () (drscheme:get/extend:get-definitions-canvas))]
           
           (define/public (update-running running?)
@@ -1915,10 +1917,12 @@ module browser threading seems wrong.
           
           ;; wire the definitions text to the interactions text and initialize it.
           (define/private (init-definitions-text tab)
-            (send definitions-text set-interactions-text interactions-text)
-            (send definitions-text set-tab tab)
-            (send interactions-text set-definitions-text definitions-text)
-            (send definitions-text change-mode-to-match))
+            (let ([defs (send tab get-defs)]
+                  [ints (send tab get-ints)])
+              (send defs set-interactions-text ints)
+              (send defs set-tab tab)
+              (send ints set-definitions-text defs)
+              (send defs change-mode-to-match)))
 
 
 ;                              
@@ -1940,22 +1944,24 @@ module browser threading seems wrong.
           
           ;; create-new-tab : -> void
           ;; creates a new tab and updates the GUI for that new tab
-          (define/private (create-new-tab)
-            (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
-                   [tab-count (length tabs)]
-                   [new-tab (new (drscheme:get/extend:get-tab) (defs defs) (i tab-count) (frame this))]
-                   [ints (make-object (drscheme:get/extend:get-interactions-text) new-tab)])
-              (send new-tab set-ints ints)
-              (set! tabs (append tabs (list new-tab)))
-              (send tabs-panel append (get-defs-tab-label defs))
-              (change-to-nth-tab (- (send tabs-panel get-number) 1))
-              (init-definitions-text new-tab)
-              (send ints initialize-console)
-              (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
-              
-              (set! newest-frame this)
-
-              (update-menu-bindings)))
+          (define/private create-new-tab
+            (opt-lambda ([filename #f])
+              (let* ([defs (new (drscheme:get/extend:get-definitions-text))]
+                     [tab-count (length tabs)]
+                     [new-tab (new (drscheme:get/extend:get-tab) (defs defs) (i tab-count) (frame this))]
+                     [ints (make-object (drscheme:get/extend:get-interactions-text) new-tab)])
+                (send new-tab set-ints ints)
+                (set! tabs (append tabs (list new-tab)))
+                (send tabs-panel append (if filename
+                                            (get-tab-label-from-filename filename)
+                                            (get-defs-tab-label defs)))
+                (init-definitions-text new-tab)
+                (when filename (send defs load-file filename))
+                (change-to-nth-tab (- (send tabs-panel get-number) 1))
+                (send ints initialize-console)
+                (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
+                (set! newest-frame this)
+                (update-menu-bindings))))
           
           ;; change-to-tab : tab -> void
           ;; updates current-tab, definitions-text, and interactactions-text
@@ -1972,6 +1978,7 @@ module browser threading seems wrong.
                         definitions-canvases)
               (for-each (λ (ints-canvas) (send ints-canvas set-editor interactions-text))
                         interactions-canvases)
+
               (restore-visible-tab-regions)
               (update-save-message)
               (update-save-button)
@@ -2033,8 +2040,7 @@ module browser threading seems wrong.
               [else #f]))
           
           (define/public (open-in-new-tab filename)
-            (create-new-tab)
-            (send definitions-text load-file filename))
+            (create-new-tab filename))
           
           (define/private (change-to-nth-tab n)
             (unless (< n (length tabs))
@@ -2948,11 +2954,17 @@ module browser threading seems wrong.
                      (set! newest-frame #f))]
             [(and name ;; only open a tab if we have a filename
                   (preferences:get 'drscheme:open-in-tabs))
-             (let ([fr (send (group:get-the-frame-group) get-active-frame)])
-               (when (getenv "PLTDRTAB")
-                 (printf "fr ~s ~s\n" (is-a? fr -frame<%>) fr))
-               (if (is-a? fr -frame<%>)
+             (let ([fr (let loop ([frs (cons (send (group:get-the-frame-group) get-active-frame)
+                                             (send (group:get-the-frame-group) get-frames))])
+                         (cond
+                           [(null? frs) #f]
+                           [else (let ([fr (car frs)])
+                                   (or (and (is-a? fr -frame<%>)
+                                            fr)
+                                       (loop (cdr frs))))]))])
+               (if fr
                    (begin (send fr open-in-new-tab name)
+                          (send fr show #t)
                           fr)
                    (create-new-drscheme-frame name)))]
             [else
