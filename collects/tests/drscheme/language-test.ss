@@ -334,12 +334,12 @@ the settings above should match r5rs
     (parameterize ([language (list "How to Design Programs" "Beginning Student")])
       (check-top-of-repl)
 
-      ;(generic-settings #t)
-      ;(generic-output #f #f #f)
-      ;(teaching-language-fraction-output)
+      (generic-settings #t)
+      (generic-output #f #f #f)
+      (teaching-language-fraction-output)
       
-      ;(test-hash-bang)
-      ;(test-error-after-definition)
+      (test-hash-bang)
+      (test-error-after-definition)
       
       (prepare-for-test-expression)
 

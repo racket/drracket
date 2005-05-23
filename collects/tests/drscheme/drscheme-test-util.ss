@@ -117,6 +117,7 @@
   ;; wait-for-new-frame : frame [(listof eventspace) = null] -> frame
   ;; returns the newly opened frame, waiting until old-frame
   ;; is no longer frontmost. Optionally checks other eventspaces
+  ;; waits until the new frame has a focus'd window, too. 
   (define wait-for-new-frame
     (case-lambda
      [(old-frame) (wait-for-new-frame old-frame null)]
@@ -132,6 +133,7 @@
 				      (get-top-level-focus-window)))
 				  extra-eventspaces))])
 		 (if (and active
+                          (send active get-focus-window)
 			  (not (eq? active old-frame)))
 		     active
 		     #f)))])

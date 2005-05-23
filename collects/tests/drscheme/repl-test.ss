@@ -195,6 +195,17 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
                 void
                 void)
      
+     (make-test "(parameterize ([print-struct #t])(define-struct s (x) (make-inspector))(printf \"~s\\n\" (make-s 1)))"
+                "#(struct:s 1)"
+                "#(struct:s 1)"
+                #f
+                'interactions
+                #f
+                #f
+                #f
+                void
+                void)
+     
      ;; top-level semantics test
      (make-test "(define (f) (+ 1 1)) (define + -) (f)"
                 "0"
@@ -720,19 +731,22 @@ There shouldn't be any error (but add in a bug that triggers one to be sure!)
       (clear-definitions drscheme-frame)
       (type-in-definitions drscheme-frame "1/2")
       (do-execute drscheme-frame)
-      (let* ([start (send interactions-text paragraph-start-position 2)]
-             
-             ;; since the fraction is supposed to be one char wide, we just
-             ;; select one char, so that, if the regular number prints out,
-             ;; this test will fail.
-             [end (+ start 1)])
-        (send interactions-text set-position start end)
-        (test:menu-select "Edit" "Copy"))
+      (let ([s (make-semaphore 0)])
+        (queue-callback
+         (lambda ()
+           (let* ([start (send interactions-text paragraph-start-position 2)]
+                  ;; since the fraction is supposed to be one char wide, we just
+                  ;; select one char, so that, if the regular number prints out,
+                  ;; this test will fail.
+                  [end (+ start 1)])
+             (send interactions-text set-position start end)
+             (semaphore-post s))))
+        (semaphore-wait s))
+      (test:menu-select "Edit" "Copy")
       (clear-definitions drscheme-frame)
       (type-in-definitions drscheme-frame "(+ ")
       (test:menu-select "Edit" "Paste")
       (type-in-definitions drscheme-frame " 1/3)"))
-    
     
     ; given a filename "foo", we perform two operations on the contents 
     ; of the file "foo.ss".  First, we insert its contents into the REPL
