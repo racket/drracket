@@ -2029,7 +2029,7 @@ module browser threading seems wrong.
                             (change-to-tab (cond
                                              [(< (send tab get-i) (length tabs))
                                               (list-ref tabs (send tab get-i))]
-                                             [else (car tabs)])))
+                                             [else (car (last-pair tabs))])))
                           (loop (cdr l-tabs))))]))]))
           
           (define/private (close-tab tab)
