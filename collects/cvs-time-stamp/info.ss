@@ -1,5 +1,5 @@
 (module info (lib "infotab.ss" "setup")
-  (define name "CVS Time Stamp")
+  (define name "Repository Time Stamp")
   (define doc.txt "doc.txt")
   (define tools (list "time-stamp.ss"))
-  (define tool-names (list "CVS Time Stamp")))
+  (define tool-names (list "Repository Time Stamp")))
