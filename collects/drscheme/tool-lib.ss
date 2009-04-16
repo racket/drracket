@@ -673,8 +673,8 @@ all of the names in the tools library, for use defining keybindings
   (proc-doc/names
    drscheme:get/extend:extend-tab
    (case->
-    ((make-mixin-contract drscheme:unit:tab%) . -> . void?)
-    ((make-mixin-contract drscheme:unit:tab%) boolean? . -> . void?))
+    ((make-mixin-contract drscheme:unit:tab<%>) . -> . void?)
+    ((make-mixin-contract drscheme:unit:tab<%>) boolean? . -> . void?))
    ((mixin) (mixin before?))
    
    @{This class implements the tabs in drscheme. One is created for each tab
@@ -794,6 +794,33 @@ all of the names in the tools library, for use defining keybindings
      @scheme[drscheme:get/extend:extend-unit-frame]
      raises an error, disallowing any more extensions.})
   
+  
+  
+;                                                
+;                                                
+;                                                
+;                                                
+;    ;                       ;;;                 
+;  ;;;                                           
+;  ;;;; ;;; ;;;;;;;    ;;;   ;;; ;;; ;;   ;; ;;; 
+;  ;;;; ;;;;;;;;;;;;  ;;;;;  ;;; ;;;;;;; ;;;;;;; 
+;  ;;;  ;;;  ;;  ;;; ;;;  ;; ;;; ;;; ;;; ;;; ;;; 
+;  ;;;  ;;;    ;;;;; ;;;     ;;; ;;; ;;; ;;; ;;; 
+;  ;;;  ;;;  ;;; ;;; ;;;  ;; ;;; ;;; ;;; ;;; ;;; 
+;  ;;;; ;;;  ;;; ;;;  ;;;;;  ;;; ;;; ;;; ;;;;;;; 
+;   ;;; ;;;   ;;;;;;   ;;;   ;;; ;;; ;;;  ;; ;;; 
+;                                            ;;; 
+;                                        ;;;;;;  
+;                                                
+;                                                
+
+  (proc-doc/names
+   drscheme:tracing:annotate
+   (-> syntax? syntax?)
+   (stx)
+   @{Call this function to add tracing annotations to the a fully-expanded
+     expression. When the program runs, DrScheme will pop open the tracing
+     window to display the trace.})
   
   ;                                                           
   ;                                                           
