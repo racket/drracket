@@ -1,5 +1,6 @@
 #lang racket/base
-  (require racket/unit
+  (require (prefix-in : mred/mred) ;; ensure that this module is always loaded since it is shared below for pretty big
+           racket/unit
            mrlib/hierlist
            racket/class
            racket/contract
@@ -14,7 +15,7 @@
            (only-in mzlib/struct make-->vector))
   
   (define original-output (current-output-port))
-  (define (printfo . args) (apply fprintf original-output args))
+  (define (oprintf . args) (apply fprintf original-output args))
   
   (define-values (sc-use-language-in-source sc-choose-a-language mouse-event-uses-shortcut-prefix?)
     (let* ([shortcut-prefix (get-default-shortcut-prefix)]
@@ -86,7 +87,7 @@
         (for-each
          (λ (i<%>)
            (unless (is-a? language i<%>)
-             (error 'drracket:language:add-language "expected language ~e to implement ~e, forgot to use drracket:language:get-default-mixin ?" language i<%>)))
+             (error 'drracket:language:add-language "expected language ~e to implement ~e, forgot to use `drracket:language:get-default-mixin'?" language i<%>)))
          (drracket:language:get-language-extensions))
         
         (ensure-no-duplicate-numbers language languages)
@@ -291,6 +292,7 @@
         ;; actual language selections
         (define hieritem-language<%>
           (interface (hierarchical-list-item<%>)
+            get-language
             selected))
         
         (define selectable-hierlist%
@@ -370,10 +372,10 @@
               cached-fringe)
             
             (define/override (on-select i)
-              (when i
-                (set! most-recent-languages-hier-list-selection i))
               (cond
                 [(and i (is-a? i hieritem-language<%>))
+                 (preferences:set 'drracket:language-dialog:hierlist-default (send (send i get-language) get-language-position))
+                 (set! most-recent-languages-hier-list-selection i)
                  (something-selected i)]
                 [else
                  (non-language-selected)]))
@@ -416,7 +418,7 @@
                                                  [stretchable-width #f]
                                                  [min-width 32]))
         (define in-source-discussion-editor-canvas (add-discussion in-source-discussion-panel))
-        (define most-recent-languages-hier-list-selection #f)
+        (define most-recent-languages-hier-list-selection (preferences:get 'drracket:language-dialog:hierlist-default))
         (define use-chosen-language-rb
           (new radio-box%
                [label #f]
@@ -429,7 +431,8 @@
           (when most-recent-languages-hier-list-selection
             (send languages-hier-list select 
                   most-recent-languages-hier-list-selection))
-          (send use-language-in-source-rb set-selection #f))
+          (send use-language-in-source-rb set-selection #f)
+          (send languages-hier-list focus))
         (define languages-hier-list-panel (new horizontal-panel% [parent languages-choice-panel]))
         (define languages-hier-list-spacer (new horizontal-panel% 
                                                 [parent languages-hier-list-panel]
@@ -473,8 +476,8 @@
           (λ (%)
             (class* % (hieritem-language<%>)
               (init-rest args)
-              (public selected)
-              (define (selected)
+              (define/public (get-language) language)
+              (define/public (selected)
                 (update-gui-based-on-selected-language language get-language-details-panel get/set-settings))
               (apply super-make-object args))))
         
@@ -556,7 +559,7 @@
                            (= (length positions) (length numbers))
                            ((length numbers) . >= . 1))
                 (error 'drracket:language
-                       "languages position and numbers must be lists of strings and numbers, respectively, must have the same length,  and must each contain at least one element, got: ~e ~e"
+                       "languages position and numbers must be lists of strings and numbers, respectively, must have the same length, and must each contain at least one element, got: ~e ~e"
                        positions numbers))
               
               (when (null? (cdr positions))
@@ -782,36 +785,47 @@
             [(not (and language-to-show settings-to-show))
              (no-language-selected)]
             [(is-a? language-to-show drracket:module-language:module-language<%>)
+             (let ([hier-default (preferences:get 'drracket:language-dialog:hierlist-default)])
+               (when hier-default
+                 (select-a-language-in-hierlist hier-default)))
+             ;; the above changes the radio button selections, so do it before calling module-language-selected
              (module-language-selected)]
             [else
              (send languages-hier-list focus) ;; only focus when the module language isn't selected
              (send use-chosen-language-rb set-selection 0)
              (send use-language-in-source-rb set-selection #f)
-             (let ([language-position (send language-to-show get-language-position)])
-               (cond
-                 [(null? (cdr language-position))
-                  ;; nothing to open here
-                  (send (car (send languages-hier-list get-items)) select #t)
-                  (void)]
-                 [else
-                  (let loop ([hi languages-hier-list]
-                             
-                             ;; skip the first position, since it is flattened into the dialog
-                             [first-pos (cadr language-position)]
-                             [position (cddr language-position)])
-                    (let ([child
-                           ;; know that this `car' is okay by construction of the dialog
-                           (car 
-                            (filter (λ (x)
-                                      (equal? (send (send x get-editor) get-text)
-                                              first-pos))
-                                    (send hi get-items)))])
+             (select-a-language-in-hierlist (send language-to-show get-language-position))]))
+        
+        (define (select-a-language-in-hierlist language-position)
+          (cond
+            [(null? (cdr language-position))
+             ;; nothing to open here
+             (send (car (send languages-hier-list get-items)) select #t)
+             (void)]
+            [else
+             (let loop ([hi languages-hier-list]
+                        
+                        ;; skip the first position, since it is flattened into the dialog
+                        [first-pos (cadr language-position)]
+                        [position (cddr language-position)])
+               (let ([matching-children
+                      (filter (λ (x)
+                                (equal? (send (send x get-editor) get-text)
+                                        first-pos))
+                              (send hi get-items))])
+                 (cond
+                   [(null? matching-children) 
+                    ;; just give up here. probably this means that a bad preference was saved 
+                    ;; and we're being called from the module-language case in 'open-current-language'
+                    (void)]
+                   [else
+                    (let ([child (car matching-children)])
                       (cond
                         [(null? position)
                          (send child select #t)]
                         [else
                          (send child open)
-                         (loop child (car position) (cdr position))])))]))]))
+                         (loop child (car position) (cdr position))]))])))]))
         
         ;; docs-callback : -> void
         (define (docs-callback)
@@ -1030,12 +1044,10 @@
              [outer-pb (make-object outer-pb%)]
              [bitmap 
               (make-object bitmap%
-                (build-path (collection-path "icons") 
-                            "plt-small-shield.gif"))]
+                (build-path (collection-file-path "plt-small-shield.gif" "icons")))]
              [image-snip
               (make-object image-snip% 
-                (build-path (collection-path "icons") 
-                            "plt-small-shield.gif"))]
+                (collection-file-path "plt-small-shield.gif" "icons"))]
              [before-text (make-object text%)]
              [before-snip (make-object editor-snip% before-text #f)]
              [before-ec%
@@ -1490,6 +1502,14 @@
   
     (define (pretty-big-mixin %)
       (class %
+        ;; since check syntax no longer shares the gui libraries, 
+        ;; we always share it explicitly here
+        (define/override (on-execute setting run-in-user-thread)
+          (let ([mred-name ((current-module-name-resolver) 'mred/mred #f #f)])
+            (run-in-user-thread
+             (λ ()
+               (namespace-attach-module drracket:init:system-namespace mred-name))))
+          (super on-execute setting run-in-user-thread))
         (define/override (default-settings) 
           (let ([s (super default-settings)])
             (make-simple-settings+assume (drracket:language:simple-settings-case-sensitive s)
@@ -1525,6 +1545,11 @@
                     (define/override (get-one-line-summary) one-line-summary)
                     (inherit get-module get-transformer-module get-init-code
                              use-namespace-require/copy-from-setting?)
+                    (define/override (front-end/interaction port settings)
+                      (let ([t (super front-end/interaction port settings)])
+                        (λ ()
+                          (parameterize ([read-accept-lang #f])
+                            (t)))))
                     (define/augment (capability-value key)
                       (cond
                         [(eq? key 'drscheme:autocomplete-words) 
@@ -1794,8 +1819,7 @@
                (string<=? (cadr x) (cadr y))])))))
       
       (define plt-logo-shiny
-        (make-object bitmap% (build-path (collection-path "icons") 
-                                         "plt-logo-red-shiny.png")
+        (make-object bitmap% (collection-file-path "plt-logo-red-shiny.png" "icons")
           'png/mask))
 
       (define (display-racketeer)
@@ -1816,7 +1840,7 @@
              [min-height (floor (/ (send plt-logo-shiny get-height) 2))])
         (new canvas-message%
              (parent racketeer-panel) 
-             (label sc-use-language-in-source)
+             (label (string-constant use-language-in-source))
              (color (send the-color-database find-color "blue"))
              (callback (λ () (change-current-lang-to (λ (x) (is-a? x drracket:module-language:module-language<%>)))))
              (font (get-font #:underlined #t))))
@@ -1951,8 +1975,7 @@
                         (stretchable-height #f))]
                [msg (new message%
                          (label (make-object bitmap%
-                                  (build-path (apply collection-path (cdr icon-lst))
-                                              (car icon-lst))
+                                  (apply collection-file-path icon-lst)
                                   'unknown/mask))
                          (parent hp))]
                [vp (new vertical-pane% 
