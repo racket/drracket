@@ -6,8 +6,10 @@
          mred
          framework
          mzlib/class
-         mzlib/list
+         racket/list
          racket/path
+         racket/file
+         racket/dict
          browser/external
          setup/plt-installer)
 
@@ -36,10 +38,11 @@
     ;; avoid building the mask unless we use it
     (define todays-icon
       (make-object bitmap% 
-        (build-path (collection-path "icons")
-                    (case (date-week-day (seconds->date (current-seconds)))
-                      [(6 0) "plt-logo-red-shiny.png"]
-                      [else "plt-logo-red-diffuse.png"]))
+        (collection-file-path 
+         (case (date-week-day (seconds->date (current-seconds)))
+           [(6 0) "plt-logo-red-shiny.png"]
+           [else "plt-logo-red-diffuse.png"])
+         "icons")
         'png/mask))
     
     (define todays-icon-bw-mask 
@@ -94,6 +97,8 @@
                                (finder:default-filters)))
 (application:current-app-name (string-constant drscheme))
 
+(drr:set-default 'drracket:language-dialog:hierlist-default #f (λ (x) (or (not x) (and (list? x) (andmap string? x)))))
+
 (drr:set-default 'drracket:create-executable-gui-type 'stand-alone (λ (x) (memq x '(launcher stand-alone distribution))))
 (drr:set-default 'drracket:create-executable-gui-base 'racket (λ (x) (memq x '(racket gracket))))
 
@@ -115,6 +120,7 @@
 (drr:set-default 'drracket:module-language-first-line-special? #t boolean?)
 
 (drr:set-default 'drracket:defns-popup-sort-by-name? #f boolean?)
+(drr:set-default 'drracket:show-line-numbers? #f boolean?)
 
 (drr:set-default 'drracket:toolbar-state 
                          '(#f . top)
@@ -296,14 +302,15 @@
 (preferences:add-general-checkbox-panel)
 
 (let ([make-check-box
-       (λ (pref-sym string parent)
+       (λ (pref-sym string parent [extra-functionality #f])
          (let ([q (make-object check-box%
                     string
                     parent
                     (λ (checkbox evt)
-                      (preferences:set 
-                       pref-sym 
-                       (send checkbox get-value))))])
+                      (define value (send checkbox get-value))
+                      (preferences:set pref-sym value)
+                      (when extra-functionality
+                        (extra-functionality value))))])
            (preferences:add-callback pref-sym (λ (p v) (send q set-value v)))
            (send q set-value (preferences:get pref-sym))))])
   (preferences:add-to-general-checkbox-panel
@@ -311,6 +318,8 @@
      (make-check-box 'drracket:open-in-tabs 
                      (string-constant open-files-in-tabs)
                      editor-panel)
+     
+
      (make-check-box 'drracket:show-interactions-on-execute 
                      (string-constant show-interactions-on-execute)
                      editor-panel)
@@ -322,14 +331,24 @@
      (make-check-box 'drracket:defs/ints-horizontal
                      (string-constant interactions-beside-definitions)
                      editor-panel)
-     
+
      (make-check-box 'drracket:module-language-first-line-special?
                      (string-constant ml-always-show-#lang-line)
                      editor-panel)))
   
   (preferences:add-to-editor-checkbox-panel
    (λ (editor-panel)
-     (void)
+     (make-check-box 'drracket:show-line-numbers?
+                     (string-constant show-line-numbers)
+                     editor-panel
+                     (lambda (value)
+                       (define (drracket:frame? frame)
+                         (and (is-a? frame top-level-window<%>)
+                              (is-a? frame drracket:unit:frame%)))
+                       ;; is it a hack to use `get-top-level-windows' ?
+                       (define frames (filter drracket:frame? (get-top-level-windows)))
+                       (when (not (null? frames))
+                         (send (car frames) show-line-numbers! value))))
      
      ;; come back to this one.
      #;
@@ -436,6 +455,30 @@
    (run-installer filename)
    #f))
 
+;; trim old console-previous-exprs preferences to compenstate 
+;; for a bug that let it grow without bound
+(let* ([max-len 30]
+       [trim (λ (exprs save)
+               (when (list? exprs)
+                 (let ([len (length exprs)])
+                   (when (> len max-len)
+                     (save (drop exprs (- len max-len)))))))])
+  (let ([framework-prefs (get-preference 'plt:framework-prefs)])
+    (when (and (list? framework-prefs)
+               (andmap pair? framework-prefs))
+      (let ([exprs-pref (assq 'drscheme:console-previous-exprs framework-prefs)])
+        (when exprs-pref
+          (trim (second exprs-pref)
+                (λ (trimmed)
+                  (put-preferences (list 'plt:framework-prefs)
+                                   (list (dict-set framework-prefs 'drscheme:console-previous-exprs (list trimmed)))
+                                   void)))))))
+  (trim (get-preference 'plt:framework-pref:drscheme:console-previous-exprs)
+        (λ (trimmed)
+          (put-preferences (list 'plt:framework-pref:drscheme:console-previous-exprs)
+                           (list trimmed)
+                           void))))
+
 (drracket:tools:load/invoke-all-tools
  (λ () (void))
  (λ () 
@@ -494,7 +537,7 @@
   ;; preferences initialization
   (drr:set-default 'drracket:multi-file-search:recur? #t boolean?)
   (drr:set-default 'drracket:multi-file-search:filter? #t boolean?)
-  (drr:set-default 'drracket:multi-file-search:filter-regexp "\\.(rkt.?|ss|scm)$" string?)
+  (drr:set-default 'drracket:multi-file-search:filter-regexp "\\.(rkt.?|scrbl|ss|scm)$" string?)
   (drr:set-default 'drracket:multi-file-search:search-string "" string?)
   (drr:set-default 'drracket:multi-file-search:search-type
                            1
@@ -614,21 +657,34 @@
             (send item enable (and frame (> (length (send frame get-tabs)) 1)))))])
   (group:add-to-windows-menu
    (λ (windows-menu)
+     (define sprefix (if (eq? (system-type) 'windows)
+                         (cons 'shift (get-default-shortcut-prefix))
+                         (get-default-shortcut-prefix)))
      (new menu-item%
-          [parent windows-menu] [label (string-constant prev-tab)] [shortcut #\[]
+          [parent windows-menu]
+          [label (string-constant prev-tab)]
+          [shortcut #\[]
+          [shortcut-prefix sprefix]
           [demand-callback dc]
           [callback (λ (item _) 
                       (let ([frame (find-frame item)])
                         (when frame
                           (send frame prev-tab))))])
-     (new menu-item% [parent windows-menu] [label (string-constant next-tab)] [shortcut #\]]
+     (new menu-item% 
+          [parent windows-menu]
+          [label (string-constant next-tab)]
+          [shortcut #\]]
+          [shortcut-prefix sprefix]
           [demand-callback dc]
           [callback (λ (item _) 
                       (let ([frame (find-frame item)])
                         (when frame
                           (send frame next-tab))))])
+     
      (let ([frame (find-frame windows-menu)])
        (unless (or (not frame) (= 1 (send frame get-tab-count)))
+         (unless (eq? (system-type) 'macosx)
+           (new separator-menu-item% [parent windows-menu]))
          (for ([i (in-range 0 (send frame get-tab-count))]
                #:when (< i 9))
            (new menu-item% 
@@ -640,7 +696,9 @@
                 [callback
                  (λ (a b)
                    (send frame change-to-nth-tab i))]))))
-     (new separator-menu-item% [parent windows-menu]))))
+     
+     (when (eq? (system-type) 'macosx)
+       (new separator-menu-item% [parent windows-menu])))))
 
 ;; Check for any files lost last time.
 ;; Ignore the framework's empty frames test, since
@@ -665,6 +723,7 @@
       (send (send frame get-interactions-canvas) focus))
     (send frame show #t)))
 
+;; FIXME: get this from racket/list ?
 (define (remove-duplicates files)
   (let loop ([files files])
     (cond

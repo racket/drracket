@@ -19,6 +19,13 @@
 (define about-frame%
   (class (drracket:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
     (init-field main-text)
+    (inherit close)
+    (define/override (on-subwindow-char receiver event)
+      (cond
+        [(equal? (send event get-key-code) 'escape)
+         (close)]
+        [else
+         (super on-subwindow-char receiver event)]))
     (define/private (edit-menu:do const)
       (send main-text do-edit-operation const))
     [define/override file-menu:create-revert? (λ () #f)]
@@ -70,10 +77,11 @@
 
 (define (get-plt-bitmap)
   (make-object bitmap%
-    (build-path (collection-path "icons")
-                (if (< (get-display-depth) 8)
-                    "pltbw.gif"
-                    "plt-logo-red-shiny.png"))))
+    (build-path (collection-file-path
+                 (if (< (get-display-depth) 8)
+                     "pltbw.gif"
+                     "plt-logo-red-shiny.png")
+                 "icons"))))
 
 
 
@@ -361,9 +369,9 @@
                (λ (x y)
                  (send-url url)))))])
     (add (string-constant plt-homepage) "http://racket-lang.org/")
-    (add (string-constant teachscheme!-homepage) "http://www.teach-scheme.org/")
-    (add (string-constant how-to-design-programs) "http://www.htdp.org/")
-    
+    (add (string-constant pbd-homepage) "http://programbydesign.org/")
+    (add (string-constant how-to-design-programs) "http://htdp.org/")
+
     (for-each (λ (tool)
                 (cond [(drracket:tools:successful-tool-url tool) 
                        =>

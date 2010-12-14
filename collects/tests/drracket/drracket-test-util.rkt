@@ -105,7 +105,7 @@
       (or (wait-for-drscheme-frame-pred)
           (begin
             (when print-message?
-              (printf "Select DrRacket frame~n"))
+              (printf "Select DrRacket frame\n"))
             (poll-until wait-for-drscheme-frame-pred)))))
   
   ;; wait-for-new-frame : frame [(listof eventspace) = null] -> frame
@@ -151,7 +151,8 @@
 	      (fw:test:reraise-error)
 	      (send (send frame get-execute-button) is-enabled?))])
       ;(poll-until wait-for-computation-to-start 60) ;; hm.
-      (poll-until wait-for-computation-to-finish 60)))
+      (poll-until wait-for-computation-to-finish 60)
+      (sync (system-idle-evt))))
 
   (define do-execute 
     (case-lambda
@@ -176,9 +177,9 @@
     (let ([window (send frame get-focus-window)])
       (let-values ([(cw ch) (send window get-client-size)]
 		   [(w h) (send window get-size)])
-	(fw:test:mouse-click 'left
-			     (inexact->exact (+ cw (floor (/ (- w cw) 2))))
-			     (inexact->exact (+ ch (floor (/ (- h ch) 2)))))))
+        (fw:test:mouse-click 'left
+			     (inexact->exact (floor (+ cw (/ (- w cw) 2))))
+			     (inexact->exact (floor (+ ch (/ (- h ch) 2)))))))
     (fw:test:menu-select "Edit" "Select All")
     (fw:test:menu-select "Edit" (if (eq? (system-type) 'macos)
 				    "Clear"
@@ -331,8 +332,8 @@
                     (let-values ([(gx gy) (send editor editor-location-to-dc-location
                                                 (unbox b1)
                                                 (unbox b2))])
-                      (let ([x (inexact->exact (+ gx between-threshold 1))]
-                            [y (inexact->exact (+ gy between-threshold 1))])
+                      (let ([x (inexact->exact (floor (+ gx between-threshold 1)))]
+                            [y (inexact->exact (floor (+ gy between-threshold 1)))])
                         (fw:test:mouse-click 'left x y)))))])
           (send language-choice focus)
           (let loop ([list-item language-choice]
@@ -528,7 +529,7 @@
                      
                      [else
                       (loop (send snip previous)
-                            (cons (format "{unknown snip: ~e}~n" snip)
+                            (cons (format "{unknown snip: ~e}\n" snip)
                                   strings))])]))))))]))
   
   ;; run-one/sync : (-> A) -> A
@@ -570,7 +571,8 @@
 	 (lambda (name [fail (lambda () #f)])
 	   (hash-ref prefs-table name fail))))
 	 
-      (dynamic-require 'drscheme #f)
+      (parameterize ([current-command-line-arguments #()])
+        (dynamic-require 'drscheme #f))
 
       ;; set all preferences to their defaults (some pref values may have
       ;; been read by this point, but hopefully that won't affect much
