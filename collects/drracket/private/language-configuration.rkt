@@ -375,8 +375,9 @@
             (define/override (on-select i)
               (cond
                 [(and i (is-a? i hieritem-language<%>))
-                 (preferences:set 'drracket:language-dialog:hierlist-default (send (send i get-language) get-language-position))
-                 (set! most-recent-languages-hier-list-selection i)
+                 (define pos (send (send i get-language) get-language-position))
+                 (preferences:set 'drracket:language-dialog:hierlist-default pos)
+                 (set! most-recent-languages-hier-list-selection pos)
                  (something-selected i)]
                 [else
                  (non-language-selected)]))
@@ -430,8 +431,7 @@
                   (use-chosen-language-rb-callback))]))
         (define (use-chosen-language-rb-callback)
           (when most-recent-languages-hier-list-selection
-            (send languages-hier-list select 
-                  most-recent-languages-hier-list-selection))
+            (select-a-language-in-hierlist most-recent-languages-hier-list-selection))
           (send use-language-in-source-rb set-selection #f)
           (send languages-hier-list focus))
         (define languages-hier-list-panel (new horizontal-panel% [parent languages-choice-panel]))
@@ -1757,9 +1757,8 @@
           (send txt change-style link-sd 0 (send txt last-position))))
       
       (define link-sd (make-object style-delta% 'change-underline #t))
-      (define stupid-internal-define-syntax1
-        (begin (send link-sd set-delta-foreground "blue")
-               (send link-sd set-family 'default)))
+      (send link-sd set-delta-foreground "blue")
+      (send link-sd set-family 'default)
       
       (main))
     
