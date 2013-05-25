@@ -3,7 +3,7 @@
          mred/mred-sig
          racket/class
          "plt-installer-sig.rkt"
-         (prefix-in single: "plt-single-installer.rkt")
+         (prefix-in single: setup/plt-single-installer)
          mrlib/terminal
          string-constants)
 

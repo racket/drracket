@@ -2,8 +2,8 @@
 
 (require racket/unit racket/class framework drracket/tool
          browser/external string-constants
-         "patchlevel.rkt"
-         "check.rkt")
+         version/patchlevel
+         version/check)
 
 (define download-url "http://download.racket-lang.org/")
 

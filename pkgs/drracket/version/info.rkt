@@ -3,4 +3,4 @@
 (define tools (list "tool.rkt"))
 (define tool-names (list "Version"))
 
-(define scribblings '(("version.scrbl" () (tool-library))))
+(define scribblings '(("tool.scrbl")))

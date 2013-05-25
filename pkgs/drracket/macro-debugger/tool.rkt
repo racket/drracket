@@ -5,11 +5,11 @@
          framework
          drracket/tool
          mrlib/switchable-button
-         "model/trace.rkt"
-         "view/frame.rkt"
-         (only-in "view/view.rkt" macro-stepper-director%)
-         "view/stepper.rkt"
-         "view/prefs.rkt"
+         macro-debugger/model/trace
+         macro-debugger/view/frame
+         (only-in macro-debugger/view/view macro-stepper-director%)
+         macro-debugger/view/stepper
+         macro-debugger/view/prefs
          images/compile-time
          (for-syntax racket/base images/icons/tool)
          ;; FIXME:
