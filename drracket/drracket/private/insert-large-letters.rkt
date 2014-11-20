@@ -1,24 +1,12 @@
 #lang typed/racket
 
-(require typed/mred/mred
-         typed/framework/framework
-         typed/racket/class
+(require typed/racket/gui
+         typed/framework
          string-constants)
-
-(require/typed framework
-               [frame:focus-table-mixin
-                (-> Dialog% Dialog%)])
-
-(define-type Bitmap-Message%
-  (Class (init [parent (Instance Horizontal-Panel%)])
-         [set-bm ((U (Instance Bitmap%) #f) -> Void)]))
-
-(require/typed "bitmap-message.rkt"
-               [bitmap-message% Bitmap-Message%])
 
 (provide insert-large-letters)
 
-(: insert-large-letters (String Char (Instance Text:Basic%) Any -> Void))
+(: insert-large-letters (String Char (Instance Text:Basic<%>) (Instance Frame%) -> Void))
 (define (insert-large-letters comment-prefix comment-character edit parent)
   (let ([str (make-large-letters-dialog comment-prefix comment-character #f)])
     (when (and str
@@ -28,17 +16,21 @@
 
 (: get-default-font (-> (Instance Font%)))
 (define (get-default-font)
-  (send (send (editor:get-standard-style-list)
-              find-named-style
-              "Standard")
+  (send (assert (send (editor:get-standard-style-list)
+                      find-named-style
+                      "Standard"))
         get-font))
 
 (: get-chosen-font (-> (Instance Font%)))
 (define (get-chosen-font)
   (let ([pref-val (preferences:get 'drracket:large-letters-font)])
     (cond
-      [pref-val
-       (let ([candidate (send the-font-list find-or-create-font (cdr pref-val) (car pref-val) 'default 'normal 'normal)])
+      [(and pref-val (pair? pref-val))
+       (let ([candidate
+              (send the-font-list find-or-create-font
+                    (assert (cdr pref-val) exact-integer?)
+                    (assert (car pref-val) string?)
+                    'default 'normal 'normal)])
          (if (equal? (send candidate get-face) (car pref-val))
              candidate
              (get-default-font)))]
@@ -47,8 +39,7 @@
 
 (define columns-string "~a columns")
 
-;; make-large-letters-dialog : string char top-level-window<%> -> void
-(: make-large-letters-dialog (String Char Any -> (Option String)))
+(: make-large-letters-dialog (String Char (Option (Instance Frame%)) -> (Option String)))
 (define (make-large-letters-dialog comment-prefix comment-character parent)
   (define dlg (new (frame:focus-table-mixin dialog%)
                    [parent parent] 
@@ -58,7 +49,7 @@
     (new text-field% 
          [parent dlg] 
          [label (string-constant text-to-insert)]
-         [callback (λ: ([x : Any] [y : Any]) (update-txt (send text-field get-value)))]))
+         [callback (λ (x y) (update-txt (send text-field get-value)))]))
   (: info-bar (Instance Horizontal-Panel%))
   (define info-bar (new horizontal-panel%
                         [parent dlg]
@@ -70,14 +61,14 @@
            [parent info-bar]
            [choices (get-face-list)]
            [callback
-            (λ: ([x : Any] [y : Any])
+            (λ (x y)
                 (let ([old (preferences:get 'drracket:large-letters-font)]
                       [choice (send font-choice get-selection)])
                   (when choice
                     (preferences:set 'drracket:large-letters-font
                                      (cons (list-ref (get-face-list)
                                                      choice)
-                                           (if old
+                                           (if (and old (pair? old))
                                                (cdr old)
                                                (send (get-default-font) get-point-size))))
                     (update-txt (send text-field get-value)))))])))
@@ -86,7 +77,7 @@
   (define count (new message% [label (format columns-string 1000)] [parent info-bar]))
   (: pane1 (Instance Horizontal-Pane%))
   (define pane1 (new horizontal-pane% (parent info-bar)))
-  (: dark-msg (Instance Bitmap-Message%))
+  (: dark-msg (Object [set-bm ((Option (Instance Bitmap%)) -> Void)]))
   (define dark-msg (new bitmap-message% [parent info-bar]))
   (: pane2 (Instance Horizontal-Pane%))
   (define pane2 (new horizontal-pane% (parent info-bar)))
@@ -105,8 +96,8 @@
   (: cancel Any)
   (define-values (ok cancel)
     (gui-utils:ok/cancel-buttons button-panel
-                                 (λ: ([x : Any] [y : Any]) (set! ok? #t) (send dlg show #f))
-                                 (λ: ([x : Any] [y : Any]) (send dlg show #f))))
+                                 (λ (x y) (set! ok? #t) (send dlg show #f))
+                                 (λ (x y) (send dlg show #f))))
   (: update-txt (String -> Any))
   (define (update-txt str)
     (send txt begin-edit-sequence)
@@ -139,18 +130,40 @@
   (send dlg show #t)
   (and ok? (send text-field get-value)))
 
-(: get-max-line-width ((Instance Text:Basic%) -> Real))
+(: get-max-line-width ((Instance Text:Basic<%>) -> Real))
 (define (get-max-line-width txt)
   (let loop ([i (+ (send txt last-paragraph) 1)]
-             [#{m : Integer} 0])
+             [m 0])
     (cond
       [(zero? i) m]
       [else (loop (sub1 i)
                   (max m (- (send txt paragraph-end-position (- i 1))
                             (send txt paragraph-start-position (- i 1)))))])))
-      
 
-(: render-large-letters (String Char (Instance Font%) String (Instance Text:Basic%) -> (Instance Bitmap%)))
+(define bitmap-message%
+  (class canvas%
+    (inherit min-width min-height get-dc refresh)
+    (: bm (Option (Instance Bitmap%)))
+    (define bm #f)
+    (define/override (on-paint)
+      (define bm* bm)
+      (when bm*
+        (let ([dc (get-dc)])
+          (send dc draw-bitmap bm* 0 0)))
+      (void))
+    (: set-bm ((Option (Instance Bitmap%)) -> Void))
+    (define/public (set-bm b)
+      (set! bm b)
+      (define bm* bm)
+      (when bm*
+        (min-width (send bm* get-width))
+        (min-height (send bm* get-height)))
+      (refresh))
+    (super-new (stretchable-width #f)
+               (stretchable-height #f)
+               (style '(no-focus)))))
+
+(: render-large-letters (String Char (Instance Font%) String (Instance Text:Basic<%>) -> (Instance Bitmap%)))
 (define (render-large-letters comment-prefix comment-character the-font str edit)
   (define bdc (new bitmap-dc% [bitmap (make-bitmap 1 1 #t)]))
   (define-values (tw raw-th td ta) (send bdc get-text-extent str the-font))
@@ -173,8 +186,8 @@
   
   (: fetch-line (Real -> String))
   (define (fetch-line y)
-    (let: loop : String ([x : Real (send bitmap get-width)]
-                         [chars : (Listof Char) null])
+    (let loop ([x (send bitmap get-width)]
+               [#{chars : (Listof Char)} null])
       (cond
         [(zero? x) (apply string chars)]
         [else (loop (- x 1) (cons (get-char (- x 1) y) chars))])))
