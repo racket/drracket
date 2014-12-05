@@ -1,6 +1,13 @@
 #lang racket/gui
+#|
+
+This is a script that generates a
+heart bitmap by shearing plt-logo-red-shiny.png
+
+|#
+
 (require mrlib/private/image-core-bitmap)
-(define img (read-bitmap (build-path (collection-path "icons") "plt-logo-red-shiny.png")))
+(define img (read-bitmap (collection-file-path "plt-logo-red-shiny.png" "icons")))
 
 (define amount .5)
 (define remove-margin 50)
@@ -10,8 +17,6 @@
 (define-values (right-bytes right-w right-h) (linear-transform bmbytes bm-w bm-h 1 0 amount 1))
 (define left-bm (bytes->bitmap left-bytes left-w left-h))
 (define right-bm (bytes->bitmap right-bytes right-w right-h))
-(define f (new frame% [label ""]))
-(define hp (new horizontal-panel% [parent f] [alignment '(center center)]))
 
 (define heart-w left-w)
 (define heart-h (- left-h remove-margin remove-margin))
@@ -28,23 +33,26 @@
         (floor (/ heart-w 2)) 0
         (floor (/ heart-w 2)) right-h))
 
-(define corig (new canvas%
-               [parent hp]
-               [min-width bm-w]
-               [min-height bm-h]
-               [stretchable-height #f]
-               [paint-callback
-                (λ (c dc)
-                  (send dc draw-bitmap img 0 0))]))
-(define c (new canvas%
-               [parent hp]
-               [min-width heart-w]
-               [min-height heart-h]
-               [paint-callback
-                (λ (c dc)
-                  (draw-heart dc))]))
-(void (new grow-box-spacer-pane% [parent f]))
-(send f show #t)
+(module+ main
+  (define f (new frame% [label ""]))
+  (define hp (new horizontal-panel% [parent f] [alignment '(center center)]))
+  (define corig (new canvas%
+                     [parent hp]
+                     [min-width bm-w]
+                     [min-height bm-h]
+                     [stretchable-height #f]
+                     [paint-callback
+                      (λ (c dc)
+                        (send dc draw-bitmap img 0 0))]))
+  (define c (new canvas%
+                 [parent hp]
+                 [min-width heart-w]
+                 [min-height heart-h]
+                 [paint-callback
+                  (λ (c dc)
+                    (draw-heart dc))]))
+  (void (new grow-box-spacer-pane% [parent f]))
+  (send f show #t))
 
 (define heart-bm (make-bitmap heart-w heart-h))
 (define heart-bdc (make-object bitmap-dc% heart-bm))
