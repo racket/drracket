@@ -20,24 +20,23 @@ add this test:
          mrlib/text-string-style-desc)
 
 (define (check-output expression expected)
-  (begin
-    (clear-definitions drs-frame)
-    (type-in-definitions drs-frame expression)
-    (do-execute drs-frame)
-    (let ([got (get-annotated-output)])
-      (unless (and (= (length expected)
-                      (length got))
-                   (andmap (λ (exp got)
-                             (and (string=? (car exp) (car got))
-                                  (or (equal? (cadr exp) (cadr got))
-                                      (and (procedure? (cadr exp))
-                                           ((cadr exp) (cadr got))))))
-                           expected
-                           got))
-        (eprintf "expected ~s\n     got ~s\nfor ~s\n\n"
-                 expected
-                 got
-                 expression)))))
+  (clear-definitions drs-frame)
+  (type-in-definitions drs-frame expression)
+  (do-execute drs-frame)
+  (define got (get-annotated-output))
+  (unless (and (= (length expected)
+                  (length got))
+               (andmap (λ (exp got)
+                         (and (equal? (car exp) (car got))
+                              (or (equal? (cadr exp) (cadr got))
+                                  (and (procedure? (cadr exp))
+                                       ((cadr exp) (cadr got))))))
+                       expected
+                       got))
+    (eprintf "expected ~s\n     got ~s\nfor ~s\n\n"
+             expected
+             got
+             expression)))
 
 (define (get-annotated-output)
   (let ([chan (make-channel)])
@@ -102,7 +101,13 @@ add this test:
                                           (semaphore-post s)))
                                 (semaphore-wait s)))
                 (list (list "1" error-style)
-                      prompt)))
+                      prompt))
+  
+  (check-output "(make-bytes 1200 97)\n3/4"
+                (list (list (format "~s\n" (make-bytes 1200 97)) '|ports value|)
+                      (list 'unknown '|ports value|)
+                      (list "\n" '|ports value|)
+                      (list "> " 'default-color))))
 
 (define (long-io/execute-test)
   (let ([string-port (open-output-string)])
