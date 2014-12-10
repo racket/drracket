@@ -224,6 +224,8 @@ TODO
     (add-drs-function "send-selection-to-repl-and-go" (λ (frame) (send frame send-selection-to-repl #t)))
     (add-drs-function "move-to-interactions" (λ (frame) (send frame move-to-interactions)))
     
+    (add-drs-function "save-definitions" (λ (frame) (send frame save)))
+    
     (map-meta-drs-function "p" "jump-to-previous-error-loc")
     (map-meta-drs-function "n" "jump-to-next-error-loc")
     (map-drs-function "c:x;`" "jump-to-next-error-loc")
@@ -241,6 +243,8 @@ TODO
     (map-drs-function "c:x;2" "split")
     
     (map-drs-function "c:c;c:z" "move-to-interactions")
+    
+    (map-drs-function "c:x;c:w" "save-definitions")
     
     (for ([i (in-range 1 10)])
       (map-drs-function (format "a:~a" i) 
