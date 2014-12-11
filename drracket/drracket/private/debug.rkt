@@ -602,7 +602,12 @@ profile todo:
                      (display (path->string (find-relative-path n-cd n-src))
                               (current-error-port))]
                     [else
-                     (display "<unsaved editor>" (current-error-port))]))]
+                     (define name
+                       (cond
+                         [(string? src) src]
+                         [(symbol? src) (symbol->string src)]
+                         [else "<unsaved editor>"]))
+                     (display name (current-error-port))]))]
                [do-line/col (λ () (eprintf ":~a:~a" line col))]
                [do-pos (λ () (eprintf "::~a" pos))]
                [src-loc-in-defs/ints?

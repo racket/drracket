@@ -22,7 +22,7 @@
                "typed-racket-lib"
                "unstable-contract-lib"
                "wxme-lib"
-               "gui-lib"
+               ("gui-lib" #:version "1.5")
                "racket-index"
                "racket-doc"
                "html-lib"

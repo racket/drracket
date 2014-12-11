@@ -671,6 +671,10 @@
                (let ([f (get-top-level-window)])
                  (when (and f
                             (is-a? f drracket:unit:frame<%>))
+                   (send (send f get-interactions-text) set-port-unsaved-name
+                         (if fn
+                             "interactions from an unsaved editor"
+                             (format "interactions from ~a" fn)))
                    (send f update-save-message)))]))
           
           (field

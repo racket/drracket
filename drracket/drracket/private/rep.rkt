@@ -494,6 +494,7 @@ TODO
                set-caret-owner
                set-clickback
                set-insertion-point
+               set-port-unsaved-name
                set-position
                set-styles-sticky
                set-styles-fixed
@@ -1010,7 +1011,7 @@ TODO
           
           (set! prompt-position #f)
           (evaluate-from-port
-           (get-in-port) 
+           (get-in-port)
            #f
            (λ ()
              ;; clear out the eof object if it wasn't consumed
@@ -1095,7 +1096,6 @@ TODO
         (update-running #t)
         (set! need-interaction-cleanup? #t)
         (define the-after-expression (after-expression))
-        
         (run-in-evaluation-thread
          (λ () ; =User=, =Handler=, =No-Breaks=
            (let* ([settings (current-language-settings)]
@@ -2049,7 +2049,7 @@ TODO
       (super-new)
       (auto-wrap #t)
       (set-styles-sticky #f)
-      
+      (set-port-unsaved-name "interactions from an unsaved editor")
       (inherit set-max-undo-history)
       (set-max-undo-history 'forever)))
   

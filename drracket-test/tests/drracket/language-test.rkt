@@ -162,7 +162,11 @@ the settings above should match r5rs
     
     (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
                      "{image}"
-                     "{image}")))
+                     "{image}")
+    
+    (test-expression "(syntax-source #'x)"
+                     "'unsaved-editor"
+                     "'|interactions from an unsaved editor|")))
 
 
 ;                                                                               
