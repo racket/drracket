@@ -782,28 +782,36 @@ and add an @filepath{info.rkt} file to it. The file should define
 
 As an example, this is the specification of the @racket["Modern"] style:
 @(let ()
-   (define pth (collection-file-path "info.rkt" "drracket"))
-   (define-values (base name dir?) (split-path pth))
-   (define info (get-info/full base))
-   (unless info (error 'framework/main.rkt "could not find example for modern color scheme"))
    (define key 'framework:color-schemes)
-   (define datum (info key))
+   (define pths (find-relevant-directories (list key) 'all-available))
+   (define datum
+     (apply
+      append
+      (for/list ([pth (in-list pths)])
+        (define info (get-info/full pth))
+        (if info
+            (info key)
+            '()))))
    (define name-as-string-datum
-     (let loop ([datum datum])
-       (cond
-         [(list? datum)
-          (for/list ([datum (in-list datum)])
-            (loop datum))]
-         [(hash? datum)
-          (for/hash ([(k v) (in-hash datum)])
-            (if (and (equal? k 'name) (string-constant? v))
-                (values k (dynamic-string-constant v))
-                (values k (loop v))))]
-         [(and (symbol? datum)
-               (regexp-match #rx"framework:" (symbol->string datum)))
-          (unless example-key (set! example-key datum))
-          datum]
-         [else datum])))
+     (filter
+      (λ (x) (equal? (hash-ref x 'name) "Modern"))
+      (let loop ([datum datum])
+        (cond
+          [(list? datum)
+           (for/list ([datum (in-list datum)])
+             (loop datum))]
+          [(hash? datum)
+           (for/hash ([(k v) (in-hash datum)])
+             (if (and (equal? k 'name) (string-constant? v))
+                 (values k (dynamic-string-constant v))
+                 (values k (loop v))))]
+          [(and (symbol? datum)
+                (regexp-match #rx"framework:" (symbol->string datum)))
+           (unless example-key (set! example-key datum))
+           datum]
+          [else datum]))))
+   (when (null? name-as-string-datum)
+     (error 'interface-essentials.scrbl "could not find \"Modern\" style"))
    (define sp (open-output-string))
    (parameterize ([pretty-print-columns 60]
                   [current-output-port sp])
@@ -814,7 +822,7 @@ As an example, this is the specification of the @racket["Modern"] style:
     (string-append "#lang info\n"
                    (get-output-string sp))))
 
-Each of the keys, e.g., @code[(format "~s" `',example-key)], maps to a color and possibly to
+Each of the keys, e.g., @code[(format "'~s" example-key)], maps to a color and possibly to
 some style information. All keys accept colors (the vectors shown
 above represent colors in r/g/b format), but only some accept style information. To
 find out which are which and to get a complete list of the possible keys, click the button
