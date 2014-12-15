@@ -1886,6 +1886,7 @@ If the namespace does not, they are colored the unbound color.
         (define/public (replay-compile-comp-trace defs-text val bx)
           (send (send defs-text get-tab) add-bkg-running-color
                 'syncheck "orchid" cs-syncheck-running)
+          (define known-dead-place-channels (make-hasheq))
           (let loop ([val val]
                      [start-time (current-inexact-milliseconds)]
                      [i 0])
@@ -1912,7 +1913,7 @@ If the namespace does not, they are colored the unbound color.
                                   (loop val (current-inexact-milliseconds) 0))))
                 #f)]
               [else
-               (process-trace-element defs-text (car val))
+               (process-trace-element known-dead-place-channels defs-text (car val))
                (loop (cdr val) start-time (+ i 1))])))
         
         (define/public (reset-previous-check-syntax-information defs-text)
@@ -1922,14 +1923,14 @@ If the namespace does not, they are colored the unbound color.
           (send defs-text syncheck:reset-docs-im)
           (send defs-text syncheck:init-arrows))
         
-        (define/private (process-trace-element defs-text x)
+        (define/private (process-trace-element known-dead-place-channels defs-text x)
           ;; using 'defs-text' all the time is wrong in the case of embedded editors,
           ;; but they already don't work and we've arranged for them to not appear here ....
           (match x
             [`#(syncheck:add-arrow/name-dup ,start-pos-left ,start-pos-right
                                             ,end-pos-left ,end-pos-right
                                             ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
-             (define name-dup? (build-name-dup? name-dup-pc name-dup-id))
+             (define name-dup? (build-name-dup? name-dup-pc name-dup-id  known-dead-place-channels))
              (send defs-text syncheck:add-arrow/name-dup
                    defs-text start-pos-left start-pos-right
                    defs-text end-pos-left end-pos-right 
@@ -1953,14 +1954,13 @@ If the namespace does not, they are colored the unbound color.
              (define to-be-renamed/poss/fixed
                (for/list ([lst (in-list to-be-renamed/poss)])
                  (list defs-text (list-ref lst 0) (list-ref lst 1))))
-             (define name-dup? (build-name-dup? name-dup-pc name-dup-id))
+             (define name-dup? (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels))
              (send defs-text syncheck:add-id-set to-be-renamed/poss/fixed name-dup?)]))
         
-        (define/private (build-name-dup? name-dup-pc name-dup-id)
-          (define other-side-dead? #f)
+        (define/private (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels)
           (define (name-dup? name) 
             (cond
-              [other-side-dead? 
+              [(hash-ref known-dead-place-channels name-dup-pc #f)
                ;; just give up here ...
                #f]
               [else
@@ -1970,7 +1970,7 @@ If the namespace does not, they are colored the unbound color.
                  [(list? res) (car res)]
                  [else
                   (printf "other side died\n")
-                  (set! other-side-dead? #t)
+                  (hash-set! known-dead-place-channels name-dup-pc #t)
                   #f])]))
           name-dup?)
         
