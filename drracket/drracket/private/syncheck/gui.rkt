@@ -1969,7 +1969,6 @@ If the namespace does not, they are colored the unbound color.
                (cond
                  [(list? res) (car res)]
                  [else
-                  (printf "other side died\n")
                   (hash-set! known-dead-place-channels name-dup-pc #t)
                   #f])]))
           name-dup?)
