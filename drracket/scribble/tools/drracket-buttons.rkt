@@ -32,7 +32,15 @@
        [fn
         (parameterize ([drracket:rep:after-expression
                         (λ ()
-                          (define doc (with-handlers ((exn:fail? (λ (x) #f))) (eval 'doc)))
+                          (define submod-doc
+                            (with-handlers ((exn:fail? (λ (x) #f)))
+                              (dynamic-require (module-path-index-join
+                                                '(submod "." doc)
+                                                (eval #'(variable-reference->module-path-index
+                                                         (#%variable-reference))))
+                                               'doc)))
+                          (define doc (or submod-doc
+                                          (with-handlers ((exn:fail? (λ (x) #f))) (eval 'doc))))
                           ;; if (eval 'doc) goes wrong, then we assume that's because of
                           ;; an earlier failure, so we just don't do anything.
                           (when doc
