@@ -146,6 +146,8 @@
         (path->string p)
         (path->relative-string/library p #:cache p->r-s/l-cache)))
   
+  (define pkgs-dirs-cache (box #f))
+  
   (define (adjust-lb)
     (send lb clear)
     (unless (equal? (send tf get-value) "")
@@ -155,6 +157,7 @@
       (define the-completions 
         (find-completions (send tf get-value) 
                           the-current-directory
+                          #:pkgs-dirs-cache pkgs-dirs-cache
                           #:alternate-racket alt-racket-info))
       (for ([i (in-list (if dir?
                             (filter (λ (i) (directory-exists? (list-ref i 1)))
@@ -304,30 +307,32 @@
           (thread (alternate-racket-thread-loop (list-ref pref-val 1))))))
 (define thd #f)
 
-(define (fire-off-alternate-racket-call str+dlg)
+(define (fire-off-alternate-racket-call str+dlg pkgs-dirs-cache)
   (define new-clcl-thread-pending-chan (make-channel))
   (thread
    (λ () 
-     (define-values (a b) 
+     (define-values (a b c)
        (if (path-string? (list-ref str+dlg 0))
-           (alternate-racket-clcl/clcp (list-ref str+dlg 0))
+           (alternate-racket-clcl/clcp (list-ref str+dlg 0) pkgs-dirs-cache)
            (values (current-library-collection-links)
                    (current-library-collection-paths))))
      (channel-put new-clcl-thread-pending-chan
-                  (list (list a b)
+                  (list (list a b c)
                         (list-ref str+dlg 1)))))
   new-clcl-thread-pending-chan)
 
 (define (alternate-racket-thread-loop initial-alternate-racket)
   (λ ()
+    (define pkgs-dirs-cache (box #f))
     (let loop ([clcl-thread-pending-chan #f]
                
                ;; (cons/c string? (is-a?/c dialog%))
                [pending-str+dlg #f]
                [clcl/clcp (if (path-string? initial-alternate-racket)
-                              (let-values ([(a b) (alternate-racket-clcl/clcp 
-                                                   initial-alternate-racket)])
-                                (list a b))
+                              (let-values ([(a b c) (alternate-racket-clcl/clcp
+                                                     initial-alternate-racket
+                                                     pkgs-dirs-cache)])
+                                (list a b c))
                               (list (current-library-collection-links)
                                     (current-library-collection-paths)))])
       (sync
@@ -341,7 +346,7 @@
                    clcl/clcp)]
             [else
              (define new-clcl-thread-pending-chan 
-               (fire-off-alternate-racket-call str+dlg))
+               (fire-off-alternate-racket-call str+dlg pkgs-dirs-cache))
              (loop new-clcl-thread-pending-chan
                    #f
                    clcl/clcp)])))
@@ -357,7 +362,7 @@
             (λ (new-clcl/clcp+dlg)
               (cond
                 [pending-str+dlg
-                 (loop (fire-off-alternate-racket-call pending-str+dlg)
+                 (loop (fire-off-alternate-racket-call pending-str+dlg pkgs-dirs-cache)
                        #f
                        clcl/clcp)]
                 [else

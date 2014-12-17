@@ -2,7 +2,8 @@
 
 (require racket/contract/base
          racket/system
-         racket/port)
+         racket/port
+         pkg/lib)
 
 (define lcl/c
   (listof (or/c #f
@@ -13,25 +14,36 @@
 (define lcp/c
   (listof (and/c path? complete-path?)))
 
+(define pkg-dirs/c
+  (listof (list/c string? complete-path?)))
+
 (provide
  (contract-out
-  [alternate-racket-clcl/clcp (-> path-string? (values lcl/c lcp/c))]
-  [find-completions (->* (string? path-string?)
-                         (#:alternate-racket (or/c #f 
-                                                   path-string?
-                                                   (list/c lcl/c lcp/c)))
+  [alternate-racket-clcl/clcp (-> path-string?
+                                  (box/c (or/c #f pkg-dirs/c))
+                                  (values lcl/c lcp/c pkg-dirs/c))]
+  [find-completions (->* (string?
+                          path-string?
+                          #:pkgs-dirs-cache
+                          (box/c (or/c #f pkg-dirs/c)))
+                         (#:alternate-racket
+                          (or/c #f
+                                path-string?
+                                (list/c lcl/c lcp/c pkg-dirs/c)))
                          (listof (list/c string? path?)))]))
 
-(define (ignore? x) 
+(define (ignore? x)
   (or (member x '("compiled"))
       (if (equal? (system-type) 'windows)
           (regexp-match #rx"[.]bak$" x)
           (regexp-match #rx"~$" x))))
 
-(define (find-completions str the-current-directory #:alternate-racket [alternate-racket #f])
+(define (find-completions str the-current-directory
+                          #:alternate-racket [alternate-racket #f]
+                          #:pkgs-dirs-cache pkgs-dirs-cache)
   (cond
     [(and (not (equal? str "")) (equal? (string-ref str 0) #\"))
-     (define no-quotes-string 
+     (define no-quotes-string
        (cond
          [(equal? (string-ref str (- (string-length str) 1)) #\")
           (define no-last-quote (substring str 0 (- (string-length str) 1)))
@@ -49,7 +61,8 @@
                                 directory-exists?)]
     [else
      (find-completions-collection/internal str
-                                           (find-all-collection-dirs alternate-racket)
+                                           (find-all-collection-dirs alternate-racket
+                                                                     pkgs-dirs-cache)
                                            directory-list
                                            directory-exists?)]))
 
@@ -87,21 +100,23 @@
 ;; -> (listof (list string? path?))
 ;; returns a list of all of the directories that are being treated as collections,
 ;; (together with the names of the collections)
-(define (find-all-collection-dirs alternate-racket)
-  (define-values (library-collection-links library-collection-paths)
+(define (find-all-collection-dirs alternate-racket pkgs-dirs-cache)
+  (define-values (library-collection-links library-collection-paths pkg-paths)
     (cond
       [(list? alternate-racket)
        (values (list-ref alternate-racket 0)
-               (list-ref alternate-racket 1))]
+               (list-ref alternate-racket 1)
+               (list-ref alternate-racket 2))]
       [else
-       (alternate-racket-clcl/clcp alternate-racket)]))
+       (alternate-racket-clcl/clcp alternate-racket pkgs-dirs-cache)]))
   ;; link-content : (listof (list (or/c 'root 'static-root string?) path?))
-  (define link-content 
+  (define link-content
     (apply
      append
+     pkg-paths
      (for/list ([link (in-list library-collection-links)])
        (cond
-         [link 
+         [link
           (define-values (base name dir?) (split-path link))
           (cond
             [(file-exists? link)
@@ -115,7 +130,7 @@
                                         (regexp-match (list-ref link-ent 2) (version)))
                                    #t))
                `(,(list-ref link-ent 0)
-                 ,(simplify-path 
+                 ,(simplify-path
                    (if (relative-path? (list-ref link-ent 1))
                        (build-path base (list-ref link-ent 1))
                        (list-ref link-ent 1)))))]
@@ -123,7 +138,7 @@
          [else
           (for/list ([clp (in-list library-collection-paths)])
             `(root ,(simplify-path clp)))]))))
-  
+ 
   (apply
    append
    (for/list ([just-one (in-list link-content)])
@@ -139,10 +154,21 @@
              (list (path->string dir) (build-path pth dir)))]
           [else '()])]))))
 
-(define (alternate-racket-clcl/clcp alternate-racket) 
+(define (alternate-racket-clcl/clcp alternate-racket pkgs-dirs-cache)
   (define (use-current-racket n)
+    (define pkgs-dirs
+      (cond
+        [(unbox pkgs-dirs-cache) => values]
+        [else
+         (define pkgs-dirs
+           (for*/list ([scope (in-list (get-all-pkg-scopes))]
+                       [name (in-list (installed-pkg-names #:scope scope))])
+             (list name (simplify-path (pkg-directory name)))))
+         (set-box! pkgs-dirs-cache pkgs-dirs)
+         pkgs-dirs]))
     (values (current-library-collection-links)
-            (current-library-collection-paths)))
+            (current-library-collection-paths)
+            pkgs-dirs))
   (cond
     [alternate-racket
      (cond
@@ -152,20 +178,25 @@
           (parameterize ([current-output-port result-port]
                          [current-error-port (open-output-nowhere)]
                          [current-input-port (open-input-string "")])
-            (system* alternate-racket 
+            (define get-info-expression
+              `(write
+                (let loop ([exp
+                            (list (current-library-collection-links)
+                                  (current-library-collection-paths)
+                                  (for*/list ([scope (in-list (get-all-pkg-scopes))]
+                                              [name (in-list (installed-pkg-names #:scope scope))])
+                                    (list name (simplify-path (pkg-directory name)))))])
+                  (cond
+                    [(pair? exp) (cons (loop (car exp)) (loop (cdr exp)))]
+                    [(hash? exp) (for/hash ([(k v) (in-hash exp)])
+                                   (values (loop k)
+                                           (loop v)))]
+                    [(path? exp) `#s(pth ,(path->string exp))]
+                    [else exp]))))
+            (system* alternate-racket
                      "-l" "racket/base"
-                     "-e" 
-                     (format "~s" `(write 
-                                    (let loop ([exp
-                                                (list (current-library-collection-links)
-                                                      (current-library-collection-paths))])
-                                      (cond
-                                        [(pair? exp) (cons (loop (car exp)) (loop (cdr exp)))]
-                                        [(hash? exp) (for/hash ([(k v) (in-hash exp)])
-                                                       (values (loop k)
-                                                               (loop v)))]
-                                        [(path? exp) `#s(pth ,(path->string exp))]
-                                        [else exp])))))))
+                     "-l" "pkg/lib"
+                     "-e" (format "~s" get-info-expression))))
         (cond
           [success?
            (struct pth (p) #:prefab)
@@ -179,15 +210,16 @@
                                         (loop v)))]
                  [else exp])))
            (define ip (open-input-string (get-output-string result-port)))
-           (define links/paths 
+           (define links/paths
              (convert-back
               (with-handlers ([exn:fail:read? (λ (x) #f)])
                 (read ip))))
-           (define okay-values? (list/c lcl/c lcp/c))
+           (define okay-values? (list/c lcl/c lcp/c (listof complete-path?)))
            (cond
              [(okay-values? links/paths)
               (values (list-ref links/paths 0)
-                      (list-ref links/paths 1))]
+                      (list-ref links/paths 1)
+                      (list-ref links/paths 2))]
              [else (use-current-racket 0)])]
           [else (use-current-racket 1)])]
        [else (use-current-racket 2)])]
