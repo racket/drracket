@@ -15,7 +15,7 @@
   (listof (and/c path? complete-path?)))
 
 (define pkg-dirs/c
-  (listof (list/c string? complete-path?)))
+  (listof (list/c string? (and/c path? complete-path?))))
 
 (provide
  (contract-out
@@ -219,7 +219,7 @@
              (convert-back
               (with-handlers ([exn:fail:read? (λ (x) #f)])
                 (read ip))))
-           (define okay-values? (list/c lcl/c lcp/c (listof complete-path?)))
+           (define okay-values? (list/c lcl/c lcp/c pkg-dirs/c))
            (cond
              [(okay-values? links/paths)
               (values (list-ref links/paths 0)
