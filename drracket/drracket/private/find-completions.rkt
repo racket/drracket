@@ -154,16 +154,23 @@
              (list (path->string dir) (build-path pth dir)))]
           [else '()])]))))
 
+(define-syntax-rule (thunk-and-quote e)
+  (values (λ () e) 'e))
+
+(define-values (compute-pkg-dirs compute-pkg-dirs-code)
+  (thunk-and-quote
+   (let ([h (make-hash)])
+     (for*/list ([scope (in-list (get-all-pkg-scopes))]
+                 [name (in-list (installed-pkg-names #:scope scope))])
+       (list name (simplify-path (pkg-directory name #:cache h)))))))
+
 (define (alternate-racket-clcl/clcp alternate-racket pkgs-dirs-cache)
   (define (use-current-racket n)
     (define pkgs-dirs
       (cond
         [(unbox pkgs-dirs-cache) => values]
         [else
-         (define pkgs-dirs
-           (for*/list ([scope (in-list (get-all-pkg-scopes))]
-                       [name (in-list (installed-pkg-names #:scope scope))])
-             (list name (simplify-path (pkg-directory name)))))
+         (define pkgs-dirs (compute-pkg-dirs))
          (set-box! pkgs-dirs-cache pkgs-dirs)
          pkgs-dirs]))
     (values (current-library-collection-links)
@@ -183,9 +190,7 @@
                 (let loop ([exp
                             (list (current-library-collection-links)
                                   (current-library-collection-paths)
-                                  (for*/list ([scope (in-list (get-all-pkg-scopes))]
-                                              [name (in-list (installed-pkg-names #:scope scope))])
-                                    (list name (simplify-path (pkg-directory name)))))])
+                                  ,compute-pkg-dirs-code)])
                   (cond
                     [(pair? exp) (cons (loop (car exp)) (loop (cdr exp)))]
                     [(hash? exp) (for/hash ([(k v) (in-hash exp)])
