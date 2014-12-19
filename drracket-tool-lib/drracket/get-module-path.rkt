@@ -12,7 +12,7 @@
   [get-module-path-from-user
    (->i ()
         (#:init [init string?] 
-         #:pref [pref symbol?]
+         #:pref [pref (or/c symbol? #f)]
          #:dir? [dir? boolean?]
          #:current-directory [current-directory (or/c path-string? #f)])
         [res (dir?)

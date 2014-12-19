@@ -5,34 +5,41 @@
          racket/port
          pkg/lib)
 
-(define lcl/c
+(define current-library-collection-links-info/c
   (listof (or/c #f
                 (and/c path? complete-path?)
                 (hash/c (or/c (and/c symbol? module-path?) #f)
                         (listof (and/c path? complete-path?))
                         #:flat? #t))))
-(define lcp/c
+(define current-library-collection-paths-info/c
   (listof (and/c path? complete-path?)))
 
-(define pkg-dirs/c
+(define pkg-dirs-info/c
   (listof (list/c string? (and/c path? complete-path?))))
 
 (provide
+ current-library-collection-links-info/c
+ current-library-collection-paths-info/c
+ pkg-dirs-info/c
  (contract-out
   [find-module-path-completions
    (-> path-string? (-> string? (listof (list/c string? path?))))]
   [alternate-racket-clcl/clcp (-> path-string?
-                                  (box/c (or/c #f pkg-dirs/c))
-                                  (values lcl/c lcp/c pkg-dirs/c))]
+                                  (box/c (or/c #f pkg-dirs-info/c))
+                                  (values current-library-collection-links-info/c 
+                                          current-library-collection-paths-info/c
+                                          pkg-dirs-info/c))]
   [find-module-path-completions/explicit-cache
    (->* (string?
          path-string?
          #:pkgs-dirs-cache
-         (box/c (or/c #f pkg-dirs/c)))
+         (box/c (or/c #f pkg-dirs-info/c)))
         (#:alternate-racket
          (or/c #f
                path-string?
-               (list/c lcl/c lcp/c pkg-dirs/c)))
+               (list/c current-library-collection-links-info/c 
+                       current-library-collection-paths-info/c
+                       pkg-dirs-info/c)))
         (listof (list/c string? path?)))]))
 
 (define (find-module-path-completions the-current-directory)
@@ -229,7 +236,9 @@
              (convert-back
               (with-handlers ([exn:fail:read? (λ (x) #f)])
                 (read ip))))
-           (define okay-values? (list/c lcl/c lcp/c pkg-dirs/c))
+           (define okay-values? (list/c current-library-collection-links-info/c
+                                        current-library-collection-paths-info/c
+                                        pkg-dirs-info/c))
            (cond
              [(okay-values? links/paths)
               (values (list-ref links/paths 0)
