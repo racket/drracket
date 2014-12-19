@@ -5,7 +5,7 @@
          string-constants
          setup/path-to-relative
          framework
-         "find-completions.rkt")
+         "find-module-path-completions.rkt")
 
 (provide
  (contract-out

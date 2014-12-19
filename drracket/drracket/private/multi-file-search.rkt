@@ -11,7 +11,7 @@
          string-constants
          drracket/private/drsig
          mrlib/close-icon
-         "get-module-path.rkt")
+         drracket/get-module-path)
 
 (define sc-browse-collections "Browse\nCollections")
 (define sc-add-another-directory "Add Another Directory")

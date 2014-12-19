@@ -199,7 +199,7 @@
          setup/unpack
          mrlib/terminal
          (submod "." install-pkg)
-         "get-module-path.rkt")
+         drracket/get-module-path)
 (provide frame@)
 (define-unit frame@  
   (import [prefix drracket:unit: drracket:unit/int^]

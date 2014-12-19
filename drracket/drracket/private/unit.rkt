@@ -27,7 +27,7 @@
          "local-member-names.rkt"
          "eval-helpers-and-pref-init.rkt"
          "parse-logger-args.rkt"
-         "get-module-path.rkt"
+         drracket/get-module-path
          "named-undefined.rkt"
          (prefix-in drracket:arrow: "../arrow.rkt")
          (prefix-in icons: images/compile-time)
