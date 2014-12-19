@@ -19,18 +19,28 @@
 
 (provide
  (contract-out
+  [find-module-path-completions
+   (-> path-string? (-> string? (listof (list/c string? path?))))]
   [alternate-racket-clcl/clcp (-> path-string?
                                   (box/c (or/c #f pkg-dirs/c))
                                   (values lcl/c lcp/c pkg-dirs/c))]
-  [find-completions (->* (string?
-                          path-string?
-                          #:pkgs-dirs-cache
-                          (box/c (or/c #f pkg-dirs/c)))
-                         (#:alternate-racket
-                          (or/c #f
-                                path-string?
-                                (list/c lcl/c lcp/c pkg-dirs/c)))
-                         (listof (list/c string? path?)))]))
+  [find-module-path-completions/explicit-cache
+   (->* (string?
+         path-string?
+         #:pkgs-dirs-cache
+         (box/c (or/c #f pkg-dirs/c)))
+        (#:alternate-racket
+         (or/c #f
+               path-string?
+               (list/c lcl/c lcp/c pkg-dirs/c)))
+        (listof (list/c string? path?)))]))
+
+(define (find-module-path-completions the-current-directory)
+  (define pkg-dirs-cache (box #f))
+  (λ (str)
+    (find-module-path-completions/explicit-cache
+     str the-current-directory
+     #:pkg-dirs-cache pkg-dirs-cache)))
 
 (define (ignore? x)
   (or (member x '("compiled"))
@@ -38,9 +48,9 @@
           (regexp-match #rx"[.]bak$" x)
           (regexp-match #rx"~$" x))))
 
-(define (find-completions str the-current-directory
-                          #:alternate-racket [alternate-racket #f]
-                          #:pkgs-dirs-cache pkgs-dirs-cache)
+(define (find-module-path-completions/explicit-cache str the-current-directory
+                                                     #:alternate-racket [alternate-racket #f]
+                                                     #:pkgs-dirs-cache pkgs-dirs-cache)
   (cond
     [(and (not (equal? str "")) (equal? (string-ref str 0) #\"))
      (define no-quotes-string

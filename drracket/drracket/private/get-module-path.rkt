@@ -155,10 +155,11 @@
         (and (send racket-path-cb get-value)
              (get-clcl/clcp)))
       (define the-completions 
-        (find-completions (send tf get-value) 
-                          the-current-directory
-                          #:pkgs-dirs-cache pkgs-dirs-cache
-                          #:alternate-racket alt-racket-info))
+        (find-module-path-completions/explicit-cache
+         (send tf get-value) 
+         the-current-directory
+         #:pkgs-dirs-cache pkgs-dirs-cache
+         #:alternate-racket alt-racket-info))
       (for ([i (in-list (if dir?
                             (filter (λ (i) (directory-exists? (list-ref i 1)))
                                     the-completions)
@@ -297,7 +298,13 @@
 
 (define (get-clcl/clcp)
   (init-alternate-racket-thread)
-  (channel-get current-alternate-racket-chan))
+  (define result (channel-get current-alternate-racket-chan))
+  (unless result
+    (error 'get-clcl/clp
+           (string-append
+            "we were asked for the alternate racket info,"
+            " but were never supplied an alternate racket")))
+  result)
 (define current-alternate-racket-chan (make-channel))
 
 (define (init-alternate-racket-thread)
@@ -328,13 +335,14 @@
                
                ;; (cons/c string? (is-a?/c dialog%))
                [pending-str+dlg #f]
+               
+               ;; this is #f when there is not alternate racket supplied
                [clcl/clcp (if (path-string? initial-alternate-racket)
                               (let-values ([(a b c) (alternate-racket-clcl/clcp
                                                      initial-alternate-racket
                                                      pkgs-dirs-cache)])
                                 (list a b c))
-                              (list (current-library-collection-links)
-                                    (current-library-collection-paths)))])
+                              #f)])
       (sync
        (handle-evt 
         new-alternate-racket-chan
