@@ -32,7 +32,7 @@
   [find-module-path-completions/explicit-cache
    (->* (string?
          path-string?
-         #:pkgs-dirs-cache
+         #:pkg-dirs-cache
          (box/c (or/c #f pkg-dirs-info/c)))
         (#:alternate-racket
          (or/c #f
@@ -57,7 +57,7 @@
 
 (define (find-module-path-completions/explicit-cache str the-current-directory
                                                      #:alternate-racket [alternate-racket #f]
-                                                     #:pkgs-dirs-cache pkgs-dirs-cache)
+                                                     #:pkg-dirs-cache pkgs-dirs-cache)
   (cond
     [(and (not (equal? str "")) (equal? (string-ref str 0) #\"))
      (define no-quotes-string

@@ -158,7 +158,7 @@
         (find-module-path-completions/explicit-cache
          (send tf get-value) 
          the-current-directory
-         #:pkgs-dirs-cache pkgs-dirs-cache
+         #:pkg-dirs-cache pkgs-dirs-cache
          #:alternate-racket alt-racket-info))
       (for ([i (in-list (if dir?
                             (filter (λ (i) (directory-exists? (list-ref i 1)))
