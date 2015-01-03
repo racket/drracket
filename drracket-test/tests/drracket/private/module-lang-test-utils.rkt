@@ -142,13 +142,13 @@
                (test-result test)
                text)
       (unless (null? stacks)
-        (eprintf "stacks from error message:")
+        (eprintf "stacks from error message:\n")
         (for ([stack (in-list stacks)])
           (when stack
             (eprintf "\n----\n")
             (for ([frame (in-list stack)])
               (eprintf "  ~s\n" frame))
-            (eprintf "---\n")))))
+            (eprintf "----\n")))))
     (cond
       [(eq? (test-error-ranges test) 'dont-test)
        (void)]
