@@ -66,6 +66,7 @@
           (expand
            (call-with-input-file file-or-stx
              (λ (port)
+               (port-count-lines! port)
                (with-module-reading-parameterization
                 (λ ()
                   (read-syntax file-or-stx port))))))))]
