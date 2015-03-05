@@ -75,13 +75,15 @@
      (find-completions/internal segments
                                 (list (list "" the-current-directory))
                                 directory-list
-                                directory-exists?)]
+                                directory-exists?
+                                #t)]
     [else
      (find-completions-collection/internal str
                                            (find-all-collection-dirs alternate-racket
                                                                      pkgs-dirs-cache)
                                            directory-list
-                                           directory-exists?)]))
+                                           directory-exists?
+                                           #t)]))
 
 (define (find-completions-collection/internal string collection-dirs dir->content is-dir?)
   (define segments (regexp-split #rx"/" string))
@@ -92,26 +94,39 @@
        (define reg (regexp (string-append "^" (regexp-quote (car segments)))))
        (filter (λ (line) (regexp-match reg (list-ref line 0)))
                collection-dirs)]))
-  (find-completions/internal (cdr segments) first-candidates dir->content is-dir?))
+  (find-completions/internal (cdr segments) first-candidates dir->content is-dir? #f))
 
-(define (find-completions/internal segments first-candidates dir->content is-dir?)
+(define (find-completions/internal segments first-candidates dir->content is-dir? allow-dot-dot?)
   (define unsorted
     (let loop ([segments segments]
                [candidates first-candidates])
       (cond
         [(null? segments) candidates]
         [else
-         (define reg (regexp (string-append "^" (regexp-quote (car segments)))))
-         (define nexts
-           (for*/list ([key+candidate (in-list candidates)]
-                       [candidate (in-value (list-ref key+candidate 1))]
-                       #:when (is-dir? candidate)
-                       [ent (in-list (dir->content candidate))]
-                       [ent-str (in-value (path->string ent))]
-                       #:unless (ignore? ent-str)
-                       #:when (regexp-match reg ent-str))
-             (list ent-str (build-path candidate ent))))
-         (loop (cdr segments) nexts)])))
+         (define segment (car segments))
+         (cond
+           [(and allow-dot-dot? (equal? segment ".."))
+            (define nexts
+              (for*/list ([key+candidate (in-list candidates)]
+                          [candidate (in-value (list-ref key+candidate 1))]
+                          #:when (is-dir? candidate)
+                          [ent (in-value (simplify-path (build-path candidate 'up)))]
+                          [ent-str (in-value (path->string ent))]
+                          #:unless (ignore? ent-str))
+                (list ent-str ent)))
+            (loop (cdr segments) nexts)]
+           [else
+            (define reg (regexp (string-append "^" (regexp-quote segment))))
+            (define nexts
+              (for*/list ([key+candidate (in-list candidates)]
+                          [candidate (in-value (list-ref key+candidate 1))]
+                          #:when (is-dir? candidate)
+                          [ent (in-list (dir->content candidate))]
+                          [ent-str (in-value (path->string ent))]
+                          #:unless (ignore? ent-str)
+                          #:when (regexp-match reg ent-str))
+                (list ent-str (build-path candidate ent))))
+            (loop (cdr segments) nexts)])])))
   (sort unsorted string<=? #:key (λ (x) (path->string (list-ref x 1)))))
 
 ;; -> (listof (list string? path?))
