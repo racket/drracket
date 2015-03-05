@@ -82,8 +82,7 @@
                                            (find-all-collection-dirs alternate-racket
                                                                      pkgs-dirs-cache)
                                            directory-list
-                                           directory-exists?
-                                           #t)]))
+                                           directory-exists?)]))
 
 (define (find-completions-collection/internal string collection-dirs dir->content is-dir?)
   (define segments (regexp-split #rx"/" string))
