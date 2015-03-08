@@ -36,7 +36,6 @@ all of the names in the tools library, for use defining keybindings
 (require (for-doc drracket/private/ts
                   racket/base scribble/manual
                   scribblings/tools/doc-util
-                  net/url
                   (for-label errortrace/errortrace-key
                              racket/place
                              racket/pretty 
