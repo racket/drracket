@@ -89,6 +89,31 @@
      (done))))
 
 
+(define-syntax-rule (define-get-arrows get-what-arrows method-header arrow-info)
+  (define (get-what-arrows str)
+    (define tail-arrows '())
+    
+    (define annotations
+      (new (class (annotations-mixin object%)
+             (super-new)
+             (define/override (syncheck:find-source-object stx)
+               (if (eq? 'the-source (syntax-source stx))
+                   'yep
+                   #f))
+             (define/override method-header
+               (set! tail-arrows (cons arrow-info tail-arrows))))))
+    
+    (define-values (add-syntax done)
+      (make-traversal (make-base-namespace) #f))
+    
+    (parameterize ([current-annotations annotations]
+                   [current-namespace (make-base-namespace)])
+      (add-syntax (expand
+                   (parameterize ([read-accept-reader #t])
+                     (read-syntax 'the-source (open-input-string str)))))
+      (done))
+    (reverse tail-arrows)))
+
 ;                                                                       
 ;                                                                       
 ;                                                                       
@@ -107,30 +132,9 @@
 ;                                                                       
 ;                                                                       
 
-
-(define (get-tail-arrows str)
-   (define tail-arrows '())
-   
-   (define annotations
-     (new (class (annotations-mixin object%)
-            (super-new)
-            (define/override (syncheck:find-source-object stx)
-              (if (eq? 'the-source (syntax-source stx))
-                  'yep
-                  #f))
-            (define/override (syncheck:add-tail-arrow parent-src parent-pos child-src child-pos)
-              (set! tail-arrows (cons (list parent-pos child-pos) tail-arrows))))))
-   
-   (define-values (add-syntax done)
-     (make-traversal (make-base-namespace) #f))
-   
-  (parameterize ([current-annotations annotations]
-                  [current-namespace (make-base-namespace)])
-     (add-syntax (expand
-                  (parameterize ([read-accept-reader #t])
-                    (read-syntax 'the-source (open-input-string str)))))
-     (done))
-  (reverse tail-arrows))
+(define-get-arrows get-tail-arrows 
+  (syncheck:add-tail-arrow parent-src parent-pos child-src child-pos)
+  (list parent-pos child-pos))
 
 (check-equal? (get-tail-arrows "#lang racket/base\n(if 1 2 3)")
               '((18 24) (18 26)))
@@ -150,3 +154,39 @@
               '((18 46)))
 (check-equal? (get-tail-arrows "#lang racket\n(define (f x) (match 'x ['x (f x)]))")
               '((13 27) (27 41)))
+
+
+
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+;                                                                                                  
+;  ;;;     ;;;             ;;; ;;;                                                                 
+;  ;;;                     ;;;                                                                     
+;  ;;; ;;  ;;; ;;; ;;   ;; ;;; ;;; ;;; ;;   ;; ;;;      ;;;;;  ;;; ;;;; ;; ;;;   ;;; ;;; ;;; ;;;;  
+;  ;;;;;;; ;;; ;;;;;;; ;;;;;;; ;;; ;;;;;;; ;;;;;;;     ;;;;;;; ;;;;;;;;;; ;;;;;  ;;; ;;; ;;;;;; ;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;     ;;  ;;; ;;;  ;;;  ;;; ;;;  ;;;;;;;;; ;;;    
+;  ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;       ;;;;; ;;;  ;;;  ;;; ;;;  ;;;; ;;;;  ;;;;  
+;  ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;     ;;; ;;; ;;;  ;;;  ;;; ;;;  ;;;; ;;;;    ;;; 
+;  ;;;;;;; ;;; ;;; ;;; ;;;;;;; ;;; ;;; ;;; ;;;;;;;     ;;; ;;; ;;;  ;;;   ;;;;;    ;;   ;;  ;; ;;; 
+;  ;;; ;;  ;;; ;;; ;;;  ;; ;;; ;;; ;;; ;;;  ;; ;;;      ;;;;;; ;;;  ;;;    ;;;     ;;   ;;   ;;;;  
+;                                              ;;;                                                 
+;                                          ;;;;;;                                                  
+;                                                                                                  
+;                                                                                                  
+
+
+(define-get-arrows get-binding-arrows 
+  (syncheck:add-arrow start-source-obj	 
+                      start-left	 
+                      start-right	 
+                      end-source-obj	 
+                      end-left	 
+                      end-right	 
+                      actual?	 
+                      phase-level)
+  (list (list start-left start-right) (list end-left end-right)))
+(check-equal? (get-binding-arrows "#lang racket/base\n(require (only-in racket/base))")
+              '(((6 17) (19 26))     ;; to 'require'
+                ((6 17) (28 35))))   ;; to 'only-in'
+

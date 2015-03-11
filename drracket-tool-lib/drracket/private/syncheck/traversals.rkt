@@ -259,7 +259,19 @@
                                            level
                                            level-of-enclosing-module
                                            mods))])
+            
+            (define (collect-nested-general-info stx)
+              (let loop ([stx stx])
+                (cond
+                  [(syntax? stx) 
+                   (collect-general-info stx)
+                   (loop (syntax-e stx))]
+                  [(pair? stx)
+                   (loop (car stx))
+                   (loop (cdr stx))])))
+            
             (collect-general-info stx-obj)
+            
             
             (define (list-loop/tail-last bodies)
               (unless (null? bodies)
@@ -439,6 +451,7 @@
               ; top level or module top level only:
               [(#%require raw-require-specs ...)
                (let ()
+                 (collect-nested-general-info #'(raw-require-specs ...))
                  (define (handle-raw-require-spec spec)
                    (let loop ([spec spec]
                               [level level])
