@@ -41,7 +41,8 @@
   texas-plt-bw.gif
   PLT-pumpkin.png
   PLT-206-larval.png
-  PLT-206-mars.jpg)
+  PLT-206-mars.jpg
+  discworld.jpg)
 
 ;; updates the command-line-arguments with only the files
 ;; to open. See also main.rkt.
@@ -62,13 +63,15 @@
     [else 'normal]))
 
 (define-values (texas-independence-day? 
-                prince-kuhio-day? kamehameha-day? halloween?
+                prince-kuhio-day? terry-pratchett-bday?
+                kamehameha-day? halloween?
                 ada-lovelace-bday?)
   (let* ([month (date-month startup-date)]
          [day (date-day startup-date)]
          [dow (date-week-day startup-date)])
     (values (and (= 3 month) (= 2 day))
             (and (= 3 month) (= 26 day))
+            (and (= 4 month) (= 28 day))
             (and (= 6 month) (= 11 day))
             (and (= 10 month) (= 31 day))
             (and (= 12 month) (= 10 day)))))
@@ -162,6 +165,8 @@
      (collection-file-path texas-plt-bw.gif "icons")]
     [halloween?
      (collection-file-path PLT-pumpkin.png "icons")]
+    [terry-pratchett-bday?
+     (collection-file-path discworld.jpg "icons")]
     [(weekend-date? startup-date)
      weekend-bitmap-spec]
     [else normal-bitmap-spec]))
