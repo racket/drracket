@@ -11,6 +11,7 @@
   syncheck:add-id-set
   syncheck:add-arrow
   syncheck:add-arrow/name-dup
+  syncheck:add-arrow/name-dup/dxdy
   syncheck:add-rename-menu
   syncheck:add-tail-arrow
   syncheck:add-mouse-over-status

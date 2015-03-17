@@ -38,7 +38,7 @@ a method in @racket[syncheck-annotations<%>] and the other elements of the vecto
 the arguments passed to the method.
 
 This doesn't work as well for use in a real tool, however, because it doesn't account for
-the callback procedures present in @method[syncheck-annotations<%> syncheck:add-arrow/name-dup]
+the callback procedures present in @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy]
 and @method[syncheck-annotations<%> syncheck:add-id-set] and the resulting vectors are probably less
 convenient to work with than direct method calls for most uses of this library. Nevertheless,
 it gives a quick feel for the results that can come back from Check Syntax.
@@ -170,7 +170,7 @@ in order to make the results be platform independent.
             void?]{This method is no longer called by Check Syntax. It is here
                    for backwards compatibility only. The information it provided
                    must now be synthesized from the information supplied to
-                   @method[syncheck-annotations<%> syncheck:add-arrow/name-dup].}
+                   @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy].}
            
  @defmethod[(syncheck:add-arrow [start-source-obj (not/c #f)]
                                 [start-left exact-nonnegative-integer?]
@@ -182,7 +182,7 @@ in order to make the results be platform independent.
                                 [phase-level (or/c exact-nonnegative-integer? #f)])
             void?]{
     This function is not called directly anymore by Check Syntax. Instead
-    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup] is.
+    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy] is.
     
     This method is invoked by the default implementation of 
     @racket[_syncheck:add-arrow/name-dup] in 
@@ -199,8 +199,33 @@ in order to make the results be platform independent.
                                          [require-arrow? boolean?]
                                          [name-dup? (-> string? boolean?)])
             void?]{
+    This function is not called directly anymore by Check Syntax. Instead
+    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy] is.
+
+    The default implementation of @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy]
+    discards the @racket[_start-px] @racket[_start-py] @racket[_end-px] @racket[_end-py]
+    arguments and calls this method.
+ }
+ @defmethod[(syncheck:add-arrow/name-dup/dxdy [start-source-obj (not/c #f)]
+                                              [start-left exact-nonnegative-integer?]
+                                              [start-right exact-nonnegative-integer?]
+                                              [start-px (real-in 0 1)]
+                                              [start-py (real-in 0 1)]
+                                              [end-source-obj (not/c #f)]
+                                              [end-left exact-nonnegative-integer?]
+                                              [end-right exact-nonnegative-integer?]
+                                              [end-px (real-in 0 1)]
+                                              [end-py (real-in 0 1)]
+                                              [actual? boolean?]
+                                              [phase-level (or/c exact-nonnegative-integer? #f)]
+                                              [require-arrow? boolean?]
+                                              [name-dup? (-> string? boolean?)])
+            void?]{
    Called to indicate that there should be an arrow between the locations described by the first 
-   six arguments.
+   ten arguments. The @racket[start-px] and @racket[start-py] indicate how far along the diagonal
+   between the upper-left coordinate of the editor position @racket[start-left] and the bottom-right
+   of the editor position @racket[start-right] to draw the foot of the arrow. The @racket[end-px]
+   and @racket[end-py] indicate the same things for the head of the arrow.
    
    The @racket[phase-level] argument indicates the phase of the binding and the 
    @racket[actual?] argument indicates if the binding is a real one, or a predicted one from

@@ -2,6 +2,7 @@
 
 (require drracket/check-syntax
          racket/class
+         racket/set
          rackunit)
 
 (check-true
@@ -176,7 +177,7 @@
 ;                                                                                                  
 
 
-(define-get-arrows get-binding-arrows 
+(define-get-arrows get-binding-arrows
   (syncheck:add-arrow start-source-obj	 
                       start-left	 
                       start-right	 
@@ -186,7 +187,29 @@
                       actual?	 
                       phase-level)
   (list (list start-left start-right) (list end-left end-right)))
-(check-equal? (get-binding-arrows "#lang racket/base\n(require (only-in racket/base))")
-              '(((6 17) (19 26))     ;; to 'require'
-                ((6 17) (28 35))))   ;; to 'only-in'
+(check-equal? (apply set (get-binding-arrows
+                          "#lang racket/base\n(require (only-in racket/base))"))
+              (set '((6 17) (19 26))     ;; to 'require'
+                   '((6 17) (28 35))))   ;; to 'only-in'
 
+(define-get-arrows get-binding-arrows/dxdy
+  (syncheck:add-arrow/name-dup/dxdy start-source-obj	 
+                                    start-left	 
+                                    start-right
+                                    start-px
+                                    start-py
+                                    end-source-obj	 
+                                    end-left	 
+                                    end-right
+                                    end-px
+                                    end-py
+                                    actual?	 
+                                    phase-level
+                                    require-arrows?
+                                    name-dup?)
+  (list (list start-left start-right start-px start-py)
+        (list end-left end-right end-px end-py)))
+(check-equal? (apply set (get-binding-arrows/dxdy
+                          "#lang racket/base\n(require (only-in racket/base))"))
+              (set '((6 17 .5 .5) (19 26 .5 .5))     ;; to 'require'
+                   '((6 17 .5 .5) (28 35 .5 .5))))

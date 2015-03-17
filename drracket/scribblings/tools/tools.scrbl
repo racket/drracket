@@ -706,10 +706,14 @@ See also @racket[current-recorded-disappeared-uses].
 The value of the @racket['sub-range-binders] property is expected
 to be a tree of @racket[cons] pairs (in any configuration) whose leaves
 are either ignored or are vectors of the shape
-@racketblock[(vector/c syntax? exact-nonnegative-integer? exact-nonnegative-integer?
-                       syntax? exact-nonnegative-integer? exact-nonnegative-integer?)]
+@racketblock[(vector/c syntax?
+                       exact-nonnegative-integer? exact-nonnegative-integer?
+                       (real-in 0 1) (real-in 0 1)
+                       syntax?
+                       exact-nonnegative-integer? exact-nonnegative-integer?
+                       (real-in 0 1) (real-in 0 1))]
 If the leaf is a vector, the first syntax object is expected to be an identifier whose
-bound occurrences should have arrows that point to the syntax object in the fourth
+bound occurrences should have arrows that point to the syntax object in the sixth
 position in the vector. The numbers indicate the starting point and the range inside
 the corresponding identifier to consider as the location of the end of the arrow.
 Here's an example:
@@ -733,13 +737,13 @@ Here's an example:
                    'sub-range-binders
                    (list
                     (vector (syntax-local-introduce hyphenated-id)
-                            0 first-len
+                            0 first-len 0.5 0.5
                             (syntax-local-introduce #'id1)
-                            0 first-len)
+                            0 first-len 0.5 0.5)
                     (vector (syntax-local-introduce hyphenated-id)
-                            (+ first-len 1) second-len
+                            (+ first-len 1) second-len 0.5 0
                             (syntax-local-introduce #'id2)
-                            0 second-len))))]))
+                            0 second-len 0.5 1))))]))
            
            (define/hyphen big generator
              11)
@@ -748,7 +752,14 @@ Here's an example:
 
 After putting this code in the DrRacket window, mouse over the words ``big'' and 
 ``generator'' to see arrows pointing to the individual pieces of the identifier
-@racket[_big-generator].
+@racket[_big-generator]. The four @racket[.5]s in the first vector put the arrows
+on @racket[_big] in the center of the identifiers; the @racket[.5 0] and the
+@racket[.5 1] in the second vector put the arrows at the top and bottom
+center for @racket[_generator].
+
+Also, for backwards compatibility, if the vector has only six elements, those
+elements must be everything except the @racket[(real 0 1)] elements listed above and,
+in that case, all four numbers are all taken to be @racket[0.5].
 
 The value of the @racket['mouse-over-tooltips] property is expected to be 
 to be a tree of @racket[cons] pairs (in any configuration) whose leaves

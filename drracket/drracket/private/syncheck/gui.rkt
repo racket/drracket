@@ -217,8 +217,8 @@ If the namespace does not, they are colored the unbound color.
     
     (define-struct arrow () #:mutable #:transparent)
     (define-struct (var-arrow arrow)
-      (start-text start-pos-left start-pos-right
-                  end-text end-pos-left end-pos-right
+      (start-text start-pos-left start-pos-right start-px start-py
+                  end-text end-pos-left end-pos-right end-px end-py
                   actual? level require-arrow? name-dup?)
       ;; level is one of 'lexical, 'top-level, 'import
       #:transparent)
@@ -529,11 +529,15 @@ If the namespace does not, they are colored the unbound color.
               (let-values ([(start-x start-y) (find-poss 
                                                (var-arrow-start-text arrow)
                                                (var-arrow-start-pos-left arrow)
-                                               (var-arrow-start-pos-right arrow))]
+                                               (var-arrow-start-pos-right arrow)
+                                               (var-arrow-start-px arrow)
+                                               (var-arrow-start-py arrow))]
                            [(end-x end-y) (find-poss 
                                            (var-arrow-end-text arrow)
                                            (var-arrow-end-pos-left arrow)
-                                           (var-arrow-end-pos-right arrow))])
+                                           (var-arrow-end-pos-right arrow)
+                                           (var-arrow-end-px arrow)
+                                           (var-arrow-end-py arrow))])
                 (values start-x start-y end-x end-y)))
             
             (define/private (get-tail-arrow-poss arrow)
@@ -546,9 +550,9 @@ If the namespace does not, they are colored the unbound color.
                     [(and snip 
                           (is-a? snip editor-snip%)
                           (= pos (send text get-snip-position snip)))
-                     (find-poss text pos pos)]
+                     (find-poss text pos pos .5 .5)]
                     [else
-                     (find-poss text pos (+ pos 1))])))
+                     (find-poss text pos (+ pos 1) .5 .5)])))
               (let-values ([(start-x start-y) (find-poss/embedded 
                                                (tail-arrow-from-text arrow)
                                                (tail-arrow-from-pos arrow))]
@@ -562,7 +566,7 @@ If the namespace does not, they are colored the unbound color.
             (define xrb (box 0))
             (define yrb (box 0))
 
-            (define/private (find-poss text left-pos right-pos)
+            (define/private (find-poss text left-pos right-pos px py)
               (send text position-location left-pos xlb ylb #t)
               (send text position-location right-pos xrb yrb #f)
               (let*-values ([(xl-off yl-off) (send text editor-location-to-dc-location 
@@ -571,8 +575,8 @@ If the namespace does not, they are colored the unbound color.
                             [(xr-off yr-off) (send text editor-location-to-dc-location 
                                                    (unbox xrb) (unbox yrb))]
                             [(xr yr) (dc-location-to-editor-location xr-off yr-off)])
-                (values (/ (+ xl xr) 2)
-                        (/ (+ yl yr) 2))))
+                (values (+ xl (* (- xr xl) px))
+                        (+ yl (* (- yr yl) py)))))
             
             ;; syncheck:init-arrows : -> void
             (define/public (syncheck:init-arrows)
@@ -831,24 +835,35 @@ If the namespace does not, they are colored the unbound color.
                                     (make-colored-region color text start fin)
                                     #f #f))))
             
-            ;; this method is no longer used; see docs for more
+            ;; these two methods are no longer used; see docs for more
             (define/public (syncheck:add-arrow start-text start-pos-left start-pos-right
                                                end-text end-pos-left end-pos-right
                                                actual? level)
               (void))
-            
-            ;; syncheck:add-arrow : symbol text number number text number number boolean -> void
-            ;; pre: start-editor, end-editor are embedded in `this' (or are `this')
-            (define/public (syncheck:add-arrow/name-dup start-text start-pos-left start-pos-right
-                                                        end-text end-pos-left end-pos-right
+            (define/public (syncheck:add-arrow/name-dup start-text
+                                                        start-pos-left start-pos-right
+                                                        end-text
+                                                        end-pos-left end-pos-right
                                                         actual? level require-arrow? name-dup?)
+              (void))
+            
+            ;; pre: start-editor, end-editor are embedded in `this' (or are `this')
+            (define/public (syncheck:add-arrow/name-dup/dxdy start-text
+                                                             start-pos-left start-pos-right
+                                                             start-px start-py
+                                                             end-text
+                                                             end-pos-left end-pos-right
+                                                             end-px end-py
+                                                             actual? level require-arrow? name-dup?)
               (when (and arrow-records
                          (preferences:get 'drracket:syncheck:show-arrows?))
                 (when (add-to-bindings-table
                        start-text start-pos-left start-pos-right
                        end-text end-pos-left end-pos-right)
                   (let ([arrow (make-var-arrow start-text start-pos-left start-pos-right
+                                               start-px start-py
                                                end-text end-pos-left end-pos-right
+                                               end-px end-py
                                                actual? level require-arrow? name-dup?)])
                     (add-to-range/key start-text start-pos-left start-pos-right arrow #f #f)
                     (add-to-range/key end-text end-pos-left end-pos-right arrow #f #f)))))
@@ -1927,13 +1942,14 @@ If the namespace does not, they are colored the unbound color.
           ;; using 'defs-text' all the time is wrong in the case of embedded editors,
           ;; but they already don't work and we've arranged for them to not appear here ....
           (match x
-            [`#(syncheck:add-arrow/name-dup ,start-pos-left ,start-pos-right
-                                            ,end-pos-left ,end-pos-right
-                                            ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
+            [`#(syncheck:add-arrow/name-dup/dxdy
+                ,start-pos-left ,start-pos-right ,start-px ,start-py
+                ,end-pos-left ,end-pos-right ,end-px ,end-py
+                ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id  known-dead-place-channels))
-             (send defs-text syncheck:add-arrow/name-dup
-                   defs-text start-pos-left start-pos-right
-                   defs-text end-pos-left end-pos-right 
+             (send defs-text syncheck:add-arrow/name-dup/dxdy
+                   defs-text start-pos-left start-pos-right start-px start-py
+                   defs-text end-pos-left end-pos-right end-px end-py
                    actual? level require-arrow? name-dup?)]
             [`#(syncheck:add-tail-arrow ,from-pos ,to-pos)
              (send defs-text syncheck:add-tail-arrow defs-text from-pos defs-text to-pos)]

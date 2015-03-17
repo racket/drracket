@@ -41,6 +41,7 @@
  syncheck:add-rename-menu
  syncheck:add-arrow
  syncheck:add-arrow/name-dup
+ syncheck:add-arrow/name-dup/dxdy
  syncheck:add-tail-arrow
  syncheck:add-mouse-over-status
  syncheck:add-jump-to-definition

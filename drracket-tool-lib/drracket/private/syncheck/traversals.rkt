@@ -14,6 +14,7 @@
          racket/list
          racket/contract
          racket/pretty
+         racket/bool
          syntax/boundmap
          scribble/manual-struct
          (for-syntax racket/base))
@@ -525,10 +526,26 @@
     (define (hash-cons! ht k v)
       (hash-set! ht k (cons v (hash-ref ht k '()))))
 
+    (define ((char-coordinates-are-right-thing? index) v)
+      (define pred?
+        (if (syntax? (vector-ref v index))
+            exact-nonnegative-integer?
+            (and/c inexact? (real-in 0 1))))
+      (and (pred? (vector-ref v (+ index 1)))
+           (pred? (vector-ref v (+ index 2)))))
+
+    (define ok-coordinate? (or/c exact-nonnegative-integer? (and/c (real-in 0 1) inexact?)))
     (define sub-range-binder-prop?
-      (vector/c #:flat? #t
-                syntax? exact-nonnegative-integer? exact-nonnegative-integer?
-                syntax? exact-nonnegative-integer? exact-nonnegative-integer?))
+      (or/c (vector/c #:flat? #t
+                      syntax? exact-nonnegative-integer? exact-nonnegative-integer?
+                      syntax? exact-nonnegative-integer? exact-nonnegative-integer?)
+            (vector/c #:flat? #t
+                      syntax?
+                      exact-nonnegative-integer? exact-nonnegative-integer?
+                      (real-in 0 1) (real-in 0 1)
+                      syntax?
+                      exact-nonnegative-integer? exact-nonnegative-integer?
+                      (real-in 0 1) (real-in 0 1))))
     (define (add-sub-range-binders stx 
                                    sub-identifier-binding-directives 
                                    level
@@ -539,14 +556,32 @@
           [(pair? prop)
            (loop (car prop))
            (loop (cdr prop))]
-          [(sub-range-binder-prop? prop) 
+          [(sub-range-binder-prop? prop)
+           (define the-vec
+             (if (= (vector-length prop) 6)
+                 (vector (vector-ref prop 0)
+                         (vector-ref prop 1)
+                         (vector-ref prop 2)
+                         .5 .5
+                         (vector-ref prop 3)
+                         (vector-ref prop 4)
+                         (vector-ref prop 5)
+                         .5 .5)
+                 prop))
+           (define (shift-it i)
+             (syntax-shift-phase-level (vector-ref the-vec i)
+                                       level-of-enclosing-module))
            (define new-entry
-             (vector (syntax-shift-phase-level (vector-ref prop 0) level-of-enclosing-module)
-                     (vector-ref prop 1)
-                     (vector-ref prop 2)
-                     (syntax-shift-phase-level (vector-ref prop 3) level-of-enclosing-module)
-                     (vector-ref prop 4)
-                     (vector-ref prop 5)))
+             (vector (shift-it 0)
+                     (vector-ref the-vec 1)
+                     (vector-ref the-vec 2)
+                     (vector-ref the-vec 3)
+                     (vector-ref the-vec 4)
+                     (shift-it 5)
+                     (vector-ref the-vec 6)
+                     (vector-ref the-vec 7)
+                     (vector-ref the-vec 8)
+                     (vector-ref the-vec 9)))
            (define key (list level mods)) 
            (hash-set! sub-identifier-binding-directives
                       key
@@ -618,7 +653,7 @@
       
       (define unused/phases (make-hash))
 
-      ;; hash[(list (list src pos pos) (list src pos pos)) -o> #t
+      ;; hash[(list (list src pos pos dx dy) (list src pos pos dx dy)) -o> #t
       ;;       above indicates if this arrow has been recorded
       ;;       below indicates the number of defs and uses at this spot
       ;;      (list src pos pos) -o> (cons number number)]
@@ -704,7 +739,8 @@
         (define phase-level (list-ref level+mods 0))
         (define mods (list-ref level+mods 1))
         (for ([directive (in-list directives)])
-          (match-define (vector binding-id to-start to-span new-binding-id from-start from-span)
+          (match-define (vector binding-id to-start to-span to-dx to-dy
+                                new-binding-id from-start from-span from-dx from-dy)
             directive)
           (define all-varrefs (lookup-phase-to-mapping phase-to-varrefs (list phase-level mods)))
           (define all-binders (lookup-phase-to-mapping phase-to-binders phase-level))
@@ -715,7 +751,9 @@
                                 (id-level phase-level new-binding-id)
                                 connections #f
                                 #:from-start from-start #:from-width from-span
-                                #:to-start to-start #:to-width to-span))))))
+                                #:from-dx from-dx #:from-dy from-dy
+                                #:to-start to-start #:to-width to-span
+                                #:to-dx to-dx #:to-dy to-dy))))))
     
     ;; color-unused : hash-table[sexp -o> syntax] hash-table[sexp -o> #f] hash-table[syntax -o> #t]
     ;;             -> void
@@ -952,9 +990,17 @@
     ;; adds an arrow from `from' to `to', unless they have the same source loc. 
     (define (connect-syntaxes from to actual? all-binders level connections require-arrow?
                               #:from-start [from-start 0] 
-                              #:from-width [from-width (syntax-span from)]
+                              #:from-width [from-width (if (exact? from-start)
+                                                           (syntax-span from)
+                                                           from-start)]
+                              #:from-dx [from-dx .5]
+                              #:from-dy [from-dy .5]
                               #:to-start [to-start 0] 
-                              #:to-width [to-width (syntax-span to)])
+                              #:to-width [to-width (if (exact? to-start)
+                                                       (syntax-span to)
+                                                       to-start)]
+                              #:to-dx [to-dx .5]
+                              #:to-dy [to-dy .5])
       (let ([from-source (find-source-editor from)] 
             [to-source (find-source-editor to)]
             [defs-text (current-annotations)])
@@ -964,39 +1010,47 @@
                 [pos-to (syntax-position to)]
                 [span-to (syntax-span to)])
             (when (and pos-from span-from pos-to span-to)
-              (let* ([from-pos-left (+ (syntax-position from) -1 from-start)]
-                     [from-pos-right (+ from-pos-left from-width)]
-                     [to-pos-left (+ (syntax-position to) -1 to-start)]
-                     [to-pos-right (+ to-pos-left to-width)])
-                (unless (= from-pos-left to-pos-left)
-                  (define connections-start (list from-source from-pos-left from-pos-right))
-                  (define connections-end (list to-source to-pos-left to-pos-right))
-                  (define connections-key (list connections-start connections-end))
-                  (unless (hash-ref connections connections-key #f)
-                    (hash-set! connections connections-key #t)
-                    (define start-before (or (hash-ref connections connections-start #f) (cons 0 0)))
-                    (define end-before (or (hash-ref connections connections-end #f) (cons 0 0)))
-                    (hash-set! connections connections-start (cons (+ (car start-before) 1) 
-                                                                   (cdr start-before)))
-                    (hash-set! connections connections-end (cons (car end-before)
-                                                                 (+ 1 (cdr end-before)))))
-                  (define (name-dup? str)
-                    (define sym (string->symbol str))
-                    (define id1 (datum->syntax from sym))
-                    (define id2 (datum->syntax to sym)) ;; do I need both?
-                    (define ans #f)
-                    (for-each-ids 
-                     all-binders
-                     (λ (ids)
-                       (set! ans (or ans
-                                     (for/or ([id (in-list ids)])
-                                       (or (free-identifier=? id1 id)
-                                           (free-identifier=? id2 id)))))))
-                    ans)
-                  (send defs-text syncheck:add-arrow/name-dup
-                        from-source from-pos-left from-pos-right
-                        to-source to-pos-left to-pos-right
-                        actual? level require-arrow? name-dup?))))))))
+              (define from-pos-left (+ (syntax-position from) -1 from-start))
+              (define from-pos-right (+ from-pos-left from-width))
+              (define to-pos-left (+ (syntax-position to) -1 to-start))
+              (define to-pos-right (+ to-pos-left to-width))
+              ;; just an approximation; could be tightened if this is problematic
+              (define arrow-points-to-itself? (= from-pos-left to-pos-left))
+              (unless arrow-points-to-itself?
+                (define connections-start/no-dxdy
+                  (list from-source from-pos-left from-pos-right))
+                (define connections-end/no-dxdy
+                  (list to-source to-pos-left to-pos-right))
+                (define connections-key
+                  (list (list from-source from-pos-left from-pos-right from-dx from-dy)
+                        (list to-source to-pos-left to-pos-right to-dx to-dy)))
+                (unless (hash-ref connections connections-key #f)
+                  (hash-set! connections connections-key #t)
+                  (define start-before (or (hash-ref connections connections-start/no-dxdy #f)
+                                           (cons 0 0)))
+                  (define end-before (or (hash-ref connections connections-end/no-dxdy #f)
+                                         (cons 0 0)))
+                  (hash-set! connections connections-start/no-dxdy
+                             (cons (+ (car start-before) 1) (cdr start-before)))
+                  (hash-set! connections connections-end/no-dxdy
+                             (cons (car end-before) (+ 1 (cdr end-before)))))
+                (define (name-dup? str)
+                  (define sym (string->symbol str))
+                  (define id1 (datum->syntax from sym))
+                  (define id2 (datum->syntax to sym)) ;; do I need both?
+                  (define ans #f)
+                  (for-each-ids 
+                   all-binders
+                   (λ (ids)
+                     (set! ans (or ans
+                                   (for/or ([id (in-list ids)])
+                                     (or (free-identifier=? id1 id)
+                                         (free-identifier=? id2 id)))))))
+                  ans)
+                (send defs-text syncheck:add-arrow/name-dup/dxdy
+                      from-source from-pos-left from-pos-right from-dx from-dy
+                      to-source to-pos-left to-pos-right to-dx to-dy
+                      actual? level require-arrow? name-dup?)))))))
     
     ;; add-jump-to-definition : syntax symbol path -> void
     ;; registers the range in the editor so that the
@@ -1347,9 +1401,9 @@
                (add-to-trace (vector 'name wanted-args ...))))]))
 
     (log syncheck:add-tail-arrow _from-text from-pos _to-text to-pos)
-    (log syncheck:add-arrow/name-dup
-         _start-text start-pos-left start-pos-right
-         _end-text end-pos-left end-pos-right
+    (log syncheck:add-arrow/name-dup/dxdy
+         _start-text start-pos-left start-pos-right start-px start-py
+         _end-text end-pos-left end-pos-right end-px end-py
          actual? level require-arrow? name-dup?)
     (log syncheck:add-mouse-over-status _text pos-left pos-right str)
     (log syncheck:add-background-color _text color start fin)
