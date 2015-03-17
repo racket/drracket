@@ -1002,7 +1002,9 @@
                    ("begin-for-syntax" imported)
                    (" (" default-color)
                    ("require" imported)
-                   (" (for-syntax " default-color)
+                   (" (" default-color)
+                   ("for-syntax" imported)
+                   (" " default-color)
                    ("racket" default-color)
                    (")) (" default-color)
                    ("define" imported)
@@ -1017,7 +1019,7 @@
                    (" 2) " default-color)
                    ("x" lexically-bound)
                    ("))" default-color))
-                 (list '((6 12) (14 30) (32 39) (62 68) (75 91))
+                 (list '((6 12) (14 30) (32 39) (41 51) (62 68) (75 91))
                        '((52 58) (93 99))
                        '((100 101) (105 106))))
      
@@ -1025,7 +1027,9 @@
       "#lang racket (provide (contract-out [f (->i ((p? any/c)) (_ (p?) p?))])) (define (f a) 1)"
       '(("#lang racket (" default-color)
         ("provide" imported)
-        (" (contract-out [" default-color)
+        (" (" default-color)
+        ("contract-out" imported)
+        (" [" default-color)
         ("f" lexically-bound)
         (" (" default-color)
         ("->i" imported)
@@ -1046,7 +1050,7 @@
         (") 1)" default-color))
       (list '((82 83) (37 38))
             '((46 48) (61 63) (65 67))
-            '((6 12) (14 21) (40 43) (49 54) (74 80))))
+            '((6 12) (14 21) (23 35) (40 43) (49 54) (74 80))))
 
      (build-test "#lang racket/base\n(define red 1)\n(module+ test red)"
                  '(("#lang racket/base\n(" default-color)
