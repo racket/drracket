@@ -5,6 +5,12 @@
   . change the teaching languages to use #true, #false, and '()
     for true, false, and empty
 
+  . change the way 'return' handles whitespace, making it more like
+    Emacs's control-j keystroke. The difference is that it removes all
+    of the trailing whitespace on the line before the newly inserted
+    return (possibly removing all of the whitespace in the case that
+    the line contains only whitespace).
+
 ------------------------------
        Version 6.1.1
 ------------------------------
