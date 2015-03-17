@@ -72,7 +72,7 @@
     (define-values (remote-chan local-chan) (place-channel))
     (define table (make-hash))
     (create-rename-answerer-thread orig-cust local-chan table)
-    (define/override (syncheck:add-arrow/name-dup/dxdy _start-text
+    (define/override (syncheck:add-arrow/name-dup/pxpy _start-text
                                                        start-pos-left start-pos-right
                                                        start-px start-py
                                                        _end-text
@@ -81,7 +81,7 @@
                                                        actual? level require-arrow? name-dup?)
       (define id (hash-count table))
       (hash-set! table id name-dup?)
-      (add-to-trace (vector 'syncheck:add-arrow/name-dup/dxdy
+      (add-to-trace (vector 'syncheck:add-arrow/name-dup/pxpy
                             start-pos-left start-pos-right start-px start-py
                             end-pos-left end-pos-right end-px end-py
                             actual? level require-arrow? remote-chan id)))

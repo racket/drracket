@@ -1017,22 +1017,22 @@
               ;; just an approximation; could be tightened if this is problematic
               (define arrow-points-to-itself? (= from-pos-left to-pos-left))
               (unless arrow-points-to-itself?
-                (define connections-start/no-dxdy
+                (define connections-start/no-pxpy
                   (list from-source from-pos-left from-pos-right))
-                (define connections-end/no-dxdy
+                (define connections-end/no-pxpy
                   (list to-source to-pos-left to-pos-right))
                 (define connections-key
                   (list (list from-source from-pos-left from-pos-right from-dx from-dy)
                         (list to-source to-pos-left to-pos-right to-dx to-dy)))
                 (unless (hash-ref connections connections-key #f)
                   (hash-set! connections connections-key #t)
-                  (define start-before (or (hash-ref connections connections-start/no-dxdy #f)
+                  (define start-before (or (hash-ref connections connections-start/no-pxpy #f)
                                            (cons 0 0)))
-                  (define end-before (or (hash-ref connections connections-end/no-dxdy #f)
+                  (define end-before (or (hash-ref connections connections-end/no-pxpy #f)
                                          (cons 0 0)))
-                  (hash-set! connections connections-start/no-dxdy
+                  (hash-set! connections connections-start/no-pxpy
                              (cons (+ (car start-before) 1) (cdr start-before)))
-                  (hash-set! connections connections-end/no-dxdy
+                  (hash-set! connections connections-end/no-pxpy
                              (cons (car end-before) (+ 1 (cdr end-before)))))
                 (define (name-dup? str)
                   (define sym (string->symbol str))
@@ -1047,7 +1047,7 @@
                                      (or (free-identifier=? id1 id)
                                          (free-identifier=? id2 id)))))))
                   ans)
-                (send defs-text syncheck:add-arrow/name-dup/dxdy
+                (send defs-text syncheck:add-arrow/name-dup/pxpy
                       from-source from-pos-left from-pos-right from-dx from-dy
                       to-source to-pos-left to-pos-right to-dx to-dy
                       actual? level require-arrow? name-dup?)))))))
@@ -1401,7 +1401,7 @@
                (add-to-trace (vector 'name wanted-args ...))))]))
 
     (log syncheck:add-tail-arrow _from-text from-pos _to-text to-pos)
-    (log syncheck:add-arrow/name-dup/dxdy
+    (log syncheck:add-arrow/name-dup/pxpy
          _start-text start-pos-left start-pos-right start-px start-py
          _end-text end-pos-left end-pos-right end-px end-py
          actual? level require-arrow? name-dup?)

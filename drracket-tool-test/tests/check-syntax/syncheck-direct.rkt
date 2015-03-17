@@ -192,8 +192,8 @@
               (set '((6 17) (19 26))     ;; to 'require'
                    '((6 17) (28 35))))   ;; to 'only-in'
 
-(define-get-arrows get-binding-arrows/dxdy
-  (syncheck:add-arrow/name-dup/dxdy start-source-obj	 
+(define-get-arrows get-binding-arrows/pxpy
+  (syncheck:add-arrow/name-dup/pxpy start-source-obj	 
                                     start-left	 
                                     start-right
                                     start-px
@@ -209,7 +209,7 @@
                                     name-dup?)
   (list (list start-left start-right start-px start-py)
         (list end-left end-right end-px end-py)))
-(check-equal? (apply set (get-binding-arrows/dxdy
+(check-equal? (apply set (get-binding-arrows/pxpy
                           "#lang racket/base\n(require (only-in racket/base))"))
               (set '((6 17 .5 .5) (19 26 .5 .5))     ;; to 'require'
                    '((6 17 .5 .5) (28 35 .5 .5))))

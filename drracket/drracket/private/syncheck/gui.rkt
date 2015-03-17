@@ -848,7 +848,7 @@ If the namespace does not, they are colored the unbound color.
               (void))
             
             ;; pre: start-editor, end-editor are embedded in `this' (or are `this')
-            (define/public (syncheck:add-arrow/name-dup/dxdy start-text
+            (define/public (syncheck:add-arrow/name-dup/pxpy start-text
                                                              start-pos-left start-pos-right
                                                              start-px start-py
                                                              end-text
@@ -1942,12 +1942,12 @@ If the namespace does not, they are colored the unbound color.
           ;; using 'defs-text' all the time is wrong in the case of embedded editors,
           ;; but they already don't work and we've arranged for them to not appear here ....
           (match x
-            [`#(syncheck:add-arrow/name-dup/dxdy
+            [`#(syncheck:add-arrow/name-dup/pxpy
                 ,start-pos-left ,start-pos-right ,start-px ,start-py
                 ,end-pos-left ,end-pos-right ,end-px ,end-py
                 ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id  known-dead-place-channels))
-             (send defs-text syncheck:add-arrow/name-dup/dxdy
+             (send defs-text syncheck:add-arrow/name-dup/pxpy
                    defs-text start-pos-left start-pos-right start-px start-py
                    defs-text end-pos-left end-pos-right end-px end-py
                    actual? level require-arrow? name-dup?)]

@@ -38,7 +38,7 @@ a method in @racket[syncheck-annotations<%>] and the other elements of the vecto
 the arguments passed to the method.
 
 This doesn't work as well for use in a real tool, however, because it doesn't account for
-the callback procedures present in @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy]
+the callback procedures present in @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
 and @method[syncheck-annotations<%> syncheck:add-id-set] and the resulting vectors are probably less
 convenient to work with than direct method calls for most uses of this library. Nevertheless,
 it gives a quick feel for the results that can come back from Check Syntax.
@@ -170,7 +170,7 @@ in order to make the results be platform independent.
             void?]{This method is no longer called by Check Syntax. It is here
                    for backwards compatibility only. The information it provided
                    must now be synthesized from the information supplied to
-                   @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy].}
+                   @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy].}
            
  @defmethod[(syncheck:add-arrow [start-source-obj (not/c #f)]
                                 [start-left exact-nonnegative-integer?]
@@ -182,7 +182,7 @@ in order to make the results be platform independent.
                                 [phase-level (or/c exact-nonnegative-integer? #f)])
             void?]{
     This function is not called directly anymore by Check Syntax. Instead
-    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy] is.
+    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy] is.
     
     This method is invoked by the default implementation of 
     @racket[_syncheck:add-arrow/name-dup] in 
@@ -200,13 +200,13 @@ in order to make the results be platform independent.
                                          [name-dup? (-> string? boolean?)])
             void?]{
     This function is not called directly anymore by Check Syntax. Instead
-    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy] is.
+    @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy] is.
 
-    The default implementation of @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/dxdy]
+    The default implementation of @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
     discards the @racket[_start-px] @racket[_start-py] @racket[_end-px] @racket[_end-py]
     arguments and calls this method.
  }
- @defmethod[(syncheck:add-arrow/name-dup/dxdy [start-source-obj (not/c #f)]
+ @defmethod[(syncheck:add-arrow/name-dup/pxpy [start-source-obj (not/c #f)]
                                               [start-left exact-nonnegative-integer?]
                                               [start-right exact-nonnegative-integer?]
                                               [start-px (real-in 0 1)]
@@ -308,6 +308,10 @@ in order to make the results be platform independent.
             @item{the @method[syncheck-annotations<%> syncheck:add-arrow/name-dup] method drops the
                       @racket[_require-arrow?] and @racket[_name-dup?] arguments and calls
                       @method[syncheck-annotations<%> syncheck:add-arrow]; and}
+            @item{the @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
+                      method drops the @racket[_from-px], @racket[_from-py], @racket[_to-px],
+                      and @racket[_to-py] arguments and calls
+                      @method[syncheck-annotations<%> syncheck:add-arrow/name-dup]; and}
             @item{all of the other methods ignore their arguments and return @racket[(void)].}]
     
   Here is an example showing how use this library to extract all
@@ -324,9 +328,9 @@ in order to make the results be platform independent.
                    (super-new)
                    (define/override (syncheck:find-source-object stx)
                      stx)
-                   (define/override (syncheck:add-arrow/name-dup
-                                     start-source-obj start-left start-right
-                                     end-source-obj end-left end-right
+                   (define/override (syncheck:add-arrow/name-dup/pxpy
+                                     start-source-obj start-left start-right start-px start-py
+                                     end-source-obj end-left end-right end-px end-py
                                      actual? phase-level require-arrow? name-dup?)
                      (set! arrows
                            (cons (list start-source-obj end-source-obj)
@@ -368,6 +372,7 @@ in order to make the results be platform independent.
                     syncheck:add-rename-menu
                     syncheck:add-arrow
                     syncheck:add-arrow/name-dup
+                    syncheck:add-arrow/name-dup/pxpy
                     syncheck:add-tail-arrow
                     syncheck:add-mouse-over-status
                     syncheck:add-jump-to-definition

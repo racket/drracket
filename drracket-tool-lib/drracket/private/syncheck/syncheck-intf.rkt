@@ -11,7 +11,7 @@
     syncheck:add-id-set
     syncheck:add-arrow
     syncheck:add-arrow/name-dup
-    syncheck:add-arrow/name-dup/dxdy
+    syncheck:add-arrow/name-dup/pxpy
     syncheck:add-tail-arrow
     syncheck:add-mouse-over-status
     syncheck:add-jump-to-definition
@@ -49,7 +49,7 @@
       (syncheck:add-arrow start-text start-pos-left start-pos-right
                           end-text end-pos-left end-pos-right
                           actual? level))
-    (define/public (syncheck:add-arrow/name-dup/dxdy start-text
+    (define/public (syncheck:add-arrow/name-dup/pxpy start-text
                                                      start-pos-left start-pos-right
                                                      start-px start-py
                                                      end-text
