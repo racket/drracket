@@ -282,7 +282,7 @@
       (define path (build-module-filename (to-path r-mpi) #t))
       (make-req (match r-mpi
                   [(? path?) (simplify-path r-mpi)]
-                  [`(submod ,p ,submods) `(submod ,(simplify-path p) ,submods)])
+                  [`(submod ,p ,submods ...) `(submod ,(simplify-path p) ,@submods)])
                 (get-key dr base-lib path))))
   
   (define (to-path r-mpi)
