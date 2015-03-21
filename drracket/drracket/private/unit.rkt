@@ -2296,7 +2296,7 @@
                      (andmap eq? tab-label-cache-valid current-paths))
           (set! tab-label-cache-valid current-paths)
           (set! tab-label-cache (make-hasheq)))
-        (define nfn (normalize-path/exists fn))
+        (define nfn (simple-form-path fn))
         (hash-ref! tab-label-cache 
                    fn
                    (lambda () 
@@ -2306,14 +2306,9 @@
                            (filter values
                                    (for/list ([other-tab (in-list tabs)])
                                      (define fn (send (send other-tab get-defs) get-filename))
-                                     (and fn (normalize-path/exists fn)))))
+                                     (and fn (simple-form-path fn)))))
                           (let-values ([(base name dir?) (split-path nfn)])
                             name))))))
-
-      (define/private (normalize-path/exists fn)
-        (if (file-exists? fn)
-            (normalize-path fn)
-            fn))
 
       (define/private (add-modified-flag text string)
         (if (send text is-modified?)
