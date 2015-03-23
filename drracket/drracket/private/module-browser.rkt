@@ -22,9 +22,6 @@
 
 (provide module-overview@)
 
-(define adding-file (string-constant module-browser-adding-file))
-(define unknown-module-name "? unknown module name")
-
 ;; probably, at some point, the module browser should get its
 ;; own output ports or something instead of wrapping these ones
 (define original-output-port (current-output-port))
