@@ -8,6 +8,7 @@
          syntax/moddep
          syntax/toplevel
          framework/preferences
+         framework/gui-utils
          string-constants
          mrlib/graph
          racket/unit
@@ -337,7 +338,7 @@
     (parameterize ([current-eventspace progress-eventspace])
       (queue-callback
        (λ ()
-         (send progress-message set-label str)))))
+         (send progress-message set-label (gui-utils:trim-string str 200))))))
   
   (define pasteboard (make-module-overview-pasteboard 
                       #f
