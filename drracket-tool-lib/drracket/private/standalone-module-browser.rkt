@@ -298,11 +298,16 @@
          ;; is a relative one, so any kind of require from the same
          ;; library is always displayed (regardless of hiding planet
          ;; or lib links)
-         (not (equal? requiring-libroot (get-lib-root required)))
+         ;; if `requiring-libroot` is #f we just skip this check;
+         ;; this indicates that we're not in a libroot
+         (or (not requiring-libroot)
+             (not (equal? requiring-libroot (get-lib-root required))))
          (let-values ([(a b) (module-path-index-split dr)])
-           (cond [(symbol? a) 'lib]
-                 [(pair? a) (and (symbol? (car a)) (car a))]
-                 [else #f])))))
+           (match a
+             [(? symbol?) 'lib]
+             [(list 'submod (? symbol?) _ ...) 'lib]
+             [(list (? symbol? s) _ ...) s]
+             [_ #f])))))
 
 (define (standalone-module-overview/file filename)
   (module-overview/file filename #f standalone-fill-pasteboard
