@@ -3707,7 +3707,7 @@
               (send definitions-text last-position))
              (λ (str) (update-status-line 
                        'plt:module-browser 
-                       (format module-browser-progress-constant str)))
+                       (gui-utils:trim-string (format module-browser-progress-constant str) 200)))
              (λ (user-thread user-custodian)
                (send mod-tab set-breakables user-thread user-custodian)))
             (send mod-tab set-breakables old-break-thread old-custodian)
