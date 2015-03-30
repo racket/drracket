@@ -537,10 +537,10 @@
     (define ok-coordinate? (or/c exact-nonnegative-integer? (and/c (real-in 0 1) inexact?)))
     (define sub-range-binder-prop?
       (or/c (vector/c #:flat? #t
-                      syntax? exact-nonnegative-integer? exact-nonnegative-integer?
+                      identifier? exact-nonnegative-integer? exact-nonnegative-integer?
                       syntax? exact-nonnegative-integer? exact-nonnegative-integer?)
             (vector/c #:flat? #t
-                      syntax?
+                      identifier?
                       exact-nonnegative-integer? exact-nonnegative-integer?
                       (real-in 0 1) (real-in 0 1)
                       syntax?
@@ -748,7 +748,9 @@
           (when varrefs
             (for ([varref (in-list varrefs)])
               (connect-syntaxes new-binding-id varref #t all-binders 
-                                (id-level phase-level new-binding-id)
+                                (if (identifier? new-binding-id)
+                                    (id-level phase-level new-binding-id)
+                                    'lexical)
                                 connections #f
                                 #:from-start from-start #:from-width from-span
                                 #:from-dx from-dx #:from-dy from-dy
