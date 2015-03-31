@@ -3,7 +3,7 @@
          "syncheck-local-member-names.rkt"
          "annotate.rkt"
          "colors.rkt"
-         syntax/boundmap
+         syntax/id-table
          syntax/kerncase
          string-constants)
 (provide annotate-contracts)
@@ -66,127 +66,129 @@
     (define (call-give-up)
       (give-up start-stx boundary-contract? coloring-plans))
     
-    (let ([main-prop (syntax-property stx 'racket/contract:contract)])
-      (cond
-        [main-prop
-         ;; we've found a contract, now go color it and 
-         ;; continue with the sub-contract expressions (as indicated via the properties)
-         (let sloop ([prop main-prop])
-           (cond
-             [(pair? prop) (sloop (car prop)) (sloop (cdr prop))]
-             [(vector? prop)
-              (let ([id (vector-ref prop 0)]
-                    [to-color-pos (vector-ref prop 1)]
-                    [to-color-neg (vector-ref prop 2)])
-                (for ((stx (in-list to-color-pos)))
-                  (base-color stx polarity boundary-contract? coloring-plans))
-                (for ((stx (in-list to-color-neg)))
-                  (base-color stx (not polarity) boundary-contract? coloring-plans))
-                (for ((stx (in-list (hash-ref domain-map id '()))))
-                  (do-contract-traversal stx boundary-contract?
-                                         coloring-plans
-                                         low-binders binding-inits domain-map range-map (not polarity)))
-                (for ((stx (in-list (hash-ref range-map id '()))))
-                  (do-contract-traversal stx boundary-contract?
-                                         coloring-plans
-                                         low-binders binding-inits domain-map range-map polarity)))]))]
-        
-        [else
-         ;; we didn't find a contract, but we might find one in a subexpression
-         ;; so we need to go look for it (possibly giving up)
-         (kernel-syntax-case stx #f
-           [(#%expression expr)
-            (ploop #'expr polarity)]
-           [(module id name-id (#%plain-module-begin mod-level-form ...))
-            (call-give-up)]
-           [(begin tl-form ... last-one)
-            (ploop #'last-one polarity)]
-           [(#%provide pvd ...)
-            (call-give-up)]
-           [(#%declare decl ...)
-            (call-give-up)]
-           [(define-values (id ...) expr)
-            (call-give-up)]
-           [(define-syntaxes (id ...) expr)
-            (call-give-up)]
-           [(begin-for-syntax (id ...) expr)
-            (call-give-up)]
-           [(#%require rspec ...)
-            (call-give-up)]
-           [id
-            (identifier? #'id)
-            (if (known-predicate? #'id)
+    (define main-prop (syntax-property stx 'racket/contract:contract))
+    (cond
+      [main-prop
+       ;; we've found a contract, now go color it and 
+       ;; continue with the sub-contract expressions (as indicated via the properties)
+       (let sloop ([prop main-prop])
+         (cond
+           [(pair? prop) (sloop (car prop)) (sloop (cdr prop))]
+           [(vector? prop)
+            (define id (vector-ref prop 0))
+            (define to-color-pos (vector-ref prop 1))
+            (define to-color-neg (vector-ref prop 2))
+            (for ([stx (in-list to-color-pos)])
+              (base-color stx polarity boundary-contract? coloring-plans))
+            (for ([stx (in-list to-color-neg)])
+              (base-color stx (not polarity) boundary-contract? coloring-plans))
+            (for ([stx (in-list (hash-ref domain-map id '()))])
+              (do-contract-traversal stx boundary-contract?
+                                     coloring-plans
+                                     low-binders binding-inits domain-map range-map (not polarity)))
+            (for ([stx (in-list (hash-ref range-map id '()))])
+              (do-contract-traversal stx boundary-contract?
+                                     coloring-plans
+                                     low-binders binding-inits domain-map range-map polarity))]))]
+      
+      [else
+       ;; we didn't find a contract, but we might find one in a subexpression
+       ;; so we need to go look for it (possibly giving up)
+       (kernel-syntax-case stx #f
+         [(#%expression expr)
+          (ploop #'expr polarity)]
+         [(module id name-id (#%plain-module-begin mod-level-form ...))
+          (call-give-up)]
+         [(begin tl-form ... last-one)
+          (ploop #'last-one polarity)]
+         [(#%provide pvd ...)
+          (call-give-up)]
+         [(#%declare decl ...)
+          (call-give-up)]
+         [(define-values (id ...) expr)
+          (call-give-up)]
+         [(define-syntaxes (id ...) expr)
+          (call-give-up)]
+         [(begin-for-syntax (id ...) expr)
+          (call-give-up)]
+         [(#%require rspec ...)
+          (call-give-up)]
+         [id
+          (identifier? #'id)
+          (cond
+            [(known-predicate? #'id)
+             (base-color #'id polarity boundary-contract? coloring-plans)]
+            [else
+             (define binders (free-id-table-ref low-binders #'id (λ () #f)))
+             (cond
+               [binders
                 (base-color #'id polarity boundary-contract? coloring-plans)
-                (let ([binders (module-identifier-mapping-get low-binders #'id (λ () #f))])
-                  (if binders
-                      (begin
-                        (base-color #'id polarity boundary-contract? coloring-plans)
-                        (for ((binder (in-list binders)))
-                          (base-color binder polarity boundary-contract? coloring-plans)
-                          (for ((rhs (in-list (module-identifier-mapping-get binding-inits binder (λ () '())))))
-                            (ploop rhs polarity))))
-                      (call-give-up))))]
-           [const
-            (let ([val (syntax-e #'const)])
-              (or (boolean? val)
-                  (number? val)
-                  (string? val)
-                  (char? val)
-                  (regexp? val)))
-            (base-color stx polarity boundary-contract? coloring-plans)]
-           [(#%plain-lambda (id) expr ...)
-            (identifier? #'id)
-            (base-color stx polarity boundary-contract? coloring-plans)]
-           [(#%plain-lambda id expr ...)
-            (identifier? #'id)
-            (base-color stx polarity boundary-contract? coloring-plans)]
-           [(#%plain-lambda formals expr ...)
-            (call-give-up)]
-           [(case-lambda [formals expr] ...)
-            ;; this should really only happen when the arity of the case-lambda includes 1
-            ;; (otherwise we should call give-up)
-            (base-color stx polarity boundary-contract? coloring-plans)]
-           [(if a b c)
-            ;; these calls are questionable. 
-            ;; if we ultimately end up giving up in both
-            ;; branches, maybe we should actually be coloring the entire thing
-            ;; in the blank color, but we'll only color the then and else branches
-            ;; in that color with this code.
-            ;; on the other hand, recurring like this will mean that the two
-            ;; branches are considered separately and thus calling give-up
-            ;; on one side will not pollute the other side.
-            (do-contract-traversal #'b boundary-contract?
-                                   coloring-plans
-                                   low-binders binding-inits domain-map range-map polarity)
-            (do-contract-traversal #'c boundary-contract?
-                                   coloring-plans
-                                   low-binders binding-inits domain-map range-map polarity)]
-           ;; [(begin expr ...) (void)]
-           [(begin0 fst rst ...)
-            (ploop #'fst polarity)]
-           [(let-values bindings body ... last-one)
-            (ploop #'last-one polarity)]
-           [(letrec-values bindings body ... last-one)
-            (ploop #'last-one polarity)]
-           [(set! a b)
-            (call-give-up)]
-           [(quote stuff)
-            (base-color stx polarity boundary-contract? coloring-plans)]
-           [(quote-syntax stuff)
-            (call-give-up)]
-           [(with-continuation-mark a b c)
-            (ploop #'c polarity)]
-           [(#%plain-app f args ...)
-            (call-give-up)]
-           [(#%top . id)
-            (call-give-up)]
-           [(#%variable-reference ignored ...)
-            (call-give-up)]
-           [_ 
-            (begin
-              #;(error 'contract-traversal.rkt "unknown thing: ~s\n" stx)
-              (call-give-up))
-              ])]))))
+                (for ([binder (in-list binders)])
+                  (base-color binder polarity boundary-contract? coloring-plans)
+                  (for ([rhs (in-list (free-id-table-ref binding-inits binder '()))])
+                    (ploop rhs polarity)))]
+               [else (call-give-up)])])]
+         [const
+          (let ([val (syntax-e #'const)])
+            (or (boolean? val)
+                (number? val)
+                (string? val)
+                (char? val)
+                (regexp? val)))
+          (base-color stx polarity boundary-contract? coloring-plans)]
+         [(#%plain-lambda (id) expr ...)
+          (identifier? #'id)
+          (base-color stx polarity boundary-contract? coloring-plans)]
+         [(#%plain-lambda id expr ...)
+          (identifier? #'id)
+          (base-color stx polarity boundary-contract? coloring-plans)]
+         [(#%plain-lambda formals expr ...)
+          (call-give-up)]
+         [(case-lambda [formals expr] ...)
+          ;; this should really only happen when the arity of the case-lambda includes 1
+          ;; (otherwise we should call give-up)
+          (base-color stx polarity boundary-contract? coloring-plans)]
+         [(if a b c)
+          ;; these calls are questionable. 
+          ;; if we ultimately end up giving up in both
+          ;; branches, maybe we should actually be coloring the entire thing
+          ;; in the blank color, but we'll only color the then and else branches
+          ;; in that color with this code.
+          ;; on the other hand, recurring like this will mean that the two
+          ;; branches are considered separately and thus calling give-up
+          ;; on one side will not pollute the other side.
+          (do-contract-traversal #'b boundary-contract?
+                                 coloring-plans
+                                 low-binders binding-inits domain-map range-map polarity)
+          (do-contract-traversal #'c boundary-contract?
+                                 coloring-plans
+                                 low-binders binding-inits domain-map range-map polarity)]
+         ;; [(begin expr ...) (void)]
+         [(begin0 fst rst ...)
+          (ploop #'fst polarity)]
+         [(let-values bindings body ... last-one)
+          (ploop #'last-one polarity)]
+         [(letrec-values bindings body ... last-one)
+          (ploop #'last-one polarity)]
+         [(set! a b)
+          (call-give-up)]
+         [(quote stuff)
+          (base-color stx polarity boundary-contract? coloring-plans)]
+         [(quote-syntax stuff)
+          (call-give-up)]
+         [(with-continuation-mark a b c)
+          (ploop #'c polarity)]
+         [(#%plain-app f args ...)
+          (call-give-up)]
+         [(#%top . id)
+          (call-give-up)]
+         [(#%variable-reference ignored ...)
+          (call-give-up)]
+         [_ 
+          (begin
+            #;(error 'contract-traversal.rkt "unknown thing: ~s\n" stx)
+            (call-give-up))
+          ])])))
 
 ;; add-to-map : syntax any hash[any -> (listof stx)]
 ;; looks at stx's property prop and updates map,
