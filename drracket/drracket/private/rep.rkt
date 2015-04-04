@@ -912,25 +912,32 @@ TODO
       (field (need-interaction-cleanup? #f))
       
       (define/private (no-user-evaluation-message frame exit-code memory-killed?)
+        (no-user-evaluation-dialog frame exit-code memory-killed? #t)
+        (set-insertion-point (last-position))
+        (insert-warning "\nInteractions disabled"))
+      
+      (define/public (no-user-evaluation-dialog frame exit-code memory-killed? program-terminated?)
         (define new-limit (and custodian-limit (+ custodian-limit custodian-limit)))
         (define-values (ans checked?)
           (if (preferences:get 'drracket:show-killed-dialog)
               (message+check-box/custom
                (string-constant evaluation-terminated)
-               (string-append
-                (string-constant evaluation-terminated-explanation)
-                (if exit-code
-                    (string-append
-                     "\n\n"
-                     (if (zero? exit-code)
-                         (string-constant exited-successfully)
-                         (format (string-constant exited-with-error-code) exit-code)))
-                    "")
-                (if memory-killed?
-                    (string-append 
-                     "\n\n"
-                     (string-constant program-ran-out-of-memory))
-                    ""))
+               (apply
+                string-append
+                (add-between
+                 (append
+                  (if program-terminated?
+                      (list (string-constant evaluation-terminated-explanation))
+                      '())
+                  (if exit-code
+                      (list (if (zero? exit-code)
+                                (string-constant exited-successfully)
+                                (format (string-constant exited-with-error-code) exit-code)))
+                      '())
+                  (if memory-killed?
+                      (list (string-constant program-ran-out-of-memory))
+                      '()))
+                 "\n\n"))
                (string-constant evaluation-terminated-ask)
                (string-constant ok)
                #f
@@ -946,9 +953,7 @@ TODO
           (preferences:set 'drracket:show-killed-dialog #f))
         (when (equal? ans 3)
           (set-custodian-limit new-limit)
-          (preferences:set 'drracket:child-only-memory-limit new-limit))
-        (set-insertion-point (last-position))
-        (insert-warning "\nInteractions disabled"))
+          (preferences:set 'drracket:child-only-memory-limit new-limit)))
       
       (define/private (cleanup-interaction) ; =Kernel=, =Handler=
         (set! need-interaction-cleanup? #f)

@@ -15,6 +15,10 @@
   set-i
   insert-auto-text)
 
+;; in rep, for error display handler
+(define/provide-local-member-name
+  no-user-evaluation-dialog)
+
 ;; from module-language-tools.rkt
 (define/provide-local-member-name
   when-initialized

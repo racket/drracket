@@ -24,6 +24,7 @@ profile todo:
          "bindings-browser.rkt"
          "stack-checkpoint.rkt"
          "ellipsis-snip.rkt"
+         "local-member-names.rkt"
          net/sendurl
          net/url
          racket/match
@@ -390,7 +391,11 @@ profile todo:
              ;; and still running here?
              (send ints highlight-errors src-locs (if (null? stack1)
                                                       stack2
-                                                      stack1))))))))
+                                                      stack1))
+             
+             (when (and ints (exn:fail:out-of-memory? exn))
+               (define frame (send ints get-top-level-window))
+               (send ints no-user-evaluation-dialog frame #f #t #f))))))))
   
   (define (render-message lines)
     (define collected (collect-hidden-lines lines))
