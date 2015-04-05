@@ -430,7 +430,7 @@
                  (for ([body (in-list (syntax->list (syntax (bodies ...))))])
                    (if (syntax-e #'lang)
                        (mod-loop body module-name)
-                       (mod-loop body #f))))]
+                       (mod-loop (syntax-shift-phase-level body (- level)) #f))))]
               
               
               ; top level or module top level only:
