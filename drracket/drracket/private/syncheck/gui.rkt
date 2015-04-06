@@ -368,7 +368,7 @@ If the namespace does not, they are colored the unbound color.
                      highlight-range unhighlight-range
                      paragraph-end-position first-line-currently-drawn-specially?
                      line-end-position position-line
-                     syncheck:add-docs-range get-padding)
+                     syncheck:add-docs-range syncheck:add-require-candidate get-padding)
             
             ;; arrow-records : (U #f hash[text% => arrow-record])
             ;; arrow-record = interval-map[(listof arrow-entry)]
@@ -650,16 +650,18 @@ If the namespace does not, they are colored the unbound color.
                      (parent menu)
                      (callback (λ (x y) (fw:handler:edit-file file))))
                 (void))
-              (syncheck:add-menu text start-pos end-pos #f (make-require-open-menu file)))
+              (syncheck:add-menu text start-pos end-pos #f (make-require-open-menu file))
+              (syncheck:add-require-candidate file))
             
             (define/public (syncheck:add-docs-menu text start-pos end-pos id
                                                    the-label
                                                    path
                                                    definition-tag
-                                                   tag)
+                                                   url-tag)
+              (syncheck:add-docs-range start-pos end-pos definition-tag path url-tag)
               (define (visit-docs-url)
                 (define url (path->url path))
-                (define url2 (if tag
+                (define url2 (if url-tag
                                  (make-url (url-scheme url)
                                            (url-user url)
                                            (url-host url)
@@ -667,10 +669,9 @@ If the namespace does not, they are colored the unbound color.
                                            (url-path-absolute? url)
                                            (url-path url)
                                            (url-query url)
-                                           tag)
+                                           url-tag)
                                  url))
                 (send-url (url->string url2)))
-              (syncheck:add-docs-range start-pos end-pos definition-tag visit-docs-url)
               (syncheck:add-menu 
                text start-pos end-pos id
                (λ (menu)

@@ -9,10 +9,16 @@
          drracket/private/rectangle-intersect
          string-constants
          framework/private/logging-timer
-         scribble/blueboxes)
+         scribble/blueboxes
+         net/url
+         browser/external
+         setup/xref
+         scribble/xref
+         setup/collects)
 (provide docs-text-mixin
          docs-editor-canvas-mixin
          syncheck:add-docs-range
+         syncheck:add-require-candidate
          syncheck:reset-docs-im
          syncheck:update-blue-boxes)
 
@@ -64,6 +70,7 @@
   get-current-strs
   syncheck:reset-docs-im
   syncheck:add-docs-range
+  syncheck:add-require-candidate
   syncheck:update-blue-boxes)
 
 (define docs-ec-clipping-region #f)
@@ -149,7 +156,8 @@
              dc-location-to-editor-location get-dc
              get-start-position get-end-position
              begin-edit-sequence end-edit-sequence
-             invalidate-bitmap-cache)
+             invalidate-bitmap-cache get-text
+             is-stopped? is-frozen? classify-position get-token-range)
     
     (define locked? (preferences:get 'drracket:syncheck:contracts-locked?))
     (define mouse-in-blue-box? #f)
@@ -161,8 +169,24 @@
     (define the-strs-id-end #f)
     (define/public (get-current-strs) the-strs)
     
-    (define visit-docs-url void)
     
+    (define visit-docs-path #f)
+    (define visit-docs-tag #f)
+    (define/private (visit-docs-url)
+      (when (and visit-docs-path visit-docs-tag)
+        (define url (path->url visit-docs-path))
+        (define url2 (if visit-docs-tag
+                         (make-url (url-scheme url)
+                                   (url-user url)
+                                   (url-host url)
+                                   (url-port url)
+                                   (url-path-absolute? url)
+                                   (url-path url)
+                                   (url-query url)
+                                   visit-docs-tag)
+                         url))
+        (send-url (url->string url2))))
+
     (define/public (get-show-docs?) (and the-strs (or locked? mouse-in-blue-box?)))
     (define/public (toggle-syncheck-docs)
       (begin-edit-sequence #t #f)
@@ -244,19 +268,25 @@
     (define bh (box 0))
     
     (define docs-im #f)
+    (define require-candidates '())
+    (define path->pkg-cache (make-hash))
     (define/public (syncheck:reset-docs-im)
-      (set! docs-im #f)) 
+      (set! docs-im #f)
+      (set! require-candidates '())
+      (set! path->pkg-cache (make-hash)))
     (define (get/start-docs-im) 
       (cond 
         [docs-im docs-im]
         [else
          (set! docs-im (make-interval-map))
          docs-im]))
-    (define/public (syncheck:add-docs-range start end tag visit-docs-url) 
+    (define/public (syncheck:add-docs-range start end tag path url-tag)
       ;; the +1 to end is effectively assuming that there
       ;; are no abutting identifiers with documentation
-      (define rng (list start (+ end 1) tag visit-docs-url))
+      (define rng (list start (+ end 1) tag path url-tag))
       (interval-map-set! (get/start-docs-im) start (+ end 1) rng))
+    (define/public (syncheck:add-require-candidate path)
+      (set! require-candidates (cons path require-candidates)))
     
     (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
       (super on-paint before? dc left top right bottom dx dy draw-caret)
@@ -354,12 +384,23 @@
     (define timer-running? #f)
     (define/augment (after-set-position)
       (inner (void) after-set-position)
+      (trigger-buffer-changed-callback))
+    (define/augment (after-insert start len)
+      (inner (void) after-insert start len)
+      (trigger-buffer-changed-callback))
+    (define/augment (after-delete start len)
+      (inner (void) after-delete start len)
+      (trigger-buffer-changed-callback))
+    (define/private (trigger-buffer-changed-callback)
       (when (or locked?
                 mouse-in-blue-box?
                 (not the-strs))
-        (unless timer-running?
-          (set! timer-running? #t)
-          (send timer start 300 #t))))
+        (set! check-nearby-symbol-starting-point 0)
+        (start-the-timer)))
+    (define/private (start-the-timer)
+      (unless timer-running?
+        (set! timer-running? #t)
+        (send timer start 300 #t)))
     
     (define/public (syncheck:update-blue-boxes)
       (update-the-strs))
@@ -377,26 +418,82 @@
          (invalidate-blue-box-region)
          (end-edit-sequence))))
     
-      ;; update-the-strs/maybe-invalidate : (-> void) (-> void) -> boolean
-      ;; returns #t if something changed (and thus invalidation should happen)
-      (define/private (update-the-strs/maybe-invalidate before after)
-        (define sp (get-start-position))
-        (when (= sp (get-end-position))
-          (define tag+rng (interval-map-ref (get/start-docs-im) sp #f))
-          (when tag+rng
-            (define ir-start (list-ref tag+rng 0))
-            (define ir-end (list-ref tag+rng 1))
-            (define tag (list-ref tag+rng 2))
-            (define new-visit-docs-url (list-ref tag+rng 3))
-            (define new-strs (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache))
-            (when new-strs
-              (before)
-              (set! the-strs new-strs)
-              (set! the-strs-id-start ir-start)
-              (set! the-strs-id-end ir-end)
-              (set! visit-docs-url new-visit-docs-url)
-              (after)))))
-    
+    ;; update-the-strs/maybe-invalidate : (-> void) (-> void) -> void
+    (define/private (update-the-strs/maybe-invalidate before after)
+      (define sp (get-start-position))
+      (when (= sp (get-end-position))
+        (define tag+rng (or (interval-map-ref (get/start-docs-im) sp #f)
+                            (check-nearby-symbol sp)))
+        (when tag+rng
+          (define ir-start (list-ref tag+rng 0))
+          (define ir-end (list-ref tag+rng 1))
+          (define tag (list-ref tag+rng 2))
+          (define path (list-ref tag+rng 3))
+          (define url-tag (list-ref tag+rng 4))
+          (define new-strs (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache))
+          (when new-strs
+            (before)
+            (set! the-strs new-strs)
+            (set! the-strs-id-start ir-start)
+            (set! the-strs-id-end ir-end)
+            (set! visit-docs-path path)
+            (set! visit-docs-tag url-tag)
+            (after)))))
+
+    (define check-nearby-symbol-starting-point 0)
+    (define/private (check-nearby-symbol pos)
+      (cond
+        [(or (is-stopped?)
+             (is-frozen?)
+             (null? require-candidates))
+         #f]
+        [else
+         (define-values (start end)
+           (cond
+             [(member (classify-position pos) '(symbol keyword))
+              (get-token-range pos)]
+             [(and (not (zero? pos))
+                   ;; this checks to see if there something ending at pos
+                   (member (classify-position (- pos 1)) '(symbol keyword)))
+              (get-token-range (- pos 1))]
+             [else (values #f #f)]))
+         (cond
+           [(and start end)
+            (define id (string->symbol (get-text start end)))
+            (define xref (load-collections-xref))
+            (define start-time (current-process-milliseconds (current-thread)))
+            (let/ec k
+              (begin0
+                (for/or ([require-candidate (in-list require-candidates)]
+                         [i (in-naturals)]
+                         #:when (i . >= . check-nearby-symbol-starting-point))
+                  (define now (current-process-milliseconds (current-thread)))
+                  (when (and (i . > . check-nearby-symbol-starting-point)
+                             ((- now start-time) . > . 10))
+                    ;; when we've processed at least one entry in the list and we've
+                    ;; taken more than 12 msec, then we give up and try again later
+                    (set! check-nearby-symbol-starting-point i) ;; remember where we are
+                    (start-the-timer) ;; set the timer to start later
+                    (k #f)) ;; give up for now
+                  (define mp (path->module-path require-candidate #:cache path->pkg-cache))
+                  (define definition-tag
+                    (xref-binding->definition-tag xref (list mp id) #f))
+                  (cond
+                    [definition-tag
+                      (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
+                      (cond
+                        [path
+                         (list start
+                               end
+                               definition-tag
+                               path
+                               url-tag)]
+                        [else #f])]
+                    [else #f]))
+                ;; made it thru the loop, so make sure we start at the beginning next time
+                (set! check-nearby-symbol-starting-point 0)))]
+           [else #f])]))
+
     (define/augment (on-insert where len)
       (when docs-im
         (clear-im-range where len)
