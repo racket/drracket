@@ -360,7 +360,6 @@
     (define last-evt-seen #f)
     (define/override (on-event evt)
       (set! last-evt-seen evt)
-      (update-the-strs/maybe-invalidate void void)
       (update-mouse-in-blue-box (in-blue-box? evt))
       (define-values (is-in-lock? is-in-read-more?) (in-lock/in-read-more? last-evt-seen))
       (update-mouse-in-lock-icon/read-more? is-in-lock? is-in-read-more?)
