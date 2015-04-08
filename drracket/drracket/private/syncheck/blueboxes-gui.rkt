@@ -157,7 +157,8 @@
              get-start-position get-end-position
              begin-edit-sequence end-edit-sequence
              invalidate-bitmap-cache get-text
-             is-stopped? is-frozen? classify-position get-token-range)
+             is-stopped? is-frozen? is-lexer-valid?
+             classify-position get-token-range)
     
     (define locked? (preferences:get 'drracket:syncheck:contracts-locked?))
     (define mouse-in-blue-box? #f)
@@ -390,6 +391,10 @@
     (define/augment (after-delete start len)
       (inner (void) after-delete start len)
       (trigger-buffer-changed-callback))
+    (define/augment (on-lexer-valid valid?)
+      (inner (void) on-lexer-valid valid?)
+      (when valid?
+        (trigger-buffer-changed-callback)))
     (define/private (trigger-buffer-changed-callback)
       (when (or locked?
                 mouse-in-blue-box?
@@ -444,6 +449,7 @@
       (cond
         [(or (is-stopped?)
              (is-frozen?)
+             (not (is-lexer-valid?))
              (null? require-candidates))
          #f]
         [else
