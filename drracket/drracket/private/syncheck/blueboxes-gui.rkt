@@ -15,7 +15,8 @@
          setup/xref
          scribble/xref
          setup/collects)
-(provide docs-text-mixin
+(provide docs-text-defs-mixin
+         docs-text-ints-mixin
          docs-editor-canvas-mixin
          syncheck:add-docs-range
          syncheck:add-require-candidate
@@ -71,7 +72,13 @@
   syncheck:reset-docs-im
   syncheck:add-docs-range
   syncheck:add-require-candidate
-  syncheck:update-blue-boxes)
+  syncheck:update-blue-boxes
+  get-docs-im
+  get/start-docs-im
+  get-require-candidates
+  get-path->pkg-cache
+  set-original-info-text
+  update-the-strs)
 
 (define docs-ec-clipping-region #f)
 (define docs-ec-last-cw #f)
@@ -150,15 +157,24 @@
       (super on-paint))
     (super-new)))
 
-(define (docs-text-mixin %)
-  (class %
+(define docs-text-info<%>
+  (interface ()
+    get-docs-im
+    get/start-docs-im
+    get-require-candidates
+    get-path->pkg-cache
+    update-the-strs))
+
+(define docs-text-gui-mixin
+  (mixin (color:text<%> docs-text-info<%>) ()
     (inherit get-canvas get-admin get-style-list
              dc-location-to-editor-location get-dc
              get-start-position get-end-position
              begin-edit-sequence end-edit-sequence
              invalidate-bitmap-cache get-text
              is-stopped? is-frozen? is-lexer-valid?
-             classify-position get-token-range)
+             classify-position get-token-range
+             get/start-docs-im get-docs-im get-require-candidates get-path->pkg-cache)
     
     (define locked? (preferences:get 'drracket:syncheck:contracts-locked?))
     (define mouse-in-blue-box? #f)
@@ -187,7 +203,7 @@
                                    visit-docs-tag)
                          url))
         (send-url (url->string url2))))
-
+    
     (define/public (get-show-docs?) (and the-strs (or locked? mouse-in-blue-box?)))
     (define/public (toggle-syncheck-docs)
       (begin-edit-sequence #t #f)
@@ -268,26 +284,7 @@
     (define bw (box 0))
     (define bh (box 0))
     
-    (define docs-im #f)
-    (define require-candidates '())
-    (define path->pkg-cache (make-hash))
-    (define/public (syncheck:reset-docs-im)
-      (set! docs-im #f)
-      (set! require-candidates '())
-      (set! path->pkg-cache (make-hash)))
-    (define (get/start-docs-im) 
-      (cond 
-        [docs-im docs-im]
-        [else
-         (set! docs-im (make-interval-map))
-         docs-im]))
-    (define/public (syncheck:add-docs-range start end tag path url-tag)
-      ;; the +1 to end is effectively assuming that there
-      ;; are no abutting identifiers with documentation
-      (define rng (list start (+ end 1) tag path url-tag))
-      (interval-map-set! (get/start-docs-im) start (+ end 1) rng))
-    (define/public (syncheck:add-require-candidate path)
-      (set! require-candidates (cons path require-candidates)))
+
     
     (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
       (super on-paint before? dc left top right bottom dx dy draw-caret)
@@ -406,10 +403,7 @@
         (set! timer-running? #t)
         (send timer start 300 #t)))
     
-    (define/public (syncheck:update-blue-boxes)
-      (update-the-strs))
-    
-    (define/private (update-the-strs)
+    (define/override (update-the-strs)
       (update-the-strs/maybe-invalidate
        (λ ()
          (begin-edit-sequence #t #f)
@@ -446,6 +440,7 @@
 
     (define check-nearby-symbol-starting-point 0)
     (define/private (check-nearby-symbol pos)
+      (define require-candidates (get-require-candidates))
       (cond
         [(or (is-stopped?)
              (is-frozen?)
@@ -480,7 +475,7 @@
                     (set! check-nearby-symbol-starting-point i) ;; remember where we are
                     (start-the-timer) ;; set the timer to start later
                     (k #f)) ;; give up for now
-                  (define mp (path->module-path require-candidate #:cache path->pkg-cache))
+                  (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
                   (define definition-tag
                     (xref-binding->definition-tag xref (list mp id) #f))
                   (cond
@@ -500,6 +495,7 @@
            [else #f])]))
 
     (define/augment (on-insert where len)
+      (define docs-im (get-docs-im))
       (when docs-im
         (clear-im-range where len)
         (interval-map-expand! docs-im where (+ where len))
@@ -511,6 +507,7 @@
       (inner (void) on-insert where len))
     
     (define/augment (on-delete where len)
+      (define docs-im (get-docs-im))
       (when docs-im
         (clear-im-range where len)
         (interval-map-contract! docs-im where (+ where len))
@@ -537,6 +534,7 @@
           (end-edit-sequence))))
 
     (define/private (clear-im-range where len)
+      (define docs-im (get-docs-im))
       (when docs-im
         (for ([x (in-range len)])
           (define tag+rng (interval-map-ref docs-im (+ where x) #f))
@@ -589,6 +587,75 @@
         [else (values #f #f)]))
 
     (super-new)))
+
+(define docs-text-original-info-mixin
+  (mixin () (docs-text-info<%>)
+    (define docs-im #f)
+    (define require-candidates '())
+    (define path->pkg-cache (make-hash))
+    (define linked-texts '())
+    (define/public (get-path->pkg-cache) path->pkg-cache)
+    (define/public (syncheck:reset-docs-im)
+      (set! docs-im #f)
+      (set! require-candidates '())
+      (set! path->pkg-cache (make-hash)))
+    (define/public (get-docs-im) docs-im)
+    (define/public (get/start-docs-im) 
+      (cond 
+        [docs-im docs-im]
+        [else
+         (set! docs-im (make-interval-map))
+         docs-im]))
+    (define/public (syncheck:add-docs-range start end tag path url-tag)
+      ;; the +1 to end is effectively assuming that there
+      ;; are no abutting identifiers with documentation
+      (define rng (list start (+ end 1) tag path url-tag))
+      (interval-map-set! (get/start-docs-im) start (+ end 1) rng))
+    (define/public (syncheck:add-require-candidate path)
+      (set! require-candidates (cons path require-candidates)))
+    (define/public (get-require-candidates) require-candidates)
+    (define/public (syncheck:update-blue-boxes other-text)
+      (update-the-strs)
+      (send other-text set-original-info-text this)
+      (send other-text update-the-strs))
+    (define/public (update-the-strs) (void))
+    
+    (super-new)))
+
+;; this is used for the REPL -- so all of the interval map state
+;; isn't correct, only the require candidates are right; so we just
+;; return empty things here.
+(define docs-text-linked-info-mixin
+  (mixin () (docs-text-info<%>)
+    (define original-info-text #f)
+    (define/public (set-original-info-text info-text)
+      ;; the twisty way this is set up means that
+      ;; this method is called multiple times with
+      ;; the same argument
+      (set! original-info-text info-text))
+    (define/public (get-path->pkg-cache)
+      (if original-info-text
+          (send original-info-text get-path->pkg-cache)
+          (make-hash)))
+    (define empty-interval-map (make-interval-map))
+    (define/public (get-docs-im) empty-interval-map)
+    (define/public (get/start-docs-im) empty-interval-map)
+    (define/public (get-require-candidates)
+      (if original-info-text
+          (send original-info-text get-require-candidates)
+          '()))
+    (define/public (update-the-strs) (void))
+    (super-new)))
+
+(define (docs-text-defs-mixin %)
+  (docs-text-gui-mixin
+   (docs-text-original-info-mixin
+    %)))
+
+(define (docs-text-ints-mixin %)
+  (docs-text-gui-mixin
+   (docs-text-linked-info-mixin
+    %)))
 
 (define blueboxes-cache (make-blueboxes-cache #f))
 

@@ -360,7 +360,7 @@ If the namespace does not, they are colored the unbound color.
     (define make-syncheck-text%
       (λ (super%)
         (let* ([cursor-arrow (make-object cursor% 'arrow)])
-          (class* (docs-text-mixin super%) (syncheck-text<%>)
+          (class* (docs-text-defs-mixin super%) (syncheck-text<%>)
             (inherit set-cursor get-admin invalidate-bitmap-cache set-position
                      get-pos/text-dc-location position-location
                      get-canvas last-position dc-location-to-editor-location
@@ -1912,7 +1912,7 @@ If the namespace does not, they are colored the unbound color.
                (set-box! bx (cdr (unbox bx)))
                (loop new-val start-time i)]
               [(null? val)
-               (send defs-text syncheck:update-blue-boxes)
+               (send defs-text syncheck:update-blue-boxes (send (send defs-text get-tab) get-ints))
                (send defs-text syncheck:update-drawn-arrows)
                (send (send defs-text get-tab) remove-bkg-running-color 'syncheck)
                (set-syncheck-running-mode #f)]
@@ -2400,7 +2400,9 @@ If the namespace does not, they are colored the unbound color.
      syncheck-add-to-online-expansion-prefs-panel)
     (drracket:language:register-capability 'drscheme:check-syntax-button (flat-contract boolean?) #t)
     (drracket:get/extend:extend-definitions-text make-syncheck-text%)
+    (drracket:get/extend:extend-interactions-text docs-text-ints-mixin)
     (drracket:get/extend:extend-definitions-canvas docs-editor-canvas-mixin)
+    (drracket:get/extend:extend-interactions-canvas docs-editor-canvas-mixin)
     (drracket:get/extend:extend-unit-frame unit-frame-mixin #f)
     (drracket:get/extend:extend-tab tab-mixin)
     
