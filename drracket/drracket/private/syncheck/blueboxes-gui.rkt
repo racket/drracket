@@ -1,5 +1,6 @@
 #lang racket/base
-(require framework 
+(require framework
+         framework/private/coroutine
          racket/gui/base
          racket/class
          racket/math
@@ -396,50 +397,56 @@
       (when (or locked?
                 mouse-in-blue-box?
                 (not the-strs))
-        (set! check-nearby-symbol-starting-point 0)
+        (set! update-the-strs-coroutine #f)
         (start-the-timer)))
     (define/private (start-the-timer)
       (unless timer-running?
         (set! timer-running? #t)
         (send timer start 300 #t)))
+
+    (define update-the-strs-coroutine #f)
     
     (define/override (update-the-strs)
-      (update-the-strs/maybe-invalidate
-       (λ ()
-         (begin-edit-sequence #t #f)
-         (invalidate-blue-box-region))
-       (λ ()
-         (when last-evt-seen
-           (update-mouse-in-blue-box (in-blue-box? last-evt-seen))
-           (define-values (is-in-lock? is-in-read-more?) (in-lock/in-read-more? last-evt-seen))
-           (update-mouse-in-lock-icon/read-more? is-in-lock? is-in-read-more?))
-         (invalidate-blue-box-region)
-         (end-edit-sequence))))
-    
-    ;; update-the-strs/maybe-invalidate : (-> void) (-> void) -> void
-    (define/private (update-the-strs/maybe-invalidate before after)
-      (define sp (get-start-position))
-      (when (= sp (get-end-position))
-        (define tag+rng (or (interval-map-ref (get/start-docs-im) sp #f)
-                            (check-nearby-symbol sp)))
-        (when tag+rng
-          (define ir-start (list-ref tag+rng 0))
-          (define ir-end (list-ref tag+rng 1))
-          (define tag (list-ref tag+rng 2))
-          (define path (list-ref tag+rng 3))
-          (define url-tag (list-ref tag+rng 4))
-          (define new-strs (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache))
-          (when new-strs
-            (before)
-            (set! the-strs new-strs)
-            (set! the-strs-id-start ir-start)
-            (set! the-strs-id-end ir-end)
-            (set! visit-docs-path path)
-            (set! visit-docs-tag url-tag)
-            (after)))))
+      (unless update-the-strs-coroutine
+        (set! update-the-strs-coroutine
+              (coroutine
+               #:at-least 12
+               maybe-pause
+               init-val
+               (define sp (get-start-position))
+               (and (= sp (get-end-position))
+                    (or (interval-map-ref (get/start-docs-im) sp #f)
+                        (check-nearby-symbol sp maybe-pause))))))
+      (define done? (coroutine-run update-the-strs-coroutine (void)))
+      (cond
+        [done?
+         (define tag+rng (coroutine-value update-the-strs-coroutine))
+         (set! update-the-strs-coroutine #f)
+         (when tag+rng
+           (define ir-start (list-ref tag+rng 0))
+           (define ir-end (list-ref tag+rng 1))
+           (define tag (list-ref tag+rng 2))
+           (define path (list-ref tag+rng 3))
+           (define url-tag (list-ref tag+rng 4))
+           (define new-strs (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache))
+           (when new-strs
+             (begin-edit-sequence #t #f)
+             (invalidate-blue-box-region)
+             (set! the-strs new-strs)
+             (set! the-strs-id-start ir-start)
+             (set! the-strs-id-end ir-end)
+             (set! visit-docs-path path)
+             (set! visit-docs-tag url-tag)
+             (when last-evt-seen
+               (update-mouse-in-blue-box (in-blue-box? last-evt-seen))
+               (define-values (is-in-lock? is-in-read-more?) (in-lock/in-read-more? last-evt-seen))
+               (update-mouse-in-lock-icon/read-more? is-in-lock? is-in-read-more?))
+             (invalidate-blue-box-region)
+             (end-edit-sequence)))]
+        [else
+         (start-the-timer)]))
 
-    (define check-nearby-symbol-starting-point 0)
-    (define/private (check-nearby-symbol pos)
+    (define/private (check-nearby-symbol pos maybe-pause)
       (define require-candidates (get-require-candidates))
       (cond
         [(or (is-stopped?)
@@ -449,51 +456,40 @@
          #f]
         [else
          (define-values (start end)
-           (cond
-             [(member (classify-position pos) '(symbol keyword))
-              (get-token-range pos)]
-             [(and (not (zero? pos))
-                   ;; this checks to see if there something ending at pos
-                   (member (classify-position (- pos 1)) '(symbol keyword)))
-              (get-token-range (- pos 1))]
-             [else (values #f #f)]))
+           (let loop ([pos pos])
+             (define-values (this-token-start this-token-end)
+               (get-token-range pos))
+             (cond
+               [(member (classify-position pos) '(symbol keyword))
+                (get-token-range pos)]
+               [(zero? pos) (values #f #f)]
+               [else
+                (maybe-pause)
+                (loop (- pos 1))])))
          (cond
            [(and start end)
             (define id (string->symbol (get-text start end)))
             (define xref (load-collections-xref))
-            (define start-time (current-process-milliseconds (current-thread)))
-            (let/ec k
-              (begin0
-                (for/or ([require-candidate (in-list require-candidates)]
-                         [i (in-naturals)]
-                         #:when (i . >= . check-nearby-symbol-starting-point))
-                  (define now (current-process-milliseconds (current-thread)))
-                  (when (and (i . > . check-nearby-symbol-starting-point)
-                             ((- now start-time) . > . 10))
-                    ;; when we've processed at least one entry in the list and we've
-                    ;; taken more than 12 msec, then we give up and try again later
-                    (set! check-nearby-symbol-starting-point i) ;; remember where we are
-                    (start-the-timer) ;; set the timer to start later
-                    (k #f)) ;; give up for now
-                  (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
-                  (define definition-tag
-                    (xref-binding->definition-tag xref (list mp id) #f))
+            (for/or ([require-candidate (in-list require-candidates)])
+              (maybe-pause)
+              (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
+              (define definition-tag
+                (xref-binding->definition-tag xref (list mp id) #f))
+              (cond
+                [definition-tag
+                  (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
                   (cond
-                    [definition-tag
-                      (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
-                      (cond
-                        [path
-                         (list start
-                               end
-                               definition-tag
-                               path
-                               url-tag)]
-                        [else #f])]
-                    [else #f]))
-                ;; made it thru the loop, so make sure we start at the beginning next time
-                (set! check-nearby-symbol-starting-point 0)))]
+                    [path
+                     (list start
+                           end
+                           definition-tag
+                           path
+                           url-tag)]
+                    [else #f])]
+                [else #f]))]
            [else #f])]))
 
+    
     (define/augment (on-insert where len)
       (define docs-im (get-docs-im))
       (when docs-im
