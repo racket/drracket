@@ -79,7 +79,9 @@
   get-require-candidates
   get-path->pkg-cache
   set-original-info-text
-  update-the-strs)
+  add-linked
+  update-the-strs
+  clear-out-the-gui)
 
 (define docs-ec-clipping-region #f)
 (define docs-ec-last-cw #f)
@@ -164,7 +166,8 @@
     get/start-docs-im
     get-require-candidates
     get-path->pkg-cache
-    update-the-strs))
+    update-the-strs
+    clear-out-the-gui))
 
 (define docs-text-gui-mixin
   (mixin (color:text<%> docs-text-info<%>) ()
@@ -446,6 +449,16 @@
         [else
          (start-the-timer)]))
 
+    (define/override (clear-out-the-gui)
+      (when the-strs
+        (begin-edit-sequence #t #f)
+        (invalidate-blue-box-region)
+        (set! the-strs #f)
+        (set! the-strs-id-start #f)
+        (set! the-strs-id-end #f)
+        (invalidate-blue-box-region)
+        (end-edit-sequence)))
+    
     (define/private (check-nearby-symbol pos maybe-pause)
       (define require-candidates (get-require-candidates))
       (cond
@@ -594,10 +607,13 @@
     (define/public (syncheck:reset-docs-im)
       (set! docs-im #f)
       (set! require-candidates '())
-      (set! path->pkg-cache (make-hash)))
+      (set! path->pkg-cache (make-hash))
+      (clear-out-the-gui)
+      (for ([t (in-list linked-texts)])
+        (send t clear-out-the-gui)))
     (define/public (get-docs-im) docs-im)
     (define/public (get/start-docs-im) 
-      (cond 
+      (cond
         [docs-im docs-im]
         [else
          (set! docs-im (make-interval-map))
@@ -614,7 +630,11 @@
       (update-the-strs)
       (send other-text set-original-info-text this)
       (send other-text update-the-strs))
+    (define/public (add-linked t)
+      (unless (memq t linked-texts)
+        (set! linked-texts (cons t linked-texts))))
     (define/public (update-the-strs) (void))
+    (define/public (clear-out-the-gui) (void))
     
     (super-new)))
 
@@ -628,7 +648,8 @@
       ;; the twisty way this is set up means that
       ;; this method is called multiple times with
       ;; the same argument
-      (set! original-info-text info-text))
+      (set! original-info-text info-text)
+      (send original-info-text add-linked this))
     (define/public (get-path->pkg-cache)
       (if original-info-text
           (send original-info-text get-path->pkg-cache)
@@ -641,6 +662,7 @@
           (send original-info-text get-require-candidates)
           '()))
     (define/public (update-the-strs) (void))
+    (define/public (clear-out-the-gui) (void))
     (super-new)))
 
 (define (docs-text-defs-mixin %)

@@ -1702,9 +1702,13 @@ If the namespace does not, they are colored the unbound color.
                      (send (send tab get-defs) jump-to dt))))
             
             (define/augment (after-set-next-settings settings)
-              (let ([frame (get-top-level-window)])
-                (when frame
-                  (send frame update-button-visibility/settings settings)))
+              (define frame (get-top-level-window))
+              (when frame
+                (send frame update-button-visibility/settings settings)
+                (define lang (drracket:language-configuration:language-settings-language settings))
+                (define module-language? (is-a? lang drracket:module-language:module-language<%>))
+                (unless module-language?
+                  (send frame reset-previous-check-syntax-information this)))
               (inner (void) after-set-next-settings settings))
 
             (define/public (syncheck:find-source-object stx)
