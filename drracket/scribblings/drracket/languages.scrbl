@@ -144,8 +144,7 @@ of ways:
        @racket['X] are also distinct. In a case-insensitive language,
        @racket[x] and @racket[X] are equivalent and @racket['x] and
        @racket['X] represent the same value. The teaching languages
-       are case-sensitive by default, and other languages are usually
-       case-insensitive. Case-sensitivity can be adjusted through the
+       are case-sensitive by default. Case-sensitivity can be adjusted through the
        detail section of the language-selection dialog.}
         
  @item{@defterm{All numbers are exact unless @racketmetafont{#i} is
@@ -198,7 +197,7 @@ of ways:
 
  @item{@defterm{@racket[lambda] allowed only in definitions} --- In
        the Beginning Student through Intermediate Student languages,
-       @racket[lambda] (or @racket[case-lambda]) may appear only in a
+       @racket[lambda] may appear only in a
        definition, and only as the value of the defined variable.}
 
  @item{@defterm{Free variables are not allowed} --- In the
@@ -229,13 +228,14 @@ of ways:
        @drlang{Advanced Student} languages, an expression whose value
        is treated as a boolean must return an actual boolean,
        @racket[true] or @racket[false]. This restriction, which
-       applies to @racket[if], @racket[cond], @racket[and],
-       @racket[or], @racket[nand], and @racket[nor] expressions, helps
+       applies to @racket[if], @racket[cond], @racket[and], and
+       @racket[or] expressions, helps
        detect errors where a boolean function application is omitted.}
 
  @item{@defterm{@racket[+], @racket[*], and @racket[/] take at least
-       two arguments} --- In the @drlang{Beginning Student} through
-       @drlang{Advanced Student} languages, mathematical operators
+       two arguments in @drlang{Beginning} languages.} --- In the
+       @drlang{Beginning Student} and @drlang{Beginning Student with List
+       Abbreviations} languages, mathematical operators
        that are infix in algebra notation require at least two
        arguments in DrRacket. This restriction helps detect missing
        arguments to an operator.}
