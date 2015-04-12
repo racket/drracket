@@ -675,7 +675,8 @@
    (docs-text-linked-info-mixin
     %)))
 
-(define blueboxes-cache (make-blueboxes-cache #f #:blueboxes-dirs (get-rendered-doc-directories)))
+(define blueboxes-cache
+  (make-blueboxes-cache #f #:blueboxes-dirs (get-rendered-doc-directories #f #f)))
 
 (define arrow-cursor (make-object cursor% 'arrow))
 
