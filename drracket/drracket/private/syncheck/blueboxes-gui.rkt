@@ -167,7 +167,8 @@
     get-require-candidates
     get-path->pkg-cache
     update-the-strs
-    clear-out-the-gui))
+    clear-out-the-gui
+    toggle-syncheck-docs))
 
 (define docs-text-gui-mixin
   (mixin (color:text<%> docs-text-info<%>) ()
@@ -209,7 +210,7 @@
         (send-url (url->string url2))))
     
     (define/public (get-show-docs?) (and the-strs (or locked? mouse-in-blue-box?)))
-    (define/public (toggle-syncheck-docs)
+    (define/augment (toggle-syncheck-docs)
       (begin-edit-sequence #t #f)
       (invalidate-blue-box-region)
       (cond
@@ -635,7 +636,10 @@
         (set! linked-texts (cons t linked-texts))))
     (define/public (update-the-strs) (void))
     (define/public (clear-out-the-gui) (void))
-    
+    (define/pubment (toggle-syncheck-docs)
+      (inner (void) toggle-syncheck-docs)
+      (for ([t (in-list linked-texts)])
+        (send t toggle-syncheck-docs)))
     (super-new)))
 
 ;; this is used for the REPL -- so all of the interval map state
@@ -663,6 +667,8 @@
           '()))
     (define/public (update-the-strs) (void))
     (define/public (clear-out-the-gui) (void))
+    (define/pubment (toggle-syncheck-docs)
+      (inner (void) toggle-syncheck-docs))
     (super-new)))
 
 (define (docs-text-defs-mixin %)
