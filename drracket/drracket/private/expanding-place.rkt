@@ -223,10 +223,11 @@
            (for/list ([handler (in-list handlers)]
                       #:unless (handler-monitor-pc handler))
              (define proc-res
-               ((handler-proc handler) expanded
-                                       path
-                                       the-source
-                                       orig-cust))
+               (with-handlers ([exn:fail? values])
+                 ((handler-proc handler) expanded
+                                         path
+                                         the-source
+                                         orig-cust)))
              (list (handler-key handler) proc-res)))
          (ep-log-info "expanding-place.rkt: 11 handlers finished")
          

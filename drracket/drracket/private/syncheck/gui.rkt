@@ -273,7 +273,9 @@ If the namespace does not, they are colored the unbound color.
       get-next-trace-refresh?
       set-next-trace-refresh
       set-replay-state
-      get-replay-state)
+      get-replay-state
+      show-online-internal-error
+      show-error-report)
     
     ;; clearing-text-mixin : (mixin text%)
     ;; overrides methods that make sure the arrows go away appropriately.
@@ -1769,7 +1771,6 @@ If the namespace does not, they are colored the unbound color.
         (define/public (set-replay-state rs) (set! current-replay-state #f))
         (define/public (get-replay-state) current-replay-state)
         
-        (define report-error-text-has-something? #f)
         (define report-error-text (new (fw:text:ports-mixin fw:racket:text%)))
         (define error-report-visible? #f)
         (send report-error-text auto-wrap #t)
@@ -1795,6 +1796,16 @@ If the namespace does not, they are colored the unbound color.
           ;; this code is also run by syncheck:clear-arrows, which
           ;; used to be called here (indirectly by syncheck:clear-highlighting)
           (send (get-defs) syncheck:clear-coloring))
+
+        (define/public (show-online-internal-error str)
+          (define err-port (send (get-error-report-text) get-err-port))
+          (display "internal error: " err-port)
+          (display str err-port)
+          (flush-output err-port)
+          (turn-on-error-report)
+          (send (get-error-report-text) scroll-to-position 0)
+          (when (object=? (send (get-frame) get-current-tab) this)
+            (send (get-frame) show-error-report)))
 
         (define/public (syncheck:clear-error-message)
           (define old-error-report-visible? error-report-visible?)
@@ -2060,7 +2071,7 @@ If the namespace does not, they are colored the unbound color.
             (send report-error-parent-panel change-children
                   (λ (l) (remq report-error-panel l)))))
         
-        (define/private (show-error-report)
+        (define/public (show-error-report)
           (unless (syncheck:error-report-visible?)
             (send report-error-parent-panel stop-recording-prefs)
             (send report-error-parent-panel change-children
@@ -2443,20 +2454,25 @@ If the namespace does not, they are colored the unbound color.
             (send defs-text syncheck:reset-docs-im)
             (send tab add-bkg-running-color 'syncheck "orchid" cs-syncheck-running)
             (send defs-text syncheck:init-arrows))
-          
-          (define current-replay-state (send tab get-replay-state))
+
           (define drr-frame (send (send defs-text get-tab) get-frame))
           (cond
-            [(not current-replay-state)
-             (define new-replay-state (box '()))
-             (send tab set-replay-state new-replay-state)
-             (send drr-frame replay-compile-comp-trace
-                   defs-text 
-                   val
-                   (box '()))]
+            [(string? val) ;; an internal error happened
+             (send tab remove-bkg-running-color 'syncheck)
+             (send tab show-online-internal-error val)]
             [else
-             (set-box! current-replay-state 
-                       (append (unbox current-replay-state) (list val)))])])))
+             (define current-replay-state (send tab get-replay-state))
+             (cond
+               [(not current-replay-state)
+                (define new-replay-state (box '()))
+                (send tab set-replay-state new-replay-state)
+                (send drr-frame replay-compile-comp-trace
+                      defs-text
+                      val
+                      (box '()))] ;; should this box be new-replay-state instead?
+               [else
+                (set-box! current-replay-state
+                          (append (unbox current-replay-state) (list val)))])])])))
     
     (drracket:module-language-tools:add-online-expansion-handler
      online-comp.rkt
