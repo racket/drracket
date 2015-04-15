@@ -16,7 +16,7 @@
                "pict-lib"
                "profile-lib"
                "sandbox-lib"
-               ("scribble-lib" #:version "1.10")
+               ("scribble-lib" #:version "1.11")
                "snip-lib"
                "string-constants-lib"
                "typed-racket-lib"

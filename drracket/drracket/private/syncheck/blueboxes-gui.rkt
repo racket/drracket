@@ -4,6 +4,7 @@
          racket/gui/base
          racket/class
          racket/math
+         racket/match
          racket/runtime-path
          data/interval-map
          images/icons/misc
@@ -380,7 +381,7 @@
     
     (define timer (new logging-timer%
                        [notify-callback
-                        (λ () 
+                        (λ ()
                           (set! timer-running? #f)
                           (update-the-strs))]))
     (define timer-running? #f)
@@ -419,36 +420,63 @@
                init-val
                (define sp (get-start-position))
                (and (= sp (get-end-position))
-                    (or (interval-map-ref (get/start-docs-im) sp #f)
-                        (check-nearby-symbol sp maybe-pause))))))
+                    (compute-tag+rng maybe-pause sp)))))
       (define done? (coroutine-run update-the-strs-coroutine (void)))
       (cond
         [done?
          (define tag+rng (coroutine-value update-the-strs-coroutine))
          (set! update-the-strs-coroutine #f)
          (when tag+rng
-           (define ir-start (list-ref tag+rng 0))
-           (define ir-end (list-ref tag+rng 1))
-           (define tag (list-ref tag+rng 2))
-           (define path (list-ref tag+rng 3))
-           (define url-tag (list-ref tag+rng 4))
-           (define new-strs (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache))
-           (when new-strs
-             (begin-edit-sequence #t #f)
-             (invalidate-blue-box-region)
-             (set! the-strs new-strs)
-             (set! the-strs-id-start ir-start)
-             (set! the-strs-id-end ir-end)
-             (set! visit-docs-path path)
-             (set! visit-docs-tag url-tag)
-             (when last-evt-seen
-               (update-mouse-in-blue-box (in-blue-box? last-evt-seen))
-               (define-values (is-in-lock? is-in-read-more?) (in-lock/in-read-more? last-evt-seen))
-               (update-mouse-in-lock-icon/read-more? is-in-lock? is-in-read-more?))
-             (invalidate-blue-box-region)
-             (end-edit-sequence)))]
+           (match tag+rng
+             [(list ir-start ir-end new-strs path url-tag)
+              (when new-strs
+                (begin-edit-sequence #t #f)
+                (invalidate-blue-box-region)
+                (set! the-strs new-strs)
+                (set! the-strs-id-start ir-start)
+                (set! the-strs-id-end ir-end)
+                (set! visit-docs-path path)
+                (set! visit-docs-tag url-tag)
+                (when last-evt-seen
+                  (update-mouse-in-blue-box (in-blue-box? last-evt-seen))
+                  (define-values (is-in-lock? is-in-read-more?) (in-lock/in-read-more? last-evt-seen))
+                  (update-mouse-in-lock-icon/read-more? is-in-lock? is-in-read-more?))
+                (invalidate-blue-box-region)
+                (end-edit-sequence))]
+             [#f (void)]))]
         [else
          (start-the-timer)]))
+
+    (define/private (compute-tag+rng maybe-pause pos)
+      (define basic-info
+        (or (interval-map-ref (get/start-docs-im) pos #f)
+            (check-nearby-symbol pos maybe-pause)))
+      (match basic-info
+        [(list start end tag path url-tag)
+         (define id (string->symbol (get-text start end)))
+         (define meth-tags
+           (fetch-blueboxes-method-tags id #:blueboxes-cache blueboxes-cache))
+         (cond
+           [(and (not tag) (null? meth-tags))
+            #f]
+           [else
+            (define id-strs
+              (if tag
+                  (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache)
+                  '()))
+            (list start
+                  end
+                  (apply
+                   append
+                   id-strs
+                   (for/list ([meth-tag (in-list meth-tags)]
+                              [i (in-naturals)])
+                     (define bbs (fetch-blueboxes-strs meth-tag #:blueboxes-cache blueboxes-cache))
+                     (if (zero? i)
+                         bbs
+                         (cdr bbs))))
+                  path url-tag)])]
+        [#f #f]))
 
     (define/override (clear-out-the-gui)
       (when the-strs
@@ -484,23 +512,24 @@
            [(and start end)
             (define id (string->symbol (get-text start end)))
             (define xref (load-collections-xref))
-            (for/or ([require-candidate (in-list require-candidates)])
-              (maybe-pause)
-              (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
-              (define definition-tag
-                (xref-binding->definition-tag xref (list mp id) #f))
-              (cond
-                [definition-tag
-                  (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
+            (define default (list start end #f #f #f))
+            (or (for/or ([require-candidate (in-list require-candidates)])
+                  (maybe-pause)
+                  (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
+                  (define definition-tag (xref-binding->definition-tag xref (list mp id) #f))
                   (cond
-                    [path
-                     (list start
-                           end
-                           definition-tag
-                           path
-                           url-tag)]
-                    [else #f])]
-                [else #f]))]
+                    [definition-tag
+                      (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
+                      (cond
+                        [path
+                         (list start
+                               end
+                               definition-tag
+                               path
+                               url-tag)]
+                        [else #f])]
+                    [else #f]))
+                default)]
            [else #f])]))
 
     
