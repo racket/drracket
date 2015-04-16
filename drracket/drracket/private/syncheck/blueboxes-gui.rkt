@@ -81,8 +81,7 @@
   get-path->pkg-cache
   set-original-info-text
   add-linked
-  update-the-strs
-  clear-out-the-gui)
+  update-the-strs)
 
 (define docs-ec-clipping-region #f)
 (define docs-ec-last-cw #f)
@@ -168,7 +167,6 @@
     get-require-candidates
     get-path->pkg-cache
     update-the-strs
-    clear-out-the-gui
     toggle-syncheck-docs))
 
 (define docs-text-gui-mixin
@@ -188,8 +186,6 @@
     (define mouse-in-read-more? #f)
     
     (define the-strs #f)
-    (define the-strs-id-start #f)
-    (define the-strs-id-end #f)
     (define/public (get-current-strs) the-strs)
     
     
@@ -433,8 +429,6 @@
                 (begin-edit-sequence #t #f)
                 (invalidate-blue-box-region)
                 (set! the-strs new-strs)
-                (set! the-strs-id-start ir-start)
-                (set! the-strs-id-end ir-end)
                 (set! visit-docs-path path)
                 (set! visit-docs-tag url-tag)
                 (when last-evt-seen
@@ -477,16 +471,6 @@
                          (cdr bbs))))
                   path url-tag)])]
         [#f #f]))
-
-    (define/override (clear-out-the-gui)
-      (when the-strs
-        (begin-edit-sequence #t #f)
-        (invalidate-blue-box-region)
-        (set! the-strs #f)
-        (set! the-strs-id-start #f)
-        (set! the-strs-id-end #f)
-        (invalidate-blue-box-region)
-        (end-edit-sequence)))
     
     (define/private (check-nearby-symbol pos maybe-pause)
       (define require-candidates (get-require-candidates))
@@ -537,40 +521,15 @@
       (define docs-im (get-docs-im))
       (when docs-im
         (clear-im-range where len)
-        (interval-map-expand! docs-im where (+ where len))
-        (possibly-clobber-strs where len #f)
-        (when the-strs-id-start
-          (when (<= where the-strs-id-start)
-            (set! the-strs-id-start (+ the-strs-id-start len))
-            (set! the-strs-id-end (+ the-strs-id-end len)))))
+        (interval-map-expand! docs-im where (+ where len)))
       (inner (void) on-insert where len))
     
     (define/augment (on-delete where len)
       (define docs-im (get-docs-im))
       (when docs-im
         (clear-im-range where len)
-        (interval-map-contract! docs-im where (+ where len))
-        (possibly-clobber-strs where len #t)
-        (when the-strs-id-start
-          (when (<= where the-strs-id-start)
-            (set! the-strs-id-start (- the-strs-id-start len))
-            (set! the-strs-id-end (- the-strs-id-end len)))))
+        (interval-map-contract! docs-im where (+ where len)))
       (inner (void) on-delete where len))
-    
-    (define/private (possibly-clobber-strs where len delete?)
-      (when (or (not the-strs-id-start)
-                (not the-strs-id-end)
-                (and (<= the-strs-id-start where)
-                     (< where the-strs-id-end))
-                (and delete? (<= the-strs-id-start (+ where len) the-strs-id-end)))
-        (when the-strs
-          (begin-edit-sequence #t #f)
-          (invalidate-blue-box-region)
-          (set! the-strs #f)
-          (set! the-strs-id-start #f)
-          (set! the-strs-id-end #f)
-          (invalidate-blue-box-region)
-          (end-edit-sequence))))
 
     (define/private (clear-im-range where len)
       (define docs-im (get-docs-im))
@@ -637,10 +596,7 @@
     (define/public (syncheck:reset-docs-im)
       (set! docs-im #f)
       (set! require-candidates '())
-      (set! path->pkg-cache (make-hash))
-      (clear-out-the-gui)
-      (for ([t (in-list linked-texts)])
-        (send t clear-out-the-gui)))
+      (set! path->pkg-cache (make-hash)))
     (define/public (get-docs-im) docs-im)
     (define/public (get/start-docs-im) 
       (cond
@@ -664,7 +620,6 @@
       (unless (memq t linked-texts)
         (set! linked-texts (cons t linked-texts))))
     (define/public (update-the-strs) (void))
-    (define/public (clear-out-the-gui) (void))
     (define/pubment (toggle-syncheck-docs)
       (inner (void) toggle-syncheck-docs)
       (for ([t (in-list linked-texts)])
@@ -695,7 +650,6 @@
           (send original-info-text get-require-candidates)
           '()))
     (define/public (update-the-strs) (void))
-    (define/public (clear-out-the-gui) (void))
     (define/pubment (toggle-syncheck-docs)
       (inner (void) toggle-syncheck-docs))
     (super-new)))
