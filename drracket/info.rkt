@@ -23,7 +23,7 @@
                "unstable-contract-lib"
                "wxme-lib"
                ("gui-lib" #:version "1.8")
-               "racket-index"
+               ("racket-index" #:version "1.2")
                "racket-doc"
                "html-lib"
                "images-lib"

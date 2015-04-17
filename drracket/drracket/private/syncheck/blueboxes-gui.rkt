@@ -449,14 +449,14 @@
         [(list start end tag path url-tag)
          (define id (string->symbol (get-text start end)))
          (define meth-tags
-           (fetch-blueboxes-method-tags id #:blueboxes-cache blueboxes-cache))
+           (fetch-blueboxes-method-tags id #:blueboxes-cache (get-blueboxes-cache)))
          (cond
            [(and (not tag) (null? meth-tags))
             #f]
            [else
             (define id-strs
               (if tag
-                  (fetch-blueboxes-strs tag #:blueboxes-cache blueboxes-cache)
+                  (fetch-blueboxes-strs tag #:blueboxes-cache (get-blueboxes-cache))
                   '()))
             (list start
                   end
@@ -465,7 +465,8 @@
                    id-strs
                    (for/list ([meth-tag (in-list meth-tags)]
                               [i (in-naturals)])
-                     (define bbs (fetch-blueboxes-strs meth-tag #:blueboxes-cache blueboxes-cache))
+                     (define bbs
+                       (fetch-blueboxes-strs meth-tag #:blueboxes-cache (get-blueboxes-cache)))
                      (if (zero? i)
                          bbs
                          (cdr bbs))))
@@ -664,8 +665,18 @@
    (docs-text-linked-info-mixin
     %)))
 
-(define blueboxes-cache
-  (make-blueboxes-cache #f #:blueboxes-dirs (get-rendered-doc-directories #f #f)))
+(define blueboxes-cache #f)
+(define docs-state #f)
+(define (get-blueboxes-cache)
+  (define (fetch)
+    (set! blueboxes-cache
+          (make-blueboxes-cache #t #:blueboxes-dirs (get-rendered-doc-directories #f #f)))
+    (set! docs-state (get-current-doc-state)))
+  (cond
+    [blueboxes-cache
+     (when (doc-state-changed? docs-state) (fetch))]
+    [else (fetch)])
+  blueboxes-cache)
 
 (define arrow-cursor (make-object cursor% 'arrow))
 
