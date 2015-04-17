@@ -1149,7 +1149,7 @@
       
       (super-new)))
   
-  (define module-language-online-expand-text-mixin 
+  (define module-language-online-expand-text-mixin
     (mixin (text:basic<%> 
             drracket:unit:definitions-text<%>
             drracket:module-language-tools:definitions-text<%>) ()

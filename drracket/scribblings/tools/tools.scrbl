@@ -241,6 +241,7 @@ as the @racket[_key] argument to the @racket[_get-info] function to do so:
           @item{@language-info-ref[definitions-text-surrogate]}
           @item{@language-info-ref[drracket:default-filters]}
           @item{@language-info-ref[drracket:default-extension]}
+          @item{@language-info-ref[drracket:indentation]}
           @item{@language-info-ref[color-lexer]}]
 
 If the call to @racket[read-language] raises an error, DrRacket logs the
@@ -286,6 +287,20 @@ These precise colors for these identifiers are controlled by the preferences dia
   
   @history[#:added "1.2"]
 }
+
+@language-info-def[drracket:indentation]{
+ When a language's @racket[_get-info] procedure responds to @racket['drracket:indentation],
+ it is expected to return @racket[(-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
+                                      (or/c #f exact-nonnegative-integer?))]; the result is used
+ to indent lines in DrRacket. It is called with the position containing the line to be
+ indented. It is expected to return the number of spaces that should appear at the beginning
+ of the line or @racket[#f]. If @racket[#f] is returned,
+ DrRacket uses the standard s-expression indentation rules.
+  
+ @history[#:added "1.3"]
+}
+
+
 
 @history[#:changed "1.1" @elem{Added support for @racket['drracket:default-filters]
                                and @racket['drracket:default-extension].}]

@@ -108,6 +108,7 @@
   
   (define definitions-text-mixin
     (mixin (text:basic<%> 
+            racket:text<%>
             drracket:unit:definitions-text<%>
             drracket:module-language:big-defs/ints-label<%>)
            (drracket:module-language-tools:definitions-text<%>)
@@ -245,6 +246,16 @@
                          (info-proc 'drracket:default-extension #f))
                         "")
                     ""))
+
+          (set! indentation-function
+                (if info-result
+                    (or (ctc-on-info-proc-result
+                         (or/c #f
+                               (-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
+                                   (or/c #f exact-nonnegative-integer?)))
+                         (info-proc 'drracket:indentation #f))
+                        (λ (x y) #f))
+                    (λ (x y) #f)))
           
           (when info-result
             (register-new-buttons
@@ -365,12 +376,21 @@
       
       (define extra-default-filters '())
       (define default-extension "")
+      (define indentation-function (λ (x y) #f))
       (define/public (with-language-specific-default-extensions-and-filters t)
         (parameterize ([finder:default-extension default-extension]
                        [finder:default-filters 
                         (append extra-default-filters (finder:default-filters))])
           (t)))
-        
+
+      (inherit compute-racket-amount-to-indent)
+      (define/augment (compute-amount-to-indent pos)
+        (cond
+          [in-module-language?
+           (or (indentation-function this pos)
+               (compute-racket-amount-to-indent pos))]
+          [else
+           (compute-racket-amount-to-indent pos)]))
       
       (super-new)
       (set! in-module-language? 

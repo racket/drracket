@@ -22,7 +22,7 @@
                "typed-racket-lib"
                "unstable-contract-lib"
                "wxme-lib"
-               ("gui-lib" #:version "1.8")
+               ("gui-lib" #:version "1.9")
                ("racket-index" #:version "1.2")
                "racket-doc"
                "html-lib"
@@ -61,4 +61,4 @@
 
 (define pkg-authors '(robby))
 
-(define version "1.2")
+(define version "1.3")
