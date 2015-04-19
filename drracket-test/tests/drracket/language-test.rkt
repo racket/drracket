@@ -53,6 +53,8 @@ the settings above should match r5rs
     
     (check-top-of-repl)
 
+    (generic-output #t #t #t #t #t)
+    
     (test-setting
      (lambda () (fw:test:set-check-box! "Enforce constant definitions (enables some inlining)" #f))
      "enforce-module-constants -- #f"
@@ -191,7 +193,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #f)
-    (generic-output #t #t #t #f)
+    (generic-output #t #f #t #t #f)
     
     (test-hash-bang)
     (test-error-after-definition)
@@ -309,7 +311,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #f)
-    (generic-output #t #t #f #f)
+    (generic-output #t #f #t #f #f)
     
     (test-hash-bang)
     (test-error-after-definition)
@@ -444,7 +446,7 @@ the settings above should match r5rs
   (parameterize ([language (list #rx"Beginning Student(;|$)")])
     (check-top-of-repl)
     (generic-settings #t)
-    (generic-output #f #f #f #f)
+    (generic-output #f #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -584,6 +586,7 @@ the settings above should match r5rs
                      "{image}"))
 
 
+
 ;                                                                            
 ;  ;;;                                 ;;;     ;;;                           
 ;   ;;                       ;          ;;      ;;                           
@@ -605,7 +608,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f)
+    (generic-output #t #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -765,7 +768,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f)
+    (generic-output #t #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -920,7 +923,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f)
+    (generic-output #t #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1070,7 +1073,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #t #t #f)
+    (generic-output #t #f #t #t #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1248,7 +1251,7 @@ the settings above should match r5rs
          [drs (test:get-active-top-level-window)]
          [interactions (queue-callback (λ () (send drs get-interactions-text)))])
     (clear-definitions drs)
-    (type-in-definitions drs expression)
+    (insert-in-definitions drs expression)
     (do-execute drs)
     (let* ([got (fetch-output/should-be-tested drs)])
       (unless (string=? "1" got)
@@ -1344,7 +1347,7 @@ the settings above should match r5rs
    "(eq? 'g 'G)" 
    (if false/true? "#true" "#t")))
 
-(define (generic-output list? quasi-quote? has-sharing? has-print-printing?)
+(define (generic-output list? uses-qq-for-plain-print? quasi-quote? has-sharing? has-print-printing?)
   (define plain-print-style (if has-print-printing? "print" "write"))
   (define drs (wait-for-drracket-frame))
   (define expression "(define x (list 2))\n(list x x)")
@@ -1383,11 +1386,12 @@ the settings above should match r5rs
       (eprintf "expected ~s\n" (if (procedure? answer) (answer) answer))))
   
   (clear-definitions drs)
-  (type-in-definitions drs expression)
+  (insert-in-definitions drs (defs-prefix))
+  (insert-in-definitions drs expression)
   
-  (test plain-print-style 'off #t "((2) (2))")
+  (test plain-print-style 'off #t (if uses-qq-for-plain-print? "'((2) (2))" "((2) (2))"))
   (when has-sharing?
-    (test plain-print-style 'on #t "(#0=(2) #0#)"))
+    (test plain-print-style 'on #t (if uses-qq-for-plain-print? "'(#0=(2) #0#)" "(#0=(2) #0#)")))
   (when quasi-quote?
     (test "Quasiquote" 'off #t "`((2) (2))")
     (when has-sharing?
@@ -1405,6 +1409,7 @@ the settings above should match r5rs
   
   ;; setup print / pretty-print difference
   (clear-definitions drs)
+  (insert-in-definitions drs (defs-prefix))
   (insert-in-definitions 
    drs
    "(define (f n)\n(cond ((zero? n) (list))\n(else (cons n (f (- n 1))))))\n(f 200)")
@@ -1427,6 +1432,7 @@ the settings above should match r5rs
   
   (when has-print-printing?
     (clear-definitions drs)
+    (insert-in-definitions drs (defs-prefix))
     (insert-in-definitions drs "(print 'hello (current-output-port) 1)")
     (test plain-print-style #f #t "hello")
     (test plain-print-style #f #f "hello")))
@@ -1439,7 +1445,7 @@ the settings above should match r5rs
   (let* ([drs (wait-for-drracket-frame)]
          [interactions-text (queue-callback/res (λ () (send drs get-interactions-text)))])
     (clear-definitions drs)
-    (type-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
+    (insert-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
     (do-execute drs)
     (let ([last-para (queue-callback/res (λ () (send interactions-text last-paragraph)))])
       (type-in-interactions drs "y\n")

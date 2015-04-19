@@ -116,7 +116,8 @@
    change-lang-surrogate-mixin
    default-surrogate%
    modes<%>
-   modes-mixin))
+   modes-mixin
+   drracket-determined-width))
 
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin
@@ -150,6 +151,7 @@
   (original-output-port
    original-error-port
    original-error-display-handler
+   original-print
    primitive-eval
    primitive-load
    error-display-handler-message-box-title
@@ -350,7 +352,8 @@
    get-capability-contract))
 (define-signature drracket:language/int^ extends drracket:language^
   (simple-module-based-language-config-panel
-   setup-setup-values))
+   setup-setup-values
+   simple-module-based-language-render-value/format))
 
 (define-signature drracket:multi-file-search-cm^
   ())

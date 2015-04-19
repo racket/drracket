@@ -137,6 +137,7 @@
   (define default-enforce-module-constants #t)
   (define (get-default-auto-text) (preferences:get 'drracket:module-language:auto-text))
   
+  (define drracket-determined-width (make-parameter 'infinity))
   
   ;; module-mixin : (implements drracket:language:language<%>)
   ;;             -> (implements drracket:language:language<%>)
@@ -523,6 +524,16 @@
                       (namespace-syntax-introduce
                        (datum->syntax #f w v))
                       v))))))
+
+      (define/override (render-value/format value settings port width)
+        (do-print value settings port width))
+      (define/override (render-value value settings port)
+        (do-print value settings port 'infinity))
+      (define/private (do-print value settings port width)
+        (parameterize ([drracket-determined-width width])
+          (print value port)))
+    
+
       
       ;; printer settings are just ignored here.
       (define/override (create-executable setting parent program-filename)

@@ -27,6 +27,7 @@
   (define error-display-eventspace (make-eventspace))
   
   (define original-error-display-handler (error-display-handler))
+  (define original-print (current-print))
   
   (define error-display-handler-message-box-title
     (make-parameter (string-constant drscheme-internal-error)))

@@ -34,7 +34,8 @@
           [prefix drracket:tools: drracket:tools^]
           [prefix drracket:rep: drracket:rep^]
           [prefix drracket:init: drracket:init^]
-          [prefix drracket:help-desk: drracket:help-desk^])
+          [prefix drracket:help-desk: drracket:help-desk^]
+          [prefix drracket:module-language: drracket:module-language/int^])
   (export drracket:language/int^)
   
   (define original-output-port (current-output-port))
@@ -138,7 +139,8 @@
                   (language-id (if (pair? language-position)
                                    (car (last-pair language-position))
                                    (error 'simple-module-based-language<%>
-                                          "expected non-empty list of strings, got ~e" language-position))))
+                                          "expected non-empty list of strings, got ~e"
+                                          language-position))))
       (define/public (get-module) module)
       (define/public (get-language-position) language-position)
       (define/public (get-language-numbers) language-numbers)
@@ -353,7 +355,7 @@
                      [(converted-value) (values converted-value #t)]
                      [(converted-value write?) (values converted-value write?)]))])
       (let ([pretty-out (if write? pretty-write pretty-print)])
-        (setup-printing-parameters 
+        (setup-printing-parameters
          (λ ()
             (cond
              [(simple-settings-insert-newlines settings)
@@ -516,9 +518,6 @@
                              (simple-settings-show-sharing settings))])
           (thunk)))))
       
-  ;; drscheme-inspector : inspector
-  (define drscheme-inspector (current-inspector))
-  
   ;; simple-module-based-language-convert-value : TST settings -> TST
   (define (simple-module-based-language-convert-value value settings)
     (case (simple-settings-printing-style settings)
@@ -574,6 +573,7 @@
             (current-eval (drracket:debug:make-debug-eval-handler (current-eval)))]))
        
        (define my-setup-printing-parameters (make-setup-printing-parameters))
+       
        (global-port-print-handler
         (λ (value port [depth 0])
           (let-values ([(converted-value write?)
@@ -582,9 +582,14 @@
                           (case-lambda
                            [(converted-value) (values converted-value #t)]
                            [(converted-value write?) (values converted-value write?)]))])
+            
             (my-setup-printing-parameters 
              (λ ()
-               (parameterize ([pretty-print-columns 'infinity])
+               (parameterize ([pretty-print-columns
+                               (if (simple-settings-insert-newlines setting)
+                                   ;; this is set only by the module language
+                                   (drracket:module-language:drracket-determined-width)
+                                   'infinity)])
                  (if write?
                      (pretty-write converted-value port)
                      (pretty-print converted-value port depth))))
