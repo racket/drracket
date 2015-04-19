@@ -5,6 +5,9 @@
   . change the teaching languages to use #true, #false, and '()
     for true, false, and empty
 
+  . Added an indentation mode for Scribble (and better support for
+    #lang-based specification of indentation)
+
   . change the way 'return' handles whitespace, making it match the
     way return works in Greg Hendershott's racket-mode in Emacs. The
     difference from the previous DrRacket behavior is that it removes
