@@ -1168,27 +1168,45 @@
                get-tab get-canvas invalidate-bitmap-cache 
                set-position get-start-position get-end-position
                highlight-range dc-location-to-editor-location
-               begin-edit-sequence end-edit-sequence in-edit-sequence?)
-      
-      
+               begin-edit-sequence end-edit-sequence in-edit-sequence?
+               find-snip save-port)
+
       (define/public (fetch-data-to-send)
-        (define str (make-string (last-position) #\space))
-        (let/ec k
-          (let loop ([s (find-first-snip)]
-                     [i 0])
-            (cond
-              [(not s) (void)]
-              [(is-a? s string-snip%)
-               (define size (send s get-count))
-               (send s get-text! str 0 size i)
-               (loop (send s next) (+ i size))]
-              [else
-               (k #f i)]))
-          (define fn (let* ([b (box #f)]
-                            [n (get-filename b)])
-                       (and (not (unbox b))
-                            n)))
-          (values str fn)))
+        (define fn (let* ([b (box #f)]
+                          [n (get-filename b)])
+                     (and (not (unbox b))
+                          n)))
+        (cond
+          [(all-string-snips?)
+           (define str (make-string (last-position) #\space))
+           (define pos-or-f (fetch-string-or-check str))
+           (cond
+             [pos-or-f
+              ;; this case shouldn't happen
+              (values #f pos-or-f)]
+             [else (values str fn)])]
+          [else
+           (define bp (open-output-bytes))
+           (save-port bp 'standard)
+           (values (get-output-bytes bp) fn)]))
+           
+
+      ;; fetch-string-or-check : (or/c string #f) -> (or/c exact-nonnegative-integer? #f)
+      ;; returns #f if the snips are all strings
+      ;; returns a number to indicate where the first non-string snip is.
+      ;; EFFECT: if str is a string, fills it in.
+      ;; str's length must be the length of the buffer
+      (define/private (fetch-string-or-check str)
+        (let loop ([s (find-first-snip)]
+                   [i 0])
+          (cond
+            [(not s) #f]
+            [(is-a? s string-snip%)
+             (define size (send s get-count))
+             (when str (send s get-text! str 0 size i))
+             (loop (send s next) (+ i size))]
+            [else
+             i])))
       
       ;; the state of the bottom bar (when this definitions text is
       ;; in the current tab)
@@ -1493,12 +1511,47 @@
         (values x y w h))
         
       (define need-to-dirty? #f)
+
+      ;; (or/c #t #f 'dont-know)
+      (define all-string-snips-state #t)
+      (define/private (all-string-snips?)
+        (cond
+          [(boolean? all-string-snips-state)
+           all-string-snips-state]
+          [else
+           (define pos-or-f (fetch-string-or-check #f))
+           (set! all-string-snips-state (not pos-or-f))
+           all-string-snips-state]))
       
       (define/augment (after-insert start end) 
         (if (in-edit-sequence?)
             (set! need-to-dirty? #t)
             (oc-set-dirty (get-tab)))
-        (inner (void) after-insert start end))
+        (inner (void) after-insert start end)
+        
+        (when (equal? all-string-snips-state #t)
+          (let loop ([s (find-snip start 'after-or-none)]
+                     [i start])
+            (cond
+              [(not s) (void)]
+              [(not (< i end)) (void)]
+              [(is-a? s string-snip%)
+               (define size (send s get-count))
+               (loop (send s next) (+ i size))]
+              [else (set! all-string-snips-state #f)]))))
+
+      (define/augment (on-delete start end)
+        (inner (void) on-delete start end)
+        (when (equal? all-string-snips-state #f)
+          (let loop ([s (find-snip start 'after-or-none)]
+                     [i start])
+            (cond
+              [(not s) (void)]
+              [(not (< i end)) (void)]
+              [(is-a? s string-snip%)
+               (define size (send s get-count))
+               (loop (send s next) (+ i size))]
+              [else (set! all-string-snips-state 'dont-know)]))))
       
       (define/augment (after-delete start end) 
         (if (in-edit-sequence?)
@@ -2260,7 +2313,9 @@
   (define (set-pending-thread tttsbr pt) 
     (set! pending-thread pt)
     (set! pending-tell-the-tab-show-bkg-running tttsbr))
-  
+
+  ;; editor-contents : (or/c bytes? string?) -- if bytes?, then this is in wxme editor format
+  ;;                     if string? then it is the contents of the editor as a string
   (define (send-to-place editor-contents 
                          filename 
                          prefab-module-settings 
