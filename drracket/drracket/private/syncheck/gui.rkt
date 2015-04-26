@@ -1287,7 +1287,7 @@ If the namespace does not, they are colored the unbound color.
                     (f menu))
                   
                   (define-values (binding-identifiers make-identifiers-hash)
-                    (position->matching-identifiers-hash text pos (+ pos 1) #t))
+                    (position->matching-identifiers-hash text pos pos #t))
                   (unless (null? binding-identifiers)
                     (define name-to-offer (find-name-to-offer binding-identifiers))
                     (new menu-item%
