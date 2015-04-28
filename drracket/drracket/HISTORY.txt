@@ -1,4 +1,12 @@
 ------------------------------
+       Version 6.3
+------------------------------
+
+  . initialize the pretty-print-size-hook and the 
+    pretty-print-print-hook to handle special values like images, 
+    fractions etc, in the user's program
+
+------------------------------
        Version 6.2
 ------------------------------
 

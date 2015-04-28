@@ -1,6 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt"
-          (for-label errortrace/errortrace-lib compiler/cm planet/config))
+          (for-label errortrace/errortrace-lib compiler/cm planet/config
+                     racket/pretty drracket/tool drracket/tool-lib))
 
 @title[#:tag "languages" #:style 'toc]{Languages}
 
@@ -23,6 +24,35 @@ More generally, when using this mode, the
 @hash-lang[], a Racket module can be written as @racket[(module
 ...)]; aside from comments, the @tech{definitions window}
 must contain exactly one module.
+
+@subsection{Initial Environment}
+
+DrRacket initializes the environment before it starts running the program in
+ways slightly different than the @tt{racket} command-line binary does to reflect
+the extra GUI capabilities that it provides. Using the default settings in
+the language dialog, it initializes the parameters described in this subsection.
+Changing the defaults can result in additional parameters changing, as described
+in the next subsection.
+
+DrRacket initializes the @racket[pretty-print-size-hook] and @racket[pretty-print-print-hook]
+to specially recognize
+@itemize[@item{@racket[snip%]s, which it just inserts into the editor}
+         @item{convertible values from @racketmodname[pict/convert]}
+         @item{convertible values from @racketmodname[file/convertible] (which it converts to
+          png images)}
+         @item{numbers that are @racket[exact?] and @racket[real?], but not @racket[integer?],
+          which it prints specially to allow showing repeating decimal representations
+          and mixed fractions, and}
+         @item{values that match the predicates passed to
+               @racket[drracket:language:add-snip-value].}]
+
+It also initializes the @racket[global-port-print-handler] to use @racket[pretty-print]
+instead of just @racket[print].
+
+DrRacket initializes the @racket[error-display-handler] to specially highlight the
+source locations of the errors and to include icons that provide access to the stacktrace.
+
+@subsection{Details Pane of Language Dialog}
 
 In the details pane of the language dialog, some of the configuration
 options correspond to using various libraries and thus can be used
