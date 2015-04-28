@@ -1,4 +1,4 @@
-#lang scheme
+#lang racket
 
 #|
 
@@ -25,7 +25,7 @@ the settings above should match r5rs
 
 ;; set-language : boolean -> void
 (define (set-language close-dialog?)
-  (if (eq? (car (language)) 'module)
+  (if (equal? (car (language)) 'module)
       (set-module-language! close-dialog?)
       (set-language-level! (language) close-dialog?)))
 
@@ -585,6 +585,186 @@ the settings above should match r5rs
                      "{image}"
                      "{image}"))
 
+(define (bsl)
+  (parameterize ([language '(module "htdp/bsl")]
+                 [defs-prefix "#lang htdp/bsl\n"])
+    (check-top-of-repl)
+    
+    ;; specialized version of the generic-output function that makes sense for #lang htdp/bsl
+    (define (bsl-generic-output)
+      (define drs (wait-for-drracket-frame))
+      (define (shorten str)
+        (if ((string-length str) . <= . 45)
+            str
+            (string-append (substring str 0 45) "...")))
+      (define (test program answer)
+        (clear-definitions drs)
+        (insert-in-definitions drs (defs-prefix))
+        (insert-in-definitions drs program)
+        
+        
+        ;; answer must either be a string, or a procedure that accepts both zero and 1
+        ;; argument. When the procedure accepts 1 arg, the argument is `got' and
+        ;; the result must be a boolean indicating if the result was satisfactory.
+        ;; if the procedure receives no arguments, it must return a descriptive string
+        ;; for the error message
+        (set-language #t)
+        (do-execute drs)
+        (define got (fetch-output/should-be-tested drs))
+        (unless (if (procedure? answer)
+                    (answer got)
+                    (whitespace-string=? answer got))
+          (eprintf "FAILED ~s\n" (language))
+          (eprintf "     got ~s\n" (shorten got))
+          (eprintf "expected ~s\n" (if (procedure? answer) (answer) answer))))
+      
+      (test "(define x (list 2))\n(list x x)"
+            "(cons (cons 2 '()) (cons (cons 2 '()) '()))")
+      
+      (test "(define (f n)\n(cond ((zero? n) (list))\n(else (cons n (f (- n 1))))))\n(f 200)"
+            (case-lambda
+              [(x) (member #\newline (string->list x))]
+              [() "newlines in result (may need to make the window smaller)"])))
+    
+    (bsl-generic-output)
+    
+    (test-error-after-definition)
+    
+    (prepare-for-test-expression)
+    
+    (test-expression "'|.|"
+                     "'|.|"
+                     "'|.|")
+    (test-expression '("(equal? (list " image ") (list " image "))")
+                     "#true"
+                     "#true")
+    
+    (test-expression
+     "(define x 1)(define x 2)"
+     "{stop-22x22.png} x: this name was defined previously and cannot be re-defined in: x"
+     "{stop-22x22.png} x: this name was defined previously and cannot be re-defined in: x")
+    
+    (test-expression
+     "(define-struct spider (legs))(make-spider 4)"
+     "(make-spider 4)"
+     "{stop-22x22.png} spider: this name was defined previously and cannot be re-defined in: spider")
+    
+    (test-expression "(sqrt -1)"
+                     "0+1i"
+                     "0+1i\n")
+    
+    (test-undefined-var "class" #:icon+in? #t)
+    (test-undefined-var "shared" #:icon+in? #t)
+    (test-expression "(define (. x y) (* x y))" "read: illegal use of `.'")
+    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    
+    (test-undefined-var "call/cc" #:icon+in? #t)
+    
+    (test-expression "(error 'a \"~a\" 1)" #rx"a: ~a1")
+    (test-expression "(error \"a\" \"a\")" #rx"aa")
+    
+    (test-undefined-fn "(time 1)" "time" #:icon+in? #t)
+    
+    (test-expression "true"
+                     "#true"
+                     "#true")
+    (test-undefined-var "mred^" #:icon+in? #t)
+    (test-expression "(eq? 'a 'A)"
+                     "#false"
+                     "#false")
+    (test-undefined-fn "(set! x 1)" "set!" #:icon+in? #t)
+    (test-undefined-fn "(define qqq 2) (set! qqq 1)" "set!" #:icon+in? #t)
+    
+    (test-expression "(cond [(= 1 2) 3])"
+                     "{stop-multi.png} {stop-22x22.png} cond: all question results were false")
+    (test-expression
+     "(cons 1 2)"
+     #rx"cons: second argument must be a list, but received 1 and 2")
+    (test-expression "(+ (list 1) 2)"
+                     "+: expects a number as 1st argument, given (cons 1 '())")
+    (test-expression "'(1)"
+                     "quote: expected the name of a symbol or () after the quote, but found a part")
+    (test-expression "(define shrd (list 1)) (list shrd shrd)"
+                     "(cons (cons 1 '()) (cons (cons 1 '()) '()))"
+                     "shrd: this name was defined previously and cannot be re-defined")
+    (test-expression
+     "(local ((define x x)) 1)"
+     "local: this function is not defined"
+     "function call: expected a function after the open parenthesis, but found a part")
+    (test-expression
+     "(letrec ([x x]) 1)"
+     "letrec: this function is not defined"
+     "function call: expected a function after the open parenthesis, but found a part")
+    (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
+    (test-expression "(+ 1)" "+: expects at least 2 arguments, but found only 1")
+    
+    (test-expression "1.0" "1" "1")
+    (test-expression "#i1.0" "#i1.0" "#i1.0")
+    (test-expression "4/3"
+                     "{number 4/3 \"1.3\" decimal}"
+                     "{number 4/3 \"1.3\" decimal}")
+    (test-expression "1/3"
+                     "{number 1/3 \"0.3\" decimal}"
+                     "{number 1/3 \"0.3\" decimal}")
+    (test-expression "-4/3"
+                     "{number -4/3 \"-1.3\" decimal}"
+                     "{number -4/3 \"-1.3\" decimal}")
+    (test-expression "-1/3"
+                     "{number -1/3 \"-0.3\" decimal}"
+                     "{number -1/3 \"-0.3\" decimal}")
+    (test-expression "3/2"
+                     "{number 3/2 \"1.5\" decimal}"
+                     "{number 3/2 \"1.5\" decimal}")
+    (test-expression "1/2"
+                     "{number 1/2 \"0.5\" decimal}"
+                     "{number 1/2 \"0.5\" decimal}")
+    (test-expression "-1/2"
+                     "{number -1/2 \"-0.5\" decimal}"
+                     "{number -1/2 \"-0.5\" decimal}")
+    (test-expression "-3/2"
+                     "{number -3/2 \"-1.5\" decimal}"
+                     "{number -3/2 \"-1.5\" decimal}")
+    (test-expression "+1/3i"
+                     "0+1/3i"
+                     "0+1/3i")
+    (test-expression "+1/2i"
+                     "0+0.5i"
+                     "0+0.5i")
+    (test-expression "779625/32258"
+                     "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}"
+                     "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
+    (test-expression "(exact? 1.5)" "#true")
+    (test-undefined-fn "(print (floor (sqrt 2)))" "print")
+    
+    (test-expression
+     "(let ([f (lambda (x) x)]) f)"
+     "let: this function is not defined"
+     "function call: expected a function after the open parenthesis, but found a part")
+    (test-expression ",1"
+                     "read: illegal use of comma")
+    
+    (test-expression "(list 1)"
+                     "(cons 1 '())"
+                     "(cons 1 '())")
+    (test-expression "(car (list))"
+                     "car: expects a pair, given '()")
+    
+    (test-undefined-var "argv")
+    (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
+    
+    (test-expression "#lang racket"
+                     "read: #lang not enabled in the current context"
+                     "read: #lang not enabled in the current context")
+    (test-expression (string-append "(define (f)\n"
+                                    "(+ (raise-user-error 'a \"b\")))\n"
+                                    "(if (zero? (random 1)) (void) (set! f void))\n"
+                                    "(f)")
+                     "define: expected at least one variable after the function name, but found none"
+                     #rx"define: function definitions are not allowed in the interactions window")
+    
+    (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
+                     "{image}"
+                     "{image}")))
 
 
 ;                                                                            
@@ -1267,41 +1447,44 @@ the settings above should match r5rs
                   ""))
 
 (define (check-top-of-repl)
-  (let ([drs (wait-for-drracket-frame)])
-    (set-language #t)
-    (with-handlers ([exn:fail? void])
-      (fw:test:menu-select "Testing" "Disable tests"))
-    (do-execute drs)
-    (let* ([interactions (send drs get-interactions-text)]
-           [short-lang (last (language))]
-           [get-line (lambda (n) 
-                       (queue-callback/res
-                        (λ ()
-                          (send interactions get-text 
-                                (send interactions paragraph-start-position n)
-                                (send interactions paragraph-end-position n)))))]
-           [line0-expect (format "Welcome to DrRacket, version ~a [~a]." 
-                                 (version:version)
-                                 (system-type 'gc))]
-           [line1-expect 
-            (if (string? short-lang)
-                (format "Language: ~a" short-lang)
-                short-lang)]
-           [line0-got (get-line 0)]
-           [line1-got (get-line 1)])
-      (unless (and (string=? line0-expect line0-got)
-                   (if (string? short-lang)
-                       (string=? line1-expect (substring line1-got
-                                                         0
-                                                         (min (string-length line1-expect)
-                                                              (string-length line1-got))))
-                       (regexp-match line1-expect line1-got)))
-        (eprintf "expected lines: \n  ~a\n  ~a\ngot lines:\n  ~a\n  ~a\n" 
-                 line0-expect line1-expect
-                 line0-got line1-got)
-        (eprintf "defs: ~s"
-                 (queue-callback/res (λ () (send (send drs get-definitions-text) get-text))))
-        (error 'language-test.rkt "failed get top of repl test")))))
+  (define drs (wait-for-drracket-frame))
+  (clear-definitions drs)
+  (insert-in-definitions drs (defs-prefix))
+  (set-language #t)
+  (with-handlers ([exn:fail? void])
+    (fw:test:menu-select "Testing" "Disable tests"))
+  (do-execute drs)
+  (define interactions (send drs get-interactions-text))
+  (define short-lang (last (language)))
+  (define (get-line n)
+    (queue-callback/res
+     (λ ()
+       (send interactions get-text 
+             (send interactions paragraph-start-position n)
+             (send interactions paragraph-end-position n)))))
+  (define line0-expect
+    (format "Welcome to DrRacket, version ~a [~a]." 
+            (version:version)
+            (system-type 'gc)))
+  (define line1-expect 
+    (if (string? short-lang)
+        (format "Language: ~a" short-lang)
+        short-lang))
+  (define line0-got (get-line 0))
+  (define line1-got (get-line 1))
+  (unless (and (string=? line0-expect line0-got)
+               (if (string? short-lang)
+                   (string=? line1-expect (substring line1-got
+                                                     0
+                                                     (min (string-length line1-expect)
+                                                          (string-length line1-got))))
+                   (regexp-match line1-expect line1-got)))
+    (eprintf "expected lines: \n  ~a\n  ~a\ngot lines:\n  ~a\n  ~a\n" 
+             line0-expect line1-expect
+             line0-got line1-got)
+    (eprintf "defs: ~s"
+             (queue-callback/res (λ () (send (send drs get-definitions-text) get-text))))
+    (error 'language-test.rkt "failed get top of repl test")))
 
 
 ;; teaching-language-fraction-output
@@ -1445,6 +1628,7 @@ the settings above should match r5rs
   (let* ([drs (wait-for-drracket-frame)]
          [interactions-text (queue-callback/res (λ () (send drs get-interactions-text)))])
     (clear-definitions drs)
+    (insert-in-definitions drs (defs-prefix))
     (insert-in-definitions drs "(define y 0) (define (f x) (/ x y)) (f 2)")
     (do-execute drs)
     (let ([last-para (queue-callback/res (λ () (send interactions-text last-paragraph)))])
@@ -1559,11 +1743,19 @@ the settings above should match r5rs
                    (language)
                    expression repl-expected got))))))
 
-(define (test-undefined-var id)
-  (test-expression id (format "~a: this variable is not defined" id)))
+(define (test-undefined-var id #:icon+in? [icon+in? #f])
+  (test-expression
+   id
+   (string-append (if icon+in? "{stop-22x22.png} " "")
+                  (format "~a: this variable is not defined" id)
+                  (if icon+in? (format " in: ~a " id) ""))))
 
-(define (test-undefined-fn exp id)
-  (test-expression exp (format "~a: this function is not defined" id)))
+(define (test-undefined-fn exp id #:icon+in? [icon+in? #f])
+  (test-expression
+   exp
+   (string-append (if icon+in? "{stop-22x22.png} " "")
+                  (format "~a: this function is not defined" id)
+                  (if icon+in? (format " in: ~a " id) ""))))
 
 (define-syntax (go stx)
   (syntax-case stx ()
@@ -1578,6 +1770,7 @@ the settings above should match r5rs
                     (flush-output)))]))
 
 (define (run-test)
+  ;(go bsl)
   (go module-lang)
   (go pretty-big)
   (go r5rs)
