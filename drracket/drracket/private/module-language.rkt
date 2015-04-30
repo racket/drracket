@@ -419,8 +419,7 @@
                     ;; the port (a second reset), construct a string holding
                     ;; the #lang, and read from it an empty module, and extract
                     ;; the base module from it (ask Matthew about this).
-                                              (raise-hopeless-exception
-                                               e "invalid module text"))])
+                                              (raise-hopeless-exception e))])
                    (super-thunk))])
             (when (eof-object? expr)
               (raise-hopeless-syntax-error (string-append
@@ -428,6 +427,8 @@
                                             "definitions window.  Try starting your program with\n"
                                             "\n"
                                             "  #lang racket\n"
+                                            "or\n"
+                                            "  #lang htdp/bsl\n"
                                             "\n"
                                             "and clicking ‘Run’.")))
             (let ([more (super-thunk)])
@@ -440,7 +441,7 @@
         (define (check-interactive-language)
           (unless (memq '#%top-interaction (namespace-mapped-symbols))
             (raise-hopeless-exception
-             #f #f ; no error message, just a suffix
+             #f ; no error message, just a suffix
              (format "~s does not support a REPL (no #%top-interaction)"
                      (syntax->datum lang)))))
         ;; We're about to send the module expression to drracket now, the rest
@@ -612,16 +613,12 @@
   
   ;; can be called with #f to just kill the repl (in case we want to kill it
   ;; but keep the highlighting of a previous error)
-  (define (raise-hopeless-exception exn [prefix #f] [suffix #f])
+  (define (raise-hopeless-exception exn [suffix #f])
     (define rep (drracket:rep:current-rep))
     ;; Throw an error as usual if we don't have the drracket rep, then we just
     ;; raise the exception as normal.  (It can happen in some rare cases like
     ;; having a single empty scheme box in the definitions.)
     (unless rep (if exn (raise exn) (error "\nInteractions disabled")))
-    (when prefix 
-      (display "Module Language: " (current-error-port))
-      (display prefix (current-error-port))
-      (display "\n" (current-error-port)))
     (when exn ((error-display-handler) (exn-message exn) exn))
     ;; these are needed, otherwise the warning can appear before the output
     (flush-output (current-output-port))

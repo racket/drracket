@@ -43,8 +43,7 @@
       #t)
 (test @t{.}
       #f
-      @rx{Module Language: invalid module text
-          read: illegal
+      @rx{read: illegal
           Interactions disabled}
       #t)
 (test @t{#lang mzscheme
@@ -54,8 +53,7 @@
 (test @t{#lang m-z-scheme
          (define x 1)}
       #f
-      @rx{Module Language: invalid module text
-          collection not found
+      @rx{collection not found
           Interactions disabled}
       #t)
 (test @t{#lang racket
