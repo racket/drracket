@@ -34,7 +34,7 @@
                "net-lib"
                "tex-table"
                "unstable-lib"
-               "drracket-plugin-lib"
+               ("drracket-plugin-lib" #:version "1.1")
                "gui-pkg-manager-lib"
                "drracket-tool-lib"
                "drracket-tool-doc"))

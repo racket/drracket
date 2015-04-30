@@ -2,7 +2,9 @@
 
 (define collection 'multi)
 
-(define deps '("base"))
+(define version "1.1")
+
+(define deps '("base" "compatibility-lib"))
 
 (define pkg-desc "DrRacket's plugin API")
 
