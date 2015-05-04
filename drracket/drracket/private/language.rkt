@@ -599,6 +599,7 @@
 
        (pretty-print-print-hook drracket-pretty-print-print-hook)
        (pretty-print-size-hook drracket-pretty-print-size-hook)
+       (define first-time? (make-parameter #t))
        (global-port-print-handler
         (λ (value port [depth 0])
           (let-values ([(converted-value write?)
@@ -607,17 +608,21 @@
                           (case-lambda
                            [(converted-value) (values converted-value #t)]
                            [(converted-value write?) (values converted-value write?)]))])
-            
-            (my-setup-printing-parameters 
+            (my-setup-printing-parameters
              (λ ()
-               (parameterize ([pretty-print-columns
-                               (if (simple-settings-insert-newlines setting)
-                                   ;; this is set only by the module language
-                                   (drracket:module-language:drracket-determined-width)
-                                   'infinity)])
+               (define (do-print)
                  (if write?
                      (pretty-write converted-value port)
-                     (pretty-print converted-value port depth))))
+                     (pretty-print converted-value port depth)))
+               (if (first-time?)
+                   (parameterize ([pretty-print-columns
+                                   (if (simple-settings-insert-newlines setting)
+                                       ;; this is set only by the module language
+                                       (drracket:module-language:drracket-determined-width)
+                                       'infinity)]
+                                  [first-time? #f])
+                     (do-print))
+                   (do-print)))
              setting
              'infinity))))
        (current-inspector (make-inspector))

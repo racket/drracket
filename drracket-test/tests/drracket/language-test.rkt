@@ -69,6 +69,29 @@ the settings above should match r5rs
      #rx"cannot modify a constant")
     
     (prepare-for-test-expression)
+
+    (test-expression
+     (format "~s"
+             `(let ()
+                (define (enum-write-proc enum port mode)
+                  (define recur
+                    (case mode
+                      [(#t) write]
+                      [(#f) display]
+                      [else (lambda (p port) (print p port mode))]))
+                  (display "#<enum: " port)
+                  (define sp (open-output-string))
+                  (recur (enum-val enum) sp)
+                  (define s (get-output-string sp))
+                  (display s port)
+                  (display ">" port))
+                
+                (struct enum (val)
+                  #:methods gen:custom-write
+                  [(define write-proc enum-write-proc)])
+                
+                (enum 1)))
+     "#<enum: 1>")
     
     (test-expression "(print 'hello (current-output-port) 1)" "hello")
     (test-expression "(print 'hello (current-output-port) 0)" "'hello")
