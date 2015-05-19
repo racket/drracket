@@ -719,10 +719,11 @@ If the namespace does not, they are colored the unbound color.
                   (define arrs (filter arrow? vec-ents))
                   (and (not (null? arrs)) arrs))
                 (define arrows
-                  (or (find-arrows (send text get-start-position))
-                      (and (= (send text get-start-position) 
-                              (send text get-end-position))
-                           (find-arrows (- (send text get-start-position) 1)))))
+                  (and arrow-record
+                       (or (find-arrows (send text get-start-position))
+                           (and (= (send text get-start-position) 
+                                   (send text get-end-position))
+                                (find-arrows (- (send text get-start-position) 1))))))
                 (when arrows
                   (tack/untack-callback arrows))))
             
