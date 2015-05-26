@@ -94,6 +94,8 @@
 
 (struct exn:access exn:fail ())
 
+(define sys-namespace (current-namespace))
+
 (define (new-job program-as-string path response-pc settings pc-status-expanding-place)
   (define custodian-limit
     (and (custodian-memory-accounting-available?)
@@ -139,6 +141,7 @@
          (define sema (make-semaphore 0))
          (ep-log-info "expanding-place.rkt: 02 setting basic parameters")
          (set-basic-parameters/no-gui)
+         (namespace-attach-module sys-namespace 'wxme)
          
          (define loaded-paths '())
          (define original-path (make-parameter #f))
