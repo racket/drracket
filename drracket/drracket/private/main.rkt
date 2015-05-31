@@ -1,4 +1,4 @@
-#lang racket/unit
+#lang racket/base
 
 (require string-constants
          racket/contract
@@ -9,6 +9,7 @@
          "local-member-names.rkt"
          mred
          framework
+         racket/unit
          racket/list
          racket/path
          racket/file
@@ -21,6 +22,10 @@
          setup/xref
          scribble/xref
          net/url)
+
+(provide main@)
+
+(define-unit main@
 
 (import [prefix drracket:app: drracket:app^]
         [prefix drracket:unit: drracket:unit^]
@@ -46,14 +51,14 @@
 
 (frame:current-icon todays-icon)
   
-(define file-opened-via-application-file-handler? #f)
+(define file-opened-via-application-file-handler? (make-parameter #f))
 (application-file-handler
  (let ([default (application-file-handler)])
    (λ (name)
-     (set! file-opened-via-application-file-handler? #t)
-     (if (null? (get-top-level-windows))
-         (handler:edit-file name)
-         (default name)))))
+     (parameterize ([file-opened-via-application-file-handler? #t])
+       (if (null? (get-top-level-windows))
+           (handler:edit-file name)
+           (default name))))))
 
 (application-quit-handler
  (let ([default (application-quit-handler)])
@@ -446,17 +451,66 @@
                                        (or/c #f (flat-contract drracket:unit:teachpack-callbacks?))
                                        #f)
 
-(handler:current-create-new-window
- (let ([drscheme-current-create-new-window
-        (λ (filename)
-          (drracket:unit:open-drscheme-window filename))])
-   drscheme-current-create-new-window))
+;; Helper for open-drracket-window
+(define (open-drracket-window-file file)
+  (let ([file (normalize-path file)])
+    (if (file-exists? file)
+        (drracket:unit:open-drscheme-window file)
+        (begin
+          (message-box
+           (string-constant drscheme)
+           (format (string-constant cannot-open-because-dne) file))
+          #f))))
+
+;; Returns the frame of the opened file
+(define (open-drracket-window [filename #f])
+  (cond [(and filename (file-opened-via-application-file-handler?))
+         (displayln "opened via app handler ")
+         ; Don't search for file@line,col if file opened through application handler
+         (open-drracket-window-file filename)]
+        [filename
+         (define frs (filter
+                      (λ (fr) (is-a? fr drracket:unit:frame%))
+                      (send (group:get-the-frame-group) get-frames)))
+         ; Decompose between file, line, and column
+         (define-values (file-str line col) (string->file+line+column filename))
+         (define file (simple-form-path file-str))
+         ; Find the frame+tab if this file already opened somewhere
+         (define fr+tab
+           (for/or ([fr (in-list frs)]
+                    [fr-num (in-naturals)])
+             (for/or ([tab (in-list (send fr get-tabs))]
+                      [tab-num (in-naturals)])
+               (define tab-path
+                 (simple-form-path
+                  (build-path (send tab get-directory)
+                              (send fr get-tab-filename tab-num))))
+               (and (equal? tab-path file)
+                    (list fr tab)))))
+         (define frame (if fr+tab
+                           (first fr+tab)
+                           (open-drracket-window-file file)))
+         (when fr+tab
+           (send frame change-to-tab (second fr+tab)))
+         ; Place the cursor at the requested position
+         ; Don't go further than the end of the line
+         (when (and frame line)
+           (let ([ed (send frame get-editor)])
+             (send ed set-position
+                   (min
+                    (send ed paragraph-end-position line)
+                    (+ (send ed paragraph-start-position line)
+                       (or col 0))))))
+         frame]
+        [else (drracket:unit:open-drscheme-window)]))
+
+(handler:current-create-new-window open-drracket-window)
 
 ;; add a catch-all handler to open drscheme files
 (handler:insert-format-handler 
  "Units"
  (λ (filename) #t)
- drracket:unit:open-drscheme-window)
+ open-drracket-window)
 
 ;; add a handler to open .plt files.
 (handler:insert-format-handler
@@ -791,15 +845,6 @@
       (send (send frame get-interactions-canvas) focus))
     (send frame show #t)))
 
-;; FIXME: get this from racket/list ?
-(define (remove-duplicates files)
-  (let loop ([files files])
-    (cond
-      [(null? files) null]
-      [else (if (member (car files) (cdr files))
-                (loop (cdr files))
-                (cons (car files) (loop (cdr files))))])))
-
 ;; Queue a callback here to open the first frame
 ;; and install the user's keybindings so that the modules
 ;; that are being loaded by drracket are all finished.
@@ -820,39 +865,44 @@
 
 (queue-callback
  (λ ()
-   
-   ;; install user's keybindings
    (for-each drracket:frame:add-keybindings-item 
-             (preferences:get 'drracket:user-defined-keybindings))
+             (preferences:get 'drracket:user-defined-keybindings)))
+ #f)
    
+(queue-callback
+ (λ ()
    ;; NOTE: drscheme-normal.rkt sets current-command-line-arguments to
    ;; the list of files to open, after parsing out flags like -h
-   (let* ([files-to-open 
-           (if (preferences:get 'drracket:open-in-tabs)
-               (vector->list (current-command-line-arguments))
-               (reverse (vector->list (current-command-line-arguments))))]
-          [normalized/filtered
-           (let loop ([files files-to-open])
-             (cond
-               [(null? files) null]
-               [else (let ([file (car files)])
-                       (if (file-exists? file)
-                           (cons (normalize-path file) (loop (cdr files)))
-                           (begin
-                             (message-box
-                              (string-constant drscheme)
-                              (format (string-constant cannot-open-because-dne) file))
-                             (loop (cdr files)))))]))]
-          [no-dups (remove-duplicates normalized/filtered)]
-          [frames
-           (map (λ (f) (handler:edit-file
-                        f
-                        (λ () (drracket:unit:open-drscheme-window f))))
-                no-dups)])
-     (when (and (null? (filter (λ (x) x) frames)) 
-                (not file-opened-via-application-file-handler?))
-       (make-basic))
-     (when (and (preferences:get 'drracket:open-in-tabs)
-                (not (null? no-dups)))
-       (handler:edit-file (car no-dups)))))
- #f)
+   (let* ([files-to-open (vector->list (current-command-line-arguments))]
+          [files-to-open (if (preferences:get 'drracket:open-in-tabs)
+                             files-to-open
+                             (reverse files-to-open))]
+          [frames (map open-drracket-window files-to-open)])
+     (when (and (null? (filter values frames))
+                (not (file-opened-via-application-file-handler?)))
+       (make-basic))))
+ #f))
+
+;; Returns the filename, line (or #f) and column (or #f)
+;; if possible to parse from the string
+(define (string->file+line+column str)
+  (define l (regexp-match #px"(.*)@(\\d+)(?:,(\\d*))?" str))
+  (if l
+      (let* ([line (third l)]
+             [line (and line (string->number line))]
+             [line (and line (exact-nonnegative-integer? line) line)]
+             [col (and line (fourth l))]
+             [col (and col (string->number col))]
+             [col (and col (exact-nonnegative-integer? col) col)])
+        (if line
+            (values (second l) line col)
+            (values str #f #f)))
+      (values str #f #f)))
+
+(module+ test
+  (require rackunit)
+  (let ([f (λ (str) (call-with-values (λ () (string->file+line+column str)) list))])
+    (check-equal? (f "file.rkt@12,25")  '("file.rkt"     12 25))
+    (check-equal? (f "file.rkt@12")     '("file.rkt"     12 #f))
+    (check-equal? (f "file.rkt@")       '("file.rkt@"    #f #f))
+    (check-equal? (f "file.rkt@,25")    '("file.rkt@,25" #f #f))))
