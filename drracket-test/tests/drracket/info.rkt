@@ -4,7 +4,8 @@
 (define tool-names '("Time Keystrokes"))
 (define compile-omit-paths '("snip" "image-and-comment-box.rkt"))
 
-(define test-timeouts '(("easter-egg.rkt" 300)))
+(define test-timeouts '(("easter-egg.rkt" 300)
+                        ("teaching-lang-sharing-modules.rkt" 300)))
 
 (define test-responsibles '(("test-engine-test.rkt" sperber)
                             ("teachpack.rkt" (robby matthias))
