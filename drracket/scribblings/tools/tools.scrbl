@@ -863,7 +863,7 @@ not part of DrRacket proper, but one helper library is documented here.
 @defsignature[drracket:tool-exports^ ()]{
 The @racket[drracket:tool-exports^] signature contains two
 names: @sigelem[drracket:tool-exports^ phase1] and 
-@sigelem[drracket:tool-exports^ phase1]. 
+@sigelem[drracket:tool-exports^ phase2]. 
 After all of the tools are loaded, all of
 the @tt{phase1} functions are called and then all of the
 @tt{phase2} functions are called. Certain primitives can
