@@ -961,8 +961,7 @@ TODO
         (set-caret-owner #f 'display)
         (cleanup)
         (end-edit-sequence)
-        (send context set-breakables #f #f)
-        (send context enable-evaluation))
+        (send context set-breakables #f #f))
       
       (define/augment (submit-to-port? key)
         (or (send key get-control-down)
@@ -1093,7 +1092,6 @@ TODO
         (set! submit-predicate p))
       
       (define/public (evaluate-from-port port complete-program? cleanup) ; =Kernel=, =Handler=
-        (send context disable-evaluation)
         (send context reset-offer-kill)
         (send context set-breakables (get-user-thread) (get-user-custodian))
         (reset-pretty-print-width)
