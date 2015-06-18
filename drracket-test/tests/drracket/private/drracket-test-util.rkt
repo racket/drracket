@@ -163,17 +163,18 @@
   (define (wait-for-computation frame)
     (not-on-eventspace-handler-thread 'wait-for-computation)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'wait-for-computation frame)))
-    (let* ([wait-for-computation-to-start
-	    (lambda ()
-	      (fw:test:reraise-error)
-	      (not (send (send frame get-execute-button) is-enabled?)))]
-           [wait-for-computation-to-finish
-	    (lambda ()
-	      (fw:test:reraise-error)
-	      (send (send frame get-execute-button) is-enabled?))])
-      ;(poll-until wait-for-computation-to-start 60) ;; hm.
-      (poll-until wait-for-computation-to-finish 60)
-      (sync (system-idle-evt))))
+    (define (computation-running?)
+      (define-values (thd cust) (send (send frame get-current-tab) get-breakables))
+      (and (or thd cust) #t))
+    (define (wait-for-computation-to-start)
+      (fw:test:reraise-error)
+      (computation-running?))
+    (define (wait-for-computation-to-finish)
+      (fw:test:reraise-error)
+      (not (computation-running?)))
+    ;(poll-until wait-for-computation-to-start 60) ;; hm.
+    (poll-until wait-for-computation-to-finish 60)
+    (sync (system-idle-evt)))
 
   (define do-execute 
     (case-lambda

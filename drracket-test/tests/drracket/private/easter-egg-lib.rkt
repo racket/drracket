@@ -2,7 +2,9 @@
 
 (require (only-in "drracket-test-util.rkt"
                   fire-up-separate-drracket-and-run-tests
-                  queue-callback/res)
+                  queue-callback/res
+                  wait-for-computation
+                  wait-for-drracket-frame)
          racket/date
          racket/class
          racket/contract)
@@ -61,7 +63,7 @@
          (test:keystroke x))
        (let ([button (queue-callback/res (λ () (send drr-frame get-execute-button)))])
          (test:run-one (lambda () (send button command))))
-       (wait-for-run-to-finish drr-frame)
+       (wait-for-computation drr-frame)
        (define res 
          (queue-callback/res (λ () (send (send drr-frame get-interactions-text) get-text))))
        (unless (regexp-match #rx"contract violation.*expected: pair[?]" res)
@@ -84,19 +86,6 @@
                 "didn't get drracket frame back, got: ~s (drr-frame ~s)\n"
                 new-frame
                 drr-frame)))
-     
-     (define (wait-for-run-to-finish drr-frame)
-       (define (run-finished)
-         (send (send drr-frame get-execute-button) is-enabled?))
-       (wait-for-something run-finished))
-     
-     (define (wait-for-drracket-frame)
-       (define (drracket-frame-frontmost)
-         (define active (test:get-active-top-level-window))
-         (and active 
-              (method-in-interface? 'get-execute-button (object-interface active))
-              active))
-       (wait-for-something drracket-frame-frontmost))
      
      (define (wait-for-new-frame old-frame)
        (wait-for-something
