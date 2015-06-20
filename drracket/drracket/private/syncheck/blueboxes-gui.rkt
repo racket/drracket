@@ -462,14 +462,14 @@
                   end
                   (apply
                    append
-                   id-strs
+                   (or id-strs '())
                    (for/list ([meth-tag (in-list meth-tags)]
                               [i (in-naturals)])
                      (define bbs
                        (fetch-blueboxes-strs meth-tag #:blueboxes-cache (get-blueboxes-cache)))
                      (if (zero? i)
-                         bbs
-                         (cdr bbs))))
+                         (or bbs '())
+                         (if bbs (cdr bbs) '()))))
                   path url-tag)])]
         [#f #f]))
     
