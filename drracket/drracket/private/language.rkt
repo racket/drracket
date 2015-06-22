@@ -446,7 +446,13 @@
              ;; do this computation here so that any failures
              ;; during drawing happen under the user's custodian
              (image-core:compute-image-cache value))
-           (write-special (text:make-snip-special (send value copy)) port)
+           (define str (format "~s" value))
+           (cond
+             [(or (regexp-match? #rx"plot-snip%" str)
+                  (regexp-match? #rx"pict3d%" str))
+              (write-special (send value copy) port)]
+             [else
+              (write-special (text:make-snip-special (send value copy)) port)])
            1]
           [(pict:convertible? value)
            (write-special (mk-pict-snip value))]
