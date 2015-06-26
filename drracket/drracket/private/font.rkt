@@ -23,8 +23,8 @@
      (list (string-constant font-prefs-panel-title))
      (λ (panel)
        (define main (make-object vertical-panel% panel))
-       (define min-size 1)
-       (define max-size 72)
+       (define min-size 0)
+       (define max-size 255)
        (define options-panel (make-object horizontal-panel% main))
        (define size-panel (new group-box-panel%
                                (parent options-panel)
