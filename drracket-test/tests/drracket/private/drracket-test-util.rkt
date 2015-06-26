@@ -155,11 +155,6 @@
 
   ;; wait-for-computation : frame -> void
   ;; waits until the drracket frame finishes some computation.
-  ;; uses the state of the execute button to indicate when the
-  ;; computations is finished. That is, waits for the execute
-  ;; button to dim, indicating a computation is running. Then,
-  ;; waits for it to be re-enabled, indicating that the computation
-  ;; is complete.
   (define (wait-for-computation frame)
     (not-on-eventspace-handler-thread 'wait-for-computation)
     (queue-callback/res (λ () (verify-drracket-frame-frontmost 'wait-for-computation frame)))

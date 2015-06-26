@@ -1012,16 +1012,16 @@ This produces an ACK message
 
 (define (run-test which-tests)
     
-  (define drscheme-frame (wait-for-drracket-frame))
+  (define drr-frame (wait-for-drracket-frame))
   
-  (define ints-text (queue-callback/res (λ () (send drscheme-frame get-interactions-text))))
-  (define ints-canvas (queue-callback/res (λ () (send drscheme-frame get-interactions-canvas))))
-  (define defs-text (queue-callback/res (λ () (send drscheme-frame get-definitions-text))))
-  (define defs-canvas (queue-callback/res (λ () (send drscheme-frame get-definitions-canvas))))
-  (define execute-button (queue-callback/res (λ () (send drscheme-frame get-execute-button))))
+  (define ints-text (queue-callback/res (λ () (send drr-frame get-interactions-text))))
+  (define ints-canvas (queue-callback/res (λ () (send drr-frame get-interactions-canvas))))
+  (define defs-text (queue-callback/res (λ () (send drr-frame get-definitions-text))))
+  (define defs-canvas (queue-callback/res (λ () (send drr-frame get-definitions-canvas))))
+  (define execute-button (queue-callback/res (λ () (send drr-frame get-execute-button))))
   
-  (define wait-for-execute (lambda () (wait-for-button execute-button)))
-  (define get-int-pos (lambda () (queue-callback/res (λ () (get-text-pos ints-text)))))
+  (define (wait-for-drr-frame-computation) (wait-for-computation drr-frame))
+  (define (get-int-pos) (queue-callback/res (λ () (get-text-pos ints-text))))
   
   
   (define short-tmp-load-filename
@@ -1034,9 +1034,9 @@ This produces an ACK message
   ;; Then, copies that and uses it to construct the sum
   ;; of the 1/2 image and 1/3.
   (define (setup-fraction-sum-interactions)
-    (clear-definitions drscheme-frame)
-    (type-in-definitions drscheme-frame "1/2")
-    (do-execute drscheme-frame)
+    (clear-definitions drr-frame)
+    (type-in-definitions drr-frame "1/2")
+    (do-execute drr-frame)
     (queue-callback/res
      (lambda ()
        (let* ([start (send ints-text paragraph-start-position 2)]
@@ -1046,10 +1046,10 @@ This produces an ACK message
               [end (+ start 1)])
          (send ints-text set-position start end))))
     (test:menu-select "Edit" "Copy")
-    (clear-definitions drscheme-frame)
-    (type-in-definitions drscheme-frame "(+ ")
+    (clear-definitions drr-frame)
+    (type-in-definitions drr-frame "(+ ")
     (test:menu-select "Edit" "Paste")
-    (type-in-definitions drscheme-frame " 1/3)"))
+    (type-in-definitions drr-frame " 1/3)"))
 
   ; given a filename "foo", we perform two operations on the contents
   ; of the file "foo.rkt".  First, we insert its contents into the REPL
@@ -1072,7 +1072,7 @@ This produces an ACK message
       
       (setup)
       
-      (clear-definitions drscheme-frame)
+      (clear-definitions drr-frame)
       ; load contents of test-file into the REPL, recording
       ; the start and end positions of the text
       
@@ -1080,14 +1080,14 @@ This produces an ACK message
       
       (cond
         [(string? program)
-         (insert-in-definitions/newlines drscheme-frame program)]
+         (insert-in-definitions/newlines drr-frame program)]
         [(eq? program 'fraction-sum)
          (setup-fraction-sum-interactions)]
         [(list? program)
          (for-each
           (lambda (item)
             (cond
-              [(string? item) (insert-in-definitions/newlines drscheme-frame item)]
+              [(string? item) (insert-in-definitions/newlines drr-frame item)]
               [(eq? item 'left)
                (queue-callback/res
                 (λ ()
@@ -1098,26 +1098,26 @@ This produces an ACK message
               [(pair? item) (apply test:menu-select item)]))
           program)])
       
-      (do-execute drscheme-frame #f)
+      (do-execute drr-frame #f)
       
       ;; make sure that the execute callback has really completed 
       ;; (is this necc w/ test:run-one below?)
       (queue-callback/res void)
       
       (when breaking-test?
-        (test:run-one (λ () (send (send drscheme-frame get-break-button) command))))
-      (wait-for-execute)
+        (test:run-one (λ () (send (send drr-frame get-break-button) command))))
+      (wait-for-drr-frame-computation)
       
       (let* ([execute-text-end (max 0 (- (get-int-pos) 1))] ;; subtract one to skip last newline
              [received-execute
-              (fetch-output drscheme-frame execute-text-start execute-text-end)])
+              (fetch-output drr-frame execute-text-start execute-text-end)])
         
         ; check focus and selection for execute test
         (case language-cust
           [(raw) (void)]
           [else
            (define edit-target 
-             (queue-callback/res (λ () (send drscheme-frame get-edit-target-window))))
+             (queue-callback/res (λ () (send drr-frame get-edit-target-window))))
            (define defs-focus? (eq? edit-target defs-canvas))
            (define ints-focus? (eq? edit-target ints-canvas))
            (cond
@@ -1187,11 +1187,11 @@ This produces an ACK message
           (test:new-window defs-canvas)
           (test:menu-select "Edit" "Select All")
           (test:menu-select "Edit" "Delete")
-          (do-execute drscheme-frame #f)
-          (wait-for-execute)
+          (do-execute drr-frame #f)
+          (wait-for-drr-frame-computation)
           
           ;; stuff the load command into the REPL 
-          (insert-in-interactions drscheme-frame (format "(load ~s)" short-filename))
+          (insert-in-interactions drr-frame (format "(load ~s)" short-filename))
           
           ;; record current text position, then stuff a CR into the REPL
           (define load-text-start 
@@ -1200,12 +1200,12 @@ This produces an ACK message
           (test:keystroke #\return)
           
           (when breaking-test?
-            (test:run-one (λ () (send (send drscheme-frame get-break-button) command))))
-          (wait-for-execute)
+            (test:run-one (λ () (send (send drr-frame get-break-button) command))))
+          (wait-for-drr-frame-computation)
           
           (let* ([load-text-end (- (get-int-pos) 1)] ;; subtract one to eliminate newline
                  [received-load 
-                  (fetch-output drscheme-frame load-text-start load-text-end)])
+                  (fetch-output drr-frame load-text-start load-text-end)])
             
             ;; check load text 
             (next-test)
@@ -1247,8 +1247,8 @@ This produces an ACK message
     (random-seed-test)
     
     (test:new-window defs-canvas)
-    (clear-definitions drscheme-frame)
-    (do-execute drscheme-frame)
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
     (let/ec escape 
       (for-each (run-single-test (get-int-pos) escape language-cust) test-data)))
   
@@ -1257,61 +1257,61 @@ This produces an ACK message
   (define (kill-tests)
     
     (next-test)
-    (clear-definitions drscheme-frame)
-    (do-execute drscheme-frame)
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
     (test:menu-select "Racket" kill-menu-item)
-    (let ([win (wait-for-new-frame drscheme-frame)])
+    (let ([win (wait-for-new-frame drr-frame)])
       (test:button-push "OK")
       (let ([drs2 (wait-for-new-frame win)])
-        (unless (eq? drs2 drscheme-frame)
+        (unless (eq? drs2 drr-frame)
           (error 'kill-test1 "expected original drscheme frame to come back to the front"))))
     
     (next-test)
-    (type-in-definitions drscheme-frame "(kill-thread (current-thread))")
-    (do-execute drscheme-frame #f)
-    (let ([win (wait-for-new-frame drscheme-frame)])
+    (type-in-definitions drr-frame "(kill-thread (current-thread))")
+    (do-execute drr-frame #f)
+    (let ([win (wait-for-new-frame drr-frame)])
       (test:button-push "OK")
       (let ([drs2 (wait-for-new-frame win)])
-        (unless (eq? drs2 drscheme-frame)
+        (unless (eq? drs2 drr-frame)
           (error 'kill-test2 "expected original drscheme frame to come back to the front"))))
     
     (next-test)
-    (clear-definitions drscheme-frame)
-    (do-execute drscheme-frame)
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
     (type-in-definitions
-     drscheme-frame
+     drr-frame
      "(define (f) (queue-callback f) (error 'ouch)) (f)")
-    (do-execute drscheme-frame #f)
+    (do-execute drr-frame #f)
     (sleep 1/2)
     (test:menu-select "Racket" kill-menu-item)
-    (let ([win (wait-for-new-frame drscheme-frame null 360)])
+    (let ([win (wait-for-new-frame drr-frame null 360)])
       (test:button-push "OK")
       (let ([drs2 (wait-for-new-frame win)])
-        (unless (eq? drs2 drscheme-frame)
+        (unless (eq? drs2 drr-frame)
           (error
            'kill-test3
            "expected original drscheme frame to come back to the front"))))
-    (when (send (send drscheme-frame get-interactions-text) local-edit-sequence?)
+    (when (send (send drr-frame get-interactions-text) local-edit-sequence?)
       (error 'kill-test3 "in edit-sequence")))
   
   (define (callcc-test)
     (next-test)
-    (clear-definitions drscheme-frame)
-    (type-in-definitions drscheme-frame "(define kont #f) (let/cc empty (set! kont empty))")
-    (do-execute drscheme-frame)
-    (wait-for-execute)
+    (clear-definitions drr-frame)
+    (type-in-definitions drr-frame "(define kont #f) (let/cc empty (set! kont empty))")
+    (do-execute drr-frame)
+    (wait-for-drr-frame-computation)
     
     (for-each test:keystroke (string->list "(kont)"))
     (test:keystroke #\return)
-    (wait-for-execute)
+    (wait-for-drr-frame-computation)
     
     (for-each test:keystroke (string->list "x"))
     (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
       (test:keystroke #\return)
-      (wait-for-execute)
+      (wait-for-drr-frame-computation)
       
       (let* ([end (- (get-int-pos) 1)]
-             [output (fetch-output drscheme-frame start end)]
+             [output (fetch-output drr-frame start end)]
              [expected #rx"x:.*cannot reference undefined identifier"])
         (unless (regexp-match expected output)
           (failure)
@@ -1321,20 +1321,20 @@ This produces an ACK message
     (define expression 
       (format "~s" '(pseudo-random-generator->vector (current-pseudo-random-generator))))
     (next-test)
-    (clear-definitions drscheme-frame)
-    (do-execute drscheme-frame)
-    (wait-for-execute)
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
+    (wait-for-drr-frame-computation)
     
-    (insert-in-interactions drscheme-frame expression)
+    (insert-in-interactions drr-frame expression)
     (let ([start1 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
       (test:keystroke #\return)
-      (wait-for-execute)
-      (let ([output1 (fetch-output drscheme-frame start1 (- (get-int-pos) 1))])
-        (insert-in-interactions drscheme-frame expression)
+      (wait-for-drr-frame-computation)
+      (let ([output1 (fetch-output drr-frame start1 (- (get-int-pos) 1))])
+        (insert-in-interactions drr-frame expression)
         (let ([start2 (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
           (test:keystroke #\return)
-          (wait-for-execute)
-          (let ([output2 (fetch-output drscheme-frame start2 (- (get-int-pos) 1))])
+          (wait-for-drr-frame-computation)
+          (let ([output2 (fetch-output drr-frame start2 (- (get-int-pos) 1))])
             (unless (equal? output1 output2)
               (failure)
               (eprintf "random-seed-test: expected\n  ~s\nand\n  ~s\nto be the same"
@@ -1342,26 +1342,26 @@ This produces an ACK message
                        output2)))))))
   
   (define (top-interaction-test)
-    (clear-definitions drscheme-frame)
-    (do-execute drscheme-frame)
-    (wait-for-execute)
+    (clear-definitions drr-frame)
+    (do-execute drr-frame)
+    (wait-for-drr-frame-computation)
     (let ([ints-just-after-welcome (queue-callback/res (λ () (+ 1 (send ints-text last-position))))])
       
       (type-in-definitions 
-       drscheme-frame
+       drr-frame
        "(define-syntax #%top-interaction (syntax-rules () [(_ . e) 'e]))\n(+ 1 2)\n")
       (test:menu-select "File" "Save Definitions")
       
-      (clear-definitions drscheme-frame)
-      (do-execute drscheme-frame)
-      (wait-for-execute)
+      (clear-definitions drr-frame)
+      (do-execute drr-frame)
+      (wait-for-drr-frame-computation)
       
       (for-each test:keystroke (string->list (format "(load ~s)" tmp-load-short-filename)))
       (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
         (test:keystroke #\return)
-        (wait-for-execute)
+        (wait-for-drr-frame-computation)
         (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drscheme-frame start end)]
+               [output (fetch-output drr-frame start end)]
                [expected "(+ 1 2)"])
           (unless (equal? output expected)
             (error 'top-interaction-test "expected.1 ~s, got ~s" expected output))
@@ -1370,9 +1370,9 @@ This produces an ACK message
       (for-each test:keystroke (string->list "(+ 4 5)"))
       (let ([start (+ 1 (queue-callback/res (λ () (send ints-text last-position))))])
         (test:keystroke #\return)
-        (wait-for-execute)
+        (wait-for-drr-frame-computation)
         (let* ([end (- (get-int-pos) 1)]
-               [output (fetch-output drscheme-frame start end)]
+               [output (fetch-output drr-frame start end)]
                [expected "(+ 4 5)"])
           (unless (equal? output expected)
             (error 'top-interaction-test "expected.2 ~s, got ~s" expected output))
