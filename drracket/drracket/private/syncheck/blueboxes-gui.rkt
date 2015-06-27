@@ -455,22 +455,22 @@
             #f]
            [else
             (define id-strs
-              (if tag
-                  (fetch-blueboxes-strs tag #:blueboxes-cache (get-blueboxes-cache))
-                  '()))
-            (list start
-                  end
-                  (apply
-                   append
-                   (or id-strs '())
-                   (for/list ([meth-tag (in-list meth-tags)]
-                              [i (in-naturals)])
-                     (define bbs
-                       (fetch-blueboxes-strs meth-tag #:blueboxes-cache (get-blueboxes-cache)))
-                     (if (zero? i)
-                         (or bbs '())
-                         (if bbs (cdr bbs) '()))))
-                  path url-tag)])]
+              (and tag
+                   (fetch-blueboxes-strs tag #:blueboxes-cache (get-blueboxes-cache))))
+            (and id-strs
+                 (list start
+                       end
+                       (apply
+                        append
+                        id-strs
+                        (for/list ([meth-tag (in-list meth-tags)]
+                                   [i (in-naturals)])
+                          (define bbs
+                            (fetch-blueboxes-strs meth-tag #:blueboxes-cache (get-blueboxes-cache)))
+                          (if (zero? i)
+                              (or bbs '())
+                              (if bbs (cdr bbs) '()))))
+                       path url-tag))])]
         [#f #f]))
     
     (define/private (check-nearby-symbol pos maybe-pause)
