@@ -55,10 +55,18 @@
 (application-file-handler
  (let ([default (application-file-handler)])
    (λ (name)
+     (unless afh-running?
+       (queue-callback (lambda () (set! afh-running? #f)) #f)
+       (special-at-sign-parsing?
+        (let-values ([(base name dir?) (split-path name)])
+          (equal? (path->string name) "@")))
+       (set! afh-running? #t))
      (parameterize ([file-opened-via-application-file-handler? #t])
        (if (null? (get-top-level-windows))
            (handler:edit-file name)
            (default name))))))
+
+(define afh-running? #f)
 
 (application-quit-handler
  (let ([default (application-quit-handler)])
@@ -451,22 +459,10 @@
                                        (or/c #f (flat-contract drracket:unit:teachpack-callbacks?))
                                        #f)
 
-;; Helper for open-drracket-window
-(define (open-drracket-window-file file)
-  (let ([file (normalize-path file)])
-    (if (file-exists? file)
-        (drracket:unit:open-drscheme-window file)
-        (begin
-          (message-box
-           (string-constant drscheme)
-           (format (string-constant cannot-open-because-dne) file))
-          #f))))
-
+(define special-at-sign-parsing? (make-parameter #f))
 ;; Returns the frame of the opened file
 (define (open-drracket-window [filename #f])
-  (cond [(and filename (file-opened-via-application-file-handler?))
-         (displayln "opened via app handler ")
-         ; Don't search for file@line,col if file opened through application handler
+  (cond [(and filename (not (special-at-sign-parsing?)))
          (open-drracket-window-file filename)]
         [filename
          (define frs (filter
@@ -503,10 +499,21 @@
                        (or col 0))))))
          frame]
         [else (drracket:unit:open-drscheme-window)]))
+;; Helper for open-drracket-window
+(define (open-drracket-window-file file)
+  (let ([file (normalize-path file)])
+    (if (file-exists? file)
+        (drracket:unit:open-drscheme-window file)
+        (begin
+          (message-box
+           (string-constant drscheme)
+           (format (string-constant cannot-open-because-dne) file))
+          #f))))
+
 
 (handler:current-create-new-window open-drracket-window)
 
-;; add a catch-all handler to open drscheme files
+;; add a catch-all handler to open drracket files
 (handler:insert-format-handler 
  "Units"
  (λ (filename) #t)
@@ -873,14 +880,19 @@
  (λ ()
    ;; NOTE: drscheme-normal.rkt sets current-command-line-arguments to
    ;; the list of files to open, after parsing out flags like -h
-   (let* ([files-to-open (vector->list (current-command-line-arguments))]
-          [files-to-open (if (preferences:get 'drracket:open-in-tabs)
-                             files-to-open
-                             (reverse files-to-open))]
-          [frames (map open-drracket-window files-to-open)])
-     (when (and (null? (filter values frames))
-                (not (file-opened-via-application-file-handler?)))
-       (make-basic))))
+   (define files-to-open (vector->list (current-command-line-arguments)))
+   (define do-special-at-sign-parsing?
+     (and (not (null? files-to-open))
+          (equal? "@" (car files-to-open))))
+   (when do-special-at-sign-parsing?
+     (set! files-to-open (cdr files-to-open)))
+   (unless (preferences:get 'drracket:open-in-tabs)
+     (set! files-to-open (reverse files-to-open)))
+   (define frames (parameterize ([special-at-sign-parsing? do-special-at-sign-parsing?])
+                    (map open-drracket-window files-to-open)))
+   (when (and (null? (filter values frames))
+              (not (file-opened-via-application-file-handler?)))
+     (make-basic)))
  #f))
 
 ;; Returns the filename, line (or #f) and column (or #f)
