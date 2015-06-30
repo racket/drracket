@@ -1,5 +1,52 @@
 #lang racket/base
 
+#|
+
+In order to make this work well, we need to know the entire
+set of arguments passed to open the files in DrRacket (so we
+can tell if there's only one and we can tell if the first
+one is "@"). The code below uses an unreliable
+hack (enqueueing a low priority event). It probably usually
+works, but it won't always work since, as Matthew points
+out, there are multiple threads involved in enqueueing those
+events. Instead, a new handler should be added that gets all
+of the arguments at once. Here's some comments from Matthew
+on how to do that:
+
+> For Windows and Unix, I think it would make sense to add a new handler
+> that receives all arguments at once, and the handler's default would
+> queue them as file events.
+> 
+> I don't think the priority approach works in general --- not because
+> the decision is made outside of Racket, but because there are multiple
+> Racket threads involved. For Windows and Unix, the relevant code is
+> 
+>  mred/private/wx/win32/window.rkt line 837
+>  mred/private/wx/gtk/unique.rkt line 59
+> 
+> I think the new handler should take byte strings, and the default
+> handler would convert them to paths.
+
+Under Mac OS X, this whole thing doesn't work because the OS
+insists on supplying paths to files that exist (then open
+shell program checks that), but we can collect all of the
+arguments into a single handler via the
+application:openFiles handler. The relevant code, which
+currently handlers only the openFile (no "s") method is here:
+
+  mred/private/wx/cocoa/queue.rkt line 79
+
+Docs here:
+
+https://developer.apple.com/library/mac/documentation/Cocoa/Reference/NSApplicationDelegate_Protocol/#//apple_ref/occ/intfm/NSApplicationDelegate/application:openFiles:
+
+Matthew writes that "Yes, it does appear that `open`
+triggers [the openFiles] method, and its default
+implementation uses the single-file method."
+
+
+|#
+
 (require string-constants
          racket/contract
          racket/class
