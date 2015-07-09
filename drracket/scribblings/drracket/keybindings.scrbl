@@ -39,7 +39,7 @@ row next to the space bar. M-@nonterm{key} can also be performed as a
 two-character sequence: first, strike and release the Escape key, then
 strike @nonterm{key}. On Mac OS X, Meta is, by default,
 available only through the Escape key. But the preferences dialog
-(in the @onscreen{General} sub-panel of the @onscreen{Editing} panel)
+(in the @onscreen{General Editing} sub-panel of the @onscreen{Editing} panel)
 has check boxes that adjust the handling of the Alt key or the Command
 key to be meta.
 

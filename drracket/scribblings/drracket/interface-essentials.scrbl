@@ -311,7 +311,7 @@ editor takes you directly to the next occurrence of the
 search string, without selecting the @onscreen{Find Again}
 menu item. In the preference dialog, in the
 @onscreen{Editing} section and then in the
-@onscreen{General} section is a checkbox labeled
+@onscreen{General Editing} section is a checkbox labeled
 @onscreen{Search using anchors}. When it is checked,
 DrRacket shows a little red dot and a red line indicating
 where the @deftech{search anchor} is. When the search anchor
@@ -897,7 +897,7 @@ Each type has advantages and disadvantages:
 
 ]
 
-In general, DrRacket's gives you the most options when it infers a
+DrRacket's gives you the most options when it infers a
 language from a program's source. Most other languages only allow one
 type of executable. The teaching languages, for example, create
 stand-alone executables in distributions. The legacy languages create

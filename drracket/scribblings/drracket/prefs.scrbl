@@ -87,7 +87,7 @@ The @onscreen{Editing} panel consists of several sub-panels:
       See @secref["editor"] for details on how the entries in the
       columns behave.}
 
-@item{@onscreen{General}
+@item{@onscreen{General Editing}
 
       @itemize[
       @item{@PrefItem{Map delete to backspace} --- If checked, the editor

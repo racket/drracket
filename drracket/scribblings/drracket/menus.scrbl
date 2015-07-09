@@ -261,14 +261,14 @@ appears at any time.
          Shows the column width guide when the current file's width
          is greater than 102 characters.
          
-         The number 102 is controlled in the @onscreen{General}
-         tab of the @onscreen{Editing} tab in the preferences dialog.}
+         The number 102 is controlled in the @onscreen{General Editing}
+         sub-tab of the @onscreen{Editing} tab in the preferences dialog.}
   @item{@defmenuitem{Hide Column Width Guide for 102 Characters} 
          Hides the column width guide, even with the file's width
          is greater than 102 characters.
          
-         The number 102 is controlled in the @onscreen{General}
-         tab of the @onscreen{Editing} tab in the preferences dialog.}
+         The number 102 is controlled in the @onscreen{General Editing}
+         sub-tab of the @onscreen{Editing} tab in the preferences dialog.}
 
  
  @item{@defmenuitem{Show Module Browser} Shows the module DAG rooted
