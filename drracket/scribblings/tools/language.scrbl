@@ -728,7 +728,11 @@ DrRacket.
 }
 
 @defmethod[(get-style-delta)
-           (or/c #f (is-a?/c style-delta%) (listof (list/c (is-a?/c style-delta%) number? number?)))]{
+           (or/c #f
+                 (is-a?/c style-delta%)
+                 (listof (list/c (is-a?/c style-delta%)
+                                 number?
+                                 number?)))]{
   The style delta that this method returns is used in the language
   dialog and the DrRacket REPL when the language's name is printed.
 
