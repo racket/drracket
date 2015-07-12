@@ -654,7 +654,14 @@ the settings above should match r5rs
     (test-error-after-definition)
     
     (prepare-for-test-expression)
-    
+
+    (test-expression "(check-expect 1 1)"
+                     "The only test passed!"
+                     "") ;; somewhat dubious -- it should either be a syntax error or work...
+    (test-expression "(check-expect 1 2)"
+                     #rx"Actual value 1 differs from 2"
+                     "")
+                     
     (test-expression "'|.|"
                      "'|.|"
                      "'|.|")
