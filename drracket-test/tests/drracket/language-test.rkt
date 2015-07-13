@@ -685,8 +685,10 @@ the settings above should match r5rs
     
     (test-undefined-var "class" #:icon+in? #t)
     (test-undefined-var "shared" #:icon+in? #t)
-    (test-expression "(define (. x y) (* x y))" "read: illegal use of `.'")
-    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))"
+                     (regexp (regexp-quote "read: illegal use of `.'")))
+    (test-expression "'(1 . 2)"
+                     (regexp (regexp-quote "read: illegal use of `.'")))
     
     (test-undefined-var "call/cc" #:icon+in? #t)
     
@@ -710,23 +712,40 @@ the settings above should match r5rs
     (test-expression
      "(cons 1 2)"
      #rx"cons: second argument must be a list, but received 1 and 2")
-    (test-expression "(+ (list 1) 2)"
-                     "+: expects a number as 1st argument, given (cons 1 '())")
-    (test-expression "'(1)"
-                     "quote: expected the name of a symbol or () after the quote, but found a part")
-    (test-expression "(define shrd (list 1)) (list shrd shrd)"
-                     "(cons (cons 1 '()) (cons (cons 1 '()) '()))"
-                     "shrd: this name was defined previously and cannot be re-defined")
+    (test-expression
+     "(+ (list 1) 2)"
+     (regexp (regexp-quote "+: expects a number as 1st argument, given (cons 1 '())")))
+    (test-expression
+     "'(1)"
+     (regexp
+      (regexp-quote
+       "quote: expected the name of a symbol or () after the quote, but found a part")))
+    (test-expression
+     "(define shrd (list 1)) (list shrd shrd)"
+     "(cons (cons 1 '()) (cons (cons 1 '()) '()))"
+     (regexp
+      (regexp-quote
+       "shrd: this name was defined previously and cannot be re-defined")))
     (test-expression
      "(local ((define x x)) 1)"
-     "local: this function is not defined"
-     "function call: expected a function after the open parenthesis, but found a part")
+     (regexp
+      (regexp-quote
+       "local: this function is not defined"))
+     (regexp
+      (regexp-quote
+       "function call: expected a function after the open parenthesis, but found a part")))
     (test-expression
      "(letrec ([x x]) 1)"
-     "letrec: this function is not defined"
-     "function call: expected a function after the open parenthesis, but found a part")
-    (test-expression "(if 1 1 1)" "if: question result is not true or false: 1")
-    (test-expression "(+ 1)" "+: expects at least 2 arguments, but found only 1")
+     (regexp
+      (regexp-quote
+       "letrec: this function is not defined"))
+     (regexp
+      (regexp-quote
+       "function call: expected a function after the open parenthesis, but found a part")))
+    (test-expression "(if 1 1 1)"
+                      (regexp (regexp-quote "if: question result is not true or false: 1")))
+    (test-expression "(+ 1)"
+                     (regexp (regexp-quote "+: expects at least 2 arguments, but found only 1")))
     
     (test-expression "1.0" "1" "1")
     (test-expression "#i1.0" "#i1.0" "#i1.0")
@@ -764,33 +783,37 @@ the settings above should match r5rs
                      "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}"
                      "{number 779625/32258 \"24.1684233368466736933473866...\" decimal}")
     (test-expression "(exact? 1.5)" "#true")
-    (test-undefined-fn "(print (floor (sqrt 2)))" "print")
+    (test-undefined-fn "(print (floor (sqrt 2)))" "print" #:icon+in? #t)
     
     (test-expression
      "(let ([f (lambda (x) x)]) f)"
-     "let: this function is not defined"
-     "function call: expected a function after the open parenthesis, but found a part")
+     (regexp (regexp-quote "let: this function is not defined"))
+     (regexp
+      (regexp-quote
+       "function call: expected a function after the open parenthesis, but found a part")))
     (test-expression ",1"
-                     "read: illegal use of comma")
+                     (regexp (regexp-quote "read: illegal use of comma")))
     
     (test-expression "(list 1)"
                      "(cons 1 '())"
                      "(cons 1 '())")
     (test-expression "(car (list))"
-                     "car: expects a pair, given '()")
+                     (regexp (regexp-quote "car: expects a pair, given '()")))
     
-    (test-undefined-var "argv")
-    (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
+    (test-undefined-var "argv" #:icon+in? #t)
+    (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax" #:icon+in? #t)
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
-    (test-expression (string-append "(define (f)\n"
-                                    "(+ (raise-user-error 'a \"b\")))\n"
-                                    "(if (zero? (random 1)) (void) (set! f void))\n"
-                                    "(f)")
-                     "define: expected at least one variable after the function name, but found none"
-                     #rx"define: function definitions are not allowed in the interactions window")
+                     (regexp (regexp-quote "read: #lang not enabled in the current context")))
+    (test-expression
+     (string-append "(define (f)\n"
+                    "(+ (raise-user-error 'a \"b\")))\n"
+                    "(if (zero? (random 1)) (void) (set! f void))\n"
+                    "(f)")
+     (regexp
+      (regexp-quote
+       "define: expected at least one variable after the function name, but found none"))
+     #rx"define: function definitions are not allowed in the interactions window")
     
     (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
                      "{image}"
