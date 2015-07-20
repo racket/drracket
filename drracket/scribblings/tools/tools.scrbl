@@ -689,14 +689,12 @@ plugin API. See also @racketmodname[drracket/check-syntax].
 
 @subsection{Syntax Properties that Check Syntax Looks For}
 
-@section-index["disappeared-use" "disappeared-binding" "sub-range-binders" "mouse-over-tooltips"]
-
 Check Syntax collects the values of the 
-@racket[syntax-property]s named 
-@racket['disappeared-use],
-@racket['disappeared-binding], 
-@racket['sub-range-binders], and
-@racket['mouse-over-tooltips] and uses them to add
+@indexed-racket[syntax-property]s named
+@indexed-racket['disappeared-use],
+@indexed-racket['disappeared-binding],
+@indexed-racket['sub-range-binders], and
+@indexed-racket['mouse-over-tooltips] and uses them to add
 additional arrows to the program text. These properties are
 intended for use when a macro discards or manufactures identifiers that,
 from the programmers perspective, should be binding each other.
@@ -810,7 +808,7 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
 (char-span (+ 1 2))}
 
 Finally, Check Syntax draws arrows only between identifiers that are @racket[syntax-original?]
-or that have the @racket[syntax-property] @racket['original-for-check-syntax]
+or that have the @racket[syntax-property] @indexed-racket['original-for-check-syntax]
 set to @racket[#t].
 
 @section{Cooperating with Background Check Syntax}
