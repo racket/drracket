@@ -1544,12 +1544,12 @@ the settings above should match r5rs
 ;; tests that the teaching languages properly handle repeating decimals
 (define (teaching-language-fraction-output)
   (test-setting
-   (lambda () (fw:test:set-radio-box! "Fraction Style" "Mixed fractions"))
+   (lambda () (fw:test:set-radio-box! (find-output-radio-box "Fraction Style") "Mixed fractions"))
    "Fraction Style -- Mixed fractions"
    "4/3"
    "{number 4/3 \"1 1/3\" mixed}")
   (test-setting
-   (lambda () (fw:test:set-radio-box! "Fraction Style" "Repeating decimals"))
+   (lambda () (fw:test:set-radio-box! (find-output-radio-box "Fraction Style") "Repeating decimals"))
    "Fraction Style -- Repeating decimals"
    "4/3"
    "{number 4/3 \"1.3\" decimal}"))
@@ -1585,11 +1585,11 @@ the settings above should match r5rs
 
 (define (generic-output list? uses-qq-for-plain-print? quasi-quote? has-sharing? has-print-printing?)
   (define plain-print-style (if has-print-printing? "print" "write"))
-  (define drs (wait-for-drracket-frame))
+  (define drr (wait-for-drracket-frame))
   (define expression "(define x (list 2))\n(list x x)")
   (define (set-output-choice option show-sharing pretty?)
     (set-language #f)
-    (fw:test:set-radio-box! "Output Style" option)
+    (fw:test:set-radio-box! (find-output-radio-box "Output Style") option)
     (when (and has-sharing? show-sharing)
       (fw:test:set-check-box!
        "Show sharing in values"
@@ -1611,8 +1611,8 @@ the settings above should match r5rs
     ;; if the procedure receives no arguments, it must return a descriptive string
     ;; for the error message
     (set-output-choice option show-sharing pretty?)
-    (do-execute drs)
-    (define got (fetch-output/should-be-tested drs))
+    (do-execute drr)
+    (define got (fetch-output/should-be-tested drr))
     (unless (if (procedure? answer)
                 (answer got)
                 (whitespace-string=? answer got))
@@ -1621,9 +1621,9 @@ the settings above should match r5rs
       (eprintf "     got ~s\n" (shorten got))
       (eprintf "expected ~s\n" (if (procedure? answer) (answer) answer))))
   
-  (clear-definitions drs)
-  (insert-in-definitions drs (defs-prefix))
-  (insert-in-definitions drs expression)
+  (clear-definitions drr)
+  (insert-in-definitions drr (defs-prefix))
+  (insert-in-definitions drr expression)
   
   (test plain-print-style 'off #t (if uses-qq-for-plain-print? "'((2) (2))" "((2) (2))"))
   (when has-sharing?
@@ -1644,10 +1644,10 @@ the settings above should match r5rs
               "(shared ((-1- (cons 2 '()))) (cons -1- (cons -1- '())))")))
   
   ;; setup print / pretty-print difference
-  (clear-definitions drs)
-  (insert-in-definitions drs (defs-prefix))
+  (clear-definitions drr)
+  (insert-in-definitions drr (defs-prefix))
   (insert-in-definitions 
-   drs
+   drr
    "(define (f n)\n(cond ((zero? n) (list))\n(else (cons n (f (- n 1))))))\n(f 200)")
   (test "Constructor" #f #f
         (case-lambda
@@ -1667,11 +1667,38 @@ the settings above should match r5rs
           [() "newlines in result (may need to make the window smaller)"]))
   
   (when has-print-printing?
-    (clear-definitions drs)
-    (insert-in-definitions drs (defs-prefix))
-    (insert-in-definitions drs "(print 'hello (current-output-port) 1)")
+    (clear-definitions drr)
+    (insert-in-definitions drr (defs-prefix))
+    (insert-in-definitions drr "(print 'hello (current-output-port) 1)")
     (test plain-print-style #f #t "hello")
     (test plain-print-style #f #f "hello")))
+
+(define (find-output-radio-box label)
+  (define frame (test:get-active-top-level-window))
+  (let/ec k
+    (let loop ([gui-thing frame]
+               [parent #f])
+      (cond
+        [(is-a? gui-thing area-container<%>)
+         (for ([child (in-list (send gui-thing get-children))])
+           (loop child gui-thing))]
+        [(is-a? gui-thing radio-box%)
+         (when (equal? label (send gui-thing get-label))
+           (k gui-thing))]
+        [(is-a? gui-thing message%)
+         
+         ;; if we find a message%, go up one level
+         ;; in the GUI and just get any radio box under there.
+         (when (equal? label (send gui-thing get-label))
+           (let loop ([gui-thing parent])
+             (cond
+               [(is-a? gui-thing area-container<%>)
+                (for ([child (in-list (send gui-thing get-children))])
+                  (loop child))]
+               [(is-a? gui-thing radio-box%)
+                (k gui-thing)])))]))
+    (error 'find-output-radio-box "could not find `~a' radio box"
+           label)))
 
 (define re:out-of-sync
   (regexp
