@@ -290,8 +290,11 @@ These precise colors for these identifiers are controlled by the preferences dia
 
 @language-info-def[drracket:indentation]{
  When a language's @racket[_get-info] procedure responds to @racket['drracket:indentation],
- it is expected to return @racket[(-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
-                                      (or/c #f exact-nonnegative-integer?))]; the result is used
+ it is expected to return a function with this contract:
+ @racketblock[(-> (is-a?/c racket:text<%>)
+                  exact-nonnegative-integer?
+                  (or/c #f exact-nonnegative-integer?))]
+ The function is used
  to indent lines in DrRacket. It is called with the position containing the line to be
  indented. It is expected to return the number of spaces that should appear at the beginning
  of the line or @racket[#f]. If @racket[#f] is returned,

@@ -14,9 +14,9 @@
 
 (define-syntax-rule
   (language-info-def id . args)
-  (language-info-def/proc 'id . args))
+  (language-info-def/proc 'id (racket 'id) . args))
 
-(define (language-info-def/proc sym arg0 . args)
+(define (language-info-def/proc sym rkt arg0 . args)
   (define str (format "~s" sym))
-  (list (elemtag str arg0) args))
+  (list (elemtag str arg0) (index* (list str) (list rkt)) args))
 
