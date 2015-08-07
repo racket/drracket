@@ -18,7 +18,7 @@
                "sandbox-lib"
                ("scribble-lib" #:version "1.11")
                "snip-lib"
-               ("string-constants-lib" #:version "1.0")
+               ("string-constants-lib" #:version "1.1")
                "typed-racket-lib"
                "unstable-contract-lib"
                "wxme-lib"

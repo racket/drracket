@@ -4051,6 +4051,34 @@
                            (send target set-overwrite-mode
                                  (not (send target get-overwrite-mode)))))])
         (super edit-menu:between-select-all-and-find edit-menu))
+
+      (define/override (edit-menu:between-paste-and-clear edit-menu)
+        (new menu:can-restore-menu-item%
+             [label (string-constant paste-and-indent-menu-item)]
+             [parent edit-menu]
+             [shortcut #\v]
+             [shortcut-prefix (cons 'shift (get-default-shortcut-prefix))]
+             [demand-callback
+              (λ (item)
+                (define editor (get-edit-target-object))
+                (send item enable
+                      (and editor
+                           (is-a? editor racket:text<%>)
+                           (send editor can-do-edit-operation? 'paste))))]
+             [callback (λ (x y)
+                         (define target (get-edit-target-object))
+                         (send target begin-edit-sequence)
+                         (define start-pos-before (send target get-start-position))
+                         (define end-pos-before (send target get-start-position))
+                         (define selection-size (- end-pos-before start-pos-before))
+                         (define positions-before (- (send target last-position) selection-size))
+                         (send target do-edit-operation 'paste)
+                         (define amount-to-tabify (- (send target last-position) positions-before))
+                         (send target tabify-selection
+                               start-pos-before
+                               (+ start-pos-before amount-to-tabify))
+                         (send target end-edit-sequence))])
+        (super edit-menu:between-paste-and-clear edit-menu))
       
       ;; capability-menu-items : hash-table[menu -o> (listof (list menu-item number key)))
       (define capability-menu-items (make-hasheq))
