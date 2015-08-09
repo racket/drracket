@@ -74,7 +74,7 @@ Scheme printing via the @racket[write] procedure. For example, lists
 print by parenthesizing the printed form of the list elements, without
 a leading quote mark or a constructor name.
 
-Finally, the @as-index{@onscreen{print} output} mode corresponds to
+The @as-index{@onscreen{print} output} mode corresponds to
 Racket's default printing via the @racket[print] procedure. Output via
 @racket[print] is further configurable through run-time settings, such
 as the @racket[print-as-expression] parameter, and it may be adjusted
@@ -83,6 +83,12 @@ by a @hash-lang[]-specified language. For example, the
 parameter to @racket[#f], which essentially makes @onscreen{print}
 mode act like @onscreen{write} mode.
 
+The @as-index{@onscreen{Constant Style}} option, when present, controls
+how @racket[true], @racket[false], and @racket[empty] print; for
+the booleans, it determines if there is a @litchar{#} prefix and for
+the empty list, determines if it prints as @racket[empty] or @racket['()].
+
 For any of the output styles, DrRacket sets the
 @racket[global-port-print-handler] so that the @racket[print]
 procedure produces output as selected.
+
