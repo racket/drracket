@@ -918,6 +918,7 @@ above for details).
 @include-section["modes.scrbl"]
 @include-section["module-language-tools.scrbl"]
 @include-section["module-language.scrbl"]
+@include-section["tracing.scrbl"]
 
 @section{Backwards Compatibility}
 
@@ -954,5 +955,6 @@ library; they are here for backwards compatibility and to provide links to the
 @(tools-include/drs "module-language")
 @(tools-include/drs "rep")
 @(tools-include/drs "unit")
+@(tools-include/drs "tracing")
 
 @index-section[]

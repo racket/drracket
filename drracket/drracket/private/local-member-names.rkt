@@ -15,6 +15,10 @@
   set-i
   insert-auto-text)
 
+;; profiling information wiring
+(define/provide-local-member-name
+  add-profile-info)
+
 ;; in rep, for error display handler
 (define/provide-local-member-name
   no-user-evaluation-dialog)

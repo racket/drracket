@@ -953,4 +953,10 @@ Initializes the visibility of the save button.
 
 }
 
+@defproc[(drracket:unit:get-definitions-text%)
+         (implementation?/c drracket:unit:definitions-text<%>)]{
+ Returns the class used to implement the definitions text
+ in the DrRacket frame.
+}
+
 @(tools-include "unit")
