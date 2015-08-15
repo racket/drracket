@@ -34,6 +34,8 @@
   (define-local-member-name
     set-lang-toolbar-buttons
     get-lang-toolbar-buttons
+    remove-toolbar-button
+    get-toolbar-button-panel
     get-online-expansion-monitor-pcs
     with-language-specific-default-extensions-and-filters)
     
@@ -62,7 +64,7 @@
                sort-toolbar-buttons-panel)
       
       (define toolbar-button-panel #f)
-      (define/public (when-initialized thunk) 
+      (define/public (when-initialized thunk)
         (cond
           [toolbar-button-panel
            (thunk)]

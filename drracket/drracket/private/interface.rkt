@@ -128,7 +128,10 @@ remain the same for tools that use them.
     can-close?
     toggle-log))
 
-(define module-language-tools:definitions-text<%> (interface () move-to-new-language))
+(define module-language-tools:definitions-text<%>
+  (interface ()
+    move-to-new-language
+    get-in-module-language?))
 (define module-language-tools:tab<%> (interface ()))
 (define module-language-tools:frame<%> (interface ()))
 

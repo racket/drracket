@@ -26,6 +26,7 @@
 ;; from module-language-tools.rkt
 (define/provide-local-member-name
   when-initialized
+  initialize-module-language
   ;move-to-new-language
   get-in-module-language?)
 
