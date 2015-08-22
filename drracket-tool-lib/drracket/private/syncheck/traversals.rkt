@@ -7,7 +7,6 @@
          "contract-traversal.rkt"
          "xref.rkt"
          string-constants
-         racket/unit
          racket/match
          racket/set
          racket/class
@@ -16,8 +15,10 @@
          racket/pretty
          racket/bool
          racket/dict
+         racket/promise
          syntax/id-table
          scribble/manual-struct
+         compiler/module-suffix
          (for-syntax racket/base))
 
 (define-logger check-syntax)
@@ -1109,10 +1110,13 @@
                 ss-path))))
         (values cleaned-up-path rkt-submods)))
     
-    ;; possible-suffixes : (listof string)
+    ;; possible-suffixes : (promiseof (listof string))
     ;; these are the suffixes that are checked for the reverse
     ;; module-path mapping.
-    (define possible-suffixes '(".rkt" ".ss" ".scm" ""))
+    (define possible-suffixes (delay
+                                (append (map (lambda (s) (format ".~a" s))
+                                             (get-module-suffixes))
+                                        '(""))))
     
     ;; module-name-sym->filename : symbol -> (union #f string)
     (define (module-name-sym->filename sym)
@@ -1124,7 +1128,7 @@
                         (let ([test (string->path (string-append fn x))])
                           (and (file-exists? test)
                                test)))
-                      possible-suffixes)))))
+                      (force possible-suffixes))))))
     
     ;; add-origins : sexp id-set integer -> void
     (define (add-origins sexp id-set level-of-enclosing-module)

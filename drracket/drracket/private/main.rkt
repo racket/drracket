@@ -16,6 +16,7 @@
          racket/set
          browser/external
          setup/plt-installer
+         "suffix.rkt"
          
          scribble/tag
          setup/xref
@@ -70,7 +71,8 @@
 (drracket:modes:add-initial-modes)
 
 (finder:default-filters
- `(["Racket Sources" "*.rkt;*.scrbl;*.rktl;*.rktd;*.ss;*.scm"]
+ `(["Racket Sources" ,(all-racket-suffixes (lambda (s) (format "*.~a" s))
+                                           ";")]
    ,@(finder:default-filters)))
 
 (application:current-app-name (string-constant drscheme))

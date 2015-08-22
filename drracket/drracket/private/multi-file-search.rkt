@@ -11,7 +11,8 @@
          string-constants
          drracket/private/drsig
          mrlib/close-icon
-         drracket/get-module-path)
+         drracket/get-module-path
+         "suffix.rkt")
 
 (define sc-browse-collections "Browse\nCollections")
 (define sc-add-another-directory "Add Another Directory")
@@ -845,7 +846,13 @@
 (preferences:set-default 'drracket:multi-file-search:recur? #t boolean?)
 (preferences:set-default 'drracket:multi-file-search:filter? #t boolean?)
 (preferences:set-default 'drracket:multi-file-search:filter-regexp
-                         "\\.(rkt[^~]?|scrbl|ss|scm)$" string?)
+                         (string-append
+                          "\\.("
+                          (all-racket-suffixes
+                           (lambda (s) (regexp-quote (bytes->string/utf-8 s)))
+                           "|")
+                          ")$")
+                         string?)
 (preferences:set-default 'drracket:multi-file-search:search-string "" string?)
 (preferences:set-default 'drracket:multi-file-search:search-type
                          1

@@ -5,6 +5,7 @@
          racket/set
          racket/contract
          racket/list
+         racket/promise
          syntax/moddep
          syntax/toplevel
          framework/preferences
@@ -16,6 +17,7 @@
          racket/match
          setup/private/lib-roots
          racket/port
+         compiler/module-suffix
          drracket/private/rectangle-intersect)
 
 (define oprintf
@@ -204,6 +206,9 @@
            #f))
         (add-module-code-connections base module-code))))
   
+  (define module-suffixes (delay (map (lambda (s) (bytes-append #"." s))
+                                      (get-module-suffixes))))
+
   (define (build-module-filename pth remove-extension?)
     (define (try ext)
       (define tst (bytes->path (bytes-append 
@@ -213,9 +218,7 @@
                                 ext)))
       (and (file-exists? tst)
            tst))
-    (or (try #".rkt")
-        (try #".ss")
-        (try #".scm")
+    (or (ormap try (force module-suffixes))
         (try #"")
         pth))
   

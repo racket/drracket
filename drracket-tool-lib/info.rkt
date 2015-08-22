@@ -2,7 +2,7 @@
 
 (define collection 'multi)
 
-(define deps '("base" 
+(define deps '(["base" #:version "6.2.900.10"]
                "scribble-lib"
                "string-constants-lib"
                "scribble-lib"
