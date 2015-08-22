@@ -1021,10 +1021,12 @@
                                  (or (free-identifier=? id1 id level)
                                      (free-identifier=? id2 id level)))))))
               ans)
-            (send defs-text syncheck:add-arrow/name-dup/pxpy
-                  from-source from-pos-left from-pos-right from-dx from-dy
-                  to-source to-pos-left to-pos-right to-dx to-dy
-                  actual? level require-arrow? name-dup?)))))
+            (when (and (<= from-pos-left from-pos-right)
+                       (<= to-pos-left to-pos-right))
+              (send defs-text syncheck:add-arrow/name-dup/pxpy
+                    from-source from-pos-left from-pos-right from-dx from-dy
+                    to-source to-pos-left to-pos-right to-dx to-dy
+                    actual? level require-arrow? name-dup?))))))
     
     ;; add-jump-to-definition : syntax symbol path -> void
     ;; registers the range in the editor so that the

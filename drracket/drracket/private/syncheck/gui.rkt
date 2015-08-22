@@ -898,8 +898,10 @@ If the namespace does not, they are colored the unbound color.
             ;; replace a value with that key already there.
             ;; If use-key? is #f, it adds `to-add' without a key.
             ;; pre: arrow-records is not #f
-            (define/private (add-to-range/key text start end to-add key use-key?)
-              (let ([arrow-record (get-arrow-record text)])
+            (define/private (add-to-range/key text start pre-end to-add key use-key?)
+              (define end (if (= start pre-end) (+ start 1) pre-end))
+              (when (<= 0 start end (send text last-position))
+                (define arrow-record (get-arrow-record text))
                 ;; Dropped the check (< _ (vector-length arrow-vector))
                 ;; which had the following comment:
                 ;;    the last test in the above and is because some syntax objects
