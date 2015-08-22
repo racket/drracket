@@ -117,7 +117,7 @@ that defines @racket[htdp-teachpacks] or @racket[2htdp-teachpacks],
 then they are expected to be either a list of (collection-relative)
 paths containing teachpacks to add to the dialog, or the symbol
 @racket['all], which means that all of the (top-level) files in the collection
-that end with @filepath{.rkt}, @filepath{.ss}, or @filepath{.scm}
+that end with a module suffix (including @filepath{.rkt}, @filepath{.ss}, or @filepath{.scm})
 are teachpacks (except @filepath{info.rkt} or @filepath{info.ss}).
 
 @; ----------------------------------------------------------------------
