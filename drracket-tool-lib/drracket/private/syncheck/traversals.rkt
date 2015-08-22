@@ -15,10 +15,8 @@
          racket/pretty
          racket/bool
          racket/dict
-         racket/promise
          syntax/id-table
          scribble/manual-struct
-         compiler/module-suffix
          (for-syntax racket/base))
 
 (define-logger check-syntax)
@@ -1109,26 +1107,6 @@
                   (k rkt-path/f))
                 ss-path))))
         (values cleaned-up-path rkt-submods)))
-    
-    ;; possible-suffixes : (promiseof (listof string))
-    ;; these are the suffixes that are checked for the reverse
-    ;; module-path mapping.
-    (define possible-suffixes (delay
-                                (append (map (lambda (s) (format ".~a" s))
-                                             (get-module-suffixes))
-                                        '(""))))
-    
-    ;; module-name-sym->filename : symbol -> (union #f string)
-    (define (module-name-sym->filename sym)
-      (let ([str (symbol->string sym)])
-        (and ((string-length str) . > . 1)
-             (char=? (string-ref str 0) #\,)
-             (let ([fn (substring str 1 (string-length str))])
-               (ormap (λ (x)
-                        (let ([test (string->path (string-append fn x))])
-                          (and (file-exists? test)
-                               test)))
-                      (force possible-suffixes))))))
     
     ;; add-origins : sexp id-set integer -> void
     (define (add-origins sexp id-set level-of-enclosing-module)
