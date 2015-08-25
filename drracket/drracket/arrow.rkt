@@ -1,5 +1,5 @@
 #lang racket/base
 
-(require unstable/arrow)
+(require racket/draw/arrow)
 
 (provide draw-arrow)
