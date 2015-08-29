@@ -69,8 +69,8 @@ If the namespace does not, they are colored the unbound color.
 (define cs-mode-menu-show-client-obligations (string-constant cs-mode-menu-show-client-obligations))
 (define cs-mode-menu-show-syntax (string-constant cs-mode-menu-show-syntax))
 
-(define cs-tack-crossing-arrows "Tack Crossing Arrows") ;(string-constant cs-tack-crossing-arrows)
-(define cs-syncheck-running "Check Syntax Running") ; (string-constant cs-syncheck-running)
+(define cs-tack-crossing-arrows (string-constant cs-tack-crossing-arrows))
+(define cs-syncheck-running (string-constant cs-syncheck-running))
 
 ;; This delay should be long enough that the arrows won't be drawn if drawing
 ;; the editor hitches while scrolling:
