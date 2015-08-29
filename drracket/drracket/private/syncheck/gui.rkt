@@ -69,7 +69,8 @@ If the namespace does not, they are colored the unbound color.
 (define cs-mode-menu-show-client-obligations (string-constant cs-mode-menu-show-client-obligations))
 (define cs-mode-menu-show-syntax (string-constant cs-mode-menu-show-syntax))
 
-(define cs-syncheck-running "Check Syntax Running")
+(define cs-tack-crossing-arrows "Tack Crossing Arrows") ;(string-constant cs-tack-crossing-arrows)
+(define cs-syncheck-running "Check Syntax Running") ; (string-constant cs-syncheck-running)
 
 ;; This delay should be long enough that the arrows won't be drawn if drawing
 ;; the editor hitches while scrolling:
@@ -275,7 +276,8 @@ If the namespace does not, they are colored the unbound color.
       set-replay-state
       get-replay-state
       show-online-internal-error
-      show-error-report)
+      show-error-report
+      tack-crossing-arrows-callback)
     
     ;; clearing-text-mixin : (mixin text%)
     ;; overrides methods that make sure the arrows go away appropriately.
@@ -1257,27 +1259,12 @@ If the namespace does not, they are colored the unbound color.
                     (add-sep)
                     (define arrows-menu
                       (make-object menu%
-                        "Arrows crossing selection"
+                        cs-tack-crossing-arrows
                         menu))
-                    (define (callback accept)
-                      (tack-crossing-arrows-callback
-                       arrow-record
-                       start-selection
-                       end-selection
-                       text
-                       accept))
                     (make-object menu-item%
                       "Tack arrows"
                       arrows-menu
-                      (lambda (item evt)
-                        (callback
-                         '(lexical top-level imported))))
-                    (make-object menu-item%
-                      "Tack non-import arrows"
-                      arrows-menu
-                      (lambda (item evt)
-                        (callback
-                         '(lexical top-level))))
+                      (lambda (item evt) (tack-crossing-arrows-callback text)))
                     (make-object menu-item%
                       "Untack arrows"
                       arrows-menu
@@ -1556,24 +1543,24 @@ If the namespace does not, they are colored the unbound color.
                  arrows))
               (invalidate-bitmap-cache/padding))
             
-            (define/private (tack-crossing-arrows-callback arrow-record start end text kinds)
-              (define (xor a b)
-                (or (and a (not b)) (and (not a) b)))
+            (define/public (tack-crossing-arrows-callback text)
+              (define arrow-record (hash-ref arrow-records text #f))
+              (define start (send text get-start-position))
+              (define end (send text get-end-position))
               (define (within t p)
                 (and (eq? t text)
                      (<= start p end)))
               ;; FIXME: Add to interval-map: iteration over distinct ranges w/i given range
               (for ([position (in-range start end)])
-                (define things (interval-map-ref arrow-record position null))
-                (for ([va things] #:when (var-arrow? va))
+                (for ([va (in-list (interval-map-ref arrow-record position null))]
+                      #:when (var-arrow? va))
                   (define va-start (var-arrow-start-pos-left va))
                   (define va-start-text (var-arrow-start-text va))
                   (define va-end (var-arrow-end-pos-left va))
                   (define va-end-text (var-arrow-end-text va))
-                  (when (xor (within va-start-text va-start)
-                             (within va-end-text va-end))
-                    (when (memq (var-arrow-level va) kinds)
-                      (hash-set! tacked-hash-table va #t)))))
+                  (unless (equal? (within va-start-text va-start)
+                                  (within va-end-text va-end))
+                    (hash-set! tacked-hash-table va #t))))
               (invalidate-bitmap-cache/padding))
 
             (define/private (untack-crossing-arrows arrow-record start end)
@@ -2308,7 +2295,6 @@ If the namespace does not, they are colored the unbound color.
     
     (define report-error-style (make-object style-delta% 'change-style 'italic))
     (send report-error-style set-delta-foreground "red")
-    
     (define (add-check-syntax-key-bindings keymap)
       (send keymap add-function
             "check syntax"
@@ -2349,8 +2335,12 @@ If the namespace does not, they are colored the unbound color.
                              (send defs syncheck:rename-identifier obj))))
         (send keymap add-function
               (string-constant cs-tack/untack-arrow)
+              (cs-callback (λ (defs obj)
+                             (send defs syncheck:tack/untack-arrows obj))))
+        (send keymap add-function
+              cs-tack-crossing-arrows
               (cs-callback (λ (defs obj) 
-                             (send defs syncheck:tack/untack-arrows obj)))))
+                             (send defs tack-crossing-arrows-callback obj)))))
       
       (send keymap map-function "f6" "check syntax")
       (send keymap map-function "c:c;c:c" "check syntax")
@@ -2360,6 +2350,7 @@ If the namespace does not, they are colored the unbound color.
       (send keymap map-function "c:x;d" (string-constant cs-jump-to-definition))
       (send keymap map-function "c:x;m" (string-constant cs-rename-id))
       (send keymap map-function "c:x;a" (string-constant cs-tack/untack-arrow))
+      (send keymap map-function "c:x;c" cs-tack-crossing-arrows)
       
       (send keymap add-function "show/hide blue boxes in upper-right corner"
             (λ (txt evt)
