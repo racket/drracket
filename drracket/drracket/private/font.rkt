@@ -12,6 +12,11 @@
 (define sc-smoothing-all (string-constant font-smoothing-all))
 (define sc-smoothing-default (string-constant font-smoothing-default))
 
+(define sc-weight-label (string-constant font-weight-label))
+(define sc-weight-light (string-constant font-weight-light))
+(define sc-weight-normal(string-constant font-weight-normal))
+(define sc-weight-bold (string-constant font-weight-bold))
+
 (provide font@)
 
 (define-unit font@
@@ -137,28 +142,59 @@
         (λ (p v)
           (set-choice-selection v)))
        (set-choice-selection (preferences:get 'framework:standard-style-list:font-name))
-       (define smoothing-contol
+       (define (smoothing->choice-index sm)
+         (case sm
+           [(unsmoothed) 0]
+           [(partly-smoothed) 1]
+           [(smoothed) 2]
+           [(default) 3]))
+       (define smoothing-control
          (new choice%
-              (label sc-smoothing-label)
-              (choices (list sc-smoothing-none
+              [label sc-smoothing-label]
+              [choices (list sc-smoothing-none
                              sc-smoothing-some
                              sc-smoothing-all
-                             sc-smoothing-default))
-              (parent choice-panel)
-              (stretchable-width #t)
-              (selection (case (preferences:get 'framework:standard-style-list:smoothing)
-                           [(unsmoothed) 0]
-                           [(partly-smoothed) 1]
-                           [(smoothed) 2]
-                           [(default) 3]))
-              (callback (λ (x y) 
+                             sc-smoothing-default)]
+              [parent choice-panel]
+              [stretchable-width #t]
+              [selection (smoothing->choice-index
+                          (preferences:get 'framework:standard-style-list:smoothing))]
+              [callback (λ (x y)
                           (preferences:set 
                            'framework:standard-style-list:smoothing
                            (case (send x get-selection)
                              [(0) 'unsmoothed]
                              [(1) 'partly-smoothed]
                              [(2) 'smoothed]
-                             [(3) 'default]))))))
+                             [(3) 'default])))]))
+       (preferences:add-callback
+        'framework:standard-style-list:smoothing
+        (λ (p v) (send smoothing-control set-selection
+                       (smoothing->choice-index v))))
+       (define (weight->choice-index v)
+         (case v
+           [(light) 0]
+           [(normal) 1]
+           [(bold) 2]))
+       (define weight-control
+         (new choice%
+              [label sc-weight-label]
+              [choices (list sc-weight-light sc-weight-normal sc-weight-bold)]
+              [parent choice-panel]
+              [stretchable-width #t]
+              [selection (weight->choice-index
+                          (preferences:get 'framework:standard-style-list:weight))]
+              [callback
+               (λ (x y)
+                 (preferences:set 'framework:standard-style-list:weight
+                                  (case (send x get-selection)
+                                    [(0) 'light]
+                                    [(1) 'normal]
+                                    [(2) 'bold])))]))
+       (preferences:add-callback
+        'framework:standard-style-list:weight
+        (λ (p v) (send weight-control set-selection
+                       (weight->choice-index v))))
        
        (define text (new (text:foreground-color-mixin
                           (editor:standard-style-list-mixin 
