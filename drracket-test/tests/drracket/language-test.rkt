@@ -1679,6 +1679,8 @@ the settings above should match r5rs
     (let loop ([gui-thing frame]
                [parent #f])
       (cond
+        [(is-a? gui-thing panel:single<%>)
+         (loop (send gui-thing active-child) gui-thing)]
         [(is-a? gui-thing area-container<%>)
          (for ([child (in-list (send gui-thing get-children))])
            (loop child gui-thing))]
