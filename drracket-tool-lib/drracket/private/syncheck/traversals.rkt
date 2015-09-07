@@ -1117,7 +1117,7 @@
               [(pair? ct)
                (loop (car ct))
                (loop (cdr ct))]
-              [(syntax? ct)
+              [(identifier? ct)
                (add-id id-set ct level-of-enclosing-module)]
               [else (void)])))))
     
