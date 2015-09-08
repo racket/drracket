@@ -5,7 +5,7 @@
 (define deps '("scheme-lib"
                "data-lib"
                "compiler-lib"
-               ["base" #:version "6.2.900.10"]
+               ["base" #:version "6.2.900.15"]
                "planet-lib"
                "compatibility-lib"
                ["draw-lib" #:version "1.7"]
@@ -20,7 +20,6 @@
                "snip-lib"
                ("string-constants-lib" #:version "1.3")
                "typed-racket-lib"
-               "unstable-contract-lib"
                "wxme-lib"
                ("gui-lib" #:version "1.17")
                ("racket-index" #:version "1.2")
@@ -33,7 +32,6 @@
                "macro-debugger"
                "net-lib"
                "tex-table"
-               "unstable-lib"
                ("drracket-plugin-lib" #:version "1.1")
                "gui-pkg-manager-lib"
                "drracket-tool-lib"

@@ -6,8 +6,7 @@
          racket/contract
          racket/match
          parser-tools/lex
-         (prefix-in : parser-tools/lex-sre)
-         unstable/contract)
+         (prefix-in : parser-tools/lex-sre))
 
 (define-syntax (test stx) #'(begin)) ;; TODO: convert my test into DrRacket's test framework
 
