@@ -609,7 +609,11 @@
       (super-new
        [module #f]
        [language-position (list (string-constant module-language-name))]
-       [language-numbers (list -32768)])))
+       [language-numbers (list -32768)]
+       [reader (λ (src port)
+                 (parameterize ([read-accept-reader #t])
+                   (with-stack-checkpoint
+                    (read-syntax src port))))])))
   
   ;; can be called with #f to just kill the repl (in case we want to kill it
   ;; but keep the highlighting of a previous error)
