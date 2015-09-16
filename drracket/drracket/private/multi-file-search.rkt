@@ -92,7 +92,7 @@
                           (λ (x y) (stop-callback))))
     (define grow-box-pane (make-object grow-box-spacer-pane% button-panel))
     
-    (define zoom-text (make-object racket:text%))
+    (define zoom-text (make-object (text:searching-mixin racket:text%)))
     (define results-text (make-object results-text% zoom-text))
     (define results-ec (instantiate searching-canvas% ()
                          (parent panel)
@@ -145,13 +145,15 @@
                  (search-entry-match-length match))
            (loop)]))))
   
-  (define results-super-text% 
-    (text:hide-caret/selection-mixin
-     (text:line-spacing-mixin
-      (text:basic-mixin
-       (editor:standard-style-list-mixin 
-        (editor:basic-mixin
-         text%))))))
+  (define results-super-text%
+    (text:searching-mixin
+     (text:hide-caret/selection-mixin
+      (text:line-spacing-mixin
+       (text:basic-mixin
+        (editor:keymap-mixin
+         (editor:standard-style-list-mixin
+          (editor:basic-mixin
+           text%))))))))
   
   ;; results-text% : derived from text%
   ;; init args: zoom-text
