@@ -322,7 +322,8 @@
        (if (path-string? (list-ref str+dlg 0))
            (alternate-racket-clcl/clcp (list-ref str+dlg 0) pkgs-dirs-cache)
            (values (current-library-collection-links)
-                   (current-library-collection-paths))))
+                   (current-library-collection-paths)
+                   '())))
      (channel-put new-clcl-thread-pending-chan
                   (list (list a b c)
                         (list-ref str+dlg 1)))))
