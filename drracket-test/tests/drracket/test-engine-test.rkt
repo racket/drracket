@@ -49,7 +49,7 @@
 		   ""
 		   #:repl-expected "foo: this name was defined previously and cannot be re-defined"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"bar\"" 1 7)))
+		   (list (make-signature-violation "\"bar\" at line 1, column 28 " 1 7)))
   (test-expression "(: foo (Integer -> Integer)) (define (foo x) x) (foo \"foo\")"
 		   "\"foo\""
 		   #:repl-expected "foo: this name was defined previously and cannot be re-defined\n"
@@ -72,7 +72,7 @@
 		   ""
 		   #:repl-expected "define: Zweite Definition für denselben Namen"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"bar\"" 1 7)))
+		   (list (make-signature-violation "\"bar\" at line 1, column 28 " 1 7)))
   (test-expression "(: foo (integer -> integer)) (define foo (lambda (x) x)) (foo \"foo\")"
 		   "\"foo\""
                    #:repl-expected "define: Zweite Definition für denselben Namen"
