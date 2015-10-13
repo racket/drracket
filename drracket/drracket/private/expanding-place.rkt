@@ -6,7 +6,8 @@
          compiler/cm
          framework/preferences
          syntax/readerr
-         wxme)
+         wxme
+         (prefix-in el: errortrace/errortrace-lib))
 (provide start)
 
 (struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
@@ -159,8 +160,9 @@
                               path)
                           loaded-paths))
               (cl path mod-name))))
-         
          (ep-log-info "expanding-place.rkt: 03 setting module language parameters")
+         (when (equal? (prefab-module-settings-annotations settings) 'debug)
+           (current-compile (el:make-errortrace-compile-handler)))
          (set-module-language-parameters settings
                                          module-language-parallel-lock-client
                                          null
