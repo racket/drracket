@@ -213,3 +213,10 @@
                           "#lang racket/base\n(require (only-in racket/base))"))
               (set '((6 17 .5 .5) (19 26 .5 .5))     ;; to 'require'
                    '((6 17 .5 .5) (28 35 .5 .5))))
+
+(check-equal? (apply set (get-binding-arrows/pxpy
+                          "#lang racket\n(define/contract (f x) any/c f)"))
+              (set '((6 12 0.5 0.5) (14 29 0.5 0.5)) ;; point to define/contract
+                   '((6 12 0.5 0.5) (36 41 0.5 0.5)) ;; point to any/c
+                   '((31 32 0.5 0.5) (42 43 0.5 0.5))))  ;; from f to f
+
