@@ -29,7 +29,8 @@
          pkg/lib
          pkg/gui
          framework/private/logging-timer
-         (submod "frame.rkt" install-pkg))
+         (submod "frame.rkt" install-pkg)
+         (for-syntax racket/base))
 
 (struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
 
@@ -215,23 +216,22 @@
         (cond
           [read-successfully?
            (define-values (_line _col port-pos) (port-next-location defs-port))
-           (define str (send defs-text get-text 0 (- port-pos 1)))
+           (define after-comments-position
+             (let ()
+               (define p (open-input-text-editor defs-text))
+               (skip-past-comments p)
+               (define-values (line col pos) (port-next-location p))
+               (- pos 1)))
+           (define str (send defs-text get-text after-comments-position (- port-pos 1)))
            (define pos (regexp-match-positions #rx"#(?:!|lang )" str))
            (cond
              [(not pos)
               (get-language-name)]
              [else
-              ;; newlines can break things (ie the language text won't 
-              ;; be in the right place in the interactions window, which
-              ;; at least makes the test suites unhappy), so get rid of 
-              ;; them from the name. Otherwise, if there is some weird formatting,
-              ;; so be it.
-              (regexp-replace* #rx"[\r\n]+"
-                               (substring str (cdr (car pos)) (string-length str))
-                               " ")])]
+              (substring str (cdr (car pos)) (string-length str))])]
           [else
            (get-language-name)]))
-                
+      
       (define/override (use-namespace-require/copy?) #f)
       
       (define/augment (capability-value key)
@@ -2774,3 +2774,135 @@
   (define default-surrogate%
     (change-lang-surrogate-mixin
      racket:text-mode%)))
+
+(define (skip-past-comments port)
+  (define (get-it str)
+    (for ([c1 (in-string str)])
+      (define c2 (read-char port))
+      (unless (equal? c1 c2)
+        (error 'get-it
+               "expected ~s, got ~s, orig string ~s"
+               c1 c2 str))))
+  (let loop ()
+    (define p (peek-char port))
+    (cond-strs port
+      [";"
+       (let loop ()
+         (define c (read-char port))
+         (case c
+           [(#\linefeed #\return #\u133 #\u8232 #\u8233)
+            (void)]
+           [else
+            (unless (eof-object? c)
+              (loop))]))
+       (loop)]
+      ["#|"
+       (let loop ([depth 0])
+         (define p1 (peek-char port))
+         (cond
+           [(and (equal? p1 #\|)
+                 (equal? (peek-char port 1) #\#))
+            (get-it "|#")
+            (cond
+              [(= depth 0) (void)]
+              [else (loop (- depth 1))])]
+           [(and (equal? p1 #\#)
+                 (equal? (peek-char port 1) #\|))
+            (get-it "#|")
+            (loop (+ depth 1))]
+           [else
+            (read-char port)
+            (loop depth)]))]
+      ["#;"
+       (with-handlers ((exn:fail:read? void))
+         (read port)
+         (loop))]
+      ["#! "
+       (read-line-slash-terminates port)
+       (loop)]
+      ["#!/"
+       (read-line-slash-terminates port)
+       (loop)]
+      [else
+       (define p (peek-char port))
+       (cond
+         [(eof-object? p) (void)]
+         [(char-whitespace? p)
+          (read-char port)
+          (loop)]
+         [else (void)])])))
+
+(define-syntax (cond-strs stx)
+  (syntax-case stx (else)
+    [(_ port [chars rhs ...] ... [else last ...])
+     (begin
+       (for ([chars (in-list (syntax->list #'(chars ...)))])
+         (unless (string? (syntax-e chars))
+           (raise-syntax-error 'chars "expected a string" stx chars))
+         (for ([char (in-string (syntax-e chars))])
+           (unless (< (char->integer char) 128)
+             (raise-syntax-error 'chars "expected only one-byte chars" stx chars))))
+       #'(cond
+           [(check-chars port chars)
+            rhs ...]
+           ...
+           [else last ...]))]))
+
+(define (check-chars port chars)
+  (define matches?
+    (for/and ([i (in-naturals)]
+              [c (in-string chars)])
+      (equal? (peek-char port i) c)))
+  (when matches?
+    (for ([c (in-string chars)])
+      (read-char port)))
+  matches?)
+
+(define (read-line-slash-terminates port)
+  (let loop ([previous-slash? #f])
+    (define c (read-char port))
+    (case c
+      [(#\\) (loop #t)]
+      [(#\linefeed #\return)
+       (cond
+         [previous-slash?
+          (define p (peek-char port))
+          (when (and (equal? c #\return)
+                     (equal? p #\linefeed))
+            (read-char port))
+          (loop #f)]
+         [else
+          (void)])]
+      [else
+       (unless (eof-object? c)
+         (loop #f))])))
+
+(module+ test
+  (require rackunit)
+  (define (clear-em str)
+    (define sp (open-input-string str))
+    (skip-past-comments sp)
+    (apply
+     string
+     (for/list ([i (in-port read-char sp)])
+       i)))
+  (check-equal? (clear-em ";") "")
+  (check-equal? (clear-em ";\n1") "1")
+  (check-equal? (clear-em ";  \n1") "1")
+  (check-equal? (clear-em ";  \r\n1") "1")
+  (check-equal? (clear-em ";  \u8233\n1") "1")
+  (check-equal? (clear-em "         1") "1")
+  (check-equal? (clear-em "#| |#1") "1")
+  (check-equal? (clear-em "#| #| #| #| #| |# |# |# |# |#1") "1")
+  (check-equal? (clear-em "#| #| #| #| #| |# |# #| |# |# |# |#1") "1")
+  (check-equal? (clear-em "#||#1") "1")
+  (check-equal? (clear-em "#|#|#|#|#||#|#|#|#|#1") "1")
+  (check-equal? (clear-em "#|#|#|#|#||#|##||#|#|#|#1") "1")
+  (check-equal? (clear-em " #!    \n         1") "1")
+  (check-equal? (clear-em " #!/    \n         1") "1")
+  (check-equal? (clear-em " #!/    \\\n2\n         1") "1")
+  (check-equal? (clear-em " #!/    \\\r2\n         1") "1")
+  (check-equal? (clear-em " #!/    \\\r\n2\n         1") "1")
+  (check-equal? (clear-em " #!/    \n\r\n         1") "1")
+  (check-equal? (clear-em "#;()1") "1")
+  (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1"))
