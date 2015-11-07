@@ -219,6 +219,7 @@
            (define after-comments-position
              (let ()
                (define p (open-input-text-editor defs-text))
+               (port-count-lines! p)
                (skip-past-comments p)
                (define-values (line col pos) (port-next-location p))
                (- pos 1)))
