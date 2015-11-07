@@ -2,6 +2,8 @@
 ;;; anim-with-timer.rkt
 ;;; pour PF2, Racket 6.2.1
 
+(module test racket/base)
+
 (define FRAME (new frame% (label "Animation") (x 10) (y 10)))
 
 (define SIZE 300)    ; taille du canvas
