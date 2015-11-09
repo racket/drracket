@@ -88,9 +88,7 @@
   ; : identifier -> identifier
   (define (make-mark-binding-stx id)
     #`(case-lambda
-        [()
-         (with-handlers ([exn:fail? (λ (x) undefined)])
-           #,id)]
+        [() #,id] ; Note: `id` might be undefined; caller must catch exceptions
         [(v) (set! #,id v)]))
   
   (define (mark-bindings mark)
@@ -102,7 +100,8 @@
     (full-mark-struct-label (mark)))
   
   (define (mark-binding-value mark-binding)
-    ((cadr mark-binding)))
+    (with-handlers ([exn:fail:contract:variable? (λ (x) undefined)])
+      ((cadr mark-binding))))
   
   (define (mark-binding-binding mark-binding)
     (car mark-binding))
