@@ -1,6 +1,7 @@
 (module marks scheme/base
 
   (require mzlib/list
+           racket/undefined
 	   mzlib/contract
            (prefix-in mz: mzscheme))
 
@@ -87,7 +88,9 @@
   ; : identifier -> identifier
   (define (make-mark-binding-stx id)
     #`(case-lambda
-        [() #,id]
+        [()
+         (with-handlers ([exn:fail? (λ (x) undefined)])
+           #,id)]
         [(v) (set! #,id v)]))
   
   (define (mark-bindings mark)
