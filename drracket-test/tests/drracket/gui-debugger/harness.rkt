@@ -1,6 +1,7 @@
 #lang racket
-(require gui-debugger/annotator  gui-debugger/load-sandbox syntax/parse)
-(provide run-code-with-annotator)
+(require gui-debugger/annotator  gui-debugger/load-sandbox syntax/parse
+         gui-debugger/marks)
+(provide run-code-with-annotator break/test)
 
 ;; Syntax -> Any
 ;; run the given code with the debugging annotator
@@ -37,3 +38,9 @@
        void
        source))
     annotated))
+
+(define ((break/test  id) [marks #f])
+  (define debug-marks
+    (or marks
+        (continuation-mark-set->list (current-continuation-marks) debug-key)))
+  (map mark-binding-value (lookup-all-bindings (const #t) debug-marks)))
