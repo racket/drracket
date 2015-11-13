@@ -2751,10 +2751,12 @@
                                              (exn-message x)))
                                     #f)])
                    (dynamic-require new-surrogate-mod 'surrogate%))))
-          (set-surrogate (new (if new-surrogate
-                                  (change-lang-surrogate-mixin
-                                   new-surrogate)
-                                  default-surrogate%)))))
+          (cond
+            [new-surrogate
+             (set-surrogate (new (change-lang-surrogate-mixin new-surrogate)))]
+            [else
+             (unless (is-a? (get-surrogate) default-surrogate%)
+               (set-surrogate (new default-surrogate%)))])))
       
       (super-new)))
   
