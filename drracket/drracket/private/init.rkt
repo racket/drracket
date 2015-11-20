@@ -82,8 +82,8 @@
               
               (parameterize ([current-eventspace error-display-eventspace]
                              [current-custodian system-custodian])
-                (thread
-                 (λ () 
+                (queue-callback
+                 (λ ()
                    (message-box title text #f '(stop ok) #:dialog-mixin frame:focus-table-mixin)
                    (channel-put currently-visible-chan #f))))
               (loop (cons (make-recent msg (current-seconds)) recently-seen-errors)
