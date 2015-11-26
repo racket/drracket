@@ -484,13 +484,17 @@
               (canvas:info-mixin
                canvas:color%))))
       (init [style '()])
-      (super-new (style (cons 'auto-hscroll style)))))
+      (super-new (style (cons 'auto-hscroll style)))
+      (inherit set-scroll-via-copy)
+      (set-scroll-via-copy #t)))
   
   
   (define definitions-canvas%
     (class (make-searchable-canvas% (canvas:delegate-mixin (canvas:info-mixin canvas:color%)))
       (init [style '()])
-      (super-new (style (cons 'auto-hscroll style)))))
+      (super-new (style (cons 'auto-hscroll style)))
+      (inherit set-scroll-via-copy)
+      (set-scroll-via-copy #t)))
   
   ;                                                                                                  
   ;                                                                                                  

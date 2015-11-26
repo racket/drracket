@@ -260,20 +260,48 @@
 
       #;
       (begin
-        (define-values (br bt _1 _2) (get-box-upper-right-and-lock-coordinates))
-        (when (and bt br)
-          (cond
-            [(get-show-docs?)
-             (define-values (box-width box-height label-overlap?)
-               (get-blue-box-size (get-dc) (get-style-list) the-strs))
-             (define x (- br box-width shadow-size))
-             (invalidate-bitmap-cache (max x 0)
-                                      (max bt 0)
-                                      (+ box-width shadow-size)
-                                      (+ box-height shadow-size))]
-            [the-strs
-             (define size (+ corner-radius shadow-size))
-             (invalidate-bitmap-cache (max 0 (- br size)) (max 0 bt) size size)]))))
+        (define drawn-region (currently-draw-bluebox-region))
+        (when drawn-region
+          (invalidate-bitmap-cache (list-ref drawn-region 0)
+                                   (list-ref drawn-region 1)
+                                   (list-ref drawn-region 2)
+                                   (list-ref drawn-region 3)))))
+
+    (define/private (currently-drawn-bluebox-region)
+      (define-values (br bt _1 _2) (get-box-upper-right-and-lock-coordinates))
+      (cond
+        [(and bt br)
+         (cond
+           [(get-show-docs?)
+            (define-values (box-width box-height label-overlap?)
+              (get-blue-box-size (get-dc) (get-style-list) the-strs))
+            (define x (- br box-width shadow-size))
+            (list (max x 0) (max bt 0)
+                  (+ box-width shadow-size)
+                  (+ box-height shadow-size))]
+           [the-strs
+            (define size (+ corner-radius shadow-size))
+            (list (max 0 (- br size)) (max 0 bt) size size)]
+           [else #f])]
+        [else #f]))
+
+    (define to-invalidate #f)
+    (define/override (on-scroll-to)
+      (super on-scroll-to)
+      (set! to-invalidate (currently-drawn-bluebox-region)))
+    (define/override (after-scroll-to)
+      (super after-scroll-to)
+      (define (maybe-invalidate)
+        (when to-invalidate
+          (invalidate-bitmap-cache
+           (list-ref to-invalidate 0)
+           (list-ref to-invalidate 1)
+           (list-ref to-invalidate 2)
+           (list-ref to-invalidate 3))
+          (set! to-invalidate #f)))
+      (maybe-invalidate)
+      (set! to-invalidate (currently-drawn-bluebox-region))
+      (maybe-invalidate))
     
     (define pref-changed-callback (λ (x y) (invalidate-blue-box-region)))
     (preferences:add-callback
