@@ -20,6 +20,7 @@
          string-constants
          lang/debugger-language-interface
          images/compile-time
+         framework
          (for-syntax racket/base
                      racket/class
                      racket/draw
@@ -1340,10 +1341,10 @@
                              [else (void)]))))))
           (set! variables-text (new text% [auto-wrap #f]))
           (let ([stack-frames-panel (make-object vertical-panel% stack-view-panel)])
-            (new message% [parent stack-frames-panel] [label "Stack"])
+            (new editor:font-size-message% [parent stack-frames-panel] [message "Stack"])
             (new editor-canvas% [parent stack-frames-panel] [editor stack-frames] [style '(auto-hscroll)]))
           (let ([variables-panel (make-object vertical-panel% stack-view-panel)])
-            (new message% [parent variables-panel] [label "Variables"])
+            (new editor:font-size-message% [parent variables-panel] [message "Variables"])
             (new editor-canvas% [parent variables-panel] [editor variables-text] [style '(auto-hscroll)]))
           ;; parent of panel with debug buttons
           (set! debug-parent-panel
@@ -1366,6 +1367,10 @@
         
         (define/public (hide-debug)
           (when (member debug-panel (send debug-parent-panel get-children))
+            (for ([x (in-list (continuation-mark-set->context
+                               (current-continuation-marks)))])
+              (printf "  ~s\n" x))
+            (printf "----\n")
             (send debug-grandparent-panel change-children
                   (lambda (l) (remq stack-view-panel l)))
             (send debug-parent-panel change-children
