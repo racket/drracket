@@ -283,14 +283,16 @@
               [(#%plain-lambda args bodies ...)
                (begin
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-                 (add-binders (syntax args) binders #f #f level-of-enclosing-module)
+                 (add-binders (syntax args) binders #f #f level level-of-enclosing-module
+                              sub-identifier-binding-directives mods)
                  (list-loop/tail-last (syntax->list (syntax (bodies ...)))))]
               [(case-lambda [argss bodiess ...]...)
                (begin
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
                  (for-each
                   (λ (args bodies)
-                    (add-binders args binders #f #f level-of-enclosing-module)
+                    (add-binders args binders #f #f level level-of-enclosing-module
+                                 sub-identifier-binding-directives mods)
                     (list-loop/tail-last (syntax->list bodies)))
                   (syntax->list (syntax (argss ...)))
                   (syntax->list (syntax ((bodiess ...) ...)))))]
@@ -323,7 +325,8 @@
                  (for-each collect-general-info (syntax->list (syntax (bindings ...))))
                  (with-syntax ([(((xss ...) es) ...) (syntax (bindings ...))])
                    (for-each (λ (x es) (add-binders x binders binding-inits es 
-                                                    level-of-enclosing-module))
+                                                    level level-of-enclosing-module
+                                                    sub-identifier-binding-directives mods))
                              (syntax->list (syntax ((xss ...) ...)))
                              (syntax->list (syntax (es ...))))
                    (for-each loop (syntax->list (syntax (es ...))))
@@ -334,7 +337,8 @@
                  (for-each collect-general-info (syntax->list (syntax (bindings ...))))
                  (with-syntax ([(((xss ...) es) ...) (syntax (bindings ...))])
                    (for-each (λ (x es) (add-binders x binders binding-inits es
-                                                    level-of-enclosing-module))
+                                                    level level-of-enclosing-module
+                                                    sub-identifier-binding-directives mods))
                              (syntax->list (syntax ((xss ...) ...)))
                              (syntax->list (syntax (es ...))))
                    (for-each loop (syntax->list (syntax (es ...))))
@@ -386,13 +390,17 @@
               [(define-values vars b)
                (begin
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-                 (add-binders (syntax vars) binders binding-inits #'b level-of-enclosing-module)
+                 (add-binders (syntax vars) binders binding-inits #'b
+                              level level-of-enclosing-module
+                              sub-identifier-binding-directives mods)
                  (add-definition-target (syntax vars) mods)
                  (loop (syntax b)))]
               [(define-syntaxes names exp)
                (begin
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-                 (add-binders (syntax names) binders binding-inits #'exp level-of-enclosing-module)
+                 (add-binders (syntax names) binders binding-inits #'exp
+                              level level-of-enclosing-module
+                              sub-identifier-binding-directives mods)
                  (add-definition-target (syntax names) mods)
                  (level-loop (syntax exp) (+ level 1)))]
               [(begin-for-syntax exp ...)
@@ -529,6 +537,7 @@
                       syntax?
                       exact-nonnegative-integer? exact-nonnegative-integer?
                       (real-in 0 1) (real-in 0 1))))
+
     (define (add-sub-range-binders stx 
                                    sub-identifier-binding-directives 
                                    level
@@ -1167,25 +1176,32 @@
     ;; transforms an argument list into a bunch of symbols/symbols
     ;; and puts them into the id-set
     ;; effect: colors the identifiers
-    (define (add-binders stx id-set binding-to-init init-exp level-of-enclosing-module)
+    (define (add-binders stx id-set binding-to-init init-exp level level-of-enclosing-module
+                         sub-identifier-binding-directives mods)
+      (define (add-id&init&sub-range-binders stx)
+        (add-sub-range-binders stx
+                               sub-identifier-binding-directives
+                               level
+                               level-of-enclosing-module
+                               mods)
+        (when binding-to-init
+          (add-init-exp binding-to-init stx init-exp level-of-enclosing-module))
+        (add-id id-set stx level-of-enclosing-module))
       (let loop ([stx stx])
         (let ([e (if (syntax? stx) (syntax-e stx) stx)])
           (cond
             [(cons? e)
-             (let ([fst (car e)]
-                   [rst (cdr e)])
-               (if (syntax? fst)
-                   (begin
-                     (when binding-to-init
-                       (add-init-exp binding-to-init fst init-exp level-of-enclosing-module))
-                     (add-id id-set fst level-of-enclosing-module)
-                     (loop rst))
-                   (loop rst)))]
+             (define fst (car e))
+             (define rst (cdr e))
+             (cond
+               [(syntax? fst)
+                (add-id&init&sub-range-binders fst)
+                (loop rst)]
+               [else
+                (loop rst)])]
             [(null? e) (void)]
             [else
-             (when binding-to-init
-               (add-init-exp binding-to-init stx init-exp level-of-enclosing-module))
-             (add-id id-set stx level-of-enclosing-module)]))))
+             (add-id&init&sub-range-binders stx)]))))
     
     ;; add-definition-target : syntax[(sequence of identifiers)] (listof symbol) -> void
     (define (add-definition-target stx mods)

@@ -220,3 +220,48 @@
                    '((6 12 0.5 0.5) (36 41 0.5 0.5)) ;; point to any/c
                    '((31 32 0.5 0.5) (42 43 0.5 0.5))))  ;; from f to f
 
+
+(let ([prefix
+       (string-append
+        "#lang racket\n"
+        "(define-syntax (def-a/boxed-a stx)\n"
+        "  (syntax-case stx ()\n"
+        "    [(_ base-name base-val)\n"
+        "     (let ()\n"
+        "       (define base-len (string-length (symbol->string (syntax-e #'base-name))))\n"
+        "       (define boxed-name\n"
+        "         (datum->syntax #'base-name\n"
+        "                        (string->symbol (format \"~a-boxed\" (syntax-e #'base-name)))\n"
+        "                        #'base-name))\n"
+        "       #`(begin\n"
+        "           (define base-name base-val)\n"
+        "           (define #,(syntax-property\n"
+        "                      boxed-name 'sub-range-binders\n"
+        "                      (list (vector (syntax-local-introduce boxed-name)\n"
+        "                                    0 base-len 0.5 0.5\n"
+        "                                    (syntax-local-introduce #'base-name)\n"
+        "                                    0 base-len 0.5 0.5)))\n"
+        "             (box base-val))))]))\n"
+        "\n")])
+  (define all-arrows
+    (get-binding-arrows/pxpy
+     (string-append
+      prefix
+      "(def-a/boxed-a bar2 22)\n"
+      "bar2-boxed\n")))
+  (check-equal?
+   (for/set ([arrow (in-list all-arrows)]
+             #:when
+             ;; make sure the arrow doesn't originate in the prefix
+             ;; (not interested in testing those arrows)
+             (let* ([start (list-ref arrow 0)]
+                    [offset (list-ref start 0)])
+               (> offset (string-length prefix))))
+     (define (subtract-prefix arr)
+       (list (- (list-ref arr 0) (string-length prefix))
+             (- (list-ref arr 1) (string-length prefix))
+             (list-ref arr 2)
+             (list-ref arr 3)))
+     (list (subtract-prefix (list-ref arrow 0))
+           (subtract-prefix (list-ref arrow 1))))
+   (set '((15 19 0.5 0.5) (24 28 0.5 0.5)))))

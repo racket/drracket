@@ -732,6 +732,7 @@ If the leaf is a vector, the first syntax object is expected to be an identifier
 bound occurrences should have arrows that point to the syntax object in the sixth
 position in the vector. The numbers indicate the starting point and the range inside
 the corresponding identifier to consider as the location of the end of the arrow.
+The property is looked for in expression positions and on binding identifiers.
 Here's an example:
 
 @codeblock{#lang racket/base
@@ -813,6 +814,10 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
 Finally, Check Syntax draws arrows only between identifiers that are @racket[syntax-original?]
 or that have the @racket[syntax-property] @indexed-racket['original-for-check-syntax]
 set to @racket[#t].
+
+@history[#:changed "1.3" @list{
+          Looks for @racket['sub-range-binders]
+          on binding identifiers (not just in expression positions).}]
 
 @section{Cooperating with Background Check Syntax}
 
