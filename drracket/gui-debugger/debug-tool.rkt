@@ -1367,10 +1367,6 @@
         
         (define/public (hide-debug)
           (when (member debug-panel (send debug-parent-panel get-children))
-            (for ([x (in-list (continuation-mark-set->context
-                               (current-continuation-marks)))])
-              (printf "  ~s\n" x))
-            (printf "----\n")
             (send debug-grandparent-panel change-children
                   (lambda (l) (remq stack-view-panel l)))
             (send debug-parent-panel change-children
