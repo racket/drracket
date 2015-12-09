@@ -377,6 +377,8 @@
             [(quote _) expr]
             
             [(quote-syntax _) expr]
+
+            [(quote-syntax _ #:local) expr]
             
             [(with-continuation-mark key mark body)
              (quasisyntax/loc expr (with-continuation-mark key
