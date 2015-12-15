@@ -138,7 +138,7 @@ that actually does drawing in a window.
           (- (/ cw 2) (/ ada-w 2))
           (- (/ ch 2) (/ ada-h 2)))))
 
-(define bernoulli-sequence-pict (make-bernoulli-sequence-pict 50))
+(define bernoulli-sequence-pict (freeze (make-bernoulli-sequence-pict 50)))
 (define (draw-splash-ada dc current max width height)
   (send dc clear)
   (draw-ada dc (/ current max) width height) #t)
