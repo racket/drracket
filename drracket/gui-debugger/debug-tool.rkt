@@ -188,56 +188,68 @@
         (define mouse-over-pos #f)
         (super-instantiate ())
         
+        (define ignore-modification? #f)
+        (define/augment (begin-metadata-changes)
+          (inner (void) begin-metadata-changes)
+          (set! ignore-modification? #t))
+        (define/augment (end-metadata-changes)
+          (inner (void) end-metadata-changes)
+          (set! ignore-modification? #f))
+        
         (define/augment (on-delete start len)
-          (begin-edit-sequence)
-          (let ([breakpoints (send (get-tab) get-breakpoints)]
-                [shifts empty])
-            (hash-for-each
-             breakpoints
-             (lambda (pos status)
-               (cond
-                 ; deletion after breakpoint: no effect
-                 [(<= pos start)]
-                 ; deletion of breakpoint: remove from table
-                 [(and (< start pos)
-                       (<= pos (+ start len)))
-                  (hash-remove! breakpoints pos)]
-                 ; deletion before breakpoint: shift breakpoint
-                 [(> pos (+ start len))
-                  (hash-remove! breakpoints pos)
-                  (set! shifts (cons (cons (- pos len) status) shifts))])))
-            (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
-                      shifts))
+          (unless ignore-modification?
+            (begin-edit-sequence)
+            (let ([breakpoints (send (get-tab) get-breakpoints)]
+                  [shifts empty])
+              (hash-for-each
+               breakpoints
+               (lambda (pos status)
+                 (cond
+                   ; deletion after breakpoint: no effect
+                   [(<= pos start)]
+                   ; deletion of breakpoint: remove from table
+                   [(and (< start pos)
+                         (<= pos (+ start len)))
+                    (hash-remove! breakpoints pos)]
+                   ; deletion before breakpoint: shift breakpoint
+                   [(> pos (+ start len))
+                    (hash-remove! breakpoints pos)
+                    (set! shifts (cons (cons (- pos len) status) shifts))])))
+              (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
+                        shifts)))
           (inner (void) on-delete start len))
         
         (define/augment (after-delete start len)
           (inner (void) after-delete start len)
-          (when (send (get-tab) debug?)
-            (send (get-tab) hide-debug))
-          (end-edit-sequence))
+          (unless ignore-modification?
+            (when (send (get-tab) debug?)
+              (send (get-tab) hide-debug))
+            (end-edit-sequence)))
         
         (define/augment (on-insert start len)
-          (begin-edit-sequence)
-          (let ([breakpoints (send (get-tab) get-breakpoints)]
-                [shifts empty])
-            (hash-for-each
-             breakpoints
-             (lambda (pos status)
-               (when (< start pos)
-                 ;; text inserted before this breakpoint, so shift
-                 ;; the breakpoint forward by <len> positions
-                 (hash-remove! breakpoints pos)
-                 (set! shifts (cons (cons (+ pos len) status) shifts)))))
-            ;; update the breakpoint locations
-            (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
-                      shifts))
-          (inner (void) on-insert start len))
+          (inner (void) on-insert start len)
+          (unless ignore-modification?
+            (begin-edit-sequence)
+            (let ([breakpoints (send (get-tab) get-breakpoints)]
+                  [shifts empty])
+              (hash-for-each
+               breakpoints
+               (lambda (pos status)
+                 (when (< start pos)
+                   ;; text inserted before this breakpoint, so shift
+                   ;; the breakpoint forward by <len> positions
+                   (hash-remove! breakpoints pos)
+                   (set! shifts (cons (cons (+ pos len) status) shifts)))))
+              ;; update the breakpoint locations
+              (for-each (lambda (p) (hash-set! breakpoints (car p) (cdr p)))
+                        shifts))))
         
         (define/augment (after-insert start len)
           (inner (void) after-insert start len)
-          (when (send (get-tab) debug?)
-            (send (get-tab) hide-debug))
-          (end-edit-sequence))
+          (unless ignore-modification?
+            (when (send (get-tab) debug?)
+              (send (get-tab) hide-debug))
+            (end-edit-sequence)))
         
         ;; lookup id in the given set of stack frames;
         ;; if that fails, try the top-level environment
