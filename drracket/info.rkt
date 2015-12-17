@@ -17,7 +17,7 @@
                "profile-lib"
                "sandbox-lib"
                ("scribble-lib" #:version "1.11")
-               "snip-lib"
+               ("snip-lib" #:version "1.2")
                ("string-constants-lib" #:version "1.3")
                "typed-racket-lib"
                "wxme-lib"

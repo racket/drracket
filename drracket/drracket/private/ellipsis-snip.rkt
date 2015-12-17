@@ -77,7 +77,7 @@
       (send f put (bytes-length b) b))
     (super-new)
     (inherit set-flags get-flags get-admin set-snipclass set-count)
-    (set-flags (cons 'handles-all-mouse-events (get-flags)))
+    (set-flags (list* 'handles-between-events 'handles-all-mouse-events (get-flags)))
     (set-snipclass snipclass)
     (set-count (send str-snip get-count))))
 
