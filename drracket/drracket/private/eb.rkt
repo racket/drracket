@@ -50,14 +50,16 @@
     (draw-single-loop hebrew-str bdc (+ (- (* 2 pi) offset) (* 2 pi)) (/ main-size 2) (/ main-size 2) 70 20 inner-color)
     (refresh-splash))
   
-  (define gc-b
+  (define-values (gc-b gc-nb)
     (with-handlers ([exn:fail? (lambda (x)
                                  (printf "~s\n" (exn-message x))
-                                 #f)])
-      (let ([b (make-object bitmap% (collection-file-path "recycle.png" "icons"))])
+                                 (values #f #f))])
+      (let* ([b (make-object bitmap% (collection-file-path "recycle.png" "icons"))]
+             [nb (make-object bitmap% (send b get-width) (send b get-height))])
         (cond
           [(send b ok?)
            (let ([gbdc (make-object bitmap-dc% b)]
+                 [gnbdc (make-object bitmap-dc% nb)]
                  [ebdc (make-object bitmap-dc% eli)]
                  [color1 (make-object color%)]
                  [color2 (make-object color%)]
@@ -77,12 +79,14 @@
                              (avg (send color1 green) (send color2 green))
                              (avg (send color1 blue) (send color2 blue)))
                        (send gbdc set-pixel x y color1)
+                       (send gnbdc set-pixel x y color2)
                        (loop (- j 1)))))
                  (loop (- i 1))))
              (send gbdc set-bitmap #f)
+             (send gnbdc set-bitmap #f)
              (send ebdc set-bitmap #f)
-             b)]
-          [else #f]))))
+             (values b nb))]
+          [else (values #f #f)]))))
   
   
   (define (eli-paint dc)
@@ -107,7 +111,7 @@
                                              (/ (send gc-b get-height) 2)))
                                    (send gc-b get-width)
                                    (send gc-b get-height)
-                                   gc-b gc-b))
+                                   gc-b gc-nb))
        (send splash-canvas refresh)
        (unless draw-thread
          (start-thread))]))
