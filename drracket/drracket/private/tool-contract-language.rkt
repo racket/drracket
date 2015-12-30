@@ -3,7 +3,7 @@
   (provide (rename -#%module-begin #%module-begin)
            (all-from-except mzscheme #%module-begin))
   
-  (require mzlib/contract)
+  (require racket/contract)
   (require-for-syntax mzlib/list)
   
   (define-syntax (-#%module-begin stx)

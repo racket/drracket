@@ -2,7 +2,7 @@
 
   (require mzlib/list
            racket/undefined
-	   mzlib/contract
+	   racket/contract
            (prefix-in mz: mzscheme))
 
   (define-struct full-mark-struct (module-name source label bindings values))
