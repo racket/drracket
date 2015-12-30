@@ -129,7 +129,7 @@
 
         (test:menu-select "File" "New Tab")
         (use-get/put-dialog (λ () 
-                               (test:menu-select "File" "Open..."))
+                               (test:menu-select "File" "Open…"))
                             (build-path dir "popcomp-pkg" "popcomp" "main.rkt"))
 
         (queue-callback/res (λ () (send drs change-to-tab (car (send drs get-tabs)))))

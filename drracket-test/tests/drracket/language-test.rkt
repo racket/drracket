@@ -1743,7 +1743,7 @@ the settings above should match r5rs
             (cond
               [(eq? item 'image)
                (use-get/put-dialog 
-                (lambda () (fw:test:menu-select "Insert" "Insert Image..."))
+                (lambda () (fw:test:menu-select "Insert" "Insert Image…"))
                 (simplify-path (build-path (collection-file-path "recycle.png" "icons"))))]
               [(string? item)
                (insert-in-definitions drs item)]

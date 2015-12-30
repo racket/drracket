@@ -119,7 +119,7 @@ and then loading the framework after that.
            (error function-name "drracket frame not frontmost: ~e (found ~e)" frame tl))))
      
      (define (set-module-language! drr-frame)
-       (test:menu-select "Language" "Choose Language...")
+       (test:menu-select "Language" "Choose Language…")
        (define language-dialog (wait-for-new-frame drr-frame))
        (test:set-radio-box-item! #rx"The Racket Language")
        

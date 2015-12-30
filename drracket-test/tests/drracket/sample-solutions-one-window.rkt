@@ -91,12 +91,12 @@
             (fw:test:menu-select "Language" "Clear All Teachpacks")
             (use-get/put-dialog
              (lambda ()
-               (fw:test:menu-select "Language" "Add Teachpack..."))
+               (fw:test:menu-select "Language" "Add Teachpack…"))
              sample-solutions-teachpack-filename)
             (for-each (lambda (teachpack)
                         (use-get/put-dialog
                          (lambda ()
-                           (fw:test:menu-select "Language" "Add Teachpack..."))
+                           (fw:test:menu-select "Language" "Add Teachpack…"))
                          (get-full-path teachpack)))
                       teachpacks)))
         (do-execute drs-frame)

@@ -24,7 +24,7 @@ to DrRacket and then tries out the keystrokes.
    
    (use-get/put-dialog 
     (λ ()
-      (test:menu-select "Edit" "Keybindings" "Add User-defined Keybindings..."))
+      (test:menu-select "Edit" "Keybindings" "Add User-defined Keybindings…"))
     (collection-file-path "incremental-keybindings.rkt" 
                           "scribblings"
                           "drracket"))

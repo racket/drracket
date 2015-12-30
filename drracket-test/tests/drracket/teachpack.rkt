@@ -38,7 +38,7 @@
                   'truncate)
                 (use-get/put-dialog
                  (lambda ()
-                   (fw:test:menu-select "Language" "Add Teachpack..."))
+                   (fw:test:menu-select "Language" "Add Teachpack…"))
                  tp-name)
                 (cons tp-name (loop (cdr tp-exps) (+ n 1))))]))])
     
@@ -72,7 +72,7 @@
       'truncate)
     (use-get/put-dialog
      (lambda ()
-       (fw:test:menu-select "Language" "Add Teachpack..."))
+       (fw:test:menu-select "Language" "Add Teachpack…"))
      tp-name)
     (let ([dialog
            (with-handlers ([(lambda (x) #t)
@@ -102,7 +102,7 @@
       'truncate)
     (use-get/put-dialog
      (lambda ()
-       (fw:test:menu-select "Language" "Add Teachpack..."))
+       (fw:test:menu-select "Language" "Add Teachpack…"))
      tp-name)
     (do-execute drs-frame #f)
     (let ([dialog
@@ -197,7 +197,7 @@
                   (regexp-match #rx"^info[.][^.]*$" (path->string teachpack)))
         (printf "  testing ~a\n" teachpack)
         (fw:test:menu-select "Language" "Clear All Teachpacks")
-        (fw:test:menu-select "Language" "Add Teachpack...")
+        (fw:test:menu-select "Language" "Add Teachpack…")
         (wait-for-new-frame drs-frame)
         (define tp-dialog (test:get-active-top-level-window))
         (define choice 

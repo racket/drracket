@@ -168,6 +168,6 @@
       (define drs (wait-for-first-frame))
       (case which-dialog
         [(language-dialog)
-         (g (λ () (test:menu-select "Language" "Choose Language...")))]
+         (g (λ () (test:menu-select "Language" "Choose Language…")))]
         [(preferences-dialog)
          (g (λ () (preferences:show-dialog)))])))))

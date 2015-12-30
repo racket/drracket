@@ -48,7 +48,7 @@
     (not-on-eventspace-handler-thread 'save-drracket-window-as)
     (use-get/put-dialog
      (lambda ()
-       (fw:test:menu-select "File" "Save Definitions As..."))
+       (fw:test:menu-select "File" "Save Definitions As…"))
      filename))
 
   ;; open-dialog is a thunk that should open the dialog
@@ -329,7 +329,7 @@
                in-language-spec))
       (not-on-eventspace-handler-thread 'set-language-level!)
       (let ([drs-frame (fw:test:get-active-top-level-window)])
-        (fw:test:menu-select "Language" "Choose Language...")
+        (fw:test:menu-select "Language" "Choose Language…")
         (define language-dialog (wait-for-new-frame drs-frame))
         (fw:test:set-radio-box-item! #rx"Other Languages")
         (define language-choices (find-labelled-windows #f hierarchical-list%
@@ -413,7 +413,7 @@
   (define (set-module-language! [close-dialog? #t])
     (not-on-eventspace-handler-thread 'set-module-language!)
     (let ([drs-frame (fw:test:get-active-top-level-window)])
-      (fw:test:menu-select "Language" "Choose Language...")
+      (fw:test:menu-select "Language" "Choose Language…")
       (let* ([language-dialog (wait-for-new-frame drs-frame)])
         (fw:test:set-radio-box-item! #rx"The Racket Language")
         

@@ -11,7 +11,7 @@
  (λ ()
    (define drr (wait-for-drracket-frame))
    (queue-callback/res (λ () (send (send drr get-definitions-canvas) focus)))
-   (test:menu-select "Insert" "Insert Large Letters...")
+   (test:menu-select "Insert" "Insert Large Letters…")
    (define insert-frame (wait-for-new-frame drr))
    (for ([c (in-string "TR Rulez!")])
      (test:keystroke c))

@@ -35,7 +35,7 @@
        (test:menu-select "File" (if (eq? (system-type) 'unix) "Close" "Close Tab"))
        (use-get/put-dialog 
         (λ () 
-          (test:menu-select "File" "Open..."))
+          (test:menu-select "File" "Open…"))
         fn)
        (do-execute drr-frame)
        (let ([result (fetch-output
