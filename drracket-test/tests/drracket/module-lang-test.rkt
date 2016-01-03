@@ -272,10 +272,10 @@
       @rx{expt: contract violation.*given: #<void>})
 (test @t{#lang racket/base}
       @t{1 2 ( 3 4}
-      @t{1@"\n"2@"\n". . read: expected a `)' to close `('})
+      #rx"1\n2\n[.][^\n]*read: expected a `[)]' to close `[(]'")
 (test @t{#lang racket/base}
       "1 2 . 3 4"
-      "1\n2\n. . read: illegal use of `.'")
+      #rx"1\n2\n[.][^\n]*read: illegal use of `[.]'")
 (test @t{#lang racket/base}
       "1 2 (lambda ()) 3 4"
       "1\n2\n. lambda: bad syntax in: (lambda ())")
