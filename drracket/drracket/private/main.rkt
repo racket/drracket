@@ -77,6 +77,8 @@
 
 (application:current-app-name (string-constant drscheme))
 
+(preferences:set-default 'drracket:define-popup-hidden-prefixes '() (listof string?))
+
 (preferences:set-default 'drracket:tried-materialize-user-docs
                          (not (equal? (system-type) 'macosx))
                          boolean?)

@@ -47,6 +47,8 @@
 
 (provide unit@)
 
+(define define-menu-configure (string-constant define-menu-configure))
+
 (define module-browser-progress-constant (string-constant module-browser-progress))
 (define status-compiling-definitions (string-constant module-browser-compiling-defns))
 (define show-lib-paths (string-constant module-browser-show-lib-paths/short))
@@ -1013,14 +1015,16 @@
              (let* ([language-settings (send (send frame get-definitions-text) get-next-settings)]
                     [new-language (drracket:language-configuration:language-settings-language
                                    language-settings)]
-                    [capability-info (send new-language capability-value 'drscheme:define-popup)])
+                    [capability-info
+                     (get-define-popup-info
+                      (send new-language capability-value 'drscheme:define-popup))])
                (when capability-info
                  (let* ([current-pos (get-pos editor event)]
                         [current-word (and current-pos (get-current-word editor current-pos))]
                         [defn (and current-word
                                    (ormap (λ (defn) (and (string=? current-word (defn-name defn))
                                                          defn))
-                                          (get-definitions (car capability-info)
+                                          (get-definitions capability-info
                                                            #f
                                                            editor)))])
                    (when defn
@@ -1070,69 +1074,100 @@
                                (string-constant sort-by-name))))
       
       (define define-popup-capability-info
-        (drracket:language:get-capability-default 'drscheme:define-popup))
+        (get-define-popup-info
+         (drracket:language:get-capability-default 'drscheme:define-popup)))
       
       (inherit set-message set-hidden?)
       (define/public (language-changed new-language vertical?)
         (set! define-popup-capability-info
-              (send new-language capability-value 'drscheme:define-popup))
-        (let ([define-name (get-define-popup-name define-popup-capability-info
-                                                  vertical?)])
-          (cond
-            [define-name
-              (set-message #f define-name)
-              (set-hidden? #f)]
-            [else
-             (set-hidden? #t)])))
+              (get-define-popup-info
+               (send new-language capability-value 'drscheme:define-popup)))
+        (define define-name
+          (get-define-popup-name define-popup-capability-info
+                                 vertical?))
+        (cond
+          [define-name
+            (set-message #f define-name)
+            (set-hidden? #f)]
+          [else
+           (set-hidden? #t)]))
       (define/override (fill-popup menu reset)
         (when define-popup-capability-info
-          (let* ([text (send frame get-definitions-text)]
-                 [unsorted-defns (get-definitions (car define-popup-capability-info)
-                                                  (not sort-by-name?)
-                                                  text)]
-                 [defns (if sort-by-name?
+          (define text (send frame get-definitions-text))
+          (define hidden-prefixes (preferences:get 'drracket:define-popup-hidden-prefixes))
+          (define popup-infos-to-use
+            (for/list ([a-define-popup-capability-info (in-list define-popup-capability-info)]
+                       #:unless (member (define-popup-info-long-name a-define-popup-capability-info)
+                                        hidden-prefixes))
+              a-define-popup-capability-info))
+          (define unsorted-defns (get-definitions popup-infos-to-use (not sort-by-name?) text))
+          (define defns (if sort-by-name?
                             (sort
                              unsorted-defns
                              (λ (x y) (string-ci<=? (defn-name x) (defn-name y))))
-                            unsorted-defns)])
-            (make-object menu:can-restore-menu-item% sorting-name
-              menu
-              (λ (x y)
-                (change-sorting-order)))
-            (make-object separator-menu-item% menu)
-            (if (null? defns)
-                (send (make-object menu:can-restore-menu-item%
-                        (string-constant no-definitions-found)
-                        menu
-                        void)
-                      enable #f)
-                (let loop ([defns defns])
-                  (unless (null? defns)
-                    (let* ([defn (car defns)]
-                           [checked? 
-                            (let ([t-start (send text get-start-position)]
-                                  [t-end (send text get-end-position)]
-                                  [d-start (defn-start-pos defn)]
-                                  [d-end (defn-end-pos defn)])
-                              (or (<= t-start d-start t-end)
-                                  (<= t-start d-end t-end)
-                                  (<= d-start t-start t-end d-end)))]
-                           [item
-                            (make-object (if checked?
-                                             menu:can-restore-checkable-menu-item%
-                                             menu:can-restore-menu-item%)
-                              (gui-utils:quote-literal-label (defn-name defn))
-                              
-                              menu
-                              (λ (x y)
-                                (reset)
-                                (send text set-position (defn-start-pos defn) (defn-start-pos defn))
-                                (let ([canvas (send text get-canvas)])
-                                  (when canvas
-                                    (send canvas focus)))))])
-                      (when checked?
-                        (send item check #t))
-                      (loop (cdr defns)))))))))
+                            unsorted-defns))
+          (cond
+            [(= 1 (length define-popup-capability-info))
+             (new menu:can-restore-menu-item%
+                  [label sorting-name]
+                  [parent menu]
+                  [callback (λ (x y) (change-sorting-order))])]
+            [else
+             (define config-menu (new menu% [parent menu] [label define-menu-configure]))
+             (new menu:can-restore-menu-item%
+                  [label sorting-name]
+                  [parent config-menu]
+                  [callback (λ (x y) (change-sorting-order))])
+             (for ([a-define-popup-capability-info (in-list define-popup-capability-info)])
+               (define lab (define-popup-info-long-name a-define-popup-capability-info))
+               (define item
+                 (new menu:can-restore-checkable-menu-item%
+                      [label lab]
+                      [parent config-menu]
+                      [callback
+                       (λ (_1 _2)
+                         (define curr (preferences:get 'drracket:define-popup-hidden-prefixes))
+                         (define new
+                           (if (send item is-checked?)
+                               (remove lab curr)
+                               (remove-duplicates (cons lab curr))))
+                         (preferences:set 'drracket:define-popup-hidden-prefixes new))]))
+               (send item check (not (member lab hidden-prefixes))))])
+          
+          (make-object separator-menu-item% menu)
+          (if (null? defns)
+              (send (make-object menu:can-restore-menu-item%
+                      (string-constant no-definitions-found)
+                      menu
+                      void)
+                    enable #f)
+              (let loop ([defns defns])
+                (unless (null? defns)
+                  (let* ([defn (car defns)]
+                         [checked?
+                          (let ([t-start (send text get-start-position)]
+                                [t-end (send text get-end-position)]
+                                [d-start (defn-start-pos defn)]
+                                [d-end (defn-end-pos defn)])
+                            (or (<= t-start d-start t-end)
+                                (<= t-start d-end t-end)
+                                (<= d-start t-start t-end d-end)))]
+                         [item
+                          (make-object (if checked?
+                                           menu:can-restore-checkable-menu-item%
+                                           menu:can-restore-menu-item%)
+                            (gui-utils:quote-literal-label (defn-name defn))
+                            
+                            menu
+                            (λ (x y)
+                              (reset)
+                              (send text set-position (defn-start-pos defn) (defn-start-pos defn))
+                              (let ([canvas (send text get-canvas)])
+                                (when canvas
+                                  (send canvas focus)))))])
+                    (when checked?
+                      (send item check #t))
+                    (loop (cdr defns))))))))
       
       (super-new (label "(define ...)") ;; this default is quickly changed
                  [string-constant-untitled (string-constant untitled)]
@@ -2013,8 +2048,10 @@
           
           (let* ([settings (send definitions-text get-next-settings)]
                  [language (drracket:language-configuration:language-settings-language settings)]
-                 [name (get-define-popup-name (send language capability-value 'drscheme:define-popup)
-                                              vertical?)])
+                 [name (get-define-popup-name
+                        (get-define-popup-info
+                         (send language capability-value 'drscheme:define-popup))
+                        vertical?)])
             (when name
               (send func-defs-canvas set-message #f name)))
           (send name-message set-short-title vertical?)
@@ -4823,18 +4860,21 @@
       (set-color-status! (send definitions-text is-lexer-valid?))
       (send definitions-canvas focus)))
   
-  ;; get-define-popup-name : (or/c #f (cons/c string? string?) (list/c string? string? string))
-  ;;                         boolean 
-  ;;                      -> (or/c #f string?)
-  (define (get-define-popup-name info vertical?)
-    (and info
-         (if vertical?
-             (if (pair? (cdr info))
-                 (list-ref info 2)
-                 "δ")
-             (if (pair? (cdr info))
-                 (list-ref info 1)
-                 (cdr info)))))
+  (define (get-define-popup-name infos vertical?)
+    (cond
+      [infos
+       (define hidden-prefixes (preferences:get 'drracket:define-popup-hidden-prefixes))
+       (define visible-infos
+         (for/list ([info (in-list infos)]
+                    #:unless (member (define-popup-info-long-name info)
+                                     hidden-prefixes))
+           info))
+       (define the-info (if (null? visible-infos) (car infos) (car visible-infos)))
+       (if vertical?
+           (define-popup-info-short-name the-info)
+           (define-popup-info-long-name the-info))]
+      [else
+       #f]))
   
   
   (define execute-warning-canvas%
