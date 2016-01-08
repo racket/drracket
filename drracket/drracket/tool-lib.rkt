@@ -36,12 +36,14 @@ all of the names in the tools library, for use defining keybindings
 (require (for-doc drracket/private/ts
                   racket/base scribble/manual
                   scribblings/tools/doc-util
+                  (for-syntax racket/base)
                   (for-label errortrace/errortrace-key
                              racket/place
                              racket/pretty 
                              mzlib/pconvert
                              syntax/toplevel
-                             drracket/tool-lib)))
+                             drracket/tool-lib
+                             string-constants)))
 
 ;; these two declarations produce all of the struct names
 ;; but with "drscheme" in front instead of drracket
@@ -1621,18 +1623,29 @@ all of the names in the tools library, for use defining keybindings
     and a contract on the values the capability might have.
     
     By default, these capabilities are registered as DrRacket starts up:
-    @(let-syntax ([cap (syntax-rules ()
-                         [(cap key contract default desc ...)
-                          (item @racket['key : contract = default]
-                                "--- " desc ...)])])
+    @(let-syntax ([cap
+                   (λ (stx)
+                     (syntax-case stx ()
+                       [(_ block? key contract default desc ...)
+                        (begin
+                          (unless (boolean? (syntax-e #'block?))
+                            (raise-syntax-error 'cap "expected a boolean" stx #'block?))
+                          #`(item
+                             @index[(list "drracket capability" (symbol->string 'key))]{@racket['key]}
+                             " " @racket[:]
+                             #,(if (syntax-e #'block?)
+                                   #'@racketblock[contract]
+                                   #'(list " " @racket[contract] " "))
+                             @racket[= default]
+                             " --- " desc ...))]))])
        (itemize
-        @cap[drracket:check-syntax-button boolean? #t]{controls the visiblity of
+        @cap[#f drracket:check-syntax-button boolean? #t]{controls the visiblity of
                                                        the check syntax button}
-        @cap[drracket:language-menu-title string?
+        @cap[#f drracket:language-menu-title string?
              (string-constant scheme-menu-name)]{
           controls the name of the menu just to the right of the language
           menu (named ``Racket'' by default)}
-        @cap[drscheme:define-popup
+        @cap[#t drscheme:define-popup
              (or/c #f
                    (list/c string? string? string?)
                    (cons/c string? string?))
@@ -1647,44 +1660,48 @@ all of the names in the tools library, for use defining keybindings
           
           The pair of strings alternative is deprecated. If it is used, 
           the pair @racket[(cons a-str b-str)] is the same as @racket[(list a-str b-str "δ")].}
-        @cap[drscheme:help-context-term (or/c false/c string?) #f]{
+        @cap[#f drscheme:help-context-term (or/c false/c string?) #f]{
           specifies a context query for documentation searches that are
           initiated in this language, can be @racket[#f] (no change to the
           user's setting) or a string to be used as a context query (note: the
           context is later maintained as a cookie, @racket[""] is different
           from @racket[#f] in that it clears the stored context)}
-        @cap[drscheme:special:insert-fraction boolean? #t]{
+        @cap[#f drscheme:special:insert-fraction boolean? #t]{
           determines if the insert fraction menu item in the special menu is
           visible}
-        @cap[drscheme:special:insert-lambda boolean? #t]{
+        @cap[#f drscheme:special:insert-lambda boolean? #t]{
           determines if the insert lambda menu item in the special menu is
           visible}
-        @cap[drscheme:special:insert-large-letters boolean? #t]{
+        @cap[#f drscheme:special:insert-large-letters boolean? #t]{
           determines if the insert large letters menu item in the special menu
           is visible}
-        @cap[drscheme:special:insert-image boolean? #t]{
+        @cap[#f drscheme:special:insert-image boolean? #t]{
           determines if the insert image menu item in the special menu is
           visible}
-        @cap[drscheme:special:insert-comment-box boolean? #t]{
+        @cap[#f drscheme:special:insert-comment-box boolean? #t]{
           determines if the insert comment box menu item in the special menu
           is visible}
-        @cap[drscheme:special:insert-gui-tool boolean? #t]{
+        @cap[#f drscheme:special:insert-gui-tool boolean? #t]{
           determines if the insert gui menu item in the special menu is
           visible}
-        @cap[drscheme:special:slideshow-menu-item boolean? #t]{
+        @cap[#f drscheme:special:slideshow-menu-item boolean? #t]{
           determines if the insert pict box menu item in the special menu is
           visible}
-        @cap[drscheme:special:insert-text-box boolean? #t]{
+        @cap[#f drscheme:special:insert-text-box boolean? #t]{
           determines if the insert text box menu item in the special menu is
           visible}
-        @cap[drscheme:special:xml-menus boolean? #t]{
+        @cap[#f drscheme:special:xml-menus boolean? #t]{
           determines if the insert scheme box, insert scheme splice box, and
           the insert xml box menu item in the special menu are visible}
-        @cap[drscheme:autocomplete-words (listof string?) '()]{
+        @cap[#f drscheme:autocomplete-words (listof string?) '()]{
           determines the list of words that are used when completing words in
           this language}
-        @cap[drscheme:tabify-menu-callback
-             (or/c false/c (-> (is-a?/c text%) number? number? void?))
+        @cap[#t drscheme:tabify-menu-callback
+             (or/c (-> (is-a?/c text%)
+                       number?
+                       number?
+                       void?)
+                   #f)
              (λ (t a b) (send t tabify-selection a b))]{
           is used as the callback when the ``Reindent'' or ``Reindent All''
           menu is selected. The first argument is the editor, and the second
