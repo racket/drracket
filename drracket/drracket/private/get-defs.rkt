@@ -3,52 +3,84 @@
 (require racket/class
          racket/function
          racket/list
+         racket/contract
          string-constants)
 
 (provide (struct-out defn)
-         get-definitions)
+         get-definitions
+         get-define-popup-info
+         (struct-out define-popup-info))
 
 ;; defn = (make-defn number string number number)
 (define-struct defn (indent name start-pos end-pos) #:mutable)
 
+(struct define-popup-info (prefix long-name short-name) #:transparent)
+
+;; get-define-popup-info :
+;; valid-configurations-as-specified-in-the-drscheme:defined-popup-docs
+;; -> (or/c (non-empty-listof define-popup-info) #f)
+(define (get-define-popup-info cap)
+  (cond
+    [(not cap) #f]
+    [((cons/c string? string?) cap)
+     (list (define-popup-info (car cap) (cdr cap) "δ"))]
+    [((list/c string? string? string?) cap)
+     (list (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)))]
+    [((listof (list/c string? string? string?)) cap)
+     (for/list ([cap (in-list cap)])
+       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)))]
+    [else #f]))
+  
+
 ;; get-definitions : string boolean text -> (listof defn)
-(define (get-definitions tag-string indent? text)
-  (let* ([min-indent 0]
-         [defs (let loop ([pos 0])
-                 (let ([defn-pos (send text find-string tag-string 'forward pos 'eof #t #f)])
-                   (cond
-                     [(not defn-pos) null]
-                     [(in-semicolon-comment? text defn-pos)
-                      (loop (+ defn-pos (string-length tag-string)))]
-                     [else
-                      (let ([indent (get-defn-indent text defn-pos)]
-                            [name (get-defn-name text (+ defn-pos (string-length tag-string)))])
-                        (set! min-indent (min indent min-indent))
-                        (cons (make-defn indent name defn-pos defn-pos)
-                              (loop (+ defn-pos (string-length tag-string)))))])))])
-    
-    ;; update end-pos's based on the start pos of the next defn
-    (unless (null? defs)
-      (let loop ([first (car defs)]
-                 [defs (cdr defs)])
-        (cond
-          [(null? defs) 
-           (set-defn-end-pos! first (send text last-position))]
-          [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
-                                              (defn-start-pos first)))
-                (loop (car defs) (cdr defs))])))
-    
-    (when indent?
-      (for-each (λ (defn)
-                  (set-defn-name! defn
-                                  (string-append
-                                   (apply string
-                                          (vector->list
-                                           (make-vector 
-                                            (- (defn-indent defn) min-indent) #\space)))
-                                   (defn-name defn))))
-                defs))
-    defs))
+(define (get-definitions the-define-popup-infos indent? text)
+  (define min-indent 0)
+
+  (define (find-next pos)
+    (for/fold ([found-pos #f] [length #f])
+              ([a-define-popup-info (in-list the-define-popup-infos)])
+      (define tag-string (define-popup-info-prefix a-define-popup-info))
+      (define this-found (send text find-string tag-string 'forward pos 'eof #t #f))
+      (cond
+        [(or (not found-pos) (< this-found found-pos))
+         (values this-found (string-length tag-string))]
+        [else (values found-pos length)])))
+  
+  (define defs
+    (let loop ([pos 0])
+      (define-values (defn-pos tag-length) (find-next pos))
+      (cond
+        [(not defn-pos) null]
+        [(in-semicolon-comment? text defn-pos)
+         (loop (+ defn-pos tag-length))]
+        [else
+         (let ([indent (get-defn-indent text defn-pos)]
+               [name (get-defn-name text (+ defn-pos tag-length))])
+           (set! min-indent (min indent min-indent))
+           (cons (make-defn indent name defn-pos defn-pos)
+                 (loop (+ defn-pos tag-length))))])))
+  
+  ;; update end-pos's based on the start pos of the next defn
+  (unless (null? defs)
+    (let loop ([first (car defs)]
+               [defs (cdr defs)])
+      (cond
+        [(null? defs)
+         (set-defn-end-pos! first (send text last-position))]
+        [else (set-defn-end-pos! first (max (- (defn-start-pos (car defs)) 1)
+                                            (defn-start-pos first)))
+              (loop (car defs) (cdr defs))])))
+  
+  (when indent?
+    (for ([defn (in-list defs)])
+      (set-defn-name! defn
+                      (string-append
+                       (apply string
+                              (vector->list
+                               (make-vector
+                                (- (defn-indent defn) min-indent) #\space)))
+                       (defn-name defn)))))
+  defs)
 
 ;; in-semicolon-comment: text number -> boolean
 ;; returns #t if `define-start-pos' is in a semicolon comment and #f otherwise

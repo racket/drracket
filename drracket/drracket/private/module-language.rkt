@@ -239,6 +239,9 @@
         (cond
           [(eq? key 'drscheme:autocomplete-words)
            (drracket:language-configuration:get-all-manual-keywords)]
+          [(eq? key 'drscheme:define-popup)
+           '(("(define" "(define ...)" "δ")
+             ("(module" "(module ...)" "ρ"))]
           [else (drracket:language:get-capability-default key)]))
       
       ;; config-panel : as in super class

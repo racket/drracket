@@ -1648,6 +1648,7 @@ all of the names in the tools library, for use defining keybindings
         @cap[#t drscheme:define-popup
              (or/c #f
                    (list/c string? string? string?)
+                   (non-empty-listof (list/c string? string? string?))
                    (cons/c string? string?))
              (list "(define" "(define ...)" "δ")]{
           specifies the prefix that the define popup should look for and what
@@ -1657,9 +1658,14 @@ all of the names in the tools library, for use defining keybindings
           the prefix that is looked for when finding definitions. The second
           and third strings are used as the label of the control, in horizontal
           and vertical mode, respectively.
+
+          If it is a list of lists of three strings, then multiple prefixes are used
+          for the definition pop-up. The name of the popup menu is based only on the
+          first element of the list.
           
           The pair of strings alternative is deprecated. If it is used, 
-          the pair @racket[(cons a-str b-str)] is the same as @racket[(list a-str b-str "δ")].}
+          the pair @racket[(cons a-str b-str)] is the same as @racket[(list a-str b-str "δ")].
+         }
         @cap[#f drscheme:help-context-term (or/c false/c string?) #f]{
           specifies a context query for documentation searches that are
           initiated in this language, can be @racket[#f] (no change to the

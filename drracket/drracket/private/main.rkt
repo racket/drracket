@@ -424,8 +424,9 @@
                                        (λ (t a b) (send t tabify-selection a b)))
 (drracket:language:register-capability 'drscheme:autocomplete-words (listof string?) '())
 (drracket:language:register-capability 'drscheme:define-popup
-                                       (or/c (cons/c string? string?) 
-                                             (list/c string? string? string?)
+                                       (or/c (list/c string? string? string?)
+                                             (non-empty-listof (list/c string? string? string?))
+                                             (cons/c string? string?)
                                              #f)
                                        (list "(define" "(define ...)" "δ"))
 
