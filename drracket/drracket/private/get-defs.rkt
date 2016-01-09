@@ -42,7 +42,7 @@
       (define tag-string (define-popup-info-prefix a-define-popup-info))
       (define this-found (send text find-string tag-string 'forward pos 'eof #t #f))
       (cond
-        [(or (not found-pos) (< this-found found-pos))
+        [(or (not found-pos) (and this-found (< this-found found-pos)))
          (values this-found (string-length tag-string))]
         [else (values found-pos length)])))
   
