@@ -6,7 +6,9 @@
 
 (define (get-definitions/string
          string
-         #:define-prefix [define-prefix "(define"])
+         #:define-prefix
+         [define-prefix
+           (list (define-popup-info "(define" "(define ...)" "δ"))])
   (define text (new text%))
   (send text insert (make-object string-snip% string))
   (get-definitions define-prefix #f text))
