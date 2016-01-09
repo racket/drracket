@@ -36,19 +36,48 @@
 (define (get-definitions the-define-popup-infos indent? text)
   (define min-indent 0)
 
-  (define (find-next pos)
-    (for/fold ([found-pos #f] [length #f])
-              ([a-define-popup-info (in-list the-define-popup-infos)])
-      (define tag-string (define-popup-info-prefix a-define-popup-info))
-      (define this-found (send text find-string tag-string 'forward pos 'eof #t #f))
-      (cond
-        [(or (not found-pos) (and this-found (< this-found found-pos)))
-         (values this-found (string-length tag-string))]
-        [else (values found-pos length)])))
+  ;; pos : nat
+  ;; latest-positions : (listof (or/c natural +inf.0 #f))
+  ;;   latest positions are where we found each of these strings in the last go;
+  ;;   with a #f on the one we actually returned as the next result last time
+  ;;   (or all #fs if this is the first time)
+  ;;   in this go, we'll fill in the #fs and then pick the smallest to return
+  (define (find-next pos latest-positions)
+    (define filled-in-positions
+      (for/list ([latest-position (in-list latest-positions)]
+                 [a-define-popup-info (in-list the-define-popup-infos)])
+        (cond
+          [latest-position latest-position]
+          [else
+           (define tag-string (define-popup-info-prefix a-define-popup-info))
+           (or (send text find-string tag-string 'forward pos 'eof #t #f)
+               +inf.0)])))
+    (define-values (smallest-i smallest-pos)
+      (for/fold ([smallest-i #f] [smallest-pos #f])
+                ([pos (in-list filled-in-positions)]
+                 [i (in-naturals)])
+        (cond
+          [(not smallest-i) (values i pos)]
+          [(< pos smallest-pos) (values i pos)]
+          [else (values smallest-i smallest-pos)])))
+    (when (= +inf.0 smallest-pos)
+      (set! smallest-pos #f)
+      (set! smallest-i #f))
+    (define final-positions
+      (for/list ([position (in-list filled-in-positions)]
+                 [i (in-naturals)])
+        (cond
+          [(equal? i smallest-i) #f]
+          [else position])))
+    (values smallest-pos
+            (and smallest-i
+                 (string-length (define-popup-info-prefix
+                                  (list-ref the-define-popup-infos smallest-i))))
+            final-positions))
   
   (define defs
-    (let loop ([pos 0])
-      (define-values (defn-pos tag-length) (find-next pos))
+    (let loop ([pos 0][find-state (map (λ (x) #f) the-define-popup-infos)])
+      (define-values (defn-pos tag-length new-find-state) (find-next pos find-state))
       (cond
         [(not defn-pos) null]
         [(in-semicolon-comment? text defn-pos)
@@ -58,7 +87,8 @@
                [name (get-defn-name text (+ defn-pos tag-length))])
            (set! min-indent (min indent min-indent))
            (cons (make-defn indent name defn-pos defn-pos)
-                 (loop (+ defn-pos tag-length))))])))
+                 (loop (+ defn-pos tag-length)
+                       new-find-state)))])))
   
   ;; update end-pos's based on the start pos of the next defn
   (unless (null? defs)
