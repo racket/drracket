@@ -2537,13 +2537,10 @@
                      lang-wants-big-defs/ints-labels?)
             (define admin (get-admin))
             (when admin
-              (send admin get-view bx by bw bh)
+              (define-values (tx ty tw th) (get-drawing-region admin dc))
               (define α (send dc get-alpha))
               (define fore (send dc get-text-foreground))
               (send dc set-font defs/ints-font)
-              (define-values (tw th _1 _2) (send dc get-text-extent id))
-              (define tx (+ (unbox bx) (- (unbox bw) tw)))
-              (define ty (+ (unbox by) (- (unbox bh) th)))
               (when (rectangles-intersect?
                      left top right bottom
                      tx ty (+ tx tw) (+ ty th))
@@ -2553,6 +2550,37 @@
                 (send dc set-alpha α)
                 (send dc set-text-foreground fore))
               (send dc set-font defs/ints-font)))))
+
+      (define/private (get-drawing-region admin dc)
+        (send admin get-view bx by bw bh)
+        (define-values (tw th _1 _2) (send dc get-text-extent id defs/ints-font))
+        (define tx (+ (unbox bx) (- (unbox bw) tw)))
+        (define ty (+ (unbox by) (- (unbox bh) th)))
+        (values tx ty tw th))
+
+      (define to-invalidate #f)
+      (define/override (on-scroll-to)
+        (super on-scroll-to)
+        (define admin (get-admin))
+        (when admin
+          (define dc (get-dc))
+          (define-values (tx ty tw th) (get-drawing-region admin dc))
+          (set! to-invalidate (vector tx ty tw th))))
+      (define/override (after-scroll-to)
+        (super after-scroll-to)
+        (when to-invalidate
+          (invalidate-bitmap-cache
+           (vector-ref to-invalidate 0)
+           (vector-ref to-invalidate 1)
+           (vector-ref to-invalidate 2)
+           (vector-ref to-invalidate 3))
+          (set! to-invalidate #f))
+        (define admin (get-admin))
+        (when admin
+          (define dc (get-dc))
+          (define-values (tx ty tw th) (get-drawing-region admin dc))
+          (invalidate-bitmap-cache tx ty tw th)))
+      
       (super-new)))
   
   (define bx (box 0))
