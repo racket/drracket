@@ -79,9 +79,9 @@
 
 (preferences:set-default 'drracket:define-popup-hidden-prefixes '() (listof string?))
 
-(preferences:set-default 'drracket:tried-materialize-user-docs
-                         (not (equal? (system-type) 'macosx))
-                         boolean?)
+(preferences:set-default 'drracket:materialized-user-docs-versions
+                         (if (equal? (system-type) 'macosx) '() #f)
+                         (or/c #f (listof string?)))
 
 (preferences:set-default 'drracket:open-module-path-last-used "" string?)
 
