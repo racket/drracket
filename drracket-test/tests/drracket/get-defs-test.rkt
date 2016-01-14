@@ -10,7 +10,7 @@
          [define-prefix
            (list (define-popup-info "(define" "(define ...)" "δ"))])
   (define text (new text%))
-  (send text insert (make-object string-snip% string))
+  (send text insert string)
   (get-definitions define-prefix #f text))
 
 (define-syntax (test-definitions stx)
@@ -21,11 +21,10 @@
                           (get-definitions/string string stuff ...))]
              [expected (list (list name start end) ...)])
          (unless (equal? actual expected)
-           (eprintf "Test failure at ~a\nActual: ~s\nExpected: ~s\n"
-                    (format "~a:~a:~a"
-                            '(syntax-source #'stx)
-                            '(syntax-line #'stx)
-                            '(syntax-column #'stx))
+           (eprintf "Test failure at ~a\nActual:   ~s\nExpected: ~s\n"
+                    (format "~a:~a"
+                            '#,(syntax-source stx)
+                            #,(syntax-line stx))
                     actual
                     expected)))]))
 
@@ -116,3 +115,38 @@ END
  (list (define-popup-info "(define" "(define ...)" "δ")
        (define-popup-info "(module" "(module ...)" "M"))
  (("a" 0 24) ("b" 25 37) ("c" 38 51) ("d" 52 64) ("e" 65 77) ("f" 78 90) ("g" 91 103)))
+
+
+(test-definitions
+ #<<END
+(define a 1)
+;;(define b 2)
+END
+ #:define-prefix
+ (list (define-popup-info "(define" "(define ...)" "δ"))
+ (("a" 0 27)))
+
+(test-definitions
+ #<<END
+(define a 1)
+;;(define b 2)
+(define c 3)
+END
+ #:define-prefix
+ (list (define-popup-info "(define" "(define ...)" "δ"))
+ (("a" 0 27) ("c" 28 40)))
+
+(test-definitions
+ #<<END
+(module a racket/base 1)
+(define b 1)
+;; (module+ c 2)
+;; (define d 1)
+;; (module e 1)
+(module f 2)
+(define g 1)
+END
+ #:define-prefix
+ (list (define-popup-info "(define" "(define ...)" "δ")
+       (define-popup-info "(module" "(module ...)" "M"))
+ (("a" 0 24) ("b" 25 86) ("f" 87 99) ("g" 100 112)))
