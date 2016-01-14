@@ -50,8 +50,17 @@
           [latest-position latest-position]
           [else
            (define tag-string (define-popup-info-prefix a-define-popup-info))
-           (or (send text find-string tag-string 'forward pos 'eof #t #f)
-               +inf.0)])))
+           (let loop ([pos pos])
+             (define search-pos-result (send text find-string tag-string 'forward pos 'eof #t #f))
+             (cond
+               [(and search-pos-result
+                     (in-semicolon-comment? text search-pos-result))
+                (if (< search-pos-result (send text last-position))
+                    (loop (+ search-pos-result 1))
+                    +inf.0)]
+               [search-pos-result search-pos-result]
+               [else +inf.0]))])))
+    
     (define-values (smallest-i smallest-pos)
       (for/fold ([smallest-i #f] [smallest-pos #f])
                 ([pos (in-list filled-in-positions)]
@@ -80,8 +89,6 @@
       (define-values (defn-pos tag-length new-find-state) (find-next pos find-state))
       (cond
         [(not defn-pos) null]
-        [(in-semicolon-comment? text defn-pos)
-         (loop (+ defn-pos tag-length))]
         [else
          (let ([indent (get-defn-indent text defn-pos)]
                [name (get-defn-name text (+ defn-pos tag-length))])
