@@ -1,8 +1,11 @@
 ------------------------------
-       Version 6.3++
+       Version 6.4
 ------------------------------
 
   . sped up scrolling
+
+  . added submodules to the popup menu navigator
+    that contained only definitions before
 
 ------------------------------
        Version 6.3
