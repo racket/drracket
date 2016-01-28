@@ -219,13 +219,14 @@
             (if (vector? info-result)
                 (vector-ref info-result 0)
                 info-result))
-          (define (ctc-on-info-proc-result ctc res)
+          (define (ctc-on-info-proc-result ctc res what)
             (contract ctc 
                       res
                       (if (vector? info-result)
                           'hash-lang-racket
                           (get-lang-name pos))
-                      'drracket/private/module-language-tools))
+                      'drracket/private/module-language-tools
+                      what #f))
           
           (define lang-wants-big-defs/ints-labels?
             (and info-proc (info-proc 'drracket:show-big-defs/ints-labels #f)))
@@ -237,7 +238,8 @@
                 (if info-result
                     (or (ctc-on-info-proc-result
                          (or/c #f (listof (list/c string? string?)))
-                         (info-proc 'drracket:default-filters #f))
+                         (info-proc 'drracket:default-filters #f)
+                         'drracket:default-filters)
                         '())
                     '()))
           
@@ -245,7 +247,8 @@
                 (if info-result
                     (or (ctc-on-info-proc-result
                          (or/c #f (and/c string? (not/c #rx"[.]")))
-                         (info-proc 'drracket:default-extension #f))
+                         (info-proc 'drracket:default-extension #f)
+                         'drracket:default-extension)
                         "")
                     ""))
 
@@ -255,7 +258,8 @@
                          (or/c #f
                                (-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
                                    (or/c #f exact-nonnegative-integer?)))
-                         (info-proc 'drracket:indentation #f))
+                         (info-proc 'drracket:indentation #f)
+                         'drracket:indentation)
                         (λ (x y) #f))
                     (λ (x y) #f)))
           
@@ -270,11 +274,13 @@
                                              (-> (is-a?/c drracket:unit:frame<%>) any)
                                              (or/c real? #f)))))
               (or (info-proc 'drracket:toolbar-buttons #f)
-                  (info-proc 'drscheme:toolbar-buttons #f)))
+                  (info-proc 'drscheme:toolbar-buttons #f))
+              'drracket:toolbar-buttons)
              (ctc-on-info-proc-result 
               (or/c #f (listof symbol?))
               (or (info-proc 'drracket:opt-out-toolbar-buttons '())
-                  (info-proc 'drscheme:opt-out-toolbar-buttons '())))))))
+                  (info-proc 'drscheme:opt-out-toolbar-buttons '()))
+              'drracket:opt-out-toolbar-buttons)))))
       
       
       (define/private (register-new-buttons buttons opt-out-ids)
