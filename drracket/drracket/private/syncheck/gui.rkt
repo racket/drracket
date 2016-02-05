@@ -997,10 +997,23 @@ If the namespace does not, they are colored the unbound color.
                            (drracket:arrow:draw-arrow dc start-x start-y end-x end-y dx dy
                                                       #:pen-width 2)
                            (when (and (var-arrow? arrow) (not (var-arrow-actual? arrow)))
-                             (let-values ([(fw fh _d _v) (send dc get-text-extent "x")])
-                               (send dc draw-text "?"
-                                     (+ end-x dx fw)
-                                     (+ end-y dy (- fh)))))))]
+                             (define old-font (send dc get-font))
+                             (send dc set-font
+                                   (send the-font-list find-or-create-font
+                                         (* 2 (send old-font get-point-size))
+                                         (send old-font get-face)
+                                         (send old-font get-family)
+                                         (send old-font get-style)
+                                         (send old-font get-weight)
+                                         (send old-font get-underlined)
+                                         (send old-font get-smoothing)
+                                         #f
+                                         (send old-font get-hinting)))
+                             (define-values (fw fh _d _v) (send dc get-text-extent "?"))
+                             (send dc draw-text "?"
+                                   (+ end-x dx (/ fw 2))
+                                   (+ end-y dy (- fh)))
+                             (send dc set-font old-font))))]
                       [old-brush (send dc get-brush)]
                       [old-pen   (send dc get-pen)]
                       [old-font  (send dc get-font)]
