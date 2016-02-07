@@ -13,7 +13,7 @@
 (define (rx . strs)
   (regexp (regexp-replace* #rx" *\n *" (string-append* strs) ".*")))
 
-(define-struct test (definitions   ; string
+(define-struct test (definitions   ; Rec X = (or/c string 'xml-box (listof X))
                      interactions  ; (union #f string)
                      result        ; (or/c string regexp)
                      all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
@@ -36,9 +36,7 @@
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
 (define (test/proc line definitions interactions results [all? #f] #:error-ranges [error-ranges 'dont-test])
-  (set! tests (cons (make-test (if (string? definitions) 
-                                   definitions 
-                                   (format "~s" definitions))
+  (set! tests (cons (make-test definitions
                                interactions 
                                results 
                                all? 
@@ -67,7 +65,23 @@
 (define (single-test test)
   (let/ec k
     (clear-definitions drs)
-    (insert-in-definitions drs (test-definitions test))
+    (let loop ([to-handle (test-definitions test)])
+      (cond
+        [(list? to-handle)
+         (for-each loop to-handle)]
+        [(string? to-handle)
+         (insert-in-definitions drs to-handle)]
+        [(equal? to-handle 'xml-box)
+         (test:menu-select "Insert" "Insert XML Box")
+         (for ([c (in-string "<a>x")])
+           (test:keystroke c))
+         (queue-callback/res
+          (λ ()
+            (send definitions-text set-caret-owner #f)))]
+        [else
+         (error 'module-lang-test-utils.rkt
+                "unknown thing in test-definitions field ~s"
+                to-handle)]))
     (do-execute drs)
     
     (define ints (test-interactions test))

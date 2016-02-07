@@ -417,6 +417,10 @@
                  2))
       "0")
 
+(test '("#lang racket\n" xml-box)
+      #f
+      @t{'(a () "x")})
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:
