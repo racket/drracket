@@ -64,7 +64,7 @@
   set-dirty-if-dep)
 
 ;; mode changing definitions text mixin
-(define-local-member-name 
+(define/provide-local-member-name
   maybe-change-language
   change-mode-to-match
   get-current-mode)
