@@ -23,7 +23,8 @@
          syncheck:add-docs-range
          syncheck:add-require-candidate
          syncheck:reset-docs-im
-         syncheck:update-blue-boxes)
+         syncheck:update-blue-boxes
+         disable-blue-boxes)
 
 (define sc-f2-to-lock (string-constant sc-f2-to-un/lock))
 (define sc-read-more... (string-constant sc-read-more...))
@@ -81,7 +82,8 @@
   get-path->pkg-cache
   set-original-info-text
   add-linked
-  update-the-strs)
+  update-the-strs
+  disable-blue-boxes)
 
 (define docs-ec-clipping-region #f)
 (define docs-ec-last-cw #f)
@@ -167,6 +169,7 @@
     get-require-candidates
     get-path->pkg-cache
     update-the-strs
+    disable-blue-boxes
     toggle-syncheck-docs))
 
 (define docs-text-gui-mixin
@@ -434,6 +437,11 @@
         (send timer start 300 #t)))
 
     (define update-the-strs-coroutine #f)
+
+    (define/override (disable-blue-boxes)
+      (invalidate-blue-box-region)
+      (set! update-the-strs-coroutine #f)
+      (set! the-strs #f))
     
     (define/override (update-the-strs)
       (unless update-the-strs-coroutine
@@ -649,6 +657,7 @@
       (unless (memq t linked-texts)
         (set! linked-texts (cons t linked-texts))))
     (define/public (update-the-strs) (void))
+    (define/public (disable-blue-boxes) (void))
     (define/pubment (toggle-syncheck-docs)
       (inner (void) toggle-syncheck-docs)
       (for ([t (in-list linked-texts)])
@@ -679,6 +688,7 @@
           (send original-info-text get-require-candidates)
           '()))
     (define/public (update-the-strs) (void))
+    (define/public (disable-blue-boxes) (void))
     (define/pubment (toggle-syncheck-docs)
       (inner (void) toggle-syncheck-docs))
     (super-new)))

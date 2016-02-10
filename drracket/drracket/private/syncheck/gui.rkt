@@ -1955,6 +1955,8 @@ If the namespace does not, they are colored the unbound color.
           (send tab syncheck:clear-error-message)
           (send tab syncheck:clear-highlighting)
           (send defs-text syncheck:reset-docs-im)
+          (send defs-text disable-blue-boxes)
+          (send (send tab get-ints) disable-blue-boxes)
           (send defs-text syncheck:init-arrows))
         
         (define/private (process-trace-element known-dead-place-channels defs-text x)
