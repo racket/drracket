@@ -98,6 +98,10 @@
 
 ;; ===================================================================================================
 
+(define-local-member-name
+  update-kill-button-label
+  does-break-kill?)
+
 (define-unit unit@
   (import [prefix help-desk: drracket:help-desk^]
           [prefix drracket:app: drracket:app^]
@@ -1316,8 +1320,9 @@
       
       (field [thread-to-break-box (make-weak-box #f)]
              [custodian-to-kill-box (make-weak-box #f)]
-             [offer-kill? #f])
-      
+             [do-kill? #f])
+
+      (define/public (does-break-kill?) do-kill?)
       ;; break-callback : -> void
       (define/public (break-callback)
         (let ([thread-to-break (weak-box-value thread-to-break-box)]
@@ -1326,34 +1331,23 @@
             [(or (not thread-to-break)
                  (not custodian-to-kill))
              (bell)]
-            [offer-kill? 
-             (if (user-wants-kill?)
-                 (when thread-to-break
-                   (break-thread thread-to-break))
-                 (when custodian-to-kill
-                   (custodian-shutdown-all custodian-to-kill)))]
+            [do-kill?
+             (when custodian-to-kill
+               (custodian-shutdown-all custodian-to-kill))
+             (set! do-kill? #f)
+             (send (get-frame) update-kill-button-label)]
             [else
              (when thread-to-break
                (break-thread thread-to-break))
              ;; only offer a kill the next time if 
              ;; something got broken.
-             (set! offer-kill? #t)])))
-      
-      ;; user-wants-kill? : -> boolean
-      ;; handles events, so be sure to check state
-      ;; after calling to avoid race conditions.
-      (define/private (user-wants-kill?)
-        (gui-utils:get-choice
-         (string-constant kill-evaluation?)
-         (string-constant just-break)
-         (string-constant kill)
-         (string-constant kill?)
-         'diallow-close
-         frame))
+             (set! do-kill? #t)
+             (send (get-frame) update-kill-button-label)])))
       
       ;; reset-offer-kill
       (define/public (reset-offer-kill)
-        (set! offer-kill? #f))
+        (set! do-kill? #f)
+        (send (get-frame) update-kill-button-label))
       
       ;; get-breakables : -> (union #f thread) (union #f cust) -> void
       (define/public (get-breakables)
@@ -4732,6 +4726,15 @@
       (define/public (get-execute-button) execute-button)
       (define/public (get-break-button) break-button)
       (define/public (get-button-panel) button-panel)
+
+      ;; #t => "break"; #f => "kill" in button label
+      (define showing-break? #t)
+      (define/public (update-kill-button-label)
+        (unless (equal? showing-break? (not (send (get-current-tab) does-break-kill?)))
+          (set! showing-break? (not (send (get-current-tab) does-break-kill?)))
+          (send break-button set-label (if showing-break?
+                                           (string-constant break-button-label)
+                                           (string-constant break-button-kill-label)))))
       
       (inherit get-info-panel)
       
