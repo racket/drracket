@@ -1,13 +1,5 @@
 #lang racket/base
 
-#|
-
-profile todo:
-  - use origin fields
-  - sort out various ways of clearing out the profiling information
-
-|#
-
 (require errortrace/errortrace-key
          racket/unit
          racket/contract
@@ -29,6 +21,7 @@ profile todo:
          net/url
          racket/match
          mrlib/include-bitmap
+         mrlib/close-icon
          images/compile-time
          pkg/lib
          pkg/gui
@@ -1234,6 +1227,86 @@ profile todo:
       show-test-coverage-annotations ;; hash-table (union #f style) (union #f style) boolean -> void
       get-test-coverage-info-visible?
       ask-about-clearing-test-coverage?))
+
+  (define test-coverage-frame<%>
+    (interface ()))
+
+  (define test-coverage-frame-mixin
+    (mixin (drracket:unit:frame<%>) (test-coverage-frame<%>)
+      (define test-coverage-entirely-covered-message-state #f)
+      (define/augment (on-tab-change from-tab to-tab)
+        (inner (void) on-tab-change from-tab to-tab)
+        (update-test-coverage-entirely-covered-message to-tab))
+      (inherit get-current-tab
+               begin-container-sequence
+               end-container-sequence)
+      (define/public (update-test-coverage-entirely-covered-message [tab (get-current-tab)])
+        (define new-val (send tab get-test-coverage-entirely-covered-message-state))
+        (unless (equal? new-val test-coverage-entirely-covered-message-state)
+          (set! test-coverage-entirely-covered-message-state new-val)
+          (begin-container-sequence)
+          (create-entirely-covered-panel-gui)
+          (cond
+            [test-coverage-entirely-covered-message-state
+             (send entirely-covered-parent-panel
+                   change-children
+                   (λ (l) (append (remove entirely-covered-panel l)
+                                  (list entirely-covered-panel))))]
+            [else
+             (send entirely-covered-parent-panel
+                   change-children
+                   (λ (l) (remove entirely-covered-panel l)))])
+          (end-container-sequence)))
+
+      (define (update-test-coverage-callback p v)
+        (update-test-coverage-entirely-covered-message))
+      (preferences:add-callback 'drracket:coverage-show-overview-bar
+                                update-test-coverage-callback
+                                #t)
+
+      (define entirely-covered-parent-panel #f)
+      (define entirely-covered-panel #f)
+      (define entirely-covered-checkbox #f)
+      (define entirely-covered-checkbox-callback
+        ;; must not be a private method -- need the frame
+        ;; to hold onto a pointer to this function
+        (λ (p v)
+          (send entirely-covered-checkbox set-value v)))
+      (define/private (create-entirely-covered-panel-gui)
+        (unless entirely-covered-panel
+          (set! entirely-covered-panel (new horizontal-panel%
+                                            [stretchable-height #f]
+                                            [parent entirely-covered-parent-panel]))
+          (new message%
+               [label (string-constant test-coverage-entirely-covered)]
+               [parent entirely-covered-panel]
+               [stretchable-width #t])
+          (set! entirely-covered-checkbox
+                (new check-box%
+                     [label (string-constant test-coverage-next-time-check-box)]
+                     [parent entirely-covered-panel]
+                     [callback
+                      (λ (cb v)
+                        (preferences:set 'drracket:coverage-show-overview-bar
+                                         (send cb get-value)))]))
+          (define hide-button
+            (new close-icon%
+                 [callback
+                  (λ ()
+                    (send (get-current-tab) set-test-coverage-entirely-covered-message-state #f)
+                    (update-test-coverage-entirely-covered-message))]
+                 [parent entirely-covered-panel]))
+          (send entirely-covered-checkbox set-value
+                (preferences:get 'drracket:coverage-show-overview-bar))
+          (preferences:add-callback 'drracket:coverage-show-overview-bar
+                                    entirely-covered-checkbox-callback
+                                    #t)))
+      
+      (define/override (make-root-area-container cls parent)
+        (set! entirely-covered-parent-panel
+              (super make-root-area-container vertical-panel% parent))
+        (make-object cls entirely-covered-parent-panel))
+      (super-new)))
   
   (define test-coverage-interactions-text-mixin
     (mixin (drracket:rep:text<%> text:basic<%>) (test-coverage-interactions-text<%>)
@@ -1241,7 +1314,8 @@ profile todo:
       (field [test-coverage-info #f]
              [test-coverage-on-style #f]
              [test-coverage-off-style #f]
-             [ask-about-reset? #f])
+             [ask-about-reset? #f]
+             [test-coverage-all-covered-message-visible? #f])
       (define/public set-test-coverage-info
         (λ (ht [on-style #f] [off-style #f] [ask? #t])
           (set! test-coverage-info ht)
@@ -1329,8 +1403,15 @@ profile todo:
   
   (define test-coverage-tab-mixin
     (mixin (drracket:rep:context<%> drracket:unit:tab<%>) (test-coverage-tab<%>)
+      (inherit get-frame)
       
-      (field [internal-clear-test-coverage-display #f])
+      (field [internal-clear-test-coverage-display #f]
+             [test-coverage-entirely-covered-message-state #f])
+
+      (define/public (get-test-coverage-entirely-covered-message-state)
+        test-coverage-entirely-covered-message-state)
+      (define/public (set-test-coverage-entirely-covered-message-state t)
+        (set! test-coverage-entirely-covered-message-state t))
       
       (define/public (clear-test-coverage-display)
         (when internal-clear-test-coverage-display
@@ -1390,11 +1471,15 @@ profile todo:
                             (hash-set! actions-ht key #t))])))
                    can-annotate)
                   (hash-map actions-ht (λ (k v) (list v k))))])
-          
+
+          (set! test-coverage-entirely-covered-message-state
+                (and (andmap car filtered)
+                     (not (get-test-coverage-info-visible?))))
+          (define fr (get-frame))
+          (when (object=? this (send fr get-current-tab))
+            (send (get-frame) update-test-coverage-entirely-covered-message))
           ;; if everything is covered *and* no coloring has been done, do no coloring.
-          (unless (and (andmap car filtered)
-                       (not (get-test-coverage-info-visible?)))
-            
+          (unless test-coverage-entirely-covered-message-state
             (let (;; sorted : (listof (list boolean srcloc))
                   ;; sorting predicate:
                   ;;  x < y if
@@ -1719,6 +1804,8 @@ profile todo:
     can-show-profile?
     get-sort-mode ;; indicates if the results are currently shown sorted by time, or not
     set-sort-mode ;; updates the sort mode flag (only called by the gui control callback)
+    get-test-coverage-entirely-covered-message-state
+    update-test-coverage-entirely-covered-message
     
     ;; frame methods
     hide-profile-gui

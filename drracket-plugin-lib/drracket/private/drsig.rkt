@@ -66,7 +66,8 @@
    profile-unit-frame-mixin
    test-coverage-interactions-text-mixin
    test-coverage-definitions-text-mixin
-   test-coverage-tab-mixin))
+   test-coverage-tab-mixin
+   test-coverage-frame-mixin))
 (define-signature drracket:debug^ extends drracket:debug-cm^
   (make-debug-error-display-handler
    make-debug-eval-handler

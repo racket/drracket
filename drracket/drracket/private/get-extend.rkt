@@ -100,8 +100,9 @@
 (define (get-base-unit-frame%) 
   (drracket:module-language-tools:frame-mixin
    (drracket:tracing:frame-mixin
-    (drracket:debug:profile-unit-frame-mixin
-     drracket:unit:frame%))))
+    (drracket:debug:test-coverage-frame-mixin
+     (drracket:debug:profile-unit-frame-mixin
+      drracket:unit:frame%)))))
 
 (define-values (extend-unit-frame get-unit-frame)
   (make-extender get-base-unit-frame% 'drracket:unit:frame))

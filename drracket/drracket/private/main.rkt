@@ -77,6 +77,8 @@
 
 (application:current-app-name (string-constant drscheme))
 
+(preferences:set-default 'drracket:coverage-show-overview-bar #t boolean?)
+
 (preferences:set-default 'drracket:define-popup-hidden-prefixes '() (listof string?))
 
 (preferences:set-default 'drracket:materialized-user-docs-versions
@@ -357,7 +359,13 @@
 
      (make-check-box 'drracket:module-language-first-line-special?
                      (string-constant ml-always-show-#lang-line)
-                     editor-panel)))
+                     editor-panel)
+
+     (make-check-box 'drracket:coverage-show-overview-bar
+                     (string-constant test-coverage-summary)
+                     editor-panel)
+     
+     ))
   
   (preferences:add-to-editor-checkbox-panel
    (λ (editor-panel)
