@@ -1867,4 +1867,4 @@ the settings above should match r5rs
 
 (module+ test
   (module config info
-    (define timeout 1500)))
+    (define timeout 2000)))
