@@ -296,15 +296,14 @@
   (channel-put new-alternate-racket-chan (list str dlg)))
 (define new-alternate-racket-chan (make-channel))
 
+;; may return #f, which means we never got an alternate
+;; racket, or it may mean that we're still waiting for
+;; the alternate racket to tell us about itself; in that
+;; case we stick with the current one and wait for the
+;; callback to update the dialog
 (define (get-clcl/clcp)
   (init-alternate-racket-thread)
-  (define result (channel-get current-alternate-racket-chan))
-  (unless result
-    (error 'get-clcl/clp
-           (string-append
-            "we were asked for the alternate racket info,"
-            " but were never supplied an alternate racket")))
-  result)
+  (channel-get current-alternate-racket-chan))
 (define current-alternate-racket-chan (make-channel))
 
 (define (init-alternate-racket-thread)
