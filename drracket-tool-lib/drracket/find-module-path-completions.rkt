@@ -3,6 +3,7 @@
 (require racket/contract/base
          racket/system
          racket/port
+         racket/contract
          pkg/lib)
 
 (define current-library-collection-links-info/c
@@ -55,6 +56,17 @@
           (regexp-match #rx"[.]bak$" x)
           (regexp-match #rx"~$" x))))
 
+;; these functions just hide filesystem permission errors, but still check
+;; that their arguments match the contracts they are supposed to
+(define/contract (safe-directory-list d)
+  (-> path-string? (listof path?))
+  (with-handlers ([exn:fail? (λ (x) '())])
+    (directory-list d)))
+(define/contract (safe-directory-exists? d)
+  (-> path-string? boolean?)
+  (with-handlers ([exn:fail? (λ (x) #f)])
+    (directory-exists? d)))
+
 (define (find-module-path-completions/explicit-cache str the-current-directory
                                                      #:alternate-racket [alternate-racket #f]
                                                      #:pkg-dirs-cache pkgs-dirs-cache)
@@ -74,15 +86,15 @@
      (define segments (regexp-split #rx"/" no-quotes-string))
      (find-completions/internal segments
                                 (list (list "" the-current-directory))
-                                directory-list
-                                directory-exists?
+                                safe-directory-list
+                                safe-directory-exists?
                                 #t)]
     [else
      (find-completions-collection/internal str
                                            (find-all-collection-dirs alternate-racket
                                                                      pkgs-dirs-cache)
-                                           directory-list
-                                           directory-exists?)]))
+                                           safe-directory-list
+                                           safe-directory-exists?)]))
 
 (define (find-completions-collection/internal string collection-dirs dir->content is-dir?)
   (define segments (regexp-split #rx"/" string))
@@ -179,9 +191,9 @@
         (list just-one)]
        [else
         (cond
-          [(directory-exists? pth)
-           (for/list ([dir (in-list (directory-list pth))]
-                      #:when (directory-exists? (build-path pth dir)))
+          [(safe-directory-exists? pth)
+           (for/list ([dir (in-list (safe-directory-list pth))]
+                      #:when (safe-directory-exists? (build-path pth dir)))
              (list (path->string dir) (build-path pth dir)))]
           [else '()])]))))
 
