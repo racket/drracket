@@ -2846,7 +2846,8 @@
             (loop (+ depth 1))]
            [else
             (read-char port)
-            (loop depth)]))]
+            (loop depth)]))
+       (loop)]
       ["#;"
        (with-handlers ((exn:fail:read? void))
          (read port)
@@ -2939,4 +2940,5 @@
   (check-equal? (clear-em " #!/    \\\r\n2\n         1") "1")
   (check-equal? (clear-em " #!/    \n\r\n         1") "1")
   (check-equal? (clear-em "#;()1") "1")
-  (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1"))
+  (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1")
+  (check-equal? (clear-em "#||##|#lang rong|#1") "1"))
