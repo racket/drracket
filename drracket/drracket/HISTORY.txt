@@ -1,4 +1,28 @@
 ------------------------------
+       Version 6.4++
+------------------------------
+
+  . changed the indentation strategy for sequences that begin with
+    keywords to assume that they are part of some internal structure
+    of something that, in general looks like
+    
+      (#:x 1 #:y 2 #:z 3)
+    
+    and so prefer to indent like this:
+    
+      (#:x 1
+       #:y 2
+       #:z 3)
+    
+    instead of like this:
+    
+      (#:x 1
+           #:y 2
+           #:z 3)
+
+
+
+------------------------------
        Version 6.4
 ------------------------------
 
