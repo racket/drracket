@@ -82,9 +82,6 @@
   (define x1 (identifier x))
   (define x2 (identifier x))
   (define x3 (identifier x))
-  (define y1 (identifier y))
-  (define y2 (identifier y))
-  (define z1 (identifier z))
   
   (parameterize ([current-annotations annotations]
                  [current-namespace module-namespace])
@@ -96,3 +93,32 @@
   (check-equal? (send annotations collected-arrows)
                 (set (list (source x1) (source x2))
                      (list (source x1) (source x3)))))
+
+(let ([annotations (new collector%)])
+  (define-values (add-syntax done)
+    (make-traversal module-namespace #f))
+  
+  (define a1 (identifier a))
+  (define a2 (identifier a))
+  (define a3 (identifier a))
+  (define a4 (identifier a))
+  (define a5 (identifier a))
+  (define a6 (identifier a))
+  (define a7 (identifier a))
+  
+  (parameterize ([current-annotations annotations]
+                 [current-namespace module-namespace])
+    (add-syntax
+     (expand #`(->i ((#,a1 string?))
+                    #:pre (#,a2) (> (string-length #,a3) 2)
+                    (r (#,a4) (curry string<? #,a5))
+                    #:post (#,a6) (> (string-length #,a7) 2))))
+    (done))
+  
+  (check-equal? (send annotations collected-arrows)
+                (set (list (source a1) (source a2))
+                     (list (source a1) (source a3))
+                     (list (source a1) (source a4))
+                     (list (source a1) (source a5))
+                     (list (source a1) (source a6))
+                     (list (source a1) (source a7)))))
