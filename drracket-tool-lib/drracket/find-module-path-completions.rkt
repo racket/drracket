@@ -5,7 +5,8 @@
          racket/port
          racket/contract
          racket/list
-         pkg/lib)
+         pkg/lib
+         compiler/module-suffix)
 
 (define current-library-collection-links-info/c
   (listof (or/c #f
@@ -51,11 +52,12 @@
      str the-current-directory
      #:pkg-dirs-cache pkg-dirs-cache)))
 
-(define (ignore? x)
+(define (ignore? module-suffix-regexp x)
   (or (member x '("compiled"))
+      (not (regexp-match? module-suffix-regexp x))
       (if (equal? (system-type) 'windows)
-          (regexp-match #rx"[.]bak$" x)
-          (regexp-match #rx"~$" x))))
+          (regexp-match? #rx"[.]bak$" x)
+          (regexp-match? #rx"~$" x))))
 
 ;; these functions just hide filesystem permission errors, but still check
 ;; that their arguments match the contracts they are supposed to
@@ -109,6 +111,7 @@
   (find-completions/internal (cdr segments) first-candidates dir->content is-dir? #f))
 
 (define (find-completions/internal segments first-candidates dir->content is-dir? allow-dot-dot?)
+  (define module-suffix-regexp (get-module-suffix-regexp))
   (define unsorted
     (let loop ([segments segments]
                [candidates first-candidates])
@@ -124,7 +127,7 @@
                           #:when (is-dir? candidate)
                           [ent (in-value (simplify-path (build-path candidate 'up)))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? ent-str))
+                          #:unless (ignore? module-suffix-regexp ent-str))
                 (list ent-str ent)))
             (loop (cdr segments) nexts)]
            [else
@@ -135,7 +138,7 @@
                           #:when (is-dir? candidate)
                           [ent (in-list (dir->content candidate))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? ent-str)
+                          #:unless (ignore? module-suffix-regexp ent-str)
                           #:when (regexp-match reg ent-str))
                 (list ent-str (build-path candidate ent))))
             (loop (cdr segments) nexts)])])))
