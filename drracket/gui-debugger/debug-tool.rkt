@@ -1031,12 +1031,14 @@
                                         "??")
                                     " => "
                                     (if (= 2 (length status))
-                                        (render (cadr status))
+                                        (or (render (cadr status)) "??")
                                         (string-append
                                          "(values"
                                          (let loop ([vals (rest status)])
                                            (cond
-                                             [(cons? vals) (string-append " " (render (first vals))
+                                             [(cons? vals) (string-append " "
+                                                                          (or (render (first vals))
+                                                                              "??")
                                                                           (loop (rest vals)))]
                                              [else ")"])))))))]
                             [""]))
