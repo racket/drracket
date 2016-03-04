@@ -52,12 +52,14 @@
      str the-current-directory
      #:pkg-dirs-cache pkg-dirs-cache)))
 
-(define (ignore? module-suffix-regexp x)
-  (or (member x '("compiled"))
-      (not (regexp-match? module-suffix-regexp x))
+(define (ignore? module-suffix-regexp x-pth x-str is-dir?)
+  (or (member x-str '("compiled"))
+      (if (is-dir? x-pth)
+          #f
+          (not (regexp-match? module-suffix-regexp x-str)))
       (if (equal? (system-type) 'windows)
-          (regexp-match? #rx"[.]bak$" x)
-          (regexp-match? #rx"~$" x))))
+          (regexp-match? #rx"[.]bak$" x-str)
+          (regexp-match? #rx"~$" x-str))))
 
 ;; these functions just hide filesystem permission errors, but still check
 ;; that their arguments match the contracts they are supposed to
@@ -127,7 +129,7 @@
                           #:when (is-dir? candidate)
                           [ent (in-value (simplify-path (build-path candidate 'up)))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? module-suffix-regexp ent-str))
+                          #:unless (ignore? module-suffix-regexp ent ent-str is-dir?))
                 (list ent-str ent)))
             (loop (cdr segments) nexts)]
            [else
@@ -138,7 +140,7 @@
                           #:when (is-dir? candidate)
                           [ent (in-list (dir->content candidate))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? module-suffix-regexp ent-str)
+                          #:unless (ignore? module-suffix-regexp ent ent-str is-dir?)
                           #:when (regexp-match reg ent-str))
                 (list ent-str (build-path candidate ent))))
             (loop (cdr segments) nexts)])])))
