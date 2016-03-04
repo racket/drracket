@@ -52,9 +52,9 @@
      str the-current-directory
      #:pkg-dirs-cache pkg-dirs-cache)))
 
-(define (ignore? module-suffix-regexp x-pth x-str is-dir?)
+(define (ignore? module-suffix-regexp x-str is-a-dir?)
   (or (member x-str '("compiled"))
-      (if (is-dir? x-pth)
+      (if is-a-dir?
           #f
           (not (regexp-match? module-suffix-regexp x-str)))
       (if (equal? (system-type) 'windows)
@@ -129,7 +129,9 @@
                           #:when (is-dir? candidate)
                           [ent (in-value (simplify-path (build-path candidate 'up)))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? module-suffix-regexp ent ent-str is-dir?))
+                          #:unless (ignore? module-suffix-regexp
+                                            ent-str
+                                            (is-dir? (build-path candidate ent))))
                 (list ent-str ent)))
             (loop (cdr segments) nexts)]
            [else
@@ -140,7 +142,9 @@
                           #:when (is-dir? candidate)
                           [ent (in-list (dir->content candidate))]
                           [ent-str (in-value (path->string ent))]
-                          #:unless (ignore? module-suffix-regexp ent ent-str is-dir?)
+                          #:unless (ignore? module-suffix-regexp
+                                            ent-str
+                                            (is-dir? (build-path candidate ent)))
                           #:when (regexp-match reg ent-str))
                 (list ent-str (build-path candidate ent))))
             (loop (cdr segments) nexts)])])))
@@ -314,7 +318,13 @@
       [_ '()]))
   
   (define (dir-exists? d)
-    (not (regexp-match #rx"rkt$" (path->string d))))
+    (and (member (path->string d)
+                 '("/plt/racket/collects/racket"
+                   "/plt/racket/collects/racket/gui"
+                   "/plt/pkgs/draw-pkgs/draw-lib/racket"
+                   "/plt/pkgs/draw-pkgs/draw-lib/racket/gui"
+                   "plt/pkgs/gui-pkgs/gui-lib/rackunit"))
+         #t))
   
   (check-equal?
    (find-completions/c "rack/" coll-table dir-list dir-exists?)
@@ -365,5 +375,10 @@
   
   (check-equal?
    (find-completions/c "racket/gui/d" coll-table dir-list dir-exists?)
+   (list (list "draw.rkt" (string->path "/plt/pkgs/draw-pkgs/draw-lib/racket/gui/draw.rkt"))
+         (list "dynamic.rkt" (string->path "/plt/racket/collects/racket/gui/dynamic.rkt"))))
+
+  (check-equal?
+   (find-completions/c "r/g/d" coll-table dir-list dir-exists?)
    (list (list "draw.rkt" (string->path "/plt/pkgs/draw-pkgs/draw-lib/racket/gui/draw.rkt"))
          (list "dynamic.rkt" (string->path "/plt/racket/collects/racket/gui/dynamic.rkt")))))
