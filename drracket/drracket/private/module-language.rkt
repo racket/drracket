@@ -206,7 +206,7 @@
                     (module->namespace modname)))))
       
       (inherit get-language-name)
-      (define/public (get-users-language-name defs-text)
+      (define/public (get-users-language-name defs-text settings)
         (define defs-port (open-input-text-editor defs-text))
         (port-count-lines! defs-port)
         (define read-successfully?
@@ -229,7 +229,17 @@
              [(not pos)
               (get-language-name)]
              [else
-              (substring str (cdr (car pos)) (string-length str))])]
+              (define language-name-without-runtime-stuff
+                (substring str (cdr (car pos)) (string-length str)))
+              (format "~a~a"
+                      language-name-without-runtime-stuff
+                      (case (drracket:language:simple-settings-annotations settings)
+                        [(none) (string-constant module-language-repl-no-annotations)]
+                        [(debug) (string-constant module-language-repl-debug-annotations)]
+                        [(debug/profile)
+                         (string-constant module-language-repl-debug/profile-annotations)]
+                        [(test-coverage)
+                         (string-constant module-language-repl-test-annotations)]))])]
           [else
            (get-language-name)]))
       

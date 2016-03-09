@@ -359,7 +359,8 @@ TODO
       [(is-a? (drracket:language-configuration:language-settings-language language-settings)
               drracket:module-language:module-language<%>)
        (send (drracket:language-configuration:language-settings-language language-settings)
-             get-users-language-name defs-text)]
+             get-users-language-name defs-text
+             (drracket:language-configuration:language-settings-settings language-settings))]
       [else
        (send (drracket:language-configuration:language-settings-language language-settings)
              get-language-name)]))
