@@ -1762,90 +1762,107 @@ TODO
         (send context disable-evaluation)
         (reset-console)
         (thaw-colorer)
-        (insert-prompt)
+        (define lang (drracket:language-configuration:language-settings-language user-language-settings))
         
-        ;; call the first-opened method on the user's thread, but wait here for that to terminate
-        (let ([lang (drracket:language-configuration:language-settings-language user-language-settings)]
-              [drr-evtspace (current-eventspace)]
-              [s (make-semaphore 0)])
-          
-          (define-values (sp-err-other-end sp-err) (make-pipe-with-specials))
-          (define-values (sp-out-other-end sp-out) (make-pipe-with-specials))
-          (define io-chan (make-channel))
-          
-          ;; collect the IO to replay later
-          (thread
-           (λ () 
-             (let loop ([ports (list sp-err-other-end sp-out-other-end)]
-                        [io '()])
-               (cond
-                 [(null? ports) (channel-put io-chan io)]
-                 [else
-                  (apply 
-                   sync
-                   (for/list ([port (in-list ports)])
-                     (handle-evt 
-                      port 
-                      (λ (_)
-                        (define-values (the-bytes/specials eof?)
-                          (let b-loop ([bytes '()])
-                            (cond
-                              [(byte-ready? port)
-                               (define b (read-byte-or-special port))
-                               (cond
-                                 [(eof-object? b) (values bytes #t)]
-                                 [else (b-loop (cons b bytes))])]
-                              [else (values bytes #f)])))
-                        (define new-io
-                          (if (null? bytes)
-                              io
-                              (cons (cons port (reverse the-bytes/specials))
-                                    io)))
-                        (if eof?
-                            (loop (remq port ports) new-io)
-                            (loop ports new-io))))))]))))
-             
-          (run-in-evaluation-thread
-           (λ ()
-             (let/ec k
-               ;; we set the io ports here to ones that just collect the data
-               ;; since we're blocking the eventspace handler thread (and thus IO to 
-               ;; the user's ports can deadlock)
-               (parameterize ([error-escape-handler (λ () (k (void)))]
-                              [current-output-port sp-out]
-                              [current-error-port sp-err])
-                 (cond
-                   ;; this is for backwards compatibility; drracket used to
-                   ;; expect this method to be a thunk (but that was a bad decision)
-                   [(object-method-arity-includes? lang 'first-opened 1)
-                    (send lang first-opened
-                          (drracket:language-configuration:language-settings-settings user-language-settings))]
-                   [else
-                    ;; this is the backwards compatible case.
-                    (send lang first-opened)])))
-             (semaphore-post s)))
-          
-          ;; wait for the first-opened method to finish up
-          (semaphore-wait s)
-          
-          ;; close the output ports to get the above thread to terminate
-          (close-output-port sp-err)
-          (close-output-port sp-out)
-          
-          ;; duplicate it over to the user's ports, now that there is
-          ;; no danger of deadlock
-          (for ([i (in-list (reverse (channel-get io-chan)))])
-            (define objs (cdr i))
-            (define port
-              (if (equal? (car i) sp-err-other-end)
-                  (get-err-port)
-                  (get-out-port)))
-            (for ([obj (in-list objs)])
-              ((if (byte? obj) write-byte write-special)
-               obj
-               port)))
-          (flush-output (get-err-port))
-          (flush-output (get-out-port)))
+        (cond
+          [(is-a? lang drracket:module-language:module-language<%>)
+           (define name (send definitions-text get-port-name))
+           (define defs-copy (new text%))
+           (send defs-copy set-style-list (send definitions-text get-style-list)) ;; speeds up the copy
+           (send definitions-text copy-self-to defs-copy)
+           (define text-port (open-input-text-editor defs-copy 0 'end values name #t))
+           (port-count-lines! text-port)
+           (evaluate-from-port
+                 text-port
+                 #t
+                 (λ ()
+                   (parameterize ([current-eventspace drracket:init:system-eventspace])
+                     (queue-callback 
+                      (λ ()
+                        (clear-undos))))))]
+          [else
+           (insert-prompt)
+           ;; call the first-opened method on the user's thread, but wait here for that to terminate
+           (define drr-evtspace (current-eventspace))
+           (define s (make-semaphore 0))
+           
+           (define-values (sp-err-other-end sp-err) (make-pipe-with-specials))
+           (define-values (sp-out-other-end sp-out) (make-pipe-with-specials))
+           (define io-chan (make-channel))
+           
+           ;; collect the IO to replay later
+           (thread
+            (λ () 
+              (let loop ([ports (list sp-err-other-end sp-out-other-end)]
+                         [io '()])
+                (cond
+                  [(null? ports) (channel-put io-chan io)]
+                  [else
+                   (apply 
+                    sync
+                    (for/list ([port (in-list ports)])
+                      (handle-evt 
+                       port 
+                       (λ (_)
+                         (define-values (the-bytes/specials eof?)
+                           (let b-loop ([bytes '()])
+                             (cond
+                               [(byte-ready? port)
+                                (define b (read-byte-or-special port))
+                                (cond
+                                  [(eof-object? b) (values bytes #t)]
+                                  [else (b-loop (cons b bytes))])]
+                               [else (values bytes #f)])))
+                         (define new-io
+                           (if (null? bytes)
+                               io
+                               (cons (cons port (reverse the-bytes/specials))
+                                     io)))
+                         (if eof?
+                             (loop (remq port ports) new-io)
+                             (loop ports new-io))))))]))))
+           
+           (run-in-evaluation-thread
+            (λ ()
+              (let/ec k
+                ;; we set the io ports here to ones that just collect the data
+                ;; since we're blocking the eventspace handler thread (and thus IO to 
+                ;; the user's ports can deadlock)
+                (parameterize ([error-escape-handler (λ () (k (void)))]
+                               [current-output-port sp-out]
+                               [current-error-port sp-err])
+                  (cond
+                    ;; this is for backwards compatibility; drracket used to
+                    ;; expect this method to be a thunk (but that was a bad decision)
+                    [(object-method-arity-includes? lang 'first-opened 1)
+                     (send lang first-opened
+                           (drracket:language-configuration:language-settings-settings user-language-settings))]
+                    [else
+                     ;; this is the backwards compatible case.
+                     (send lang first-opened)])))
+              (semaphore-post s)))
+           
+           ;; wait for the first-opened method to finish up
+           (semaphore-wait s)
+           
+           ;; close the output ports to get the above thread to terminate
+           (close-output-port sp-err)
+           (close-output-port sp-out)
+           
+           ;; duplicate it over to the user's ports, now that there is
+           ;; no danger of deadlock
+           (for ([i (in-list (reverse (channel-get io-chan)))])
+             (define objs (cdr i))
+             (define port
+               (if (equal? (car i) sp-err-other-end)
+                   (get-err-port)
+                   (get-out-port)))
+             (for ([obj (in-list objs)])
+               ((if (byte? obj) write-byte write-special)
+                obj
+                port)))
+           (flush-output (get-err-port))
+           (flush-output (get-out-port))])
         
         (send context enable-evaluation)
         (end-edit-sequence)
