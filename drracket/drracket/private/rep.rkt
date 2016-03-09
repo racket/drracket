@@ -1768,19 +1768,18 @@ TODO
         (cond
           [(is-a? lang drracket:module-language:module-language<%>)
            (define name (send definitions-text get-port-name))
-           (define defs-copy (new text%))
-           (send defs-copy set-style-list (send definitions-text get-style-list)) ;; speeds up the copy
-           (send definitions-text copy-self-to defs-copy)
-           (define text-port (open-input-text-editor defs-copy 0 'end values name #t))
-           (port-count-lines! text-port)
+           (define settings
+             (drracket:language-configuration:language-settings-settings user-language-settings))
+           (define prog-port (open-input-string (send lang get-auto-text settings) name))
+           (port-count-lines! prog-port)
            (evaluate-from-port
-                 text-port
-                 #t
+            prog-port
+            #t
+            (λ ()
+              (parameterize ([current-eventspace drracket:init:system-eventspace])
+                (queue-callback
                  (λ ()
-                   (parameterize ([current-eventspace drracket:init:system-eventspace])
-                     (queue-callback 
-                      (λ ()
-                        (clear-undos))))))]
+                   (clear-undos))))))]
           [else
            (insert-prompt)
            ;; call the first-opened method on the user's thread, but wait here for that to terminate
