@@ -64,6 +64,7 @@
   #;(namespace-attach-module orig-namespace ''#%foreign))
   
 
+(define-logger drracket/cm)
 (define (set-module-language-parameters settings 
                                         module-language-parallel-lock-client
                                         currently-open-files
@@ -109,11 +110,20 @@
                        (list (CACHE-DIR))
                        (if cd (list cd) null)
                        (if sd (list sd) null))])
-        (λ (p) (or (file-stamp-in-paths p no-dirs)
-                   (let ([pkg (path->pkg p #:cache path->pkg-cache)])
-                     (and pkg
-                          (not (set-member? open-pkgs pkg))
-                          (file-stamp-in-paths p (list (pkg-directory/use-cache pkg)))))))))
+        (λ (p)
+          (define skip-in-paths? (file-stamp-in-paths p no-dirs))
+          (define skip-pkgs?
+            (let ([pkg (path->pkg p #:cache path->pkg-cache)])
+              (and pkg
+                   (not (set-member? open-pkgs pkg))
+                   (file-stamp-in-paths p (list (pkg-directory/use-cache pkg))))))
+          (log-drracket/cm-info "~a; skip? ~a ~a thd ~a"
+                                p
+                                (and skip-in-paths? #t)
+                                (and skip-pkgs? #t)
+                                (eq-hash-code (current-thread)))
+          (or skip-in-paths?
+              skip-pkgs?))))
     
     (define extra-compiled-file-path
       (case (prefab-module-settings-annotations settings)
