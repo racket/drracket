@@ -6,8 +6,7 @@
          compiler/cm
          framework/preferences
          syntax/readerr
-         wxme
-         (prefix-in el: errortrace/errortrace-lib))
+         wxme)
 (provide start)
 
 (struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
@@ -77,7 +76,8 @@
            (define settings (vector-ref message 3))
            (define pc-status-expanding-place (vector-ref message 4))
            (define currently-open-files (vector-ref message 5))
-           (loop (new-job program-as-string path response-pc settings pc-status-expanding-place)
+           (loop (new-job program-as-string path response-pc settings pc-status-expanding-place
+                          currently-open-files)
                  old-registry)]))))))
 
 (define (abort-job job)
@@ -97,7 +97,8 @@
 
 (define sys-namespace (current-namespace))
 
-(define (new-job program-as-string path response-pc settings pc-status-expanding-place)
+(define (new-job program-as-string path response-pc settings pc-status-expanding-place
+                 currently-open-files)
   (define custodian-limit
     (and (custodian-memory-accounting-available?)
          (preferences:get 'drracket:child-only-memory-limit)))
@@ -161,11 +162,9 @@
                           loaded-paths))
               (cl path mod-name))))
          (ep-log-info "expanding-place.rkt: 03 setting module language parameters")
-         (when (equal? (prefab-module-settings-annotations settings) 'debug)
-           (current-compile (el:make-errortrace-compile-handler)))
          (set-module-language-parameters settings
                                          module-language-parallel-lock-client
-                                         null
+                                         currently-open-files
                                          #:use-use-current-security-guard? #t)
          (ep-log-info "expanding-place.rkt: 04 setting directories")
          (let ([init-dir (get-init-dir path)])
