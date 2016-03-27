@@ -47,4 +47,4 @@
     #:exists 'truncate))
 
 
-(module+ main (main))
+(module+ test (main))
