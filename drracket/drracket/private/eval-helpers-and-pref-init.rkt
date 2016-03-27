@@ -226,9 +226,13 @@
                 (raw-errortrace-handler e immediate-eval?)]
                [else
                 (original-handler e immediate-eval?)]))))
-        (use-compiled-file-paths
-         (cons (build-path "compiled" "errortrace")
-               (use-compiled-file-paths)))]
+        (define compiled/errortrace (build-path "compiled" "errortrace"))
+        (unless (and (pair? (use-compiled-file-paths))
+                     (equal? (car (use-compiled-file-paths))
+                             compiled/errortrace))
+          (use-compiled-file-paths
+           (cons compiled/errortrace
+                 (use-compiled-file-paths))))]
        [else
         (void)])]))
 
