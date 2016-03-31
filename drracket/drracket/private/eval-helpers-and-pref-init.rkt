@@ -174,18 +174,27 @@
         (use-compiled-file-paths
          (cons raw-compiled-file-path (use-compiled-file-paths)))])
      
-     ;; don't mess with .zo files in the installation or
-     ;; in the PLaneT cache. If there are .zo files there
-     ;; that are out of date or somehow problematic then
-     ;; we will just let errors happen. Hopefully 'raco setup'
-     ;; will clean things up in that case.
+     ;; don't mess with .zo files in the installation, in the
+     ;; PLaneT cache, or in directories that are not writeable.
+     ;; If there are such .zo files that are out of date or
+     ;; somehow problematic then we will just let errors happen.
+     ;; Hopefully 'raco setup' will clean things up in that case.
      (manager-skip-file-handler
       (let* ([cd (find-collects-dir)]
              [no-dirs (append
                        (list (CACHE-DIR))
                        (if cd (list cd) null))])
         (λ (p)
-          (file-stamp-in-paths p no-dirs))))
+          (define-values (base name dir?) (split-path p))
+          (define compiled-dir (build-path base "compiled"))
+          (and
+           (cond
+             [(directory-exists? compiled-dir)
+              (member 'write (file-or-directory-permissions compiled-dir))]
+             [(directory-exists? base)
+              (member 'write (file-or-directory-permissions base))]
+             [else #f])
+           (file-stamp-in-paths p no-dirs)))))
      
      (when (and (pair? (use-compiled-file-paths))
                 (equal? (car (use-compiled-file-paths))
