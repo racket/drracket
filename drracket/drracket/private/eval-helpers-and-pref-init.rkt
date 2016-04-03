@@ -185,16 +185,22 @@
                        (list (CACHE-DIR))
                        (if cd (list cd) null))])
         (λ (p)
-          (define-values (base name dir?) (split-path p))
-          (define compiled-dir (build-path base "compiled"))
-          (and
-           (cond
-             [(directory-exists? compiled-dir)
-              (member 'write (file-or-directory-permissions compiled-dir))]
-             [(directory-exists? base)
-              (member 'write (file-or-directory-permissions base))]
-             [else #f])
-           (file-stamp-in-paths p no-dirs)))))
+          (cond
+            [(file-stamp-in-paths p no-dirs) => values]
+            [else
+             (define-values (base name dir?) (split-path p))
+             (define compiled-dir (build-path base "compiled"))
+             (define can-write?
+               (with-handlers ([exn:fail:filesystem (λ (exn) #f)])
+                 (cond
+                   [(directory-exists? compiled-dir)
+                    (member 'write (file-or-directory-permissions compiled-dir))]
+                   [(directory-exists? base)
+                    (member 'write (file-or-directory-permissions base))]
+                   [else #t])))
+             (cond
+               [can-write? #f]
+               [else (file-stamp-in-paths p (list base))])]))))
      
      (when (and (pair? (use-compiled-file-paths))
                 (equal? (car (use-compiled-file-paths))
