@@ -5,7 +5,7 @@
 (define deps '("scheme-lib"
                "data-lib"
                "compiler-lib"
-               ["base" #:version "6.4.0.15"]
+               ["base" #:version "6.2.900.15"]
                "planet-lib"
                "compatibility-lib"
                ["draw-lib" #:version "1.7"]

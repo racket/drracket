@@ -374,16 +374,7 @@
                                           enforce-module-constants)))))))))))
       
       (define/override (on-execute settings run-in-user-thread)
-
-        (define original-compile #f)
-        (run-in-user-thread (λ () (set! original-compile (current-compile))))
-        
-        ;; this will set current-compile when we are in errortrace mode
-        ;; but we need to update that to correctly manage .zo files, so
-        ;; we save the old value and restore it around this call.
         (super on-execute settings run-in-user-thread)
-
-        (run-in-user-thread (λ () (current-compile original-compile)))
         
         ;; reset the language info so that if the module is illformed, 
         ;; we don't save the language info from the last run
@@ -393,8 +384,7 @@
         (let ([currently-open-files (get-currently-open-files)])
           (run-in-user-thread
            (λ ()
-             ;; this will set the compile handler (in errortrace mode)
-             (set-module-language-parameters
+             (set-module-language-parameters 
               (module-language-settings->prefab-module-settings settings)
               module-language-parallel-lock-client
               currently-open-files)))))

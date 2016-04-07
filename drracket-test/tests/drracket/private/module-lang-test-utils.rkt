@@ -13,18 +13,16 @@
 (define (rx . strs)
   (regexp (regexp-replace* #rx" *\n *" (string-append* strs) ".*")))
 
-(define-struct test
-  (definitions    ; Rec X = (or/c string 'xml-box (listof X))
-    interactions  ; (union #f string)
-    result        ; (or/c string regexp)
-    all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
-    error-ranges  ; (or/c 'dont-test
-    ;                      (-> (is-a?/c text)
-    ;                          (is-a?/c text)
-    ;                          (or/c #f (listof ...))))
-    ;                   fn => called with defs & ints, result must match
-    ;                         get-error-ranges method's result
-    line)         ; number or #f: the line number of the test case
+(define-struct test (definitions   ; Rec X = (or/c string 'xml-box (listof X))
+                     interactions  ; (union #f string)
+                     result        ; (or/c string regexp)
+                     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
+                     error-ranges  ; (or/c 'dont-test
+                                   ;       (-> (is-a?/c text)
+                                   ;           (is-a?/c text)
+                                   ;           (or/c #f (listof ...))))
+                                   ;    fn => called with defs & ints, result must match get-error-ranges method's result
+                      line)        ; number or #f: the line number of the test case
                       
   #:omit-define-syntaxes)
 
@@ -37,8 +35,7 @@
     [(_  args ...)
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
-(define (test/proc line definitions interactions results [all? #f]
-                   #:error-ranges [error-ranges 'dont-test])
+(define (test/proc line definitions interactions results [all? #f] #:error-ranges [error-ranges 'dont-test])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
@@ -67,13 +64,13 @@
 
 (define (single-test test)
   (let/ec k
-    (clear-definitions drr)
+    (clear-definitions drs)
     (let loop ([to-handle (test-definitions test)])
       (cond
         [(list? to-handle)
          (for-each loop to-handle)]
         [(string? to-handle)
-         (insert-in-definitions drr to-handle)]
+         (insert-in-definitions drs to-handle)]
         [(equal? to-handle 'xml-box)
          (test:menu-select "Insert" "Insert XML Box")
          (for ([c (in-string "<a>x")])
@@ -85,7 +82,7 @@
          (error 'module-lang-test-utils.rkt
                 "unknown thing in test-definitions field ~s"
                 to-handle)]))
-    (do-execute drr)
+    (do-execute drs)
     
     (define ints (test-interactions test))
     
@@ -100,16 +97,13 @@
                       (send interactions-text paragraph-start-position 2)
                       (send interactions-text paragraph-end-position 2))))])
         (unless (or (test-all? test) (string=? "> " after-execute-output))
-          (eprintf (string-append
-                    "FAILED (line ~a): ~a\n"
-                    "        ~a\n"
-                    "        expected no output after execution, got: ~s\n")
+          (eprintf "FAILED (line ~a): ~a\n        ~a\n        expected no output after execution, got: ~s\n"
                    (test-line test)
                    (test-definitions test)
                    (or (test-interactions test) 'no-interactions)
                    after-execute-output)
           (k (void)))
-        (insert-in-interactions drr ints)
+        (insert-in-interactions drs ints)
         ;; set to be the paragraph right after the insertion.
         (set! output-start-paragraph
               (queue-callback/res
@@ -117,7 +111,7 @@
                               (send interactions-text last-position))
                         1))))
         (test:keystroke #\return '(alt))
-        (wait-for-computation drr)))
+        (wait-for-computation drs)))
     
     (define text
       (queue-callback/res
@@ -182,14 +176,14 @@
                     error-ranges-expected
                     (send interactions-text get-error-ranges))))])))
 
-(define drr 'not-yet-drr-frame)
+(define drs 'not-yet-drs-frame)
 (define interactions-text 'not-yet-interactions-text)
 (define definitions-text 'not-yet-definitions-text)
 
 (define (run-test)
-  (set! drr (wait-for-drracket-frame))
-  (set! interactions-text  (send drr get-interactions-text))
-  (set! definitions-text (send drr get-definitions-text))
+  (set! drs (wait-for-drracket-frame))
+  (set! interactions-text  (send drs get-interactions-text))
+  (set! definitions-text (send drs get-definitions-text))
   (init-temp-files)
   (run-use-compiled-file-paths-tests)
   (set-module-language! #f)
@@ -198,8 +192,8 @@
     (test:button-push "OK")
     (wait-for-new-frame f))
   (for-each single-test (reverse tests))
-  (clear-definitions drr)
-  (queue-callback/res (λ () (send (send drr get-definitions-text) set-modified #f)))
+  (clear-definitions drs)
+  (queue-callback/res (λ () (send (send drs get-definitions-text) set-modified #f)))
   (for ([file temp-files]) 
     (when (file-exists? file)
       (delete-file file))))
@@ -211,8 +205,8 @@
     (let ([f (test:get-active-top-level-window)])
       (test:button-push "OK")
       (wait-for-new-frame f))
-    (do-execute drr)
-    (fetch-output drr))
+    (do-execute drs)
+    (fetch-output drs))
     
   (define (run-one-test radio-box expected [no-check-expected #f])
     (let ([got (setup-dialog/run (λ () (test:set-radio-box-item! radio-box)))])
@@ -222,29 +216,27 @@
                (format "~s" expected))))
     
     (when no-check-expected
-      (define got
-        (setup-dialog/run
-         (λ ()
-           (test:set-radio-box-item! radio-box)
-           (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f))))
-      (unless (equal? got (format "~s" no-check-expected))
-        (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
-               got
-               (format "~s" no-check-expected)))))
+      (let ([got (setup-dialog/run 
+                  (λ () 
+                    (test:set-radio-box-item! radio-box)
+                    (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f)))])
+        (unless (equal? got (format "~s" no-check-expected))
+          (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
+                 got
+                 (format "~s" no-check-expected))))))
 
   (define (spaces-equal? a b)
     (equal? (regexp-replace* #rx"[\n\t ]+" a " ")
             (regexp-replace* #rx"[\n\t ]+" b " ")))
   
-  (define drr/compiled/et (build-path "compiled" "drracket" "errortrace"))
-  (define drr/compiled (build-path "compiled" "drracket"))
+  (define drs/compiled/et (build-path "compiled" "drracket" "errortrace"))
+  (define drs/compiled (build-path "compiled" "drracket"))
   (define compiled/et (build-path "compiled" "errortrace"))
   (define compiled (build-path "compiled"))
   
-  (clear-definitions drr)
-  (insert-in-definitions drr "#lang scheme\n(use-compiled-file-paths)")
-  (run-one-test "No debugging or profiling" (list drr/compiled compiled) (list compiled))
-  (run-one-test "Debugging" (list drr/compiled/et drr/compiled compiled/et compiled)
-                (list compiled/et compiled))
+  (clear-definitions drs)
+  (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")
+  (run-one-test "No debugging or profiling" (list drs/compiled compiled) (list compiled))
+  (run-one-test "Debugging" (list drs/compiled/et compiled/et compiled) (list compiled/et compiled))
   (run-one-test "Debugging and profiling" (list compiled))
   (run-one-test "Syntactic test suite coverage" (list compiled)))
