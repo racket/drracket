@@ -214,7 +214,7 @@ regions")]{In}} Racket mode, especially, DrRacket's editor provides
 special support for managing parentheses in a program. When the
 blinking caret is next to a parenthesis, DrRacket shades the region
 between the parenthesis and its matching parenthesis. This feature is
-especially helpful when for balancing parentheses to complete an
+especially helpful for balancing parentheses to complete an
 expression.
 
 @index['("formatting Racket code")]{@index['("indenting Racket
