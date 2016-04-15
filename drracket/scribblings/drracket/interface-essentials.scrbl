@@ -88,7 +88,7 @@ panel with several other buttons that provide control over the
 program's execution.
 
 Clicking the @as-index{@onscreen{Check Syntax} button} annotates the
-program text in the definitions window.  It add the following
+program text in the definitions window.  It adds the following
 annotations:
 
 @itemize[
