@@ -246,18 +246,18 @@
   (define (fully-specified-test init . steps)
     (let ([actual (step-and-extract-program init)])
       (unless (equal? actual steps)
-        (printf "FAILED: ~s\nexpected: ~s\n     got: ~s\n" init steps actual))))
+        (eprintf "FAILED: ~s\nexpected: ~s\n     got: ~s\n" init steps actual))))
 
   (define (test-transcript/defns defns init . sexp-steps)
     (let* ([str-defns (apply string-append (map (lambda (x) (string-append (to-string x) "\n")) defns))]
            [actual-steps (step-and-extract-program (format "~a~a" str-defns (to-string init)))]
            [failed
             (lambda (msg . args)
-              (printf "FAILED: ~a\ndefns: ~s\nexpected: ~s\nactual: ~s\n\n" 
-                      (apply format msg args)
-                      defns
-                      (cons init sexp-steps)
-                      actual-steps))])
+              (eprintf "FAILED: ~a\ndefns: ~s\nexpected: ~s\nactual: ~s\n\n" 
+                       (apply format msg args)
+                       defns
+                       (cons init sexp-steps)
+                       actual-steps))])
       (let loop ([steps actual-steps]
                  [last init]
                  [sexps sexp-steps]
@@ -363,9 +363,9 @@
   ;; indicates that this one test failed, but the stepper may still
   ;; be steppable, so just jumps out of this one test.
   (define (simple-failure step message . args)
-    (printf "FAILED TEST ~s:\n" (current-program-id))
-    (when step (printf "~s\n" step))
-    (printf "~a\n\n" (apply format message args))
+    (eprintf "FAILED TEST ~s:\n" (current-program-id))
+    (when step (eprintf "~s\n" step))
+    (eprintf "~a\n\n" (apply format message args))
     ((failure-escape)))
   
   ;; check-steps : program-spec (listof step) -> void

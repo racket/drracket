@@ -82,13 +82,13 @@
         [dialog
          (let ([got (send dialog get-message)])
            (unless (string=? got expected-error)
-             (printf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
-                     tp-exp expected-error got))
+             (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
+                      tp-exp expected-error got))
            (fw:test:button-push "Ok")
            (wait-for-new-frame dialog))]
         [else
-         (printf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
-                 tp-exp expected-error)]))))
+         (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
+                  tp-exp expected-error)]))))
 
 (define (test-bad/execute-teachpack tp-exp expected)
   (fw:test:menu-select "Language" "Clear All Teachpacks")
@@ -126,13 +126,13 @@
                [expected-error
                 (format "Invalid Teachpack: ~a\n~a" tp-name expected)])
            (unless (string=? got expected-error)
-             (printf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
-                     tp-exp expected-error got))
+             (eprintf "FAILED:       tp: ~s\n        expected: ~s\n             got: ~s\n"
+                      tp-exp expected-error got))
            (fw:test:button-push "Ok")
            (wait-for-new-frame dialog))]
         [else
-         (printf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
-                 tp-exp error)]))))
+         (eprintf "FAILED: no error message appeared\n              tp: ~s\n        expected: ~s\n"
+                  tp-exp error)]))))
 
 (define (generic-tests)
   (test-good-teachpack
@@ -212,8 +212,8 @@
         (define got (fetch-output drs-frame))
         (define expected (format "Teachpack: ~a.\n1" (path->string teachpack)))
         (unless (equal? got expected)
-          (printf "FAILED built in teachpack test: ~a\n" (path->string teachpack))
-          (printf "       got: ~s\n  expected: ~s\n" got expected)))))
+          (eprintf "FAILED built in teachpack test: ~a\n" (path->string teachpack))
+          (eprintf "       got: ~s\n  expected: ~s\n" got expected)))))
   (define (test-teachpacks an-image-tp)
     (define-values (dir name dir?) (split-path an-image-tp))
     (for ([file (in-list (directory-list dir))])
