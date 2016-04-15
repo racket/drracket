@@ -52,7 +52,7 @@
             "\nThis psorgram should be tested.")])
       (unless (equal? got 
                       full-expectation)
-        (printf 
+        (eprintf
          "FAILED:       tp: ~s\n             exp: ~s\n        expected: ~s\n             got: ~s\n"
          tp-exps
          dr-exp
