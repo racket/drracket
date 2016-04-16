@@ -421,6 +421,17 @@
       #f
       @t{'(a () "x")})
 
+
+(test @t{#lang racket/base
+         (define os (open-output-string))
+         (display "before\n")
+         (parameterize ([current-output-port os])
+           (displayln "not shown")
+           ((current-print) 'aaa))
+         (display "after\n")}
+        #f
+        #rx"before\nafter")
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:

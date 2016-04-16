@@ -547,21 +547,28 @@ TODO
       ;; prints each element of anss that is not void as values in the REPL.
       (define/public (display-results anss) ; =User=, =Handler=, =Breaks=
         (display-results/void (filter (λ (x) (not (void? x))) anss)))
+
+      (define/private (display-results/separate-port anss)
+        (display-results/void/port (filter (λ (x) (not (void? x))) anss)
+                                   (if (equal? (current-output-port) (get-out-port))
+                                       (get-value-port)
+                                       (current-output-port))))
       
       ;; display-results : (listof TST) -> void
       ;; prints each element of anss in the REPL.
       (define/public (display-results/void anss) ; =User=, =Handler=, =Breaks=
-        (for-each 
-         (λ (v) 
-           (let* ([ls (current-language-settings)]
-                  [lang (drracket:language-configuration:language-settings-language ls)]
-                  [settings (drracket:language-configuration:language-settings-settings ls)])
-             (send lang render-value/format
-                   v
-                   settings
-                   (get-value-port)
-                   (get-repl-char-width))))
-         anss))
+        (display-results/void/port anss (get-value-port)))
+
+      (define/private (display-results/void/port anss port) ; =User=, =Handler=, =Breaks=
+        (for ([v (in-list anss)])
+          (define ls (current-language-settings))
+          (define lang (drracket:language-configuration:language-settings-language ls))
+          (define settings (drracket:language-configuration:language-settings-settings ls))
+          (send lang render-value/format
+                v
+                settings
+                port
+                (get-repl-char-width))))
       
       ;; get-repl-char-width : -> (and/c exact? integer?)
       ;; returns the width of the repl in characters, or 80 if the
@@ -1626,7 +1633,8 @@ TODO
         (current-value-port (get-value-port))
         (current-input-port (get-in-box-port))
 
-        (current-print (lambda (v) (display-results (list v)))))
+        (define (drracket-current-print v) (display-results/separate-port (list v)))
+        (current-print drracket-current-print))
       
       (define/private (initialize-dispatch-handler) ;;; =User=
         (let* ([primitive-dispatch-handler (event-dispatch-handler)])
