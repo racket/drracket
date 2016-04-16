@@ -1,5 +1,5 @@
 ------------------------------
-       Version 6.4++
+       Version 6.5
 ------------------------------
 
   . changed the indentation strategy for sequences that begin with
@@ -20,7 +20,8 @@
            #:y 2
            #:z 3)
 
-
+  . the break button aborts the program the second time it is 
+    clicked on and its label changes to indicate what it will do
 
 ------------------------------
        Version 6.4
