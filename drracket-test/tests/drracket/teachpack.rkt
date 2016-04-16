@@ -195,7 +195,14 @@
               (equal? #"rkt" (filename-extension teachpack)))
       (unless (or (equal? "graphing.ss" (path->string teachpack))
                   (regexp-match #rx"^info[.][^.]*$" (path->string teachpack)))
-        (printf "  testing ~a\n" teachpack)
+        (define tp-name
+          (cond
+            [(regexp-match #rx"image[.]rkt$" (path->string teachpack))
+             (define-values (base name dir?) (split-path dir))
+             (path->string (build-path name teachpack))]
+            [else
+             (path->string teachpack)]))
+        (printf "  testing ~a\n" tp-name)
         (fw:test:menu-select "Language" "Clear All Teachpacks")
         (fw:test:menu-select "Language" "Add Teachpack…")
         (wait-for-new-frame drs-frame)
@@ -210,7 +217,7 @@
         (do-execute drs-frame)
         
         (define got (fetch-output drs-frame))
-        (define expected (format "Teachpack: ~a.\n1" (path->string teachpack)))
+        (define expected (format "Teachpack: ~a.\n1" tp-name))
         (unless (equal? got expected)
           (eprintf "FAILED built in teachpack test: ~a\n" (path->string teachpack))
           (eprintf "       got: ~s\n  expected: ~s\n" got expected)))))
