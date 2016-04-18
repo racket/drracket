@@ -131,7 +131,7 @@
                           [ent-str (in-value (path->string ent))]
                           #:unless (ignore? module-suffix-regexp
                                             ent-str
-                                            (is-dir? (build-path candidate ent))))
+                                            (is-dir? ent)))
                 (list ent-str ent)))
             (loop (cdr segments) nexts)]
            [else
