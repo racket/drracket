@@ -42,7 +42,7 @@ The Framework, as described in
 may also come in handy.
 
 The @racketmodname[drscheme/tool-lib] and @racketmodname[drscheme/tool]
-libraries are for backward compatibility; they exports all of the bindings of
+libraries are for backward compatibility; they export all of the bindings of
 their @tt{drracket} counterpart.
 
 @table-of-contents[]
