@@ -751,23 +751,27 @@
        (for ([i (in-range 1 10)])
          (define sc (integer->char (+ (char->integer #\0) i)))
          (cond
+           [(and (= i 9) (not (= 1 tab-count)))
+            (new menu-item% 
+                 [parent windows-menu]
+                 [label
+                  (if (< tab-count i)
+                      (format (string-constant last-tab)
+                              (send frame get-tab-filename (- tab-count 1)))
+                      (format (string-constant tab-i)
+                              9
+                              (send frame get-tab-filename (- tab-count 1))))]
+                 [shortcut sc]
+                 [callback
+                  (λ (a b)
+                    (send frame change-to-nth-tab (- tab-count 1)))])]
            [(or (< tab-count i) (= 1 tab-count))
-            (send (new menu-item% 
+            (send (new menu-item%
                        [parent windows-menu]
                        [label (format (string-constant tab-i/no-name) i)]
                        [shortcut sc]
                        [callback void])
                   enable #f)]
-           [(= i 9)
-            (new menu-item% 
-                 [parent windows-menu]
-                 [label (format (string-constant tab-i)
-                                i
-                                (send frame get-tab-filename (- tab-count 1)))]
-                 [shortcut sc]
-                 [callback
-                  (λ (a b)
-                    (send frame change-to-nth-tab (- tab-count 1)))])]
            [else
             (new menu-item% 
                  [parent windows-menu]
