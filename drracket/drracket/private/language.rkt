@@ -466,6 +466,7 @@
           [(hash-ref convert-table value #f)
            =>
            (λ (backing-scale+bytes)
+             (hash-remove! convert-table value)
              (write-special
               (make-object image-snip%
                 (read-bitmap (open-input-bytes (cadr backing-scale+bytes))
