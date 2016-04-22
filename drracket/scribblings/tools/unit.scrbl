@@ -290,7 +290,7 @@ safe to call this at anytime, however.
   Makes @racket[tab] visible in this frame.
 }
 @defmethod[#:mode override 
-           (edit-menu:between-select-all-and-find)
+           (edit-menu:between-select-all-and-find [edit-menu (is-a?/c menu%)])
            void?]{
 
 Adds the @racket["Split"] and @racket["Collapse"] menu items.
@@ -319,7 +319,7 @@ It calls
 }}
 
 @defmethod[#:mode override 
-           (file-menu:between-open-and-revert)
+           (file-menu:between-open-and-revert [file-menu (is-a?/c menu%)])
            void?]{
 
 Calls the super method and adds a
@@ -329,7 +329,7 @@ Calls the super method and adds a
 }
 
 @defmethod[#:mode override 
-           (file-menu:between-print-and-close)
+           (file-menu:between-print-and-close [file-menu (is-a?/c menu%)])
            void?]{
 
 Adds a menu item for printing the interactions.
@@ -338,7 +338,7 @@ Adds a menu item for printing the interactions.
 }
 
 @defmethod[#:mode override 
-           (file-menu:between-save-as-and-print)
+           (file-menu:between-save-as-and-print [file-menu (is-a?/c menu%)])
            void?]{
 
 Adds a submenu that contains various save options:

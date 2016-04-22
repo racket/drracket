@@ -45,7 +45,7 @@ Use this mixin to establish some common menu items across various DrRacket windo
 
 
 @defmethod[#:mode override 
-           (edit-menu:between-find-and-preferences)
+           (edit-menu:between-find-and-preferences [edit-menu (is-a?/c menu%)])
            void?]{
 
 Adds a
