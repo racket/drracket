@@ -441,6 +441,8 @@
         (define convert-table (get-convert-table))
         (cond
           [(not (port-writes-special? port)) (original-pretty-print-print-hook value display? port)]
+          [(pict:convertible? value)
+           (write-special (mk-pict-snip value))]
           [(is-a? value snip%)
            (when (image-core:image? value)
              ;; do this computation here so that any failures
@@ -454,8 +456,6 @@
              [else
               (write-special (text:make-snip-special (send value copy)) port)])
            1]
-          [(pict:convertible? value)
-           (write-special (mk-pict-snip value))]
           [(use-number-snip? value)
            (write-special (number->number-snip value) port)
            1]
