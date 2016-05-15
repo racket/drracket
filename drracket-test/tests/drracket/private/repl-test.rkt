@@ -540,6 +540,18 @@ This produces an ACK message
            'interactions
            #f)
    
+   (mktest (~s '(let ([t (new text%)])
+                  (send t insert "Hi")
+                  (send (new editor-snip% [editor t]) copy)))
+           ("{embedded \"Hi\"}"
+            "{embedded \"Hi\"}"
+            "{embedded \"Hi\"}"
+            "{embedded \"Hi\"}"
+            "{embedded \"Hi\"}"
+            "{embedded \"Hi\"}")
+           'interactions
+           #f)
+   
    ;; should produce a syntax object with a turn-down triangle.
    (mktest "(write (list (syntax x)))" 
            (#rx"({embedded \".#<syntax:.*repl-test-tmp.rkt:1:21.*>\"})"
