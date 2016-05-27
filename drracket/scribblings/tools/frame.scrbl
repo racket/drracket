@@ -4,7 +4,7 @@
 
 @defclass[drracket:frame:name-message% canvas% ()]{
 
-This class implements the little filename button in the top-right hand
+This class implements the little filename button in the top-left hand
 side of DrRacket's frame.
 
 
