@@ -2069,15 +2069,7 @@
               [n (in-list numbers/fs)]) 
           (add-to-toolbar-buttons 'register-toolbar-buttons b n))
         (set-toolbar-label-visibilities/check-registered)
-        
-        ;; sort panel contents
-        (define panels '())
-        (for ([tb (in-list bs)])
-          (define parent (send tb get-parent))
-          (unless (memq parent panels)
-            (set! panels (cons parent panels))))
-        (for ([panel (in-list panels)])
-          (sort-toolbar-buttons-panel)))
+        (sort-toolbar-buttons-panel))
       
       (define/private (add-to-toolbar-buttons who button number/f)
         (define number (or number/f (if smallest (- smallest 1) 100)))
@@ -2103,6 +2095,14 @@
       
       (define/public (sort-toolbar-buttons-panel)
         (define bp (get-button-panel))
+        (define (cmp panel)
+          (cond
+            [(is-a? panel vertical-pane%) >=]
+            [(is-a? panel horizontal-pane%) <=]
+            [else
+             (if (send panel get-orientation) ;; horizontal is #t
+                 <=
+                 >=)]))
         (when (is-a? bp panel%)
           (let sort-loop ([panel bp])
             (define min #f)
@@ -2111,28 +2111,17 @@
                     (define sub-panel-nums (make-hash))
                     (for ([x (in-list l)])
                       (when (is-a? x area-container<%>)
-                        (hash-set! sub-panel-nums x (sort-loop x))))
-                    (define (key i)
-                      (or (let loop ([item i])
-                            (cond
-                              [(is-a? item area-container<%>)
-                               (hash-ref sub-panel-nums item)]
-                              [else
-                               (hash-ref toolbar-buttons item #f)]))
-                          -5000))
-                    (define (min/f a b)
+                        (define rec-res (sort-loop x))
+                        (when rec-res
+                          (hash-set! sub-panel-nums x rec-res))))
+                    (define (key item)
+                      (define missing-num -5000)
                       (cond
-                        [(and a b) (min a b)]
-                        [else (or a b)]))
-                    (define cmp
-                      (cond
-                        [(is-a? panel vertical-pane%) >=]
-                        [(is-a? panel horizontal-pane%) <=]
+                        [(is-a? item area-container<%>)
+                         (hash-ref sub-panel-nums item missing-num)]
                         [else
-                         (if (send panel get-orientation) ;; horizontal is #t
-                             <=
-                             >=)]))
-                    (define ans (sort l cmp #:key key))
+                         (hash-ref toolbar-buttons item missing-num)]))
+                    (define ans (sort l (cmp panel) #:key key))
                     (set! min (if (null? ans)
                                   #f
                                   (key (car ans))))
