@@ -57,7 +57,8 @@
               (alternate-bitmap small-debug-bitmap)
               (parent parent)
               (callback (λ (button) (send frame debug-callback)))))
-       'macro-stepper)
+       'debug-tool
+       #:number 60)
       (drscheme:language:extend-language-interface
        debugger-language<%>
        (lambda (superclass)
