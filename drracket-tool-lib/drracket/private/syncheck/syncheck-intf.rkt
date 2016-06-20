@@ -16,6 +16,7 @@
     syncheck:add-mouse-over-status
     syncheck:add-jump-to-definition
     syncheck:add-definition-target
+    syncheck:add-prefixed-require-reference
     syncheck:color-range
     
     syncheck:add-rename-menu))
@@ -61,9 +62,13 @@
                                    actual? level require-arrow? name-dup?))
     (define/public (syncheck:add-tail-arrow from-text from-pos to-text to-pos) (void))
     (define/public (syncheck:add-mouse-over-status text pos-left pos-right str) (void))
+    
     (define/public (syncheck:add-jump-to-definition text start end id filename submods) (void))
     (define/public (syncheck:add-definition-target source pos-left pos-right id mods) (void))
     (define/public (syncheck:color-range source start finish style-name) (void))
+    (define/public (syncheck:add-prefixed-require-reference req-src req-pos-left req-pos-right
+                                                            prefix-in-src prefix-in-pos)
+      (void))
     (super-new)))
 
 (provide syncheck-annotations<%>

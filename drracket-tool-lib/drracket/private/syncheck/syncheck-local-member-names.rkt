@@ -15,4 +15,5 @@
   syncheck:add-rename-menu
   syncheck:add-tail-arrow
   syncheck:add-mouse-over-status
-  syncheck:add-jump-to-definition)
+  syncheck:add-jump-to-definition
+  syncheck:add-prefixed-require-reference)

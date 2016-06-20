@@ -4,7 +4,7 @@
 
 (define deps '(["base" #:version "6.2.900.10"]
                "scribble-lib"
-               "string-constants-lib"
+               ["string-constants-lib" #:version "1.11"]
                "scribble-lib"
                "racket-index"
                "gui-lib"))
@@ -15,4 +15,4 @@
 
 (define pkg-authors '(robby))
 
-(define version "1.0")
+(define version "1.1")

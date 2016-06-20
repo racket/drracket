@@ -218,7 +218,7 @@ in order to make the results be platform independent.
                                               [end-py (real-in 0 1)]
                                               [actual? boolean?]
                                               [phase-level (or/c exact-nonnegative-integer? #f)]
-                                              [require-arrow? boolean?]
+                                              [require-arrow (or/c boolean? 'module-lang-require)]
                                               [name-dup? (-> string? boolean?)])
             void?]{
    Called to indicate that there should be an arrow between the locations described by the first 
@@ -231,13 +231,20 @@ in order to make the results be platform independent.
    @racket[actual?] argument indicates if the binding is a real one, or a predicted one from
    a syntax template (predicted bindings are drawn with question marks in Check Syntax). 
    
-   The @racket[require-arrow?] argument indicates if this arrow points from
-   an imported identifier to its corresponding @racket[require].
+   The @racket[require-arrow] argument indicates if this arrow points from
+   an imported identifier to its corresponding @racket[require]. Any true value means
+   that it points to an import via @racket[require]; @racket[#t] means it was a normal
+   @racket[require] and @racket['module-lang-require] means it comes from the implicit require
+   that a module language provides.
    
    The @racket[name-dup?] predicate returns @racket[#t]
    in case that this variable (either the start or end), when replaced with the given string, would
    shadow some other binding (or otherwise interfere with the binding structure of the program at
    the time the program was expanded).
+
+   @history[#:changed "1.1" @list{Changed @racket[require-arrow] to sometimes
+               be @racket['module-lang-require].}]
+   
  }
  @defmethod[(syncheck:add-tail-arrow [from-source-obj (not/c #f)]
                                      [from-pos exact-nonnegative-integer?]
@@ -256,6 +263,19 @@ in order to make the results be platform independent.
    Called to indicate that the message in @racket[str] should be shown when the mouse 
                                           passes over the given position.
  }
+
+ @defmethod[(syncheck:add-prefixed-require-reference
+             [req-src (not/c #f)]
+             [req-pos-left exact-nonnegative-integer?]
+             [req-pos-right exact-nonnegative-integer?])
+           void?]{
+  This method is called for each @racket[require] in the program that
+  has a @racket[_prefix] or @racket[_prefix-all-except] around it in
+  fully expanded form (i.e., it seems to come from a @racket[prefix-in]
+  or a similar form). The method is passed
+  the location of the @[require] in the original program.
+ }
+                  
  @defmethod[(syncheck:add-jump-to-definition [source-obj (not/c #f)] 
                                              [start exact-nonnegative-integer?]
                                              [end exact-nonnegative-integer?]
@@ -263,6 +283,7 @@ in order to make the results be platform independent.
                                              [filename path-string?]
                                              [submods (listof symbol?)])
             void?]{
+
    Called to indicate that there is some identifier at the given location (named @racket[id]) that
    is defined in the @racket[submods] of the file @racket[filename] (where an empty list in
    @racket[submods] means that the identifier is defined at the top-level module).
@@ -307,7 +328,7 @@ in order to make the results be platform independent.
                       method ignores its arguments and returns @racket[#f];}
             @item{the @method[syncheck-annotations<%> syncheck:add-arrow/name-dup] method drops the
                       @racket[_require-arrow?] and @racket[_name-dup?] arguments and calls
-                      @method[syncheck-annotations<%> syncheck:add-arrow]; and}
+                      @method[syncheck-annotations<%> syncheck:add-arrow];}
             @item{the @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
                       method drops the @racket[_from-px], @racket[_from-py], @racket[_to-px],
                       and @racket[_to-py] arguments and calls

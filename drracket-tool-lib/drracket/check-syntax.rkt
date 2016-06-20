@@ -45,6 +45,7 @@
  syncheck:add-tail-arrow
  syncheck:add-mouse-over-status
  syncheck:add-jump-to-definition
+ syncheck:add-prefixed-require-reference
  syncheck:color-range)
 
 (define (show-content file-or-stx)

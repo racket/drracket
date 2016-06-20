@@ -31,6 +31,7 @@
   (define-struct (dir-test test) () #:transparent)
   
   (define-struct rename-test (line input pos old-name new-name output) #:transparent)
+  (define-struct prefix-test (line input pos prefix output) #:transparent)
   
   (define build-test/proc
     (λ (line input expected [arrow-table '()] #:tooltips [tooltips #f] 
@@ -48,6 +49,12 @@
       [(_ args ...)
        (with-syntax ([line (syntax-line stx)])
          #'(rename-test line args ...))]))
+
+  (define-syntax (build-prefix-test stx)
+    (syntax-case stx ()
+      [(_ args ...)
+       (with-syntax ([line (syntax-line stx)])
+         #'(prefix-test line args ...))]))
   
   (define-syntax (build-dir-test stx)
     (syntax-case stx ()
@@ -766,7 +773,8 @@
                   ("x:foldl"                          imported-variable)
                   (")"                                default-color))
                 (list '((10 18) (20 27))
-                      '((39 49) (52 59))))
+                      '((36 38) (52 54))
+                      '((39 49) (54 59))))
 
      (build-test "(module m mzscheme (require (prefix x: mzlib/list) mzlib/list) x:foldl foldl)"
                 '(("("                                    default-color)
@@ -779,7 +787,8 @@
                   ("foldl"                                imported-variable)
                   (")"                                    default-color))
                 (list '((10 18) (20 27))
-                      '((39 49) (63 70))
+                      '((36 38) (63 65))
+                      '((39 49) (65 70))
                       '((51 61) (71 76))))
 
      (build-test (string-append
@@ -809,7 +818,8 @@
                    ("+"                                                  imported-variable)
                    (")"                                                  default-color))
                  (list '((10 18) (20 27) (54 55))
-                       '((39 47) (50 53))))
+                       '((36 38) (50 52))
+                       '((39 47) (52 53))))
      
      (build-test "(module m mzscheme (require mzlib/etc) (rec f 1))"
                 '(("("                     default-color)
@@ -1245,6 +1255,15 @@
           #:exists 'truncate)
         fn)
       #:teardown (λ (fn) (delete-file fn)))
+
+     (build-prefix-test "(module m racket/base (require racket/list) first)"
+                        32
+                        "x."
+                        "(module m racket/base (require (prefix-in x. racket/list)) x.first)")
+     (build-prefix-test "(module m racket/base (require racket/list) first)"
+                        45
+                        "x."
+                        "(module m racket/base (require (prefix-in x. racket/list)) x.first)")
      
      (build-rename-test "(lambda (x) x)"
                         9
@@ -1534,6 +1553,45 @@
                                    (define defs (send drs get-definitions-text))
                                    (send defs get-text 0 (send defs last-position)))))
            (unless (equal? result (rename-test-output test))
+             (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" 
+                      test
+                      result)))]
+        [(prefix-test? test)
+         (insert-in-definitions drs (prefix-test-input test))
+         (click-check-syntax-and-check-errors drs test #f)
+         (define menu-item
+           (queue-callback/res
+            (λ ()
+              (define defs (send drs get-definitions-text))
+              (define menu (make-object popup-menu%))
+              (send defs syncheck:build-popup-menu menu (prefix-test-pos test) defs)
+              (define item-name "Add Require Prefix")
+              (define menu-item
+                (for/or ([x (in-list (send menu get-items))])
+                  (and (is-a? x labelled-menu-item<%>)
+                       (equal? (send x get-label) item-name)
+                       x)))
+              (cond
+                [menu-item
+                 menu-item]
+                [else
+                 (eprintf "syncheck-test.rkt: prefix test ~s didn't find menu item named ~s in ~s\n"
+                          test
+                          item-name
+                          (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
+                               (send menu get-items)))
+                 #f]))))
+         (when menu-item
+           (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
+           (wait-for-new-frame drs)
+           (for ([x (in-string (prefix-test-prefix test))])
+             (test:keystroke x))
+           (test:button-push "OK")
+           (define result
+             (queue-callback/res (λ () 
+                                   (define defs (send drs get-definitions-text))
+                                   (send defs get-text 0 (send defs last-position)))))
+           (unless (equal? result (prefix-test-output test))
              (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" 
                       test
                       result)))])))

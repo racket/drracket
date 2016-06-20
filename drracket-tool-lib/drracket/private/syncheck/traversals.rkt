@@ -229,9 +229,6 @@
                  [binders (lookup-phase-to-mapping phase-to-binders
                                                    (+ level level-of-enclosing-module))]
                  [tops (lookup-phase-to-mapping phase-to-tops (+ level level-of-enclosing-module))]
-                 [requires (hash-ref! phase-to-requires 
-                                      (list (+ level level-of-enclosing-module) mods)
-                                      (λ () (make-hash)))]
                  [collect-general-info
                   (λ (stx)
                     (add-origins stx varrefs level-of-enclosing-module)
@@ -268,11 +265,6 @@
                      (loop fst)
                      (body-loop (car bodies) (cdr bodies))]))))
             
-            (define (add-module-lang-require stx) 
-              (define key (list (syntax-source stx)
-                                (syntax-position stx)
-                                (syntax-span stx)))
-              (hash-set! module-lang-requires key #t))
             (syntax-case* stx-obj (#%plain-lambda case-lambda if begin begin0 let-values letrec-values
                                                   set! quote quote-syntax with-continuation-mark
                                                   #%plain-app #%top #%plain-module-begin
@@ -411,8 +403,8 @@
               [(module m-name lang (#%plain-module-begin bodies ...))
                (begin
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-                 (add-module-lang-require (syntax lang))
-                 (annotate-require-open user-namespace user-directory (syntax lang))
+                 (add-module-lang-require module-lang-requires (syntax lang))
+                 (annotate-require-open user-namespace user-directory (syntax lang) level #f)
                  (define module-name (syntax-e #'m-name))
                  (define sub-requires
                    (hash-ref! phase-to-requires 
@@ -426,8 +418,8 @@
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
                  (define module-name (syntax-e #'m-name))
                  (when (syntax-e #'lang)
-                   (add-module-lang-require (syntax lang))
-                   (annotate-require-open user-namespace user-directory (syntax lang))
+                   (add-module-lang-require module-lang-requires (syntax lang))
+                   (annotate-require-open user-namespace user-directory (syntax lang) level #f)
                    (define sub-requires
                      (hash-ref! phase-to-requires 
                                 (list (+ level level-of-enclosing-module) (sub-mods module-name))
@@ -473,7 +465,7 @@
                                                  (list adjusted-level mods)
                                                  (λ () (make-hash))))
                    (define raw-module-path (phaseless-spec->raw-module-path stx))
-                   (annotate-require-open user-namespace user-directory raw-module-path)
+                   (annotate-require-open user-namespace user-directory raw-module-path level stx)
                    (when (original-enough? raw-module-path)
                      (define key (syntax->datum raw-module-path))
                      (hash-set! require-ht
@@ -513,7 +505,16 @@
                          (and (syntax? sexp)
                               (syntax-source sexp)))
                  (void))]))))
-    
+
+    (define (add-module-lang-require module-lang-requires stx)
+      (hash-set! module-lang-requires (module-lang-require-ht-key stx) #t))
+    (define (is-module-lang-require? module-lang-requires stx)
+      (hash-ref module-lang-requires (module-lang-require-ht-key stx) #f))
+    (define (module-lang-require-ht-key stx)
+      (list (syntax-source stx)
+            (syntax-position stx)
+            (syntax-span stx)))
+
     (define (hash-cons! ht k v)
       (hash-set! ht k (cons v (hash-ref ht k '()))))
 
@@ -682,7 +683,8 @@
                                 user-namespace 
                                 user-directory
                                 #t
-                                connections))))
+                                connections
+                                module-lang-requires))))
       
       
       ;; build a set of all of the known phases
@@ -713,13 +715,15 @@
                                 user-namespace
                                 user-directory
                                 #f
-                                connections))))
+                                connections
+                                module-lang-requires))))
       
       (for ([(level tops) (in-hash phase-to-tops)])
         (define binders (lookup-phase-to-mapping phase-to-binders level))
         (for ([vars (in-list (get-idss tops))])
           (for ([var (in-list vars)])
-            (color/connect-top user-namespace user-directory binders var connections))))
+            (color/connect-top user-namespace user-directory binders var connections
+                               module-lang-requires))))
       
       (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
         (define unused-hash (hash-ref unused/phases phase+mods))
@@ -785,11 +789,12 @@
     ;;                      (union identifier-binding identifier-transformer-binding)
     ;;                      boolean
     ;;                      connections-table (see its defn)
+    ;;                      hash[(list source position span) -o> #t]
     ;;                   -> void
     ;; adds the arrows that correspond to binders/bindings
     (define (connect-identifier var mods all-binders unused/phases phase-to-requires
                                 phase-level user-namespace user-directory actual?
-                                connections)
+                                connections module-lang-requires)
       (define binders (get-ids all-binders var))
       (when binders
         (for ([x (in-list binders)])
@@ -812,9 +817,9 @@
               (define unused (hash-ref unused/phases require-hash-key #f))
               (when unused (hash-remove! unused req-path))
               (for ([req-stx (in-list req-stxes)])
-                (when (id/require-match? (syntax->datum var)
-                                         id
-                                         (syntax->datum req-stx))
+                (define match/prefix
+                  (id/require-match (syntax->datum var) id req-stx))
+                (when match/prefix
                   (when id
                     (define-values (filename submods) 
                       (get-require-filename source-req-path user-namespace user-directory))
@@ -824,38 +829,66 @@
                        source-id
                        filename
                        submods)))
+                  (define prefix-length
+                    (cond
+                      [(and (identifier? match/prefix)
+                            (syntax-span match/prefix))
+                       (syntax-span match/prefix)]
+                      [else 0]))
                   (define raw-module-path (phaseless-spec->raw-module-path req-stx))
                   (add-mouse-over var
                                   (format
                                    (string-constant cs-mouse-over-import)
                                    (syntax-e var)
                                    req-path))
+                  ;; connect the require to the identifier
                   (connect-syntaxes (if (syntax-source raw-module-path)
                                         raw-module-path
                                         req-stx)
                                     var actual? all-binders
+                                    #:to-start prefix-length
+                                    #:to-width (- (syntax-span var) prefix-length)
                                     phase-level
                                     connections
-                                    #t))))))))
+                                    (if (is-module-lang-require? module-lang-requires req-stx)
+                                        'module-lang
+                                        #t))
+                  ;; connect the prefix
+                  (when (and (identifier? match/prefix)
+                             (syntax-source match/prefix)
+                             (syntax-position match/prefix)
+                             (syntax-span match/prefix))
+                    (connect-syntaxes match/prefix var actual? all-binders
+                                      #:to-start 0
+                                      #:to-width prefix-length
+                                      phase-level
+                                      connections
+                                      (if (is-module-lang-require? module-lang-requires req-stx)
+                                          'module-lang
+                                          #t))))))))))
              
-    (define (id/require-match? var id req-stx)
-      (match req-stx
-        [`(only ,_ . ,ids)
-         (and (memq id ids)
+    (define (id/require-match var id req-stx)
+      (syntax-case* req-stx (only prefix all-except prefix-all-except rename)
+        symbolic-compare?
+        [(only raw-mod-path . ids)
+         (and (memq id (syntax->datum #'ids))
               (eq? var id))]
-        [`(prefix ,prefix ,_)
-         (equal? (format "~a~a" prefix id)
-                 (symbol->string var))]
-        [`(all-except ,_ . ,ids)
+        [(prefix the-prefix raw-mod-path)
+         (and (equal? (format "~a~a" (syntax->datum #'the-prefix) id)
+                      (symbol->string var))
+              #'the-prefix)]
+        [(all-except raw-mod-path . ids)
          (and (eq? var id)
-              (not (member var ids)))]
-        [`(prefix-all-except ,prefix ,_ . ,rest)
-         (and (not (memq id rest))
-              (equal? (format "~a~a" prefix id)
-                      (symbol->string var)))]
-        [`(rename ,_ ,local-id ,exported-id)
-         (eq? local-id var)]
-        [else (eq? var id)]))
+              (not (member var (syntax->datum #'ids))))]
+        [(prefix-all-except the-prefix raw-mod-path . rest)
+         (and (not (memq id (syntax->datum #'rest)))
+              (equal? (format "~a~a" (syntax->datum #'the-prefix) id)
+                      (symbol->string var))
+              #'the-prefix)]
+        [(rename raw-mod-path local-id exported-id)
+         (and (eq? (syntax->datum #'local-id) var))]
+        [raw-mod-path
+         (eq? var id)]))
     
     (define (phaseless-spec->raw-module-path stx)
       (syntax-case* stx (only prefix all-except prefix-all-except rename) symbolic-compare?
@@ -868,7 +901,7 @@
     
     
     ;; get-module-req-path : identifier number [#:nominal? boolean] 
-    ;;                    -> (union #f (list require-sexp sym ?? module-path))
+    ;;                    -> (union #f (list require-sexp sym ?? module-path-index?))
     (define (get-module-req-path var phase-level #:nominal? [nominal-source-path? #t])
       (define binding (identifier-binding var phase-level))
       (and (pair? binding)
@@ -892,7 +925,8 @@
                [else #f]))))
     
     ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
-    (define (color/connect-top user-namespace user-directory binders var connections)
+    (define (color/connect-top user-namespace user-directory binders var connections
+                               module-lang-requires)
       (let ([top-bound?
              (or (get-ids binders var)
                  (parameterize ([current-namespace user-namespace])
@@ -905,7 +939,8 @@
           [else
            (add-mouse-over var (format "~s is a free variable" (syntax-e var)))
            (color var free-variable-style-name)])
-        (connect-identifier var #f binders #f #f 0 user-namespace user-directory #t connections)))
+        (connect-identifier var #f binders #f #f 0 user-namespace user-directory #t connections
+                            module-lang-requires)))
     
     ;; annotate-counts : connections[see defn] -> void
     ;; this function doesn't try to show the number of uses at
@@ -1056,28 +1091,41 @@
                   id
                   filename
                   submods)))))
+
     
     ;; annotate-require-open : namespace string -> (stx -> void)
     ;; relies on current-module-name-resolver, which in turn depends on
     ;; current-directory and current-namespace
-    (define (annotate-require-open user-namespace user-directory require-spec)
-      (when (original-enough? require-spec)
-        (define source (find-source-editor require-spec))
-        (when (and source
-                   (syntax-position require-spec)
-                   (syntax-span require-spec))
+    ;;  phaseless-require-spec/module-lang-require is #f => module-lang require
+    ;;    otherwise, it is the phaseless part of the require-spec
+    (define (annotate-require-open user-namespace user-directory raw-module-path
+                                   phase-level phaseless-require-spec/module-lang-require)
+      (when (original-enough? raw-module-path)
+        (define req-source (find-source-editor raw-module-path))
+        (when (and req-source
+                   (syntax-position raw-module-path)
+                   (syntax-span raw-module-path))
           (define defs-text (current-annotations))
           (when defs-text
-            (define start (- (syntax-position require-spec) 1))
-            (define end (+ start (syntax-span require-spec)))
+            (define start (- (syntax-position raw-module-path) 1))
+            (define end (+ start (syntax-span raw-module-path)))
             (define-values (file submods)
-              (get-require-filename (syntax->datum require-spec)
+              (get-require-filename (syntax->datum raw-module-path)
                                     user-namespace
                                     user-directory))
             (when file
               (send defs-text syncheck:add-require-open-menu
-                    source start end file))))))
-    
+                    req-source start end file))
+            (when phaseless-require-spec/module-lang-require
+              (define has-prefix?
+                (syntax-case* phaseless-require-spec/module-lang-require (prefix prefix-all-except)
+                  symbolic-compare?
+                  [(prefix . _) #t]
+                  [(prefix-all-except . _) #t]
+                  [other #f]))
+              (when has-prefix?
+                (send defs-text syncheck:add-prefixed-require-reference req-source start end)))))))
+
     ;; get-require-filename : sexp-or-module-path-index namespace string[directory] -> filename or #f
     ;; finds the filename corresponding to the require in stx
     (define (get-require-filename datum user-namespace user-directory)
@@ -1384,6 +1432,7 @@
     (log syncheck:add-require-open-menu _text start-pos end-pos file)
     (log syncheck:add-docs-menu _text start-pos end-pos key the-label path definition-tag tag)
     (log syncheck:add-id-set to-be-renamed/poss dup-name?)
+    (log syncheck:add-prefixed-require-reference _req-src req-pos-left req-pos-right)
     
     (define/public (get-trace) (reverse trace))
     (define/public (add-to-trace thing) 
