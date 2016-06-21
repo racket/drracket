@@ -273,7 +273,7 @@ in order to make the results be platform independent.
   has a @racket[_prefix] or @racket[_prefix-all-except] around it in
   fully expanded form (i.e., it seems to come from a @racket[prefix-in]
   or a similar form). The method is passed
-  the location of the @[require] in the original program.
+  the location of the @racket[require] in the original program.
  }
                   
  @defmethod[(syncheck:add-jump-to-definition [source-obj (not/c #f)] 
