@@ -398,7 +398,8 @@ in order to make the results be platform independent.
                     syncheck:add-mouse-over-status
                     syncheck:add-jump-to-definition
                     syncheck:add-id-set 
-                    syncheck:color-range]
+                    syncheck:color-range
+                    syncheck:add-prefixed-require-reference]
 
 @section{Module Browser}
 
