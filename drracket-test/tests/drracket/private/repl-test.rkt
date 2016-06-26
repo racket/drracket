@@ -1010,7 +1010,7 @@ This produces an ACK message
 (define backtrace-image-string "{stop-multi.png}")
 (define file-image-string "{stop-22x22.png}")
 
-(define tmp-load-directory (find-system-path 'temp-dir))
+(define tmp-load-directory (make-temporary-file "repltest~a" 'directory))
 
 (define tmp-load-short-filename "repl-test-tmp.rkt")
 (define tmp-load-filename (build-path tmp-load-directory tmp-load-short-filename))
@@ -1019,8 +1019,8 @@ This produces an ACK message
 (define tmp-load3-filename (build-path tmp-load-directory tmp-load3-short-filename))
 
 (define (cleanup-tmp-files)
-  (when (file-exists? tmp-load-filename) (delete-file tmp-load-filename))
-  (when (file-exists? tmp-load3-filename) (delete-file tmp-load3-filename)))
+  (when (directory-exists? tmp-load-directory)
+    (delete-directory/files tmp-load-directory)))
 
 (define (run-test which-tests)
     
