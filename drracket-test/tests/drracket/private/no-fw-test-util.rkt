@@ -31,18 +31,25 @@
       (parameterize ([current-eventspace (make-eventspace)])
         (namespace-attach-module orig-ns 'mred/mred)
         
+        (let ([s (make-semaphore)])
+          (queue-callback
+           (λ ()
+             (use-hash-for-prefs
+              (dynamic-require 'framework/preferences 'preferences:low-level-get-preference)
+              (dynamic-require 'framework/preferences 'preferences:low-level-put-preferences)
+              (dynamic-require 'framework/preferences 'preferences:restore-defaults)
+              (dynamic-require 'framework/preferences 'preferences:set)
+              (dynamic-require 'framework/preferences 'preferences:default-set?)
+              '()
+              (semaphore-post s))))
+          (semaphore-wait s))
+
         ;; do this now so that dynamically requiring framework
         ;; exports during the call to 'run-test' is safe
         (namespace-require 'framework)
         
         (queue-callback
          (λ ()
-           (use-hash-for-prefs (dynamic-require 'framework 'preferences:low-level-get-preference)
-                               (dynamic-require 'framework 'preferences:low-level-put-preferences)
-                               (dynamic-require 'framework 'preferences:restore-defaults)
-                               (dynamic-require 'framework 'preferences:set)
-                               (dynamic-require 'framework 'preferences:default-set?)
-                               '())
            (dynamic-require 'drracket #f)
            (thread (λ ()
                      (run-test)
