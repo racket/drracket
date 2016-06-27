@@ -40,8 +40,8 @@
               (dynamic-require 'framework/preferences 'preferences:restore-defaults)
               (dynamic-require 'framework/preferences 'preferences:set)
               (dynamic-require 'framework/preferences 'preferences:default-set?)
-              '()
-              (semaphore-post s))))
+              '())
+             (semaphore-post s)))
           (semaphore-wait s))
 
         ;; do this now so that dynamically requiring framework
