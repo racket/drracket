@@ -1049,18 +1049,23 @@ This produces an ACK message
     (clear-definitions drr-frame)
     (type-in-definitions drr-frame "1/2")
     (do-execute drr-frame)
-    (queue-callback/res
-     (lambda ()
-       (let* ([start (send ints-text paragraph-start-position 2)]
-              ;; since the fraction is supposed to be one char wide, we just
-              ;; select one char, so that, if the regular number prints out,
-              ;; this test will fail.
-              [end (+ start 1)])
-         (send ints-text set-position start end))))
-    (test:menu-select "Edit" "Copy")
+    (define snip
+      (queue-callback/res
+       (lambda ()
+         (let* ([start (send ints-text paragraph-start-position 2)]
+                ;; since the fraction is supposed to be one char wide, we just
+                ;; select one char, so that, if the regular number prints out,
+                ;; this test will fail.
+                [end (+ start 1)])
+           (send ints-text split-snip start)
+           (send ints-text split-snip end)
+           (define snip (send ints-text find-snip start 'after))
+           (and snip (send snip copy))))))
     (clear-definitions drr-frame)
     (type-in-definitions drr-frame "(+ ")
-    (test:menu-select "Edit" "Paste")
+    (queue-callback/res
+     (λ ()
+       (send defs-text insert snip)))
     (type-in-definitions drr-frame " 1/3)"))
 
   ; given a filename "foo", we perform two operations on the contents
