@@ -224,8 +224,8 @@
                   ("))"    default-color))
                 (list '((7 8) (19 20)))
                 #:tooltips '((7 8 "1 bound occurrence")
-                             (7 8 "set!’d variable")
-                             (19 20 "set!’d variable")))
+                             (7 8 "mutated variable")
+                             (19 20 "mutated variable")))
      
      (build-test "object%"
                 '(("object%" imported-syntax))) ; used to be lexically-bound-variable
