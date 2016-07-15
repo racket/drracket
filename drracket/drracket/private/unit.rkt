@@ -3097,9 +3097,9 @@
         (begin-container-sequence)
         (define-values (new-tabs-rev new-labels-rev)
           (for/fold ([new-tabs '()]
-                     [new-labels '()]
-                     )([new-i (in-naturals)]
-                       [old-i tab-order])
+                     [new-labels '()])
+                    ([new-i (in-naturals)]
+                     [old-i tab-order])
             (define t (list-ref tabs old-i))
             (send t set-i new-i)
             (values (cons t new-tabs)
