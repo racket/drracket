@@ -100,7 +100,9 @@
 
 (define-local-member-name
   update-kill-button-label
-  does-break-kill?)
+  does-break-kill?
+  get-panel-percentages
+  set-panel-percentages)
 
 (define-unit unit@
   (import [prefix help-desk: drracket:help-desk^]
@@ -1204,12 +1206,12 @@
       (inherit get-percentages popup-menu 
                set-orientation get-vertical?)
       (define/augment (after-percentage-change)
-        (let ([percentages (get-percentages)])
-          (when (and (= 1
-                        (length (send unit-frame get-definitions-canvases))
-                        (length (send unit-frame get-interactions-canvases)))
-                     (= 2 (length percentages)))
-            (preferences:set 'drracket:unit-window-size-percentage (car percentages))))
+        (define percentages (get-percentages))
+        (when (and (= 1
+                      (length (send unit-frame get-definitions-canvases))
+                      (length (send unit-frame get-interactions-canvases)))
+                   (= 2 (length percentages)))
+          (preferences:set 'drracket:unit-window-size-percentage (car percentages)))
         (inner (void) after-percentage-change))
       (define/override (right-click-in-gap evt before after)
         (define menu (new popup-menu%))
@@ -1277,6 +1279,11 @@
       (define last-touched (current-inexact-milliseconds))
       (define/public-final (touched) (set! last-touched (current-inexact-milliseconds)))
       (define/public-final (get-last-touched) last-touched)
+
+      (define panel-percentages #f)
+      (define/public (set-panel-percentages p) (set! panel-percentages p))
+      (define/public (get-panel-percentages) panel-percentages)
+
       
       ;; current-execute-warning is a snapshot of the needs-execution-message
       ;; that is taken each time repl submission happens, and it gets reset
@@ -3039,7 +3046,12 @@
             (send tab update-log)
             (send tab update-planet-status)
             (send tab update-execute-warning-gui)
+
+            (send old-tab set-panel-percentages (send resizable-panel get-percentages))
             (restore-visible-tab-regions)
+            (when (send tab get-panel-percentages)
+              (send resizable-panel set-percentages (send tab get-panel-percentages)))
+
             (for-each (λ (defs-canvas) (send defs-canvas refresh))
                       definitions-canvases)
             (for-each (λ (ints-canvas) (send ints-canvas refresh))
