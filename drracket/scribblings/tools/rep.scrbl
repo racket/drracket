@@ -70,6 +70,11 @@ are just ignored.
   Called from the DrRacket main thread after
   @method[drracket:rep:text% evaluate-from-port] finishes (no matter
   how it finishes).
+
+  If the call to @method[drracket:rep:text% evaluate-from-port] was from the
+  call that sets up the initial read-eval-print loop, then
+  the value of @racket[drracket:rep:module-language-initial-run] will be
+  @racket[#t]; otherwise it will be @racket[#f].
 }
 
 @defmethod[(on-execute [run-on-user-thread (-> any)]) any]{

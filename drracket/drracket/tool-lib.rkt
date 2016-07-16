@@ -1246,6 +1246,14 @@ all of the names in the tools library, for use defining keybindings
   @{This parameter is set (on the user's thread) to the 
     @racket[drracket:language-configuration:language-settings]
     for the currently running language.})
+
+ (parameter-doc
+  drracket:rep:module-language-initial-run
+  (parameter/c boolean?)
+  initial-run?
+  @{The value of this parameter is @racket[#t] in the
+ dynamic extent of the call to @method[drracket:rep:text% evaluate-from-port]
+ that sets up the initial read-eval-print loop (which doesn't run the user's program)})
   
  
  

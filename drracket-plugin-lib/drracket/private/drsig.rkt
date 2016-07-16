@@ -285,7 +285,8 @@
    get-drs-bindings-keymap
    get-error-delta
    get-welcome-delta 
-   get-dark-green-delta))
+   get-dark-green-delta
+   module-language-initial-run))
 (define-signature drracket:rep/int^ extends drracket:rep^
   (drs-autocomplete-mixin))
 

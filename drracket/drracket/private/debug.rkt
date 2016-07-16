@@ -1327,7 +1327,8 @@
       
       (inherit get-top-level-window)
       (define/augment (after-many-evals)
-        (when test-coverage-info
+        (when (and test-coverage-info
+                   (not (drracket:rep:module-language-initial-run)))
           (send (get-context) show-test-coverage-annotations
                 test-coverage-info
                 test-coverage-on-style

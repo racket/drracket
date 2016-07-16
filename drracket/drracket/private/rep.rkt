@@ -427,6 +427,8 @@ TODO
   (define after-expression (make-parameter #f))
   
   (define do-dance (make-parameter #f))
+
+  (define module-language-initial-run (make-parameter #f))
   
   (define text-mixin
     (mixin ((class->interface text%)
@@ -1107,6 +1109,7 @@ TODO
         (update-running #t)
         (set! need-interaction-cleanup? #t)
         (define the-after-expression (after-expression))
+        (define current-module-language-initial-run (module-language-initial-run))
         (run-in-evaluation-thread
          (λ () ; =User=, =Handler=, =No-Breaks=
            (let* ([settings (current-language-settings)]
@@ -1199,8 +1202,9 @@ TODO
              (queue-system-callback/sync
               (get-user-thread)
               (λ () ; =Kernel=, =Handler= 
-                (after-many-evals)
-                (cleanup-interaction)
+                (parameterize ([module-language-initial-run current-module-language-initial-run])
+                  (after-many-evals)
+                  (cleanup-interaction))
                 (insert-prompt)))))))
       
       ;; =User=, =Handler=
@@ -1780,14 +1784,15 @@ TODO
              (drracket:language-configuration:language-settings-settings user-language-settings))
            (define prog-port (open-input-string (send lang get-auto-text settings) name))
            (port-count-lines! prog-port)
-           (evaluate-from-port
-            prog-port
-            #t
-            (λ ()
-              (parameterize ([current-eventspace drracket:init:system-eventspace])
-                (queue-callback
-                 (λ ()
-                   (clear-undos))))))]
+           (parameterize ([module-language-initial-run #t])
+             (evaluate-from-port
+              prog-port
+              #t
+              (λ ()
+                (parameterize ([current-eventspace drracket:init:system-eventspace])
+                  (queue-callback
+                   (λ ()
+                     (clear-undos)))))))]
           [else
            (insert-prompt)
            ;; call the first-opened method on the user's thread, but wait here for that to terminate
