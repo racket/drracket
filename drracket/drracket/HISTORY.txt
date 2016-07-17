@@ -1,4 +1,12 @@
 ------------------------------
+       Version 6.6
+------------------------------
+
+  . misc bug fixes
+
+  . cmd-9 always goes to the last tab, even when there are fewer than 9
+
+------------------------------
        Version 6.5
 ------------------------------
 
