@@ -25,7 +25,7 @@ This test checks:
          drracket/private/local-member-names
          racket/gui/base
          framework
-	 rackunit
+         rackunit
          string-constants)
 
 (define (main)
@@ -53,13 +53,6 @@ This test checks:
        (preferences:set 'drracket:online-compilation-default-on #t)
        
        (try-to-find-leak "online compilation enabled:" wait-for-online-compilation-to-finish)))))
-
-(define (wait-for-online-compilation-to-finish frame) 
-  (let loop ([i 0])
-    (define current-colors (send frame get-online-expansion-colors))
-    (unless (equal? current-colors '("forestgreen"))
-      (sleep 1)
-      (loop (+ i 1)))))
 
 (define (try-to-find-leak online-compilation-string extra-waiting)
   (define drs-frame1 (wait-for-drracket-frame))

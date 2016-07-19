@@ -5,6 +5,7 @@
          racket/gui/base
          racket/class
          racket/contract
+         drracket/private/local-member-names
          "gui.rkt"
          "no-fw-test-util.rkt")
 
@@ -39,7 +40,8 @@
            fetch-output
            has-error?
            run-one/sync
-           alt-return-in-interactions)
+           alt-return-in-interactions
+           wait-for-online-compilation-to-finish)
   
   ;; save-drracket-window-as : string -> void
   ;; use the "save as" dialog in drracket to save the definitions
@@ -633,3 +635,9 @@
                 (exit)))
       (yield (make-semaphore 0))))
   
+(define (wait-for-online-compilation-to-finish frame) 
+  (let loop ([i 0])
+    (define current-colors (send frame get-online-expansion-colors))
+    (unless (equal? current-colors '("forestgreen"))
+      (sleep 1)
+      (loop (+ i 1)))))
