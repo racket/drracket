@@ -1335,6 +1335,10 @@
                 test-coverage-off-style
                 ask-about-reset?))
         (inner (void) after-many-evals))
+
+      (define/augment (on-execute rout)
+        (inner (void) on-execute rout)
+        (set-test-coverage-info #f))
       
       (super-new)))
   
