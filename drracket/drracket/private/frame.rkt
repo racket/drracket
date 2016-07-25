@@ -88,12 +88,12 @@
    (contract-out
     [get-sorted-keybindings
      (-> (or/c #f (is-a?/c text%))
-         (is-a?/c frame%)
+         (or/c #f (is-a?/c frame%))
          (listof (list/c symbol? string?)))]))
   
   (define (get-sorted-keybindings edit-object frame)
     (define keymap (and edit-object (send edit-object get-keymap)))
-    (define menu-names (get-menu-bindings frame))
+    (define menu-names (if frame (get-menu-bindings frame) '()))
     (define bindings (if (is-a? keymap keymap:aug-keymap<%>)
                          (hash-map (send keymap get-map-function-table) list) 
                          '()))
