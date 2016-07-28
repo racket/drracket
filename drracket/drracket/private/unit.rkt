@@ -3235,11 +3235,11 @@
           (update-shown)
           (reflow-container) ;; without this one, the percentages in the
                              ;; resizable-panel are not up to date with the children
-          (fix-up-canvas-numbers definitions-text vd #f)
-          (fix-up-canvas-numbers interactions-text vi #t)
+          (when ds? (fix-up-canvas-numbers definitions-text vd #f))
+          (when is? (fix-up-canvas-numbers interactions-text vi #t))
           (reflow-container)
-          (set-visible-regions definitions-text vd)
-          (set-visible-regions interactions-text vi)))
+          (when ds? (set-visible-regions definitions-text vd))
+          (when is? (set-visible-regions interactions-text vi))))
       
       (define/private (pathname-equal? p1 p2)
         (with-handlers ([exn:fail? (λ (x) #f)])
