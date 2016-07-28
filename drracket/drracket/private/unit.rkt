@@ -930,33 +930,6 @@
           (inherit set-max-undo-history)
           (set-max-undo-history 'forever)))))
   
-  ;; is-lang-line? : string -> boolean
-  ;; given the first line in the editor, this returns #t if it is a #lang line.
-  (define (is-lang-line? l)
-    (let ([m (regexp-match #rx"^#(!|(lang ))([-+_/a-zA-Z0-9]+)(.|$)" l)])
-      (and m
-           (let ([lang-name (list-ref m 3)]
-                 [last-char (list-ref m 4)])
-             (and (not (char=? #\/ (string-ref lang-name 0)))
-                  (not (char=? #\/ (string-ref lang-name (- (string-length lang-name) 1))))
-                  (or (string=? "" last-char)
-                      (char-whitespace? (string-ref last-char 0))))))))
-  
-  ;; test cases for is-lang-line?
-  #;
-  (printf "~s\n"
-          (list (is-lang-line? "#lang x")
-                (is-lang-line? "#lang racket")
-                (is-lang-line? "#lang racket ")
-                (not (is-lang-line? "#lang racketα"))
-                (not (is-lang-line? "#lang racket/ "))
-                (not (is-lang-line? "#lang /racket "))
-                (is-lang-line? "#lang rac/ket ")
-                (is-lang-line? "#lang r6rs")
-                (is-lang-line? "#!r6rs")
-                (is-lang-line? "#!r6rs ")
-                (not (is-lang-line? "#!/bin/sh"))))
-  
   (define (get-module-language/settings)
     (let* ([module-language
             (and (preferences:get 'drracket:switch-to-module-language-automatically?)
@@ -5528,6 +5501,19 @@
      (format (string-constant module-browser-in-file) str-to-use)]
     [else (string-constant module-browser-no-file)]))
 
+
+;; is-lang-line? : string -> boolean
+;; given the first line in the editor, this returns #t if it is a #lang line.
+(define (is-lang-line? l)
+  (let ([m (regexp-match #rx"^#(!|(lang ))([-+_/a-zA-Z0-9]+)(.|$)" l)])
+    (and m
+         (let ([lang-name (list-ref m 3)]
+               [last-char (list-ref m 4)])
+           (and (not (char=? #\/ (string-ref lang-name 0)))
+                (not (char=? #\/ (string-ref lang-name (- (string-length lang-name) 1))))
+                (or (string=? "" last-char)
+                    (char-whitespace? (string-ref last-char 0))))))))
+
 (module+ test
   (require rackunit)
   (check-equal? (compute-label-string (string->path "x"))
@@ -5541,4 +5527,17 @@
       (parameterize ([error-escape-handler k])
         (check-true (string? 
                      (compute-label-string 
-                      (string->path (make-string i #\x)))))))))
+                      (string->path (make-string i #\x))))))))
+
+
+  (check-true (is-lang-line? "#lang x"))
+  (check-true (is-lang-line? "#lang racket"))
+  (check-true (is-lang-line? "#lang racket "))
+  (check-false (is-lang-line? "#lang racketα"))
+  (check-false (is-lang-line? "#lang racket/ "))
+  (check-false (is-lang-line? "#lang /racket "))
+  (check-true (is-lang-line? "#lang rac/ket "))
+  (check-true (is-lang-line? "#lang r6rs"))
+  (check-true (is-lang-line? "#!r6rs"))
+  (check-true (is-lang-line? "#!r6rs "))
+  (check-false (is-lang-line? "#!/bin/sh")))
