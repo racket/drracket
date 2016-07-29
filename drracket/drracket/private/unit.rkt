@@ -101,8 +101,8 @@
 (define-local-member-name
   update-kill-button-label
   does-break-kill?
-  get-panel-percentages
-  set-panel-percentages)
+  get-panel-percentages-and-orientation
+  set-panel-percentages-and-orientation)
 
 (define-unit unit@
   (import [prefix help-desk: drracket:help-desk^]
@@ -1254,8 +1254,12 @@
       (define/public-final (get-last-touched) last-touched)
 
       (define panel-percentages #f)
-      (define/public (set-panel-percentages p) (set! panel-percentages p))
-      (define/public (get-panel-percentages) panel-percentages)
+      (define panel-orientation #f)
+      (define/public (set-panel-percentages-and-orientation p o)
+        (set! panel-percentages p)
+        (set! panel-orientation o))
+      (define/public (get-panel-percentages-and-orientation)
+        (values panel-percentages panel-orientation))
 
       
       ;; current-execute-warning is a snapshot of the needs-execution-message
@@ -3020,10 +3024,15 @@
             (send tab update-planet-status)
             (send tab update-execute-warning-gui)
 
-            (send old-tab set-panel-percentages (send resizable-panel get-percentages))
+            (send old-tab set-panel-percentages-and-orientation
+                  (send resizable-panel get-percentages)
+                  (not (send resizable-panel get-vertical?)))
             (restore-visible-tab-regions)
-            (when (send tab get-panel-percentages)
-              (send resizable-panel set-percentages (send tab get-panel-percentages)))
+            (define-values (panel-percentages panel-orientation)
+              (send tab get-panel-percentages-and-orientation))
+            (when panel-percentages
+              (send resizable-panel set-percentages panel-percentages)
+              (send resizable-panel set-orientation panel-orientation))
 
             (for-each (λ (defs-canvas) (send defs-canvas refresh))
                       definitions-canvases)
