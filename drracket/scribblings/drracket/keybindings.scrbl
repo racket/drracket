@@ -190,8 +190,41 @@ selected.
                                       (list @litchar{║  ║  ║})
                                       (list @litchar{╚══╩══╝}))]
                        }
+@keybinding["C-x r v"]{Make the nearby ASCII art rectangles taller.
+                       
+                       For example, if the insertion point is just above the
+                       the middle line of this rectangle:
+                       @tabular[(list (list @litchar{╔══╦══╗})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{╠══╬══╣})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{╚══╩══╝}))]
+                       then the keystroke will turn it into this one:
+                       @tabular[(list (list @litchar{╔══╦══╗})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{╠══╬══╣})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{║  ║  ║})
+                                      (list @litchar{╚══╩══╝}))]
+                       }
 @keybinding["C-x r c"]{Centers the contents of the current line inside the enclosing
                        cell of the enclosing ASCII art rectangle.}
+
+ @keybinding["C-x r o"]{
+  Toggles the ASCII art rectangle editing mode. When the mode is enabled,
+  key strokes that would normally break the rectangles instead enlarge them.
+  Specifically:
+  @itemlist[@item{Return and enter add a line to the enclosing rectangle
+               and put the insertion point at the first column of the
+               enclosing cell.}
+             @item{When in overwrite mode, if a key would overwrite one
+                   of the walls of the cell, the wall is first moved over
+                   to accomodate the new key}
+             @item{When not in overwrite mode, inserting a character will always
+                   widen the containing cell}]
+ }
 ]
 
 @section{File Operations}

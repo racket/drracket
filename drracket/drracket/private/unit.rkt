@@ -549,7 +549,8 @@
                       (text:normalize-paste-mixin
                        (text:column-guide-mixin
                         (text:all-string-snips-mixin
-                         text:info%)))))))))))))])
+                         (text:ascii-art-enlarge-boxes-mixin
+                          text:info%))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit get-top-level-window is-locked? lock while-unlocked
