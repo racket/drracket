@@ -613,15 +613,31 @@
                  (if write?
                      (pretty-write converted-value port)
                      (pretty-print converted-value port depth)))
-               (if (first-time?)
-                   (parameterize ([pretty-print-columns
-                                   (if (simple-settings-insert-newlines setting)
-                                       ;; this is set only by the module language
-                                       (drracket:module-language:drracket-determined-width)
-                                       'infinity)]
-                                  [first-time? #f])
-                     (do-print))
-                   (do-print)))
+               (cond
+                 [(first-time?)
+                  (define cols
+                    (if (simple-settings-insert-newlines setting)
+                        ;; this is set only by the module language
+                        (drracket:module-language:drracket-determined-width)
+                        'infinity))
+                  (define orig-pretty-print-print-line (pretty-print-print-line))
+                  (define pppl
+                    (if (simple-settings-insert-newlines setting)
+                        ;; when drracket:module-language:drracket-determined-width
+                        ;; is set, we need to compensate for the newline
+                        ;; difference, so we do this to avoid that last newline
+                        (if (equal? (drracket:module-language:drracket-determined-width)
+                                    'infinity)
+                            orig
+                            (λ (new-line-number port len cols)
+                              (when new-line-number
+                                (orig new-line-number port len cols))))
+                        orig))
+                  (parameterize ([pretty-print-columns cols]
+                                 [pretty-print-print-line pppl]
+                                 [first-time? #f])
+                    (do-print))]
+                 [else (do-print)]))
              setting
              'infinity))))
        (current-inspector (make-inspector))

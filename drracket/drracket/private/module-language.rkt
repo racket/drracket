@@ -546,7 +546,8 @@
         (do-print value settings port 'infinity))
       (define/private (do-print value settings port width)
         (parameterize ([drracket-determined-width width])
-          (print value port)))
+          (print value port))
+        (newline port))
     
 
       

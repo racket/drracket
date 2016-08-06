@@ -432,6 +432,22 @@
         #f
         #rx"before\nafter")
 
+(test @t{#lang racket/base
+         ((current-print) 1)
+         ((current-print) 2)
+         ((current-print) 3)}
+      #f
+      "1\n2\n3")
+(test @t{#lang racket/base
+         (define (f n) ((global-port-print-handler) n (current-output-port)))
+         (f 1) (f 2) (f 3)}
+      #f
+      "123")
+(test @t{#lang htdp/bsl
+         1 2 3}
+      #f
+      "1\n2\n3")
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:
