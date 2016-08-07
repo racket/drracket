@@ -628,11 +628,11 @@
                         ;; difference, so we do this to avoid that last newline
                         (if (equal? (drracket:module-language:drracket-determined-width)
                                     'infinity)
-                            orig
+                            orig-pretty-print-print-line
                             (λ (new-line-number port len cols)
                               (when new-line-number
-                                (orig new-line-number port len cols))))
-                        orig))
+                                (orig-pretty-print-print-line new-line-number port len cols))))
+                        orig-pretty-print-print-line))
                   (parameterize ([pretty-print-columns cols]
                                  [pretty-print-print-line pppl]
                                  [first-time? #f])
