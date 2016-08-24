@@ -195,8 +195,8 @@ Several environment variables can affect DrRacket's behavior:
 
        This environment variable must be set when @filepath{.zo} files
        are made. To ensure that you see its output properly, run
-       @exec{setup-plt} with the @Flag{c} flag, set the environment
-       variable, and then run @exec{setup-plt} again.}
+       @exec{raco setup} with the @Flag{c} flag, set the environment
+       variable, and then run @exec{raco setup} again.}
 
  @item{@indexed-envvar{PLTDRXREFDELAY} : When this environment variable
         is set, DrRacket uses an ordinary @racket[delay] (instead of
