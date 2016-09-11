@@ -69,7 +69,7 @@
           [(not smallest-i) (values i pos)]
           [(< pos smallest-pos) (values i pos)]
           [else (values smallest-i smallest-pos)])))
-    (when (= +inf.0 smallest-pos)
+    (when (and smallest-pos (= +inf.0 smallest-pos))
       (set! smallest-pos #f)
       (set! smallest-i #f))
     (define final-positions

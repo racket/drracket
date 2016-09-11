@@ -150,3 +150,13 @@ END
  (list (define-popup-info "(define" "(define ...)" "δ")
        (define-popup-info "(module" "(module ...)" "M"))
  (("a" 0 24) ("b" 25 86) ("f" 87 99) ("g" 100 112)))
+
+(test-definitions
+ #<<END
+(define a 1)
+;;(define b 2)
+(define c 3)
+END
+ #:define-prefix
+ (list)
+ ())
