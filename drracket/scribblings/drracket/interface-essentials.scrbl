@@ -794,7 +794,8 @@ As an example, this is the specification of the @racket["Modern"] style:
             '()))))
    (define name-as-string-datum
      (filter
-      (λ (x) (equal? (hash-ref x 'name) "Modern"))
+      (λ (x) (equal? (hash-ref x 'name)
+                     (string-constant modern-color-scheme)))
       (let loop ([datum datum])
         (cond
           [(list? datum)
