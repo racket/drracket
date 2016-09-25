@@ -846,7 +846,9 @@
                                         req-stx)
                                     var actual? all-binders
                                     #:to-start prefix-length
-                                    #:to-width (- (syntax-span var) prefix-length)
+                                    #:to-width (if (syntax-span var)
+                                                   (- (syntax-span var) prefix-length)
+                                                   0)
                                     phase-level
                                     connections
                                     (if (is-module-lang-require? module-lang-requires req-stx)
