@@ -2823,17 +2823,17 @@
 (define (skip-past-comments port)
   (define (get-it str)
     (for ([c1 (in-string str)])
-      (define c2 (read-char port))
+      (define c2 (read-char-or-special port))
       (unless (equal? c1 c2)
         (error 'get-it
                "expected ~s, got ~s, orig string ~s"
                c1 c2 str))))
   (let loop ()
-    (define p (peek-char port))
+    (define p (peek-char-or-special port))
     (cond-strs port
       [";"
        (let loop ()
-         (define c (read-char port))
+         (define c (read-char-or-special port))
          (case c
            [(#\linefeed #\return #\u133 #\u8232 #\u8233)
             (void)]
@@ -2843,20 +2843,20 @@
        (loop)]
       ["#|"
        (let loop ([depth 0])
-         (define p1 (peek-char port))
+         (define p1 (peek-char-or-special port))
          (cond
            [(and (equal? p1 #\|)
-                 (equal? (peek-char port 1) #\#))
+                 (equal? (peek-char-or-special port 1) #\#))
             (get-it "|#")
             (cond
               [(= depth 0) (void)]
               [else (loop (- depth 1))])]
            [(and (equal? p1 #\#)
-                 (equal? (peek-char port 1) #\|))
+                 (equal? (peek-char-or-special port 1) #\|))
             (get-it "#|")
             (loop (+ depth 1))]
            [else
-            (read-char port)
+            (read-char-or-special port)
             (loop depth)]))
        (loop)]
       ["#;"
@@ -2870,11 +2870,11 @@
        (read-line-slash-terminates port)
        (loop)]
       [else
-       (define p (peek-char port))
+       (define p (peek-char-or-special port))
        (cond
          [(eof-object? p) (void)]
          [(char-whitespace? p)
-          (read-char port)
+          (read-char-or-special port)
           (loop)]
          [else (void)])])))
 
@@ -2898,24 +2898,24 @@
   (define matches?
     (for/and ([i (in-naturals)]
               [c (in-string chars)])
-      (equal? (peek-char port i) c)))
+      (equal? (peek-char-or-special port i) c)))
   (when matches?
     (for ([c (in-string chars)])
-      (read-char port)))
+      (read-char-or-special port)))
   matches?)
 
 (define (read-line-slash-terminates port)
   (let loop ([previous-slash? #f])
-    (define c (read-char port))
+    (define c (read-char-or-special port))
     (case c
       [(#\\) (loop #t)]
       [(#\linefeed #\return)
        (cond
          [previous-slash?
-          (define p (peek-char port))
+          (define p (peek-char-or-special port))
           (when (and (equal? c #\return)
                      (equal? p #\linefeed))
-            (read-char port))
+            (read-char-or-special port))
           (loop #f)]
          [else
           (void)])]
@@ -2924,9 +2924,9 @@
          (loop #f))])))
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/port)
   (define (clear-em str)
-    (define sp (open-input-string str))
+    (define sp (if (port? str) str (open-input-string str)))
     (skip-past-comments sp)
     (apply
      string
@@ -2952,4 +2952,14 @@
   (check-equal? (clear-em " #!/    \n\r\n         1") "1")
   (check-equal? (clear-em "#;()1") "1")
   (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1")
-  (check-equal? (clear-em "#||##|#lang rong|#1") "1"))
+  (check-equal? (clear-em "#||##|#lang rong|#1") "1")
+
+  (let ()
+    (define-values (in out) (make-pipe-with-specials))
+    (thread
+     (λ ()
+       (display ";" out)
+       (write-special '(x) out)
+       (display "\n1" out)
+       (close-output-port out)))
+    (check-equal? (clear-em in) "1")))
