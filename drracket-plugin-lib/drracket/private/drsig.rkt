@@ -288,7 +288,8 @@
    get-dark-green-delta
    module-language-initial-run))
 (define-signature drracket:rep/int^ extends drracket:rep^
-  (drs-autocomplete-mixin))
+  (drs-autocomplete-mixin
+   current-pre-compiled-transform-module-results))
 
 (define-signature drracket:app-cm^
   ())

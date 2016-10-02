@@ -178,4 +178,4 @@
   (let* (;; rewrite the module to use the racket/base version of `module'
          [mod  (datum->syntax #'here 'module mod)]
          [expr (datum->syntax stx `(,mod ,name ,lang . ,body) stx stx)])
-    (values name lang expr)))
+    (values name* (syntax->datum lang) expr)))

@@ -124,6 +124,10 @@ TODO
   
   ;; a port that accepts values for printing in the repl
   (define current-value-port (make-parameter #f))
+
+  ;; used to send the online expansion's pre-compiled results from
+  ;; the tab into the user's space
+  (define current-pre-compiled-transform-module-results (make-parameter #f))
   
   ;; drracket-error-display-handler : (string (union #f exn) -> void
   ;; =User=
@@ -1110,6 +1114,14 @@ TODO
         (set! need-interaction-cleanup? #t)
         (define the-after-expression (after-expression))
         (define current-module-language-initial-run (module-language-initial-run))
+        (define pre-compiled-transform-module-results
+          (cond
+            [(and complete-program?
+                  (is-a? (drracket:language-configuration:language-settings-language
+                          user-language-settings)
+                         drracket:module-language:module-language<%>))
+             (send (send definitions-text get-tab) get-pre-compiled-transform-module-results)]
+            [else #f]))
         (run-in-evaluation-thread
          (λ () ; =User=, =Handler=, =No-Breaks=
            (let* ([settings (current-language-settings)]
@@ -1118,7 +1130,9 @@ TODO
                   [dummy-value (box #f)]
                   [get-sexp/syntax/eof 
                    (if complete-program?
-                       (send lang front-end/complete-program port settings)
+                       (parameterize ([current-pre-compiled-transform-module-results
+                                       pre-compiled-transform-module-results])
+                         (send lang front-end/complete-program port settings))
                        (send lang front-end/interaction port settings))])
              
              ; Evaluate the user's expression. We're careful to turn on
@@ -1775,7 +1789,8 @@ TODO
         (send context disable-evaluation)
         (reset-console)
         (thaw-colorer)
-        (define lang (drracket:language-configuration:language-settings-language user-language-settings))
+        (define lang
+          (drracket:language-configuration:language-settings-language user-language-settings))
         
         (cond
           [(is-a? lang drracket:module-language:module-language<%>)
