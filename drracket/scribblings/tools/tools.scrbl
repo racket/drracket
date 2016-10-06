@@ -741,7 +741,7 @@ on @racket[_big] in the center of the identifiers; the @racket[.5 0] and the
 center for @racket[_generator].
 
 Also, for backwards compatibility, if the vector has only six elements, those
-elements must be everything except the @racket[(real 0 1)] elements listed above and,
+elements must be everything except the @racket[(real-in 0 1)] elements listed above and,
 in that case, all four numbers are all taken to be @racket[0.5].
 
 The value of the @racket['mouse-over-tooltips] property is expected to be 
