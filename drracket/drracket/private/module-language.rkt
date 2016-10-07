@@ -38,28 +38,16 @@
 (module oc-status-structs racket/base
   ;; the online compilation state for individual tabs
   ;; oc-state is either:
-  #; 
-  (clean (or/c symbol? #f)
-         (or/c (non-empty-listof
-                (exn-info string?
-                          (listof (vector number? number?))
-                          (listof string?)
-                          (or/c #f module-path?)))
-               #f)
-         ;; the vector is the results of `transform-module` from
-         ;; eval-helpers-and-pref-init.rkt in the case that online
-         ;; expansion was able to compile the file (except
-         ;; that instead of a syntax object, we have the bytes
-         ;; for a compiled object). The `module-path?` is
-         ;; probably never a `path?`.
-         (or/c (vector/c bytes? symbol? module-path?)
-               #f))
-  #;
-  (dirty boolean?)
-  #;
-  (running symbol? string?)
-
-  (struct clean (error-type error-messages+locs compiled-code) #:transparent)
+  ;;   (clean (or/c symbol? #f)
+  ;;          (or/c (non-empty-listof 
+  ;;                 (exn-info string? 
+  ;;                           (listof (vector number? number?))
+  ;;                           (listof string?)
+  ;;                           (or/c #f module-path?)))
+  ;;                #f))
+  ;;   (dirty boolean?)
+  ;;   (running symbol? string?)
+  (struct clean (error-type error-messages+locs) #:transparent)
   (struct dirty (timer-pending?) #:transparent)
   (struct running (sym str) #:transparent)
   
@@ -104,7 +92,7 @@
   (import [prefix drracket:language-configuration: drracket:language-configuration/internal^]
           [prefix drracket:language: drracket:language/int^]
           [prefix drracket:unit: drracket:unit^]
-          [prefix drracket:rep: drracket:rep/int^]
+          [prefix drracket:rep: drracket:rep^]
           [prefix drracket:init: drracket:init^]
           [prefix drracket:module-language-tools: drracket:module-language-tools/int^]
           [prefix drracket:modes: drracket:modes^]
@@ -433,58 +421,43 @@
                                             (module-path-index-join
                                              path
                                              #f))))
-
         (define-values (name lang module-expr)
-          (cond
-            [(drracket:rep:current-pre-compiled-transform-module-results)
-             =>
-             (λ (transform-module-results)
-               (define compiled-expression
-                 (parameterize ([read-accept-compiled #t])
-                   (read (open-input-bytes (vector-ref transform-module-results 2)))))
-               (values
-                (vector-ref transform-module-results 0)
-                (vector-ref transform-module-results 1)
-                (with-syntax ([x compiled-expression]) #'x)))]
-            [else
-             (define expr
-               ;; just reading the definitions might be a syntax error,
-               ;; possibly due to bad language (eg, no foo/lang/reader)
-               (with-handlers ([exn:fail?
-                                (λ (e)
-                                  ;; [Eli] FIXME: use `read-language' on `port' after calling
-                                  ;; `file-position' to reset it to the beginning (need to
-                                  ;; make sure that it's always a seekable port), then see
-                                  ;; the position that we're left at, re-read that part of
-                                  ;; the port (a second reset), construct a string holding
-                                  ;; the #lang, and read from it an empty module, and extract
-                                  ;; the base module from it (ask Matthew about this).
-                                  (raise-hopeless-exception e))])
-                 (super-thunk)))
-             (when (eof-object? expr)
-               (raise-hopeless-syntax-error (string-append
-                                             "There must be a valid module in the\n"
-                                             "definitions window.  Try starting your program with\n"
-                                             "\n"
-                                             "  #lang racket\n"
-                                             "or\n"
-                                             "  #lang htdp/bsl\n"
-                                             "\n"
-                                             "and clicking ‘Run’.")))
-             (let ([more (super-thunk)])
-               (unless (eof-object? more)
-                 (raise-hopeless-syntax-error
-                  "there can only be one expression in the definitions window"
-                  more)))
-             (transform-module path expr raise-hopeless-syntax-error)]))
-
-        (define modspec (or path `',name))
+          (let ([expr
+                 ;; just reading the definitions might be a syntax error,
+                 ;; possibly due to bad language (eg, no foo/lang/reader)
+                 (with-handlers ([exn:fail? (λ (e)
+                    ;; [Eli] FIXME: use `read-language' on `port' after calling
+                    ;; `file-position' to reset it to the beginning (need to
+                    ;; make sure that it's always a seekable port), then see
+                    ;; the position that we're left at, re-read that part of
+                    ;; the port (a second reset), construct a string holding
+                    ;; the #lang, and read from it an empty module, and extract
+                    ;; the base module from it (ask Matthew about this).
+                                              (raise-hopeless-exception e))])
+                   (super-thunk))])
+            (when (eof-object? expr)
+              (raise-hopeless-syntax-error (string-append
+                                            "There must be a valid module in the\n"
+                                            "definitions window.  Try starting your program with\n"
+                                            "\n"
+                                            "  #lang racket\n"
+                                            "or\n"
+                                            "  #lang htdp/bsl\n"
+                                            "\n"
+                                            "and clicking ‘Run’.")))
+            (let ([more (super-thunk)])
+              (unless (eof-object? more)
+                (raise-hopeless-syntax-error
+                 "there can only be one expression in the definitions window"
+                 more)))
+            (transform-module path expr raise-hopeless-syntax-error)))
+        (define modspec (or path `',(syntax-e name)))
         (define (check-interactive-language)
           (unless (memq '#%top-interaction (namespace-mapped-symbols))
             (raise-hopeless-exception
              #f ; no error message, just a suffix
              (format "~s does not support a REPL (no #%top-interaction)"
-                     lang))))
+                     (syntax->datum lang)))))
         ;; We're about to send the module expression to drracket now, the rest
         ;; of the setup is done in `front-end/finished-complete-program' below,
         ;; so use `repl-init-thunk' to store an appropriate continuation for
@@ -1070,12 +1043,8 @@
         (inner (void) on-close))
       
       ;; (or/c clean? dirty? running?)
-      (define running-status (clean #f #f #f))
+      (define running-status (clean #f #f))
       (define our-turn? #f)
-
-      (define/public (get-pre-compiled-transform-module-results)
-        (and (clean? running-status)
-             (clean-compiled-code running-status)))
       
       (define/public (set-oc-status s) 
         (unless (equal? running-status s)
@@ -1092,7 +1061,7 @@
         (send (get-defs) begin-edit-sequence #f #f)
         (send (get-defs) clear-old-error)
         (when (clean? running-status)
-          (match-define (clean error-type error-messages+locs compiled-code) running-status)
+          (match-define (clean error-type error-messages+locs) running-status)
           (when error-messages+locs
             (define pref-key
               (case error-type
@@ -1204,7 +1173,7 @@
         (when (or (set-member? dep-paths path)
                   (set-member? error-dep-paths path))
           (oc-set-dirty this)))
-
+      
       (super-new)))
   
   (define module-language-online-expand-text-mixin
@@ -2129,11 +2098,11 @@
       [(eq? tab running-tab)
        (line-of-interest)
        (stop-place-running)
-       (send tab set-oc-status (clean #f #f #f))]
+       (send tab set-oc-status (clean #f #f))]
       [(eq? tab dirty/pending-tab)
        (line-of-interest)
        (send oc-timer stop)
-       (send tab set-oc-status (clean #f #f #f))]
+       (send tab set-oc-status (clean #f #f))]
       [else
        (line-of-interest)
        (void)])
@@ -2238,8 +2207,7 @@
                       (list (exn-info sc-only-raw-text-files-supported
                                       (list (vector (+ filename/loc 1) 1))
                                       '()
-                                      #f))
-                      #f))
+                                      #f))))
          (oc-maybe-start-something)])))
 
   (define/oc-log (oc-finished res)    
@@ -2267,7 +2235,7 @@
                    (send running-tab get-defs)
                    val)]))))
          
-         (send running-tab set-oc-status (clean #f #f (vector-ref res 3)))
+         (send running-tab set-oc-status (clean #f #f))
          (send running-tab set-dep-paths (list->set (vector-ref res 2)) #f)]
         [else
          (line-of-interest)
@@ -2278,8 +2246,7 @@
                                               sc-abnormal-termination-out-of-memory
                                               sc-abnormal-termination)
                                           '() '() #f))
-                          (vector-ref res 1))
-                      #f))
+                          (vector-ref res 1))))
          (send running-tab set-dep-paths (list->set (vector-ref res 2)) #t)])
       (oc-maybe-start-something)))
   

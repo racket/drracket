@@ -121,10 +121,7 @@
     (parameterize ([current-custodian cust])
       (thread
        (λ ()
-         (define no-annotations?
-           ;; if there is an annotation set up, then this compiled
-           ;; code won't be the right compiled code, so don't save it
-           (equal? (prefab-module-settings-annotations settings) 'none))
+         
          (ep-log-info "expanding-place.rkt: 00 starting monitors")
          (for ([handler (in-list handlers)])
            (define pc (handler-monitor-pc handler))
@@ -216,26 +213,19 @@
                              raise-hopeless-syntax-error))
          (ep-log-info "expanding-place.rkt: 09 starting expansion")
          (define log-io? (log-level? expanding-place-logger 'warning))
-         (define-values (in out)
-           (if (or log-io? no-annotations?)
-               (make-pipe)
-               (values #f (open-output-nowhere))))
-         (define the-io (make-channel))
-         (cond
-           [log-io?
-            (thread (λ () (catch-and-log in the-io)))]
-           [no-annotations?
-            (thread (λ () (catch-and-check-non-empty in the-io)))])
+         (define-values (in out) (if log-io? 
+                                     (make-pipe)
+                                     (values #f (open-output-nowhere))))
+         (define io-sema (make-semaphore 0))
+         (when log-io?
+           (thread (λ () (catch-and-log in io-sema))))
          (define expanded 
            (parameterize ([current-output-port out]
                           [current-error-port out])
              (expand transformed-stx)))
-         (define no-io-happened?
-           (cond
-             [(or log-io? no-annotations?)
-              (close-output-port out)
-              (channel-get the-io)]
-             [else #f]))
+         (when log-io?
+           (close-output-port out)
+           (semaphore-wait io-sema))
          (channel-put old-registry-chan 
                       (namespace-module-registry (current-namespace)))
          (place-channel-put pc-status-expanding-place 'finished-expansion)
@@ -251,33 +241,15 @@
                                          orig-cust)))
              (list (handler-key handler) proc-res)))
          (ep-log-info "expanding-place.rkt: 11 handlers finished")
-         (define compiled-bytes
-           (cond
-             [(and no-annotations?
-                   ;; we don't try to reuse the compiled bytes
-                   ;; if there was any IO because we cannot tell
-                   ;; which part is to be replayed and which
-                   ;; isn't; just re-run the expansion on the
-                   ;; user's side so they see the IO directly
-                   no-io-happened?)
-              (define bp (open-output-bytes))
-              (write (compile expanded) bp)
-              (get-output-bytes bp)]
-             [else #f]))
-         (ep-log-info "expanding-place.rkt: 12 compile finished")
          
          (parameterize ([current-custodian orig-cust])
            (thread
             (λ ()
               (stop-watching-abnormal-termination)
               (semaphore-post sema)
-              (channel-put result-chan
-                           (vector handler-results
-                                   loaded-paths
-                                   (and compiled-bytes
-                                        (vector name lang compiled-bytes)))))))
+              (channel-put result-chan (list handler-results loaded-paths)))))
          (semaphore-wait sema)
-         (ep-log-info "expanding-place.rkt: 13 finished")))))
+         (ep-log-info "expanding-place.rkt: 12 finished")))))
   
   (thread
    (λ ()
@@ -319,11 +291,10 @@
                     '()))))
         (handle-evt
          result-chan
-         (λ (val+loaded-paths+compiled-bytes)
-           (place-channel-put response-pc (vector 'handler-results
-                                                  (vector-ref val+loaded-paths+compiled-bytes 0)
-                                                  (vector-ref val+loaded-paths+compiled-bytes 1)
-                                                  (vector-ref val+loaded-paths+compiled-bytes 2)))))
+         (λ (val+loaded-paths)
+           (place-channel-put response-pc (vector 'handler-results 
+                                                  (list-ref val+loaded-paths 0)
+                                                  (list-ref val+loaded-paths 1)))))
         (handle-evt extra-exns-chan (λ (exn) (loop (cons exn extra-exns))))
         (handle-evt
          exn-chan
@@ -423,41 +394,17 @@
   
   (job cust working-thd stop-watching-abnormal-termination))
 
-(define (catch-and-log port the-io)
-  (let loop ([no-io-happened? #t])
+(define (catch-and-log port sema)
+  (let loop ()
     (sync
      (handle-evt (read-line-evt port 'linefeed)
                  (λ (l)
                    (cond
                      [(eof-object? l)
-                      (channel-put the-io no-io-happened?)]
+                      (semaphore-post sema)]
                      [else
                       (log-warning (format "online comp io: ~a" l))
-                      (loop #f)]))))))
-
-(define (catch-and-check-non-empty port the-io)
-  (let loop ([was-io?/bytes #f])
-    (cond
-      [was-io?/bytes
-       (sync
-        (handle-evt
-         (read-bytes!-evt was-io?/bytes port)
-         (λ (num/eof)
-           (cond
-             [(eof-object? num/eof)
-              (channel-put the-io #f)]
-             [else
-              (loop was-io?/bytes)]))))]
-      [else
-       (sync
-        (handle-evt
-         (read-bytes-evt 1 port)
-         (λ (bytes/eof)
-           (cond
-             [(eof-object? bytes/eof)
-              (channel-put the-io #t)]
-             [else
-              (loop (make-bytes 1000))]))))])))
+                      (loop)]))))))
 
 (define (raise-hopeless-syntax-error . args)
   (apply raise-syntax-error '|Module Language| args))
