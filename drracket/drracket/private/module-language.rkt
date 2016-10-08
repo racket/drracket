@@ -30,7 +30,10 @@
          pkg/gui
          framework/private/logging-timer
          (submod "frame.rkt" install-pkg)
-         (for-syntax racket/base))
+         (for-syntax racket/base)
+         (prefix-in 2: (combine-in 2htdp/image
+                                   (only-in mrlib/image-core
+                                            render-image))))
 
 (struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
 
@@ -1145,7 +1148,10 @@
       
       (define/public (update-little-dot)
         (when (eq? this (send (get-frame) get-current-tab))
-          (send (get-frame) frame-show-bkg-running (get-colors) (get-label))))
+          (define star?
+            (and (clean? running-status)
+                 (clean-compiled-code running-status)))
+          (send (get-frame) frame-show-bkg-running (get-colors) (get-label) #:star? star?)))
       
       (define/private (get-colors)
         (cond
@@ -1626,6 +1632,7 @@
       
       ;; colors : (or/c #f (listof string?))
       (define colors #f)
+      (define star? #f)
       (define tooltip-labels #f)
       (define/public (get-online-expansion-colors) colors)
       
@@ -1779,12 +1786,17 @@
         (oc-new-active)
         (super on-activate active?))
       
-      (define/public (frame-show-bkg-running new-colors labels)
+      (define/public (frame-show-bkg-running new-colors labels #:star? [_new-star? #f])
+        (define new-star? (and _new-star? #t))
         (unless (equal? tooltip-labels labels)
           (set! tooltip-labels labels)
           (update-tooltip))
-        (unless (equal? new-colors colors)
+        (unless (and (equal? new-colors colors)
+                     (equal? new-star? star?))
+          (when (and new-star? (not (= 1 (length new-colors))))
+            (error 'frame-show-bkg-running "if star? is #t, then there can be only one color"))
           (set! colors new-colors)
+          (set! star? new-star?)
           (send running-canvas refresh)))
      
       (define tooltip-frame #f)
@@ -1839,32 +1851,38 @@
                  (inherit get-dc popup-menu refresh get-client-size)
                  (define/override (on-paint)
                    (let ([dc (get-dc)])
-                     (define colors-to-draw
+                     (define-values (colors-to-draw star?-to-draw)
                        (cond
-                         [(not (in-module-language tlw)) #f]
+                         [(not (in-module-language tlw)) (values #f #f)]
                          [(preferences:get 'drracket:online-compilation-default-on)
-                          colors]
-                         [else (list "red")]))
+                          (values colors star?)]
+                         [else (values (list "red") #f)]))
                      (when colors-to-draw
-                       (send dc set-smoothing 'aligned)
-                       (send dc set-pen "black" 1 'transparent)
-                       (send dc set-text-foreground "darkred")
-                       (send dc set-font parens-mismatch-font)
-                       (define-values (tw th td ta) (send dc get-text-extent parens-mismatch-str))
-                       (define-values (cw ch) (get-client-size))
                        (when (list? colors-to-draw)
-                         (define len (length colors-to-draw))
-                         (for ([color (in-list colors-to-draw)]
-                               [i (in-naturals)])
-                           (if color
-                               (send dc set-brush color 'solid)
-                               (send dc set-brush "black" 'transparent))
-                           (send dc draw-arc 
-                                 (- (/ cw 2) (/ ball-size 2))
-                                 (- (/ ch 2) (/ ball-size 2))
-                                 ball-size ball-size
-                                 (+ (* pi 1/2) (* 2 pi (/ i len)))
-                                 (+ (* pi 1/2) (* 2 pi (/ (+ i 1) len)))))))))
+                         (define-values (cw ch) (get-client-size))
+                         (cond
+                           [star?
+                            (define i (2:star-polygon 6 9 4 "solid" (car colors-to-draw)))
+                            (2:render-image i dc
+                                            (/ (- cw (2:image-width i)) 2)
+                                            (/ (- ch (2:image-height i)) 2))]
+                           [else
+                            (define len (length colors-to-draw))
+                            (send dc set-smoothing 'aligned)
+                            (send dc set-pen "black" 1 'transparent)
+                            (send dc set-text-foreground "darkred")
+                            (send dc set-font parens-mismatch-font)
+                            (for ([color (in-list colors-to-draw)]
+                                  [i (in-naturals)])
+                              (if color
+                                  (send dc set-brush color 'solid)
+                                  (send dc set-brush "black" 'transparent))
+                              (send dc draw-arc
+                                    (- (/ cw 2) (/ ball-size 2))
+                                    (- (/ ch 2) (/ ball-size 2))
+                                    ball-size ball-size
+                                    (+ (* pi 1/2) (* 2 pi (/ i len)))
+                                    (+ (* pi 1/2) (* 2 pi (/ (+ i 1) len)))))])))))
                  (define cb-proc (λ (sym new-val)
                                    (set! colors #f)
                                    (refresh)))
