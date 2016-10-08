@@ -8,4 +8,5 @@
 @include-section["menus.scrbl"]
 @include-section["prefs.scrbl"]
 @include-section["keybindings.scrbl"]
+@include-section["status.scrbl"]
 @include-section["files.scrbl"]
