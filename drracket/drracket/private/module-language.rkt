@@ -1150,8 +1150,7 @@
         (when (eq? this (send (get-frame) get-current-tab))
           (define star?
             (and (clean? running-status)
-                 (clean-compiled-code running-status)
-                 #f)) ;; need to generalize the star drawing code to handle multiple colors
+                 (clean-compiled-code running-status)))
           (send (get-frame) frame-show-bkg-running (get-colors) (get-label) #:star? star?)))
       
       (define/private (get-colors)
@@ -1794,8 +1793,6 @@
           (update-tooltip))
         (unless (and (equal? new-colors colors)
                      (equal? new-star? star?))
-          (when (and new-star? (not (= 1 (length new-colors))))
-            (error 'frame-show-bkg-running "if star? is #t, then there can be only one color"))
           (set! colors new-colors)
           (set! star? new-star?)
           (send running-canvas refresh)))
@@ -1833,23 +1830,24 @@
         (when tooltip-frame
           (send tooltip-frame show #f)))
 
-      (define parens-mismatch-str "())")
       (define ball-size 10)
-      (define parens-mismatch-font
-        (send the-font-list find-or-create-font
-              (send small-control-font get-point-size)
-              (send small-control-font get-face)
-              (send small-control-font get-family)
-              (send small-control-font get-style)
-              'bold
-              (send small-control-font get-underlined)
-              (send small-control-font get-smoothing)
-              (send small-control-font get-size-in-pixels)))
               
       (define running-canvas
         (let ([tlw this])
           (new (class canvas%
                  (inherit get-dc popup-menu refresh get-client-size)
+                 (define star-table (make-hash))
+                 (define/private (get-star color)
+                   (cond
+                     [(hash-ref star-table color #f) => values]
+                     [else
+                      (define i (2:star-polygon 6 9 4 "solid" color))
+                      (define bmp (make-bitmap (2:image-width i) (2:image-height i)))
+                      (define bdc (make-object bitmap-dc% bmp))
+                      (2:render-image i bdc 0 0)
+                      (send bdc set-bitmap #f)
+                      (hash-set! star-table color bmp)
+                      bmp]))
                  (define/override (on-paint)
                    (let ([dc (get-dc)])
                      (define-values (colors-to-draw star?-to-draw)
@@ -1861,29 +1859,36 @@
                      (when colors-to-draw
                        (when (list? colors-to-draw)
                          (define-values (cw ch) (get-client-size))
-                         (cond
-                           [star?
-                            (define i (2:star-polygon 6 9 4 "solid" (car colors-to-draw)))
-                            (2:render-image i dc
-                                            (/ (- cw (2:image-width i)) 2)
-                                            (/ (- ch (2:image-height i)) 2))]
-                           [else
-                            (define len (length colors-to-draw))
-                            (send dc set-smoothing 'aligned)
-                            (send dc set-pen "black" 1 'transparent)
-                            (send dc set-text-foreground "darkred")
-                            (send dc set-font parens-mismatch-font)
-                            (for ([color (in-list colors-to-draw)]
-                                  [i (in-naturals)])
+                         (define len (length colors-to-draw))
+                         (send dc set-smoothing 'aligned)
+                         (send dc set-pen "black" 1 'transparent)
+                         (define old-clip (send dc get-clipping-region))
+                         (define clipping-diameter (if star? (max cw ch) ball-size))
+                         (for ([color (in-list colors-to-draw)]
+                               [i (in-naturals)])
+                           (define region (new region% [dc dc]))
+                           (send region set-arc
+                                 (- (/ cw 2) (/ clipping-diameter 2))
+                                 (- (/ ch 2) (/ clipping-diameter 2))
+                                 clipping-diameter clipping-diameter
+                                 (+ (* pi 1/2) (* 2 pi (/ i len)))
+                                 (+ (* pi 1/2) (* 2 pi (/ (+ i 1) len))))
+                           (send dc set-clipping-region region)
+                           (cond
+                             [star?
+                              (when color
+                                (define the-star (get-star color))
+                                (send dc draw-bitmap the-star
+                                      (/ (- cw (send the-star get-width)) 2)
+                                      (/ (- ch (send the-star get-height)) 2)
+                                      'solid
+                                      (send the-color-database find-color color)))]
+                             [else
                               (if color
                                   (send dc set-brush color 'solid)
                                   (send dc set-brush "black" 'transparent))
-                              (send dc draw-arc
-                                    (- (/ cw 2) (/ ball-size 2))
-                                    (- (/ ch 2) (/ ball-size 2))
-                                    ball-size ball-size
-                                    (+ (* pi 1/2) (* 2 pi (/ i len)))
-                                    (+ (* pi 1/2) (* 2 pi (/ (+ i 1) len)))))])))))
+                              (send dc draw-rectangle 0 0 cw ch)])
+                           (send dc set-clipping-region old-clip))))))
                  (define cb-proc (λ (sym new-val)
                                    (set! colors #f)
                                    (refresh)))
@@ -1916,10 +1921,8 @@
                  
                  (inherit min-width min-height)
                  (let ([dc (get-dc)])
-                   (send dc set-font parens-mismatch-font)
-                   (define-values (w h d a) (send dc get-text-extent parens-mismatch-str))
-                   (min-width (ceiling (inexact->exact (max w ball-size))))
-                   (min-height (ceiling (inexact->exact (max h ball-size)))))))))))
+                   (min-width ball-size)
+                   (min-height ball-size))))))))
   
   (define error-message%
     (class canvas%
