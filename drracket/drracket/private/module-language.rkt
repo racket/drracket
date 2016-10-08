@@ -1150,7 +1150,8 @@
         (when (eq? this (send (get-frame) get-current-tab))
           (define star?
             (and (clean? running-status)
-                 (clean-compiled-code running-status)))
+                 (clean-compiled-code running-status)
+                 #f)) ;; need to generalize the star drawing code to handle multiple colors
           (send (get-frame) frame-show-bkg-running (get-colors) (get-label) #:star? star?)))
       
       (define/private (get-colors)
