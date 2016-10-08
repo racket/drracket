@@ -32,6 +32,7 @@
                "macro-debugger"
                "net-lib"
                "tex-table"
+               "htdp-lib"
                ("drracket-plugin-lib" #:version "1.1")
                "gui-pkg-manager-lib"
                "drracket-tool-lib"
