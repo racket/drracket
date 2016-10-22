@@ -1,4 +1,13 @@
 ------------------------------
+       Version 6.7
+------------------------------
+
+  . improvements in the way DrRacket's sets up the printing parameters
+    to make the "#lang" variants of the teaching languages work better
+
+  . misc bug fixes
+
+------------------------------
        Version 6.6
 ------------------------------
 
