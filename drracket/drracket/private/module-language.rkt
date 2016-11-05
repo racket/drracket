@@ -1077,7 +1077,8 @@
       (define our-turn? #f)
 
       (define/public (get-pre-compiled-transform-module-results)
-        (and (clean? running-status)
+        (and (preferences:get 'drracket:online-compilation-default-on)
+             (clean? running-status)
              (clean-compiled-code running-status)))
       
       (define/public (set-oc-status s) 
