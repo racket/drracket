@@ -3501,7 +3501,8 @@
                  label 
                  (adj 
                   (editor:get-current-preferred-font-size))))
-              (send item set-label lab))
+              (send item set-label lab)
+              (send item enable (<= 1 (adj (editor:get-current-preferred-font-size)) 255)))
             (define item
              (new menu:can-restore-menu-item%
                   (shortcut shortcut)
