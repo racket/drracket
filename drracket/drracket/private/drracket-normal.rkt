@@ -3,12 +3,10 @@
 (require racket/gui/base
          racket/class
          racket/cmdline
-         racket/list
          framework/private/bday
          framework/splash
          racket/runtime-path
-         racket/file
-	 (for-syntax racket/base)
+         (for-syntax racket/base)
          "frame-icon.rkt"
          "eb.rkt")
 
@@ -115,7 +113,10 @@
 (define (add-key-code new-code)
   (set! key-codes (cons new-code key-codes))
   (when ((length key-codes) . > . longest-magic-string)
-    (set! key-codes (take key-codes longest-magic-string))))
+    (set! key-codes
+          (for/list ([key-code (in-list key-codes)]
+                     [_ (in-range longest-magic-string)])
+            key-code))))
 
 (define (drracket-splash-char-observer evt)
   (let ([ch (send evt get-key-code)])
