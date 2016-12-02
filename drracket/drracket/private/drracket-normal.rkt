@@ -8,7 +8,11 @@
          racket/runtime-path
          (for-syntax racket/base)
          "frame-icon.rkt"
-         "eb.rkt")
+         "eb.rkt"
+         (for-syntax racket/base
+                     racket/match
+                     racket/string
+                     xml))
 
 (module test racket/base)
 
@@ -38,7 +42,6 @@
   heart.png
   texas-plt-bw.gif
   PLT-pumpkin.png
-  PLT-206-larval.png
   PLT-206-mars.jpg)
 
 ;; updates the command-line-arguments with only the files
@@ -84,17 +87,15 @@
 ;; magic strings and their associated images.  There should not be a string
 ;; in this list that is a prefix of another.
 (define magic-images
-  (list #;(magic-img "larval" PLT-206-larval.png)
-        (magic-img "mars"   PLT-206-mars.jpg)))
+  (list (magic-img "mars" PLT-206-mars.jpg)))
 
 (define (load-magic-images)
   (set! load-magic-images void) ; run only once
-  (for-each (λ (magic-image)
-              (unless (magic-image-bitmap magic-image)
-                (set-magic-image-bitmap!
-                 magic-image
-                 (icons-bitmap (magic-image-filename magic-image)))))
-            magic-images))
+  (for ([magic-image (in-list magic-images)])
+    (unless (magic-image-bitmap magic-image)
+      (set-magic-image-bitmap!
+       magic-image
+       (icons-bitmap (magic-image-filename magic-image))))))
 
 (define longest-magic-string
   (apply max (map (λ (s) (length (magic-image-chars s))) magic-images)))
@@ -139,9 +140,134 @@
 
 (when (eb-bday?) (install-eb))
 
+(begin-for-syntax
+  (define (draw-svg)
+    (define xexpr
+      (with-handlers ([exn:fail? exn-message])
+        (parameterize ([permissive-xexprs #t])
+          (xml->xexpr
+           (document-element
+            (call-with-input-file (collection-file-path "plt-logo-flat-mb.svg" "icons")
+              (λ (port)
+                (read-xml port))))))))
+    (cond
+      [(string? xexpr)
+       #`(λ (dc)
+           (define str #,xexpr)
+           (send dc clear)
+           (send dc set-scale 1 1)
+           (define-values (_1 h _2 _3) (send dc get-text-extent "x"))
+           (define one-line 30)
+           (let loop ([i 0]
+                      [l 0])
+             (cond
+               [(<= (string-length str) (+ i one-line))
+                (send dc draw-text
+                      (substring str i (string-length str))
+                      0
+                      (* l h))]
+               [else
+                (send dc draw-text
+                      (substring str i (+ i one-line))
+                      0
+                      (* l h))
+                (loop (+ i one-line) (+ l 1))])))]
+      [else
+       #`(λ (dc)
+           #,@(draw-paths-code xexpr)
+           (void))]))
+
+  (define (draw-paths-code xexpr)
+    (define exps '())
+    (let loop ([xexpr xexpr])
+      (match xexpr
+        [`(path ((d ,d-attr) (fill ,fill-color) ,_ ...) ,_ ...)
+         (define dc-path (d-attr->dc-path d-attr))
+         (set! exps
+               (cons #`(send dc set-brush
+                             (make-object color%
+                               #,(string->number (substring fill-color 1 3) 16)
+                               #,(string->number (substring fill-color 3 5) 16)
+                               #,(string->number (substring fill-color 5 7) 16))
+                             'solid)
+                     exps))
+         (set! exps (cons (d-attr->dc-path d-attr) exps))]
+        [`(,tag ,attrs ,body ...)
+         (for-each loop body)]
+        [_ (void)]))
+    (reverse exps))
+
+  (define (d-attr->dc-path exp)
+    (define px #f)
+    (define py #f)
+    #`(let ([dc-path (new dc-path%)])
+        #,@(for/list ([cmd (in-list (decompile-d-attr exp))])
+             (match cmd
+               [`(M ,x ,y)
+                (set! px x)
+                (set! py y)
+                #`(send dc-path move-to #,px #,py)]
+               [`(C ,cx1 ,cy1 ,cx2 ,cy2 ,x ,y)
+                (begin0
+                  #`(send dc-path curve-to #,cx1 #,cy1 #,cx2 #,cy2 #,x #,y)
+                  (set! px x)
+                  (set! py y))]
+               [`(c ,dcx1 ,dcy1 ,dcx2 ,dcy2 ,dx ,dy)
+                (begin0
+                  #`(send dc-path curve-to
+                          #,(+ px dcx1) #,(+ py dcy1)
+                          #,(+ px dcx2) #,(+ py dcy2)
+                          #,(+ px dx) #,(+ py dy))
+                  (set! px (+ px dx))
+                  (set! py (+ py dy)))]
+               [`(l ,dx ,dy)
+                (set! px (+ px dx))
+                (set! py (+ py dy))
+                #`(send dc-path line-to #,px #,py)]
+               [`(L ,x ,y)
+                (set! px x)
+                (set! py y)
+                #`(send dc-path line-to #,px #,py)]
+               [`(z)
+                #`(send dc-path close)]
+               [_
+                (void)]))
+        (send dc draw-path dc-path)))
+
+  (define (decompile-d-attr d-val)
+    (define commands (cdr (string-split d-val #px"(?=[A-Za-z])")))
+    (define (to-normal-values lst)
+      (cons (string->symbol (car lst))
+            (map string->number (cdr lst))))
+    (for/list ([s (in-list commands)])
+      (let* ([s (string-trim s)]
+             [s (string-replace s "-" " -")]
+             [s (string-replace s "," " ")]
+             [s (regexp-replace #rx"^(.)([0-9])" s "\\1 \\2")])
+        (to-normal-values (regexp-split #rx" " s))))))
+
+(define-syntax (mb-dc-proc stx) (draw-svg))
+(define mb-main-drawing mb-dc-proc)
+(define mb-scale-factor 10/16)
+(define mb-flat-size (* 512 mb-scale-factor))
+
+(define (draw-mb-flat dc)
+  (define smoothing (send dc get-smoothing))
+  (define pen (send dc get-pen))
+  (define brush (send dc get-brush))
+  (define-values (sx sy) (send dc get-scale))
+  (send dc set-scale mb-scale-factor mb-scale-factor)
+  (send dc set-smoothing 'smoothed)
+  (send dc set-pen "black" 1 'transparent)
+  (mb-main-drawing dc)
+  (send dc set-pen pen)
+  (send dc set-brush brush)
+  (send dc set-smoothing smoothing)
+  (send dc set-scale sx sy))
+
 (define weekend-bitmap-spec (collection-file-path plt-logo-red-shiny.png "icons" #:fail (λ (x) plt-logo-red-shiny.png)))
-(define normal-bitmap-spec (collection-file-path plt-logo-red-diffuse.png "icons" #:fail (λ (x) plt-logo-red-diffuse.png)))
 (define valentines-days-spec (collection-file-path heart.png "icons" #:fail (λ (x) heart.png)))
+(define normal-bitmap-spec (vector draw-mb-flat mb-flat-size mb-flat-size))
 
 (define the-bitmap-spec
   (cond
