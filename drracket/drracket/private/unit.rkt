@@ -21,7 +21,7 @@
          net/url
          
          drracket/private/drsig
-         "auto-language.rkt"
+         "untrusted-read-language.rkt"
          "insert-large-letters.rkt"
          "get-defs.rkt"
          "local-member-names.rkt"

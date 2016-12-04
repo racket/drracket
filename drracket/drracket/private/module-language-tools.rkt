@@ -10,6 +10,7 @@
          racket/gui/base
          drracket/private/drsig
          "local-member-names.rkt"
+         "untrusted-read-language.rkt"
          framework/private/logging-timer)
 
 (define op (current-output-port))
@@ -171,9 +172,17 @@
              (set! hash-lang-language #f)
              (set! hash-lang-last-location #f)
              (clear-things-out)])))
+
+      (define the-untrusted-language (make-untrusted-language (open-input-string "#lang racket")))
       
       (define/public (move-to-new-language)
         (define port (open-input-text-editor this))
+        ;(define pos (get-read-language-port-position the-untrusted-language))
+        ;(define this-time-language (and pos (get-text 0 pos)))
+        ;(unless (and this-time-language (equal? this-time-language hash-lang-language))
+        ;  (set! hash-lang-language this-time-language)
+        ;  (define port (open-input-text-editor this))
+        ;  (reset-untrusted-language! the-untrusted-language port)
         
         (define (fallback)
           ;; fall back to whatever #lang racket does if
