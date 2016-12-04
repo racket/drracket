@@ -2929,7 +2929,7 @@
        (define p (peek-char-or-special port))
        (cond
          [(eof-object? p) (void)]
-         [(char-whitespace? p)
+         [(and (char? p) (char-whitespace? p))
           (read-char-or-special port)
           (loop)]
          [else (void)])])))
