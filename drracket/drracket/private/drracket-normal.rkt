@@ -257,6 +257,7 @@
   (define pen (send dc get-pen))
   (define brush (send dc get-brush))
   (define-values (sx sy) (send dc get-scale))
+  (send dc erase)
   (send dc set-scale mb-scale-factor mb-scale-factor)
   (send dc set-smoothing 'smoothed)
   (send dc set-pen "black" 1 'transparent)
@@ -328,12 +329,8 @@
 
 (when (eq? (system-type) 'macosx)
   (define initial-state (icon-state startup-date))
-  (define weekend-bitmap (if (equal? the-bitmap-spec weekend-bitmap-spec)
-                             the-splash-bitmap
-                             #f))
-  (define weekday-bitmap (if (equal? the-bitmap-spec normal-bitmap-spec)
-                             the-splash-bitmap
-                             #f))
+  (define weekend-bitmap #f)
+  (define weekday-bitmap #f)
   (define valentines-bitmap (if (equal? the-bitmap-spec valentines-days-spec)
                                 the-splash-bitmap
                                 #f))
@@ -344,10 +341,16 @@
        (unless valentines-bitmap (set! valentines-bitmap (read-bitmap/no-crash valentines-days-spec)))
        (set-doc-tile-bitmap valentines-bitmap)]
       [(weekend)
-       (unless weekend-bitmap (set! weekend-bitmap (read-bitmap/no-crash weekend-bitmap-spec)))
+       (unless weekend-bitmap
+         (set! weekend-bitmap
+               (read-bitmap/no-crash
+                (collection-file-path plt-logo-red-shiny.png "icons" #:fail (λ (x) plt-logo-red-shiny.png)))))
        (set-doc-tile-bitmap weekend-bitmap)]
       [(normal) 
-       (unless weekday-bitmap (set! weekday-bitmap (read-bitmap/no-crash normal-bitmap-spec)))
+       (unless weekday-bitmap
+         (set! weekday-bitmap
+               (read-bitmap/no-crash
+                (collection-file-path plt-logo-red-diffuse.png "icons" #:fail (λ (x) plt-logo-red-diffuse.png)))))
        (set-doc-tile-bitmap weekday-bitmap)]))
   (set-icon initial-state)
   (void
