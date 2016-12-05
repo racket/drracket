@@ -248,8 +248,9 @@
 
 (define-syntax (mb-dc-proc stx) (draw-svg))
 (define mb-main-drawing mb-dc-proc)
+(define mb-plain-size 512)
 (define mb-scale-factor 10/16)
-(define mb-flat-size (* 512 mb-scale-factor))
+(define mb-flat-size (* mb-plain-size mb-scale-factor))
 
 (define (draw-mb-flat dc)
   (define smoothing (send dc get-smoothing))
@@ -265,7 +266,30 @@
   (send dc set-smoothing smoothing)
   (send dc set-scale sx sy))
 
-(define weekend-bitmap-spec (collection-file-path plt-logo-red-shiny.png "icons" #:fail (λ (x) plt-logo-red-shiny.png)))
+(define (draw-mb-flat-weekend dc current max width height)
+  (define smoothing (send dc get-smoothing))
+  (define pen (send dc get-pen))
+  (define brush (send dc get-brush))
+  (define transformation (send dc get-transformation))
+  (send dc erase)
+  (send dc set-scale mb-scale-factor mb-scale-factor)
+  (send dc set-smoothing 'smoothed)
+  (send dc set-pen "black" 1 'transparent)
+  (send dc translate (/ mb-plain-size 2) (/ mb-plain-size 2))
+  (define f (/ current max))
+  (define spot
+    (cond
+      [(<= f 1/2) (* f 2)]
+      [else (- 1 (* (- f 1/2) 2))]))
+  (send dc rotate (* spot 2 3.1415926535))
+  (send dc translate (/ mb-plain-size -2) (/ mb-plain-size -2))
+  (mb-main-drawing dc)
+  (send dc set-pen pen)
+  (send dc set-brush brush)
+  (send dc set-smoothing smoothing)
+  (send dc set-transformation transformation))
+
+(define weekend-bitmap-spec (vector draw-mb-flat-weekend mb-flat-size mb-flat-size))
 (define valentines-days-spec (collection-file-path heart.png "icons" #:fail (λ (x) heart.png)))
 (define normal-bitmap-spec (vector draw-mb-flat mb-flat-size mb-flat-size))
 
@@ -290,6 +314,7 @@
     [halloween?
      (collection-file-path PLT-pumpkin.png "icons")]
     [(weekend-date? startup-date)
+     (set-splash-progress-bar?! #f)
      weekend-bitmap-spec]
     [else normal-bitmap-spec]))
 
