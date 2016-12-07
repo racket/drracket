@@ -26,7 +26,7 @@
                "racket-doc"
                "html-lib"
                "images-lib"
-               ["icons" #:version "1.1"]
+               ["icons" #:version "1.2"]
                "typed-racket-more"
                "trace"
                "macro-debugger"

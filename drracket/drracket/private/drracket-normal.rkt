@@ -147,40 +147,55 @@
         (parameterize ([permissive-xexprs #t])
           (xml->xexpr
            (document-element
-            (call-with-input-file (collection-file-path "plt-logo-flat-mb.svg" "icons")
+            (call-with-input-file (collection-file-path "racket-logo.svg" "icons")
               (λ (port)
                 (read-xml port))))))))
     (cond
       [(string? xexpr)
-       #`(λ (dc)
-           (define str #,xexpr)
-           (send dc clear)
-           (send dc set-scale 1 1)
-           (define-values (_1 h _2 _3) (send dc get-text-extent "x"))
-           (define one-line 30)
-           (let loop ([i 0]
-                      [l 0])
-             (cond
-               [(<= (string-length str) (+ i one-line))
-                (send dc draw-text
-                      (substring str i (string-length str))
-                      0
-                      (* l h))]
-               [else
-                (send dc draw-text
-                      (substring str i (+ i one-line))
-                      0
-                      (* l h))
-                (loop (+ i one-line) (+ l 1))])))]
+       #`(values
+          (λ (dc)
+            (define str #,xexpr)
+            (send dc clear)
+            (send dc set-scale 1 1)
+            (define-values (_1 h _2 _3) (send dc get-text-extent "x"))
+            (define one-line 30)
+            (let loop ([i 0]
+                       [l 0])
+              (cond
+                [(<= (string-length str) (+ i one-line))
+                 (send dc draw-text
+                       (substring str i (string-length str))
+                       0
+                       (* l h))]
+                [else
+                 (send dc draw-text
+                       (substring str i (+ i one-line))
+                       0
+                       (* l h))
+                 (loop (+ i one-line) (+ l 1))])))
+          300 300)]
       [else
-       #`(λ (dc)
-           #,@(draw-paths-code xexpr)
-           (void))]))
-
+       (draw-paths-code xexpr)]))
+  
   (define (draw-paths-code xexpr)
     (define exps '())
+    (define width 500)
+    (define height 500)
     (let loop ([xexpr xexpr])
       (match xexpr
+        [`(svg ,(? list? attrs) ,body ...)
+         (define (handle-width/height str set)
+           (when (regexp-match #rx"px$" str)
+             (define n (string->number (regexp-replace #rx"px$" str "")))
+             (when n (set n))))
+         (for ([attr (in-list attrs)])
+           (match attr
+             [`(width ,str)
+              (handle-width/height str (λ (x) (set! width x)))]
+             [`(height ,str)
+              (handle-width/height str (λ (x) (set! height x)))]
+             [_ (void)]))
+         (for-each loop body)]
         [`(path ((d ,d-attr) (fill ,fill-color) ,_ ...) ,_ ...)
          (define dc-path (d-attr->dc-path d-attr))
          (set! exps
@@ -195,7 +210,9 @@
         [`(,tag ,attrs ,body ...)
          (for-each loop body)]
         [_ (void)]))
-    (reverse exps))
+    #`(values (λ (dc) #,@(reverse exps) (void))
+              #,width
+              #,height))
 
   (define (d-attr->dc-path exp)
     (define px #f)
@@ -247,17 +264,17 @@
         (to-normal-values (regexp-split #rx" " s))))))
 
 (define-syntax (mb-dc-proc stx) (draw-svg))
-(define mb-main-drawing mb-dc-proc)
-(define mb-plain-size 512)
+(define-values (mb-main-drawing mb-plain-width mb-plain-height) mb-dc-proc)
 (define mb-scale-factor 10/16)
-(define mb-flat-size (* mb-plain-size mb-scale-factor))
+(define mb-flat-width (inexact->exact (ceiling (* mb-plain-width mb-scale-factor))))
+(define mb-flat-height (inexact->exact (ceiling (* mb-plain-height mb-scale-factor))))
 
 (define (draw-mb-flat dc)
   (define smoothing (send dc get-smoothing))
   (define pen (send dc get-pen))
   (define brush (send dc get-brush))
   (define-values (sx sy) (send dc get-scale))
-  (send dc erase)
+  (send dc clear)
   (send dc set-scale mb-scale-factor mb-scale-factor)
   (send dc set-smoothing 'smoothed)
   (send dc set-pen "black" 1 'transparent)
@@ -272,27 +289,27 @@
   (define pen (send dc get-pen))
   (define brush (send dc get-brush))
   (define transformation (send dc get-transformation))
-  (send dc erase)
+  (send dc clear)
   (send dc set-scale mb-scale-factor mb-scale-factor)
   (send dc set-smoothing 'smoothed)
   (send dc set-pen "black" 1 'transparent)
-  (send dc translate (/ mb-plain-size 2) (/ mb-plain-size 2))
+  (send dc translate (/ mb-plain-width 2) (/ mb-plain-height 2))
   (define f (/ current max))
   (define spot
     (cond
       [(<= f 1/2) (* f 2)]
       [else (- 1 (* (- f 1/2) 2))]))
   (send dc rotate (* spot 2 3.1415926535))
-  (send dc translate (/ mb-plain-size -2) (/ mb-plain-size -2))
+  (send dc translate (/ mb-plain-width -2) (/ mb-plain-height -2))
   (mb-main-drawing dc)
   (send dc set-pen pen)
   (send dc set-brush brush)
   (send dc set-smoothing smoothing)
   (send dc set-transformation transformation))
 
-(define weekend-bitmap-spec (vector draw-mb-flat-weekend mb-flat-size mb-flat-size))
+(define weekend-bitmap-spec (vector draw-mb-flat-weekend mb-flat-width mb-flat-height))
 (define valentines-days-spec (collection-file-path heart.png "icons" #:fail (λ (x) heart.png)))
-(define normal-bitmap-spec (vector draw-mb-flat mb-flat-size mb-flat-size))
+(define normal-bitmap-spec (vector draw-mb-flat mb-flat-width mb-flat-height))
 
 (define the-bitmap-spec
   (cond
