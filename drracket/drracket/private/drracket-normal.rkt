@@ -119,24 +119,33 @@
                      [_ (in-range longest-magic-string)])
             key-code))))
 
+(define magic-to-draw #f)
+
 (define (drracket-splash-char-observer evt)
-  (let ([ch (send evt get-key-code)])
-    (when (and (eq? ch #\q)
-               (send evt get-control-down))
-      (exit))
-    (when (and the-splash-bitmap (char? ch))
-      ;; as soon as something is typed, load the bitmaps
-      (load-magic-images)
-      (add-key-code ch)
-      (let ([match (find-magic-image)])
-        (when match
-          (set! key-codes null)
-          (set-splash-bitmap
-           (if (eq? special-state match)
-               (begin (set! special-state #f) the-splash-bitmap)
-               (begin (set! special-state match)
-                      (magic-image-bitmap match))))
-          (refresh-splash))))))
+  (define ch (send evt get-key-code))
+  (when (and (eq? ch #\q)
+             (send evt get-control-down))
+    (exit))
+  (when (char? ch)
+    ;; as soon as something is typed, load the bitmaps
+    (load-magic-images)
+    (add-key-code ch)
+    (define match (find-magic-image))
+    (when match
+      (set! key-codes null)
+      (cond
+        [the-splash-bitmap
+         (set-splash-bitmap
+          (if (eq? special-state match)
+              (begin (set! special-state #f) the-splash-bitmap)
+              (begin (set! special-state match)
+                     (magic-image-bitmap match))))]
+        [else
+         (set! magic-to-draw
+               (if magic-to-draw
+                   #f
+                   match))
+         (refresh-splash)]))))
 
 (when (eb-bday?) (install-eb))
 
@@ -269,43 +278,59 @@
 (define mb-flat-width (inexact->exact (ceiling (* mb-plain-width mb-scale-factor))))
 (define mb-flat-height (inexact->exact (ceiling (* mb-plain-height mb-scale-factor))))
 
-(define (draw-mb-flat dc)
-  (define smoothing (send dc get-smoothing))
-  (define pen (send dc get-pen))
-  (define brush (send dc get-brush))
-  (define-values (sx sy) (send dc get-scale))
+(define (draw-magic dc width height)
+  (define-values (sw sh) (send dc get-scale))
+  (define bmp (magic-image-bitmap magic-to-draw))
+  (define bw (send bmp get-width))
+  (define bh (send bmp get-height))
+  (send dc set-scale (* sw (/ width bw)) (* sh (/ height bh)))
   (send dc clear)
-  (send dc set-scale mb-scale-factor mb-scale-factor)
-  (send dc set-smoothing 'smoothed)
-  (send dc set-pen "black" 1 'transparent)
-  (mb-main-drawing dc)
-  (send dc set-pen pen)
-  (send dc set-brush brush)
-  (send dc set-smoothing smoothing)
-  (send dc set-scale sx sy))
+  (send dc draw-bitmap bmp 0 0)
+  (send dc set-scale sw sh))
+
+(define (draw-mb-flat dc current max width height)
+  (cond
+    [magic-to-draw (draw-magic dc width height)]
+    [else
+     (define smoothing (send dc get-smoothing))
+     (define pen (send dc get-pen))
+     (define brush (send dc get-brush))
+     (define-values (sx sy) (send dc get-scale))
+     (send dc clear)
+     (send dc set-scale mb-scale-factor mb-scale-factor)
+     (send dc set-smoothing 'smoothed)
+     (send dc set-pen "black" 1 'transparent)
+     (mb-main-drawing dc)
+     (send dc set-pen pen)
+     (send dc set-brush brush)
+     (send dc set-smoothing smoothing)
+     (send dc set-scale sx sy)]))
 
 (define (draw-mb-flat-weekend dc current max width height)
-  (define smoothing (send dc get-smoothing))
-  (define pen (send dc get-pen))
-  (define brush (send dc get-brush))
-  (define transformation (send dc get-transformation))
-  (send dc clear)
-  (send dc set-scale mb-scale-factor mb-scale-factor)
-  (send dc set-smoothing 'smoothed)
-  (send dc set-pen "black" 1 'transparent)
-  (send dc translate (/ mb-plain-width 2) (/ mb-plain-height 2))
-  (define f (/ current max))
-  (define spot
-    (cond
-      [(<= f 1/2) (* f 2)]
-      [else (- 1 (* (- f 1/2) 2))]))
-  (send dc rotate (* spot 2 3.1415926535))
-  (send dc translate (/ mb-plain-width -2) (/ mb-plain-height -2))
-  (mb-main-drawing dc)
-  (send dc set-pen pen)
-  (send dc set-brush brush)
-  (send dc set-smoothing smoothing)
-  (send dc set-transformation transformation))
+  (cond
+    [magic-to-draw (draw-magic dc width height)]
+    [else
+     (define smoothing (send dc get-smoothing))
+     (define pen (send dc get-pen))
+     (define brush (send dc get-brush))
+     (define transformation (send dc get-transformation))
+     (send dc clear)
+     (send dc set-scale mb-scale-factor mb-scale-factor)
+     (send dc set-smoothing 'smoothed)
+     (send dc set-pen "black" 1 'transparent)
+     (send dc translate (/ mb-plain-width 2) (/ mb-plain-height 2))
+     (define f (/ current max))
+     (define spot
+       (cond
+         [(<= f 1/2) (* f 2)]
+         [else (- 1 (* (- f 1/2) 2))]))
+     (send dc rotate (* spot 2 3.1415926535))
+     (send dc translate (/ mb-plain-width -2) (/ mb-plain-height -2))
+     (mb-main-drawing dc)
+     (send dc set-pen pen)
+     (send dc set-brush brush)
+     (send dc set-smoothing smoothing)
+     (send dc set-transformation transformation)]))
 
 (define weekend-bitmap-spec (vector draw-mb-flat-weekend mb-flat-width mb-flat-height))
 (define valentines-days-spec (collection-file-path heart.png "icons" #:fail (λ (x) heart.png)))
@@ -361,13 +386,15 @@
        (unless weekend-bitmap
          (set! weekend-bitmap
                (read-bitmap/no-crash
-                (collection-file-path plt-logo-red-shiny.png "icons" #:fail (λ (x) plt-logo-red-shiny.png)))))
+                (collection-file-path plt-logo-red-shiny.png
+                                      "icons" #:fail (λ (x) plt-logo-red-shiny.png)))))
        (set-doc-tile-bitmap weekend-bitmap)]
       [(normal) 
        (unless weekday-bitmap
          (set! weekday-bitmap
                (read-bitmap/no-crash
-                (collection-file-path plt-logo-red-diffuse.png "icons" #:fail (λ (x) plt-logo-red-diffuse.png)))))
+                (collection-file-path plt-logo-red-diffuse.png
+                                      "icons" #:fail (λ (x) plt-logo-red-diffuse.png)))))
        (set-doc-tile-bitmap weekday-bitmap)]))
   (set-icon initial-state)
   (void
