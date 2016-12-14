@@ -36,7 +36,9 @@
                ("drracket-plugin-lib" #:version "1.1")
                "gui-pkg-manager-lib"
                "drracket-tool-lib"
-               "drracket-tool-doc"))
+               "drracket-tool-doc"
+               "option-contract-lib"
+               "syntax-color-lib"))
 (define build-deps '("mzscheme-doc"
                      "net-doc"
                      "planet-doc"

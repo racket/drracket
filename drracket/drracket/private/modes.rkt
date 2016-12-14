@@ -58,7 +58,7 @@
   
   (add-mode 
    (string-constant racket-mode)
-   (new drracket:module-language:default-surrogate%)
+   (new racket:text-mode%)
    (λ (text prompt-position) (racket:text-balanced? text prompt-position))
    (λ (l) (member (string-constant module-language-name) l)))
   

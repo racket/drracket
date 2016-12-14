@@ -114,8 +114,6 @@
    initialize-prefs-panel
    big-defs/ints-label<%>
    
-   change-lang-surrogate-mixin
-   default-surrogate%
    modes<%>
    modes-mixin
    drracket-determined-width))
