@@ -10,7 +10,7 @@
   #:∀ S
   [pick-new-language
    (-> (is-a?/c text%)
-       (listof object?)
+       (listof (object/c [metadata->settings (->m string? S)]))
        (or/c #f object?)
        S
        (values (or/c #f object?)
