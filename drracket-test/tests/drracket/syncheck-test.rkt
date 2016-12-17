@@ -1717,14 +1717,17 @@
           [(string? exp-str)
            (if (equal? got-str exp-str)
                #f
-               (format "strings at position ~a do not match; got ~s" i got-str))]
+               (format "strings at position ~a do not match; got ~s, expected ~s"
+                       i got-str exp-str))]
           [(regexp? exp-str)
            (if (regexp-match? exp-str got-str)
                #f
-               (format "regexp at position ~a does not match actual string: ~s" i got-str))])
+               (format "regexp at position ~a (~s) does not match actual string: ~s"
+                       i exp-str got-str))])
         (if (equal? got-color exp-color)
             #f
-            (format "colors at position ~a do not match; got ~s" i got-color))))
+            (format "colors at position ~a do not match; got ~s, expected ~s"
+                    i got-color exp-color))))
   
   (define (compare-tooltips got expected line)
     (unless (equal? got expected)
