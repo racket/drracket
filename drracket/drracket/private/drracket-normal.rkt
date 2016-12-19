@@ -356,6 +356,10 @@
      (collection-file-path texas-plt-bw.gif "icons")]
     [halloween?
      (collection-file-path PLT-pumpkin.png "icons")]
+    ;; don't use the weekend spinning because drawing
+    ;; the splash screen repeatedly adds about 40%
+    ;; to the startup time (at least on my machine)
+    #;
     [(weekend-date? startup-date)
      (set-splash-progress-bar?! #f)
      weekend-bitmap-spec]
