@@ -32,6 +32,7 @@ TODO
          "local-member-names.rkt"
          "stack-checkpoint.rkt"
          "parse-logger-args.rkt"
+         "insulated-read-language.rkt"
          
          ;; the dynamic-require below loads this module, 
          ;; so we make the dependency explicit here, even
@@ -981,20 +982,12 @@ TODO
         (or (send key get-control-down)
             (send key get-alt-down)
             (and prompt-position
-                 (let ([lang (drracket:language-configuration:language-settings-language user-language-settings)])
+                 (let ([pred (get-insulated-submit-predicate (send definitions-text get-irl))])
                    (cond
-                     [(is-a? lang drracket:module-language:module-language<%>)
-                      (let ([pred 
-                             (send lang get-language-info 
-                                   'drracket:submit-predicate
-                                   (λ (port only-whitespace-afterwards?)
-                                     (and only-whitespace-afterwards?
-                                          (submit-predicate this prompt-position))))])
-                        (pred 
-                         ;; no good! giving away the farm here. need to hand
-                         ;; over a proxy that is limited to just read access
-                         (open-input-text-editor this prompt-position)
-                         (only-whitespace-after-insertion-point)))]
+                     [pred
+                      (pred 
+                       (open-input-text-editor this prompt-position)
+                       (only-whitespace-after-insertion-point))]
                      [else
                       (and (only-whitespace-after-insertion-point)
                            (submit-predicate this prompt-position))])))))
@@ -1122,6 +1115,7 @@ TODO
                          drracket:module-language:module-language<%>))
              (send (send definitions-text get-tab) get-pre-compiled-transform-module-results)]
             [else #f]))
+        (define the-irl (send definitions-text get-irl))
         (run-in-evaluation-thread
          (λ () ; =User=, =Handler=, =No-Breaks=
            (let* ([settings (current-language-settings)]
@@ -1132,7 +1126,9 @@ TODO
                    (if complete-program?
                        (parameterize ([current-pre-compiled-transform-module-results
                                        pre-compiled-transform-module-results])
-                         (send lang front-end/complete-program port settings))
+                         (if (is-a? lang drracket:module-language:module-language<%>)
+                             (send lang front-end/complete-program port settings the-irl)
+                             (send lang front-end/complete-program port settings)))
                        (send lang front-end/interaction port settings))])
              
              ; Evaluate the user's expression. We're careful to turn on

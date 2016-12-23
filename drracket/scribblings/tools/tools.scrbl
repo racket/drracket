@@ -4,16 +4,7 @@
             "common.rkt"
             scribble/racket
             (for-syntax racket/base
-                        "example-src.rkt")
-            (for-label drracket/tool-lib)
-            (for-label racket/unit racket/contract)
-            (for-label racket/base racket/gui)
-            (for-label framework/framework)
-            (for-label drracket/syncheck-drracket-button
-                       drracket/check-syntax
-                       string-constants/string-constant)
-            scribble/eval
-            scribble/extract)
+                        "example-src.rkt"))
    
    (define (File x) @tt[x])
    (define (FileFirst x) @tt[x]) ;; indexing missing
@@ -34,7 +25,7 @@ Racket, as described in the
 and the
 @(other-manual '(lib "scribblings/reference/reference.scrbl")),
 DrRacket, as described in
-@(other-manual '(lib "scribblings/drracket/drracket.scrbl")),
+@(other-manual '(lib "scribblings/drracket/drracket.scrbl"))
 and the GUI library, as described in
 @(other-manual '(lib "scribblings/gui/gui.scrbl")).
 The Framework, as described in
@@ -63,6 +54,8 @@ Max Hailperin,
 Philippe Meunier, and
 Christian Queinnec for their
 help being early clients for DrRacket plugins.
+
+@include-section["lang-tools.scrbl"]
 
 @section[#:tag "implementing-tools"]{Implementing DrRacket Plugins}
 
@@ -225,88 +218,6 @@ text ``egg''. If so, it adds ``easter '' just before.
 
 @section[#:tag "adding-languages"]{Adding Languages to DrRacket}
 @index{adding languages to DrRacket}
-
-@subsection[#:tag "lang-languages-customization"]{@tt{#lang}-based Languages in DrRacket}
-
-If a language can be implemented as a module
-(see @racket[module] for details), then the simplest and
-best way to use the language is via the ``Use the language
-declared the in source'' checkbox in the @onscreen{Language} dialog.
-In this case, DrRacket's appearance can still be customized to
-the language; it uses @racket[read-language] with these arguments
-as the @racket[_key] argument to the @racket[_get-info] function to do so:
-
-@itemize[@item{@language-info-ref[drracket:toolbar-buttons]}
-          @item{@language-info-ref[drracket:opt-out-toolbar-buttons]}
-          @item{@language-info-ref[definitions-text-surrogate]}
-          @item{@language-info-ref[drracket:default-filters]}
-          @item{@language-info-ref[drracket:default-extension]}
-          @item{@language-info-ref[drracket:indentation]}
-          @item{@language-info-ref[color-lexer]}]
-
-If the call to @racket[read-language] raises an error, DrRacket logs the
-error at the @racket[_debug] level to a logger with the name 
-@racket['drracket-language] (see 
-@secref["logging" #:doc '(lib "scribblings/reference/reference.scrbl")] for more
-about how to follow specific loggers).
-
-@language-info-def[color-lexer]{
-  When a language's @racket[_get-info] procedure responds to @racket['color-lexer], it
-  is expected to return a procedure suitable to pass as the @racket[_get-token]
-  argument to @method[color:text<%> start-colorer].
-}
-
-The recognized token styles (specified implicitly via @method[color:text<%> start-colorer]'s 
-@racket[_token-sym->style] argument) are:
-@itemize[@item{@indexed-racket['symbol]}
-          @item{@indexed-racket['keyword]}
-          @item{@indexed-racket['comment]}
-          @item{@indexed-racket['string]}
-          @item{@indexed-racket['constant]}
-          @item{@indexed-racket['parenthesis]}
-          @item{@indexed-racket['error]}
-          @item{@indexed-racket['other]}]
-These precise colors for these identifiers are controlled by the preferences dialog in DrRacket.
-
-@language-info-def[drracket:default-filters]{
-  When a language's @racket[_get-info] procedure responds to
-  @racket['drracket:default-filters], it is expected to return
-  @racket[(listof (list/c string? string?))].
-  
-  These results are added as a prefix to @racket[finder:default-filters],
-  extending the default that DrRacket normally uses, namely:
-  @racketblock[`(["Racket Sources" "*.rkt;*.scrbl;*.rktl;*.rktd;*.ss;*.scm"]
-                 ["Any" "*.*"])]
-  @history[#:added "1.2"]
-}
-
-@language-info-def[drracket:default-extension]{
-  When a language's @racket[_get-info] procedure responds to @racket['drracket:default-extension],
-  it is expected to return @racket[(and/c string? (not/c #rx"[.]"))]; the result is used
-  as the default extension when saving files by setting @racket[finder:default-extension].
-  
-  @history[#:added "1.2"]
-}
-
-@language-info-def[drracket:indentation]{
- When a language's @racket[_get-info] procedure responds to @racket['drracket:indentation],
- it is expected to return a function with this contract:
- @racketblock[(-> (is-a?/c racket:text<%>)
-                  exact-nonnegative-integer?
-                  (or/c #f exact-nonnegative-integer?))]
- The function is used
- to indent lines in DrRacket. It is called with the position containing the line to be
- indented. It is expected to return the number of spaces that should appear at the beginning
- of the line or @racket[#f]. If @racket[#f] is returned,
- DrRacket uses the standard s-expression indentation rules.
-  
- @history[#:added "1.3"]
-}
-
-
-
-@history[#:changed "1.1" @elem{Added support for @racket['drracket:default-filters]
-                               and @racket['drracket:default-extension].}]
 
 @subsection{Adding Module-based Languages to DrRacket}
 
@@ -594,28 +505,13 @@ files.
 
 @subsection{General-purpose Modes}
 
-@index{definitions-text-surrogate}
-@language-info-def[definitions-text-surrogate]{
-DrRacket provides support for multiple editor modes based on the
-@tt{#lang} line at the beginning of the editor. If the 
-@onscreen{Modes} submenu of the @onscreen{Edit} menu has
-the @onscreen{Racket} mode chosen (which is the default if the
-Language dialog's ``The Racket Language'' is chosen), then 
-DrRacket calls the language's @racket[get-info] procedure
-(see @racket[read-language] for more about how to set up
-a language's @racket[get-info] procedure) with
-@racket['definitions-text-surrogate]. This is expected to return
-a quoted module path (in the sense of @racket[module-path?]) that
-names a module that exports @racket[surrogate%]. It is expected
-to be bound to a class implementing the @racket[mode:surrogate-text<%>]
-interface. Assuming so, it is used as the surrogate for the definitions
-text.}
-
-Additionally, plugins can register modes via
-@racket[drracket:modes:add-mode]. Each mode is
-visible in the @onscreen{Modes} submenu of the @onscreen{Edit}
-menu. Initially, DrRacket only supports two modes: Racket
-mode and text mode.
+Plugins can register modes via
+@racket[drracket:modes:add-mode]. Each mode is visible in
+the @onscreen{Modes} submenu of the @onscreen{Edit} menu.
+Initially, DrRacket only supports two modes: Racket mode and
+text mode. (The Racket mode consults the language in the
+@tt{#lang} line; see
+@secref["sec:definitions-text-surrogate"] for more details.)
 
 DrRacket automatically selects a mode for each open
 file based on the file's extension (and the language chosen
@@ -623,27 +519,7 @@ as described above). If the file ends with
 @File{.txt}, DrRacket uses text mode. Otherwise, DrRacket
 uses Racket mode.
 
-@section{Language-Specific Capabilities}
-
-@subsection[#:tag "drracket:lang-languages-customization"]{Customizing DrRacket's Behavior}
-
-When using the language declared in the source, DrRacket queries that
-language via @racket[module-compiled-language-info] to determine
-if an expression in the interactions window is ready to be submitted
-to the evaluator (when the user types return).
-The info procedure is passed @indexed-racket['drracket:submit-predicate]
-and should return a function with this contract:
-@racketblock[(-> input-port?
-                 boolean?
-                 boolean?)]
-This function's first argument is a port that contains the interactions window's
-data, starting from the prompt position to the end of the editor.
-The second argument is a boolean indicating if the insertion point is
-followed only by whitespace. The results should be a 
-boolean indicating if the expression should be evaluated.
-This function is called in sandbox, but with no filesystem limits.
-
-@subsection{Customizing DrRacket's GUI}
+@section{Plugin Capabilities}
 
 DrRacket's capability interface provides a mechanism for
 tools to allow languages to hide their GUI interface, if the

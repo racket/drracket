@@ -2,6 +2,7 @@
 (provide module-language-tools@)
 (require mrlib/switchable-button 
          mrlib/bitmap-label
+         mrlib/close-icon
          racket/contract
          racket/place
          framework
@@ -10,7 +11,10 @@
          racket/gui/base
          drracket/private/drsig
          "local-member-names.rkt"
-         framework/private/logging-timer)
+         "insulated-read-language.rkt"
+         "eval-helpers-and-pref-init.rkt"
+         framework/private/logging-timer
+         string-constants)
 
 (define op (current-output-port))
 (define (oprintf . args) (apply fprintf op args))
@@ -20,6 +24,7 @@
           [prefix drracket:module-language: drracket:module-language/int^]
           [prefix drracket:language: drracket:language^]
           [prefix drracket:language-configuration: drracket:language-configuration^]
+          [prefix drracket:init: drracket:init^]
           [prefix drracket: drracket:interface^])
   (export drracket:module-language-tools/int^)
 
@@ -37,7 +42,11 @@
     remove-toolbar-button
     get-toolbar-button-panel
     get-online-expansion-monitor-pcs
-    with-language-specific-default-extensions-and-filters)
+    with-language-specific-default-extensions-and-filters
+
+    get-hash-lang-error-state
+    set-hash-lang-error-state
+    update-hash-lang-error-gui-state)
     
   (define tab-mixin
     (mixin (drracket:unit:tab<%>) (drracket:module-language-tools:tab<%>)
@@ -55,13 +64,25 @@
                 (send (send (get-frame) get-toolbar-button-panel) change-children
                       (λ (l) toolbar-buttons))))
         (send (get-frame) sort-toolbar-buttons-panel))
+
+
+      (define the-hash-lang-error-state #f)
+      (define/public (get-hash-lang-error-state) the-hash-lang-error-state)
+      (define/public (set-hash-lang-error-state s)
+        (set! the-hash-lang-error-state s)
+        (when (equal? (send (get-frame) get-current-tab) this)
+          (send (get-frame) update-hash-lang-error-gui-state the-hash-lang-error-state)))
+      (define/public (show-#lang-error)
+        (message-box (string-constant drracket)
+                     (hash-lang-error-state-more-info-msg the-hash-lang-error-state)))
       (super-new)))
   
   (define frame-mixin
     (mixin (drracket:unit:frame<%>) (drracket:module-language-tools:frame<%>)
       (inherit unregister-toolbar-button 
                get-definitions-text
-               sort-toolbar-buttons-panel)
+               sort-toolbar-buttons-panel
+               get-current-tab)
       
       (define toolbar-button-panel #f)
       (define/public (when-initialized thunk)
@@ -80,17 +101,82 @@
         (send toolbar-button-panel change-children (λ (l) (remq button l)))
         (unregister-toolbar-button button)
         (sort-toolbar-buttons-panel))
+
       (define/augment (on-tab-change old-tab new-tab)
         (inner (void) on-tab-change old-tab new-tab)
         (when toolbar-button-panel
           (send toolbar-button-panel change-children
                 (λ (l) (send new-tab get-lang-toolbar-buttons)))
-          (sort-toolbar-buttons-panel)))
+          (sort-toolbar-buttons-panel))
+
+        (when hash-lang-error-parent-panel
+          (unless (equal? (send new-tab get-hash-lang-error-state)
+                          (send old-tab get-hash-lang-error-state))
+            (update-hash-lang-error-gui-state (send new-tab get-hash-lang-error-state)))))
       
       (define/override (file-menu:open-callback menu evt)
         (send (get-definitions-text) with-language-specific-default-extensions-and-filters
               (λ ()
                 (super file-menu:open-callback menu evt))))
+
+      (define hash-lang-error-parent-panel #f)
+      (define hash-lang-error-panel #f)
+      (define hash-lang-error-message #f)
+
+      ;; state : (or/c hash-lang-error-state? #f)
+      ;;  -- string is the error message
+      (define/public (update-hash-lang-error-gui-state state)
+        (cond
+          [(hash-lang-error-state? state)
+           (send hash-lang-error-message set-msgs
+                 (list (hash-lang-error-state-display-msg state))
+                 #t
+                 (hash-lang-error-state-more-info-msg state))
+           (send hash-lang-error-parent-panel change-children
+                 (λ (x) (append (remq hash-lang-error-panel x) (list hash-lang-error-panel))))]
+          [else
+           (send hash-lang-error-parent-panel change-children
+                 (λ (x) (remq hash-lang-error-panel x)))]))
+
+      (define/override (make-root-area-container cls parent)
+        (set! hash-lang-error-parent-panel
+              (super make-root-area-container vertical-panel% parent))
+        (define root (make-object cls hash-lang-error-parent-panel))
+        (set! hash-lang-error-panel
+              (new horizontal-panel%
+                   [stretchable-height #f]
+                   [parent hash-lang-error-parent-panel]))
+
+        (new message% [label "#lang "] [parent hash-lang-error-panel])
+        (set! hash-lang-error-message (new drracket:module-language:error-message%
+                                           [parent hash-lang-error-panel]
+                                           [stretchable-width #t]
+                                           [msgs '("hi")]
+                                           [err? #f]))
+        (new button%
+             [parent hash-lang-error-panel]
+             [label (string-append (string-constant module-language-#lang-flush-cache)
+                                   (case (car (get-default-shortcut-prefix))
+                                     [(cmd)
+                                      (if (equal? (system-type) 'macosx)
+                                          " (⌘⇧D)"
+                                          "")]
+                                     [(control) " (Ctrl+Shift-D)"]
+                                     [else ""]))]
+             [font small-control-font]
+             [callback (λ (b evt)
+                         (send (send (get-current-tab) get-defs) move-to-new-language #t))])
+        (new button%
+             [parent hash-lang-error-panel]
+             [label (string-constant module-language-#lang-error-more-information)]
+             [font small-control-font]
+             [callback (λ (b evt) (send (get-current-tab) show-#lang-error))])
+        (new close-icon%
+             [parent hash-lang-error-panel]
+             [callback (λ () (send (get-current-tab) set-hash-lang-error-state #f))])
+
+        (send hash-lang-error-parent-panel change-children (λ (l) (remq hash-lang-error-panel l)))
+        root)
       
       (super-new)
       (inherit get-button-panel)
@@ -106,7 +192,7 @@
           (when (send defs get-in-module-language?)
             (send defs move-to-new-language))))))
   
-  (define-logger drracket-language)
+  (struct hash-lang-error-state (display-msg more-info-msg) #:transparent)
   
   (define definitions-text-mixin
     (mixin (text:basic<%> 
@@ -117,10 +203,27 @@
       (inherit get-next-settings
                get-filename
                set-lang-wants-big-defs/ints-labels?
-               get-tab)
+               get-tab
+               last-position
+               get-surrogate
+               start-colorer
+               set-surrogate)
       (define in-module-language? #f)      ;; true when we are in the module language
       (define hash-lang-last-location #f)  ;; non-false when we know where the hash-lang line ended
       (define hash-lang-language #f)       ;; non-false is the string that was parsed for the language
+
+      (define/public (irl-get-read-language-port-start+end)
+        (get-read-language-port-start+end the-irl))
+      (define/public (irl-get-read-language-name) (get-read-language-name the-irl))
+      
+      (define/private (irl-blew-up exn)
+        (define sp (open-output-string))
+        (parameterize ([current-error-port sp])
+          (drracket:init:original-error-display-handler (exn-message exn) exn))
+        (send (get-tab) set-hash-lang-error-state
+              (hash-lang-error-state (regexp-replace* #rx"\n" (exn-message exn) " ")
+                                     (get-output-string sp))))
+      
       (define/public (get-in-module-language?) in-module-language?)
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
@@ -129,9 +232,16 @@
         (inner (void) after-delete start len)
         (modification-at start))
       
-      (define last-filename #f)
       (define/augment (after-save-file success?)
         (inner (void) after-save-file success?)
+        (when success? (filename-maybe-changed)))
+
+      (define/augment (after-load-file success?)
+        (inner (void) after-load-file success?)
+        (when success? (filename-maybe-changed)))
+
+      (define last-filename #f)
+      (define/private (filename-maybe-changed)
         (define this-filename (get-filename))
         (unless (equal? last-filename this-filename)
           (set! last-filename this-filename)
@@ -152,9 +262,9 @@
                             (<= start hash-lang-last-location))
                     
                     (unless timer
-                      (set! timer (new logging-timer% 
+                      (set! timer (new logging-timer%
                                        [notify-callback
-                                        (λ () 
+                                        (λ ()
                                           (when in-module-language?
                                             (move-to-new-language)))]
                                        [just-once? #t])))
@@ -171,117 +281,62 @@
              (set! hash-lang-language #f)
              (set! hash-lang-last-location #f)
              (clear-things-out)])))
-      
-      (define/public (move-to-new-language)
-        (define port (open-input-text-editor this))
-        
-        (define (fallback)
-          ;; fall back to whatever #lang racket does if
-          ;; we don't have a #lang line present in the file
-          (log-drracket-language-debug "falling back to using #lang racket's read-language for ~a"
-                                       (or (send this get-filename) "<<unsaved file>>"))
-          (vector (read-language (open-input-string "#lang racket"))))
-        
-        ;; info-result : 
-        ;;  (or/c #f   [#lang without a known language]
-        ;;        (vector <get-info-proc>) 
-        ;;                [no #lang line, so we use the '#lang racket' info proc]
-        ;;        <get-info-proc>) [the get-info proc for the program in the definitions]
-        (define info-result 
-          (with-handlers ([exn:fail? 
-                           (λ (x)
-                             (log-drracket-language-debug
-                              (format
-                               "DrRacket: error duing call to read-language for ~a:\n  ~a"
-                               (or (send this get-filename) "<<unsaved file>>")
-                               (regexp-replace* #rx"\n(.)" (exn-message x) "\n\\1  ")))
-                             #f)])
-            (or (read-language port fallback)
-                (fallback))))
-        
-        ; sometimes I get eof here, but I don't know why and can't seem to 
-        ;; make it happen outside of DrRacket
-        (when (eof-object? info-result)
-          (eprintf "file ~s produces eof from read-language\n"
-                   (send this get-filename))
-          (eprintf "  port-next-location ~s\n"
-                   (call-with-values (λ () (port-next-location port)) list))
-          (eprintf "  str ~s\n"
-                   (let ([s (send this get-text)])
-                     (substring s 0 (min 100 (string-length s)))))
-          (set! info-result #f))
-        (define-values (line col pos) (port-next-location port))
-        (unless (equal? (get-text 0 pos) hash-lang-language)
-          (set! hash-lang-language (get-text 0 pos))
-          (set! hash-lang-last-location pos)
-          (clear-things-out)
-          (define info-proc 
-            (if (vector? info-result)
-                (vector-ref info-result 0)
-                info-result))
-          (define (ctc-on-info-proc-result ctc res what)
-            (contract ctc 
-                      res
-                      (if (vector? info-result)
-                          'hash-lang-racket
-                          (get-lang-name pos))
-                      'drracket/private/module-language-tools
-                      what #f))
-          
-          (define lang-wants-big-defs/ints-labels?
-            (and info-proc (info-proc 'drracket:show-big-defs/ints-labels #f)))
-          (set-lang-wants-big-defs/ints-labels? lang-wants-big-defs/ints-labels?)
-          (send (send (get-tab) get-ints) set-lang-wants-big-defs/ints-labels?
-                lang-wants-big-defs/ints-labels?)
-          
-          (set! extra-default-filters
-                (if info-result
-                    (or (ctc-on-info-proc-result
-                         (or/c #f (listof (list/c string? string?)))
-                         (info-proc 'drracket:default-filters #f)
-                         'drracket:default-filters)
-                        '())
-                    '()))
-          
-          (set! default-extension
-                (if info-result
-                    (or (ctc-on-info-proc-result
-                         (or/c #f (and/c string? (not/c #rx"[.]")))
-                         (info-proc 'drracket:default-extension #f)
-                         'drracket:default-extension)
-                        "")
-                    ""))
 
-          (set! indentation-function
-                (if info-result
-                    (or (ctc-on-info-proc-result
-                         (or/c #f
-                               (-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
-                                   (or/c #f exact-nonnegative-integer?)))
-                         (info-proc 'drracket:indentation #f)
-                         'drracket:indentation)
-                        (λ (x y) #f))
-                    (λ (x y) #f)))
+      (define/public (move-to-new-language [flush-irl-cache? #f])
+        (when timer (send timer stop))
+        (send (get-tab) set-hash-lang-error-state #f)
+        (define port (open-input-text-editor this))
+        (reset-irl! the-irl port (get-irl-directory) flush-irl-cache?)
+        (define-values (lang-name-start lang-name-end)
+          (get-read-language-port-start+end the-irl))
+        (set! hash-lang-language (and lang-name-end (get-text lang-name-start lang-name-end)))
+        (set! hash-lang-last-location lang-name-end)
+        
+        (clear-things-out)
+
+        (define mode (or (get-definitions-text-surrogate the-irl)
+                         (new racket:text-mode%)))
+        (send mode set-get-token (get-insulated-module-lexer the-irl))
+        (set-surrogate mode)
+        
+        (define lang-wants-big-defs/ints-labels?
+          (and (call-read-language the-irl 'drracket:show-big-defs/ints-labels #f)
+               #t))
+        (set-lang-wants-big-defs/ints-labels? lang-wants-big-defs/ints-labels?)
+        (send (send (get-tab) get-ints) set-lang-wants-big-defs/ints-labels?
+              lang-wants-big-defs/ints-labels?)
+        
+        (set! extra-default-filters
+              (or (call-read-language the-irl 'drracket:default-filters #f)
+                  '()))
           
-          (when info-result
-            (register-new-buttons
-             (ctc-on-info-proc-result 
-              (or/c #f (listof (or/c (list/c string?
-                                             (is-a?/c bitmap%)
-                                             (-> (is-a?/c drracket:unit:frame<%>) any))
-                                     (list/c string?
-                                             (is-a?/c bitmap%)
-                                             (-> (is-a?/c drracket:unit:frame<%>) any)
-                                             (or/c real? #f)))))
-              (or (info-proc 'drracket:toolbar-buttons #f)
-                  (info-proc 'drscheme:toolbar-buttons #f))
-              'drracket:toolbar-buttons)
-             (ctc-on-info-proc-result 
-              (or/c #f (listof symbol?))
-              (or (info-proc 'drracket:opt-out-toolbar-buttons '())
-                  (info-proc 'drscheme:opt-out-toolbar-buttons '()))
-              'drracket:opt-out-toolbar-buttons)))))
-      
+        (set! default-extension
+              (or (call-read-language the-irl 'drracket:default-extension #f)
+                  ""))
+        
+        (set! indentation-function
+              (or (call-read-language the-irl 'drracket:indentation #f)
+                  (λ (x y) #f)))
+
+        (register-new-buttons
+         (or (call-read-language the-irl 'drracket:toolbar-buttons #f)
+             (call-read-language the-irl 'drscheme:toolbar-buttons #f))
+         
+         (or (call-read-language the-irl 'drracket:opt-out-toolbar-buttons '())
+             (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '()))))
+
+      ;; removes language-specific customizations
+      (define/private (clear-things-out)
+        (define tab (get-tab))
+        (define ints (send tab get-ints))
+        (set-surrogate (new racket:text-mode%))
+        (set-lang-wants-big-defs/ints-labels? #f)
+        (send ints set-lang-wants-big-defs/ints-labels? #f)
+        (set! extra-default-filters '())
+        (set! default-extension "")
+        (set! indentation-function (λ (x y) #f))
+        (send tab set-lang-toolbar-buttons '() '()))
+
       
       (define/private (register-new-buttons buttons opt-out-ids)
         ;; cleaned-up-buttons : (listof (list/c string?
@@ -347,10 +402,6 @@
              (if (char-whitespace? (string-ref str (- (string-length str) 1)))
                  (substring str 0 (- (string-length str) 1))
                  str))]))
-
-      ;; removes language-specific customizations
-      (define/private (clear-things-out)
-        (send (get-tab) set-lang-toolbar-buttons '() '()))
       
       
       ;; online-expansion-monitor-table : hash[(cons mod-path id) -o> (cons/c local-pc remote-pc)]
@@ -400,7 +451,17 @@
           [else
            (compute-racket-amount-to-indent pos)]))
       
+      (define/private (get-irl-directory)
+        (define tmp-b (box #f))
+        (define fn (get-filename tmp-b))
+        (when (unbox tmp-b) (set! fn #f))
+        (define the-dir (get-init-dir fn))
+        the-dir)
+      
       (super-new)
+
+      (define the-irl (make-irl (get-irl-directory) (λ (exn) (irl-blew-up exn))))
+      (define/public (get-irl) the-irl)
       (set! in-module-language? 
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))

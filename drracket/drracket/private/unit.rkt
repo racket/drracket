@@ -21,7 +21,7 @@
          net/url
          
          drracket/private/drsig
-         "auto-language.rkt"
+         "insulated-read-language.rkt"
          "insert-large-letters.rkt"
          "get-defs.rkt"
          "local-member-names.rkt"
@@ -4291,6 +4291,12 @@
           (λ (_1 _2) (send interactions-text kill-evaluation))
           #\k
           (string-constant force-quit-menu-item-help-string))
+        (new menu:can-restore-menu-item%
+             [label (string-constant module-language-#lang-flush-cache-menu-item)]
+             [parent language-specific-menu]
+             [callback (λ (_1 _2) (send (send current-tab get-defs) move-to-new-language #t))]
+             [shortcut #\d]
+             [shortcut-prefix (cons 'shift (get-default-shortcut-prefix))])
         (when (custodian-memory-accounting-available?)
           (new menu-item%
                [label (string-constant limit-memory-menu-item-label)]

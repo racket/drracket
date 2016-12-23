@@ -1386,12 +1386,13 @@
         (send t set-clickback before-lang after-lang
               (λ (t start end)
                 (use-language-in-source-rb-callback)
-                (define-values (current-line-start current-line-end) 
+                (define-values (current-line-start current-line-end)
                   (if definitions-text
-                      (find-language-position definitions-text)
+                      (send definitions-text irl-get-read-language-port-start+end)
                       (values #f #f)))
                 (define existing-lang-line 
                   (and current-line-start
+                       current-line-end
                        (send definitions-text get-text current-line-start current-line-end)))
                 (case (message-box/custom
                        (string-constant drscheme)
@@ -1424,7 +1425,7 @@
                        '(default=1))
                   [(1) 
                    (cond
-                     [current-line-start
+                     [(and current-line-start current-line-end)
                       (send definitions-text begin-edit-sequence)
                       (send definitions-text delete current-line-start current-line-end)
                       (send definitions-text insert 
@@ -1478,22 +1479,6 @@
       (send c allow-tab-exit #t)
 
       c)
-    
-    (define (find-language-position definitions-text)
-      (define prt (open-input-text-editor definitions-text))
-      (port-count-lines! prt)
-      (define l (with-handlers ((exn:fail? (λ (x) #f)))
-                  (read-language prt)
-                  #t))
-      (cond
-        [l
-         (define-values (line col pos) (port-next-location prt))
-         (define hash-lang-start (send definitions-text find-string "#lang" 'backward pos 0 #f))
-         (if hash-lang-start
-             (values hash-lang-start (- pos 1))
-             (values #f #f))]
-        [else
-         (values #f #f)]))
     
     (define spacer-snip%
       (class snip%

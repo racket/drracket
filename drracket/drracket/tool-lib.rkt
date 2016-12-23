@@ -208,19 +208,11 @@ all of the names in the tools library, for use defining keybindings
     DrRacket monitors the @tt{#lang} line at the top of the file; when it changes DrRacket queries
     the language to see if this button should be included.
     These buttons are ``opt out'', meaning that if the language doesn't explicitly ask to not
-    have this button (or all such buttons), the button will appear.
+    have this button (or all such buttons), the button will appear. See
+    @language-info-ref[drracket:opt-out-toolbar-buttons] for more information.
     
     The @racket[number] argument is the same as the @racket[number] argument
-    to @method[drracket:unit:frame<%> register-toolbar-button].
-
-    @language-info-def[drracket:opt-out-toolbar-buttons]{
-      See @racket[read-language] for more details on how a language can opt out.
-      DrRacket will invoke the @tt{get-info} proc from @racket[read-language] with
-      @racket['drracket:opt-out-toolbar-buttons] 
-      (and @indexed-racket['drscheme:opt-out-toolbar-buttons] for backwards compatibility).
-      If the result is a list of symbols, the
-      listed symbols are opted out. If the result is @racket[#f], all buttons are opted
-      out. The default is the empty list, meaning that all opt-out buttons appear.}})
+    to @method[drracket:unit:frame<%> register-toolbar-button].})
  
  (proc-doc/names
   drracket:module-language-tools:add-online-expansion-handler 

@@ -114,11 +114,11 @@
    initialize-prefs-panel
    big-defs/ints-label<%>
    
-   change-lang-surrogate-mixin
-   default-surrogate%
    modes<%>
    modes-mixin
-   drracket-determined-width))
+   drracket-determined-width
+
+   error-message%))
 
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin

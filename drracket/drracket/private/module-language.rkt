@@ -25,6 +25,7 @@
          "rep.rkt"
          "eval-helpers-and-pref-init.rkt"
          "local-member-names.rkt"
+         "insulated-read-language.rkt"
          drracket/private/rectangle-intersect
          pkg/lib
          pkg/gui
@@ -116,8 +117,7 @@
   
   (define module-language<%>
     (interface ()
-      get-users-language-name
-      get-language-info))
+      get-users-language-name))
   
   ;; add-module-language : -> void
   ;; adds the special module-only language to drracket
@@ -159,35 +159,7 @@
   ;;             -> (implements drracket:language:language<%>)
   (define (module-mixin %)
     (class* % (drracket:language:language<%> module-language<%>)
-      
-      (define language-info #f) ;; a result from module-compiled-language-info
-      (define sandbox #f)       ;; a sandbox for querying the language-info
-      (define/public (get-language-info key default)
-        (init-sandbox)
-        (cond
-          [(and language-info sandbox)
-           (let ([mp (vector-ref language-info 0)]
-                 [name (vector-ref language-info 1)]
-                 [val (vector-ref language-info 2)])
-             (call-in-sandbox-context
-              sandbox
-              (λ ()
-                (parameterize ([current-security-guard drracket:init:system-security-guard])
-                  (((dynamic-require mp name) val) key default)))))]
-          [else default]))
-      (define/private (init-sandbox)
-        (unless sandbox
-          (when language-info
-            ;; creating a sanbox can fail in strange ways so we just
-            ;; swallow the failures so as to not wreck DrRacket
-            (with-handlers ((exn:fail? (λ (x) 
-                                         (log-error "DrRacket:module-language:sandbox exn: ~a" 
-                                                    (exn-message x))
-                                         (for ([x (in-list (continuation-mark-set->context
-                                                            (exn-continuation-marks x)))])
-                                           (log-error (format "  ~s" x))))))
-              (set! sandbox (make-evaluator 'racket/base))))))
-      
+
       (define/override (first-opened settings)
         (define ns (with-handlers ([exn:fail? 
                                     (λ (x) 
@@ -222,39 +194,21 @@
       
       (inherit get-language-name)
       (define/public (get-users-language-name defs-text settings)
-        (define defs-port (open-input-text-editor defs-text))
-        (port-count-lines! defs-port)
-        (define read-successfully?
-          (with-handlers ((exn:fail? (λ (x) #f)))
-            (read-language defs-port (λ () #f))
-            #t))
+        (define str (send defs-text irl-get-read-language-name))
+        (define pos (and str (regexp-match-positions #rx"#(?:!|lang )" str)))
         (cond
-          [read-successfully?
-           (define-values (_line _col port-pos) (port-next-location defs-port))
-           (define after-comments-position
-             (let ()
-               (define p (open-input-text-editor defs-text))
-               (port-count-lines! p)
-               (skip-past-comments p)
-               (define-values (line col pos) (port-next-location p))
-               (- pos 1)))
-           (define str (send defs-text get-text after-comments-position (- port-pos 1)))
-           (define pos (regexp-match-positions #rx"#(?:!|lang )" str))
-           (cond
-             [(not pos)
-              (get-language-name)]
-             [else
-              (define language-name-without-runtime-stuff
-                (substring str (cdr (car pos)) (string-length str)))
-              (format "~a~a"
-                      language-name-without-runtime-stuff
-                      (case (drracket:language:simple-settings-annotations settings)
-                        [(none) (string-constant module-language-repl-no-annotations)]
-                        [(debug) (string-constant module-language-repl-debug-annotations)]
-                        [(debug/profile)
-                         (string-constant module-language-repl-debug/profile-annotations)]
-                        [(test-coverage)
-                         (string-constant module-language-repl-test-annotations)]))])]
+          [pos
+           (define language-name-without-runtime-stuff
+             (substring str (cdr (car pos)) (string-length str)))
+           (format "~a~a"
+                   language-name-without-runtime-stuff
+                   (case (drracket:language:simple-settings-annotations settings)
+                     [(none) (string-constant module-language-repl-no-annotations)]
+                     [(debug) (string-constant module-language-repl-debug-annotations)]
+                     [(debug/profile)
+                      (string-constant module-language-repl-debug/profile-annotations)]
+                     [(test-coverage)
+                      (string-constant module-language-repl-test-annotations)]))]
           [else
            (get-language-name)]))
       
@@ -391,11 +345,6 @@
       (define/override (on-execute settings run-in-user-thread)
         (super on-execute settings run-in-user-thread)
         
-        ;; reset the language info so that if the module is illformed, 
-        ;; we don't save the language info from the last run
-        (set! language-info #f)
-        (set! sandbox #f)
-        
         (let ([currently-open-files (get-currently-open-files)])
           (run-in-user-thread
            (λ ()
@@ -424,8 +373,10 @@
       
       (inherit get-reader)
       (define repl-init-thunk (make-thread-cell #f))
-      
-      (define/override (front-end/complete-program port settings)
+
+      ;; drracket will always supply `the-irl`, but some tools might call this,
+      ;; and they might not supply it
+      (define/override (front-end/complete-program port settings [the-irl #f])
         (define (super-thunk) 
           (define reader (get-reader))
           (reader (object-name port) port))
@@ -453,16 +404,7 @@
              (define expr
                ;; just reading the definitions might be a syntax error,
                ;; possibly due to bad language (eg, no foo/lang/reader)
-               (with-handlers ([exn:fail?
-                                (λ (e)
-                                  ;; [Eli] FIXME: use `read-language' on `port' after calling
-                                  ;; `file-position' to reset it to the beginning (need to
-                                  ;; make sure that it's always a seekable port), then see
-                                  ;; the position that we're left at, re-read that part of
-                                  ;; the port (a second reset), construct a string holding
-                                  ;; the #lang, and read from it an empty module, and extract
-                                  ;; the base module from it (ask Matthew about this).
-                                  (raise-hopeless-exception e))])
+               (with-handlers ([exn:fail? (λ (e) (raise-hopeless-exception e))])
                  (super-thunk)))
              (when (eof-object? expr)
                (raise-hopeless-syntax-error (string-append
@@ -530,23 +472,25 @@
           (current-namespace (module->namespace modspec))
           (check-interactive-language))
         (define (*do-module-specified-configuration)
-          (let ([info (module->language-info modspec #t)])
+          (define info (module->language-info modspec #t))
+          (unless (mcli? info) (set! info #f))
+          (when the-irl
             (parameterize ([current-eventspace drracket:init:system-eventspace])
               (queue-callback
-               (λ () (set! language-info info))))
-            (when info
-              (let ([get-info
-                     ((dynamic-require (vector-ref info 0)
-                                       (vector-ref info 1))
-                      (vector-ref info 2))])
-                (let ([configs (get-info 'configure-runtime '())])
-                  (for ([config (in-list configs)])
-                    ((dynamic-require (vector-ref config 0)
-                                      (vector-ref config 1))
-                     (vector-ref config 2)))))))
-          (let ([cr-submod `(submod ,modspec configure-runtime)])
-            (when (module-declared? cr-submod)
-              (dynamic-require cr-submod #f))))
+               (λ () (set-irl-mcli-vec! the-irl info)))))
+          (when info
+            (let ([get-info
+                   ((dynamic-require (vector-ref info 0)
+                                     (vector-ref info 1))
+                    (vector-ref info 2))])
+              (let ([configs (get-info 'configure-runtime '())])
+                (for ([config (in-list configs)])
+                  ((dynamic-require (vector-ref config 0)
+                                    (vector-ref config 1))
+                   (vector-ref config 2))))))
+          (define cr-submod `(submod ,modspec configure-runtime))
+          (when (module-declared? cr-submod)
+            (dynamic-require cr-submod #f)))
         ;; here's where they're all combined with the module expression
         (expr-getter *pre module-expr *post))
       
@@ -1937,7 +1881,7 @@
     (class canvas%
       (init-field msgs err? [copy-msg ""])
       (inherit refresh get-dc get-client-size popup-menu)
-      (define/public (set-msgs _msgs _err? _copy-msg) 
+      (define/public (set-msgs _msgs _err? _copy-msg)
         (set! msgs _msgs)
         (set! err? _err?)
         (set! copy-msg _copy-msg)
@@ -2766,7 +2710,6 @@
       v))
   
   (define modes<%> (interface () 
-                     maybe-change-language
                      change-mode-to-match))
   
   (define modes-mixin
@@ -2788,11 +2731,7 @@
       (define/public (set-current-mode mode)
         (set! current-mode mode)
         (define surrogate (drracket:modes:mode-surrogate mode))
-        (cond
-          [(is-a? surrogate default-surrogate%)
-           (update-surrogate)]
-          [else
-           (set-surrogate surrogate)])
+        (set-surrogate surrogate)
         (define interactions-text (send (get-tab) get-ints))
         (when interactions-text
           (send interactions-text set-surrogate surrogate)
@@ -2820,210 +2759,4 @@
                           (unless (is-current-mode? mode)
                             (set-current-mode mode))
                           (loop (cdr modes))))]))))
-      
-      (define current-surrogate-mod #f)
-      (define current-language-end #f)
-      
-      ;; called by the surrogate-mixin to see if the surrogate needs changing if
-      ;; the mode is not the racket language mode, then this doesn't get called.
-      (define/public (maybe-change-language start)
-        (when (or (not current-language-end)
-                  (< start current-language-end))
-          (update-surrogate)))
-      
-      (define/private (update-surrogate)
-        (define defs-port (open-input-text-editor this))
-        ;; need this to count chars, not bytes (in case of non-ASCII
-        ;; in defs before #lang line)
-        (port-count-lines! defs-port)
-        (define get-info
-          (with-handlers ([exn:fail? (λ (x) #f)])
-            (read-language defs-port (λ () #f))))
-        (define-values (line col pos) (port-next-location defs-port))
-        (define new-surrogate-mod
-          (and get-info
-               (get-info 'definitions-text-surrogate #f)))
-        (set! current-language-end pos)
-        (unless (and current-surrogate-mod
-                     (equal? current-surrogate-mod new-surrogate-mod))
-          (set! current-surrogate-mod new-surrogate-mod)
-          (define new-surrogate
-            (and new-surrogate-mod
-                 (with-handlers ([exn:fail? 
-                                  (λ (x)
-                                    (log-error
-                                     (format "Error while loading surrogate; expected to be in ~s\n~a"
-                                             new-surrogate-mod
-                                             (exn-message x)))
-                                    #f)])
-                   (dynamic-require new-surrogate-mod 'surrogate%))))
-          (cond
-            [new-surrogate
-             (set-surrogate (new (change-lang-surrogate-mixin new-surrogate)))]
-            [else
-             (unless (is-a? (get-surrogate) default-surrogate%)
-               (set-surrogate (new default-surrogate%)))])))
-      
-      (super-new)))
-  
-  (define change-lang-surrogate-mixin
-    (mixin (mode:surrogate-text<%>) ()
-      (define/override (after-insert ths supr start len)
-        (super after-insert ths supr start len)
-        (when (is-a? ths modes<%>)
-          (send ths maybe-change-language start)))
-      
-      (define/override (after-delete ths supr start len)
-        (super after-delete ths supr start len)
-        (when (is-a? ths modes<%>)
-          (send ths maybe-change-language start)))
-      
-      (super-new)))
-  
-  (define default-surrogate%
-    (change-lang-surrogate-mixin
-     racket:text-mode%)))
-
-(define (skip-past-comments port)
-  (define (get-it str)
-    (for ([c1 (in-string str)])
-      (define c2 (read-char-or-special port))
-      (unless (equal? c1 c2)
-        (error 'get-it
-               "expected ~s, got ~s, orig string ~s"
-               c1 c2 str))))
-  (let loop ()
-    (define p (peek-char-or-special port))
-    (cond-strs port
-      [";"
-       (let loop ()
-         (define c (read-char-or-special port))
-         (case c
-           [(#\linefeed #\return #\u133 #\u8232 #\u8233)
-            (void)]
-           [else
-            (unless (eof-object? c)
-              (loop))]))
-       (loop)]
-      ["#|"
-       (let loop ([depth 0])
-         (define p1 (peek-char-or-special port))
-         (cond
-           [(and (equal? p1 #\|)
-                 (equal? (peek-char-or-special port 1) #\#))
-            (get-it "|#")
-            (cond
-              [(= depth 0) (void)]
-              [else (loop (- depth 1))])]
-           [(and (equal? p1 #\#)
-                 (equal? (peek-char-or-special port 1) #\|))
-            (get-it "#|")
-            (loop (+ depth 1))]
-           [else
-            (read-char-or-special port)
-            (loop depth)]))
-       (loop)]
-      ["#;"
-       (with-handlers ((exn:fail:read? void))
-         (read port)
-         (loop))]
-      ["#! "
-       (read-line-slash-terminates port)
-       (loop)]
-      ["#!/"
-       (read-line-slash-terminates port)
-       (loop)]
-      [else
-       (define p (peek-char-or-special port))
-       (cond
-         [(eof-object? p) (void)]
-         [(and (char? p) (char-whitespace? p))
-          (read-char-or-special port)
-          (loop)]
-         [else (void)])])))
-
-(define-syntax (cond-strs stx)
-  (syntax-case stx (else)
-    [(_ port [chars rhs ...] ... [else last ...])
-     (begin
-       (for ([chars (in-list (syntax->list #'(chars ...)))])
-         (unless (string? (syntax-e chars))
-           (raise-syntax-error 'chars "expected a string" stx chars))
-         (for ([char (in-string (syntax-e chars))])
-           (unless (< (char->integer char) 128)
-             (raise-syntax-error 'chars "expected only one-byte chars" stx chars))))
-       #'(cond
-           [(check-chars port chars)
-            rhs ...]
-           ...
-           [else last ...]))]))
-
-(define (check-chars port chars)
-  (define matches?
-    (for/and ([i (in-naturals)]
-              [c (in-string chars)])
-      (equal? (peek-char-or-special port i) c)))
-  (when matches?
-    (for ([c (in-string chars)])
-      (read-char-or-special port)))
-  matches?)
-
-(define (read-line-slash-terminates port)
-  (let loop ([previous-slash? #f])
-    (define c (read-char-or-special port))
-    (case c
-      [(#\\) (loop #t)]
-      [(#\linefeed #\return)
-       (cond
-         [previous-slash?
-          (define p (peek-char-or-special port))
-          (when (and (equal? c #\return)
-                     (equal? p #\linefeed))
-            (read-char-or-special port))
-          (loop #f)]
-         [else
-          (void)])]
-      [else
-       (unless (eof-object? c)
-         (loop #f))])))
-
-(module+ test
-  (require rackunit racket/port)
-  (define (clear-em str)
-    (define sp (if (port? str) str (open-input-string str)))
-    (skip-past-comments sp)
-    (apply
-     string
-     (for/list ([i (in-port read-char sp)])
-       i)))
-  (check-equal? (clear-em ";") "")
-  (check-equal? (clear-em ";\n1") "1")
-  (check-equal? (clear-em ";  \n1") "1")
-  (check-equal? (clear-em ";  \r\n1") "1")
-  (check-equal? (clear-em ";  \u8233\n1") "1")
-  (check-equal? (clear-em "         1") "1")
-  (check-equal? (clear-em "#| |#1") "1")
-  (check-equal? (clear-em "#| #| #| #| #| |# |# |# |# |#1") "1")
-  (check-equal? (clear-em "#| #| #| #| #| |# |# #| |# |# |# |#1") "1")
-  (check-equal? (clear-em "#||#1") "1")
-  (check-equal? (clear-em "#|#|#|#|#||#|#|#|#|#1") "1")
-  (check-equal? (clear-em "#|#|#|#|#||#|##||#|#|#|#1") "1")
-  (check-equal? (clear-em " #!    \n         1") "1")
-  (check-equal? (clear-em " #!/    \n         1") "1")
-  (check-equal? (clear-em " #!/    \\\n2\n         1") "1")
-  (check-equal? (clear-em " #!/    \\\r2\n         1") "1")
-  (check-equal? (clear-em " #!/    \\\r\n2\n         1") "1")
-  (check-equal? (clear-em " #!/    \n\r\n         1") "1")
-  (check-equal? (clear-em "#;()1") "1")
-  (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1")
-  (check-equal? (clear-em "#||##|#lang rong|#1") "1")
-
-  (let ()
-    (define-values (in out) (make-pipe-with-specials))
-    (thread
-     (λ ()
-       (display ";" out)
-       (write-special '(x) out)
-       (display "\n1" out)
-       (close-output-port out)))
-    (check-equal? (clear-em in) "1")))
+      (super-new))))

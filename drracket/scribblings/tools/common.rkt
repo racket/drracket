@@ -14,22 +14,28 @@
                        racket/contract
                        "doc-util.rkt"))
 
-(require (for-label racket/gui/base
-                    racket/snip
-                    racket/class
+(require (for-label racket/base
                     racket/contract
-                    racket/base
+                    racket/class
+                    racket/gui/base
+                    racket/snip
+                    racket/unit
                     drracket/tool-lib
+                    drracket/check-syntax
                     mrlib/switchable-button
-                    framework))
-(provide (for-label (all-from-out racket/gui/base)
-                    (all-from-out racket/snip)
-                    (all-from-out racket/class)
+                    framework
+                    string-constants))
+(provide (for-label (all-from-out racket/base)
                     (all-from-out racket/contract)
-                    (all-from-out racket/base)
+                    (all-from-out racket/class)
+                    (all-from-out racket/gui/base)
+                    (all-from-out racket/snip)
+                    (all-from-out racket/unit)
                     (all-from-out drracket/tool-lib)
+                    (all-from-out drracket/check-syntax)
                     (all-from-out mrlib/switchable-button)
-                    (all-from-out framework)))
+                    (all-from-out framework)
+                    (all-from-out string-constants)))
 
 (provide tools-title tools-include tools-include/drs)
 

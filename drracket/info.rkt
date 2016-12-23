@@ -18,7 +18,7 @@
                "sandbox-lib"
                ("scribble-lib" #:version "1.11")
                ("snip-lib" #:version "1.2")
-               ("string-constants-lib" #:version "1.10")
+               ("string-constants-lib" #:version "1.15")
                "typed-racket-lib"
                "wxme-lib"
                ("gui-lib" #:version "1.28")
@@ -37,7 +37,9 @@
                "gui-pkg-manager-lib"
                "drracket-tool-lib"
                "drracket-tool-doc"
-               "pict-snip-lib"))
+               "pict-snip-lib"
+               "option-contract-lib"
+               "syntax-color-lib"))
 
 (define build-deps '("mzscheme-doc"
                      "net-doc"
@@ -62,4 +64,4 @@
 
 (define pkg-authors '(robby))
 
-(define version "1.4")
+(define version "1.5")

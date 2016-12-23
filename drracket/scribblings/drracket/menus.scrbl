@@ -322,9 +322,14 @@ clears only the corresponding teachpack.
  @item{@defmenuitem{Run} Resets the interactions window and runs the
   program in the definitions window.}
 
- @item{@defmenuitem{Break} Breaks the current evaluation.}
+ @item{@defmenuitem{Ask the Program to Quit} Breaks the current evaluation.}
 
- @item{@defmenuitem{Kill} Terminates the current evaluation.}
+ @item{@defmenuitem{Force the Program to Quit} Terminates the current evaluation.}
+
+ @item{@defmenuitem{Reload #lang Extensions} discards any already-loaded
+  @tt{#lang}-specific extensions and reloads them. See also
+  @secref["lang-languages-customization" #:doc '(lib "scribblings/tools/tools.scrbl")].
+ }
 
 @item{@defmenuitem{Limit Memory...} Allow you to specify a
 limit on the amount of memory that a program running in
@@ -491,4 +496,3 @@ brings the corresponding window to the front.
    DrRacket to other languages.}
 
 ]
-

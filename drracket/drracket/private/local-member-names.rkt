@@ -69,6 +69,10 @@
   change-mode-to-match
   get-current-mode)
 
+(define/provide-local-member-name
+  irl-get-read-language-port-start+end
+  irl-get-read-language-name
+  get-irl)
 
 (provide (struct-out drracket:language-configuration:language-settings))
 ;; type language-settings = (language-settings (instanceof language<%>) settings)

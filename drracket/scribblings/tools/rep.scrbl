@@ -427,8 +427,7 @@ Returns the last values passed to
 
 }
 
-@defmethod[(get-directory)
-           (union string false/c)]{
+@defmethod[(get-directory) path?]{
 The result of this method is used as the initial directory for the
 user's program to be evaluated in.
 
