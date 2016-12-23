@@ -338,7 +338,7 @@ language through the detail section of language-selection dialog.
      ellipses to see the next 25 digits of the expansion.
 
      This setting controls only the initial display of a number.
-     Right-clicking or Control-clicking (Mac OS X) on the number lets
+     Right-clicking or Control-clicking (Mac OS) on the number lets
      you change from the fraction representation to the decimal
      representation.}
 

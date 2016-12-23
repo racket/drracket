@@ -104,7 +104,7 @@ The @onscreen{Editing} panel consists of several sub-panels:
       @item{@PrefItem{Treat command key as meta} --- If checked,
             DrRacket will use the command key for some Emacs-like
             keybindings, instead of using it for menu shortcuts. This
-            option is only available on Mac OS X.}
+            option is only available on Mac OS.}
       @item{@PrefItem{Color syntax interactively} --- If checked,
             DrRacket colors your syntax as you type.}
       @item{@PrefItem{Search using anchors} --- If checked, DrRacket's
@@ -135,7 +135,7 @@ The @onscreen{Editing} panel consists of several sub-panels:
              line is terminated with CRLF (and there is at least one line), 
              then it saves the file with CRLF terminators
              and otherwise it is saved with LF terminators (following the
-             Mac OS X and Linux convention). When a file is going to be saved
+             Mac OS and Linux convention). When a file is going to be saved
              with CRLF terminators, then the status line at the bottom of the
              DrRacket window shows ``CRLF''.
              

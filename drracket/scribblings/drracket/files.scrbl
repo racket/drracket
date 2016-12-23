@@ -49,7 +49,7 @@ original file's name:
 
 @itemize[
 
- @item{On Unix and Mac OS X, a @filepath{~} is added to the end of
+ @item{On Unix and Mac OS, a @filepath{~} is added to the end of
        the file's name.}
 
  @item{On Windows, the file's extension is replaced with
@@ -67,7 +67,7 @@ autosave file's name is generated from the original file's name:
 
 @itemize[
 
- @item{On Unix and Mac OS X, a @filepath{#} is added to the start
+ @item{On Unix and Mac OS, a @filepath{#} is added to the start
        and end of the file's name, then a number is added after the
        ending @filepath{#}, and then one more @filepath{#} is appended
        after the number. The number is selected to make the autosave
@@ -107,7 +107,7 @@ depends on the platform and user:
   usually @indexed-file{Application Data} in the user's profile
   directory, and that directory is usually hidden in the Windows GUI.}
 
- @item{On Mac OS X, preferences are stored in
+ @item{On Mac OS, preferences are stored in
   @indexed-file{org.racket-lang.prefs.rktd} in the user's preferences
   folder.}
 
@@ -116,7 +116,7 @@ depends on the platform and user:
 A lock file is used while modifying the preferences file, and it is
 created in the same directory as the preferences file. On Windows,
 the lock file is named @indexed-file{_LOCKracket-prefs.rktd}; on Unix,
-it is @indexed-file{.LOCK.racket-prefs.rktd}; on Mac OS X, it is
+it is @indexed-file{.LOCK.racket-prefs.rktd}; on Mac OS, it is
 @indexed-file{.LOCK.org.racket-lang.prefs.rktd}.
 
 If the user-specific preferences file does not exist, and the file

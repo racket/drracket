@@ -115,7 +115,7 @@ annotations:
        the context the macro is used in.
 
        @index['("alpha renaming")]{Additionally}, right-clicking (or
-       Control-clicking on Mac OS X) on a variable activates a
+       Control-clicking on Mac OS) on a variable activates a
        pop-up menu that lets you jump from binding location to bound
        location and vice versa, @as-index{@"\u03B1"-rename} the
        variable, or tack the arrows so they do not disappear.}
@@ -127,7 +127,7 @@ annotations:
        expression.}
 
   @item{@bold{Require Annotations:} Right-clicking (or
-        Control-clicking on Mac OS X) on the argument to
+        Control-clicking on Mac OS) on the argument to
         @racket[require] activates a pop-up menu that lets you open the
         file that contains the @racket[require]d module.
 
@@ -332,7 +332,7 @@ separate tabs} causes DrRacket to open files in new tabs in the
 frontmost window, rather than opening a new window for the file.
 
 The key bindings Control-Pageup and Control-Pagedown move between
-tabs. On Mac OS X, Command-Left-Square-Bracket and Command-Right-Square-Bracket also
+tabs. On Mac OS, Command-Left-Square-Bracket and Command-Right-Square-Bracket also
 move between tabs.
 
 @; ----------------------------------------------------------------------
@@ -570,7 +570,7 @@ XML boxes have two modes for handling whitespace. In one mode, all
 whitespace is left intact in the resulting xexpr.  In the other mode,
 any tag that only contains nested XML expressions and whitespace has
 the whitespace removed. You can toggle between these modes by
-right-clicking or Control-clicking (Mac OS X) on the top portion of
+right-clicking or Control-clicking (Mac OS) on the top portion of
 the XML box.
 
 In addition to containing XML text, XML boxes can also
@@ -582,7 +582,7 @@ box and the splicing Racket box. The standard Racket box
 inserts its value into the containing xexpr. The contents of
 the splice box must evaluate to a list and the elements of
 the list are ``flattened'' into the containing xexpr.
-Right-clicking or control-clicking (Mac OS X) on the top of a Racket
+Right-clicking or control-clicking (Mac OS) on the top of a Racket
 box opens a menu to toggle the box between a Racket box and
 a Racket splice box.
 
@@ -653,7 +653,7 @@ additional actions:
 @itemize[
 
     @item{Hovering the mouse cursor over a parenthesis may reveal a
-pink circle.  If so, right-clicking or control-clicking (Mac OS X)
+pink circle.  If so, right-clicking or control-clicking (Mac OS)
 will open a menu with options to @onscreen{Pause at this point} or
 @onscreen{Continue to this point}.  The former sets an ordinary
 breakpoint at that location; the latter sets a one-time breakpoint and
@@ -673,7 +673,7 @@ window.  These breakpoints are not forgotten, and clicking
 @italic{not} persist across restarts of DrRacket.}
 
     @item{If execution is paused at the start of an expression, then
-right-clicking or control-clicking (Mac OS X) on the green triangle
+right-clicking or control-clicking (Mac OS) on the green triangle
 opens a menu with the option to @onscreen{Skip expression...}.
 Selecting this opens a text box in which to enter a value for the
 expression.  The expression is skipped, with the entered value
@@ -681,7 +681,7 @@ substituted for it.}
 
     @item{If execution is paused at the end of an expression, then the
 expression and its value are displayed to the left of the button bar.
-Right-clicking or control-clicking (Mac OS X) on the green triangle
+Right-clicking or control-clicking (Mac OS) on the green triangle
 opens a menu with options to @onscreen{Print return value to console}
 and @onscreen{Change return value...}.  The former displays the return
 value in the interactions window; the latter opens a text box in which
@@ -689,7 +689,7 @@ to enter a substitute value.}
 
     @item{Hovering the mouse cursor over a bound variable displays the
 variable's name and value to the right of the button bar.
-Right-clicking or control-clicking (Mac OS X) opens a menu with
+Right-clicking or control-clicking (Mac OS) opens a menu with
 options to @onscreen{Print value of <var> to console} or
 @onscreen{(set! <var> ...)}.  The former displays the variable's value
 in the interactions window; the latter opens a text box in which to
@@ -922,7 +922,7 @@ determined by its suffix:
        16x16, 32x32, or 48x48 images from the @filepath{.ico} file are
        used.}
 
- @item{On Mac OS X, supply an @filepath{.icns} file for an icon.  You
+ @item{On Mac OS, supply an @filepath{.icns} file for an icon.  You
        can set the application's creator with an @filepath{.creator}
        file (whose first four bytes are used), and you can set
        documents for the application through a @filepath{.utiexports}

@@ -37,7 +37,7 @@ key.  Depending on your keyboard, Meta may be called ``Left,''
 ``Right,'' or have a diamond symbol, but it's usually on the bottom
 row next to the space bar. M-@nonterm{key} can also be performed as a
 two-character sequence: first, strike and release the Escape key, then
-strike @nonterm{key}. On Mac OS X, Meta is, by default,
+strike @nonterm{key}. On Mac OS, Meta is, by default,
 available only through the Escape key. But the preferences dialog
 (in the @onscreen{General Editing} sub-panel of the @onscreen{Editing} panel)
 has check boxes that adjust the handling of the Alt key or the Command

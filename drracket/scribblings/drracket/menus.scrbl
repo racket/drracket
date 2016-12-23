@@ -89,10 +89,10 @@
 
  @item{@defmenuitem{Close} Closes this DrRacket window. If this window
   is the only open DrRacket window, then DrRacket quits, except on
-  Mac OS X.}
+  Mac OS.}
 
  @item{{@onscreen{Quit} or @onscreen{Exit}} Exits DrRacket. (On Mac
-  OS X, this menu item is in the Apple menu.)}
+  OS, this menu item is in the Apple menu.)}
 
 ]
 
@@ -185,7 +185,7 @@ case-sensitive and case-insensitive search.}
 insertion point, using the manuals as a source of completions.}
 
  @item{@defmenuitem{Preferences...} Opens the preferences dialog. See
-  @secref["prefs-explanation"]. (On Mac OS X, this menu item is in
+  @secref["prefs-explanation"]. (On Mac OS, this menu item is in
   the Apple menu.)}  ]
 
 @; ----------------------------------------
@@ -479,7 +479,7 @@ brings the corresponding window to the front.
         you've started editing but haven't yet sent in.}
 
  @item{@defmenuitem{Configure Command Line for Racket...} This menu item is
-        available only under Mac OS X. After prompting you for your password,
+        available only under Mac OS. After prompting you for your password,
         it adds a file named @filepath{racket} to @filepath{/etc/init.d/}
         that contains the location of the @filepath{bin} directory. 
         This has the effect of adding that path to the default PATH environment
