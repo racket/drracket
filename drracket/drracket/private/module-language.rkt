@@ -25,7 +25,6 @@
          "rep.rkt"
          "eval-helpers-and-pref-init.rkt"
          "local-member-names.rkt"
-         "insulated-read-language.rkt"
          drracket/private/rectangle-intersect
          pkg/lib
          pkg/gui
@@ -2759,6 +2758,7 @@
       v))
   
   (define modes<%> (interface () 
+                     maybe-change-language
                      change-mode-to-match))
   
   (define modes-mixin
@@ -2780,7 +2780,11 @@
       (define/public (set-current-mode mode)
         (set! current-mode mode)
         (define surrogate (drracket:modes:mode-surrogate mode))
-        (set-surrogate surrogate)
+        (cond
+          [(is-a? surrogate default-surrogate%)
+           (update-surrogate)]
+          [else
+           (set-surrogate surrogate)])
         (define interactions-text (send (get-tab) get-ints))
         (when interactions-text
           (send interactions-text set-surrogate surrogate)
@@ -2808,4 +2812,210 @@
                           (unless (is-current-mode? mode)
                             (set-current-mode mode))
                           (loop (cdr modes))))]))))
-      (super-new))))
+      
+      (define current-surrogate-mod #f)
+      (define current-language-end #f)
+      
+      ;; called by the surrogate-mixin to see if the surrogate needs changing if
+      ;; the mode is not the racket language mode, then this doesn't get called.
+      (define/public (maybe-change-language start)
+        (when (or (not current-language-end)
+                  (< start current-language-end))
+          (update-surrogate)))
+      
+      (define/private (update-surrogate)
+        (define defs-port (open-input-text-editor this))
+        ;; need this to count chars, not bytes (in case of non-ASCII
+        ;; in defs before #lang line)
+        (port-count-lines! defs-port)
+        (define get-info
+          (with-handlers ([exn:fail? (λ (x) #f)])
+            (read-language defs-port (λ () #f))))
+        (define-values (line col pos) (port-next-location defs-port))
+        (define new-surrogate-mod
+          (and get-info
+               (get-info 'definitions-text-surrogate #f)))
+        (set! current-language-end pos)
+        (unless (and current-surrogate-mod
+                     (equal? current-surrogate-mod new-surrogate-mod))
+          (set! current-surrogate-mod new-surrogate-mod)
+          (define new-surrogate
+            (and new-surrogate-mod
+                 (with-handlers ([exn:fail? 
+                                  (λ (x)
+                                    (log-error
+                                     (format "Error while loading surrogate; expected to be in ~s\n~a"
+                                             new-surrogate-mod
+                                             (exn-message x)))
+                                    #f)])
+                   (dynamic-require new-surrogate-mod 'surrogate%))))
+          (cond
+            [new-surrogate
+             (set-surrogate (new (change-lang-surrogate-mixin new-surrogate)))]
+            [else
+             (unless (is-a? (get-surrogate) default-surrogate%)
+               (set-surrogate (new default-surrogate%)))])))
+      
+      (super-new)))
+  
+  (define change-lang-surrogate-mixin
+    (mixin (mode:surrogate-text<%>) ()
+      (define/override (after-insert ths supr start len)
+        (super after-insert ths supr start len)
+        (when (is-a? ths modes<%>)
+          (send ths maybe-change-language start)))
+      
+      (define/override (after-delete ths supr start len)
+        (super after-delete ths supr start len)
+        (when (is-a? ths modes<%>)
+          (send ths maybe-change-language start)))
+      
+      (super-new)))
+  
+  (define default-surrogate%
+    (change-lang-surrogate-mixin
+     racket:text-mode%)))
+
+(define (skip-past-comments port)
+  (define (get-it str)
+    (for ([c1 (in-string str)])
+      (define c2 (read-char-or-special port))
+      (unless (equal? c1 c2)
+        (error 'get-it
+               "expected ~s, got ~s, orig string ~s"
+               c1 c2 str))))
+  (let loop ()
+    (define p (peek-char-or-special port))
+    (cond-strs port
+      [";"
+       (let loop ()
+         (define c (read-char-or-special port))
+         (case c
+           [(#\linefeed #\return #\u133 #\u8232 #\u8233)
+            (void)]
+           [else
+            (unless (eof-object? c)
+              (loop))]))
+       (loop)]
+      ["#|"
+       (let loop ([depth 0])
+         (define p1 (peek-char-or-special port))
+         (cond
+           [(and (equal? p1 #\|)
+                 (equal? (peek-char-or-special port 1) #\#))
+            (get-it "|#")
+            (cond
+              [(= depth 0) (void)]
+              [else (loop (- depth 1))])]
+           [(and (equal? p1 #\#)
+                 (equal? (peek-char-or-special port 1) #\|))
+            (get-it "#|")
+            (loop (+ depth 1))]
+           [else
+            (read-char-or-special port)
+            (loop depth)]))
+       (loop)]
+      ["#;"
+       (with-handlers ((exn:fail:read? void))
+         (read port)
+         (loop))]
+      ["#! "
+       (read-line-slash-terminates port)
+       (loop)]
+      ["#!/"
+       (read-line-slash-terminates port)
+       (loop)]
+      [else
+       (define p (peek-char-or-special port))
+       (cond
+         [(eof-object? p) (void)]
+         [(and (char? p) (char-whitespace? p))
+          (read-char-or-special port)
+          (loop)]
+         [else (void)])])))
+
+(define-syntax (cond-strs stx)
+  (syntax-case stx (else)
+    [(_ port [chars rhs ...] ... [else last ...])
+     (begin
+       (for ([chars (in-list (syntax->list #'(chars ...)))])
+         (unless (string? (syntax-e chars))
+           (raise-syntax-error 'chars "expected a string" stx chars))
+         (for ([char (in-string (syntax-e chars))])
+           (unless (< (char->integer char) 128)
+             (raise-syntax-error 'chars "expected only one-byte chars" stx chars))))
+       #'(cond
+           [(check-chars port chars)
+            rhs ...]
+           ...
+           [else last ...]))]))
+
+(define (check-chars port chars)
+  (define matches?
+    (for/and ([i (in-naturals)]
+              [c (in-string chars)])
+      (equal? (peek-char-or-special port i) c)))
+  (when matches?
+    (for ([c (in-string chars)])
+      (read-char-or-special port)))
+  matches?)
+
+(define (read-line-slash-terminates port)
+  (let loop ([previous-slash? #f])
+    (define c (read-char-or-special port))
+    (case c
+      [(#\\) (loop #t)]
+      [(#\linefeed #\return)
+       (cond
+         [previous-slash?
+          (define p (peek-char-or-special port))
+          (when (and (equal? c #\return)
+                     (equal? p #\linefeed))
+            (read-char-or-special port))
+          (loop #f)]
+         [else
+          (void)])]
+      [else
+       (unless (eof-object? c)
+         (loop #f))])))
+
+(module+ test
+  (require rackunit racket/port)
+  (define (clear-em str)
+    (define sp (if (port? str) str (open-input-string str)))
+    (skip-past-comments sp)
+    (apply
+     string
+     (for/list ([i (in-port read-char sp)])
+       i)))
+  (check-equal? (clear-em ";") "")
+  (check-equal? (clear-em ";\n1") "1")
+  (check-equal? (clear-em ";  \n1") "1")
+  (check-equal? (clear-em ";  \r\n1") "1")
+  (check-equal? (clear-em ";  \u8233\n1") "1")
+  (check-equal? (clear-em "         1") "1")
+  (check-equal? (clear-em "#| |#1") "1")
+  (check-equal? (clear-em "#| #| #| #| #| |# |# |# |# |#1") "1")
+  (check-equal? (clear-em "#| #| #| #| #| |# |# #| |# |# |# |#1") "1")
+  (check-equal? (clear-em "#||#1") "1")
+  (check-equal? (clear-em "#|#|#|#|#||#|#|#|#|#1") "1")
+  (check-equal? (clear-em "#|#|#|#|#||#|##||#|#|#|#1") "1")
+  (check-equal? (clear-em " #!    \n         1") "1")
+  (check-equal? (clear-em " #!/    \n         1") "1")
+  (check-equal? (clear-em " #!/    \\\n2\n         1") "1")
+  (check-equal? (clear-em " #!/    \\\r2\n         1") "1")
+  (check-equal? (clear-em " #!/    \\\r\n2\n         1") "1")
+  (check-equal? (clear-em " #!/    \n\r\n         1") "1")
+  (check-equal? (clear-em "#;()1") "1")
+  (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") "1")
+  (check-equal? (clear-em "#||##|#lang rong|#1") "1")
+
+  (let ()
+    (define-values (in out) (make-pipe-with-specials))
+    (thread
+     (λ ()
+       (display ";" out)
+       (write-special '(x) out)
+       (display "\n1" out)
+       (close-output-port out)))
+    (check-equal? (clear-em in) "1")))

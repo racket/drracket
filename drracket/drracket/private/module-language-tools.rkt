@@ -10,7 +10,6 @@
          racket/gui/base
          drracket/private/drsig
          "local-member-names.rkt"
-         "insulated-read-language.rkt"
          framework/private/logging-timer)
 
 (define op (current-output-port))
@@ -118,33 +117,10 @@
       (inherit get-next-settings
                get-filename
                set-lang-wants-big-defs/ints-labels?
-               get-tab
-               last-position
-               get-surrogate
-               start-colorer
-               get-token-sym->style
-               get-paren-pairs
-               set-surrogate)
+               get-tab)
       (define in-module-language? #f)      ;; true when we are in the module language
       (define hash-lang-last-location #f)  ;; non-false when we know where the hash-lang line ended
       (define hash-lang-language #f)       ;; non-false is the string that was parsed for the language
-
-      (define the-irl
-        (make-irl (λ (exn) (irl-blew-up exn))))
-
-      (define/private (irl-blew-up exn)
-        (define msg
-          (apply
-           string-append
-           (exn-message exn)
-           "\n"
-           (for/list ([x (in-list (continuation-mark-set->context
-                                   (exn-continuation-marks exn)))])
-             (format "~s\n" x))))
-        (display msg (current-error-port))
-        (message-box "irl blew up" msg)
-        (void))
-      
       (define/public (get-in-module-language?) in-module-language?)
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
@@ -176,9 +152,9 @@
                             (<= start hash-lang-last-location))
                     
                     (unless timer
-                      (set! timer (new logging-timer%
+                      (set! timer (new logging-timer% 
                                        [notify-callback
-                                        (λ ()
+                                        (λ () 
                                           (when in-module-language?
                                             (move-to-new-language)))]
                                        [just-once? #t])))
@@ -195,57 +171,117 @@
              (set! hash-lang-language #f)
              (set! hash-lang-last-location #f)
              (clear-things-out)])))
-
+      
       (define/public (move-to-new-language)
         (define port (open-input-text-editor this))
-        (reset-irl! the-irl port #f)
-        (define-values (lang-name-start lang-name-end)
-          (get-read-language-port-start+end the-irl))
-        (set! hash-lang-language (and lang-name-end (get-text lang-name-start lang-name-end)))
-        (set! hash-lang-last-location lang-name-end)
         
-        (clear-things-out)
-
-        (define mode (or (get-definitions-text-surrogate the-irl)
-                         (new racket:text-mode%)))
-        (send mode set-get-token (get-insulated-module-lexer the-irl))
-        (set-surrogate mode)
+        (define (fallback)
+          ;; fall back to whatever #lang racket does if
+          ;; we don't have a #lang line present in the file
+          (log-drracket-language-debug "falling back to using #lang racket's read-language for ~a"
+                                       (or (send this get-filename) "<<unsaved file>>"))
+          (vector (read-language (open-input-string "#lang racket"))))
         
-        (define lang-wants-big-defs/ints-labels?
-          (and (call-read-language the-irl 'drracket:show-big-defs/ints-labels #f)
-               #t))
-        (set-lang-wants-big-defs/ints-labels? lang-wants-big-defs/ints-labels?)
-        (send (send (get-tab) get-ints) set-lang-wants-big-defs/ints-labels?
-              lang-wants-big-defs/ints-labels?)
+        ;; info-result : 
+        ;;  (or/c #f   [#lang without a known language]
+        ;;        (vector <get-info-proc>) 
+        ;;                [no #lang line, so we use the '#lang racket' info proc]
+        ;;        <get-info-proc>) [the get-info proc for the program in the definitions]
+        (define info-result 
+          (with-handlers ([exn:fail? 
+                           (λ (x)
+                             (log-drracket-language-debug
+                              (format
+                               "DrRacket: error duing call to read-language for ~a:\n  ~a"
+                               (or (send this get-filename) "<<unsaved file>>")
+                               (regexp-replace* #rx"\n(.)" (exn-message x) "\n\\1  ")))
+                             #f)])
+            (or (read-language port fallback)
+                (fallback))))
         
-        (set! extra-default-filters
-              (call-read-language the-irl 'drracket:default-filters #f))
+        ; sometimes I get eof here, but I don't know why and can't seem to 
+        ;; make it happen outside of DrRacket
+        (when (eof-object? info-result)
+          (eprintf "file ~s produces eof from read-language\n"
+                   (send this get-filename))
+          (eprintf "  port-next-location ~s\n"
+                   (call-with-values (λ () (port-next-location port)) list))
+          (eprintf "  str ~s\n"
+                   (let ([s (send this get-text)])
+                     (substring s 0 (min 100 (string-length s)))))
+          (set! info-result #f))
+        (define-values (line col pos) (port-next-location port))
+        (unless (equal? (get-text 0 pos) hash-lang-language)
+          (set! hash-lang-language (get-text 0 pos))
+          (set! hash-lang-last-location pos)
+          (clear-things-out)
+          (define info-proc 
+            (if (vector? info-result)
+                (vector-ref info-result 0)
+                info-result))
+          (define (ctc-on-info-proc-result ctc res what)
+            (contract ctc 
+                      res
+                      (if (vector? info-result)
+                          'hash-lang-racket
+                          (get-lang-name pos))
+                      'drracket/private/module-language-tools
+                      what #f))
           
-        (set! default-extension
-              (call-read-language the-irl 'drracket:default-extension #f))
-        
-        (set! indentation-function
-              (get-insulated-indentation-function the-irl))
+          (define lang-wants-big-defs/ints-labels?
+            (and info-proc (info-proc 'drracket:show-big-defs/ints-labels #f)))
+          (set-lang-wants-big-defs/ints-labels? lang-wants-big-defs/ints-labels?)
+          (send (send (get-tab) get-ints) set-lang-wants-big-defs/ints-labels?
+                lang-wants-big-defs/ints-labels?)
+          
+          (set! extra-default-filters
+                (if info-result
+                    (or (ctc-on-info-proc-result
+                         (or/c #f (listof (list/c string? string?)))
+                         (info-proc 'drracket:default-filters #f)
+                         'drracket:default-filters)
+                        '())
+                    '()))
+          
+          (set! default-extension
+                (if info-result
+                    (or (ctc-on-info-proc-result
+                         (or/c #f (and/c string? (not/c #rx"[.]")))
+                         (info-proc 'drracket:default-extension #f)
+                         'drracket:default-extension)
+                        "")
+                    ""))
 
-        (register-new-buttons
-         (or (call-read-language the-irl 'drracket:toolbar-buttons #f)
-             (call-read-language the-irl 'drscheme:toolbar-buttons #f))
-         
-         (or (call-read-language the-irl 'drracket:opt-out-toolbar-buttons '())
-             (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '()))))
-
-      ;; removes language-specific customizations
-      (define/private (clear-things-out)
-        (define tab (get-tab))
-        (define ints (send tab get-ints))
-        (set-surrogate (new racket:text-mode%))
-        (set-lang-wants-big-defs/ints-labels? #f)
-        (send ints set-lang-wants-big-defs/ints-labels? #f)
-        (set! extra-default-filters '())
-        (set! default-extension "")
-        (set! indentation-function (λ (x y) #f))
-        (send tab set-lang-toolbar-buttons '() '()))
-
+          (set! indentation-function
+                (if info-result
+                    (or (ctc-on-info-proc-result
+                         (or/c #f
+                               (-> (is-a?/c racket:text<%>) exact-nonnegative-integer?
+                                   (or/c #f exact-nonnegative-integer?)))
+                         (info-proc 'drracket:indentation #f)
+                         'drracket:indentation)
+                        (λ (x y) #f))
+                    (λ (x y) #f)))
+          
+          (when info-result
+            (register-new-buttons
+             (ctc-on-info-proc-result 
+              (or/c #f (listof (or/c (list/c string?
+                                             (is-a?/c bitmap%)
+                                             (-> (is-a?/c drracket:unit:frame<%>) any))
+                                     (list/c string?
+                                             (is-a?/c bitmap%)
+                                             (-> (is-a?/c drracket:unit:frame<%>) any)
+                                             (or/c real? #f)))))
+              (or (info-proc 'drracket:toolbar-buttons #f)
+                  (info-proc 'drscheme:toolbar-buttons #f))
+              'drracket:toolbar-buttons)
+             (ctc-on-info-proc-result 
+              (or/c #f (listof symbol?))
+              (or (info-proc 'drracket:opt-out-toolbar-buttons '())
+                  (info-proc 'drscheme:opt-out-toolbar-buttons '()))
+              'drracket:opt-out-toolbar-buttons)))))
+      
       
       (define/private (register-new-buttons buttons opt-out-ids)
         ;; cleaned-up-buttons : (listof (list/c string?
@@ -311,6 +347,10 @@
              (if (char-whitespace? (string-ref str (- (string-length str) 1)))
                  (substring str 0 (- (string-length str) 1))
                  str))]))
+
+      ;; removes language-specific customizations
+      (define/private (clear-things-out)
+        (send (get-tab) set-lang-toolbar-buttons '() '()))
       
       
       ;; online-expansion-monitor-table : hash[(cons mod-path id) -o> (cons/c local-pc remote-pc)]

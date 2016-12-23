@@ -609,14 +609,7 @@ a quoted module path (in the sense of @racket[module-path?]) that
 names a module that exports @racket[surrogate%]. It is expected
 to be bound to a class implementing the @racket[mode:surrogate-text<%>]
 interface. Assuming so, it is used as the surrogate for the definitions
-text.
-
-If no surrogate-exporting module is specified,
-the mode @racket[racket:text-mode%] is used; to
-preserve that functionality, derive your language's @racket[surrogate%]
-class from @racket[racket:text-mode%].
-
-}
+text.}
 
 Additionally, plugins can register modes via
 @racket[drracket:modes:add-mode]. Each mode is
