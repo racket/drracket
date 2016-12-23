@@ -373,6 +373,9 @@
                                (read-bitmap/no-crash the-bitmap-spec)))
 (set-splash-char-observer drracket-splash-char-observer)
 
+;; this code changes the icon based on the date but
+;; there is only one icon for now, so just disable it.
+#;
 (when (eq? (system-type) 'macosx)
   (define initial-state (icon-state startup-date))
   (define weekend-bitmap #f)
