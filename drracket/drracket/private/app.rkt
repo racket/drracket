@@ -7,7 +7,8 @@
          browser/external
          setup/getinfo
          drracket/private/drsig
-         "../acks.rkt")
+         "../acks.rkt"
+         "frame-icon.rkt")
 
 (import [prefix drracket:unit: drracket:unit^]
         [prefix drracket:frame: drracket:frame^]
@@ -76,18 +77,14 @@
     (super-new)))
 
 (define (get-plt-bitmap)
-  (read-bitmap
-   (build-path (collection-file-path
-                (if (< (get-display-depth) 8)
-                    "pltbw.gif"
-                    "plt-logo-red-shiny.png")
-                "icons"))
-   #:try-@2x? #t))
-
-
-
-
-
+  (define bmp (make-bitmap mb-flat-width mb-flat-height))
+  (define bdc (make-object bitmap-dc% bmp))
+  (send bdc set-smoothing 'smoothed)
+  (send bdc set-pen "black" 1 'transparent)
+  (send bdc set-scale mb-scale-factor mb-scale-factor)
+  (mb-main-drawing bdc)
+  (send bdc set-bitmap #f)
+  bmp)
 
 ;                                                              
 ;                                                              
