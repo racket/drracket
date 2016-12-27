@@ -1667,7 +1667,15 @@
               (new button% 
                    [parent expand-error-button-parent-panel]
                    [stretchable-width #t]
-                   [label sc-jump-to-error]
+                   [label (string-append
+                           sc-jump-to-error
+                           (case (car (get-default-shortcut-prefix))
+                             [(cmd)
+                              (if (equal? (system-type) 'macosx)
+                                  " (⌘.)"
+                                  "")]
+                             [(control) " (Ctrl+.)"]
+                             [else ""]))]
                    [font small-control-font]
                    [callback (λ (b evt) (send (send (get-current-tab) get-defs) expand-error-next))]))
         (set! expand-error-multiple-child
