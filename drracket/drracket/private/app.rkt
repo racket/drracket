@@ -8,7 +8,8 @@
          setup/getinfo
          drracket/private/drsig
          "../acks.rkt"
-         "frame-icon.rkt")
+         "frame-icon.rkt"
+         pict/snip pict)
 
 (import [prefix drracket:unit: drracket:unit^]
         [prefix drracket:frame: drracket:frame^]
@@ -76,44 +77,31 @@
       (end-edit-sequence))
     (super-new)))
 
-(define (get-plt-bitmap)
-  (define bmp (make-bitmap mb-flat-width mb-flat-height))
-  (define bdc (make-object bitmap-dc% bmp))
-  (send bdc set-smoothing 'smoothed)
-  (send bdc set-pen "black" 1 'transparent)
-  (send bdc set-scale mb-scale-factor mb-scale-factor)
-  (mb-main-drawing bdc)
-  (send bdc set-bitmap #f)
-  bmp)
-
-;                                                              
-;                                                              
-;                                                              
-;          ;                                     ;             
-;          ;                                     ;             
-;          ;                       ;             ;             
-;    ;;;   ; ;;;    ;;;;   ;    ; ;;;;       ;;; ;  ; ;;  ;;;; 
-;   ;   ;  ;;   ;  ;    ;  ;    ;  ;        ;   ;;  ;;   ;     
-;       ;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;    ;     
-;    ;;;;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;     ;;;  
-;   ;   ;  ;    ;  ;    ;  ;    ;  ;        ;    ;  ;        ; 
-;   ;   ;  ;;   ;  ;    ;  ;   ;;  ;        ;   ;;  ;        ; 
-;    ;;;;; ; ;;;    ;;;;    ;;; ;   ;;       ;;; ;  ;    ;;;;  
-;                                                              
-;                                                              
-;                                                              
-
+(define (get-plt-pict)
+  (dc
+   (λ (dc dx dy)
+     (define smoothing (send dc get-smoothing))
+     (define pen (send dc get-pen))
+     (define brush (send dc get-brush))
+     (define-values (sx sy) (send dc get-scale))
+     (define-values (ox oy) (send dc get-origin))
+     (send dc set-origin (+ ox dx) (+ oy dy))
+     (send dc set-scale mb-scale-factor mb-scale-factor)
+     (send dc set-smoothing 'smoothed)
+     (send dc set-pen "black" 1 'transparent)
+     (mb-main-drawing dc)
+     (send dc set-pen pen)
+     (send dc set-brush brush)
+     (send dc set-smoothing smoothing)
+     (send dc set-scale sx sy)
+     (send dc set-origin ox oy))
+   mb-flat-width mb-flat-height))
 
 (define (about-drscheme)
   (let* ([e (make-object wrap-edit%)]
          [main-text (make-object wrap-edit%)]
-         [plt-bitmap (get-plt-bitmap)]
-         [plt-icon (if (send plt-bitmap ok?)
-                       (make-object image-snip% plt-bitmap)
-                       (let ([i (make-object string-snip%)]
-                             [label "[lambda]"])
-                         (send i insert label (string-length label) 0)
-                         i))]
+         [plt-pict (get-plt-pict)]
+         [plt-snip (new pict-snip% [pict plt-pict])]
          [editor-snip (make-object editor-snip% e #f)]
          [f (make-object about-frame% main-text)]
          [main-panel (send f get-area-container)]
@@ -154,13 +142,9 @@
       (stretchable-width #t)
       (stretchable-height #t))
     
-    (if (send plt-bitmap ok?)
-        (send* editor-canvas
-          (min-width (floor (+ (* 5/2 (send plt-bitmap get-width)) 50)))
-          (min-height (+ (send plt-bitmap get-height) 50)))
-        (send* editor-canvas
-          (min-width 500)
-          (min-height 400)))
+    (send* editor-canvas
+      (min-width (inexact->exact (floor (+ (* 5/2 (pict-width plt-pict)) 50))))
+      (min-height (inexact->exact (round (+ (pict-height plt-pict) 50)))))
     
     (send* e 
       (change-style d-dr)
@@ -232,7 +216,7 @@
     (send* main-text 
       (set-autowrap-bitmap #f)
       (auto-wrap #t)
-      (insert plt-icon)
+      (insert plt-snip)
       (insert editor-snip)
       (change-style top 0 2)
       (hide-caret #t))
