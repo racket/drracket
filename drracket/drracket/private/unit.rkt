@@ -5450,48 +5450,45 @@
   
   (define newest-frame 'nothing-yet)
   
-  (define open-drscheme-window
-    (case-lambda
-      [() (open-drscheme-window #f)]
-      [(name)
+  (define (open-drscheme-window [name #f] #:show? [show? #t])
+    (cond
+      [(and newest-frame
+            name
+            (not (equal? newest-frame 'nothing-yet))
+            (send newest-frame still-untouched?))
+       (send newest-frame change-to-file name)
+       (when show? (send newest-frame show #t))
+       (begin0 newest-frame
+               (set! newest-frame #f))]
+      [(and name ;; only open a tab if we have a filename
+            (preferences:get 'drracket:open-in-tabs))
+       (define frs (send (group:get-the-frame-group) get-frames))
+       (let ([ac (send (group:get-the-frame-group) get-active-frame)])
+         (when (and ac (send ac is-shown?))
+           (set! frs (cons ac (remove ac frs)))))
+       (define fr (let loop ([frs frs])
+                    (cond
+                      [(null? frs) #f]
+                      [else (let ([fr (car frs)])
+                              (or (and (is-a? fr drracket:unit:frame<%>)
+                                       fr)
+                                  (loop (cdr frs))))])))
        (cond
-         [(and newest-frame
-               name
-               (not (equal? newest-frame 'nothing-yet)) 
-               (send newest-frame still-untouched?))
-          (send newest-frame change-to-file name)
-          (send newest-frame show #t)
-          (begin0 newest-frame
-                  (set! newest-frame #f))]
-         [(and name ;; only open a tab if we have a filename
-               (preferences:get 'drracket:open-in-tabs))
-          (define frs (send (group:get-the-frame-group) get-frames))
-          (let ([ac (send (group:get-the-frame-group) get-active-frame)])
-            (when (and ac (send ac is-shown?))
-              (set! frs (cons ac (remove ac frs)))))
-          (define fr (let loop ([frs frs])
-                       (cond
-                         [(null? frs) #f]
-                         [else (let ([fr (car frs)])
-                                 (or (and (is-a? fr drracket:unit:frame<%>)
-                                          fr)
-                                     (loop (cdr frs))))])))
-          (cond
-            [fr
-             (send fr open-in-new-tab name)
-             (send fr show #t)
-             fr]
-            [else
-             (create-new-drscheme-frame name)])]
+         [fr
+          (send fr open-in-new-tab name)
+          (when show? (send fr show #t))
+          fr]
          [else
-          (create-new-drscheme-frame name)])]))
+          (create-new-drscheme-frame name #:show? show?)])]
+      [else
+       (create-new-drscheme-frame name #:show? show?)]))
   
-  (define (create-new-drscheme-frame filename)
+  (define (create-new-drscheme-frame filename #:show? [show? #t])
     (let* ([drs-frame% (drracket:get/extend:get-unit-frame)]
            [frame (new drs-frame% (filename filename))])
       (send frame update-toolbar-visibility)
       (send frame initialize-module-language)
-      (send frame show #t)
+      (when show? (send frame show #t))
       (send (send frame get-interactions-text) initialize-console)
       frame)))
 

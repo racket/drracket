@@ -978,14 +978,17 @@ all of the names in the tools library, for use defining keybindings
  
  (proc-doc/names
   drracket:unit:open-drscheme-window
-  (case->
-   (-> (is-a?/c drracket:unit:frame%))
-   ((or/c string? false/c) . -> . (is-a?/c drracket:unit:frame%)))
-  (() (filename))
+  (->* ()
+       ((or/c string? #f) #:show? boolean?)
+       (is-a?/c drracket:unit:frame%))
+  (() ((filename #f) (show? #t)))
   
   @{Opens a DrRacket frame that displays 
     @racket[filename],
-    or nothing if @racket[filename] is @racket[#f] or not supplied.})
+    or, if @racket[filename] is @racket[#f], an empty file.
+
+ If @racket[show?] is @racket[#t], then the @method[top-level-window<%> show] is not
+ invoked before the function returns; otherwise it is.})
  
  (proc-doc/names
   drracket:unit:add-search-help-desk-menu-item

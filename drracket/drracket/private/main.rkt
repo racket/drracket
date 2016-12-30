@@ -799,7 +799,7 @@
 ;; the initial window doesn't set the 
 ;; unit object's state correctly, yet.
 (define (make-basic)
-  (let* ([frame (drracket:unit:open-drscheme-window)]
+  (let* ([frame (drracket:unit:open-drscheme-window #:show? #f)]
          [interactions-edit (send frame get-interactions-text)]
          [definitions-edit (send frame get-interactions-text)]
          [filename (send definitions-edit get-filename)])
@@ -866,10 +866,13 @@
                         f
                         (λ () (drracket:unit:open-drscheme-window f))))
                 no-dups)])
-     (when (and (null? (filter (λ (x) x) frames)) 
+
+     (when (and (null? frames)
                 (not file-opened-via-application-file-handler?))
        (make-basic))
      (when (and (preferences:get 'drracket:open-in-tabs)
                 (not (null? no-dups)))
-       (handler:edit-file (car no-dups)))))
+       (define first-one (car no-dups))
+       (send (send (group:get-the-frame-group) locate-file first-one)
+             make-visible first-one))))
  #f)
