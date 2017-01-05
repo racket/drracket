@@ -35,6 +35,8 @@ interactions window. Given the definition of @racket[square] as in the
 figure above, typing @racket[(square 2)] in the interactions window
 produces the result @racket[4].
 
+The blue quarter circle in the upper right corner provides access
+to the summary information from the documentation.
 The @deftech{status line} at the bottom of DrRacket's window provides
 information about the current line and position of the editing caret,
 whether the current file can be modified, and whether DrRacket is
@@ -54,10 +56,10 @@ name}. Clicking the button opens a menu that shows the file's full
 pathname. Selecting one of the menu entries produces an open-file
 dialog starting in the corresponding directory.
 
-Below the filename button is a @as-index{@onscreen{(define ...)}
+Beside the filename button is a @as-index{@onscreen{(define ...)}
 button} for a pop-up menu of names that are defined in the definitions
-window. Selecting an item from the menu moves the blinking caret to
-the corresponding definition.
+window. Selecting an item from the menu moves the insertion point (blinking
+caret) to the corresponding definition.
 
 The @as-index{@onscreen{Save} button} appears whenever the definitions
 window is modified. Clicking the button saves the contents of the
@@ -146,15 +148,15 @@ annotations:
 Check Syntax also runs automatically as you edit your program,
 and the bottom, rightmost corner of the DrRacket window
 shows its status. A red dot means that something has gone wrong;
-move your mouse over the dot to find out what is wrong. Mismatched parentheses indicates
-that the buffer's parens are also mismatched; mouse over the parens for details.
+move your mouse over the dot to find out what is wrong.
 
 When nothing goes wrong, the colors indicate the stages processing of the program:
 blue (expanding), purple (computing check syntax information), orchid (updating the
 editor with the check syntax information), and green (finished).
 
-Also, right-clicking in that area yields a menu that lets you disable
-(or re-enable) automatic Check Syntax.
+Also, right-clicking (or control clicking) in that area
+yields a menu that lets you disable (or re-enable) automatic
+Check Syntax.
 
 The @as-index{@onscreen{Run} button} evaluates the program in the
 @tech{definitions window} and resets the @tech{interactions window}.
@@ -418,7 +420,7 @@ expressions and results. For example, evaluating
 
 in the interactions window produces a special box for entering input:
 
-@centerline{@image[#:scale 0.6 "io.png"]}
+@centerline{@image[#:scale 0.7 "io.png"]}
 
 Type a number into the box and hit Enter, and that number becomes the
 result of the @racket[(read)] expression. Once text is submitted for
@@ -710,13 +712,13 @@ The bottom of the pane shows the lexical variables in the selected
 stack frame.
 
 The following screenshot illustrates several aspects of the debugger
-interface.  The red circle before the @racket[if] is a breakpoint,
-and the green triangle at the end of the @racket[(fact (sub1 n))] is where
+interface.  The red circle in the body of @racket[for/sum] is a breakpoint,
+and the green triangle at the end of the @racket[(+ i n)] is where
 execution is currently paused.  The expression's return value is
-displayed at the left of the button bar, and the value of @racket[n]
-is displayed in the stack view pane.
+displayed at the left of the button bar, and the value of @racket[i]
+and other variables are displayed in the stack view pane.
 
-@centerline{@image[#:scale 0.5 "debugger1.png"]}
+@centerline{@image[#:scale 0.7 "debugger1.png"]}
 
 @subsection{Debugging Multiple Files}
 
