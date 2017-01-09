@@ -2,6 +2,12 @@
        Version 6.8
 ------------------------------
 
+  . improved support for #lang-based tooling
+
+------------------------------
+       Version 6.8
+------------------------------
+
   . new logo
 
   . bug fixes
