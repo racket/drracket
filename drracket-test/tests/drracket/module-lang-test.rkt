@@ -169,6 +169,13 @@
       @t{(begin (struct s (x)) (struct t s (y)) (s-x (t 1 2)))}
       "1")
 
+(test @t{#lang racket/base
+         (read-accept-reader)
+         (read-accept-compiled)}
+      #f
+      @t{#f
+         #f})
+
 ;; check that we have a working repl in the right language after
 ;; syntax errors, unless it's a bad language
 (test @t{#lang racket
