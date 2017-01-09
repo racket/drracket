@@ -13,17 +13,18 @@
 (define (rx . strs)
   (regexp (regexp-replace* #rx" *\n *" (string-append* strs) ".*")))
 
-(define-struct test (definitions   ; Rec X = (or/c string 'xml-box (listof X))
-                     interactions  ; (union #f string)
-                     result        ; (or/c string regexp)
-                     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
-                     error-ranges  ; (or/c 'dont-test
-                                   ;       (-> (is-a?/c text)
-                                   ;           (is-a?/c text)
-                                   ;           (or/c #f (listof ...))))
-                                   ;    fn => called with defs & ints, result must match get-error-ranges method's result
-                      line)        ; number or #f: the line number of the test case
-                      
+(define-struct test
+  (definitions    ; Rec X = (or/c string 'xml-box (listof X))
+    interactions  ; (union #f string)
+    result        ; (or/c string regexp)
+    all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
+    error-ranges  ; (or/c 'dont-test
+    ;                     (-> (is-a?/c text)
+    ;                         (is-a?/c text)
+    ;                         (or/c #f (listof ...))))
+    ;    fn => called with defs & ints, result must match get-error-ranges method's result
+    line)         ; number or #f: the line number of the test case
+
   #:omit-define-syntaxes)
 
 (define (in-here/path file) (path->string (build-path (find-system-path 'temp-dir) file)))
@@ -35,7 +36,8 @@
     [(_  args ...)
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
-(define (test/proc line definitions interactions results [all? #f] #:error-ranges [error-ranges 'dont-test])
+(define (test/proc line definitions interactions results [all? #f]
+                   #:error-ranges [error-ranges 'dont-test])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
@@ -97,7 +99,10 @@
                       (send interactions-text paragraph-start-position 2)
                       (send interactions-text paragraph-end-position 2))))])
         (unless (or (test-all? test) (string=? "> " after-execute-output))
-          (eprintf "FAILED (line ~a): ~a\n        ~a\n        expected no output after execution, got: ~s\n"
+          (eprintf (string-append
+                    "FAILED (line ~a): ~a\n"
+                    "        ~a\n"
+                    "        expected no output after execution, got: ~s\n")
                    (test-line test)
                    (test-definitions test)
                    (or (test-interactions test) 'no-interactions)
@@ -216,14 +221,15 @@
                (format "~s" expected))))
     
     (when no-check-expected
-      (let ([got (setup-dialog/run 
-                  (λ () 
-                    (test:set-radio-box-item! radio-box)
-                    (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f)))])
-        (unless (equal? got (format "~s" no-check-expected))
-          (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
-                 got
-                 (format "~s" no-check-expected))))))
+      (define got
+        (setup-dialog/run 
+         (λ () 
+           (test:set-radio-box-item! radio-box)
+           (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f))))
+      (unless (equal? got (format "~s" no-check-expected))
+        (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
+               got
+               (format "~s" no-check-expected)))))
 
   (define (spaces-equal? a b)
     (equal? (regexp-replace* #rx"[\n\t ]+" a " ")
