@@ -260,8 +260,10 @@
                    ;; isn't; just re-run the expansion on the
                    ;; user's side so they see the IO directly
                    no-io-happened?)
+              (define compiled (compile expanded))
               (define bp (open-output-bytes))
-              (write (compile expanded) bp)
+              (parameterize ([current-write-relative-directory (current-directory)])
+                (write compiled bp))
               (get-output-bytes bp)]
              [else #f]))
          (ep-log-info "expanding-place.rkt: 12 compile finished")
