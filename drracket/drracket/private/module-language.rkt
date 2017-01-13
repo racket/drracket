@@ -1352,6 +1352,13 @@
         (update-frame-expand-error))
       
       (define/private (jump-to vec)
+        ;; when we get here, the only errors we see are from online expansion
+        ;; and those errors' source locs are always in the definitions text
+        (send (send (get-tab) get-ints) highlight-a-single-error
+              (srcloc this
+                      #f #f
+                      (vector-ref vec 0)
+                      (vector-ref vec 1)))
         (set-position (- (vector-ref vec 0) 1))
         (define cnvs (get-canvas))
         (when cnvs (send cnvs focus)))
@@ -1691,7 +1698,20 @@
                                  l
                                  (append l (list expand-error-panel))))))
             (send expand-error-message set-msgs 
-                  expand-error-msgs expand-error-msg-is-err? expand-error-msgs+stack)
+                  expand-error-msgs expand-error-msg-is-err? expand-error-msgs+stack
+                  (cond
+                    [(not err?) '()]
+                    [(= srcloc-count 0) '()]
+                    [(= srcloc-count 1)
+                     (list (list sc-jump-to-error
+                                 (λ () (send (send (get-current-tab) get-defs) expand-error-next))))]
+                    [else
+                     (list
+                      (list (string-constant jump-to-next-error-highlight-menu-item-label)
+                                 (λ () (send (send (get-current-tab) get-defs) expand-error-next)))
+                      (list (string-constant jump-to-prev-error-highlight-menu-item-label)
+                            (λ () (send (send (get-current-tab) get-defs) expand-error-prev))))]))
+
             (send expand-error-install-suggestions-panel change-children (λ (l) '()))
             (when expand-error-install-suggestions
               (cond
@@ -1880,11 +1900,13 @@
   (define error-message%
     (class canvas%
       (init-field msgs err? [copy-msg ""])
+      (define menu-items '())
       (inherit refresh get-dc get-client-size popup-menu)
-      (define/public (set-msgs _msgs _err? _copy-msg)
+      (define/public (set-msgs _msgs _err? _copy-msg _menu-items)
         (set! msgs _msgs)
         (set! err? _err?)
         (set! copy-msg _copy-msg)
+        (set! menu-items _menu-items)
         (set-the-height/dc-font (editor:get-current-preferred-font-size))
         (refresh))
       (define/override (on-event evt)
@@ -1892,13 +1914,18 @@
           [(and (send evt button-down?) err?)
            (define m (new popup-menu%))
            (define itm (new menu-item% 
-                            [label (string-constant copy-menu-item)]
+                            [label (string-constant copy-error-message)]
                             [parent m]
                             [callback
                              (λ (itm evt)
                                (send the-clipboard set-clipboard-string 
                                      copy-msg
                                      (send evt get-time-stamp)))]))
+           (for ([item (in-list menu-items)])
+             (new menu-item%
+                  [label (list-ref item 0)]
+                  [parent m]
+                  [callback (λ (itm evt) ((list-ref item 1)))]))
            (popup-menu m 
                        (+ (send evt get-x) 1)
                        (+ (send evt get-y) 1))]

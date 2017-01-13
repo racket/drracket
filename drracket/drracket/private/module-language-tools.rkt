@@ -131,7 +131,8 @@
            (send hash-lang-error-message set-msgs
                  (list (hash-lang-error-state-display-msg state))
                  #t
-                 (hash-lang-error-state-more-info-msg state))
+                 (hash-lang-error-state-more-info-msg state)
+                 '())
            (send hash-lang-error-parent-panel change-children
                  (λ (x) (append (remq hash-lang-error-panel x) (list hash-lang-error-panel))))]
           [else
