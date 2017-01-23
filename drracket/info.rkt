@@ -21,7 +21,7 @@
                ["string-constants-lib" #:version "1.16"]
                "typed-racket-lib"
                "wxme-lib"
-               ("gui-lib" #:version "1.28")
+               ("gui-lib" #:version "1.30")
                ("racket-index" #:version "1.2")
                "racket-doc"
                "html-lib"

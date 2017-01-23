@@ -81,7 +81,11 @@ Will not work with the definitions text surrogate interposition that
  skip-past-comments
  mcli?)
 
-(struct irl ([namespace #:mutable] [use-evaluator? #:mutable] [directory #:mutable] fail-callback))
+(struct irl ([namespace #:mutable]
+             [prefs-layer #:mutable]
+             [use-evaluator? #:mutable]
+             [directory #:mutable]
+             fail-callback))
 
 (define (get-read-language-port-start+end an-irl)
   (call-irl-proc an-irl
@@ -133,12 +137,13 @@ Will not work with the definitions text surrogate interposition that
                  mcli/f))
 
 (define (call-in-irl-context/abort an-irl fallback-thunk thunk)
-  (match-define (irl namespace use-evaluator? directory failure) an-irl)
+  (match-define (irl namespace pref-layer use-evaluator? directory failure) an-irl)
   (cond
     [use-evaluator?
      (parameterize ([current-directory directory]
                     [current-load-relative-directory directory]
-                    [current-namespace namespace])
+                    [current-namespace namespace]
+                    [preferences:current-layer pref-layer])
        (let/ec k
          (call-with-exception-handler
           (λ (exn)
@@ -194,7 +199,8 @@ Will not work with the definitions text surrogate interposition that
   
 (define (reset-irl! an-irl port path flush-cache?)
   (when flush-cache?
-    (set-irl-namespace! an-irl (make-irl-namespace)))
+    (set-irl-namespace! an-irl (make-irl-namespace))
+    (set-irl-prefs-layer! an-irl (preferences:new-layer original-preferences-layer)))
   (set-irl-use-evaluator?! an-irl #t)
   (set-irl-directory! an-irl path)
   (call-irl-proc an-irl
@@ -207,8 +213,10 @@ Will not work with the definitions text surrogate interposition that
    fallback
    (λ () (apply (dynamic-require in-irl-namespace.rkt proc) args))))
 
+(define original-preferences-layer (preferences:current-layer))
 (define (make-irl directory callback)
   (irl (make-irl-namespace)
+       (preferences:new-layer original-preferences-layer)
        #f
        directory
        callback))
