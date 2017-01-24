@@ -156,7 +156,10 @@
            (-> read-only-text/c
                exact-nonnegative-integer?
                (or/c #f exact-nonnegative-integer?)))]
-
+    [(drracket:keystrokes)
+     ;; string? is too permissive; need racket/gui to publish
+     ;; the actual contract (used on `map-function`)
+     (listof (list/c string? (-> any/c any/c any/c)))]
     [(drracket:toolbar-buttons drscheme:toolbar-buttons)
      (or/c #f (listof (or/c (list/c string?
                                     (is-a?/c bitmap%)

@@ -42,6 +42,7 @@ DrRacket calls the language's @racket[read-language]'s
 @itemize[@item{@language-info-ref[drracket:default-filters]}
          @item{@language-info-ref[drracket:default-extension]}
          @item{@language-info-ref[drracket:indentation]}
+         @item{@language-info-ref[drracket:keystrokes]}
          @item{@language-info-ref[drracket:show-big-defs/ints-labels]}
          @item{@language-info-ref[drracket:opt-out-toolbar-buttons]}
          @item{@language-info-ref[drracket:submit-predicate]}
@@ -84,6 +85,28 @@ These precise colors for these identifiers are controlled by the preferences dia
  DrRacket uses the standard s-expression indentation rules.
 
  @history[#:added "1.3"]
+}
+
+@section{Keystrokes}
+
+@language-info-def[drracket:keystrokes]{
+  When a language's @racket[_get-info] procedure responds to
+ @racket['drracket:keystrokes], it is expected
+ to return a list of keybindings and callbacks matching this contract:
+ @racketblock[(listof (list/c string?
+                              (-> (is-a?/c text%)
+                                  (is-a?/c event%)
+                                  any)))]
+ Each element of the list is a different keybinding, where the
+ string indicates the keystroke (see the documentation for
+ @method[keymap% map-function] for the precise contents of the
+ string and how it maps to particular keystrokes) and the procedure
+ is called when the user types that keystroke in the definitions
+ window.
+
+ The procedure's first argument will be the definitions text, the
+ second will be the event object supplied from the GUI system
+ and the result of the procedure is ignored.
 }
 
 @section{Filename Extensions}

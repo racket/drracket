@@ -14,7 +14,8 @@
          "insulated-read-language.rkt"
          "eval-helpers-and-pref-init.rkt"
          framework/private/logging-timer
-         string-constants)
+         string-constants
+         racket/format)
 
 (define op (current-output-port))
 (define (oprintf . args) (apply fprintf op args))
@@ -208,7 +209,8 @@
                last-position
                get-surrogate
                start-colorer
-               set-surrogate)
+               set-surrogate
+               get-keymap)
       (define in-module-language? #f)      ;; true when we are in the module language
       (define hash-lang-last-location #f)  ;; non-false when we know where the hash-lang line ended
       (define hash-lang-language #f)       ;; non-false is the string that was parsed for the language
@@ -319,6 +321,15 @@
               (or (call-read-language the-irl 'drracket:indentation #f)
                   (λ (x y) #f)))
 
+        (set! lang-keymap (new keymap%))
+        (for ([key+proc (in-list (call-read-language the-irl 'drracket:keystrokes '()))])
+          (define key (list-ref key+proc 0))
+          (define proc (list-ref key+proc 1))
+          (define name (~a (object-name proc)))
+          (send lang-keymap add-function name proc)
+          (send lang-keymap map-function key name))
+        (send (get-keymap) chain-to-keymap lang-keymap #t)
+
         (register-new-buttons
          (or (call-read-language the-irl 'drracket:toolbar-buttons #f)
              (call-read-language the-irl 'drscheme:toolbar-buttons #f))
@@ -336,9 +347,11 @@
         (set! extra-default-filters '())
         (set! default-extension "")
         (set! indentation-function (λ (x y) #f))
+        (when lang-keymap
+          (send (get-keymap) removed-chained-keymap lang-keymap)
+          (set! lang-keymap #f))
         (send tab set-lang-toolbar-buttons '() '()))
 
-      
       (define/private (register-new-buttons buttons opt-out-ids)
         ;; cleaned-up-buttons : (listof (list/c string?
         ;;                                      (is-a?/c bitmap%) 
@@ -437,6 +450,7 @@
       (define extra-default-filters '())
       (define default-extension "")
       (define indentation-function (λ (x y) #f))
+      (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
         (parameterize ([finder:default-extension default-extension]
                        [finder:default-filters 
