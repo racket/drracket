@@ -321,7 +321,7 @@
               (or (call-read-language the-irl 'drracket:indentation #f)
                   (λ (x y) #f)))
 
-        (set! lang-keymap (new keymap%))
+        (set! lang-keymap (new keymap:aug-keymap%))
         (for ([key+proc (in-list (call-read-language the-irl 'drracket:keystrokes '()))])
           (define key (list-ref key+proc 0))
           (define proc (list-ref key+proc 1))
@@ -348,7 +348,7 @@
         (set! default-extension "")
         (set! indentation-function (λ (x y) #f))
         (when lang-keymap
-          (send (get-keymap) removed-chained-keymap lang-keymap)
+          (send (get-keymap) remove-chained-keymap lang-keymap)
           (set! lang-keymap #f))
         (send tab set-lang-toolbar-buttons '() '()))
 
