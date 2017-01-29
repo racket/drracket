@@ -1434,7 +1434,7 @@ the settings above should match r5rs
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
                                     "(f)")
                      #rx"raise-user-error"
-                     #rx"raise-user-error")
+                     #rx"set!")
     
     (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
                      "{image}"
