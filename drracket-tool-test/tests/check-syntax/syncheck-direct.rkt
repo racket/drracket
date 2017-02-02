@@ -140,7 +140,7 @@
 (check-equal? (get-tail-arrows "#lang racket/base\n(if 1 2 3)")
               '((18 24) (18 26)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(λ (x) 1 2)")
-              '((18 29)))
+              '((18 28)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(case-lambda [(x) 1 2][(y z) 3 4 5 6])")
               '((18 38) (18 53)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(let ([x 3]) (#%expression (begin 1 2)))")
