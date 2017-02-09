@@ -29,7 +29,7 @@
                ["icons" #:version "1.2"]
                "typed-racket-more"
                "trace"
-               "macro-debugger"
+               ["macro-debugger" #:version "1.1"]
                "net-lib"
                "tex-table"
                "htdp-lib"

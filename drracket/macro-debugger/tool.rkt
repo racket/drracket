@@ -7,7 +7,7 @@
          mrlib/switchable-button
          macro-debugger/model/trace
          macro-debugger/view/frame
-         (only-in macro-debugger/view/view macro-stepper-director%)
+         (only-in macro-debugger/view/view macro-stepper-director/process%)
          macro-debugger/view/stepper
          macro-debugger/view/prefs
          images/compile-time
@@ -33,9 +33,6 @@
     (define/override (file-menu:create-new?) #t)
     (define/override (file-menu:create-open?) #t)
     (define/override (file-menu:create-open-recent?) #t)
-    (define/override (get-macro-stepper-widget%)
-      (macro-stepper-widget/process-mixin
-       (super get-macro-stepper-widget%)))
     (super-new)))
 
 (define macro-stepper-frame%
@@ -45,7 +42,7 @@
      frame:basic%))))
 
 (define drracket-macro-stepper-director%
-  (class macro-stepper-director%
+  (class macro-stepper-director/process%
     (init-field filename)
     (inherit-field stepper-frames)
     (define eventspace (current-eventspace))
