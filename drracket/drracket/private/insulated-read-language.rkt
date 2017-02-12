@@ -61,6 +61,8 @@ Will not work with the definitions text surrogate interposition that
    (-> irl?
        (values (or/c #f exact-nonnegative-integer?)
                (or/c #f exact-nonnegative-integer?)))]
+  [get-read-language-last-position (-> irl? (or/c #f exact-nonnegative-integer?))]
+
   [get-read-language-name (-> irl? (or/c #f string?))]
 
   [get-insulated-module-lexer (-> irl? (procedure-arity-includes/c 3))]
@@ -97,6 +99,11 @@ Will not work with the definitions text surrogate interposition that
   (call-irl-proc an-irl
                  (λ () #f)
                  'get-read-language-name/inside))
+
+(define (get-read-language-last-position an-irl)
+  (call-irl-proc an-irl
+                 (λ () #f)
+                 'get-read-language-last-position/inside))
 
 (define (3arg-racket-lexer in offset mode)
   (define-values (a b c d e) (racket-lexer in))

@@ -11,6 +11,7 @@
 (provide reset-irl!/inside
          call-read-language/inside
          get-read-language-port-start+end/inside
+         get-read-language-last-position/inside
          get-read-language-name/inside
          get-insulated-module-lexer/inside
          get-definitions-text-surrogate/inside
@@ -23,6 +24,7 @@
 (define before-port-position 0)
 (define after-port-position #f)
 (define mcli-vec #f)
+(define read-language-last-position #f)
 
 (define (set-irl-mcli-vec!/inside _mcli-vec) (set! mcli-vec _mcli-vec))
 
@@ -91,14 +93,18 @@
      (values language-get-info
              lang-name
              (- before-pos 1)
+             (- after-pos 1)
              (- after-pos 1))]
-    [else (values #f #f #f #f)]))
+    [else
+     (define-values (_5 _6 peeking-pos) (port-next-location peeking-port))
+     (values #f #f #f #f (+ before-pos peeking-pos -2))]))
     
 (define (reset-irl!/inside port)
   (set!-values (language-get-info
                 lang-name
                 before-port-position
-                after-port-position)
+                after-port-position
+                read-language-last-position)
                (compute-lang-info port)))
   
 (define (call-read-language/inside key default)
@@ -175,7 +181,9 @@
 
     [(drracket:opt-out-toolbar-buttons drscheme:opt-out-toolbar-buttons)
      (or/c #f (listof symbol?))]))
-  
+
+(define (get-read-language-last-position/inside) read-language-last-position)
+
 (define (get-read-language-port-start+end/inside)
   (values before-port-position after-port-position))
 
@@ -187,15 +195,28 @@
     (define (compute-lang-info/wrap str)
     (define sp (open-input-string str))
     (port-count-lines! sp)
-    (define-values (language-get-info lang-name before-port-position after-port-position)
+    (define-values (language-get-info lang-name
+                                      before-port-position after-port-position
+                                      read-language-last-position)
       (compute-lang-info sp))
-    (list lang-name before-port-position after-port-position))
+    (list lang-name
+          before-port-position
+          after-port-position
+          read-language-last-position))
   
   (check-equal? (compute-lang-info/wrap "#lang racket")
-                (list "#lang racket" 0 12))
+                (list "#lang racket" 0 12 12))
   (check-equal? (compute-lang-info/wrap "#lang racket/base")
-                (list "#lang racket/base" 0 17))
+                (list "#lang racket/base" 0 17 17))
   (check-equal? (compute-lang-info/wrap ";; abc\n#lang racket")
-                (list "#lang racket" 7 19))
+                (list "#lang racket" 7 19 19))
   (check-equal? (compute-lang-info/wrap ";; abc\n#lang racket\n;; fdajk")
-                (list "#lang racket" 7 19)))
+                (list "#lang racket" 7 19 19))
+  (check-equal? (compute-lang-info/wrap ";; abc\n(stuff)")
+                (list #f #f #f 8))
+  (check-equal? (compute-lang-info/wrap ";; abcdefgjd\n\n\n(stuff)")
+                (list #f #f #f 16))
+  (check-equal? (compute-lang-info/wrap "(stuff)")
+                (list #f #f #f 1))
+  (check-equal? (compute-lang-info/wrap "123 456")
+                (list #f #f #f 1)))

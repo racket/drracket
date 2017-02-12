@@ -212,8 +212,13 @@
                set-surrogate
                get-keymap)
       (define in-module-language? #f)      ;; true when we are in the module language
-      (define hash-lang-last-location #f)  ;; non-false when we know where the hash-lang line ended
       (define hash-lang-language #f)       ;; non-false is the string that was parsed for the language
+
+      ;; non-false means that an edit before this location
+      ;; means that the language might have changed
+      ;; (this will be the end of the #lang line if there is one,
+      ;; or it will be some conservative place if there isn't)
+      (define hash-lang-last-location #f)
 
       (define/public (irl-get-read-language-port-start+end)
         (get-read-language-port-start+end the-irl))
@@ -293,7 +298,7 @@
         (define-values (lang-name-start lang-name-end)
           (get-read-language-port-start+end the-irl))
         (set! hash-lang-language (and lang-name-end (get-text lang-name-start lang-name-end)))
-        (set! hash-lang-last-location lang-name-end)
+        (set! hash-lang-last-location (get-read-language-last-position the-irl))
         
         (clear-things-out)
 
