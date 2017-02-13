@@ -30,12 +30,14 @@
 
 (define (get-submit-predicate/inside)
   (or (and mcli-vec
-           (add-contract
-            'drracket:submit-predicate
-            (key->contract 'drracket:submit-predicate)
-            ((dynamic-require (vector-ref mcli-vec 0)
-                              (vector-ref mcli-vec 1))
-             (vector-ref mcli-vec 2))))
+           (let ([get-info
+                  ((dynamic-require (vector-ref mcli-vec 0)
+                                    (vector-ref mcli-vec 1))
+                   (vector-ref mcli-vec 2))])
+             (add-contract
+              'drracket:submit-predicate
+              (key->contract 'drracket:submit-predicate)
+              (get-info 'drracket:submit-predicate #f))))
       (call-read-language/inside 'drracket:submit-predicate
                                  #f)))
   
