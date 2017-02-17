@@ -594,6 +594,94 @@ are treated as a binding/bound pair by Check Syntax.
 
 See also @racket[current-recorded-disappeared-uses].
 
+Another approach for situations where identifiers are discarded by a
+macro is to introduce a @racket[let] expression that doesn't contribute
+to the result of the computation, but does signal to Check Syntax that
+there are some arrows to draw. For example, Check Syntax is unable to
+draw the arrows between the introductions and uses of @racket[a], @racket[b],
+and @racket[c] for this code:
+@codeblock{
+#lang racket
+(require (for-syntax syntax/parse))
+
+(define-syntax (depths stx)
+  (syntax-parse stx
+    [(_ id expr)
+     (define table (make-hash))
+     (let loop ([stx #'expr] [depth 0])
+       (cond
+         [(syntax->list stx)
+          =>
+          (λ (lst)
+            (for ([ele (in-list lst)])
+              (loop ele (+ depth 1))))]
+         [(identifier? stx)
+          (hash-set! table (syntax-e stx) depth)]))
+     #`(define-syntax id #,table)]))
+
+(define-syntax (depth-of stx)
+  (syntax-parse stx
+    [(_ id1 id2)
+     (datum->syntax
+      #'here
+      (hash-ref (syntax-local-value #'id1)
+                (syntax-e #'id2)))]))
+
+(depths my-sexp ((a) b (((((((c)))))))))
+
+(depth-of my-sexp a)
+(depth-of my-sexp b)
+(depth-of my-sexp c)
+}
+
+Extending these macro to cooperate with Check syntax
+requires more information to be collected on the definition
+side and then used at the use side:
+
+@codeblock{
+#lang racket
+(require (for-syntax syntax/parse))
+
+(define-syntax (depths stx)
+  (syntax-parse stx
+    [(_ id expr)
+     (define table (make-hash))
+     (let loop ([stx #'expr] [depth 0])
+       (cond
+         [(syntax->list stx)
+          =>
+          (λ (lst)
+            (for ([ele (in-list lst)])
+              (loop ele (+ depth 1))))]
+         [(identifier? stx)
+          (hash-set! table (syntax-e stx)
+                     (cons (vector (syntax-source stx)
+                                   (syntax-line stx)
+                                   (syntax-column stx)
+                                   (syntax-position stx)
+                                   (syntax-span stx))
+                           depth))]))
+     #`(define-syntax id #,table)]))
+
+(define-syntax (depth-of stx)
+  (syntax-parse stx
+    [(_ id1 id2)
+     (define pr
+       (hash-ref (syntax-local-value #'id1)
+                 (syntax-e #'id2)))
+     (define fake-binder
+       (datum->syntax #'id2 (syntax-e #'id2) (car pr) #'id2))
+     #`(begin
+         (void (let ([#,fake-binder 1]) id2))
+         #,(cdr pr))]))
+
+(depths my-sexp ((a) b (((((((c)))))))))
+
+(depth-of my-sexp a)
+(depth-of my-sexp b)
+(depth-of my-sexp c)
+}
+
 The value of the @racket['sub-range-binders] property is expected
 to be a tree of @racket[cons] pairs (in any configuration) whose leaves
 are either ignored or are vectors of the shape
