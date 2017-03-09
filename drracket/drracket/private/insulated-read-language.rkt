@@ -35,6 +35,7 @@ Will not work with the definitions text surrogate interposition that
         'drscheme:toolbar-buttons
         'drracket:opt-out-toolbar-buttons
         'drscheme:opt-out-toolbar-buttons
+        'drracket:opt-in-toolbar-buttons
         'color-lexer
         'definitions-text-surrogate))
 

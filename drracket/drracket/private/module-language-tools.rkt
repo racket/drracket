@@ -29,14 +29,19 @@
           [prefix drracket: drracket:interface^])
   (export drracket:module-language-tools/int^)
 
-  (define-struct opt-out-toolbar-button (make-button id number) #:transparent)
+  (define-struct opt-in/out-toolbar-button (make-button id number) #:transparent)
   (define opt-out-toolbar-buttons '())
+  (define opt-in-toolbar-buttons  '())
   
-  (define (add-opt-out-toolbar-button make-button id #:number [number #f]) 
+  (define (add-opt-out-toolbar-button make-button id #:number [number #f])
     (set! opt-out-toolbar-buttons
-          (cons (make-opt-out-toolbar-button make-button id number)
+          (cons (make-opt-in/out-toolbar-button make-button id number)
                 opt-out-toolbar-buttons)))
-    
+  (define (add-opt-in-toolbar-button  make-button id #:number [number #f])
+    (set! opt-in-toolbar-buttons
+          (cons (make-opt-in/out-toolbar-button make-button id number)
+                opt-in-toolbar-buttons)))
+
   (define-local-member-name
     set-lang-toolbar-buttons
     get-lang-toolbar-buttons
@@ -340,7 +345,9 @@
              (call-read-language the-irl 'drscheme:toolbar-buttons #f))
          
          (or (call-read-language the-irl 'drracket:opt-out-toolbar-buttons '())
-             (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '()))))
+             (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '()))
+
+         (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '())))
 
       ;; removes language-specific customizations
       (define/private (clear-things-out)
@@ -357,7 +364,7 @@
           (set! lang-keymap #f))
         (send tab set-lang-toolbar-buttons '() '()))
 
-      (define/private (register-new-buttons buttons opt-out-ids)
+      (define/private (register-new-buttons buttons opt-out-ids opt-in-ids)
         ;; cleaned-up-buttons : (listof (list/c string?
         ;;                                      (is-a?/c bitmap%) 
         ;;                                      (-> (is-a?/c drracket:unit:frame<%>) any) 
@@ -393,23 +400,31 @@
                 (define directly-specified-button-numbers 
                   (map (λ (button-spec) (list-ref button-spec 3)) 
                        cleaned-up-buttons))
-                (define opt-out-buttons+numbers
+                (define (get-opt-in/out-buttons+numbers opt-in?)
+                  (define (flip? b) (if opt-in? (not b) b))
+                  (define opt-in/out-ids (if opt-in? opt-in-ids opt-out-ids))
+                  (define opt-in/out-toolbar-buttons
+                    (if opt-in? opt-in-toolbar-buttons opt-out-toolbar-buttons))
                   (cond
-                    [(eq? opt-out-ids #f) '()]
+                    [(eq? opt-in/out-ids #f) '()]
                     [else
-                     (for/list ([opt-out-toolbar-button (in-list opt-out-toolbar-buttons)]
-                                #:unless (member 
-                                          (opt-out-toolbar-button-id opt-out-toolbar-button) 
-                                          opt-out-ids))
-                       (list ((opt-out-toolbar-button-make-button opt-out-toolbar-button) 
+                     (for/list ([opt-in/out-toolbar-button (in-list opt-in/out-toolbar-buttons)]
+                                #:unless (flip? (member
+                                                 (opt-in/out-toolbar-button-id opt-in/out-toolbar-button)
+                                                 opt-in/out-ids)))
+                       (list ((opt-in/out-toolbar-button-make-button opt-in/out-toolbar-button)
                               frame
                               (send frame get-toolbar-button-panel))
-                             (opt-out-toolbar-button-number opt-out-toolbar-button)))]))
+                             (opt-in/out-toolbar-button-number opt-in/out-toolbar-button)))]))
+                (define opt-out-buttons+numbers (get-opt-in/out-buttons+numbers #f))
+                (define opt-in-buttons+numbers  (get-opt-in/out-buttons+numbers #t))
                 (send tab set-lang-toolbar-buttons
                       (append directly-specified-buttons
-                              (map (λ (x) (list-ref x 0)) opt-out-buttons+numbers))
+                              (map (λ (x) (list-ref x 0)) opt-out-buttons+numbers)
+                              (map (λ (x) (list-ref x 0)) opt-in-buttons+numbers))
                       (append directly-specified-button-numbers
-                              (map (λ (x) (list-ref x 1)) opt-out-buttons+numbers)))
+                              (map (λ (x) (list-ref x 1)) opt-out-buttons+numbers)
+                              (map (λ (x) (list-ref x 1)) opt-in-buttons+numbers)))
                 (send frame end-container-sequence))))
       
       (inherit get-text)

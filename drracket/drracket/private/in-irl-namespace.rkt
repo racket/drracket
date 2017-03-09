@@ -181,8 +181,10 @@
                                     (-> object? any)
                                     (or/c real? #f)))))]
 
-    [(drracket:opt-out-toolbar-buttons drscheme:opt-out-toolbar-buttons)
-     (or/c #f (listof symbol?))]))
+    [(drracket:opt-out-toolbar-buttons drscheme:opt-out-toolbar-buttons drracket:opt-in-toolbar-buttons)
+     (or/c #f (listof symbol?))]
+    [else
+     (error 'key->contract "unknown key")]))
 
 (define (get-read-language-last-position/inside) read-language-last-position)
 

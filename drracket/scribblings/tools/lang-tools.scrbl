@@ -45,6 +45,7 @@ DrRacket calls the language's @racket[read-language]'s
          @item{@language-info-ref[drracket:keystrokes]}
          @item{@language-info-ref[drracket:show-big-defs/ints-labels]}
          @item{@language-info-ref[drracket:opt-out-toolbar-buttons]}
+         @item{@language-info-ref[drracket:opt-in-toolbar-buttons]}
          @item{@language-info-ref[drracket:submit-predicate]}
          @item{@language-info-ref[drracket:toolbar-buttons]}
          @item{@language-info-ref[color-lexer]}
@@ -194,6 +195,16 @@ specified both ways, then the predicate supplied via
  Plugins may add more opt-out buttons via
  @racket[drracket:module-language-tools:add-opt-out-toolbar-button].
 
+}
+
+@section{Opting in to Language-Specific Toolbar Buttons}
+
+@language-info-def[drracket:opt-in-toolbar-buttons]{
+ Like @language-info-ref[drracket:opt-out-toolbar-buttons], but for languages to opt in to
+ buttons that are not enabled by default.
+
+ Plugins may add more opt-out buttons via
+ @racket[drracket:module-language-tools:add-opt-in-toolbar-button].
 }
 
 @section{Adding New Toolbar Buttons}

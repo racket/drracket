@@ -213,6 +213,19 @@ all of the names in the tools library, for use defining keybindings
     
     The @racket[number] argument is the same as the @racket[number] argument
     to @method[drracket:unit:frame<%> register-toolbar-button].})
+
+ (proc-doc/names
+  drracket:module-language-tools:add-opt-in-toolbar-button
+  (->* ((-> (is-a?/c top-level-window<%>)
+            (is-a?/c area-container<%>) 
+            (is-a?/c switchable-button%))
+        symbol?)
+       (#:number (or/c real? #f))
+       void?)
+  ((make-button id) ((number #f)))
+  @{Like @racket[drracket:module-language-tools:add-opt-out-toolbar-button], but
+    for buttons that should not be enabled by default, but instead explicitly
+    opted in by languages via @language-info-ref[drracket:opt-in-toolbar-buttons].})
  
  (proc-doc/names
   drracket:module-language-tools:add-online-expansion-handler 

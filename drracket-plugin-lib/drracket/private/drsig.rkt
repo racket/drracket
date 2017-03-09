@@ -126,6 +126,7 @@
    definitions-text-mixin))
 (define-signature drracket:module-language-tools^ extends drracket:module-language-tools-cm^
   (add-opt-out-toolbar-button
+   add-opt-in-toolbar-button
    add-online-expansion-handler
    add-online-expansion-monitor
    register-online-expansion-pref
