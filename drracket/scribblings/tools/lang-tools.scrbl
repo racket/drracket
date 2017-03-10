@@ -205,6 +205,7 @@ specified both ways, then the predicate supplied via
 
  Plugins may add more opt-out buttons via
  @racket[drracket:module-language-tools:add-opt-in-toolbar-button].
+ @history[#:added "1.6"]
 }
 
 @section{Adding New Toolbar Buttons}

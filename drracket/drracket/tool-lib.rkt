@@ -225,7 +225,8 @@ all of the names in the tools library, for use defining keybindings
   ((make-button id) ((number #f)))
   @{Like @racket[drracket:module-language-tools:add-opt-out-toolbar-button], but
     for buttons that should not be enabled by default, but instead explicitly
-    opted in by languages via @language-info-ref[drracket:opt-in-toolbar-buttons].})
+    opted in by languages via @language-info-ref[drracket:opt-in-toolbar-buttons].
+    @history[#:added "1.6"]})
  
  (proc-doc/names
   drracket:module-language-tools:add-online-expansion-handler 
