@@ -341,8 +341,9 @@ Will not work with the definitions text surrogate interposition that
              (loop depth)]))
         (loop)]
        ["#;"
-        (with-handlers ((exn:fail:read? void))
-          (read port)
+        (let/ec k
+          (with-handlers ([exn:fail:read? (λ (x) (k (void)))])
+            (read port))
           (loop))]
        ["#! "
         (read-line-slash-terminates port)
