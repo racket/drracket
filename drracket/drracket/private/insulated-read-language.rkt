@@ -326,6 +326,7 @@ Will not work with the definitions text surrogate interposition that
         (let loop ([depth 0])
           (define p1 (peek-char-or-special port))
           (cond
+            [(eof-object? p1) (void)]
             [(and (equal? p1 #\|)
                   (equal? (peek-char-or-special port 1) #\#))
              (get-it "|#")
@@ -437,6 +438,7 @@ Will not work with the definitions text surrogate interposition that
   (check-equal? (clear-em "#;()1") '(#\1))
   (check-equal? (clear-em "#;  (1 2 3 [] {} ;xx\n 4)  1") '(#\1))
   (check-equal? (clear-em "#||##|#lang rong|#1") '(#\1))
+  (check-equal? (clear-em "#|") '()) ;; make sure this terminates
 
   (let ()
     (define-values (in out) (make-pipe-with-specials))
