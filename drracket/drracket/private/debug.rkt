@@ -525,7 +525,7 @@
       (cond
         [(null? pkgs)
          (when (port-writes-special? (current-error-port))
-           (display "\n  no packages suggestions are available " (current-error-port))
+           (display "\n  no package suggestions are available " (current-error-port))
            (write-special update-pkgs-node (current-error-port)))]
         [else
          (display "\n  packages that provide the missing module:" (current-error-port))
