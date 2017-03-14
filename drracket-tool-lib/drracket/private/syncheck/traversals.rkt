@@ -726,8 +726,10 @@
                                module-lang-requires))))
       
       (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
-        (define unused-hash (hash-ref unused/phases phase+mods))
-        (color-unused require-hash unused-hash module-lang-requires))
+        ;; don't mark for-label requires as unused until we can properly handle them
+        (when (car phase+mods)
+          (define unused-hash (hash-ref unused/phases phase+mods))
+          (color-unused require-hash unused-hash module-lang-requires)))
       
       (annotate-counts connections)
       
@@ -773,6 +775,7 @@
               (when (and pos span)
                 (define start (- pos 1))
                 (define fin (+ start span))
+                (send defs-text syncheck:add-unused-require source-editor start fin)
                 (send defs-text syncheck:add-background-color
                       source-editor start fin "firebrick")))
             (color stx unused-require-style-name)))))
@@ -1434,6 +1437,7 @@
     (log syncheck:add-docs-menu _text start-pos end-pos key the-label path definition-tag tag)
     (log syncheck:add-id-set to-be-renamed/poss dup-name?)
     (log syncheck:add-prefixed-require-reference _req-src req-pos-left req-pos-right)
+    (log syncheck:add-unused-require _req-src req-pos-left req-pos-right)
     
     (define/public (get-trace) (reverse trace))
     (define/public (add-to-trace thing) 
