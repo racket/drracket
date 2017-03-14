@@ -69,6 +69,7 @@
     (define/public (syncheck:add-prefixed-require-reference req-src req-pos-left req-pos-right
                                                             prefix-in-src prefix-in-pos)
       (void))
+    (define/public (syncheck:add-unused-require req-src req-pos-left req-pos-right) (void))
     (super-new)))
 
 (provide syncheck-annotations<%>

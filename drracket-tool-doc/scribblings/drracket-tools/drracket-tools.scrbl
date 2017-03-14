@@ -275,6 +275,16 @@ in order to make the results be platform independent.
   or a similar form). The method is passed
   the location of the @racket[require] in the original program.
  }
+
+ @defmethod[(syncheck:add-unused-require
+             [req-src (not/c #f)]
+             [req-pos-left exact-nonnegative-integer?]
+             [req-pos-right exact-nonnegative-integer?])
+            void?]{
+  This method is called for each @racket[require] that Check Syntax
+  determines to be unused. The method is passed the location of the
+  name of the required module in the original program.
+ }
                   
  @defmethod[(syncheck:add-jump-to-definition [source-obj (not/c #f)] 
                                              [start exact-nonnegative-integer?]

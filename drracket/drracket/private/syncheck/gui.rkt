@@ -456,6 +456,10 @@ If the namespace does not, they are colored the unbound color.
             ;; prefix-table : hash-table[(list text number number) -o> #t]
             ;;   this table records if a given require appears to have already a prefix
             (define prefix-table (make-hash))
+
+            ;; unused-require-table : hash-table[(list text number number) -o> #t]
+            ;; this table records if a given require appears to be unused
+            (define unused-require-table (make-hash))
             
             ;; for use in the automatic test suite (both)
             (define/public (syncheck:get-bindings-table [tooltips? #f])
@@ -739,6 +743,17 @@ If the namespace does not, they are colored the unbound color.
                 (when arrows
                   (tack/untack-callback arrows))))
 
+            (define/public (remove-unused-requires txt pos)
+              (define unused-reqs
+                (sort (for/list ([(k _) (in-hash unused-require-table)])
+                        k)
+                      >
+                      #:key cadr))
+              (for ([req (in-list unused-reqs)])
+                (match-define (list edit start end) req)
+                (send edit delete start end))
+              (hash-clear! unused-require-table))
+
             (define/public (add-prefix-for-require txt pos)
               (define binding-identifiers (position->binding-arrows txt pos pos #t))
               (define candidate-binders/possibly-prefixed
@@ -982,6 +997,11 @@ If the namespace does not, they are colored the unbound color.
                                                                     req-pos-left
                                                                     req-pos-right)
               (hash-set! prefix-table (list req-text req-pos-left req-pos-right) #t))
+
+            (define/public (syncheck:add-unused-require req-text
+                                                        req-pos-left
+                                                        req-pos-right)
+              (hash-set! unused-require-table (list req-text req-pos-left req-pos-right) #t))
             
             ;; syncheck:add-mouse-over-status : text pos-left pos-right string -> void
             (define/public (syncheck:add-mouse-over-status text pos-left pos-right str)
@@ -1390,6 +1410,10 @@ If the namespace does not, they are colored the unbound color.
                        [label "Add Require Prefix"]
                        [parent menu]
                        [callback (λ (item evt) (add-prefix-for-require text pos))])
+                  (new menu-item%
+                       [label "Remove Unused Requires"]
+                       [parent menu]
+                       [callback (λ (item evt) (remove-unused-requires text pos))])
                   (for ([f (in-list add-menus)])
                     (f menu))
                   
@@ -2108,7 +2132,9 @@ If the namespace does not, they are colored the unbound color.
              (send defs-text syncheck:add-id-set to-be-renamed/poss/fixed name-dup?)]
             [`#(syncheck:add-prefixed-require-reference ,id-pos-left ,id-pos-right)
              (send defs-text syncheck:add-prefixed-require-reference
-                   defs-text id-pos-left id-pos-right)]))
+                   defs-text id-pos-left id-pos-right)]
+            [`#(syncheck:add-unused-require ,req-pos-left ,req-pos-right)
+             (send defs-text syncheck:add-unused-require defs-text req-pos-left req-pos-right)]))
         
         (define/private (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels)
           (define (name-dup? name) 
