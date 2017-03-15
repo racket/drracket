@@ -726,6 +726,7 @@
                                module-lang-requires))))
       
       (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
+        ;; don't mark for-label requires as unused until we can properly handle them
         (when (car phase+mods)
           (define unused-hash (hash-ref unused/phases phase+mods))
           (color-unused require-hash unused-hash module-lang-requires)))
