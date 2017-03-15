@@ -409,7 +409,8 @@ in order to make the results be platform independent.
                     syncheck:add-jump-to-definition
                     syncheck:add-id-set 
                     syncheck:color-range
-                    syncheck:add-prefixed-require-reference]
+                    syncheck:add-prefixed-require-reference
+                    syncheck:add-unused-require]
 
 @section{Module Browser}
 
