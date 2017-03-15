@@ -726,8 +726,9 @@
                                module-lang-requires))))
       
       (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
-        (define unused-hash (hash-ref unused/phases phase+mods))
-        (color-unused require-hash unused-hash module-lang-requires))
+        (when (car phase+mods)
+          (define unused-hash (hash-ref unused/phases phase+mods))
+          (color-unused require-hash unused-hash module-lang-requires)))
       
       (annotate-counts connections)
       
