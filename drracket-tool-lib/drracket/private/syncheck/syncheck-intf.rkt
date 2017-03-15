@@ -17,6 +17,7 @@
     syncheck:add-jump-to-definition
     syncheck:add-definition-target
     syncheck:add-prefixed-require-reference
+    syncheck:add-unused-require
     syncheck:color-range
     
     syncheck:add-rename-menu))
