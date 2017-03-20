@@ -265,3 +265,41 @@
      (list (subtract-prefix (list-ref arrow 0))
            (subtract-prefix (list-ref arrow 1))))
    (set '((15 19 0.5 0.5) (24 28 0.5 0.5)))))
+
+;; Unused requires
+(let ()
+  (define-values (add-syntax done)
+    (make-traversal (make-base-namespace) #f))
+
+  (define collector%
+    (class (annotations-mixin object%)
+      (super-new)
+      (define unused-requires (set))
+
+      (define/override (syncheck:find-source-object stx) stx)
+      (define/override (syncheck:add-arrow start-text start-pos-left start-pos-right
+                                       end-text end-pos-left end-pos-right
+                                       actual? level)
+        (void))
+
+      (define/override (syncheck:add-unused-require _ left right)
+          (set! unused-requires
+                (set-add unused-requires
+                         (list left right))))
+      (define/public (get-unused-requires) unused-requires)))
+
+  (define annotations (new collector%))
+  (parameterize ([current-annotations annotations]
+                 [current-namespace (make-base-namespace)])
+    (add-syntax (expand
+                 (read-syntax
+                   'the-source
+                   (open-input-string
+                    (format "~s"
+                            `(module m racket/base
+                               (require racket/match)
+                               (+ 1 2)))))))
+    (done))
+  (check-equal?
+   (send annotations get-unused-requires)
+   (set '(31 43))))
