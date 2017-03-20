@@ -743,16 +743,29 @@ If the namespace does not, they are colored the unbound color.
                 (when arrows
                   (tack/untack-callback arrows))))
 
+            (define (find-preceding-ws-pos edit pos)
+              (let loop ([token-type (send edit classify-position (sub1 pos))]
+                         [current-pos pos])
+                (cond
+                  [(eq? token-type 'white-space)
+                   (define-values (ws-start ws-end)
+                     (send edit get-token-range (sub1 current-pos)))
+                   (loop (send edit classify-position (sub1 ws-start)) ws-start)]
+                  [else current-pos])))
+
             (define/public (remove-unused-requires txt pos)
               (define unused-reqs
                 (sort (for/list ([(k _) (in-hash unused-require-table)])
                         k)
                       >
                       #:key cadr))
+              (begin-edit-sequence)
               (for ([req (in-list unused-reqs)])
                 (match-define (list edit start end) req)
-                (send edit delete start end))
-              (hash-clear! unused-require-table))
+                (define prev-token-end (find-preceding-ws-pos edit start))
+                (send edit delete prev-token-end end))
+              (hash-clear! unused-require-table)
+              (end-edit-sequence))
 
             (define/public (add-prefix-for-require txt pos)
               (define binding-identifiers (position->binding-arrows txt pos pos #t))
