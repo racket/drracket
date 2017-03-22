@@ -460,6 +460,10 @@ If the namespace does not, they are colored the unbound color.
             ;; prefix-table : hash-table[(list text number number) -o> #t]
             ;;   this table records if a given require appears to have already a prefix
             (define prefix-table (make-hash))
+
+            ;; unused-require-table : hash-table[(list text number number) -o> #t]
+            ;; this table records if a given require appears to be unused
+            (define unused-require-table (make-hash))
             
             ;; for use in the automatic test suite (both)
             (define/public (syncheck:get-bindings-table [tooltips? #f])
