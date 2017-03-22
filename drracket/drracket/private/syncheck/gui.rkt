@@ -602,7 +602,8 @@ If the namespace does not, they are colored the unbound color.
               (set! arrow-records (make-hasheq))
               (set! bindings-table (make-hash))
               (set! cleanup-texts '())
-              (set! definition-targets (make-hash)))
+              (set! definition-targets (make-hash))
+              (set! unused-require-table (make-hash)))
             
             (define/public (syncheck:arrows-visible?)
               (or arrow-records cursor-pos cursor-text cursor-eles cursor-tooltip))
