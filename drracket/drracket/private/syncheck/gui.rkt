@@ -752,6 +752,9 @@ If the namespace does not, they are colored the unbound color.
                    (define-values (ws-start ws-end)
                      (send edit get-token-range (sub1 current-pos)))
                    (loop (send edit classify-position (sub1 ws-start)) ws-start)]
+                  [(and (eq? token-type 'comment)
+                        (char=? (send edit get-character current-pos) #\newline))
+                   (add1 current-pos)]
                   [else current-pos])))
 
             (define/public (remove-unused-requires txt pos)
