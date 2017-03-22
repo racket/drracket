@@ -767,7 +767,8 @@ If the namespace does not, they are colored the unbound color.
               (for ([req (in-list unused-reqs)])
                 (match-define (list edit start end) req)
                 (define prev-token-end (find-preceding-ws-pos edit start))
-                (send edit delete prev-token-end end))
+                (send edit delete prev-token-end end)
+                (send edit tabify prev-token-end))
               (hash-clear! unused-require-table)
               (end-edit-sequence))
 
