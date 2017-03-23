@@ -759,10 +759,7 @@ If the namespace does not, they are colored the unbound color.
 
             (define/public (remove-unused-requires txt pos)
               (define unused-reqs
-                (sort (for/list ([(k _) (in-hash unused-require-table)])
-                        k)
-                      >
-                      #:key cadr))
+                (sort (hash-keys unused-require-table) > #:key cadr))
               (begin-edit-sequence)
               (for ([req (in-list unused-reqs)])
                 (match-define (list edit start end) req)
