@@ -780,7 +780,14 @@
                 (send defs-text syncheck:add-background-color
                       source-editor start fin "firebrick")))
             (color stx unused-require-style-name)))))
-    
+
+    ;; color-unused-binder : source integer integer -> void
+    (define (color-unused-binder source start end)
+      (define defs-text (current-annotations))
+      (when (and defs-text source)
+        (send defs-text syncheck:add-background-color source start end "firebrick"))
+      (color-range source start end unused-require-style-name))
+
     (define (self-module? mpi)
       (let-values ([(a b) (module-path-index-split mpi)])
         (and (not a) (not b))))
@@ -982,6 +989,8 @@
                                   (format (string-constant cs-binder-count) end))))
           (cond
             [(zero? end)   ;; assume this is a binder, show uses
+             (when (zero? start)
+               (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
              (show-starts)]
             [(zero? start) ;; assume this is a use, show bindings (usually just one, so do nothing)
              (show-ends)]
