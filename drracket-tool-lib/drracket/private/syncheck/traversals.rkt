@@ -669,7 +669,8 @@
         (define level (list-ref level+mods 0))
         (define mods (list-ref level+mods 1))
         (define binders (lookup-phase-to-mapping phase-to-binders level))
-        (define varsets (lookup-phase-to-mapping phase-to-varsets level)) 
+        (define varsets (lookup-phase-to-mapping phase-to-varsets level))
+        (initialize-binder-connections binders connections)
         (for ([vars (in-list (get-idss varrefs))])
           (for ([var (in-list vars)])
             (color-variable var level varsets)
@@ -1006,7 +1007,21 @@
                (let ([path (caddr b)])
                  (and (module-path-index? path)
                       (self-module? path))))))
-    
+
+    ;; initialize-binder-connections : id-set connections -> void
+    (define (initialize-binder-connections binders connections)
+      (for ([binder (in-list (free-id-table-keys binders))])
+        (define source (find-source-editor binder))
+        (define pos (syntax-position binder))
+        (define span (syntax-span binder))
+        (when (and pos span)
+          (define pos-left (sub1 pos))
+          (define pos-right (+ pos-left span))
+          (define connections-start
+            (list source pos-left pos-right))
+          (unless (hash-ref connections connections-start #f)
+            (hash-set! connections connections-start (cons 0 0))))))
+
     ;; connect-syntaxes : syntax[original] syntax[original] boolean symbol connections -> void
     ;; adds an arrow from `from' to `to', unless they have the same source loc. 
     (define (connect-syntaxes from to actual? all-binders level connections require-arrow?
