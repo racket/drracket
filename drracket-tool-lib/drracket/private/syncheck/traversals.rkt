@@ -732,8 +732,6 @@
           (define unused-hash (hash-ref unused/phases phase+mods))
           (color-unused require-hash unused-hash module-lang-requires)))
       
-      (annotate-counts connections)
-      
       (for ([(level+mods directives) (in-hash sub-identifier-binding-directives)])
         (define phase-level (list-ref level+mods 0))
         (define mods (list-ref level+mods 1))
@@ -752,7 +750,9 @@
                                 #:from-start from-start #:from-width from-span
                                 #:from-dx from-dx #:from-dy from-dy
                                 #:to-start to-start #:to-width to-span
-                                #:to-dx to-dx #:to-dy to-dy))))))
+                                #:to-dx to-dx #:to-dy to-dy)))))
+
+      (annotate-counts connections))
     
     ;; color-unused : hash-table[sexp -o> syntax] hash-table[sexp -o> #f] hash-table[syntax -o> #t]
     ;;             -> void
