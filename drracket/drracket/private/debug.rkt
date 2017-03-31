@@ -995,8 +995,8 @@
         (send text insert (number->string skip-count))
         (send text insert " duplicate frame")
         (unless (= skip-count 1)
-          (send text insert "s"))
-        (send text insert #\newline))
+          (send text insert "s")))
+      (send text insert #\newline)
       
       (when (and start span)
         (insert-context editor-canvas text debug-source start span defs ints)
