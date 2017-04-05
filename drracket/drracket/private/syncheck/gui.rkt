@@ -1101,7 +1101,7 @@ If the namespace does not, they are colored the unbound color.
                 ;; update the known editor location for the upper-left corner
                 (define scrolled? (update-view-corner admin))
                 ;; when painting on the canvas the mouse is over...
-                (when (eq? mouse-admin admin)
+                (when (or (not mouse-admin) (object=? mouse-admin admin))
                   (define update-tooltip-frame-and-matching-identifiers?
                     (cond
                       ;; turn off arrows immediately if scrolling
