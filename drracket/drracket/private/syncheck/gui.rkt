@@ -1074,44 +1074,13 @@ If the namespace does not, they are colored the unbound color.
                   (when any-tacked?
                     (invalidate-bitmap-cache/padding)))))
             
-            (define view-corner-hash (make-weak-hasheq))
-            
-            (define/private (get-last-view-corner admin)
-              (hash-ref view-corner-hash admin (λ () (cons #f #f))))
-            
-            (define/private (set-last-view-corner! admin corner)
-              (hash-set! view-corner-hash admin corner))
-            
-            (define/private (get-view-corner admin)
-              (define new-x (box #f))
-              (define new-y (box #f))
-              (send admin get-view new-x new-y #f #f)
-              (cons (unbox new-x) (unbox new-y)))
-            
-            (define/private (update-view-corner admin)
-              (define old-corner (get-last-view-corner admin))
-              (define new-corner (get-view-corner admin))
-              (define scrolled? (not (equal? old-corner new-corner)))
-              (set-last-view-corner! admin new-corner)
-              scrolled?)
-            
             (define/override (on-paint before dc left top right bottom dx dy draw-caret)
               (when (and arrow-records (not before))
                 (define admin (get-admin))
-                ;; update the known editor location for the upper-left corner
-                (define scrolled? (update-view-corner admin))
                 ;; when painting on the canvas the mouse is over...
                 (when (or (not mouse-admin) (object=? mouse-admin admin))
                   (define update-tooltip-frame-and-matching-identifiers?
                     (cond
-                      ;; turn off arrows immediately if scrolling
-                      [scrolled? (set! cursor-tooltip #f)
-                                 (set! cursor-pos #f)
-                                 (set! cursor-text #f)
-                                 (set! cursor-eles #f)
-                                 (update-docs-background #f)
-                                 (start-arrow-draw-cooldown syncheck-scroll-arrow-cooldown)
-                                 #t]
                       ;; try to update the tooltips if they're wrong
                       [(eq? cursor-tooltip 'out-of-sync)
                        (set! cursor-tooltip (get-tooltip cursor-eles))
