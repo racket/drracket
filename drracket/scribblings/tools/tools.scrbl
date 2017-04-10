@@ -131,7 +131,7 @@ For example, if the @File{info.rkt} file in a collection
 contains:
 @racketmod[
 info
-(define drracket-name "Tool Name")
+(define drracket-tool-names (list "Tool Name"))
 (define drracket-tools (list (list "tool.rkt")))
 ]
 then the same collection would be expected to contain a
