@@ -971,9 +971,10 @@
     ;; to do this, but maybe lets leave that for another day.
     (define (annotate-counts connections)
       (for ([(key val) (in-hash connections)])
-        (when (pair? val) 
-          (define start (car val))
-          (define end (cdr val))
+        (when (list? val)
+          (define start (first val))
+          (define end (second val))
+          (define color? (third val))
           (define (show-starts)
             (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
                                 (cond
@@ -989,7 +990,7 @@
                                   (format (string-constant cs-binder-count) end))))
           (cond
             [(zero? end)   ;; assume this is a binder, show uses
-             (when (zero? start)
+             (when (and color? (zero? start))
                (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
              (show-starts)]
             [(zero? start) ;; assume this is a use, show bindings (usually just one, so do nothing)
@@ -1029,7 +1030,9 @@
           (define connections-start
             (list source pos-left pos-right))
           (unless (hash-ref connections connections-start #f)
-            (hash-set! connections connections-start (cons 0 0))))))
+            ;; before we find any references we should consider this binder to be colored red
+            ;; only flip to #f when we find a reference
+            (hash-set! connections connections-start (list 0 0 #t))))))
 
     ;; connect-syntaxes : syntax[original] syntax[original] boolean symbol connections -> void
     ;; adds an arrow from `from' to `to', unless they have the same source loc. 
@@ -1061,43 +1064,51 @@
           (define to-pos-right (+ to-pos-left to-width))
           ;; just an approximation; could be tightened if this is problematic
           (define arrow-points-to-itself? (= from-pos-left to-pos-left))
-          (unless arrow-points-to-itself?
-            (define connections-start/no-pxpy
-              (list from-source from-pos-left from-pos-right))
-            (define connections-end/no-pxpy
-              (list to-source to-pos-left to-pos-right))
-            (define connections-key
-              (list (list from-source from-pos-left from-pos-right from-dx from-dy)
-                    (list to-source to-pos-left to-pos-right to-dx to-dy)))
-            (unless (hash-ref connections connections-key #f)
-              (hash-set! connections connections-key #t)
-              (define start-before (or (hash-ref connections connections-start/no-pxpy #f)
-                                       (cons 0 0)))
-              (define end-before (or (hash-ref connections connections-end/no-pxpy #f)
-                                     (cons 0 0)))
-              (hash-set! connections connections-start/no-pxpy
-                         (cons (+ (car start-before) 1) (cdr start-before)))
-              (hash-set! connections connections-end/no-pxpy
-                         (cons (car end-before) (+ 1 (cdr end-before)))))
-            (define (name-dup? str)
-              (define sym (string->symbol str))
-              (define id1 (datum->syntax from sym))
-              (define id2 (datum->syntax to sym)) ;; do I need both?
-              (define ans #f)
-              (for-each-id
-               all-binders
-               (λ (ids)
-                 (set! ans (or ans
-                               (for/or ([id (in-list ids)])
-                                 (or (free-identifier=? id1 id level)
-                                     (free-identifier=? id2 id level)))))))
-              ans)
-            (when (and (<= from-pos-left from-pos-right)
-                       (<= to-pos-left to-pos-right))
-              (send defs-text syncheck:add-arrow/name-dup/pxpy
-                    from-source from-pos-left from-pos-right from-dx from-dy
-                    to-source to-pos-left to-pos-right to-dx to-dy
-                    actual? level require-arrow? name-dup?))))))
+          (define connections-start/no-pxpy
+            (list from-source from-pos-left from-pos-right))
+          (define connections-end/no-pxpy
+            (list to-source to-pos-left to-pos-right))
+          (define connections-key
+            (list (list from-source from-pos-left from-pos-right from-dx from-dy)
+                  (list to-source to-pos-left to-pos-right to-dx to-dy)))
+          (cond
+            [(not arrow-points-to-itself?)
+             (unless (hash-ref connections connections-key #f)
+               (hash-set! connections connections-key #t)
+               (define start-before (or (hash-ref connections connections-start/no-pxpy #f)
+                                        (list 0 0 #t)))
+               (define end-before (or (hash-ref connections connections-end/no-pxpy #f)
+                                      (list 0 0 #t)))
+               (hash-set! connections connections-start/no-pxpy
+                          (list (+ (first start-before) 1) (second start-before) (third start-before)))
+               (hash-set! connections connections-end/no-pxpy
+                          (list (first end-before) (+ 1 (second end-before)) (third end-before))))
+             (define (name-dup? str)
+               (define sym (string->symbol str))
+               (define id1 (datum->syntax from sym))
+               (define id2 (datum->syntax to sym)) ;; do I need both?
+               (define ans #f)
+               (for-each-id
+                all-binders
+                (λ (ids)
+                  (set! ans (or ans
+                                (for/or ([id (in-list ids)])
+                                  (or (free-identifier=? id1 id level)
+                                      (free-identifier=? id2 id level)))))))
+               ans)
+             (when (and (<= from-pos-left from-pos-right)
+                        (<= to-pos-left to-pos-right))
+               (send defs-text syncheck:add-arrow/name-dup/pxpy
+                     from-source from-pos-left from-pos-right from-dx from-dy
+                     to-source to-pos-left to-pos-right to-dx to-dy
+                     actual? level require-arrow? name-dup?))]
+            [else
+             (unless (hash-ref connections connections-key #f)
+               (hash-set! connections connections-key #t)
+               (define start-before (or (hash-ref connections connections-start/no-pxpy #f)
+                                        (list 0 0 #t)))
+               (hash-set! connections connections-start/no-pxpy
+                          (list (first start-before) (second start-before) #f)))]))))
     
     ;; add-jump-to-definition : syntax symbol path -> void
     ;; registers the range in the editor so that the

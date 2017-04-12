@@ -447,7 +447,7 @@
                   (" ("                    default-color)
                   ("rec"                   imported-syntax)
                   (" "                     default-color)
-                  ("f"                     unused-require)
+                  ("f"                     lexically-bound)
                   (" "                     default-color)
                   ("1"                     constant)
                   (")))"                   default-color))
@@ -564,7 +564,7 @@
                   (" mzlib/etc) ("        default-color)
                   ("rec"                  imported-syntax)
                   (" "                    default-color)
-                  ("f"                    unused-require)
+                  ("f"                    lexically-bound)
                   (" "                    default-color)
                   ("1"                    constant)
                   (")"                    default-color))
@@ -829,7 +829,7 @@
                   (" mzlib/etc) ("         default-color)
                   ("rec"                   imported-syntax)
                   (" "                     default-color)
-                  ("f"                     unused-require)
+                  ("f"                     lexically-bound)
                   (" "                     default-color)
                   ("1"                     constant)
                   ("))"                    default-color))
@@ -1110,6 +1110,37 @@
                    ("))" default-color))
                  (list '((6 12) (14 31) (38 54) (56 63))
                        '((32 33) (69 70))))
+
+     (build-test
+      (string-append
+       "#lang racket\n"
+       "(define-syntax-rule (define/provide x e)\n"
+       "  (begin (define x e)\n"
+       "         (provide x)))\n"
+       "(define/provide x 1)\n")
+      `(("#lang racket\n("        default-color)
+        ("define-syntax-rule"     imported)
+        (" ("                     default-color)
+        ("define/provide"         lexically-bound)
+        (" "                      default-color)
+        ("x"                      lexically-bound)
+        (" "                      default-color)
+        ("e"                      lexically-bound)
+        (")\n  (begin (define "   default-color)
+        ("x"                      lexically-bound)
+        (" "                      default-color)
+        ("e"                      lexically-bound)
+        (")\n         (provide "  default-color)
+        ("x"                      lexically-bound)
+        (")))\n("                 default-color)
+        ("define/provide"         lexically-bound)
+        (" "                      default-color)
+        ("x"                      lexically-bound)
+        (" 1)\n"                  default-color))
+      (list '((6 12) (14 32) (57 62) (64 70) (86 93))
+            '((34 48) (100 114))
+            '((49 50) (71 72) (94 95))
+            '((51 52) (73 74))))
      
      (build-test 
       (λ (fn) 
