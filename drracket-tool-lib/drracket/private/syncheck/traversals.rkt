@@ -990,7 +990,7 @@
                                   (format (string-constant cs-binder-count) end))))
           (cond
             [(zero? end)   ;; assume this is a binder, show uses
-             #;(when (and color? (zero? start))
+             (when (and color? (zero? start))
                (color-unused-binder (list-ref key 0) (list-ref key 1) (list-ref key 2)))
              (show-starts)]
             [(zero? start) ;; assume this is a use, show bindings (usually just one, so do nothing)
