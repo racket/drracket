@@ -1,8 +1,16 @@
 ------------------------------
-       Version 6.8
+       Version 6.9
 ------------------------------
 
+  . add the "remove unused requires" refactoring
+
   . improved support for #lang-based tooling
+
+  . add opt-in toolbar buttons
+
+  . add support for #lang-specified keybindings
+
+  . bug fixes and minor performance improvements
 
 ------------------------------
        Version 6.8
