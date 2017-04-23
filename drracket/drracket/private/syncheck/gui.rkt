@@ -2211,17 +2211,6 @@ If the namespace does not, they are colored the unbound color.
               (send report-error-parent-panel set-percentages 
                     (list p (- 1 p))))
             (send report-error-parent-panel start-recording-prefs)))
-        
-        (define rest-panel 'uninitialized-root)
-        (define super-root 'uninitialized-super-root)
-        (define/override (make-root-area-container % parent)
-          (let* ([s-root (super make-root-area-container
-                                vertical-panel%
-                                parent)]
-                 [r-root (make-object % s-root)])
-            (set! super-root s-root)
-            (set! rest-panel r-root)
-            r-root))
                 
         (inherit open-status-line close-status-line update-status-line ensure-rep-hidden)
         ;; syncheck:button-callback : (case-> (-> void) ((union #f syntax) -> void)
