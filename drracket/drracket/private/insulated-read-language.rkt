@@ -293,9 +293,21 @@ Will not work with the definitions text surrogate interposition that
 
 (define (looks-like-new-module-style? text)
   (define tp (open-input-text-editor text 0 'end (lambda (s) s) text #t))
+  (looks-like-new-module-style?/port tp))
+
+(define (looks-like-new-module-style?/port tp)
   (skip-past-comments tp)
-  (or (regexp-match? #rx"^#lang " (peeking-input-port tp))
-      (regexp-match? #rx"^#![a-zA-Z0-9+-_]" tp)))
+  (or (prefix-is? (peeking-input-port tp) #\# #\l #\a #\n #\g #\space)
+      (prefix-is? tp #\# #\!
+                  (λ (x)
+                    (and (char? x)
+                         (regexp-match? #rx"[a-zA-Z0-9+-_]" (string x)))))))
+
+(define (prefix-is? port . things)
+  (for/and ([thing (in-list things)])
+    (define pred (if (char? thing) (λ (x) (equal? x thing)) thing))
+    (define c-or-s (read-char-or-special port))
+    (pred c-or-s)))
 
 (module skip-past-comments racket/base
   (provide skip-past-comments)
@@ -479,4 +491,21 @@ Will not work with the definitions text surrogate interposition that
   (check-equal? (let ([t (new text%)])
                   (send t insert ";; abc\n #!r6rs")
                   (looks-like-new-module-style? t))
-                #t))
+                #t)
+
+  (let ()
+    (define-values (in out) (make-pipe-with-specials))
+    (thread
+     (λ ()
+       (write-special '(x) out)
+       (display "\n1" out)
+       (close-output-port out)))
+    (check-false (looks-like-new-module-style?/port in)))
+
+  (check-false (looks-like-new-module-style?/port
+                (open-input-string "(module m racket/base")))
+  (check-true (looks-like-new-module-style?/port
+               (open-input-string "#lang racket/base")))
+  (check-true (looks-like-new-module-style?/port (open-input-string "#!r")))
+  (check-false (looks-like-new-module-style?/port (open-input-string "#langg")))
+  (check-false (looks-like-new-module-style?/port (open-input-string "#la"))))
