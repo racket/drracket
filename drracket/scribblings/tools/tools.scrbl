@@ -3,6 +3,7 @@
    (require scribble/manual
             "common.rkt"
             scribble/racket
+            (for-label racket/syntax)
             (for-syntax racket/base
                         "example-src.rkt"))
    
@@ -577,8 +578,8 @@ additional arrows to the program text. These properties are
 intended for use when a macro discards or manufactures identifiers that,
 from the programmers perspective, should be binding each other.
 
-For example, here is a macro that discards its arguments, but
-adds properties to the result syntax object so the arguments
+For example, here is program with a macro that discards its arguments, but
+adds properties to the result syntax object so that the two occurrences of @racket[_a]
 are treated as a binding/bound pair by Check Syntax.
 
 @racketblock[
@@ -590,7 +591,9 @@ are treated as a binding/bound pair by Check Syntax.
         (syntax-property
          #'1
          'disappeared-use (list (syntax-local-introduce #'id1)))
-        'disappeared-binding (list (syntax-local-introduce #'id2)))]))]
+        'disappeared-binding (list (syntax-local-introduce #'id2)))]))
+
+  (m a a)]
 
 See also @racket[current-recorded-disappeared-uses].
 
