@@ -292,22 +292,18 @@ Will not work with the definitions text surrogate interposition that
          (eq? (car r1) 'module))))
 
 (define (looks-like-new-module-style? text)
-  (define tp (open-input-text-editor text 0 'end (lambda (s) s) text #t))
-  (looks-like-new-module-style?/port tp))
+  (looks-like-new-module-style?/port
+    (open-input-text-editor text 0 'end (lambda (s) s) text #t)))
 
-(define (looks-like-new-module-style?/port tp)
+(define (looks-like-new-module-style?/port special-tp)
+  (define (special-filter f bytes)
+    ;; @ is not accepted anywhere in either of the regexps below
+    (bytes-set! bytes 0 (char->integer #\@))
+    1)
+  (define tp (special-filter-input-port special-tp special-filter))
   (skip-past-comments tp)
-  (or (prefix-is? (peeking-input-port tp) #\# #\l #\a #\n #\g #\space)
-      (prefix-is? tp #\# #\!
-                  (λ (x)
-                    (and (char? x)
-                         (regexp-match? #rx"[a-zA-Z0-9+-_]" (string x)))))))
-
-(define (prefix-is? port . things)
-  (for/and ([thing (in-list things)])
-    (define pred (if (char? thing) (λ (x) (equal? x thing)) thing))
-    (define c-or-s (read-char-or-special port))
-    (pred c-or-s)))
+  (or (regexp-match? #rx"^#lang " (peeking-input-port tp))
+      (regexp-match? #rx"^#![a-zA-Z0-9+-_]" tp)))
 
 (module skip-past-comments racket/base
   (provide skip-past-comments)
