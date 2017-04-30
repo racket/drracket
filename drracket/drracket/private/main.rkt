@@ -21,7 +21,9 @@
          scribble/tag
          setup/xref
          scribble/xref
-         net/url)
+         net/url
+         racket/place
+         racket/future)
 
 (import [prefix drracket:app: drracket:app^]
         [prefix drracket:unit: drracket:unit^]
@@ -567,7 +569,9 @@
                   lang
                   (or settings (send lang default-settings)))))))))
 
-  (preferences:set-default 'drracket:online-compilation-default-on #t boolean?)
+  (preferences:set-default 'drracket:online-compilation-default-on
+                           (and (place-enabled?) ((processor-count) . > . 1))
+                           boolean?)
   (preferences:set-default 'drracket:online-expansion:read-in-defs-errors 
                            'margin
                            (or/c 'margin 'gold))
