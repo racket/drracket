@@ -595,7 +595,13 @@ are treated as a binding/bound pair by Check Syntax.
 
   (m a a)]
 
-See also @racket[current-recorded-disappeared-uses].
+Check Syntax draws arrows only between identifiers that are
+@racket[free-identifier=?]. They must be
+@racket[syntax-original?] or have the
+@racket[syntax-property]
+@indexed-racket['original-for-check-syntax] set to
+@racket[#t]. See also
+@racket[current-recorded-disappeared-uses].
 
 Another approach for situations where identifiers are discarded by a
 macro is to introduce a @racket[let] expression that doesn't contribute
@@ -776,10 +782,6 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
                (syntax-span stx))))]))
 
 (char-span (+ 1 2))}
-
-Finally, Check Syntax draws arrows only between identifiers that are @racket[syntax-original?]
-or that have the @racket[syntax-property] @indexed-racket['original-for-check-syntax]
-set to @racket[#t].
 
 @history[#:changed "1.3" @list{
           Looks for @racket['sub-range-binders]
