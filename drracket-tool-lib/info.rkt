@@ -7,7 +7,10 @@
                ["string-constants-lib" #:version "1.12"]
                "scribble-lib"
                "racket-index"
-               "gui-lib"))
+               "gui-lib"
+               "typed-racket-lib"
+               "unstable-contract-lib"
+               ))
 (define build-deps '("at-exp-lib"
                      "rackunit-lib"))
 
