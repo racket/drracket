@@ -437,7 +437,7 @@ the settings above should match r5rs
     
     (test-expression 
      "#lang racket"
-     (regexp (regexp-quote "#%module-begin: illegal use (not a module body) in: (#%module-begin)"))
+     #rx"module-begin: illegal use"
      #rx"read: #lang not enabled in the current context")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
