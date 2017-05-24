@@ -4,6 +4,7 @@
          racket/gui/base
          drracket/private/drsig
          framework
+         framework/private/srcloc-panel
          string-constants)
 
 (define sc-smoothing-label (string-constant font-smoothing-label))
@@ -199,7 +200,7 @@
        (define text (new (text:foreground-color-mixin
                           (editor:standard-style-list-mixin 
                            text:line-spacing%))))
-       (define ex-panel (new horizontal-panel% [parent main]))
+       (define ex-panel (new-horizontal-panel% [parent main]))
        (define msg (new message% 
                         [label (string-constant example-text)]
                         [parent ex-panel]))

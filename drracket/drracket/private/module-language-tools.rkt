@@ -6,6 +6,7 @@
          racket/contract
          racket/place
          framework
+         framework/private/srcloc-panel
          racket/unit
          racket/class
          racket/gui/base
@@ -150,7 +151,7 @@
               (super make-root-area-container vertical-panel% parent))
         (define root (make-object cls hash-lang-error-parent-panel))
         (set! hash-lang-error-panel
-              (new horizontal-panel%
+              (new-horizontal-panel%
                    [stretchable-height #f]
                    [parent hash-lang-error-parent-panel]))
 

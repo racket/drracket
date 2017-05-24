@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require framework
+         framework/private/srcloc-panel
          racket/class
          racket/contract
          racket/unit
@@ -82,7 +83,7 @@
                            (gui-utils:trim-string (search-info-search-string search-info)
                                                   (- 200 (string-length fmt-s)))))]))
     (define panel (make-object saved-vertical-resizable% (send frame get-area-container)))
-    (define button-panel (new horizontal-panel%
+    (define button-panel (new-horizontal-panel%
                               [parent (send frame get-area-container)]
                               [alignment '(right center)]
                               [stretchable-height #f]))
@@ -478,7 +479,7 @@
                                            [stretchable-height #f]))
         (define outer-files-panel (make-object vertical-panel% configure-search-window '(border)))
         (define outer-method-panel (make-object vertical-panel% configure-search-window '(border)))
-        (define button-panel (new horizontal-panel% 
+        (define button-panel (new-horizontal-panel% 
                                   [parent configure-search-window]
                                   [alignment '(right center)]
                                   [stretchable-height #f]))
@@ -493,16 +494,16 @@
         (define method-inset-panel (make-object horizontal-panel% method-inset-outer-panel))
         (define method-panel (make-object vertical-panel% method-inset-outer-panel))
         
-        (define multi-dir+browse-collections-panel (new horizontal-panel% 
+        (define multi-dir+browse-collections-panel (new-horizontal-panel% 
                                                         [alignment '(center top)]
                                                         [stretchable-height #f]
                                                         [parent files-panel]))
-        (define multi-dir-panel (new vertical-panel% [parent multi-dir+browse-collections-panel]))
+        (define multi-dir-panel (new-vertical-panel% [parent multi-dir+browse-collections-panel]))
         (define dir-fields '())
         (define (add-a-dir-field init-value)
           (send configure-search-window begin-container-sequence)
           (define need-to-add-closers? (and (pair? dir-fields) (null? (cdr dir-fields))))
-          (define dir-panel (new horizontal-panel%
+          (define dir-panel (new-horizontal-panel%
                                  [parent multi-dir-panel]
                                  [stretchable-height #f]))
           (define dir-field
@@ -600,14 +601,14 @@
                                    [dir-field (in-list dir-fields)])
                                (send dir-field set-value (path->string path)))
                              (update-directory-prefs)))]))
-        (define recur+another-parent (new horizontal-panel%
+        (define recur+another-parent (new-horizontal-panel%
                                           [parent files-panel]
                                           [stretchable-height #f]))
         (define recur-check-box (new check-box% 
                                      [label (string-constant mfs-recur-over-subdirectories)]
                                      [parent recur+another-parent]
                                      [callback (λ (x y) (recur-check-box-callback))]))
-        (new horizontal-panel% [parent recur+another-parent]) ;; spacer
+        (new-horizontal-panel% [parent recur+another-parent]) ;; spacer
         (define another-dir-button (new button%
                                         [label sc-add-another-directory]
                                         [parent recur+another-parent]

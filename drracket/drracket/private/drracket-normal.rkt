@@ -310,3 +310,15 @@
 (dynamic-require 'drracket/tool-lib #f)
 (shutdown-splash)
 (close-splash)
+
+(let loop ()
+  (queue-callback
+   (λ ()
+     (define w (get-top-level-focus-window))
+     (cond
+       [w
+        (printf "~s\n" w)
+        ((dynamic-require 'framework/private/srcloc-panel 'show-srclocs) w)]
+       [else
+        (loop)]))
+   #f))

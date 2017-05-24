@@ -192,6 +192,7 @@
          drracket/private/drsig
          racket/gui/base
          framework
+         framework/private/srcloc-panel
          net/url
          net/head
          setup/plt-installer
@@ -441,10 +442,10 @@
            [choices (list (string-constant install-plt-web-tab)
                           (string-constant install-plt-file-tab))]))
     (define outer-swapping-panel
-      (new horizontal-panel% [parent tab-panel]
+      (new-horizontal-panel% [parent tab-panel]
            [stretchable-height #f]))
     (define spacing-panel
-      (new horizontal-panel% [parent outer-swapping-panel]
+      (new-horizontal-panel% [parent outer-swapping-panel]
            [stretchable-width #f]
            [min-width 20]))
     (define swapping-panel
@@ -452,13 +453,13 @@
            [alignment '(left center)]
            [stretchable-width #t] [stretchable-height #f]))
     (define file-panel
-      (new horizontal-panel% [parent swapping-panel]
+      (new-horizontal-panel% [parent swapping-panel]
            [stretchable-width #t] [stretchable-height #f]))
     (define url-panel
-      (new horizontal-panel% [parent swapping-panel]
+      (new-horizontal-panel% [parent swapping-panel]
            [stretchable-height #f]))
     (define button-panel
-      (new horizontal-panel% [parent dialog]
+      (new-horizontal-panel% [parent dialog]
            [stretchable-height #f] [alignment '(right center)]))
     (define file-text-field
       (keymap:call/text-keymap-initializer

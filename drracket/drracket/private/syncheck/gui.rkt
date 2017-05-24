@@ -35,6 +35,7 @@ If the namespace does not, they are colored the unbound color.
          (prefix-in fw: framework/framework)
          mred
          framework
+         framework/private/srcloc-panel
          net/url
          browser/external
          (for-syntax racket/base)
@@ -2162,13 +2163,13 @@ If the namespace does not, they are colored the unbound color.
                          (inner (void) after-percentage-change))
                        (super-new))
                      [parent (super get-definitions/interactions-panel-parent)]))
-          (set! report-error-panel (new horizontal-panel%
+          (set! report-error-panel (new-horizontal-panel%
                                         [parent report-error-parent-panel]
                                         [stretchable-height #f]
                                         [alignment '(center center)]
                                         [style '(border)]))
           (send report-error-parent-panel change-children (λ (l) null))
-          (let ([message-panel (new vertical-panel%
+          (let ([message-panel (new-vertical-panel%
                                     [parent report-error-panel]
                                     [stretchable-width #f]
                                     [stretchable-height #f]

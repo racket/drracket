@@ -9,6 +9,7 @@
          "local-member-names.rkt"
          mred
          framework
+         framework/private/srcloc-panel
          racket/list
          racket/path
          racket/file
@@ -279,7 +280,7 @@
 (color-prefs:add-color-scheme-preferences-panel
  #:extras
  (λ (parent)
-   (define hp (new horizontal-panel% 
+   (define hp (new-horizontal-panel% 
                    [alignment '(center center)]
                    [parent parent]
                    [stretchable-height #f]))
@@ -381,7 +382,7 @@
      
      ;; come back to this one.
      #;
-     (letrec ([hp (new horizontal-panel% 
+     (letrec ([hp (new-horizontal-panel% 
                        (parent editor-panel)
                        (alignment '(left top))
                        (stretchable-height #f))]

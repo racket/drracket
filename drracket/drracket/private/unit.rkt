@@ -9,6 +9,7 @@
          racket/match
          string-constants
          framework
+         framework/private/srcloc-panel
          mrlib/name-message
          mrlib/bitmap-label
          mrlib/include-bitmap
@@ -345,8 +346,8 @@
       (keymap:call/text-keymap-initializer
        (λ ()
          (make-object text-field% #f hp void))))
-    (define vp (make-object vertical-panel% hp))
-    (define hp2 (make-object horizontal-panel% vp))
+    (define vp (new-vertical-panel% [parent hp]))
+    (define hp2 (new-horizontal-panel% [parent vp]))
     (define num 
       (keymap:call/text-keymap-initializer
        (λ ()
@@ -1549,12 +1550,12 @@
                         (remq logger-panel l)])))]
             [else
              (when show? ;; if we want to hide and it isn't built yet, do nothing
-               (define logger-gui-content-panel-parent (new vertical-panel%
+               (define logger-gui-content-panel-parent (new-vertical-panel%
                                                             [style '(border)]
                                                             [parent logger-panel]
                                                             [stretchable-height #t]))
                (set! logger-gui-content-panel
-                     (new horizontal-panel%
+                     (new-horizontal-panel%
                           [parent logger-gui-content-panel-parent]
                           [stretchable-height #f]))
                (new-logger-text)
@@ -1885,7 +1886,7 @@
                        (make-two-way-prefs-dragable-panel% panel:horizontal-dragable%
                                                            'drracket:module-browser-size-percentage)
                        parent)]
-               [_module-browser-panel (new vertical-panel%
+               [_module-browser-panel (new-vertical-panel%
                                            (parent _module-browser-parent-panel)
                                            (alignment '(left center))
                                            (stretchable-width #f))]
@@ -1901,23 +1902,23 @@
           (set! module-browser-panel _module-browser-panel)
           (send module-browser-parent-panel change-children (λ (l) (remq module-browser-panel l)))
           (set! logger-parent-panel logger-outer-panel)
-          (set! logger-panel (new vertical-panel% [parent logger-parent-panel]))
+          (set! logger-panel (new-vertical-panel% [parent logger-parent-panel]))
           (send logger-parent-panel change-children (lambda (x) (remq logger-panel x)))
           
           (set! execute-warning-parent-panel execute-warning-outer-panel)
-          (set! execute-warning-panel (new horizontal-panel% 
+          (set! execute-warning-panel (new-horizontal-panel% 
                                            [parent execute-warning-parent-panel]
                                            [stretchable-height #f]))
           (send execute-warning-parent-panel change-children (λ (l) (remq execute-warning-panel l)))
           
-          (set! transcript-parent-panel (new horizontal-panel%
+          (set! transcript-parent-panel (new-horizontal-panel%
                                              (parent trans-outer-panel)
                                              (stretchable-height #f)))
           (set! transcript-panel (make-object horizontal-panel% transcript-parent-panel))
-          (set! planet-status-parent-panel (new vertical-panel% 
+          (set! planet-status-parent-panel (new-vertical-panel% 
                                                 [parent planet-status-outer-panel]
                                                 [stretchable-height #f]))
-          (set! planet-status-panel (new horizontal-panel% 
+          (set! planet-status-panel (new-horizontal-panel% 
                                          [parent planet-status-parent-panel]))
           (send planet-status-parent-panel change-children (λ (l) (remq planet-status-panel l)))
           (unless (toolbar-shown?)
@@ -4637,7 +4638,7 @@
       ;   ;                                                 ;                         
       
       
-      (define toolbar/rest-panel (new vertical-panel% [parent (get-area-container)]))
+      (define toolbar/rest-panel (new-vertical-panel% [parent (get-area-container)]))
       
       ;; most contain only top-panel (or nothing)
       (define top-outer-panel (new horizontal-panel% 
@@ -4646,7 +4647,7 @@
                                    [stretchable-height #f]))
       
       [define top-panel (make-object horizontal-panel% top-outer-panel)]
-      [define name-panel (new horizontal-panel%
+      [define name-panel (new-horizontal-panel%
                               (parent top-panel)
                               (alignment '(left center))
                               (stretchable-width #f)
@@ -4815,7 +4816,7 @@
       
       (define language-message
         (let* ([info-panel (get-info-panel)]
-               [p (new vertical-panel% 
+               [p (new-vertical-panel% 
                        [parent info-panel]
                        [alignment '(left center)])]
                [language-message (new language-label-message% [parent p] [frame this])])
@@ -4977,11 +4978,11 @@
                         [parent d]
                         [label (string-constant limit-memory-msg-2)]))
     
-    (define top-hp (new horizontal-panel%
+    (define top-hp (new-horizontal-panel%
                         [parent d] 
                         [stretchable-height #f]
                         [alignment '(left center)]))
-    (define bot-hp (new horizontal-panel%
+    (define bot-hp (new-horizontal-panel%
                         [parent d]
                         [stretchable-height #f]
                         [alignment '(left bottom)]))
@@ -5002,7 +5003,7 @@
                        (cb-checked))]
            [parent bot-hp]))
     
-    (define unlimited-warning-panel (new horizontal-panel%
+    (define unlimited-warning-panel (new-horizontal-panel%
                                          [parent d]
                                          [stretchable-width #t]
                                          [stretchable-height #f]))
@@ -5085,7 +5086,7 @@
          (send ok-button enable #t)]))
     
     (define msg2 (new message% [parent top-hp] [label (string-constant limit-memory-megabytes)]))
-    (define bp (new horizontal-panel% [parent d]))
+    (define bp (new-horizontal-panel% [parent d]))
     (define-values (ok-button cancel-button)
       (gui-utils:ok/cancel-buttons
        bp 
@@ -5275,8 +5276,8 @@
                                             [label (string-constant drscheme)]
                                             [width 600]))
         (set! saved-bug-reports-panel
-              (new vertical-panel% [parent (send saved-bug-reports-window get-area-container)]))
-        (define hp (new horizontal-panel% 
+              (new-vertical-panel% [parent (send saved-bug-reports-window get-area-container)]))
+        (define hp (new-horizontal-panel% 
                         [parent (send saved-bug-reports-window get-area-container)] 
                         [stretchable-width #f] 
                         [alignment '(right center)]))
@@ -5315,12 +5316,12 @@
                            (cdr rib)
                            (loop (cdr item))))])))
          (define vp
-           (new vertical-panel% 
+           (new-vertical-panel% 
                 [style '(border)]
                 [parent saved-bug-reports-panel]
                 [stretchable-height #f]))
          (define hp
-           (new horizontal-panel% 
+           (new-horizontal-panel% 
                 [parent vp]
                 [stretchable-height #f]))
          (define first-line-msg 

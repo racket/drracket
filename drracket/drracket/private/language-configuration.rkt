@@ -11,6 +11,7 @@
          "local-member-names.rkt"
          string-constants
          framework
+         framework/private/srcloc-panel
          setup/getinfo
          setup/xref
          scribble/xref
@@ -559,15 +560,15 @@
             (on-click-always #t)
             (allow-deselect #t)))
         
-        (define outermost-panel (new horizontal-panel% 
+        (define outermost-panel (new-horizontal-panel% 
                                      [parent parent]
                                      [alignment '(left top)]))
-        (define languages-choice-panel (new vertical-panel%
+        (define languages-choice-panel (new-vertical-panel%
                                             [parent outermost-panel]
                                             [stretchable-height #f]
                                             [alignment '(left top)]))
         
-        (define the-racket-language-panel (new vertical-panel%
+        (define the-racket-language-panel (new-vertical-panel%
                                                [parent languages-choice-panel]
                                                [alignment '(left top)]
                                                [stretchable-height #f]))
@@ -584,10 +585,10 @@
           (module-language-selected)
           (send use-chosen-language-rb set-selection #f)
           (send use-teaching-language-rb set-selection #f))
-        (define in-source-discussion-panel (new horizontal-panel% 
+        (define in-source-discussion-panel (new-horizontal-panel% 
                                                 [parent the-racket-language-panel]
                                                 [stretchable-height #f]))
-        (define in-source-discussion-spacer (new horizontal-panel% 
+        (define in-source-discussion-spacer (new-horizontal-panel% 
                                                  [parent in-source-discussion-panel]
                                                  [stretchable-width #f]
                                                  [min-width 32]))
@@ -622,9 +623,9 @@
           (send teaching-languages-hier-list focus))
         
         (define teaching-languages-hier-list-panel
-          (new horizontal-panel% [parent languages-choice-panel] [stretchable-height #f]))
+          (new-horizontal-panel% [parent languages-choice-panel] [stretchable-height #f]))
         (define teaching-languages-hier-list-spacer
-          (new horizontal-panel% 
+          (new-horizontal-panel% 
                [parent teaching-languages-hier-list-panel]
                [stretchable-width #f]
                [min-width 16]))
@@ -657,10 +658,10 @@
                   (λ (l)
                     (list languages-hier-list-spacer other-languages-hier-list)))))
         
-        (define languages-hier-list-panel (new horizontal-panel% 
+        (define languages-hier-list-panel (new-horizontal-panel% 
                                                [parent languages-choice-panel] 
                                                [stretchable-height #f]))
-        (define ellipsis-spacer-panel (new horizontal-panel% 
+        (define ellipsis-spacer-panel (new-horizontal-panel% 
                                            [parent languages-hier-list-panel]
                                            [stretchable-width #f]
                                            [min-width 32]))
@@ -684,7 +685,7 @@
                    (min-width (inexact->exact (ceiling w)))
                    (min-height (inexact->exact (ceiling h)))))))
         
-        (define languages-hier-list-spacer (new horizontal-panel% 
+        (define languages-hier-list-spacer (new-horizontal-panel% 
                                                 [parent languages-hier-list-panel]
                                                 [stretchable-width #f]
                                                 [min-width 16]))
@@ -1953,7 +1954,7 @@
                        (and (vector-ref printable 6) #t))))))
 
         (define/override (config-panel parent)
-          (define p (new vertical-panel% [parent parent]))
+          (define p (new-vertical-panel% [parent parent]))
           (define base-config (super config-panel p))
           (define assume-cb (new check-box%
                                  [parent
@@ -2268,11 +2269,11 @@
                           (parent drs-frame)
                           (label (string-constant drscheme))))
       (define top-hp (new horizontal-pane% [parent dialog]))
-      (define qa-panel (new vertical-panel% 
+      (define qa-panel (new-vertical-panel% 
                             [style '(border)]
                             [parent top-hp] 
                             [stretchable-width #f]))
-      (define racketeer-panel (new vertical-panel% 
+      (define racketeer-panel (new-vertical-panel% 
                                    [style '(border)]
                                    [parent top-hp]
                                    [alignment '(center center)]

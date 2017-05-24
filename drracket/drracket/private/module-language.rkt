@@ -16,6 +16,7 @@
          compiler/cm
          launcher
          framework
+         framework/private/srcloc-panel
          string-constants
          racket/place
          mrlib/close-icon
@@ -640,7 +641,7 @@
   ;; module-language-config-panel : panel -> (case-> (-> settings) (settings -> void))
   (define (module-language-config-panel parent)
     (define new-parent
-      (new vertical-panel%
+      (new-vertical-panel%
            [parent parent]
            [alignment '(center center)]
            [stretchable-height #f]
@@ -764,7 +765,7 @@
                                      [choices '("a" "b" "c")]
                                      [label #f]
                                      [callback (λ (x y) (update-buttons))]))
-    (define button-panel (new horizontal-panel%
+    (define button-panel (new-horizontal-panel%
                               [parent cp-panel]
                               [alignment '(center center)]
                               [stretchable-height #f]))
@@ -1595,7 +1596,7 @@
               (super make-root-area-container vertical-panel% parent))
         (define root (make-object cls expand-error-parent-panel))
         (set! expand-error-panel
-              (new horizontal-panel% 
+              (new-horizontal-panel% 
                    [stretchable-height #f]
                    [parent expand-error-parent-panel]))
         
@@ -1605,12 +1606,12 @@
                                         [msgs '("hi")]
                                         [err? #f]))
         (set! expand-error-button-parent-panel
-              (new horizontal-panel%
+              (new-horizontal-panel%
                    [stretchable-width #f]
                    [stretchable-height #f]
                    [parent expand-error-panel]))
         (set! expand-error-install-suggestions-panel
-              (new horizontal-panel%
+              (new-horizontal-panel%
                    [stretchable-width #f]
                    [stretchable-height #f]
                    [parent expand-error-panel]))
@@ -1630,9 +1631,9 @@
                    [font small-control-font]
                    [callback (λ (b evt) (send (send (get-current-tab) get-defs) expand-error-next))]))
         (set! expand-error-multiple-child
-              (new horizontal-panel% [parent expand-error-button-parent-panel]))
+              (new-horizontal-panel% [parent expand-error-button-parent-panel]))
         (set! expand-error-zero-child
-              (new horizontal-panel% [parent expand-error-button-parent-panel]))
+              (new-horizontal-panel% [parent expand-error-button-parent-panel]))
         (new button% 
              [label "<"]
              [font small-control-font]
@@ -2666,26 +2667,26 @@
     (preferences:add-panel
      (string-constant online-expansion)
      (λ (parent)
-       (define parent-vp (new vertical-panel% 
+       (define parent-vp (new-vertical-panel% 
                               [parent parent]
                               [alignment '(center top)]))
-       (new vertical-panel% [parent parent-vp])
-       (define vp (new vertical-panel% 
+       (new-vertical-panel% [parent parent-vp])
+       (define vp (new-vertical-panel% 
                        [parent parent-vp]
                        [stretchable-width #f]
                        [stretchable-height #f]
                        [alignment '(left center)]))
-       (new vertical-panel% [parent parent-vp])
+       (new-vertical-panel% [parent parent-vp])
        
        (define ((make-callback pref-sym) choice evt)
          (preferences:set pref-sym (index->pref (send choice get-selection))))
-       (preferences:add-check (new horizontal-panel% 
+       (preferences:add-check (new-horizontal-panel% 
                                    [parent vp]
                                    [stretchable-height #f]
                                    [alignment '(center center)])
                               'drracket:online-compilation-default-on
                               (string-constant enable-online-expansion))
-       (new vertical-panel% [parent vp] [stretchable-height #f] [min-height 20])
+       (new-vertical-panel% [parent vp] [stretchable-height #f] [min-height 20])
        (define read-choice
          (new choice% 
               [parent vp]

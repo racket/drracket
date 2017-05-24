@@ -9,6 +9,7 @@
          mred
          framework
          framework/splash
+         framework/private/srcloc-panel
          drracket/private/drsig
          "language-object-contract.rkt"
          "wrap-tool-inputs.rkt"
@@ -486,7 +487,7 @@
   (preferences:add-panel
    "Tools"
    (lambda (parent)
-     (define main (new vertical-panel% (parent parent)))
+     (define main (new-vertical-panel% (parent parent)))
      (define advisory
        (new message%
             (parent main)
@@ -498,7 +499,7 @@
             (choices null)
             (callback (lambda _ (on-select-tool)))))
      (define info
-       (new vertical-panel%
+       (new-vertical-panel%
             (parent main)
             (style '(border))
             (stretchable-height #f)))
