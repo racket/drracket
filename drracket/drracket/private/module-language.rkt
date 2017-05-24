@@ -1593,7 +1593,7 @@
       
       (define/override (make-root-area-container cls parent)
         (set! expand-error-parent-panel
-              (super make-root-area-container vertical-panel% parent))
+              (super make-root-area-container vertical-pane% parent))
         (define root (make-object cls expand-error-parent-panel))
         (set! expand-error-panel
               (new-horizontal-panel% 

@@ -148,7 +148,7 @@
 
       (define/override (make-root-area-container cls parent)
         (set! hash-lang-error-parent-panel
-              (super make-root-area-container vertical-panel% parent))
+              (super make-root-area-container vertical-pane% parent))
         (define root (make-object cls hash-lang-error-parent-panel))
         (set! hash-lang-error-panel
               (new-horizontal-panel%

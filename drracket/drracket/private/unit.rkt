@@ -1890,13 +1890,13 @@
                                            (parent _module-browser-parent-panel)
                                            (alignment '(left center))
                                            (stretchable-width #f))]
-               [planet-status-outer-panel (new vertical-panel% [parent _module-browser-parent-panel])]
-               [execute-warning-outer-panel (new vertical-panel% [parent planet-status-outer-panel])]
+               [planet-status-outer-panel (new vertical-pane% [parent _module-browser-parent-panel])]
+               [execute-warning-outer-panel (new vertical-pane% [parent planet-status-outer-panel])]
                [logger-outer-panel (new (make-two-way-prefs-dragable-panel%
                                          panel:vertical-dragable%
                                          'drracket:logging-size-percentage)
                                         [parent execute-warning-outer-panel])]
-               [trans-outer-panel (new vertical-panel% [parent logger-outer-panel])]
+               [trans-outer-panel (new vertical-pane% [parent logger-outer-panel])]
                [root (make-object cls trans-outer-panel)])
           (set! module-browser-parent-panel _module-browser-parent-panel)
           (set! module-browser-panel _module-browser-panel)
@@ -4641,7 +4641,7 @@
       (define toolbar/rest-panel (new-vertical-panel% [parent (get-area-container)]))
       
       ;; most contain only top-panel (or nothing)
-      (define top-outer-panel (new horizontal-panel% 
+      (define top-outer-panel (new horizontal-pane% 
                                    [parent toolbar/rest-panel]
                                    [alignment '(right top)]
                                    [stretchable-height #f]))
@@ -4652,7 +4652,7 @@
                               (alignment '(left center))
                               (stretchable-width #f)
                               (stretchable-height #f))]
-      (define panel-with-tabs (new vertical-panel%
+      (define panel-with-tabs (new vertical-pane%
                                    (parent (get-definitions/interactions-panel-parent))))
       (define tabs-panel (new tab-panel% 
                               (font small-control-font)

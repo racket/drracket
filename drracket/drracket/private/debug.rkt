@@ -1305,7 +1305,7 @@
       
       (define/override (make-root-area-container cls parent)
         (set! entirely-covered-parent-panel
-              (super make-root-area-container vertical-panel% parent))
+              (super make-root-area-container vertical-pane% parent))
         (make-object cls entirely-covered-parent-panel))
       (super-new)))
   

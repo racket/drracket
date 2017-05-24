@@ -1355,15 +1355,15 @@
                                 (send (get-current-tab) move-to-frame paragraph))]
                              [else (void)]))))))
           (set! variables-text (new text% [auto-wrap #f]))
-          (let ([stack-frames-panel (make-object vertical-panel% stack-view-panel)])
+          (let ([stack-frames-panel (make-object vertical-pane% stack-view-panel)])
             (new editor:font-size-message% [parent stack-frames-panel] [message "Stack"])
             (new editor-canvas% [parent stack-frames-panel] [editor stack-frames] [style '(auto-hscroll)]))
-          (let ([variables-panel (make-object vertical-panel% stack-view-panel)])
+          (let ([variables-panel (make-object vertical-pane% stack-view-panel)])
             (new editor:font-size-message% [parent variables-panel] [message "Variables"])
             (new editor-canvas% [parent variables-panel] [editor variables-text] [style '(auto-hscroll)]))
           ;; parent of panel with debug buttons
           (set! debug-parent-panel
-                (make-object vertical-panel% debug-grandparent-panel))
+                (make-object vertical-pane% debug-grandparent-panel))
           ;; horizontal panel with debug buttons; not vertically stretchable
           (set! debug-panel (instantiate horizontal-panel% ()
                               (parent debug-parent-panel)
@@ -1378,7 +1378,7 @@
           ;; hide the debug panel and stack view initially
           (send debug-parent-panel change-children (lambda (l) null))
           (send debug-grandparent-panel change-children (lambda (l) (remq stack-view-panel l)))
-          (make-object vertical-panel% debug-parent-panel))
+          (make-object vertical-pane% debug-parent-panel))
         
         (define/public (hide-debug)
           (when (member debug-panel (send debug-parent-panel get-children))
