@@ -311,6 +311,7 @@
 (shutdown-splash)
 (close-splash)
 
+(when (getenv "PLTDRPANELDEBUG")
 (let loop ()
   (queue-callback
    (λ ()
@@ -321,4 +322,4 @@
         ((dynamic-require 'framework/private/srcloc-panel 'show-srclocs) w)]
        [else
         (loop)]))
-   #f))
+   #f)))
