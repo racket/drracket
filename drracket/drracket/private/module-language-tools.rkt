@@ -345,7 +345,6 @@
                 [(send lang-keymap is-function-added? name)
                  (loop (+ (or counter 0) 1))]
                 [else name])))
-          (printf "name: ~s\n" name)
           (send lang-keymap add-function name proc)
           (send lang-keymap map-function key name))
         (send (get-keymap) chain-to-keymap lang-keymap #t)
