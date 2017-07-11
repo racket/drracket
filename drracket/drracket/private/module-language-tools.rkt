@@ -336,7 +336,16 @@
         (for ([key+proc (in-list (call-read-language the-irl 'drracket:keystrokes '()))])
           (define key (list-ref key+proc 0))
           (define proc (list-ref key+proc 1))
-          (define name (~a (object-name proc)))
+          (define name
+            (let loop ([counter #f])
+              (define name (if counter
+                               (~a (object-name proc) counter)
+                               (~a (object-name proc))))
+              (cond
+                [(send lang-keymap is-function-added? name)
+                 (loop (+ (or counter 0) 1))]
+                [else name])))
+          (printf "name: ~s\n" name)
           (send lang-keymap add-function name proc)
           (send lang-keymap map-function key name))
         (send (get-keymap) chain-to-keymap lang-keymap #t)
