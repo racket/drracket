@@ -1,4 +1,13 @@
 ------------------------------
+       Version 6.10
+------------------------------
+
+  . reduce the number of nested panel% objects to attempt to work around
+    a bug in the Windows 10 Creators Update
+
+  . misc bug fixes
+
+------------------------------
        Version 6.9
 ------------------------------
 
