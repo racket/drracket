@@ -80,6 +80,8 @@
 
 (application:current-app-name (string-constant drscheme))
 
+(preferences:set-default 'drracket:inline-overview-shown? #f boolean?)
+
 (preferences:set-default 'drracket:coverage-show-overview-bar #t boolean?)
 
 (preferences:set-default 'drracket:define-popup-hidden-prefixes '() (listof string?))

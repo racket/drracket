@@ -7,6 +7,12 @@
 
   . added color scheme entries for syntax-check arrows
 
+  . change the implementation strategy for the program
+    contour to one that uses less screen real-estate and
+    is significantly more efficient.
+
+    Thanks to Jennie Tran for the implementation.
+
 ------------------------------
        Version 6.10
 ------------------------------

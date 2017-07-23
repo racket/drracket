@@ -549,9 +549,10 @@
                       (λ (x) x)
                       (text:normalize-paste-mixin
                        (text:column-guide-mixin
-                        (text:all-string-snips-mixin
-                         (text:ascii-art-enlarge-boxes-mixin
-                          text:info%))))))))))))))])
+                        (text:inline-overview-mixin
+                         (text:all-string-snips-mixin
+                          (text:ascii-art-enlarge-boxes-mixin
+                           text:info%)))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit get-top-level-window is-locked? lock while-unlocked
@@ -930,7 +931,10 @@
            (is-a? (drracket:language-configuration:language-settings-language next-settings)
                   drracket:module-language:module-language<%>))
           (inherit set-max-undo-history)
-          (set-max-undo-history 'forever)))))
+          (set-max-undo-history 'forever)
+
+          (inherit set-inline-overview-enabled?)
+          (set-inline-overview-enabled? (preferences:get 'drracket:inline-overview-shown?))))))
   
   (define (get-module-language/settings)
     (let* ([module-language
@@ -3330,8 +3334,7 @@
       (define/public (get-definitions/interactions-panel-parent)
         toolbar/rest-panel)
       
-      (inherit delegated-text-shown? hide-delegated-text show-delegated-text
-               set-show-menu-sort-key)
+      (inherit set-show-menu-sort-key)
       (define/override (add-show-menu-items show-menu)
         (super add-show-menu-items show-menu)
         (set! definitions-item
@@ -3383,25 +3386,28 @@
                                          (cons 'shift (get-default-shortcut-prefix)))])])
           (set-show-menu-sort-key layout-item 103))
         
-        (let ([overview-menu-item 
-               (new menu:can-restore-menu-item%
-                    (shortcut #\u)
-                    (label 
-                     (if (delegated-text-shown?)
-                         (string-constant hide-overview)
-                         (string-constant show-overview)))
-                    (parent (get-show-menu))
-                    (callback
-                     (λ (menu evt)
-                       (if (delegated-text-shown?)
-                           (begin
-                             (send menu set-label (string-constant show-overview))
-                             (preferences:set 'framework:show-delegate? #f)
-                             (hide-delegated-text))
-                           (begin
-                             (send menu set-label (string-constant hide-overview))
-                             (preferences:set 'framework:show-delegate? #t)
-                             (show-delegated-text))))))])
+        (let ()
+          (define (overview-shown?)
+            (send (send (get-current-tab) get-defs) get-inline-overview-enabled?))
+          (define overview-menu-item
+            (new menu:can-restore-menu-item%
+                 (shortcut #\u)
+                 (label
+                  (if (overview-shown?)
+                      (string-constant hide-overview)
+                      (string-constant show-overview)))
+                 (parent (get-show-menu))
+                 (callback
+                  (λ (menu evt)
+                    (cond
+                      [(overview-shown?)
+                       (send menu set-label (string-constant show-overview))
+                       (preferences:set 'drracket:inline-overview-shown? #f)
+                       (send (send (get-current-tab) get-defs) set-inline-overview-enabled? #f)]
+                      [else
+                       (send menu set-label (string-constant hide-overview))
+                       (preferences:set 'drracket:inline-overview-shown? #t)
+                       (send (send (get-current-tab) get-defs) set-inline-overview-enabled? #t)])))))
           (set-show-menu-sort-key overview-menu-item 301))
         
         (set! module-browser-menu-item
