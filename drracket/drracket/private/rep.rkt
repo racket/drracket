@@ -223,11 +223,16 @@ TODO
     (add-drs-function "jump-to-next-error-loc"
                       (λ (frame) (send frame jump-to-next-error-loc)))
     
-    (add-drs-function "send-toplevel-form-to-repl" (λ (frame) (send frame send-toplevel-form-to-repl #f)))
-    (add-drs-function "send-selection-to-repl" (λ (frame) (send frame send-selection-to-repl #f)))
-    (add-drs-function "send-toplevel-form-to-repl-and-go" (λ (frame) (send frame send-toplevel-form-to-repl #t)))
-    (add-drs-function "send-selection-to-repl-and-go" (λ (frame) (send frame send-selection-to-repl #t)))
-    (add-drs-function "move-to-interactions" (λ (frame) (send frame move-to-interactions)))
+    (add-drs-function "send-toplevel-form-to-repl"
+                      (λ (frame) (send frame send-toplevel-form-to-repl #f)))
+    (add-drs-function "send-selection-to-repl"
+                      (λ (frame) (send frame send-selection-to-repl #f)))
+    (add-drs-function "send-toplevel-form-to-repl-and-go"
+                      (λ (frame) (send frame send-toplevel-form-to-repl #t)))
+    (add-drs-function "send-selection-to-repl-and-go"
+                      (λ (frame) (send frame send-selection-to-repl #t)))
+    (add-drs-function "move-to-interactions"
+                      (λ (frame) (send frame move-to-interactions)))
     
     (add-drs-function "save-definitions" (λ (frame) (send frame save)))
     
@@ -414,7 +419,8 @@ TODO
           (make-object string-snip% "[open file]"))))
   
   
-  ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%) *-> (values number number)
+  ;; insert/delta : (instanceof text%) (union snip string) (listof style-delta%)
+  ;;                *-> (values number number)
   ;; inserts the string/snip into the text at the end and changes the
   ;; style of the newly inserted text based on the style deltas.
   (define (insert/delta text s . deltas)
@@ -516,7 +522,9 @@ TODO
       
       (unless (is-a? context drracket:rep:context<%>)
         (error 'drracket:rep:text% 
-               "expected an object that implements drracket:rep:context<%> as initialization argument, got: ~e"
+               (string-append
+                "expected an object that implements"
+                "drracket:rep:context<%> as initialization argument, got: ~e")
                context))
       
       (define/public (get-context) context)
@@ -644,26 +652,25 @@ TODO
           (send (srcloc-source loc) begin-edit-sequence #t #f))
         
         (when color?
-          (let ([resets
-                 (map (λ (loc)
-                        (let* ([file (srcloc-source loc)]
-                               [start (- (srcloc-position loc) 1)]
-                               [span (srcloc-span loc)]
-                               [finish (+ start span)])
-                          (send file highlight-range start finish (drracket:debug:get-error-color) #f 'high)))
-                      locs)])
-            (when (and definitions-text error-arrows)
-              (let ([filtered-arrows
-                     (remove-duplicate-error-arrows
-                      (filter
-                       (λ (arr) (embedded-in? (srcloc-source arr) definitions-text))
-                       error-arrows))])
-                (send definitions-text set-error-arrows filtered-arrows)))
+          (define resets
+            (for/list ([loc (in-list locs)])
+              (define file (srcloc-source loc))
+              (define start (- (srcloc-position loc) 1))
+              (define span (srcloc-span loc))
+              (define finish (+ start span))
+              (send file highlight-range start finish (drracket:debug:get-error-color) #f 'high)))
+          (when (and definitions-text error-arrows)
+            (let ([filtered-arrows
+                   (remove-duplicate-error-arrows
+                    (filter
+                     (λ (arr) (embedded-in? (srcloc-source arr) definitions-text))
+                     error-arrows))])
+              (send definitions-text set-error-arrows filtered-arrows)))
             
-            (set! clear-error-highlighting
-                  (λ ()
-                    (set! clear-error-highlighting void)
-                    (for-each (λ (x) (x)) resets)))))
+          (set! clear-error-highlighting
+                (λ ()
+                  (set! clear-error-highlighting void)
+                  (for-each (λ (x) (x)) resets))))
 
         (let* ([first-loc (and (pair? locs) (car locs))]
                [first-file (and first-loc (srcloc-source first-loc))]
@@ -708,7 +715,9 @@ TODO
           (define span (srcloc-span loc))
           (define finish (+ start span))
           
-          (let ([reset (send source highlight-range start finish (drracket:debug:get-error-color) #f 'high)])
+          (let ([reset (send source highlight-range start finish
+                             (drracket:debug:get-error-color)
+                             #f 'high)])
             (set! clear-error-highlighting
                   (λ ()
                     (set! clear-error-highlighting void)
@@ -1395,11 +1404,12 @@ TODO
             (send (drracket:language-configuration:language-settings-language user-language-settings)
                   on-execute
                   (drracket:language-configuration:language-settings-settings user-language-settings)
-                  (let ([run-on-user-thread (lambda (t) 
-                                              (queue-user/wait 
-                                               (λ ()
-                                                 (with-handlers ((exn? (λ (x) (oprintf "~s\n" (exn-message x)))))
-                                                   (t)))))])
+                  (let ([run-on-user-thread
+                         (lambda (t) 
+                           (queue-user/wait 
+                            (λ ()
+                              (with-handlers ((exn? (λ (x) (oprintf "~s\n" (exn-message x)))))
+                                (t)))))])
                     run-on-user-thread))
             
             ;; setup the special repl values
@@ -1860,7 +1870,8 @@ TODO
                     ;; expect this method to be a thunk (but that was a bad decision)
                     [(object-method-arity-includes? lang 'first-opened 1)
                      (send lang first-opened
-                           (drracket:language-configuration:language-settings-settings user-language-settings))]
+                           (drracket:language-configuration:language-settings-settings
+                            user-language-settings))]
                     [else
                      ;; this is the backwards compatible case.
                      (send lang first-opened)])))
