@@ -241,15 +241,31 @@
          (place-channel-put pc-status-expanding-place 'finished-expansion)
          (ep-log-info "expanding-place.rkt: 10 expanded")
          (define handler-results
-           (for/list ([handler (in-list handlers)]
-                      #:unless (handler-monitor-pc handler))
-             (define proc-res
-               (with-handlers ([exn:fail? values])
-                 ((handler-proc handler) expanded
-                                         path
-                                         the-source
-                                         orig-cust)))
-             (list (handler-key handler) proc-res)))
+           (filter
+            values
+            (for/list ([handler (in-list handlers)]
+                       #:unless (handler-monitor-pc handler))
+              (let/ec k
+                (define proc-res
+                  (with-handlers ([exn:fail?
+                                   (λ (exn)
+                                     (ep-log-info
+                                      (let ()
+                                        (define sp (open-output-string))
+                                        (fprintf sp
+                                                 "error running handler ~a:\n"
+                                                 (handler-key handler))
+                                        (display (exn-message exn) sp)
+                                        (for ([x (in-list (continuation-mark-set->context
+                                                           (exn-continuation-marks exn)))])
+                                          (fprintf sp "  ~s\n" x))
+                                        (get-output-string sp)))
+                                     (k #f))])
+                    ((handler-proc handler) expanded
+                                            path
+                                            the-source
+                                            orig-cust)))
+                (list (handler-key handler) proc-res)))))
          (ep-log-info "expanding-place.rkt: 11 handlers finished")
          (define compiled-bytes
            (cond
@@ -389,7 +405,10 @@
                                #:when (srcloc->srcinfo srcloc))
                       (srcloc->srcinfo srcloc))
                     <
-                    #:key (λ (x) (vector-ref x 0)))]
+                    #:key (λ (x)
+                            (cond
+                              [(vector? x) (vector-ref x 0)]
+                              [else +inf.0])))]
                   [(exn? an-exn)
                    (define marks (continuation-mark-set->context
                                   (exn-continuation-marks an-exn)))

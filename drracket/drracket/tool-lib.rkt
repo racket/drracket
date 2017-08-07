@@ -318,7 +318,15 @@ all of the names in the tools library, for use defining keybindings
     @racket[(-> any/c void?)] procedure (described just above) is called.
     It is also called each time an expansion starts; it receives a value
     that returns @racket[#t] from @racket[drracket:module-language-tools:start?]
-    in that case.})
+    in that case.
+
+    To help with debugging, DrRacket logs progress and recovers from some
+    errors that happen when running the handler procedures. To monitor
+    its progress, monitor the @racket['debug] level of the
+    @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{logger}
+    with the topic @indexed-racket['drracket-background-compilation].
+
+ })
 
  (proc-doc/names
   drracket:module-language-tools:start?
