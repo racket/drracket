@@ -861,8 +861,7 @@ If the namespace does not, they are colored the unbound color.
                     name-to-offer
                     #:dialog-mixin frame:focus-table-mixin))))
               (when new-str
-                (define new-sym (format "~s" (string->symbol new-str)))
-                (define dup-name? (name-dup? new-sym))
+                (define dup-name? (name-dup? new-str))
                 
                 (define do-renaming?
                   (or (not dup-name?)
@@ -871,7 +870,7 @@ If the namespace does not, they are colored the unbound color.
                         (string-constant check-syntax)
                         (fw:gui-utils:format-literal-label
                          (string-constant cs-name-duplication-error) 
-                         new-sym)
+                         new-str)
                         (string-constant cs-rename-anyway)
                         (string-constant cancel)
                         #f
@@ -885,7 +884,7 @@ If the namespace does not, they are colored the unbound color.
                    make-identifiers-hash
                    (λ (source-txt start end)
                      (send source-txt delete start end #f)
-                     (send source-txt insert new-sym start start #f))))))
+                     (send source-txt insert new-str start start #f))))))
 
             
 
