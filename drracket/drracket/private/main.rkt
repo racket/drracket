@@ -586,13 +586,10 @@
   (preferences:set-default 'drracket:show-killed-dialog #t boolean?)
   
   
-  (drr:set-default 'drracket:large-letters-font #f (λ (x)
-                                                       (or (and (pair? x)
-                                                                (string? (car x))
-                                                                (let ([i (cdr x)])
-                                                                  (and (integer? i)
-                                                                       (<= 1 i 255))))
-                                                           (not x))))
+  (drr:set-default 'drracket:large-letters-font #f
+                   (or/c #f
+                         (cons/c (or/c string? #f)
+                                 (real-in 0 1024))))
   (drr:set-default 'drracket:module-language:auto-text "#lang racket\n" string?)
 
 (let ([drs-handler-recent-items-super%

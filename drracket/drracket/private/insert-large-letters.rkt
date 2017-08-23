@@ -23,19 +23,38 @@
 
 (: get-chosen-font (-> (Instance Font%)))
 (define (get-chosen-font)
-  (let ([pref-val (preferences:get 'drracket:large-letters-font)])
-    (cond
-      [(and pref-val (pair? pref-val))
-       (let ([candidate
-              (send the-font-list find-or-create-font
-                    (assert (cdr pref-val) exact-integer?)
-                    (assert (car pref-val) string?)
-                    'default 'normal 'normal)])
-         (if (equal? (send candidate get-face) (car pref-val))
-             candidate
-             (get-default-font)))]
-      [else
-       (get-default-font)])))
+  (define-values (face size) (get-current-pref))
+  (cond
+    [face
+     (let ([candidate
+            (send the-font-list find-or-create-font
+                  size
+                  face
+                  'default 'normal 'normal)])
+       (if (equal? (send candidate get-face) face)
+           candidate
+           (get-default-font)))]
+    [else
+     (get-default-font)]))
+
+(: get-current-pref : (-> (Values (U String False) Real)))
+(define (get-current-pref)
+  (define pref-val (preferences:get 'drracket:large-letters-font))
+  (cond
+    [(not pref-val)
+     (define fnt (get-default-font))
+     (values (send fnt get-face)
+             (send fnt get-point-size))]
+    [else
+     ;; this cast (should) never fail because of the way
+     ;; 'drracket:large-letters-font is initialized in main.rkt
+     (define pref-val-typed (cast pref-val (Pairof (U String False) Real)))
+     (values (car pref-val-typed) (cdr pref-val-typed))]))
+
+(: set-current-pref (-> (U String False) Real Void))
+(define (set-current-pref face size)
+  (unless (<= 0 size 1024) (error 'set-current-pref "face size out of range, got ~s" size))
+  (preferences:set 'drracket:large-letters-font (cons face size)))
 
 (define columns-string "~a columns")
 
@@ -57,21 +76,37 @@
   (define: font-choice : (Instance Choice%)
     (let ([tmp-bdc (new bitmap-dc% [bitmap (make-bitmap 1 1 #f)])])
       (new choice%
-           [label (string-constant fonts)]
+           [label (string-constant font-name)]
            [parent info-bar]
            [choices (get-face-list)]
            [callback
             (λ (x y)
-                (let ([old (preferences:get 'drracket:large-letters-font)]
-                      [choice (send font-choice get-selection)])
-                  (when choice
-                    (preferences:set 'drracket:large-letters-font
-                                     (cons (list-ref (get-face-list)
-                                                     choice)
-                                           (if (and old (pair? old))
-                                               (cdr old)
-                                               (send (get-default-font) get-point-size))))
-                    (update-txt (send text-field get-value)))))])))
+              (define choice (send font-choice get-selection))
+              (when choice
+                (define-values (current-font current-size) (get-current-pref))
+                (set-current-pref (list-ref (get-face-list) choice) current-size)
+                (update-txt (send text-field get-value))))])))
+  (: font-size-field (Instance Text-Field%))
+  (define font-size-field
+    (new text-field%
+         [parent info-bar]
+         [stretchable-width #f]
+         [callback (λ (x y)
+                     (define n (string->number (send font-size-field get-value)))
+                     (cond
+                       [(and n (real? n) (<= 0 n 1024))
+                        (send font-size-field set-field-background default-background)
+                        (define-values (current-font current-size) (get-current-pref))
+                        (set-current-pref current-font n)
+                        (update-txt (send text-field get-value))]
+                       [else
+                        (send font-size-field set-field-background warning-background)]))]
+         [label (string-constant font-size)]))
+
+  (: default-background (Instance Color%))
+  (define default-background (send font-size-field get-field-background))
+  (: warning-background (Instance Color%))
+  (define warning-background (assert (send the-color-database find-color "pink")))
   
   (: count (Instance Message%))
   (define count (new message% [label (format columns-string 1000)] [parent info-bar]))
@@ -111,8 +146,9 @@
       (send dark-msg set-bm (if (equal? str "") #f bm))))
   
   
-  ;; CHANGE - get-face can return #f
-  (let ([face (send (get-chosen-font) get-face)])
+  (let ()
+    (define-values (face size) (get-current-pref))
+    ;; CHANGE - get-face can return #f
     (when face
       (let loop ([i 0]
                  [faces (get-face-list)])
@@ -122,7 +158,8 @@
                   [(equal? face (car faces))
                    (send font-choice set-selection i)]
                   [else
-                   (loop (+ i 1) (cdr faces))])]))))
+                   (loop (+ i 1) (cdr faces))])])))
+    (send font-size-field set-value (~a size)))
   
   (send txt auto-wrap #f)
   (update-txt "")
@@ -163,7 +200,8 @@
                (stretchable-height #f)
                (style '(no-focus)))))
 
-(: render-large-letters (String Char (Instance Font%) String (Instance Text:Basic<%>) -> (Instance Bitmap%)))
+(: render-large-letters (-> String Char (Instance Font%) String (Instance Text:Basic<%>)
+                            (Instance Bitmap%)))
 (define (render-large-letters comment-prefix comment-character the-font str edit)
   (define bdc (new bitmap-dc% [bitmap (make-bitmap 1 1 #t)]))
   (define-values (tw raw-th td ta) (send bdc get-text-extent str the-font))
@@ -181,7 +219,7 @@
   (define bitmap
     (make-object bitmap%
       (max 1 (exact-floor tw))
-      (assert (exact-floor th) positive?)
+      (assert (max 1 (exact-floor th)) positive?)
       #t))
   
   (: fetch-line (Real -> String))
@@ -212,4 +250,12 @@
   (send bdc set-bitmap #f)
   bitmap)
 
-;(make-large-letters-dialog ";" #\; #f)
+(module+ main
+  ;; this initialization code copied from main.rkt
+  ;; but modified to remove the predicate; beware
+  ;; that bad contents of the preferences file may
+  ;; lead to asssertion failures. If they do, evaluate
+  ;; (preferences:set 'drracket:large-letters-font #f)
+  ;; to restore the preference setting to its default
+  (preferences:set-default 'drracket:large-letters-font #f (λ (x) #t))
+  (make-large-letters-dialog ";" #\; #f))
