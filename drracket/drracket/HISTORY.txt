@@ -1,5 +1,5 @@
 ------------------------------
-       Version 6.10
+       Version 6.11
 ------------------------------
 
   . added a font size option to the "insert large letters"
