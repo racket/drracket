@@ -52,7 +52,11 @@
     (drracket:read-eval-print-loop:value-color ,dark-blue) 
     (drracket:check-syntax:free-variable ,tol-bow-error-color)
     (drracket:check-syntax:set!d ,tol-bow-error-color)
-    (drracket:check-syntax:unused-require ,tol-bow-error-color)))
+    (drracket:check-syntax:unused-require ,tol-bow-error-color)
+    (drracket:syncheck:matching-identifiers ,light-green)
+    (drracket:syncheck:var-arrow ,sea-green)
+    (drracket:syncheck:template-arrow ,dark-plum)
+    (drracket:syncheck:tail-arrow ,dark-red)))
 
 (define tol-wob-constants light-blue)
 (define tol-wob-error light-pink)
@@ -73,7 +77,11 @@
     (drracket:read-eval-print-loop:value-color ,light-blue) 
     (drracket:check-syntax:free-variable ,tol-wob-error)
     (drracket:check-syntax:set!d ,tol-wob-error)
-    (drracket:check-syntax:unused-require ,tol-wob-error)))
+    (drracket:check-syntax:unused-require ,tol-wob-error)
+    (drracket:syncheck:matching-identifiers ,dark-green)
+    (drracket:syncheck:var-arrow ,light-pink)
+    (drracket:syncheck:template-arrow ,burnt-orange)
+    (drracket:syncheck:tail-arrow ,light-green)))
 
 (define framework:color-schemes 
   (list 

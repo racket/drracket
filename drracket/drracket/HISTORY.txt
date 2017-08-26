@@ -5,6 +5,8 @@
   . added a font size option to the "insert large letters"
     menu item
 
+  . added color scheme entries for syntax-check arrows
+
 ------------------------------
        Version 6.10
 ------------------------------
