@@ -448,7 +448,7 @@
            (text:send-snip-to-port value port)
            1]
           [(pict:convertible? value)
-           (write-special (mk-pict-snip value))]
+           (write-special (mk-pict-snip value) port)]
           [(use-number-snip? value)
            (write-special (number->number-snip value) port)
            1]

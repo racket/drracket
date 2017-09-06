@@ -454,6 +454,13 @@
          1 2 3}
       #f
       "1\n2\n3")
+(test @t{#lang racket
+         (require pict)
+         (define-values (in out) (make-pipe-with-specials))
+         (print (colorize (filled-rectangle 4 4) "red") out)}
+      #f
+      "")
+
 
 (fire-up-drracket-and-run-tests run-test)
 
