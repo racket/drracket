@@ -760,9 +760,11 @@ are either ignored or are vectors of the shape
 Each vector's content indicates where to show a tooltip. The first three components are
 a syntax object whose @racket[syntax-source] field indicates which file the tooltip goes in,
 the start and end position in the editor where mouseovers will show the tooltip, 
-and the content of the tooltip. If the tooltip content is a procedure, this procedure
-is called by Check Syntax to compute the string used for the tooltip, as Check Syntax
-traverses the syntax objects looking for properties.
+and the content of the tooltip. Note that editor positions count from zero, while syntax
+object positions count from one, so use @racket[sub1] to convert between them. If the
+tooltip content is a procedure, this procedure is called by Check Syntax to compute the
+string used for the tooltip, as Check Syntax traverses the syntax objects looking for
+properties.
 
 For example, here's a macro that shows the span of itself in a tooltip on mouseover:
 @codeblock{
@@ -775,9 +777,9 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
       'mouse-over-tooltips
       (vector
        stx
-       (syntax-position stx)
-       (+ (syntax-position stx)
-          (syntax-span stx))
+       (sub1 (syntax-position stx))
+       (sub1 (+ (syntax-position stx)
+             (syntax-span stx)))
        (format "this expression\nspans ~a chars"
                (syntax-span stx))))]))
 
