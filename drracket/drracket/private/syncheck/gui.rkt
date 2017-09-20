@@ -1052,8 +1052,13 @@ If the namespace does not, they are colored the unbound color.
             ;; If use-key? is #f, it adds `to-add' without a key.
             ;; pre: arrow-records is not #f
             (define/private (add-to-range/key text start pre-end to-add key use-key?)
-              (define end (if (= start pre-end) (+ start 1) pre-end))
-              (when (<= 0 start end (send text last-position))
+              ;; Truncate the end of the tooltip region to the final
+              ;; position in the editor. Too-long tooltips occur due
+              ;; to the indexing difference between syntax objects and
+              ;; editors.
+              (define end (min (if (= start pre-end) (+ start 1) pre-end)
+                               (send text last-position)))
+              (when (<= 0 start end)
                 (define arrow-record (get-arrow-record text))
                 ;; Dropped the check (< _ (vector-length arrow-vector))
                 ;; which had the following comment:
