@@ -1346,7 +1346,10 @@ If the namespace does not, they are colored the unbound color.
               (define canvas (get-canvas))
               (when canvas
                 (define-values (pt state) (get-current-mouse-state))
-                (define-values (sx sy) (send canvas screen->client (send pt get-x) (send pt get-y)))
+                (define-values (dx dy) (get-display-left-top-inset))
+                (define-values (sx sy) (send canvas screen->client
+                                             (+ (send pt get-x) dx)
+                                             (+ (send pt get-y) dy)))
                 (mouse-is-in-new-place sx sy (get-admin)))
               (update-drawn-arrows))
             
