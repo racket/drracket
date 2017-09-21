@@ -2068,7 +2068,9 @@ If the namespace does not, they are colored the unbound color.
                (set-box! bx (cdr (unbox bx)))
                (loop new-val start-time i)]
               [(null? val)
-               (finished-a-comp-trace defs-text)
+               (send defs-text syncheck:update-blue-boxes (send (send defs-text get-tab) get-ints))
+               (send defs-text syncheck:update-drawn-arrows)
+               (send (send defs-text get-tab) remove-bkg-running-color 'syncheck)
                (set-syncheck-running-mode #f)]
               [(not (unbox bx))
                ;; if we've been asked to stop (because some new results are ready
@@ -2085,18 +2087,6 @@ If the namespace does not, they are colored the unbound color.
               [else
                (process-trace-element known-dead-place-channels defs-text (car val))
                (loop (cdr val) start-time (+ i 1))])))
-
-        (define finished-a-comp-trace-call-callback-running? #f)
-        (define/private (finished-a-comp-trace defs-text)
-          (unless finished-a-comp-trace-call-callback-running?
-            (set! finished-a-comp-trace-call-callback-running? #t)
-            (queue-callback
-             (λ ()
-               (set! finished-a-comp-trace-call-callback-running? #f)
-               (send defs-text syncheck:update-blue-boxes (send (send defs-text get-tab) get-ints))
-               (send defs-text syncheck:update-drawn-arrows)
-               (send (send defs-text get-tab) remove-bkg-running-color 'syncheck))
-             #f)))
         
         (define/public (reset-previous-check-syntax-information defs-text)
           (define tab (send defs-text get-tab))
