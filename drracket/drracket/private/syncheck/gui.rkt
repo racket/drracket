@@ -1320,19 +1320,22 @@ If the namespace does not, they are colored the unbound color.
                 (cond [(send event leaving?) (values #f #f)]
                       [else (values (send event get-x) (send event get-y))]))
               
-              (set! mouse-admin (get-admin))
-              (set! mouse-x x)
-              (set! mouse-y y)
-              
               ;; mouse motion cancels arrow draw cooldown
               (when (eq? 'motion (send event get-event-type))
                 (set! arrow-draw-cooldown-time (current-milliseconds)))
               
-              ;; if the arrows changed, start the draw timer
-              (when (update-latent-arrows x y)
-                (start-arrow-draw-timer syncheck-arrow-delay))
+              (mouse-is-in-new-place x y (get-admin))
               
               (super on-event event))
+
+            (define/private (mouse-is-in-new-place x y admin)
+              (set! mouse-admin admin)
+              (set! mouse-x x)
+              (set! mouse-y y)
+
+              ;; if the arrows changed, start the draw timer
+              (when (update-latent-arrows x y)
+                (start-arrow-draw-timer syncheck-arrow-delay)))
             
             (define/public (syncheck:update-drawn-arrows)
               ;; This updates the arrows immediately (without waiting
@@ -1340,6 +1343,11 @@ If the namespace does not, they are colored the unbound color.
               ;; locations in mouse-x and mouse-y (which, as it turns out
               ;; might be wrong because this editor's on-event isn't called
               ;; when it isn't installed into a canvas (of course))
+              (define canvas (get-canvas))
+              (when canvas
+                (define-values (pt state) (get-current-mouse-state))
+                (define-values (sx sy) (send canvas screen->client (send pt get-x) (send pt get-y)))
+                (mouse-is-in-new-place sx sy (get-admin)))
               (update-drawn-arrows))
             
             (define/public (syncheck:build-popup-menu menu pos text [sep-before? #t])
