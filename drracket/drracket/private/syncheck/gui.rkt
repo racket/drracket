@@ -1335,14 +1335,12 @@ If the namespace does not, they are colored the unbound color.
               (super on-event event))
             
             (define/public (syncheck:update-drawn-arrows)
-              ;; This will ensure on-paint is called, once for each canvas that
-              ;; is displaying the editor. In the on-paint call for the canvas
-              ;; that the mouse is over, arrows will be updated, arrow-draw-timer
-              ;; will be set, etc.
-              ;; If this were done more directly, the tooltip would show up in
-              ;; the wrong canvas half the time - when the current admin isn't
-              ;; the admin for the canvas the mouse is over.
-              (invalidate-bitmap-cache 0 0 'display-end 'display-end))
+              ;; This updates the arrows immediately (without waiting
+              ;; for the cooldown mouse movement); based on the
+              ;; locations in mouse-x and mouse-y (which, as it turns out
+              ;; might be wrong because this editor's on-event isn't called
+              ;; when it isn't installed into a canvas (of course))
+              (update-drawn-arrows))
             
             (define/public (syncheck:build-popup-menu menu pos text [sep-before? #t])
               (when arrow-records
