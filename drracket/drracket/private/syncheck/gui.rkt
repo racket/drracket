@@ -1063,7 +1063,7 @@ If the namespace does not, they are colored the unbound color.
                 (define end (max 0 (min lp _end)))
 
                 ;; now make sure they are in order
-                (when (> end start) (set! end start))
+                (when (end . < . start) (set! end start))
 
                 ;; now make sure they are different
                 ;; (this code relies on there being at least
