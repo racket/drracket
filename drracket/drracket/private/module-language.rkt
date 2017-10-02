@@ -1945,14 +1945,11 @@
         (define dc (get-dc))
         (define-values (cw ch) (get-client-size))
         (send dc set-text-foreground (if err? "firebrick" "black"))
-        (define tot-th
-          (for/sum ([msg (in-list msgs)])
-            (define-values (tw th td ta) (send dc get-text-extent msg))
-            th))
+        (define-values (tot-th gap-space) (height/gap-space dc))
         (for/fold ([y (- (/ ch 2) (/ tot-th 2))]) ([msg (in-list msgs)])
           (define-values (tw th td ta) (send dc get-text-extent msg))
           (send dc draw-text msg 2 y)
-          (+ y th)))
+          (+ y th gap-space)))
       (super-new [style '(transparent)])
       
       ;; need object to hold onto this function, so this is
@@ -1978,11 +1975,19 @@
                     (send normal-control-font get-weight)
                     (send normal-control-font get-underlined)
                     (send normal-control-font get-smoothing)))
-        (define tot-th
+        (define top/bottom-padding 4)
+        (define-values (tot-th gap-space) (height/gap-space dc))
+        (min-height (+ top/bottom-padding (inexact->exact (ceiling tot-th)))))
+
+      (define/private (height/gap-space dc)
+        (define gap-space 2)
+        (define tot-th-without-gap-space
           (for/sum ([msg (in-list msgs)])
             (define-values (tw th td ta) (send dc get-text-extent msg))
             th))
-        (min-height (inexact->exact (ceiling tot-th))))
+        (values (+ tot-th-without-gap-space
+                   (* (max 0 (- (length msgs) 1)) gap-space))
+                gap-space))
       
       (inherit min-height)
       (set-the-height/dc-font
