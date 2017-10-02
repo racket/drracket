@@ -1289,10 +1289,14 @@
           (define copy-msg
             (cond
               [bottom-bar-most-recent-jumped-to-loc
-               (for/list ([error/status-message-str+srcloc 
-                           (in-list error/status-message-strs+srclocs)]
-                          #:when (matching-srcloc error/status-message-str+srcloc))
-                 (combine-msg error/status-message-str+srcloc))]
+               (apply
+                string-append
+                (add-between
+                 (for/list ([error/status-message-str+srcloc
+                             (in-list error/status-message-strs+srclocs)]
+                            #:when (matching-srcloc error/status-message-str+srcloc))
+                   (combine-msg error/status-message-str+srcloc))
+                 "\n"))]
               [else
                (combine-msg (list-ref error/status-message-strs+srclocs error/status-index))]))
           (send (send (get-tab) get-frame) set-expand-error/status
@@ -1904,6 +1908,11 @@
       (define menu-items '())
       (inherit refresh get-dc get-client-size popup-menu)
       (define/public (set-msgs _msgs _err? _copy-msg _menu-items)
+        (unless (string? _copy-msg)
+          (raise-argument-error 'error-message%::set-msgs
+                                "string?"
+                                2
+                                _msgs _err? _copy-msg _menu-items))
         (set! msgs _msgs)
         (set! err? _err?)
         (set! copy-msg _copy-msg)
