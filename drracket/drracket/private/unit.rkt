@@ -2229,7 +2229,8 @@
                                        (drracket:language-configuration:language-settings-settings
                                         settings))
                                  ""
-                                 (string-append " " (string-constant custom)))))
+                                 (string-append " " (string-constant custom)))
+                             " "))
         (update-teachpack-menu)
         (when (is-a? language-specific-menu menu%)
           (define label (send language-specific-menu get-label))
