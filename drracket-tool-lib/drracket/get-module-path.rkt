@@ -45,9 +45,11 @@
                    [label (string-constant drracket)]
                    [width (car (preferences:get 'drracket:get-module-path-from-user-size))]
                    [height (cadr (preferences:get 'drracket:get-module-path-from-user-size))]))
-  (define tf (new text-field% [parent dlg] [label #f]
-                  [init-value init-value]
-                  [callback (λ (tf evt) (tf-callback))]))
+  (define tf (keymap:call/text-keymap-initializer
+              (λ ()
+                (new text-field% [parent dlg] [label #f]
+                     [init-value init-value]
+                     [callback (λ (tf evt) (tf-callback))]))))
   (send (send tf get-editor) set-position 0 (send (send tf get-editor) last-position))
   (define lb (new list-box% 
                   [style (if dir? '(extended) '(single))]
@@ -71,11 +73,13 @@
          [callback (λ (_1 _2) (racket-path-cb-callback))]
          [parent different-racket-panel]))
   (define racket-path-tf
-    (new text-field% 
-         [parent different-racket-panel]
-         [label (string-constant path-to-racket-binary)]
-         [init-value (list-ref (preferences:get racket-binary-pref) 1)]
-         [callback (λ (_1 _2) (racket-path-tf-callback))]))
+    (keymap:call/text-keymap-initializer
+     (λ ()
+       (new text-field%
+            [parent different-racket-panel]
+            [label (string-constant path-to-racket-binary)]
+            [init-value (list-ref (preferences:get racket-binary-pref) 1)]
+            [callback (λ (_1 _2) (racket-path-tf-callback))]))))
 
   (define bp (new horizontal-panel% 
                   [parent dlg]
