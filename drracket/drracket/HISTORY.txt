@@ -13,6 +13,8 @@
 
     Thanks to Jennie Tran for the implementation.
 
+  . misc bug fixes
+
 ------------------------------
        Version 6.10
 ------------------------------
