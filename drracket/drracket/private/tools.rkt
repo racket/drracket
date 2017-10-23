@@ -45,18 +45,18 @@
 ;; candidate-tools : (listof installed-tool)
 (define candidate-tools null)
 
-;; successfully-loaded-tool = 
-;; (make-successfully-loaded-tool 
+;; successfully-loaded-tool =
+;; (make-successfully-loaded-tool
 ;;    module-spec (union #f (instanceof bitmap%)) (union #f string) (union #f string)
 ;;    (-> void) (-> void))
 (define-struct successfully-loaded-tool (spec bitmap name url phase1 phase2))
 
 ;; successfully-loaded-tools : (listof successfully-loaded-tool)
 ;; this list contains the tools that successfully were loaded
-;; it is updated in load/invoke-tool. 
+;; it is updated in load/invoke-tool.
 (define successfully-loaded-tools null)
 
-;; successful-tool = (make-successful-tool module-spec 
+;; successful-tool = (make-successful-tool module-spec
 ;;                                         (union #f (instanceof bitmap%))
 ;;                                         (union #f string)
 ;;                                         (union #f string))
@@ -95,54 +95,65 @@
 ;; installed-tools-for-directory : directory-record -> (list-of installed-tool)
 (define (installed-tools-for-directory coll-dir)
   (append (installed-tools-for-directory/keys coll-dir 'tools 'tool-icons 'tool-names 'tool-urls #f)
-          (installed-tools-for-directory/keys coll-dir 'drracket-tools 'drracket-tool-icons 'drracket-tool-names 'drracket-tool-urls #t)))
+          (installed-tools-for-directory/keys coll-dir
+                                              'drracket-tools
+                                              'drracket-tool-icons
+                                              'drracket-tool-names
+                                              'drracket-tool-urls
+                                              #t)))
 
-;; installed-tools-for-directory/keys : directory-record symbol symbol symbol symbol boolean -> (list-of installed-tool)
-(define (installed-tools-for-directory/keys coll-dir tools-key tool-icons-key tool-names-key tool-urls-key drracket-tool?)
+;; installed-tools-for-directory/keys : directory-record symbol^4 boolean -> (list-of installed-tool)
+(define (installed-tools-for-directory/keys coll-dir
+                                            tools-key
+                                            tool-icons-key
+                                            tool-names-key
+                                            tool-urls-key
+                                            drracket-tool?)
   (let ([table (with-handlers ((exn:fail? values))
                  (get-info/full (directory-record-path coll-dir)))])
     (cond
       [(not table)
        null]
       [(exn? table)
-       (message-box (string-constant drscheme)
-                    (format (string-constant error-loading-tool-title)
-                            (directory-record-path coll-dir)
-                            (let ([sp (open-output-string)])
-                              (parameterize ([current-error-port sp]
-                                             [current-error-port sp])
-                                (drracket:init:original-error-display-handler (exn-message table) table))
-                              (get-output-string sp)))
-                    #f
-                    '(ok stop))
+       (message-box
+        (string-constant drscheme)
+        (format (string-constant error-loading-tool-title)
+                (directory-record-path coll-dir)
+                (let ([sp (open-output-string)])
+                  (parameterize ([current-error-port sp]
+                                 [current-error-port sp])
+                    (drracket:init:original-error-display-handler (exn-message table) table))
+                  (get-output-string sp)))
+        #f
+        '(ok stop))
        null]
       [else
-       (let* ([tools (table tools-key (lambda () null))]
-              [tool-icons (table tool-icons-key (lambda () (map (lambda (x) #f) tools)))]
-              [tool-names (table tool-names-key (lambda () (map (lambda (x) #f) tools)))]
-              [tool-urls (table tool-urls-key (lambda () (map (lambda (x) #f) tools)))])
+       (let* ([tools (table tools-key (λ () null))]
+              [tool-icons (table tool-icons-key (λ () (map (λ (x) #f) tools)))]
+              [tool-names (table tool-names-key (λ () (map (λ (x) #f) tools)))]
+              [tool-urls (table tool-urls-key (λ () (map (λ (x) #f) tools)))])
          (unless (= (length tools) (length tool-icons))
            (message-box (string-constant drscheme)
                         (format (string-constant tool-tool-icons-same-length)
                                 coll-dir tools tool-icons)
                         #f
                         '(ok stop))
-           (set! tool-icons (map (lambda (x) #f) tools)))
+           (set! tool-icons (map (λ (x) #f) tools)))
          (unless (= (length tools) (length tool-names))
            (message-box (string-constant drscheme)
                         (format (string-constant tool-tool-names-same-length)
                                 coll-dir tools tool-names)
                         #f
                         '(ok stop))
-           (set! tool-names (map (lambda (x) #f) tools)))
+           (set! tool-names (map (λ (x) #f) tools)))
          (unless (= (length tools) (length tool-urls))
            (message-box (string-constant drscheme)
                         (format (string-constant tool-tool-urls-same-length)
                                 coll-dir tools tool-urls)
                         #f
                         '(ok stop))
-           (set! tool-urls (map (lambda (x) #f) tools)))
-         (map (lambda (t i n u) (make-installed-tool coll-dir t i n u drracket-tool?))
+           (set! tool-urls (map (λ (x) #f) tools)))
+         (map (λ (t i n u) (make-installed-tool coll-dir t i n u drracket-tool?))
               tools tool-icons tool-names tool-urls))])))
 
 ;; candidate-tool? : installed-tool -> boolean
@@ -152,25 +163,25 @@
   (cond
     [(getenv "PLTNOTOOLS")
      (printf "PLTNOTOOLS: skipping tools\n") (flush-output)
-     (lambda (it) #f)]
+     (λ (it) #f)]
     [(getenv "PLTONLYTOOL")
-     => (lambda (onlys)
-          (let* ([allowed (let ([exp (read (open-input-string onlys))])
-                            (cond 
-                             [(symbol? exp) (list exp)]
-                             [(pair? exp) exp]
-                             [else '()]))]
-                 [directory-ok? (lambda (x) 
-                                  (let-values ([(base name dir) (split-path x)])
-                                    (memq (string->symbol (path->string name))
-                                          allowed)))])
-            (printf "PLTONLYTOOL: only loading ~s\n" allowed) (flush-output)
-            (lambda (it)
-              (directory-ok?
-               (directory-record-path
-                (installed-tool-dir it))))))]
+     => (λ (onlys)
+          (define allowed (let ([exp (read (open-input-string onlys))])
+                            (cond
+                              [(symbol? exp) (list exp)]
+                              [(pair? exp) exp]
+                              [else '()])))
+          (define (directory-ok? x)
+            (define-values (base name dir) (split-path x))
+            (memq (string->symbol (path->string name))
+                  allowed))
+          (printf "PLTONLYTOOL: only loading ~s\n" allowed) (flush-output)
+          (λ (it)
+            (directory-ok?
+             (directory-record-path
+              (installed-tool-dir it)))))]
     [else
-     (lambda (it)
+     (λ (it)
        (eq? (or (get-tool-configuration it)
                 (default-tool-configuration it))
             'load))]))
@@ -217,8 +228,7 @@
       ((lib)
        `(lib ,(string-append
                (apply string-append
-                      (map (lambda (s)
-                             (string-append s "/"))
+                      (map (λ (s) (string-append s "/"))
                            (append (cdr key) rest-parts)))
                file)))
       ((planet)
@@ -227,7 +237,7 @@
 ;; installed-tool-is-loaded : installed-tool -> boolean
 (define (installed-tool-is-loaded? it)
   (let ([path (installed-tool-full-path it)])
-    (ormap (lambda (st) (equal? path (successful-tool-spec st)))
+    (ormap (λ (st) (equal? path (successful-tool-spec st)))
            (get-successful-tools))))
 
 
@@ -259,7 +269,7 @@
                      (installed-tool-drracket? it)))
 
 ;; load/invoke-tool* :   path
-;;                       (listof string[sub-collection-name]) 
+;;                       (listof string[sub-collection-name])
 ;;                       (union #f (cons string[filename] (listof string[collection-name])))
 ;;                       (union #f string)
 ;;                       (union #f string)
@@ -270,67 +280,69 @@
 ;; `icon-spec' is the collection-path spec for the tool's icon, if there is one.
 ;; `name' is the name of the tool (only used in about box)
 (define (load/invoke-tool* coll-dir in-path icon-spec name tool-url drracket?)
-  (let* ([icon-path 
-          (cond
-            [(string? icon-spec)
-             (build-path coll-dir icon-spec)]
-            [(and (list? icon-spec)
-                  (andmap string? icon-spec))
-             (apply collection-file-path icon-spec)]
-            [else #f])]
-         [tool-bitmap
-          (and icon-path
-               (install-tool-bitmap name icon-path))])
-    (let/ec k
-      (unless (or (string? in-path)
-                  (and (list? in-path)
-                       (not (null? in-path))
-                       (andmap string? in-path)))
-        (message-box (string-constant drscheme)
-                     (format (string-constant invalid-tool-spec)
-                             coll-dir in-path)
-                     #f
-                     '(ok stop))
-        (k (void)))
-      (let* ([tool-path
-              (if (string? in-path) 
-                  (build-path coll-dir in-path)
-                  (apply build-path coll-dir (append (cdr in-path) (list (car in-path)))))]
-             [unit 
-               (with-handlers ([exn:fail? 
-                                (lambda (x)
-                                  (show-error
-                                   (format (string-constant error-invoking-tool-title)
-                                           coll-dir in-path)
-                                   x)
-                                  (k (void)))])
-                 (dynamic-require tool-path 'tool@))])
-        (with-handlers ([exn:fail? 
-                         (lambda (x)
-                           (show-error 
-                            (format (string-constant error-invoking-tool-title)
-                                    coll-dir in-path)
-                            x))])
-          (let-values ([(phase1-thunk phase2-thunk) 
-                        (if drracket?
-                            (invoke-tool unit (string->symbol (or name (path->string coll-dir))))
-                            (drracket:tools-drs:invoke-drs-tool unit (string->symbol (or name (path->string coll-dir)))))])
-            (set! successfully-loaded-tools 
-                  (cons (make-successfully-loaded-tool
-                         tool-path
-                         tool-bitmap
-                         name
-                         tool-url 
-                         phase1-thunk
-                         phase2-thunk)
-                        successfully-loaded-tools))))))))
+  (define icon-path
+    (cond
+      [(string? icon-spec)
+       (build-path coll-dir icon-spec)]
+      [(and (list? icon-spec)
+            (andmap string? icon-spec))
+       (apply collection-file-path icon-spec)]
+      [else #f]))
+  (define tool-bitmap
+    (and icon-path
+         (install-tool-bitmap name icon-path)))
+  (let/ec k
+    (unless (or (string? in-path)
+                (and (list? in-path)
+                     (not (null? in-path))
+                     (andmap string? in-path)))
+      (message-box (string-constant drscheme)
+                   (format (string-constant invalid-tool-spec)
+                           coll-dir in-path)
+                   #f
+                   '(ok stop))
+      (k (void)))
+    (define tool-path
+      (if (string? in-path)
+          (build-path coll-dir in-path)
+          (apply build-path coll-dir (append (cdr in-path) (list (car in-path))))))
+    (define unit
+      (with-handlers ([exn:fail?
+                       (λ (x)
+                         (show-error
+                          (format (string-constant error-invoking-tool-title)
+                                  coll-dir in-path)
+                          x)
+                         (k (void)))])
+        (dynamic-require tool-path 'tool@)))
+    (with-handlers ([exn:fail?
+                     (λ (x)
+                       (show-error
+                        (format (string-constant error-invoking-tool-title)
+                                coll-dir in-path)
+                        x))])
+      (define-values (phase1-thunk phase2-thunk)
+        (if drracket?
+            (invoke-tool unit (string->symbol (or name (path->string coll-dir))))
+            (drracket:tools-drs:invoke-drs-tool
+             unit
+             (string->symbol (or name (path->string coll-dir))))))
+      (set! successfully-loaded-tools
+            (cons (make-successfully-loaded-tool
+                   tool-path
+                   tool-bitmap
+                   name
+                   tool-url
+                   phase1-thunk
+                   phase2-thunk)
+                  successfully-loaded-tools)))))
 
 ;; invoke-tool : unit/sig string -> (values (-> void) (-> void))
 ;; invokes the tools and returns the two phase thunks.
 (define (invoke-tool unit tool-name)
   (define-unit-binding unit@ unit (import drracket:tool^) (export drracket:tool-exports^))
   (language-object-abstraction drracket:language:object/c #f)
-  (wrap-tool-inputs 
+  (wrap-tool-inputs
    (let ()
      (define-values/invoke-unit unit@
        (import drracket:tool^) (export drracket:tool-exports^))
@@ -354,7 +366,7 @@
 (define (install-tool-bitmap name bitmap-path)
   (let/ec k
     (let ([bitmap
-           (with-handlers ([exn:fail:filesystem? (lambda (x) (k (void)))])
+           (with-handlers ([exn:fail:filesystem? (λ (x) (k (void)))])
              (read-bitmap bitmap-path #:try-@2x? #t))])
       (unless (and (is-a? bitmap bitmap%)
                    (send bitmap ok?))
@@ -370,9 +382,9 @@
         
         (parameterize ([current-eventspace splash-eventspace])
           (queue-callback
-           (lambda ()
+           (λ ()
              (let ([bdc (make-object bitmap-dc%)]
-                   [translated-tool-bitmap-y 
+                   [translated-tool-bitmap-y
                     (max 0 (- splash-height tool-bitmap-y tool-bitmap-size))])
                
                ;; add the bitmap, but centered at its position
@@ -431,14 +443,14 @@
                                       phase2-extras)])
     (set! current-phase 'init-complete)
     (set! successful-tools
-          (map (lambda (x) (make-successful-tool
-                            (successfully-loaded-tool-spec x)
-                            (successfully-loaded-tool-bitmap x)
-                            (successfully-loaded-tool-name x)
-                            (successfully-loaded-tool-url x)))
+          (map (λ (x) (make-successful-tool
+                       (successfully-loaded-tool-spec x)
+                       (successfully-loaded-tool-bitmap x)
+                       (successfully-loaded-tool-name x)
+                       (successfully-loaded-tool-url x)))
                after-phase2))))
 
-;; run-one-phase : string 
+;; run-one-phase : string
 ;;                 (successfully-loaded-tool -> (-> void))
 ;;                 (listof successfully-loaded-tool)
 ;;                 (-> void)
@@ -451,19 +463,19 @@
   (let loop ([tools tools])
     (cond
       [(null? tools) null]
-      [else 
-       (let ([tool (car tools)])
-         (let ([phase-thunk (selector tool)])
-           (with-handlers ([exn:fail?
-                            (lambda (exn) 
-                              (show-error
-                               (format err-fmt 
-                                       (successfully-loaded-tool-spec tool)
-                                       (successfully-loaded-tool-name tool))
-                               exn)
-                              (loop (cdr tools)))])
-             (phase-thunk)
-             (cons tool (loop (cdr tools))))))])))
+      [else
+       (define tool (car tools))
+       (define phase-thunk (selector tool))
+       (with-handlers ([exn:fail?
+                        (lambda (exn)
+                          (show-error
+                           (format err-fmt
+                                   (successfully-loaded-tool-spec tool)
+                                   (successfully-loaded-tool-name tool))
+                           exn)
+                          (loop (cdr tools)))])
+         (phase-thunk)
+         (cons tool (loop (cdr tools))))])))
 
 ;; current-phase : (union #f 'loading-tools 'phase1 'phase2 'init-complete)
 (define current-phase #f)
@@ -474,7 +486,7 @@
 (define (only-in-phase func . phases)
   (unless (memq current-phase phases)
     (error func "can only be called in phase: ~a"
-           (apply string-append 
+           (apply string-append
                   (map (lambda (x) (format "~e " x))
                        (filter (lambda (x) x) phases))))))
 
@@ -491,11 +503,11 @@
      (define advisory
        (new message%
             (parent main)
-            (label "Changes to tool configuration will take effect the next time you start DrRacket.")))
+            (label (string-constant tool-config-changes ))))
      (define listing
        (new list-box%
             (parent main)
-            (label "Installed tools")
+            (label (string-constant installed-tools))
             (choices null)
             (callback (lambda _ (on-select-tool)))))
      (define info
@@ -506,11 +518,11 @@
      (define location
        (new text-field%
             (parent info)
-            (label "Tool: ")))
+            (label (string-constant tool-prefs-panel-tool:-label))))
      (define location-editor (send location get-editor))
      (define configuration
        (new radio-box%
-            (label "Load the tool when DrRacket starts?")
+            (label (string-constant load-tool-when-drracket-starts?))
             (parent info)
             (choices (list load-action skip-action #| default-action |#))
             (callback (lambda _ (on-select-policy)))))
@@ -528,14 +540,14 @@
                 (string<? (car a) (car b))))))
      (define (tool-list-entry it)
        (let ([name (or (installed-tool-name it)
-                       (format "unnamed tool ~a"
+                       (format (string-constant unnamed-tool)
                                (installed-tool->module-spec it)))])
          (cond [(installed-tool-is-loaded? it)
-                (string-append name " (loaded)")]
+                (string-append name (string-constant note-that-tool-loaded))]
                [(not (memq it candidate-tools))
-                (string-append name " (skipped)")]
+                (string-append name (string-constant note-that-tool-was-skipped))]
                [else
-                (string-append name " (failed to load)")])))
+                (string-append name (string-constant note-that-tool-failed-to-load))])))
      (define (on-select-tool)
        (let ([it (get-selected-tool)])
          (send* location-editor
