@@ -43,6 +43,14 @@
       (r:write (list w h d a recorded-datum) prt)
       (define bytes (get-output-bytes prt))
       (send f put (bytes-length bytes) bytes))
+
+    (define/override (find-scroll-step y)
+      (inexact->exact (floor (/ y 12))))
+    (define/override (get-num-scroll-steps)
+      (add1 (find-scroll-step h)))
+    (define/override (get-scroll-step-offset y)
+      (inexact->exact (floor (* y 12))))
+
     (super-new)
     (inherit set-snipclass)
     (set-snipclass snip-class)
