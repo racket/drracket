@@ -27,7 +27,7 @@ remain the same for tools that use them.
 (define unit:frame<%>
   (interface (frame:<%>
               frame:searchable-text<%>
-              frame:delegate<%>)
+              frame:status-line<%>)
     get-insert-menu
     get-special-menu
     get-interactions-text

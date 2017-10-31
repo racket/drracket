@@ -499,7 +499,7 @@
   
   
   (define definitions-canvas%
-    (class (make-searchable-canvas% (canvas:delegate-mixin (canvas:info-mixin canvas:color%)))
+    (class (make-searchable-canvas% (canvas:info-mixin canvas:color%))
       (init [style '()])
       (super-new (style (cons 'auto-hscroll style)))
       (inherit set-scroll-via-copy)
@@ -543,16 +543,15 @@
                 (color:text-mixin
                  (drracket:rep:drs-bindings-keymap-mixin
                   (mode:host-text-mixin
-                   (text:delegate-mixin
-                    (text:foreground-color-mixin
-                     (drracket:rep:drs-autocomplete-mixin
-                      (λ (x) x)
-                      (text:normalize-paste-mixin
-                       (text:column-guide-mixin
-                        (text:inline-overview-mixin
-                         (text:all-string-snips-mixin
-                          (text:ascii-art-enlarge-boxes-mixin
-                           text:info%)))))))))))))))])
+                   (text:foreground-color-mixin
+                    (drracket:rep:drs-autocomplete-mixin
+                     (λ (x) x)
+                     (text:normalize-paste-mixin
+                      (text:column-guide-mixin
+                       (text:inline-overview-mixin
+                        (text:all-string-snips-mixin
+                         (text:ascii-art-enlarge-boxes-mixin
+                          text:info%))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit get-top-level-window is-locked? lock while-unlocked
@@ -1400,7 +1399,7 @@
     show-planet-status)
   
   (define frame-mixin
-    (mixin (drracket:frame:<%> frame:searchable-text<%> frame:delegate<%> frame:size-pref<%>)
+    (mixin (drracket:frame:<%> frame:status-line<%> frame:searchable-text<%> frame:size-pref<%>)
       (drracket:unit:frame<%>)
       (init filename)
       (inherit set-label-prefix get-show-menu
@@ -1415,8 +1414,7 @@
                file-menu:get-save-item
                file-menu:get-save-as-item
                file-menu:get-revert-item
-               file-menu:get-print-item
-               set-delegated-text)
+               file-menu:get-print-item)
       
       (define resizable-panel (drr-named-undefined 'resizable-panel))
       (define definitions-canvas (drr-named-undefined 'definitions-canvas))
@@ -3019,7 +3017,6 @@
             (update-save-message)
             (update-save-button)
             (language-changed)
-            (set-delegated-text definitions-text)
             
             (send definitions-text update-frame-filename)
             (update-running (send current-tab is-running?))
@@ -4837,7 +4834,6 @@
       (update-save-message)
       (update-save-button)
       (language-changed)
-      (set-delegated-text definitions-text)
       
       (cond
         [filename
@@ -5406,16 +5402,15 @@
          (frame:searchable-text-mixin 
           (frame:searchable-mixin
            (frame:text-info-mixin 
-            (frame:delegate-mixin
-             (frame:status-line-mixin
-              (frame:info-mixin
-               (frame:text-mixin
-                (frame:editor-mixin
-                 (frame:standard-menus-mixin
-                  (frame:register-group-mixin
-                   (frame:focus-table-mixin
-                    (frame:basic-mixin
-                     frame%))))))))))))))))))
+            (frame:status-line-mixin
+             (frame:info-mixin
+              (frame:text-mixin
+               (frame:editor-mixin
+                (frame:standard-menus-mixin
+                 (frame:register-group-mixin
+                  (frame:focus-table-mixin
+                   (frame:basic-mixin
+                    frame%)))))))))))))))))
   
   (define-local-member-name enable-two-way-prefs)
   (define (make-two-way-prefs-dragable-panel% % pref-key)
