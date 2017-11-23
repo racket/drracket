@@ -61,7 +61,7 @@ button} for a pop-up menu of names that are defined in the definitions
 window. Selecting an item from the menu moves the insertion point (blinking
 caret) to the corresponding definition.
 
-@centerline{@image[#:scale 0.7 "example.png"]}
+@centerline{@image[#:scale 0.7 "define.png"]}
 
 The @as-index{@onscreen{Save} button} appears whenever the definitions
 window is modified. Clicking the button saves the contents of the
