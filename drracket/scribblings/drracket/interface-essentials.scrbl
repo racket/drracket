@@ -14,11 +14,13 @@
 The DrRacket window has three parts: a row of buttons at the top, two
 editing panels in the middle, and a status line at the bottom.
 
-@centerline{@image[#:scale 0.7 "example.png"]}
+@centerline{@image[#:scale 0.7 "annotated-example.png"]}
 
 The top editing panel, called the @deftech{definitions window}, is for
 defining programs. The above figure shows a program that defines the
 function @racket[square].
+
+@centerline{@image[#:scale 0.7 "definitions.png"]}
 
 The bottom panel, called the @deftech{interactions window}, is for
 evaluating Racket expressions interactively. The @onscreen{Language} line
@@ -26,8 +28,12 @@ in the interactions window indicates which primitives are available in
 the definitions and interactions windows.  In the above figure, the
 language is determined from the program source's @hash-lang[] line.
 
+@centerline{@image[#:scale 0.7 "interactions.png"]}
+
 @margin-note{The interactions window is described further in
 @secref["interactions-window"], later in this manual.}
+
+@centerline{@image[#:scale 1.0 "buttons-run.png"]}
 
 Clicking the @onscreen{Run} button evaluates the program in the
 definitions window, making the program's definitions available in the
@@ -37,6 +43,10 @@ produces the result @racket[4].
 
 The blue quarter circle in the upper right corner provides access
 to the summary information from the documentation.
+
+@centerline{@image[#:scale 0.7 "summary-closed.png"]}
+@centerline{@image[#:scale 0.7 "summary.png"]}
+
 The @deftech{status line} at the bottom of DrRacket's window provides
 information about the current line and position of the editing caret,
 whether the current file can be modified, and whether DrRacket is
@@ -44,11 +54,16 @@ currently evaluating any expression. The @as-index{recycling icon}
 flashes while DrRacket is ``recycling'' internal resources, such as
 memory.
 
+@centerline{@image[#:scale 1.0 "status-running.png"]}
+
+
 @local-table-of-contents[]
 
 @; ----------------------------------------------------------------------
 
 @section[#:tag "buttons"]{Buttons}
+
+@centerline{@image[#:scale 0.5 "buttons-run.png"]}
 
 The left end of the row of buttons in DrRacket contains a miniature
 button with the @index['("filename button")]{current file's
