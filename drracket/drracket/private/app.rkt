@@ -348,6 +348,7 @@
     (add (string-constant plt-homepage) "http://racket-lang.org/")
     (add (string-constant pbd-homepage) "http://programbydesign.org/")
     (add (string-constant how-to-design-programs) "http://htdp.org/")
+    (add "PasteRack" "http://www.pasterack.org/")
 
     (for-each (λ (tool)
                 (cond [(drracket:tools:successful-tool-url tool) 
