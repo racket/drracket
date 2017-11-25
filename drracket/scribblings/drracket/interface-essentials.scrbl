@@ -63,7 +63,7 @@ memory.
 
 @section[#:tag "buttons"]{Buttons}
 
-@centerline{@image[#:scale 0.5 "buttons-run.png"]}
+@centerline{@image[#:scale 1.0 "buttons-run.png"]}
 
 The left end of the row of buttons in DrRacket contains a miniature
 button with the @index['("filename button")]{current file's
