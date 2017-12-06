@@ -72,7 +72,7 @@
     (framework:syntax-color:scheme:string ,tol-wob-constants)
     (framework:syntax-color:scheme:text ,tol-wob-constants)
     (framework:syntax-color:scheme:other ,light-blue)
-    (framework:syntax-color:scheme:parenthesis ,dark-plum)
+    (framework:syntax-color:scheme:parenthesis ,sea-green)
     (framework:syntax-color:scheme:symbol ,light-blue)
     (drracket:read-eval-print-loop:error-color ,tol-wob-error)
     (drracket:read-eval-print-loop:out-color ,dark-green)
