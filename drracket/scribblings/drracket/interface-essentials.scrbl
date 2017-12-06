@@ -829,12 +829,12 @@ Each of the keys, e.g., @code[(format "'~s" example-key)], maps to a color and p
 some style information. All keys accept colors (the vectors shown
 above represent colors in r/g/b format), but only some accept style information. To
 find out which are which and to get a complete list of the possible keys, click the button
-labeled @onscreen[(regexp-replace #rx"&&" (string-constant style-and-color-names) "&")]
+labeled @onscreen[(regexp-replace #rx"&&" (string-constant style-and-color-names) "\\&")]
 at the bottom of the 
 @onscreen[(string-constant color-schemes)] tab of the
 @onscreen[(string-constant preferences-colors)] tab in the preferences dialog.
 If one can accept style information, then you may include any of the symbols @racket['bold],
-@racket['underline], or @racket['italic] in the list with the color.
+@racket['underline], @racket['italic] or @racket[`#s(background ,_color)] in the list with the color.
 
 Full details on the specification of the info files can be found in the documentation
 for the function @racket[color-prefs:register-info-based-color-schemes].

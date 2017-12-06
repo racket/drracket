@@ -34,6 +34,7 @@
 ;; methods in syncheck-annotations<%>
 (provide 
  syncheck:find-source-object
+ syncheck:add-text-type
  syncheck:add-background-color
  syncheck:add-require-open-menu
  syncheck:add-docs-menu

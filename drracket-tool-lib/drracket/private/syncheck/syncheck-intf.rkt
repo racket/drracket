@@ -5,6 +5,7 @@
 (define syncheck-annotations<%>
   (interface ()
     syncheck:find-source-object
+    syncheck:add-text-type
     syncheck:add-background-color
     syncheck:add-require-open-menu
     syncheck:add-docs-menu
@@ -30,6 +31,7 @@
 (define annotations-mixin
   (mixin () (syncheck-annotations<%>)
     (define/public (syncheck:find-source-object stx) #f)
+    (define/public (syncheck:add-text-type source start end text-type) (void))
     (define/public (syncheck:add-background-color source start end color) (void))
     (define/public (syncheck:add-require-open-menu source start end key) (void))
     (define/public (syncheck:add-id-set all-ids new-name-intereferes?) (void))
