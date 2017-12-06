@@ -66,6 +66,10 @@ If the namespace does not, they are colored the unbound color.
 (define jump-to-definition (string-constant cs-jump-to-definition))
 
 (define cs-check-syntax-mode (string-constant cs-check-syntax-mode))
+(define cs-check-syntax-background-colors
+  (hash 'matching-identifiers 'drracket:syncheck:matching-identifiers
+        'unused-identifier 'drracket:syncheck:unused-identifier
+        'document-identifier 'drracket:syncheck:document-identifier))
 (define cs-mode-menu-show-my-obligations (string-constant cs-mode-menu-show-my-obligations))
 (define cs-mode-menu-show-client-obligations (string-constant cs-mode-menu-show-client-obligations))
 (define cs-mode-menu-show-syntax (string-constant cs-mode-menu-show-syntax))
@@ -178,8 +182,17 @@ If the namespace does not, they are colored the unbound color.
                                     #:style both-obligation-style-name
                                     (make-object color% 139 142 28)
                                     (send the-color-database find-color "khaki"))
-(color-prefs:add-color-scheme-entry 'drracket:syncheck:matching-identifiers 
+(color-prefs:add-color-scheme-entry (hash-ref cs-check-syntax-background-colors
+                                              'matching-identifiers )
                                     "GreenYellow"
+                                    "DarkGreen")
+(color-prefs:add-color-scheme-entry (hash-ref cs-check-syntax-background-colors
+                                              'unused-identifier)
+                                    "firebrick"
+                                    "firebrick")
+(color-prefs:add-color-scheme-entry (hash-ref cs-check-syntax-background-colors
+                                              'document-identifier)
+                                    "palegreen"
                                     "DarkGreen")
 (color-prefs:add-color-scheme-entry 'drracket:syncheck:var-arrow
                                     "BLUE"
@@ -249,7 +262,7 @@ If the namespace does not, they are colored the unbound color.
     ;; name-dup? : symbol? -> boolean?
     (define-struct identifier-location-set (set name-dup?) #:transparent)
         
-    ;; color : string
+    ;; color : (or/c (is-a?/c color%) string)
     ;; text: text:basic<%>
     ;; start, fin: number
     ;; used to represent regions to highlight when passing the mouse over the syncheck window
@@ -964,7 +977,19 @@ If the namespace does not, they are colored the unbound color.
               (when arrow-records
                 (when (<= 0 start-pos end-pos (last-position))
                   (add-to-range/key text start-pos end-pos make-menu key (and key #t)))))
-            
+
+            (define/public (syncheck:add-text-type text start fin text-type)
+              (when arrow-records
+                (when (is-a? text text:basic<%>)
+                  (when (hash-has-key? cs-check-syntax-background-colors text-type)
+                    (define color
+                      (color-prefs:lookup-in-color-scheme
+                       (hash-ref cs-check-syntax-background-colors text-type)))
+                    (add-to-range/key text start fin
+                                      (make-colored-region color text start fin)
+                                      #f #f)))))
+
+            ;; these three methods are no longer used; see docs for more
             (define/public (syncheck:add-background-color text start fin raw-color)
               (when arrow-records
                 (when (is-a? text text:basic<%>)
@@ -980,8 +1005,6 @@ If the namespace does not, they are colored the unbound color.
                   (add-to-range/key text start fin
                                     (make-colored-region color text start fin)
                                     #f #f))))
-            
-            ;; these two methods are no longer used; see docs for more
             (define/public (syncheck:add-arrow start-text start-pos-left start-pos-right
                                                end-text end-pos-left end-pos-right
                                                actual? level)
@@ -1487,8 +1510,9 @@ If the namespace does not, they are colored the unbound color.
             (define current-matching-identifiers (make-hash))
             
             (define/private (update-matching-identifiers refreshing?)
-              (define clr (color-prefs:lookup-in-color-scheme  
-                           'drracket:syncheck:matching-identifiers))
+              (define clr (color-prefs:lookup-in-color-scheme
+                           (hash-ref cs-check-syntax-background-colors
+                                     'matching-identifiers)))
               (define style 'ellipse) 
               (define in-edit-sequence '())
               (define (un/highlight highlight?)
@@ -1680,13 +1704,12 @@ If the namespace does not, they are colored the unbound color.
                     (send (colored-region-text current-colored-region) unhighlight-range 
                           (colored-region-start current-colored-region)
                           (colored-region-fin current-colored-region)
-                          (send the-color-database find-color 
-                                (colored-region-color current-colored-region))))
+                          (colored-region-color current-colored-region)))
                   (when new-region
                     (send (colored-region-text new-region) highlight-range
                           (colored-region-start new-region)
                           (colored-region-fin new-region)
-                          (send the-color-database find-color (colored-region-color new-region))))
+                          (colored-region-color new-region)))
                   (set! current-colored-region new-region))))
                 
             ;; tack/untack-callback : (listof arrow) -> void
@@ -2142,8 +2165,10 @@ If the namespace does not, they are colored the unbound color.
              (send defs-text syncheck:add-tail-arrow defs-text from-pos defs-text to-pos)]
             [`#(syncheck:add-mouse-over-status ,pos-left ,pos-right ,str)
              (send defs-text syncheck:add-mouse-over-status defs-text pos-left pos-right str)]
-            [`#(syncheck:add-background-color ,color ,start ,fin)
-             (send defs-text syncheck:add-background-color defs-text color start fin)]
+            [`#(syncheck:add-text-type ,start ,fin ,text-type)
+             (send defs-text syncheck:add-text-type defs-text start fin text-type)]
+            [`#(syncheck:add-background-color ,start ,fin ,color) ; unused
+             (send defs-text syncheck:add-background-color defs-text start fin color)]
             [`#(syncheck:add-jump-to-definition ,start ,end ,id ,filename ,submods)
              (send defs-text syncheck:add-jump-to-definition defs-text start end id filename submods)]
 

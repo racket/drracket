@@ -4,6 +4,7 @@
 
 (define-local-member-name
   syncheck:find-source-object
+  syncheck:add-text-type
   syncheck:add-background-color
   syncheck:add-docs-menu
   syncheck:color-range

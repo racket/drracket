@@ -777,15 +777,15 @@
                 (define start (- pos 1))
                 (define fin (+ start span))
                 (send defs-text syncheck:add-unused-require source-editor start fin)
-                (send defs-text syncheck:add-background-color
-                      source-editor start fin "firebrick")))
+                (send defs-text syncheck:add-text-type
+                      source-editor start fin 'unused-identifier)))
             (color stx unused-require-style-name)))))
 
     ;; color-unused-binder : source integer integer -> void
     (define (color-unused-binder source start end)
       (define defs-text (current-annotations))
       (when (and defs-text source)
-        (send defs-text syncheck:add-background-color source start end "firebrick"))
+        (send defs-text syncheck:add-text-type source start end 'unused-identifier))
       (color-range source start end unused-require-style-name))
 
     (define (self-module? mpi)
@@ -1352,9 +1352,9 @@
             (define info (get-index-entry-info binding-info))
             (when info
               (define-values (entry-desc path definition-tag tag) (apply values info))
-              (send defs-text syncheck:add-background-color
+              (send defs-text syncheck:add-text-type
                     source-editor start fin 
-                    "palegreen")
+                    'document-identifier)
               (send defs-text syncheck:add-docs-menu
                     source-editor
                     start 
@@ -1465,7 +1465,8 @@
          _end-text end-pos-left end-pos-right end-px end-py
          actual? level require-arrow? name-dup?)
     (log syncheck:add-mouse-over-status _text pos-left pos-right str)
-    (log syncheck:add-background-color _text color start fin)
+    (log syncheck:add-text-type _text start fin text-type)
+    (log syncheck:add-background-color _text start fin color)
     (log syncheck:add-jump-to-definition _text start end id filename submods)
     (log syncheck:add-definition-target _text start-pos end-pos id mods)
     (log syncheck:add-require-open-menu _text start-pos end-pos file)

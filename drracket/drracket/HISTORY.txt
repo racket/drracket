@@ -1,4 +1,11 @@
 ------------------------------
+       Version 6.12
+------------------------------
+
+  . added color scheme entries for syntax-check document
+    variables and unused variables.
+
+------------------------------
        Version 6.11
 ------------------------------
 
