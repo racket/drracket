@@ -75,6 +75,13 @@ The @onscreen{Editing} panel consists of several sub-panels:
       sub-expressions are treated specially:
       @verbatim[for/fold-example]
 
+      If the symbol is not listed in any of the list boxes in the various
+      sections, the contents of the
+      @onscreen{Extra Regexp} panel are consulted. They are
+      @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{regular expressions}
+      that are matched against the printed representation of the symbol, and
+      if they match, the corresponding indentation style is used.
+
       }
 
 @item{@onscreen{Square bracket}
