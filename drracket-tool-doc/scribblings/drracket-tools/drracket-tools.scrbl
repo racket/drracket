@@ -175,12 +175,14 @@ in order to make the results be platform independent.
                                     [end exact-nonnegative-integer?]
                                     [id symbol?]
                                     [label any/c]
+                                    [definition-tag definition-tag?]
                                     [path any/c]
                                     [tag any/c])
             void?]{
    Called to indicate that there is something that has documentation between the range
    @racket[start] and @racket[end]. The documented identifier's name is given by @racket[id]
    and the docs are found in the html file @racket[path] at the html tag @racket[tag].
+   The @racket[definition-tag] argument matches the documented definition.
    The @racket[label] argument describes the binding for use in the menu item (although it may
    be longer than 200 characters).
  }
