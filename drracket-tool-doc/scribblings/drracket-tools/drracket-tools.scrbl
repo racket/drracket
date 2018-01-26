@@ -291,13 +291,21 @@ in order to make the results be platform independent.
  @defmethod[(syncheck:add-prefixed-require-reference
              [req-src (not/c #f)]
              [req-pos-left exact-nonnegative-integer?]
-             [req-pos-right exact-nonnegative-integer?])
+             [req-pos-right exact-nonnegative-integer?]
+             [prefix symbol?]
+             [prefix-src any/c]
+             [prefix-left (or/c #f exact-nonnegative-integer?)]
+             [prefix-right (or/c #f exact-nonnegative-integer?)])
            void?]{
   This method is called for each @racket[require] in the program that
   has a @racket[_prefix] or @racket[_prefix-all-except] around it in
   fully expanded form (i.e., it seems to come from a @racket[prefix-in]
-  or a similar form). The method is passed
-  the location of the @racket[require] in the original program.
+  or a similar form).
+
+  The method is passed the location of the @racket[require]
+  in the original program, as well as the prefix (as a symbol)
+  and the source locations of the prefix (if they are
+  available).
  }
 
  @defmethod[(syncheck:add-unused-require

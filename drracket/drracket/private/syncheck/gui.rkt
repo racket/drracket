@@ -1051,7 +1051,11 @@ If the namespace does not, they are colored the unbound color.
 
             (define/public (syncheck:add-prefixed-require-reference req-text
                                                                     req-pos-left
-                                                                    req-pos-right)
+                                                                    req-pos-right
+                                                                    prefix
+                                                                    prefix-src
+                                                                    prefix-left
+                                                                    prefix-right)
               (hash-set! prefix-table (list req-text req-pos-left req-pos-right) #t))
 
             (define/public (syncheck:add-unused-require req-text
@@ -2185,9 +2189,11 @@ If the namespace does not, they are colored the unbound color.
                  (list defs-text (list-ref lst 0) (list-ref lst 1))))
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels))
              (send defs-text syncheck:add-id-set to-be-renamed/poss/fixed name-dup?)]
-            [`#(syncheck:add-prefixed-require-reference ,id-pos-left ,id-pos-right)
+            [`#(syncheck:add-prefixed-require-reference ,id-pos-left ,id-pos-right
+                                                        ,prefix ,prefix-left ,prefix-right)
              (send defs-text syncheck:add-prefixed-require-reference
-                   defs-text id-pos-left id-pos-right)]
+                   defs-text id-pos-left id-pos-right
+                   prefix defs-text prefix-left prefix-right)]
             [`#(syncheck:add-unused-require ,req-pos-left ,req-pos-right)
              (send defs-text syncheck:add-unused-require defs-text req-pos-left req-pos-right)]))
         

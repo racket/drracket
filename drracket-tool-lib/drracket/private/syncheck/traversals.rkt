@@ -1156,14 +1156,22 @@
               (send defs-text syncheck:add-require-open-menu
                     req-source start end file))
             (when phaseless-require-spec/module-lang-require
-              (define has-prefix?
+              (define prefix
                 (syntax-case* phaseless-require-spec/module-lang-require (prefix prefix-all-except)
                   symbolic-compare?
-                  [(prefix . _) #t]
-                  [(prefix-all-except . _) #t]
+                  [(prefix pfx . _) #'pfx]
+                  [(prefix-all-except pfx . _) #'pfx]
                   [other #f]))
-              (when has-prefix?
-                (send defs-text syncheck:add-prefixed-require-reference req-source start end)))))))
+              (when prefix
+                (define prefix-source (find-source-editor prefix))
+                (define prefix-start (and prefix-source
+                                          (syntax-position prefix)
+                                          (- (syntax-position prefix) 1)))
+                (define prefix-end (and prefix-start
+                                        (syntax-span prefix)
+                                        (+ prefix-start (syntax-span prefix))))
+                (send defs-text syncheck:add-prefixed-require-reference req-source start end
+                      (syntax-e prefix) prefix-source prefix-start prefix-end)))))))
 
     ;; get-require-filename : sexp-or-module-path-index namespace string[directory] -> filename or #f
     ;; finds the filename corresponding to the require in stx
@@ -1472,7 +1480,9 @@
     (log syncheck:add-require-open-menu _text start-pos end-pos file)
     (log syncheck:add-docs-menu _text start-pos end-pos key the-label path definition-tag tag)
     (log syncheck:add-id-set to-be-renamed/poss dup-name?)
-    (log syncheck:add-prefixed-require-reference _req-src req-pos-left req-pos-right)
+    (log syncheck:add-prefixed-require-reference
+         _req-src req-pos-left req-pos-right
+         prefix _prefix-src prefix-start prefix-end)
     (log syncheck:add-unused-require _req-src req-pos-left req-pos-right)
     
     (define/public (get-trace) (reverse trace))

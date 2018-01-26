@@ -3,7 +3,8 @@
 (require drracket/check-syntax
          racket/class
          racket/set
-         rackunit)
+         rackunit
+         syntax/modread)
 
 (check-true
  (let ()
@@ -303,3 +304,70 @@
   (check-equal?
    (send annotations get-unused-requires)
    (set '(31 43))))
+
+;; make sure that the default arity of
+;; syncheck:add-prefixed-require-reference
+;; is correct
+(let ()
+  (define build-trace%
+    (class (annotations-mixin object%)
+      (define/override (syncheck:find-source-object stx)
+        (and (equal? src (syntax-source stx))
+             src))
+      (super-new)))
+
+  (define-values (in out) (make-pipe))
+  (thread
+   (λ ()
+     (displayln "#lang racket/base\n" out)
+     (writeln '(require (prefix-in : racket/string)) out)
+     (writeln '(:string-prefix? "abcdefg" "abc") out)
+     (close-output-port out)))
+  (define src "prefix.rkt")
+  (port-count-lines! in)
+  (define ns (make-base-namespace))
+  (define-values (add-syntax done)
+    (make-traversal ns (current-directory)))
+  (parameterize ([current-annotations (new build-trace%)]
+                 [current-namespace ns])
+    (define stx (with-module-reading-parameterization
+                  (λ () (read-syntax src in))))
+    (add-syntax (expand stx))
+    (done)))
+
+(let ()
+  (define build-trace%
+    (class (annotations-mixin object%)
+      (define/override (syncheck:find-source-object stx)
+        (and (equal? src (syntax-source stx))
+             src))
+      (define/override (syncheck:add-prefixed-require-reference . args)
+        (set! args-seen (cons args args-seen)))
+      (super-new)))
+
+  (define args-seen '())
+
+  (define-values (in out) (make-pipe))
+  (thread
+   (λ ()
+     (displayln "#lang racket/base\n" out)
+     (writeln '(require (prefix-in : racket/string)) out)
+     (writeln '(:string-prefix? "abcdefg" "abc") out)
+     (close-output-port out)))
+  (define src "prefix.rkt")
+  (port-count-lines! in)
+  (define ns (make-base-namespace))
+  (define-values (add-syntax done)
+    (make-traversal ns (current-directory)))
+  (define prefixes-seen '())
+  (parameterize ([current-annotations (new build-trace%)]
+                 [current-namespace ns])
+    (define stx (with-module-reading-parameterization
+                  (λ () (read-syntax src in))))
+    (add-syntax (expand stx))
+    (done))
+
+  (check-equal? args-seen
+                 (list (list "prefix.rkt" 41 54
+                             ': "prefix.rkt" 39 40))))
+

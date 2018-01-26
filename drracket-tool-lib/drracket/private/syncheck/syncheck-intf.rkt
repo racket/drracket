@@ -69,8 +69,9 @@
     (define/public (syncheck:add-jump-to-definition text start end id filename submods) (void))
     (define/public (syncheck:add-definition-target source pos-left pos-right id mods) (void))
     (define/public (syncheck:color-range source start finish style-name) (void))
-    (define/public (syncheck:add-prefixed-require-reference req-src req-pos-left req-pos-right
-                                                            prefix-in-src prefix-in-pos)
+    (define/public (syncheck:add-prefixed-require-reference
+                    req-src req-pos-left req-pos-right
+                    prefix prefix-src prefix-pos-left prefix-pos-right)
       (void))
     (define/public (syncheck:add-unused-require req-src req-pos-left req-pos-right) (void))
     (super-new)))
