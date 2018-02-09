@@ -231,6 +231,7 @@
         (invalidate-blue-box-region)
         (set! mouse-in-blue-box? b)
         (invalidate-blue-box-region)
+        (trigger-buffer-changed-callback #:now? #t)
         (end-edit-sequence)))
     (define/public (update-locked b)
       (preferences:set 'drracket:syncheck:contracts-locked? b)
@@ -425,16 +426,16 @@
       (inner (void) on-lexer-valid valid?)
       (when valid?
         (trigger-buffer-changed-callback)))
-    (define/private (trigger-buffer-changed-callback)
+    (define/private (trigger-buffer-changed-callback #:now? [now? #f])
       (when (or locked?
                 mouse-in-blue-box?
                 (not the-strs))
         (set! update-the-strs-coroutine #f)
-        (start-the-timer)))
-    (define/private (start-the-timer)
+        (start-the-timer now?)))
+    (define/private (start-the-timer now?)
       (unless timer-running?
         (set! timer-running? #t)
-        (send timer start 300 #t)))
+        (send timer start (if now? 10 300) #t)))
 
     (define update-the-strs-coroutine #f)
 
@@ -475,7 +476,7 @@
                 (end-edit-sequence))]
              [#f (void)]))]
         [else
-         (start-the-timer)]))
+         (start-the-timer #f)]))
 
     (define/private (compute-tag+rng maybe-pause pos)
       (define basic-info
