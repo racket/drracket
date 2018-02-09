@@ -519,41 +519,41 @@
              (null? require-candidates))
          #f]
         [else
-         (define-values (start end)
-           (let loop ([pos pos])
-             (define-values (this-token-start this-token-end)
-               (get-token-range pos))
-             (cond
-               [(member (classify-position pos) '(symbol keyword))
-                (get-token-range pos)]
-               [(zero? pos) (values #f #f)]
-               [else
-                (maybe-pause)
-                (loop (- pos 1))])))
-         (cond
-           [(and start end)
-            (define id (string->symbol (get-text start end)))
-            (define xref (load-collections-xref))
-            (define default (list start end #f #f #f))
-            (or (for/or ([require-candidate (in-list require-candidates)])
-                  (maybe-pause)
-                  (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
-                  (define definition-tag (xref-binding->definition-tag xref (list mp id) #f))
-                  (cond
-                    [definition-tag
-                      (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
-                      (cond
-                        [path
-                         (list start
-                               end
-                               definition-tag
-                               path
-                               url-tag)]
-                        [else #f])]
-                    [else #f]))
-                default)]
-           [else #f])]))
+         (let loop ([pos pos])
+           (cond
+             [(member (classify-position pos) '(symbol keyword))
+              (define-values (start end) (get-token-range pos))
+              (cond
+                [(and start end)
+                 (define candidate (try-to-find-docs start end
+                                                     maybe-pause
+                                                     require-candidates))
+                 (or candidate (loop (- pos 1)))]
+                [else (loop (- pos 1))])]
+             [(zero? pos) #f]
+             [else
+              (maybe-pause)
+              (loop (- pos 1))]))]))
 
+    (define/private (try-to-find-docs start end maybe-pause require-candidates)
+      (define id (string->symbol (get-text start end)))
+      (define xref (load-collections-xref))
+      (for/or ([require-candidate (in-list require-candidates)])
+        (maybe-pause)
+        (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
+        (define definition-tag (xref-binding->definition-tag xref (list mp id) #f))
+        (cond
+          [definition-tag
+            (define-values (path url-tag) (xref-tag->path+anchor xref definition-tag))
+            (cond
+              [path
+               (list start
+                     end
+                     definition-tag
+                     path
+                     url-tag)]
+              [else #f])]
+          [else #f])))
     
     (define/augment (on-insert where len)
       (define docs-im (get-docs-im))
