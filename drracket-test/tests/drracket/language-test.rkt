@@ -104,7 +104,7 @@ the settings above should match r5rs
     (test-expression "'|.|" "'|.|")
     (test-expression '("(equal? (list " image ") (list " image "))") 
                      "#t")
-    (test-expression "(define x 1)(define x 2)" #rx"duplicate definition for identifier in: x" "")
+    (test-expression "(define x 1)(define x 2)" #rx"identifier already defined in: x" "")
     
     (test-expression "(define-struct spider (legs))(make-spider 4)" 
                      "#<spider>"
@@ -115,7 +115,7 @@ the settings above should match r5rs
     (test-expression "class" (regexp "class: bad syntax in: class"))
     (test-expression "shared" (regexp "shared: bad syntax in: shared"))
     
-    (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of `\\.'" "")
+    (test-expression "(define (. x y) (* x y))" #rx"read-syntax: illegal use of `\\.`" "")
     (test-expression "'(1 . 2)" "'(1 . 2)")
     
     (test-expression "(define (f define) 1)" "" #rx"define-values: assignment disallowed.*: f")
@@ -132,12 +132,12 @@ the settings above should match r5rs
     
     (test-expression "true" "#t")
     (test-expression "mred^" 
-                     #rx"unbound identifier in module in: mred\\^"
-                     #rx"mred\\^.*cannot reference undefined identifier")
+                     #rx"unbound identifier in: mred\\^"
+                     #rx"mred\\^.*cannot reference an identifier before its definition")
     (test-expression "(eq? 'a 'A)" "#f")
     (test-expression "(set! x 1)" 
-                     #rx"set!: unbound identifier in module in: x"
-                     #rx"set!:.*cannot set undefined.*: x")
+                     #rx"set!: unbound identifier in: x"
+                     #rx"set!:.*cannot set variable before its definition.*: x")
     (test-expression "(define qqq 2) (set! qqq 1)" "")
     (test-expression "(cond [(= 1 2) 3])" "")
     (test-expression "(cons 1 2)" "'(1 . 2)")
@@ -178,7 +178,7 @@ the settings above should match r5rs
     (test-expression "(define-syntax app syntax-case)"
                      "{stop-22x22.png} syntax-case: bad syntax in: syntax-case")
     
-    (test-expression "#lang racket" #rx"read: #lang not enabled in the current context" "")
+    (test-expression "#lang racket" #rx"read: `#lang` not enabled" "")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"

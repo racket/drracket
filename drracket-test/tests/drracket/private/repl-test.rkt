@@ -126,22 +126,22 @@ This produces an ACK message
    
    (mktest 
     "("
-    ("{stop-22x22.png} read: expected a `)' to close `('"
-     "{stop-multi.png} {stop-22x22.png} read: expected a `)' to close `('"
-     "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: read: expected a `)' to close `('"
-     "{stop-22x22.png} read: expected a `)' to close `('"
-     "{stop-22x22.png} read: expected a `)' to close `('"
-     "{stop-22x22.png} repl-test-tmp3.rkt:1:0: read: expected a `)' to close `('")
+    ("{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+     "{stop-multi.png} {stop-22x22.png} read-syntax: expected a `)` to close `(`"
+     "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: read-syntax: expected a `)` to close `(`"
+     "{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+     "{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+     "{stop-22x22.png} repl-test-tmp3.rkt:1:0: read-syntax: expected a `)` to close `(`")
     'definitions
     #f)
    
    (mktest "."
-           ("{stop-22x22.png} read: illegal use of `.'"
-            "{stop-multi.png} {stop-22x22.png} read: illegal use of `.'"
-            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: read: illegal use of `.'"
-            "{stop-22x22.png} read: illegal use of `.'"
-            "{stop-22x22.png} read: illegal use of `.'"
-            "{stop-22x22.png} repl-test-tmp3.rkt:1:0: read: illegal use of `.'")
+           ("{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: read-syntax: illegal use of `.`"
+            "{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-22x22.png} repl-test-tmp3.rkt:1:0: read-syntax: illegal use of `.`")
            'definitions
            #f)
    
@@ -167,12 +167,12 @@ This produces an ACK message
            #f)
    
    (mktest "xx"
-           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier")
+           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0: xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition")
            'definitions
            #f)
    
@@ -228,12 +228,12 @@ This produces an ACK message
    
    ;; top-level semantics test
    (mktest "(define (f) (+ 1 1)) (define + -) (f)"
-           (#rx"define-values:.*cannot change constant.*: \\+"
-            #rx"define-values:.*cannot change constant.*: \\+"
-            #rx"define-values:.*cannot change constant.*: \\+"
-            #rx"define-values:.*cannot change constant.*: \\+"
-            #rx"define-values:.*cannot change constant.*: \\+"
-            #rx"define-values:.*cannot change constant.*: \\+")
+           (#rx"define-values:.*cannot re-define a constant.*: \\+"
+            #rx"define-values:.*cannot re-define a constant.*: \\+"
+            #rx"define-values:.*cannot re-define a constant.*: \\+"
+            #rx"define-values:.*cannot re-define a constant.*: \\+"
+            #rx"define-values:.*cannot re-define a constant.*: \\+"
+            #rx"define-values:.*cannot re-define a constant.*: \\+")
            'interactions
            #f)
    
@@ -258,12 +258,12 @@ This produces an ACK message
            #f)
    
    (mktest "(begin xx (printf \"hi\\n\"))"
-           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:7: xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier")
+           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:7: xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition")
            'definitions
            #f)
    
@@ -295,12 +295,12 @@ This produces an ACK message
            #f)
    
    (mktest "#!/bin/sh\nxx"
-           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:2:0: xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier"
-            #rx"xx:.*cannot reference undefined identifier")
+           (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:2:0: xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition"
+            #rx"xx:.*cannot reference an identifier before its definition")
            'definitions
            #f)
    
@@ -337,22 +337,22 @@ This produces an ACK message
            #f)
    
    (mktest "    (read (open-input-string \".\"))"
-           ("{stop-multi.png} read: illegal use of `.'"
-            "{stop-multi.png} read: illegal use of `.'"
-            "{stop-multi.png} read: illegal use of `.'"
-            "read: illegal use of `.'"
-            "read: illegal use of `.'"
-            "read: illegal use of `.'")
+           ("{stop-multi.png} {stop-22x22.png} string::1: read: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} string::1: read: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} string::1: read: illegal use of `.`"
+            "{stop-22x22.png} string::1: read: illegal use of `.`"
+            "{stop-22x22.png} string::1: read: illegal use of `.`"
+            "{stop-22x22.png} string::1: read: illegal use of `.`")
            'interactions
            #f)
    
    (mktest "    (eval 'x)"
-           (#rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: x:.*cannot reference undefined identifier"
-            #rx"x:.*cannot reference undefined identifier"
-            #rx"x:.*cannot reference undefined identifier"
-            #rx"x:.*cannot reference undefined identifier")
+           (#rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: x:.*cannot reference an identifier before its definition"
+            #rx"x:.*cannot reference an identifier before its definition"
+            #rx"x:.*cannot reference an identifier before its definition"
+            #rx"x:.*cannot reference an identifier before its definition")
            'definitions
            #f)
    
@@ -389,22 +389,22 @@ This produces an ACK message
    
    ;; error in the middle
    (mktest "1 2 ( 3 4"
-           ("1\n2\n{stop-22x22.png} read: expected a `)' to close `('"
-            "{stop-multi.png} {stop-22x22.png} read: expected a `)' to close `('"
-            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: read: expected a `)' to close `('"
-            "1\n2\n{stop-22x22.png} read: expected a `)' to close `('"
-            "{stop-22x22.png} read: expected a `)' to close `('"
-            "{stop-22x22.png} repl-test-tmp3.rkt:1:4: read: expected a `)' to close `('")
+           ("1\n2\n{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+            "{stop-multi.png} {stop-22x22.png} read-syntax: expected a `)` to close `(`"
+            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: read-syntax: expected a `)` to close `(`"
+            "1\n2\n{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+            "{stop-22x22.png} read-syntax: expected a `)` to close `(`"
+            "{stop-22x22.png} repl-test-tmp3.rkt:1:4: read-syntax: expected a `)` to close `(`")
            'definitions
            #f)
    
    (mktest "1 2 . 3 4"
-           ("1\n2\n{stop-22x22.png} read: illegal use of `.'"
-            "{stop-multi.png} {stop-22x22.png} read: illegal use of `.'"
-            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: read: illegal use of `.'"
-            "1\n2\n{stop-22x22.png} read: illegal use of `.'"
-            "{stop-22x22.png} read: illegal use of `.'"
-            "{stop-22x22.png} repl-test-tmp3.rkt:1:4: read: illegal use of `.'")
+           ("1\n2\n{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: read-syntax: illegal use of `.`"
+            "1\n2\n{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-22x22.png} read-syntax: illegal use of `.`"
+            "{stop-22x22.png} repl-test-tmp3.rkt:1:4: read-syntax: illegal use of `.`")
            'definitions
            #f)
    
@@ -419,12 +419,12 @@ This produces an ACK message
            #f)
    
    (mktest "1 2 x 3 4"
-           (#rx"1\n2\n{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: x:.*cannot reference undefined identifier"
-            #rx"1\n2\nx:.*cannot reference undefined identifier"
-            #rx".*cannot reference undefined identifier"
-            #rx".*cannot reference undefined identifier")
+           (#rx"1\n2\n{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:4: x:.*cannot reference an identifier before its definition"
+            #rx"1\n2\nx:.*cannot reference an identifier before its definition"
+            #rx".*cannot reference an identifier before its definition"
+            #rx".*cannot reference an identifier before its definition")
            'definitions
            #f)
    
@@ -757,27 +757,27 @@ This produces an ACK message
    
    ;; thread tests
    (mktest "(begin (thread (lambda () x)) (sleep 1/10))"
-           (#rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
-            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference undefined identifier"
+           (#rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
+            #rx"{stop-multi.png} {stop-22x22.png} x:.*cannot reference an identifier before its definition"
             (regexp
              (string-append "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:26:"
-                            " x:.*cannot reference undefined identifier"))
-            #rx"x:.*cannot reference undefined identifier"
-            #rx"x:.*cannot reference undefined identifier"
-            #rx"x:.*cannot reference undefined identifier")
+                            " x:.*cannot reference an identifier before its definition"))
+            #rx"x:.*cannot reference an identifier before its definition"
+            #rx"x:.*cannot reference an identifier before its definition"
+            #rx"x:.*cannot reference an identifier before its definition")
            'definitions
            #f)
    
    ;; brought down from above for comparison
    (mktest
     "xx"
-    (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
-     #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference undefined identifier"
+    (#rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
+     #rx"{stop-multi.png} {stop-22x22.png} xx:.*cannot reference an identifier before its definition"
      (regexp (string-append "{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:0:"
-                            " xx:.*cannot reference undefined identifier"))
-     #rx"xx:.*cannot reference undefined identifier"
-     #rx"xx:.*cannot reference undefined identifier"
-     #rx"xx:.*cannot reference undefined identifier")
+                            " xx:.*cannot reference an identifier before its definition"))
+     #rx"xx:.*cannot reference an identifier before its definition"
+     #rx"xx:.*cannot reference an identifier before its definition"
+     #rx"xx:.*cannot reference an identifier before its definition")
     'definitions
     #f)
 
@@ -1329,7 +1329,7 @@ This produces an ACK message
       
       (let* ([end (- (get-int-pos) 1)]
              [output (fetch-output drr-frame start end)]
-             [expected #rx"x:.*cannot reference undefined identifier"])
+             [expected #rx"x:.*cannot reference an identifier before its definition"])
         (unless (regexp-match expected output)
           (failure)
           (eprintf "callcc-test: expected something matching ~s, got ~s\n" expected output)))))
