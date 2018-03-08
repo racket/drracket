@@ -178,7 +178,7 @@ the settings above should match r5rs
     (test-expression "(define-syntax app syntax-case)"
                      "{stop-22x22.png} syntax-case: bad syntax in: syntax-case")
     
-    (test-expression "#lang racket" #rx"read: `#lang` not enabled" "")
+    (test-expression "#lang racket" #rx"read-syntax: `#lang` not enabled" "")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -237,7 +237,7 @@ the settings above should match r5rs
     (test-expression "class" (regexp "class: bad syntax in: class"))
     (test-expression "shared" (regexp "shared: bad syntax in: shared"))
     
-    (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of `\\.'")
+    (test-expression "(define (. x y) (* x y))" #rx"read-syntax: illegal use of `\\.`")
     (test-expression "'(1 . 2)" "(1 . 2)")
     
     (test-expression "(define (f define) 1)" "")
@@ -255,10 +255,10 @@ the settings above should match r5rs
     (test-expression "true" "#t")
     (test-expression 
      "mred^" 
-     #rx"{stop-multi.png} {stop-22x22.png} mred\\^.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} mred\\^.*cannot reference an identifier before its definition")
     (test-expression "(eq? 'a 'A)" "#f")
     (test-expression "(set! x 1)"
-                     #rx"{stop-multi.png} {stop-22x22.png} set!:.*cannot set undefined.*: x")
+                     #rx"{stop-multi.png} {stop-22x22.png} set!:.*cannot set variable before its definition.*: x")
     (test-expression "(define qqq 2) (set! qqq 1)" "")
     (test-expression "(cond [(= 1 2) 3])" "")
     (test-expression "(cons 1 2)" "(1 . 2)")
@@ -301,7 +301,7 @@ the settings above should match r5rs
     
     (test-expression "#lang racket"
                      ""
-                     #rx"read: #lang not enabled in the current context")
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -348,18 +348,18 @@ the settings above should match r5rs
     
     (test-expression 
      "(define-struct spider (legs))(make-spider 4)" 
-     #rx"{stop-multi.png} {stop-22x22.png} define-struct:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} define-struct:.*cannot reference an identifier before its definition")
     
     (test-expression "(sqrt -1)" "0+1i")
     
     (test-expression 
      "class" 
-     #rx"{stop-multi.png} {stop-22x22.png} class:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} class:.*cannot reference an identifier before its definition")
     (test-expression 
      "shared"
-     #rx"{stop-multi.png} {stop-22x22.png} shared:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} shared:.*cannot reference an identifier before its definition")
     
-    (test-expression "(define (. x y) (* x y))" #rx"read: illegal use of `\\.'")
+    (test-expression "(define (. x y) (* x y))" #rx"read-syntax: illegal use of `\\.`")
     (test-expression "'(1 . 2)" "(1 . 2)")
     
     (test-expression "(define (f define) 1)" "")
@@ -368,28 +368,28 @@ the settings above should match r5rs
     
     (test-expression
      "call/cc"
-     #rx"{stop-multi.png} {stop-22x22.png} call/cc:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} call/cc:.*cannot reference an identifier before its definition")
     
     (test-expression 
      "(error 'a \"~a\" 1)"
-     #rx"{stop-multi.png} {stop-22x22.png} error:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} error:.*cannot reference an identifier before its definition")
     (test-expression 
      "(error \"a\" \"a\")"
-     #rx"{stop-multi.png} {stop-22x22.png} error:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} error:.*cannot reference an identifier before its definition")
     
     (test-expression
      "(time 1)" 
-     #rx"{stop-multi.png} {stop-22x22.png} time.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} time.*cannot reference an identifier before its definition")
     
     (test-expression 
      "true"
-     #rx"{stop-multi.png} {stop-22x22.png} true.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} true.*cannot reference an identifier before its definition")
     (test-expression 
      "mred^"
-     #rx"{stop-multi.png} {stop-22x22.png} mred\\^.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} mred\\^.*cannot reference an identifier before its definition")
     (test-expression "(eq? 'a 'A)" "#t")
     (test-expression "(set! x 1)"
-                     #rx"{stop-multi.png} {stop-22x22.png} set!:.*cannot set undefined.*: x")
+                     #rx"{stop-multi.png} {stop-22x22.png} set!:.*cannot set variable before its definition.*: x")
     (test-expression "(define qqq 2) (set! qqq 1)" "")
     (test-expression "(cond ((= 1 2) 3))" "")
     (test-expression "(cons 1 2)" "(1 . 2)")
@@ -419,7 +419,7 @@ the settings above should match r5rs
     (test-expression "+1/2i" "0+1/2i")
     (test-expression "779625/32258" "{number 779625/32258 \"24 5433/32258\" mixed}")
     (test-expression "(exact? 1.5)" "#f")
-    (test-expression "(print (floor (sqrt 2)))" #rx"print:.*cannot reference undefined identifier")
+    (test-expression "(print (floor (sqrt 2)))" #rx"print:.*cannot reference an identifier before its definition")
     
     (test-expression "(let ((f (lambda (x) x))) f)" "#<procedure:f>")
     (test-expression ",1" "{stop-22x22.png} unquote: not in quasiquote in: (unquote 1)")
@@ -430,20 +430,20 @@ the settings above should match r5rs
     
     (test-expression 
      "argv"
-     #rx"{stop-multi.png} {stop-22x22.png} argv:.*cannot reference undefined identifier")
+     #rx"{stop-multi.png} {stop-22x22.png} argv:.*cannot reference an identifier before its definition")
     (test-expression 
      "(define-syntax app syntax-case)" 
      "{stop-22x22.png} macro-transformer: only a `syntax-rules' form is allowed in: syntax-case")
     
     (test-expression 
      "#lang racket"
-     #rx"module-begin: illegal use"
-     #rx"read: #lang not enabled in the current context")
+     #rx"module-begin: not in a module-definition context"
+     #rx"read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
                                     "(f)")
-                     #rx"cannot reference undefined identifier")
+                     #rx"cannot reference an identifier before its definition")
     
     (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
                      #rx"require: undefined"
@@ -498,8 +498,8 @@ the settings above should match r5rs
     
     (test-undefined-var "class") 
     (test-undefined-var "shared")
-    (test-expression "(define (. x y) (* x y))" "read: illegal use of `.'")
-    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))" "read-syntax: illegal use of `.`")
+    (test-expression "'(1 . 2)"  "read-syntax: illegal use of `.`")
     
     (test-undefined-var "call/cc")
     
@@ -583,7 +583,7 @@ the settings above should match r5rs
    "let: this function is not defined"
    "function call: expected a function after the open parenthesis, but found a part")
     (test-expression ",1"
-                     "read: illegal use of comma")
+                     "read-syntax: illegal use of `,`")
     
     (test-expression "(list 1)" 
                      "(cons 1 '())"
@@ -595,8 +595,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
+                     "read-syntax: `#lang` not enabled"
+                     "read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -686,9 +686,9 @@ the settings above should match r5rs
     (test-undefined-var "class" #:icon+in? #t)
     (test-undefined-var "shared" #:icon+in? #t)
     (test-expression "(define (. x y) (* x y))"
-                     (regexp (regexp-quote "read: illegal use of `.'")))
+                     (regexp (regexp-quote "read-syntax: illegal use of `.`")))
     (test-expression "'(1 . 2)"
-                     (regexp (regexp-quote "read: illegal use of `.'")))
+                     (regexp (regexp-quote "read-syntax: illegal use of `.`")))
     
     (test-undefined-var "call/cc" #:icon+in? #t)
     
@@ -792,7 +792,7 @@ the settings above should match r5rs
       (regexp-quote
        "function call: expected a function after the open parenthesis, but found a part")))
     (test-expression ",1"
-                     (regexp (regexp-quote "read: illegal use of comma")))
+                     (regexp (regexp-quote "read-syntax: illegal use of `,`")))
     
     (test-expression "(list 1)"
                      "(cons 1 '())"
@@ -804,7 +804,7 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax" #:icon+in? #t)
     
     (test-expression "#lang racket"
-                     (regexp (regexp-quote "read: #lang not enabled in the current context")))
+                     (regexp (regexp-quote "read-syntax: `#lang` not enabled")))
     (test-expression
      (string-append "(define (f)\n"
                     "(+ (raise-user-error 'a \"b\")))\n"
@@ -872,8 +872,8 @@ the settings above should match r5rs
     (test-undefined-var "class")
     (test-undefined-var "shared")
     
-    (test-expression "(define (. x y) (* x y))"  "read: illegal use of `.'")
-    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))"  "read-syntax: illegal use of `.`")
+    (test-expression "'(1 . 2)"  "read-syntax: illegal use of `.`")
     
     (test-undefined-var "call/cc")
     
@@ -966,8 +966,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
+                     "read-syntax: `#lang` not enabled"
+                     "read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -1031,8 +1031,8 @@ the settings above should match r5rs
     (test-undefined-var "class")
     (test-undefined-var "shared")
     
-    (test-expression "(define (. x y) (* x y))"  "read: illegal use of `.'")
-    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))"  "read-syntax: illegal use of `.`")
+    (test-expression "'(1 . 2)"  "read-syntax: illegal use of `.`")
     
     (test-undefined-var "call/cc")
     
@@ -1118,8 +1118,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
+                     "read-syntax: `#lang` not enabled"
+                     "read-syntax: `#lang` not enabled")
     (test-expression
      (string-append "(define (f)\n"
                     "(+ (raise-user-error 'a \"b\")))\n"
@@ -1185,8 +1185,8 @@ the settings above should match r5rs
     (test-undefined-var "class")
     (test-undefined-var "shared")
     
-    (test-expression "(define (. x y) (* x y))" "read: illegal use of `.'")
-    (test-expression "'(1 . 2)" "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))" "read-syntax: illegal use of `.`")
+    (test-expression "'(1 . 2)" "read-syntax: illegal use of `.`")
     
     (test-undefined-var "call/cc")
     
@@ -1268,8 +1268,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
+                     "read-syntax: `#lang` not enabled"
+                     "read-syntax: `#lang` not enabled")
     (test-expression
      (string-append "(define (f)\n"
                     "(+ (raise-user-error 'a \"b\")))\n"
@@ -1336,8 +1336,8 @@ the settings above should match r5rs
     
     (test-expression "shared" "shared: expected an open parenthesis before shared, but found none")
     
-    (test-expression "(define (. x y) (* x y))"  "read: illegal use of `.'")
-    (test-expression "'(1 . 2)"  "read: illegal use of `.'")
+    (test-expression "(define (. x y) (* x y))"  "read-syntax: illegal use of `.`")
+    (test-expression "'(1 . 2)"  "read-syntax: illegal use of `.`")
     
     (test-undefined-var "call/cc")
     
@@ -1427,14 +1427,14 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read: #lang not enabled in the current context"
-                     "read: #lang not enabled in the current context")
+                     "read-syntax: `#lang` not enabled"
+                     "read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
                                     "(f)")
                      #rx"raise-user-error"
-                     #rx"set!")
+                     #rx"raise-user-error")
     
     (test-expression "(require racket/gui/base)(require racket/class)(make-object bitmap% 1 1)"
                      "{image}"
