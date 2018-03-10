@@ -17,8 +17,12 @@
         "\n"
         (~s '(! 10))))
    (wait-for-online-compilation-to-finish drr)
-   (do-execute drr)
-   (collect-garbage) (collect-garbage)
+
+   ;; try to let various caches and whatnot
+   ;; warm up to some stable size
+   (for ([i (in-range 20)])
+     (do-execute drr)
+     (collect-garbage) (collect-garbage))
        
    (define times-exceeded-previous-maximum
      (let loop ([i 10]
@@ -41,4 +45,5 @@
                                (max previous-maximum this-time)
                                this-time)))])))
    (when (times-exceeded-previous-maximum . > . 5)
-     (eprintf "test failed, exceeded previous maximum by 10,000 ~a times\n" times-exceeded-previous-maximum))))
+     (eprintf "test failed, exceeded previous maximum by 10,000 ~a times\n"
+              times-exceeded-previous-maximum))))
