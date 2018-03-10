@@ -47,3 +47,7 @@
    (when (times-exceeded-previous-maximum . > . 5)
      (eprintf "test failed, exceeded previous maximum by 10,000 ~a times\n"
               times-exceeded-previous-maximum))))
+
+(module+ test
+  (module config info
+    (define timeout 2000)))
