@@ -20,7 +20,7 @@
 
    ;; try to let various caches and whatnot
    ;; warm up to some stable size
-   (for ([i (in-range 20)])
+   (for ([i (in-range 40)])
      (do-execute drr)
      (collect-garbage) (collect-garbage))
        
