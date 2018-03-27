@@ -1879,15 +1879,16 @@ all of the names in the tools library, for use defining keybindings
  
  (proc-doc/names
   drracket:language:create-executable-gui
-  ((or/c false/c (is-a?/c top-level-window<%>))
-   (or/c false/c string?)
+  ((or/c #f (is-a?/c top-level-window<%>))
+   (or/c #f string?)
    (or/c #t 'launcher 'standalone 'distribution)
    (or/c #t 'mzscheme 'mred)
    . -> .
-   (or/c false/c
+   (or/c #f
          (list/c (or/c 'no-show 'launcher 'stand-alone 'distribution)
                  (or/c 'no-show 'mred 'mzscheme)
-                 string?)))
+                 string?
+                 (listof (cons/c symbol? any/c)))))
   (parent program-name show-type show-base)
   @{Opens a dialog to prompt the user about their choice of executable.
     If @racket[show-type] is @racket[#t], the user is prompted about

@@ -110,6 +110,7 @@
 (drr:set-default 'drracket:create-executable-gui-type 'stand-alone 
                  (λ (x) (memq x '(launcher stand-alone distribution))))
 (drr:set-default 'drracket:create-executable-gui-base 'racket (λ (x) (memq x '(racket gracket))))
+(preferences:set-default 'drracket:create-executable-gui-embed-dlls? #t boolean?)
 
 (drr:set-default 'drracket:logger-gui-tab-panel-level 0 (λ (x) (and (exact-integer? x) (<= 0 x 5)))) 
 

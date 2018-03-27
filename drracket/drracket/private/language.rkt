@@ -777,7 +777,8 @@
              (if (boolean? mred-launcher)
                  mred-launcher
                  (eq? base 'mred))
-             use-copy?))))))
+             use-copy?
+             #:aux aux))))))
   
   
   ;; create-executable-gui : (union #f (is-a?/c top-level-area-container<%>))
@@ -817,7 +818,10 @@
                                           (string-constant stand-alone-explanatory-label)
                                           (string-constant distribution-explanatory-label)))
                            (parent type-panel)
-                           (callback (lambda (rb e) 
+                           (callback (lambda (rb e)
+                                       (when embed-checkbox
+                                         (send embed-checkbox enable
+                                               (not (equal? 0 (send rb get-selection)))))
                                        (preferences:set 'drracket:create-executable-gui-type
                                                         (case (send rb get-selection)
                                                           [(0) 'launcher]
@@ -883,6 +887,17 @@
     (define (enable-minus)
       (send minus-button enable (pair? (send aux-paths get-selections))))
     (enable-minus)
+
+    (define embed-checkbox
+      (and (equal? (system-type) 'windows)
+           (new check-box%
+                [label (string-constant embed-dlls?)]
+                [parent type/base-panel]
+                [callback
+                 (λ (_1 _2)
+                   (preferences:set 'drracket:create-executable-gui-embed-dlls?
+                                    (send embed-checkbox get-value)))]
+                [value (preferences:get 'drracket:create-executable-gui-embed-dlls?)])))
     
     (define (reset-filename-suffix)
       (let ([s (send filename-text-field get-value)])
@@ -910,7 +925,7 @@
     
     (define (browse-callback)
       (let ([ftf (send filename-text-field get-value)])
-        (let-values ([(base name _) 
+        (let-values ([(base name _)
                       (if (path-string? ftf)
                           (split-path ftf)
                           (values (current-directory) "" #f))])
@@ -1012,6 +1027,11 @@
             'no-show)
         (send filename-text-field get-value)
         (apply append
+               (if (and embed-checkbox
+                        (not (equal? 0 (send type-rb get-selection)))
+                        (send embed-checkbox get-value))
+                   (list '(embed-dlls? . #t))
+                   (list))
                (for/list ([i (in-range (send aux-paths get-number))])
                  (extract-aux-from-path (send aux-paths get-data i)))))]))
   
@@ -1122,7 +1142,8 @@
                                                       transformer-module-language-spec
                                                       init-code
                                                       gui?
-                                                      use-copy?)
+                                                      use-copy?
+                                                      #:aux [aux '()])
     
     (with-handlers ([(λ (x) #f) ;exn:fail?
                      (λ (x)
@@ -1191,9 +1212,10 @@
              [to-be-embedded-module-specs
               (map (λ (x) (list #f x))
                    pre-to-be-embedded-module-specs3)])
-        
-        (create-embedding-executable 
+
+        (create-embedding-executable
          executable-filename
+         #:aux aux
          #:mred? gui?
          #:verbose? #f ;; verbose?
          #:modules to-be-embedded-module-specs
@@ -1214,7 +1236,8 @@
                                             transformer-module-language-spec
                                             init-code
                                             gui?
-                                            use-copy?)
+                                            use-copy?
+                                            #:aux [aux '()])
     (create-distribution-for-executable
      distribution-filename
      gui?
@@ -1225,7 +1248,8 @@
                                                    transformer-module-language-spec
                                                    init-code
                                                    gui?
-                                                   use-copy?))))
+                                                   use-copy?
+                                                   #:aux aux))))
   
   ;; create-distribution-for-executable : ... -> void (see docs)
   (define (create-distribution-for-executable distribution-filename
@@ -1346,7 +1370,8 @@
                                         transformer-module-language-spec
                                         init-code
                                         gui?
-                                        use-copy?)
+                                        use-copy?
+                                        #:aux [aux '()])
     
     (with-handlers ([(λ (x) #f) ;exn:fail?
                      (λ (x)

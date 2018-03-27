@@ -550,7 +550,7 @@
                            (create-embedding-executable
                             exe-name
                             #:gracket? gui?
-                            #:aux aux
+                            #:aux (cons '(subsystem . console) aux)
                             #:verbose? #f
                             #:modules (list (list #f program-filename))
                             #:configure-via-first-module? #t
