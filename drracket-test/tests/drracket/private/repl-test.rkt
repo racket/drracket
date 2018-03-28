@@ -554,12 +554,12 @@ This produces an ACK message
    
    ;; should produce a syntax object with a turn-down triangle.
    (mktest "(write (list (syntax x)))" 
-           (#rx"({embedded \".#<syntax:.*repl-test-tmp.rkt:1:21.*>\"})"
-            #rx"({embedded \".#<syntax:.*repl-test-tmp.rkt:1:21.*>\"})"
-            #rx"({embedded \".#<syntax:.*repl-test-tmp3.rkt:1:21.*>\"})"
-            #rx"({embedded \".#<syntax:.*repl-test-tmp.rkt:1:21.*>\"})"
-            #rx"({embedded \".#<syntax:.*repl-test-tmp.rkt:1:21.*>\"})"
-            #rx"({embedded \".#<syntax:.*repl-test-tmp3.rkt:1:21.*>\"})")
+           (#rx"({embedded .*#<syntax:.*repl-test-tmp.rkt:1:21.*})"
+            #rx"({embedded .*#<syntax:.*repl-test-tmp.rkt:1:21.*})"
+            #rx"({embedded .*#<syntax:.*repl-test-tmp3.rkt:1:21.*})"
+            #rx"({embedded .*#<syntax:.*repl-test-tmp.rkt:1:21.*})"
+            #rx"({embedded .*#<syntax:.*repl-test-tmp.rkt:1:21.*})"
+            #rx"({embedded .*#<syntax:.*repl-test-tmp3.rkt:1:21.*})")
            'interactions
            #f)
 

@@ -525,59 +525,61 @@
                   (values (send interactions-text paragraph-start-position 2)
                           (send interactions-text paragraph-end-position
                                 (- (send interactions-text last-paragraph) 1))))))
-            (let ([interactions-text (send frame get-interactions-text)])
-              
-              (send interactions-text split-snip start)
-              (send interactions-text split-snip end)
-              
-              (let loop ([snip (send interactions-text find-snip end 'before)]
-                         [strings null])
-                (cond
-                  [(< (send interactions-text get-snip-position snip) start)
-                   (apply string-append strings)]
-                  [else 
-                   (cond
-                     [(is-a? snip string-snip%)
-                      (loop (send snip previous)
-                            (cons (send snip get-text 0 (send snip get-count)) strings))]
-                     [(is-a? snip editor-snip%)
-                      (let ([editor (send snip get-editor)])
-                        (cond
-                          [(is-a? editor pasteboard%)
-                           (loop (send snip previous)
-                                 (cons "<pasteboard>" strings))]
-                          [(is-a? editor text%)
-                           (loop (send snip previous)
-                                 (list* "{embedded \""
-                                        (send editor get-text)
-                                        "\"}"
-                                        strings))]))]
-                     [(is-a? snip image-snip%)
-                      (loop (send snip previous)
-                            (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
-                                    (format "{~a}" (send snip get-image-name)))
-                                  strings))]
+
+          (define (fetch-text-content text start end)
+            (send text split-snip start)
+            (send text split-snip end)
+            (let loop ([snip (send text find-snip end 'before)]
+                       [strings null])
+              (cond
+                [(or (not snip)
+                     (< (send text get-snip-position snip) start))
+                 (apply string-append strings)]
+                [else
+                 (cond
+                   [(is-a? snip string-snip%)
+                    (loop (send snip previous)
+                          (cons (send snip get-text 0 (send snip get-count)) strings))]
+                   [(is-a? snip editor-snip%)
+                    (let ([editor (send snip get-editor)])
+                      (cond
+                        [(is-a? editor pasteboard%)
+                         (loop (send snip previous)
+                               (cons "<pasteboard>" strings))]
+                        [(is-a? editor text%)
+                         (loop (send snip previous)
+                               (list* "{embedded \""
+                                      (fetch-text-content editor 0 (send editor last-position))
+                                      "\"}"
+                                      strings))]))]
+                   [(is-a? snip image-snip%)
+                    (loop (send snip previous)
+                          (cons (with-handlers ([exn:fail? (lambda (x) "{image}")])
+                                  (format "{~a}" (send snip get-image-name)))
+                                strings))]
                      
-                     [;; this test is an approximation of
-                      ;; (is-a? snip drscheme:snip:number-snip%)
-                      (and (method-in-interface? 'get-fraction-view (object-interface snip)))
-                      (loop (send snip previous)
-                            (cons (format "{number ~s ~s ~s}"
-                                          (send snip get-number)
-                                          (send snip get-text 0 (send snip get-count))
-                                          (send snip get-fraction-view))
-                                  strings))]
-                     [;; this test is an approximation of
-                      ;; (is-a? snip pict-snip%) from drracket/private/pict-snip%
-                      (let ([sc (send snip get-snipclass)])
-                        (and sc (regexp-match #rx"pict-snip.rkt" (send sc get-classname))))
-                      (loop (send snip previous)
-                            (cons "{pict-snip}" strings))]
+                   [;; this test is an approximation of
+                    ;; (is-a? snip drscheme:snip:number-snip%)
+                    (and (method-in-interface? 'get-fraction-view (object-interface snip)))
+                    (loop (send snip previous)
+                          (cons (format "{number ~s ~s ~s}"
+                                        (send snip get-number)
+                                        (send snip get-text 0 (send snip get-count))
+                                        (send snip get-fraction-view))
+                                strings))]
+                   [;; this test is an approximation of
+                    ;; (is-a? snip pict-snip%) from drracket/private/pict-snip%
+                    (let ([sc (send snip get-snipclass)])
+                      (and sc (regexp-match #rx"pict-snip.rkt" (send sc get-classname))))
+                    (loop (send snip previous)
+                          (cons "{pict-snip}" strings))]
                      
-                     [else
-                      (loop (send snip previous)
-                            (cons (format "{unknown snip: ~e}\n" snip)
-                                  strings))])])))))]))
+                   [else
+                    (loop (send snip previous)
+                          (cons (format "{unknown snip: ~e}\n" snip)
+                                strings))])])))
+
+          (fetch-text-content (send frame get-interactions-text) start end)))]))
   
   ;; run-one/sync : (-> A) -> A
   ;; runs the thunk `f' as a test action, and
