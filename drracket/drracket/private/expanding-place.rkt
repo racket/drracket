@@ -214,7 +214,6 @@
            (transform-module path
                              (namespace-syntax-introduce stx)
                              raise-hopeless-syntax-error))
-         (ep-log-info "expanding-place.rkt: 09 starting expansion")
          (define log-io? (log-level? expanding-place-logger 'warning))
          (define-values (in out)
            (if (or log-io? no-annotations?)
@@ -226,10 +225,12 @@
             (thread (λ () (catch-and-log in the-io)))]
            [no-annotations?
             (thread (λ () (catch-and-check-non-empty in the-io)))])
+         (ep-log-info "expanding-place.rkt: 09 starting expansion")
          (define expanded 
            (parameterize ([current-output-port out]
                           [current-error-port out])
              (expand transformed-stx)))
+         (ep-log-info "expanding-place.rkt: 10 finished expansion")
          (define no-io-happened?
            (cond
              [(or log-io? no-annotations?)
@@ -239,12 +240,13 @@
          (channel-put old-registry-chan 
                       (namespace-module-registry (current-namespace)))
          (place-channel-put pc-status-expanding-place 'finished-expansion)
-         (ep-log-info "expanding-place.rkt: 10 expanded")
+         (ep-log-info "expanding-place.rkt: 11 getting handler results")
          (define handler-results
            (filter
             values
             (for/list ([handler (in-list handlers)]
                        #:unless (handler-monitor-pc handler))
+              (ep-log-info (format "expanding-place.rkt:    handler ~s" (handler-key handler)))
               (let/ec k
                 (define proc-res
                   (with-handlers ([exn:fail?
@@ -266,7 +268,7 @@
                                             the-source
                                             orig-cust)))
                 (list (handler-key handler) proc-res)))))
-         (ep-log-info "expanding-place.rkt: 11 handlers finished")
+         (ep-log-info "expanding-place.rkt: 12 handlers finished")
          (define compiled-bytes
            (cond
              [(and no-annotations?
@@ -282,7 +284,7 @@
                 (write compiled bp))
               (get-output-bytes bp)]
              [else #f]))
-         (ep-log-info "expanding-place.rkt: 12 compile finished")
+         (ep-log-info "expanding-place.rkt: 13 compile finished")
          
          (parameterize ([current-custodian orig-cust])
            (thread
@@ -295,7 +297,7 @@
                                    (and compiled-bytes
                                         (vector name lang compiled-bytes)))))))
          (semaphore-wait sema)
-         (ep-log-info "expanding-place.rkt: 13 finished")))))
+         (ep-log-info "expanding-place.rkt: 14 finished")))))
   
   (thread
    (λ ()
