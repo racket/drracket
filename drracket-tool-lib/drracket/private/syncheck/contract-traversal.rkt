@@ -16,6 +16,8 @@
   
   ;; coloring-plans : hash[stx -o-> (listof color)]
   (define coloring-plans (make-hash))
+
+  (define already-jumped-ids (make-free-id-table))
   
   (let loop ([stx stx])
     (add-to-map stx 'racket/contract:contract-on-boundary boundary-start-map)
@@ -30,7 +32,7 @@
   (for ([(start-k start-val) (in-hash boundary-start-map)])
     (for ([start-stx (in-list start-val)])
       (do-contract-traversal start-stx #t
-                             coloring-plans
+                             coloring-plans already-jumped-ids
                              low-binders binding-inits
                              domain-map range-map
                              #t)))
@@ -39,7 +41,7 @@
   (for ([(start-k start-val) (in-hash internal-start-map)])
     (for ([start-stx (in-list start-val)])
       (do-contract-traversal start-stx #f
-                             coloring-plans
+                             coloring-plans already-jumped-ids
                              low-binders binding-inits
                              domain-map range-map
                              #f)))
@@ -58,7 +60,7 @@
        (add-mouse-over stx (string-constant cs-contract-unk-obligation))])))
 
 (define (do-contract-traversal start-stx boundary-contract?
-                               coloring-plans
+                               coloring-plans already-jumped-ids
                                low-binders binding-inits domain-map range-map polarity)
   (let ploop ([stx start-stx]
               [polarity polarity])
@@ -84,11 +86,11 @@
               (base-color stx (not polarity) boundary-contract? coloring-plans))
             (for ([stx (in-list (hash-ref domain-map id '()))])
               (do-contract-traversal stx boundary-contract?
-                                     coloring-plans
+                                     coloring-plans already-jumped-ids
                                      low-binders binding-inits domain-map range-map (not polarity)))
             (for ([stx (in-list (hash-ref range-map id '()))])
               (do-contract-traversal stx boundary-contract?
-                                     coloring-plans
+                                     coloring-plans already-jumped-ids
                                      low-binders binding-inits domain-map range-map polarity))]))]
       
       [else
@@ -125,8 +127,11 @@
                 (base-color #'id polarity boundary-contract? coloring-plans)
                 (for ([binder (in-list binders)])
                   (base-color binder polarity boundary-contract? coloring-plans)
-                  (for ([rhs (in-list (free-id-table-ref binding-inits binder '()))])
-                    (ploop rhs polarity)))]
+                  (define visited? (free-id-table-ref already-jumped-ids binder #f))
+                  (unless visited?
+                    (free-id-table-set! already-jumped-ids binder #t)
+                    (for ([rhs (in-list (free-id-table-ref binding-inits binder '()))])
+                      (ploop rhs polarity))))]
                [else (call-give-up)])])]
          [const
           (let ([val (syntax-e #'const)])
@@ -158,10 +163,10 @@
           ;; branches are considered separately and thus calling give-up
           ;; on one side will not pollute the other side.
           (do-contract-traversal #'b boundary-contract?
-                                 coloring-plans
+                                 coloring-plans already-jumped-ids
                                  low-binders binding-inits domain-map range-map polarity)
           (do-contract-traversal #'c boundary-contract?
-                                 coloring-plans
+                                 coloring-plans already-jumped-ids
                                  low-binders binding-inits domain-map range-map polarity)]
          ;; [(begin expr ...) (void)]
          [(begin0 fst rst ...)
@@ -245,3 +250,42 @@
              (cons 
               plan
               (hash-ref coloring-plans stx '()))))
+
+(module+ test
+  (let ()
+    (define port
+      (open-input-string
+       #<<>>
+           #lang racket
+           (define posn/c
+             (->i ([msg 'posn])
+                  (res (msg)
+                       (-> posn/c))))
+>>
+       ))
+    (port-count-lines! port)
+    (define expanded
+      (parameterize ([current-namespace (make-base-namespace)]
+                     [read-accept-reader #t])
+        (expand
+         (read-syntax
+          (build-path "afilethatdoesnotexist.rkt")
+          port))))
+    (define low-binders (make-free-id-table))
+    (define binding-inits (make-free-id-table))
+    (let loop ([stx expanded])
+      (syntax-case stx ()
+        [(define-values (x) e)
+         (and (identifier? #'x)
+              (equal? (syntax-e #'define-values) 'define-values))
+         (begin (when (equal? (syntax-e #'x) 'posn/c)
+                  (free-id-table-set! binding-inits #'x (list #'e)))
+                (free-id-table-set! low-binders #'x (list #'x))
+                (loop #'e))]
+        [(a . b)
+         (begin
+           (loop #'a)
+           (loop #'b))]
+        [x (void)]))
+    (annotate-contracts expanded low-binders binding-inits)))
+
