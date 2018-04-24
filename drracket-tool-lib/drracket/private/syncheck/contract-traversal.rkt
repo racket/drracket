@@ -217,7 +217,7 @@
     (and (list? ib)
          (let ([src (list-ref ib 0)])
            (let-values ([(base rel) (module-path-index-split src)])
-             (member base '('#%kernel racket racket/base scheme scheme/base)))))))
+             (member base '('#%kernel '#%runtime racket racket/base scheme scheme/base)))))))
 
 (define (give-up stx boundary-contract? coloring-plans)
   (let loop ([stx stx])
