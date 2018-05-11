@@ -456,7 +456,7 @@
                           (loop spec #f))]
                        [(just-meta phase specs ...)
                         (for ([spec (in-list (syntax->list #'(specs ...)))])
-                          (handle-phaseless-spec spec (add-to-level (syntax-e #'phase))))]
+                          (loop spec level))]
                        [else
                         (handle-phaseless-spec spec level)])))
                  (define (handle-phaseless-spec stx level)

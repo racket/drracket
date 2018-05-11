@@ -1141,6 +1141,37 @@
             '((34 48) (100 114))
             '((49 50) (71 72) (94 95))
             '((51 52) (73 74))))
+
+     (build-test
+      (string-append "#lang racket/base\n"
+                     "(#%require (just-meta 0 (for-syntax (only racket/list first))))\n"
+                     "(begin-for-syntax first)")
+      '(("#lang racket/base\n(#%require (just-meta 0 (for-syntax (only racket/list first))))\n("
+         default-color)
+        ("begin-for-syntax" imported)
+        (" " default-color)
+        ("first" imported)
+        (")" default-color))
+      (list '((6 17) (83 99))
+            '((60 71) (100 105))))
+
+     (build-test (string-append "#lang racket/base\n"
+                                "(require (for-syntax racket/base))\n"
+                                "(begin-for-syntax (local-require racket/list) first)")
+                 '(("#lang racket/base\n(" default-color)
+                   ("require" imported)
+                   (" (" default-color)
+                   ("for-syntax" imported)
+                   (" racket/base))\n(" default-color)
+                   ("begin-for-syntax" imported)
+                   (" (" default-color)
+                   ("local-require" imported)
+                   (" racket/list) " default-color)
+                   ("first" imported)
+                   (")" default-color))
+                 (list '((6 17) (19 26) (28 38) (54 70))
+                       '((39 50) (72 85))
+                       '((86 97) (99 104))))
      
      (build-test 
       (λ (fn) 
