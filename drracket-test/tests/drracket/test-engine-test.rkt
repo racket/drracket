@@ -35,11 +35,11 @@
   
   (unless dmda?
     (test-expression "(check-expect (car 0) 2)"
-                     "car: expects a pair, given 0"
+                     ""
                      #:check-failures-expected
                      (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 1 0))
                      #:repl-check-failures-expected
-                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 4 2)))))
+                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 3 2)))))
 
 (define (common-signatures-*sl)
   (test-expression "(: foo Integer) (define foo 5)"
