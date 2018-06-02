@@ -106,7 +106,7 @@ in order to make the results be platform independent.
 @definterface[syncheck-annotations<%> ()]{
 
   Classes implementing this interface are
-  accceptors of information about a traversal
+  acceptors of information about a traversal
   of syntax objects. See @racket[make-traversal].
   
   Do not implement this interface directly, as it
