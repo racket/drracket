@@ -476,13 +476,39 @@
                    (handle-raw-require-spec spec)))]
               
               ; module top level only:
-              [(#%provide provide-specs ...)
-               (let ([provided-varss (map extract-provided-vars
-                                          (syntax->list (syntax (provide-specs ...))))])
+              [(#%provide raw-provide-specs ...)
+               (let ()
+                 (collect-nested-general-info #'(raw-provide-specs ...))
                  (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-                 (for ([provided-vars (in-list provided-varss)])
-                   (for ([provided-var (in-list provided-vars)])
-                     (add-id varrefs provided-var level-of-enclosing-module))))]
+                 (define (handle-raw-provide-spec spec)
+                   (let loop ([spec spec]
+                              [level level])
+                     (syntax-case* spec (for-meta for-syntax for-label protect)
+                       symbolic-compare?
+                       [(protect specs ...)
+                        (for ([spec (in-list (syntax->list #'(specs ...)))])
+                          (loop spec level))]
+                       [(for-meta n specs ...)
+                        (for ([spec (in-list (syntax->list #'(specs ...)))])
+                          (loop spec (and level (syntax-e #'n) (+ level (syntax-e #'n)))))]
+                       [(for-syntax specs ...)
+                        (for ([spec (in-list (syntax->list #'(specs ...)))])
+                          (loop spec (and level (add1 level))))]
+                       [(for-label specs ...)
+                        (for ([spec (in-list (syntax->list #'(specs ...)))])
+                          (loop spec #f))]
+                       [_
+                        (handle-phaseless-spec spec level)])))
+                 (define (handle-phaseless-spec spec level)
+                   (let ([varrefs (lookup-phase-to-mapping
+                                   phase-to-varrefs
+                                   (list (+ level level-of-enclosing-module) mods)
+                                   (+ level level-of-enclosing-module))]
+                         [provided-vars (extract-provided-vars spec)])
+                     (for ([provided-var (in-list provided-vars)])
+                       (add-id varrefs provided-var level-of-enclosing-module))))
+                 (for ([spec (in-list (syntax->list #'(raw-provide-specs ...)))])
+                   (handle-raw-provide-spec spec)))]
 
               ; module top level only:
               [(#%declare declare-specs ...)

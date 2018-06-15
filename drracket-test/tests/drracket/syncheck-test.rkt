@@ -1172,6 +1172,25 @@
                  (list '((6 17) (19 26) (28 38) (54 70))
                        '((39 50) (72 85))
                        '((86 97) (99 104))))
+
+     (build-test (string-append "#lang racket\n"
+                                "(provide (for-syntax x))\n"
+                                "(begin-for-syntax (define x #f))")
+                 '(("#lang racket\n(" default-color)
+                   ("provide" imported)
+                   (" (" default-color)
+                   ("for-syntax" imported)
+                   (" " default-color)
+                   ("x" lexically-bound)
+                   ("))\n(" default-color)
+                   ("begin-for-syntax" imported)
+                   (" (" default-color)
+                   ("define" imported)
+                   (" " default-color)
+                   ("x" lexically-bound)
+                   (" #f))" default-color))
+                 (list '((6 12) (14 21) (23 33) (39 55) (57 63))
+                       '((64 65) (34 35))))
      
      (build-test 
       (λ (fn) 
