@@ -2,6 +2,8 @@
 @(require "common.rkt"
           (for-label compiler/cm setup/parallel-build racket/promise))
 
+@(define racodoc '(lib "scribblings/raco/raco.scrbl"))
+
 @title[#:tag "extending-drracket"]{Extending DrRacket}
 
 DrRacket supports two forms of extension to the programming
@@ -112,13 +114,41 @@ teachpacks is to provide a default preferences file.
 
 The first two columns are also extensible. When a collection has
 an @filepath{info.rkt} file 
-(see @secref[#:doc '(lib "scribblings/raco/raco.scrbl") "info.rkt"])
+(see @secref[#:doc racodoc "info.rkt"])
 that defines @racket[htdp-teachpacks] or @racket[2htdp-teachpacks],
 then they are expected to be either a list of (collection-relative)
 paths containing teachpacks to add to the dialog, or the symbol
 @racket['all], which means that all of the (top-level) files in the collection
 that end with a module suffix (including @filepath{.rkt}, @filepath{.ss}, or @filepath{.scm})
 are teachpacks (except @filepath{info.rkt} or @filepath{info.ss}).
+
+@subsection{Extending Help Desk Search Context}
+
+In @|HtDP| Teaching Languages,
+the search context for the @onscreen{Search in Help Desk for ...}
+item in the pop-up menu can be extended by defining the
+@racket[2htdp:teachpack-modules] binding in the @tt{info.rkt} file
+(see @secref[#:doc racodoc "info.rkt"]).
+The @racket[2htdp:teachpack-modules] binding should evaluate to a list of
+@tech[#:key "symbol" #:doc '(lib "scribblings/reference/reference.scrbl")]{symbols}
+representing the
+@tech[#:key "module path" #:doc '(lib "scribblings/reference/reference.scrbl")]{module paths}
+to be included in the search context.
+
+For example, the following @tt{info.rkt} file
+
+@racketmod[
+ info
+
+ (define scribblings '(("scribblings/intro101.scrbl")))
+
+ (define 2htdp:teachpack-modules
+   '(intro101/file-operations intro101/iterated))
+ ]
+
+includes the modules
+@tt{intro101/file-operations} and @tt{intro101/iterated}
+in the help desk search context.
 
 @; ----------------------------------------------------------------------
 
