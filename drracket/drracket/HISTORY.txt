@@ -1,4 +1,13 @@
 ------------------------------
+       Version 7.0
+------------------------------
+
+  . Exectuable creation under windows can embed DLLs (making the
+    executables stand-alone).
+
+  . misc bug fixes and documentation improvements
+
+------------------------------
        Version 6.12
 ------------------------------
 
