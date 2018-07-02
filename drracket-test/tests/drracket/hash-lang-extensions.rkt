@@ -65,7 +65,8 @@
              (for/or ([child (in-list (send obj get-children))])
                (loop child))]
             [(is-a? obj button%)
-             (and (regexp-match? #rx"^Reload" (send obj get-label))
+             (and (string? (send obj get-label))
+                  (regexp-match? #rx"^Reload" (send obj get-label))
                   obj)]
             [else #f])))))
 
