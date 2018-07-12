@@ -157,7 +157,7 @@
                                         (string? (car x))))
                                  x))))
 (drr:set-default 'drracket:show-interactions-on-execute #t boolean?)
-(drr:set-default 'drracket:open-in-tabs #f boolean?)
+(drr:set-default 'drracket:open-in-tabs #t boolean?)
 (drr:set-default 'drracket:toolbar-shown #t boolean?)
 (drr:set-default 'drracket:user-defined-keybindings
                          '()
