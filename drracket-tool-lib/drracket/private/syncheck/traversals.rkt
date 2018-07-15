@@ -525,11 +525,11 @@
                (begin
                  #;
                  (printf "unknown stx: ~.s datum: ~e source: ~e\n"
-                         sexp
-                         (and (syntax? sexp)
-                              (syntax->datum sexp))
-                         (and (syntax? sexp)
-                              (syntax-source sexp)))
+                         stx-obj
+                         (and (syntax? stx-obj)
+                              (syntax->datum stx-obj))
+                         (and (syntax? stx-obj)
+                              (syntax-source stx-obj)))
                  (void))]))))
 
     (define (add-module-lang-require module-lang-requires stx)
