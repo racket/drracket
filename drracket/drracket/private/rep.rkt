@@ -33,6 +33,7 @@ TODO
          "stack-checkpoint.rkt"
          "parse-logger-args.rkt"
          "insulated-read-language.rkt"
+         "stack-checkpoint.rkt"
          
          ;; the dynamic-require below loads this module, 
          ;; so we make the dependency explicit here, even
@@ -56,7 +57,7 @@ TODO
           [prefix drracket:unit: drracket:unit^]
           [prefix drracket:text: drracket:text^]
           [prefix drracket:help-desk: drracket:help-desk^]
-          [prefix drracket:debug: drracket:debug^]
+          [prefix drracket:debug: drracket:debug/int^]
           [prefix drracket:eval: drracket:eval^]
           [prefix drracket:module-language: drracket:module-language/int^]
           [prefix drracket: drracket:interface^])
@@ -936,9 +937,45 @@ TODO
       (field (need-interaction-cleanup? #f))
       
       (define/private (no-user-evaluation-message frame exit-code memory-killed?)
+        (define-values (cms1 cms2)
+          (let ([ut (get-user-thread)])
+            (cond
+              [ut
+               (define cms (continuation-marks ut))
+               (values (drracket:debug:cms->srclocs cms)
+                       (cut-stack-at-checkpoint cms))]
+              [else (values '() '())])))
         (no-user-evaluation-dialog frame exit-code memory-killed? #t)
         (set-insertion-point (last-position))
-        (insert-warning "\nInteractions disabled"))
+        (define have-some-stack? (or (pair? cms1) (pair? cms2)))
+        (when have-some-stack?
+          (insert-out-of-memory-stacktrace cms1 cms2
+                                           (send frame get-definitions-text)
+                                           (send frame get-interactions-text)))
+        (insert-warning
+         (string-append (if have-some-stack? "" "\n")
+                        "Interactions disabled"
+                        (if memory-killed?
+                            "; out of memory"
+                            ""))))
+
+      (define/private (insert-out-of-memory-stacktrace cms1 cms2 defs ints)
+        (define locked? (is-locked?))
+        (when locked? (lock #f))
+        (begin-edit-sequence)
+        (define cache (make-hasheq))
+        (define note
+          (drracket:debug:make-note-to-print-to-stderr
+           (string-constant program-ran-out-of-memory)
+           cms1
+           (drracket:debug:get-editions cache defs ints cms1)
+           cms2
+           (drracket:debug:get-editions cache defs ints cms2)
+           defs ints))
+        (insert-before note)
+        (insert-before " ")
+        (end-edit-sequence)
+        (when locked? (lock #t)))
       
       (define/public (no-user-evaluation-dialog frame exit-code memory-killed? program-terminated?)
         (define new-limit (and custodian-limit (+ custodian-limit custodian-limit)))
@@ -1266,7 +1303,8 @@ TODO
               (thread
                (λ () ; =Kernel=
                  (let ([ut (get-user-thread)])
-                   (thread-wait ut)
+                   (sync (thread-suspend-evt ut)
+                         (thread-dead-evt ut))
                    (queue-system-callback
                     ut
                     (λ () ; =Kernel=, =Handler=
@@ -1298,7 +1336,7 @@ TODO
                                   custodian-limit
                                   user-custodian-parent))
         (let ([user-eventspace (parameterize ([current-custodian user-custodian])
-                                 (make-eventspace))])
+                                 (make-eventspace #:suspend-to-kill? #t))])
           (set! user-eventspace-box (make-weak-box user-eventspace))
           (set! user-break-parameterization (parameterize-break 
                                              #t 

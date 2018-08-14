@@ -45,7 +45,7 @@
           [prefix drracket:language-configuration: drracket:language-configuration/internal^]
           [prefix drracket:init: drracket:init^]
           [prefix drracket: drracket:interface^])
-  (export drracket:debug^)
+  (export drracket:debug/int^)
   
   ;                                                          
   ;                                                          
@@ -341,13 +341,11 @@
                                            (send rep get-definitions-text)))])
     (let* ([stack1 (or pre-stack '())]
            [stack2 (if (exn? exn)
-                       (map cdr (filter cdr (cut-stack-at-checkpoint exn)))
+                       (cut-stack-at-checkpoint (exn-continuation-marks exn))
                        '())]
            [port-name-matches-cache (make-hasheq)]
-           [stack1-editions (map (λ (x) (srcloc->edition/pair defs ints x port-name-matches-cache))
-                                 stack1)]
-           [stack2-editions (map (λ (x) (srcloc->edition/pair defs ints x port-name-matches-cache))
-                                 stack2)]
+           [stack1-editions (get-editions port-name-matches-cache defs ints stack1)]
+           [stack2-editions (get-editions port-name-matches-cache defs ints stack2)]
            [src-locs (cond
                        [(exn:srclocs? exn)
                         ((exn:srclocs-accessor exn) exn)]
@@ -391,6 +389,11 @@
              (when (and ints (exn:fail:out-of-memory? exn))
                (define frame (send ints get-top-level-window))
                (send ints no-user-evaluation-dialog frame #f #t #f))))))))
+
+  ;; =User= =Kernel=
+  (define (get-editions port-name-matches-cache defs ints stack)
+    (map (λ (x) (srcloc->edition/pair defs ints x port-name-matches-cache))
+         stack))
   
   (define (render-message lines)
     (define collected (collect-hidden-lines lines))
@@ -561,18 +564,26 @@
   ;; =User=
   (define (print-bug-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
     (when (port-writes-special? (current-error-port))
-      (let ([note% (if (mf-bday?) mf-note% bug-note%)])
-        (when note%
-          (let ([note (new note%)])
-            (send note set-stacks cms1 cms2)
-            (send note set-callback
-                  (λ (snp) (show-backtrace-window/edition-pairs/two msg 
-                                                                    cms1 editions1
-                                                                    cms2 editions2
-                                                                    defs ints)))
-            (write-special note (current-error-port))
-            (display #\space (current-error-port)))))))
-  
+      (define note (make-note-to-print-to-stderr msg cms1 editions2 cms2 editions2 defs ints))
+      (when note
+        (write-special note (current-error-port))
+        (display #\space (current-error-port)))))
+
+  ;; =Kernel= =User=
+  (define (make-note-to-print-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
+    (define note% (if (mf-bday?) mf-note% bug-note%))
+    (cond
+      [note%
+       (define note (new note%))
+       (send note set-stacks cms1 cms2)
+       (send note set-callback
+             (λ (snp) (show-backtrace-window/edition-pairs/two msg
+                                                               cms1 editions1
+                                                               cms2 editions2
+                                                               defs ints)))
+       note]
+      [else #f]))
+
   ;; display-srclocs-in-error : (listof src-loc) -> void
   ;; prints out the src location information for src-to-display
   ;; as it would appear in an error message

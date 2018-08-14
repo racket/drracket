@@ -3,6 +3,7 @@
 
 (provide drracket:eval^
          drracket:debug^
+         drracket:debug/int^
          drracket:module-language^
          drracket:module-language/int^
          drracket:module-language-tools^
@@ -98,6 +99,11 @@
    ;display-srclocs-in-error
    ;show-syntax-error-context
    ))
+
+(define-signature drracket:debug/int^ extends drracket:debug^
+  (make-note-to-print-to-stderr
+   get-editions
+   cms->srclocs))
 
 (define-signature drracket:module-language-cm^
   (module-language<%>))
