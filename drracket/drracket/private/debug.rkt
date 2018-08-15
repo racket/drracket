@@ -564,13 +564,23 @@
   ;; =User=
   (define (print-bug-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
     (when (port-writes-special? (current-error-port))
-      (define note (make-note-to-print-to-stderr msg cms1 editions2 cms2 editions2 defs ints))
+      (define note (make-note-to-print-to-stderr msg cms1 editions1 cms2 editions2 defs ints))
       (when note
         (write-special note (current-error-port))
         (display #\space (current-error-port)))))
 
   ;; =Kernel= =User=
   (define (make-note-to-print-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
+    (unless (= (length cms1) (length editions1))
+      (raise-argument-error 'make-note-to-print-to-stderr
+                            "length of cms1 to match length of cm2"
+                            2
+                            msg cms1 editions1 cms2 editions2 defs ints))
+    (unless (= (length cms2) (length editions2))
+      (raise-argument-error 'make-note-to-print-to-stderr
+                            "length of cms1 to match length of cm2"
+                            2
+                            msg cms1 editions1 cms2 editions2 defs ints))
     (define note% (if (mf-bday?) mf-note% bug-note%))
     (cond
       [note%
