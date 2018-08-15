@@ -490,7 +490,7 @@
                           (loop spec level))]
                        [(for-meta n specs ...)
                         (for ([spec (in-list (syntax->list #'(specs ...)))])
-                          (loop spec (and level (syntax-e #'n) (+ level (syntax-e #'n)))))]
+                          (loop spec (+/f level (syntax-e #'n))))]
                        [(for-syntax specs ...)
                         (for ([spec (in-list (syntax->list #'(specs ...)))])
                           (loop spec (and level (add1 level))))]
@@ -502,11 +502,12 @@
                  (define (handle-phaseless-spec spec level)
                    (let ([varrefs (lookup-phase-to-mapping
                                    phase-to-varrefs
-                                   (list (+ level level-of-enclosing-module) mods)
-                                   (+ level level-of-enclosing-module))]
+                                   (list (+/f level level-of-enclosing-module) mods)
+                                   (+/f level level-of-enclosing-module))]
                          [provided-vars (extract-provided-vars spec)])
                      (for ([provided-var (in-list provided-vars)])
                        (add-id varrefs provided-var level-of-enclosing-module))))
+                 (define (+/f x y) (and x y (+ x y)))
                  (for ([spec (in-list (syntax->list #'(raw-provide-specs ...)))])
                    (handle-raw-provide-spec spec)))]
 

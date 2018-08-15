@@ -1191,6 +1191,21 @@
                    (" #f))" default-color))
                  (list '((6 12) (14 21) (23 33) (39 55) (57 63))
                        '((64 65) (34 35))))
+
+     (build-test (string-append
+                  "#lang racket\n"
+                  "(require (for-label racket/base))\n"
+                  "(provide (for-label (all-from-out racket/base)))")
+                 '(("#lang racket\n("   default-color)
+                   ("require"           imported)
+                   (" ("                default-color)
+                   ("for-label"         imported)
+                   (" racket/base))\n(" default-color)
+                   ("provide"           imported)
+                   (" ("                default-color)
+                   ("for-label"         imported)
+                   (" (all-from-out racket/base)))" default-color))
+                 (list '((6 12) (14 21) (23 32) (48 55) (57 66))))
      
      (build-test 
       (λ (fn) 
