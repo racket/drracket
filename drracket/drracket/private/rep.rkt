@@ -949,9 +949,10 @@ TODO
         (set-insertion-point (last-position))
         (define have-some-stack? (or (pair? cms1) (pair? cms2)))
         (when have-some-stack?
-          (insert-out-of-memory-stacktrace cms1 cms2
-                                           (send frame get-definitions-text)
-                                           (send frame get-interactions-text)))
+          (insert-stacktrace cms1 cms2
+                             (send frame get-definitions-text)
+                             (send frame get-interactions-text)
+                             memory-killed?))
         (insert-warning
          (string-append (if have-some-stack? "" "\n")
                         "Interactions disabled"
@@ -959,14 +960,16 @@ TODO
                             "; out of memory"
                             ""))))
 
-      (define/private (insert-out-of-memory-stacktrace cms1 cms2 defs ints)
+      (define/private (insert-stacktrace cms1 cms2 defs ints memory-killed?)
         (define locked? (is-locked?))
         (when locked? (lock #f))
         (begin-edit-sequence)
         (define cache (make-hasheq))
         (define note
           (drracket:debug:make-note-to-print-to-stderr
-           (string-constant program-ran-out-of-memory)
+           (cond
+             [memory-killed? (string-constant program-ran-out-of-memory)]
+             [else (string-constant evaluation-terminated)])
            cms1
            (drracket:debug:get-editions cache defs ints cms1)
            cms2
