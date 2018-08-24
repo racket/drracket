@@ -371,7 +371,8 @@ Clicking the @onscreen{Run} button evaluates the program in the
 @tech{definitions window} and makes the program's definitions
 available in the interactions window. Clicking @onscreen{Run} also
 resets the interactions window, erasing all old interactions and
-removing old definitions from the interaction environment. Although
+removing old definitions from the interaction environment; in other
+words, the @onscreen{Run} button cleans out the bottom. Although
 @onscreen{Run} erases old @tt{>} prompts, ESC-p and ESC-n can still
 retrieve old expressions.
 
