@@ -458,7 +458,7 @@
            (values (car old) (cdr old))]
           [else
            (define-values (local-pc remote-pc) (place-channel))
-           (hash-set! key (cons local-pc remote-pc))
+           (hash-set! online-expansion-monitor-table key (cons local-pc remote-pc))
            (values local-pc remote-pc)]))
       
       (define/augment (after-set-next-settings settings)

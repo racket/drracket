@@ -31,7 +31,7 @@
 (struct colored-msg-fragment (locs frags important color) #:transparent)
 
 ;; msg-fragment? : Returns true if v is a fragment.
-(define (msg-fragment? v) (or (msg-fragment:str v) (msg-fragment:v v) (colored-msg-fragment v)))
+(define (msg-fragment? v) (or (msg-fragment:str? v) (msg-fragment:v? v) (colored-msg-fragment? v)))
 
 ;; srcloc-syntax/c : Contract for specifications of code piece to highlight.
 (define srcloc-syntax/c (rename-contract (or/c srcloc? syntax? (listof (or/c srcloc? syntax?))) 'srcloc-syntax/c))

@@ -93,10 +93,9 @@
          get-last-N-errors-chan
          (λ (c)
            (channel-put c last-N-errors)
-           (loop
-            (loop recently-seen-errors/unfiltered
-                  last-N-errors
-                  currently-visible))))
+           (loop recently-seen-errors/unfiltered
+                 last-N-errors
+                 currently-visible)))
         (handle-evt
          currently-visible-chan
          (λ (val) 
