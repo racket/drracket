@@ -4,6 +4,9 @@
 
   . Add backtrace to out of memory errors (when available)
 
+  . Fix bug that prevented cmd-H (to hide a window 
+    under macOS) from working
+
 ------------------------------
        Version 7.0
 ------------------------------
