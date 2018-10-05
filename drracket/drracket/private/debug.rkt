@@ -1263,7 +1263,8 @@
                begin-container-sequence
                end-container-sequence)
       (define/public (update-test-coverage-entirely-covered-message [tab (get-current-tab)])
-        (define new-val (send tab get-test-coverage-entirely-covered-message-state))
+        (define new-val (and (preferences:get 'drracket:coverage-show-overview-bar)
+                             (send tab get-test-coverage-entirely-covered-message-state)))
         (unless (equal? new-val test-coverage-entirely-covered-message-state)
           (set! test-coverage-entirely-covered-message-state new-val)
           (begin-container-sequence)
