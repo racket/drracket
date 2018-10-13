@@ -841,14 +841,16 @@
                   ("module"                      imported-syntax)
                   (" m lang/htdp-intermediate (" default-color)
                   ("local"                       imported-syntax)
-                  (" ((define "                  default-color)
+                  (" (("                         default-color)
+                  ("define"                      imported-syntax)
+                  (" "                           default-color)
                   ("x"                           lexically-bound-variable)
                   (" "                           default-color)
                   ("x"                           lexically-bound-variable)
                   (")) "                         default-color)
                   ("x"                           lexically-bound-variable)
                   ("))"                          default-color))
-                (list '((10 32) (34 39))
+                (list '((10 32) (34 39) (42 48))
                       '((49 50) (51 52) (55 56))))
 
      (build-test "(module m mzscheme (define-syntax rename #f) (require (rename mzscheme ++ +)))"
