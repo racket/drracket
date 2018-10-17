@@ -7,6 +7,9 @@
   . Fix bug that prevented cmd-H (to hide a window 
     under macOS) from working
 
+  . New users of DrRacket open files into new tabs instead of new
+    frames (by default).
+
 ------------------------------
        Version 7.0
 ------------------------------
