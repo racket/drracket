@@ -2355,6 +2355,9 @@
           (toggle-show/hide-definitions)
           (update-shown)))
       (define/public (ensure-rep-shown rep)
+        (unless (is-a? rep drracket:rep:text<%>)
+           (error 'ensure-rep-shown
+             "need a drracket:rep:text<%>,but got ~a." rep))
         (unless (eq? rep interactions-text)
           (let loop ([tabs tabs])
             (unless (null? tabs)
