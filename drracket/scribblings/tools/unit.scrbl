@@ -595,10 +595,12 @@ visible).
 
 }
 
-@defmethod[(ensure-rep-shown)
+@defmethod[(ensure-rep-shown [rep (is-a?/c drracket:rep:text<%>)])
            void?]{
 
-Shows the interactions window
+This method is called to force the rep window to be visible when, for
+example, an error message is put into the rep. Also ensures
+that the appropriate tab is visible, if necessary.
 
 
 }
