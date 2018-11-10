@@ -39,7 +39,8 @@
                "drracket-tool-doc"
                "pict-snip-lib"
                "option-contract-lib"
-               "syntax-color-lib"))
+               "syntax-color-lib"
+               "quickscript"))
 
 (define build-deps '("mzscheme-doc"
                      "net-doc"
