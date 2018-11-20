@@ -408,15 +408,19 @@
     (define (mk-pict-snip convertible)
       (define pict (pict-convert convertible))
       (define w (pict-width pict))
+      (define aw (abs w))
       (define h (pict-height pict))
+      (define ah (abs h))
       (define a (pict-ascent pict))
       (define d (pict-descent pict))
       (define rdc (new record-dc%))
       (send rdc set-smoothing 'aligned)
-      (send rdc set-clipping-rect 0 0 w h)
-      (draw-pict pict rdc 0 0)
+      (send rdc set-clipping-rect 0 0 aw ah)
+      (draw-pict pict rdc
+                 (if (< w 0) aw 0)
+                 (if (< h 0) ah 0))
       (define recorded-datum (send rdc get-recorded-datum))
-      (new pict-snip:pict-snip% [w w] [h h] [d d] [a a] [recorded-datum recorded-datum]))
+      (new pict-snip:pict-snip% [w aw] [h ah] [d d] [a a] [recorded-datum recorded-datum]))
 
 
     (define convert-table-thread-cell (make-thread-cell #f))

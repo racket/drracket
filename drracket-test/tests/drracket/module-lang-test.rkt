@@ -460,6 +460,11 @@
          (print (colorize (filled-rectangle 4 4) "red") out)}
       #f
       "")
+(test @t{#lang racket
+         (require pict)
+         (scale (blank 1 1) -1 1)}
+      #f
+      ".")
 
 
 (fire-up-drracket-and-run-tests run-test)
