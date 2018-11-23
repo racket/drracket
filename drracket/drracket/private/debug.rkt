@@ -749,9 +749,9 @@
                         (let ([defs (send rep get-definitions-text)])
                           (cond
                             [(send rep port-name-matches? (syntax-source src-stx))
-                             rep]
+                             (send rep get-port-name)]
                             [(send defs port-name-matches? (syntax-source src-stx))
-                             defs]
+                             (send defs get-port-name)]
                             [else #f]))))])]
           [position (or (syntax-position src-stx) 0)]
           [span (or (syntax-span src-stx) 0)]
