@@ -55,13 +55,30 @@
          (add-contract 'definitions-text-surrogate
                        (key->contract 'definitions-text-surrogate)
                        (language-get-info 'definitions-text-surrogate #f))))
-  (and surrogate-module
-       (new (add-contract 'definitions-text-surrogate
-                          (implementation?/c
-                           ;; the framework should be shared in the namespace
-                           ;; with this module by the time we get here
-                           (dynamic-require 'framework 'racket:text-mode<%>))
-                          (dynamic-require surrogate-module 'surrogate%)))))
+  (cond [(list? surrogate-module)
+         (new (let* ([surrogate-module (reverse surrogate-module)])
+                (for/fold ([base (add-contract 'definitions-text-surrogate
+                                               (implementation?/c
+                                                (dynamic-require 'framework 'racket:text-mode<%>))
+                                               (dynamic-require (car surrogate-module) 'surrogate%))])
+                          ([mix (in-list (cdr surrogate-module))])
+                  (define mixin
+                    (add-contract 'definitions-text-surrogate
+                                  (->
+                                   (implementation?/c
+                                    (dynamic-require 'framework 'racket:text-mode<%>))
+                                   (implementation?/c
+                                    (dynamic-require 'framework 'racket:text-mode<%>)))
+                                  (dynamic-require mix 'surrogate%)))
+                  (mixin base))))]
+        [surrogate-module
+         (new (add-contract 'definitions-text-surrogate
+                            (implementation?/c
+                             ;; the framework should be shared in the namespace
+                             ;; with this module by the time we get here
+                             (dynamic-require 'framework 'racket:text-mode<%>))
+                            (dynamic-require surrogate-module 'surrogate%)))]
+        [else #f]))
 
 (define-logger drracket-language)
 
@@ -151,7 +168,7 @@
 ;; is for backwards compatibility; they are copied)
 (define (key->contract key)
   (case key
-    [(definitions-text-surrogate) (or/c #f module-path?)]
+    [(definitions-text-surrogate) (or/c #f (non-empty-listof module-path?) module-path?)]
     [(color-lexer)
      ;; the contract here is taken care of inside module-lexer
      any/c]
