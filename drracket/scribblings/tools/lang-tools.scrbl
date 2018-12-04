@@ -255,25 +255,34 @@ easily controlled in the case of errors, using the
 definitions text surrogate only until that more easily
 controlled extension has been added to DrRacket.
 
-@language-info-def[definitions-text-surrogate]{ DrRacket
- calls @racket[read-language]'s @racket[get-info] procedure
- with @racket['definitions-text-surrogate] and expects it to
+@language-info-def[definitions-text-surrogate-list]{
+ DrRacket calls @racket[read-language]'s @racket[get-info]
+ procedure with @racket['definitions-text-surrogate-list] and
+ expects it to return a value matching the contract
+ @racket[(or/c #f (listof module-path?))]; each element is
+ also passed to @racket[dynamic-require] with
+ @racket['surrogate%]. The last element must provide a class
+ implementing the interface @racket[racket:text-mode<%>]
+ (presumably derived from @racket[racket:text-mode%]. The
+ remaining elements provide mixins that return a class
+ implementing the @racket[racket:text-mode<%>] interface.
+ DrRacket traverses this list to generate the surrogate for
+ the definitions text. That mode is installed into the
+ definitions text, where it can change its behavior by
+ changing how is responds to any of the methods in the mode.}
+
+@language-info-def[definitions-text-surrogate]{ If
+ @language-info-ref[definitions-text-surrogate] returns
+ @racket[#f] then DrRacket tries
+ @racket['definitions-text-surrogate] and expects it to
  return a value matching the contract
- @racket[(or/c #f (non-empty-listof module-path?) module-path?)].
- When given a single @racket[module-path?], it is then passed to
+ @racket[(or/c #f module-path?)], which is is then passed to
  @racket[dynamic-require] together with @racket['surrogate%].
  The result is expected to be a class implementing the
- interface @racket[racket:text-mode<%>] (presumably
- derived from @racket[racket:text-mode%]. That mode is
- installed into the definitions text, where it can change its
- behavior by changing how is responds to any of the methods
- in the mode. When given list of @racket[module-path?]s, each element is also
- passed to @racket[dynamic-require] with @racket['surrogate%]. The last element
- must provide a class as described above. The remaining elements
- provide mixins that return a class implementing the @racket[racket:text-mode<%>]
- interface. DrRacket traverses this list to generate the surrogate for the
- definitions text.}
-
+ interface @racket[racket:text-mode<%>] (presumably derived
+ from @racket[racket:text-mode%]. That mode is installed into
+ the definitions text, where it can change its behavior by
+ changing how is responds to any of the methods in the mode.}
 
 One consequence of this power is that errors that happen
 during the dynamic extent of calls into the mode are not
