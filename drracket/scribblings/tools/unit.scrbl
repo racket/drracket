@@ -142,7 +142,7 @@ Calls the definitions text's
   
    Sets the color of the circle in the bottom-right corner of the 
    DrRacket window to @racket[color] with the tooltip window that
-   appears over it containing @racket[label]. If multiple coors are
+   appears over it containing @racket[label]. If multiple colors are
    registered they are all shown.
 
    See also @method[drracket:unit:tab<%> remove-bkg-running-color].
