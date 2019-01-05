@@ -28,6 +28,7 @@
    (λ (drs-frame)
      (define fn (send (send drs-frame get-definitions-text) get-filename))
      (define html? (equal? suffix #".html"))
+     (define can-shell-open? (eq? (system-type) 'macosx))
      (cond
        [fn
         (parameterize ([drracket:rep:after-expression
@@ -59,9 +60,14 @@
                             (cond
                               [html?
                                (send-url/file (path-replace-suffix fn suffix))]
-                              [else
+                              [can-shell-open?
+                               ;; on macosx: open pdf file via `open` command
                                (parameterize ([current-input-port (open-input-string "")])
-                                 (system (format "open \"~a\"" (path->string (path-replace-suffix fn suffix)))))])))]) 
+                                 (system (format "open \"~a\"" (path->string (path-replace-suffix fn suffix)))))]
+                              [else
+                               ;; on other platforms: open pdf file via url
+                               (send-url/file (path-replace-suffix fn suffix))]
+                              )))]) 
           (send drs-frame execute-callback))]
        [else
         (message-box "Scribble" "Cannot render buffer without filename")]))
@@ -71,9 +77,5 @@
   (let ([html-button
          (make-render-button "Scribble HTML" html.png "--html" #".html" 99)]
         [pdf-button
-         ;; only available on OSX currently
-         ;; when we have a general way of opening pdfs, can use that
          (make-render-button "Scribble PDF" pdf.png "--pdf" #".pdf" 98)])
-    (case (system-type)
-      [(macosx) (list html-button pdf-button)]
-      [else (list html-button)])))
+    (list html-button pdf-button)))
