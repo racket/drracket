@@ -56,12 +56,16 @@
                                                                    'scribble/pdf-render)
                                                                'render-mixin)
                                #:xrefs (list xref)))
+                            (define file-to-open (path-replace-suffix fn suffix)) 
                             (cond
                               [html?
-                               (send-url/file (path-replace-suffix fn suffix))]
+                               (send-url/file file-to-open)]
                               [else
-                               (parameterize ([current-input-port (open-input-string "")])
-                                 (system (format "open \"~a\"" (path->string (path-replace-suffix fn suffix)))))])))]) 
+                               (if (equal? (system-type) 'windows)
+                                   (send-url/file file-to-open)
+                                   (parameterize ([current-input-port (open-input-string "")])
+                                     (system (format "open \"~a\""
+                                                     (path->string file-to-open)))))])))])
           (send drs-frame execute-callback))]
        [else
         (message-box "Scribble" "Cannot render buffer without filename")]))
@@ -71,9 +75,5 @@
   (let ([html-button
          (make-render-button "Scribble HTML" html.png "--html" #".html" 99)]
         [pdf-button
-         ;; only available on OSX currently
-         ;; when we have a general way of opening pdfs, can use that
          (make-render-button "Scribble PDF" pdf.png "--pdf" #".pdf" 98)])
-    (case (system-type)
-      [(macosx) (list html-button pdf-button)]
-      [else (list html-button)])))
+    (list html-button pdf-button)))
