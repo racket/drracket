@@ -37,9 +37,9 @@
     (test-expression "(check-expect (car 0) 2)"
                      ""
                      #:check-failures-expected
-                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 1 0))
+                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 1 0 1 14))
                      #:repl-check-failures-expected
-                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 3 2)))))
+                     (list (make-check-expect-error "2." ":: car: expects a pair, given 0" 3 2 3 16)))))
 
 (define (common-signatures-*sl)
   (test-expression "(: foo Integer) (define foo 5)"
@@ -312,7 +312,9 @@
   (actual expected line column)
   #:transparent)
 
-(define-struct check-expect-error (value message line column) #:transparent)
+(define-struct check-expect-error
+  (value message line column expr-line expr-column)
+  #:transparent)
 
 (define (parse-check-failures txt)
   (cond
@@ -331,15 +333,17 @@
                                         (string->number line-text)
                                         (string->number col-text))
              (parse-check-failures rest)))))
-    ((regexp-match #rx"^[ \t]+check-expect encountered the following error instead of the expected value, ([^\n]*). *\n[ \t]*([^\n]*)\n[^\n]*line ([0-9]+), column ([0-9]+)[ ]*\n(.*)$"
+    ((regexp-match #rx"^[ \t]+check-expect encountered the following error instead of the expected value, ([^\n]*). *\n[ \t]*([^\n]*)\n[^\n]*line ([0-9]+), column ([0-9]+)[^\n]*line ([0-9]+), column ([0-9]+) *\n(.*)$"
                    txt)
      => (lambda (match)
-          (define-values (_ value message line-text col-text rest) (apply values match))
+          (define-values (_ value message line-text col-text line-expr col-expr rest) (apply values match))
           (cons
            (make-check-expect-error value
                                     message
                                     (string->number line-text)
-                                    (string->number col-text))
+                                    (string->number col-text)
+				    (string->number line-expr)
+                                    (string->number col-expr))
            (parse-check-failures rest))))
     (else 
      (error "unknown check failure" txt (string-ref txt 0)))))
