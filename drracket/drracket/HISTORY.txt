@@ -2,6 +2,15 @@
        Version 7.1
 ------------------------------
 
+  . Added QuickScript to the standard install for DrRacket.
+    Thanks to Laurent Orseau for his work!
+
+  . misc minor bug fixes
+
+------------------------------
+       Version 7.1
+------------------------------
+
   . Add backtrace to out of memory errors (when available)
 
   . Fix bug that prevented cmd-H (to hide a window 
