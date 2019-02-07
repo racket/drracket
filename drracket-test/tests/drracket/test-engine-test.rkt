@@ -64,7 +64,7 @@
 		   #:repl-signature-violations-expected
 		   (list (make-signature-violation "\"foo\" at line 3, column 2 " 1 8))))
 
-(define (common-signatures-DMdA)
+(define (common-signatures-sdp)
   (test-expression "(: foo integer) (define foo 5)"
 		   ""
 		   #:repl-expected "define: Zweite Definition für denselben Namen")
@@ -200,29 +200,23 @@
     (common-signatures-*sl)))
 
 
-(define (DMdA-beginner)
-  (parameterize ([language (list #rx"Die Macht der Abstraktion - Anfänger(;|$)")])
+(define (sdp-beginner)
+  (parameterize ([language (list #rx"Schreibe Dein Programm! - Anfänger(;|$)")])
     (prepare-for-test-expression)
     (common-test-engine #t)
-    (common-signatures-DMdA)))
+    (common-signatures-sdp)))
 
-(define (DMdA-vanilla)
-  (parameterize ([language (list #rx"Die Macht der Abstraktion(;|$)")])
+(define (sdp-vanilla)
+  (parameterize ([language (list #rx"Schreibe Dein Programm!(;|$)")])
     (prepare-for-test-expression)
     (common-test-engine #t)
-    (common-signatures-DMdA)))
+    (common-signatures-sdp)))
 
-(define (DMdA-assignments)
-  (parameterize ([language (list #rx"Die Macht der Abstraktion mit Zuweisungen(;|$)")])
+(define (sdp-advanced)
+  (parameterize ([language (list #rx"Schreibe Dein Programm! - fortgeschritten(;|$)")])
     (prepare-for-test-expression)
     (common-test-engine #t)
-    (common-signatures-DMdA)))
-
-(define (DMdA-advanced)
-  (parameterize ([language (list #rx"Die Macht der Abstraktion - fortgeschritten(;|$)")])
-    (prepare-for-test-expression)
-    (common-test-engine #t)
-    (common-signatures-DMdA)))
+    (common-signatures-sdp)))
 
 (define (prepare-for-test-expression)
   (let ([drs (wait-for-drracket-frame)])
@@ -495,7 +489,7 @@
     (test-expression "(check-expect 1 2)" "Tests disabled.")
     (test:menu-select "Racket" "Enable Tests"))
   
-  (parameterize ([language (list #rx"Die Macht der Abstraktion - Anfänger(;|$)")])
+  (parameterize ([language (list #rx"Schreibe Dein Programm! - Anfänger(;|$)")])
     (prepare-for-test-expression)
     (test:menu-select "Racket" "Disable Tests")
     (test-expression "(check-expect 1 2)" "Tests disabled.")
@@ -516,10 +510,9 @@
   (go intermediate)
   (go intermediate/lambda)
   (go advanced)
-  (go DMdA-beginner)
-  (go DMdA-vanilla)
-  (go DMdA-assignments)
-  (go DMdA-advanced)
+  (go sdp-beginner)
+  (go sdp-vanilla)
+  (go sdp-advanced)
   (go test-disabling-tests))
 
 (fire-up-drracket-and-run-tests run-test)
