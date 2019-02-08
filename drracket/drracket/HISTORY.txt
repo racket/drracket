@@ -1,5 +1,12 @@
 ------------------------------
-       Version 7.1
+       Version 7.3
+------------------------------
+
+  . Improved DrRacket's support for the OS's
+    light-on-dark color schemes
+
+------------------------------
+       Version 7.2
 ------------------------------
 
   . Added QuickScript to the standard install for DrRacket.
