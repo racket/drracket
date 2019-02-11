@@ -113,7 +113,7 @@
       "1")
 (test @t{(module m mzscheme (define-syntax s (syntax 1)) (provide s))}
       @t{s}
-      ". s: illegal use of syntax in: s")
+      ". s: illegal use of syntax")
 (test @t{(module m mzscheme (define-syntax (x stx) #'(define a 10)) x x)}
       @t{a}
       #rx"[.] [.] a:.*cannot reference an identifier before its definition")
