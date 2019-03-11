@@ -766,7 +766,7 @@
           (match-define (vector binding-id to-start to-span to-dx to-dy
                                 new-binding-id from-start from-span from-dx from-dy)
             directive)
-          (define all-varrefs (lookup-phase-to-mapping phase-to-varrefs (list phase-level mods)))
+          (define all-varrefs (lookup-phase-to-mapping phase-to-varrefs (list phase-level mods) phase-level))
           (define all-binders (lookup-phase-to-mapping phase-to-binders phase-level))
           (define varrefs (get-ids all-varrefs binding-id))
           (when varrefs
