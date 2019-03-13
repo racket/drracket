@@ -1114,6 +1114,19 @@
                        '((32 33) (69 70))))
 
      (build-test
+      "#lang racket (begin-for-syntax (module b racket/base (struct A ())))"
+      '(("#lang racket (" default-color)
+        ("begin-for-syntax" imported)
+        (" (" default-color)
+        ("module" imported)
+        (" b racket/base (" default-color)
+        ("struct" imported)
+        (" " default-color)
+        ("A" lexically-bound)
+        (" ())))" default-color))
+      (list '((6 12) (14 30) (32 38))))
+
+     (build-test
       (string-append
        "#lang racket\n"
        "(define-syntax-rule (define/provide x e)\n"
