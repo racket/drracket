@@ -232,8 +232,10 @@
                  [collect-general-info
                   (λ (stx)
                     (add-origins stx varrefs level-of-enclosing-module)
-                    (add-disappeared-bindings stx binders varrefs level-of-enclosing-module)
-                    (add-disappeared-uses stx varrefs level-of-enclosing-module)
+                    (add-disappeared-bindings stx binders sub-identifier-binding-directives varrefs
+                                              level level-of-enclosing-module mods)
+                    (add-disappeared-uses stx varrefs sub-identifier-binding-directives
+                                          level level-of-enclosing-module mods)
                     (add-mouse-over-tooltips stx)
                     (add-sub-range-binders stx 
                                            sub-identifier-binding-directives
@@ -630,7 +632,8 @@
                            (vector-ref prop 3))])))
 
     ;; add-disappeared-bindings : syntax id-set integer -> void
-    (define (add-disappeared-bindings stx binders disappaeared-uses level-of-enclosing-module)
+    (define (add-disappeared-bindings stx binders sub-identifier-binding-directives disappeared-uses
+                                      level level-of-enclosing-module mods)
       (let ([prop (syntax-property stx 'disappeared-binding)])
         (when prop
           (let loop ([prop prop])
@@ -639,11 +642,13 @@
                (loop (car prop))
                (loop (cdr prop))]
               [(identifier? prop)
-               (add-origins prop disappaeared-uses level-of-enclosing-module)
-               (add-id binders prop level-of-enclosing-module)])))))
+               (add-origins prop disappeared-uses level-of-enclosing-module)
+               (add-binders prop binders #f #f level level-of-enclosing-module
+                            sub-identifier-binding-directives mods)])))))
     
     ;; add-disappeared-uses : syntax id-set integer -> void
-    (define (add-disappeared-uses stx id-set level-of-enclosing-module)
+    (define (add-disappeared-uses stx id-set sub-identifier-binding-directives
+                                  level level-of-enclosing-module mods)
       (let ([prop (syntax-property stx 'disappeared-use)])
         (when prop
           (let loop ([prop prop])
@@ -652,6 +657,8 @@
                (loop (car prop))
                (loop (cdr prop))]
               [(identifier? prop)
+               (add-sub-range-binders prop sub-identifier-binding-directives
+                                      level level-of-enclosing-module mods)
                (add-id id-set prop level-of-enclosing-module)])))))
     
     ;; annotate-variables : namespace directory string id-set[four of them] 
