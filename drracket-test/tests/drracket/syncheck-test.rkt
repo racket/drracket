@@ -10,6 +10,7 @@
            racket/list
            racket/file
            racket/set
+           racket/port
            racket/pretty
            racket/gui/base
            framework
@@ -27,7 +28,8 @@
   ;;                        (listof (list number number) (listof string)))
   ;;                        (-> any)
   ;;                        (any -> void?)  -- argument is the result of the setup thunk
-  (define-struct test (line input expected arrows tooltips setup teardown extra-info?) #:transparent)
+  (define-struct test (line input expected arrows tooltips setup teardown extra-files extra-info?)
+    #:transparent)
   (define-struct (dir-test test) () #:transparent)
   
   (define-struct rename-test (line input pos old-name new-name output) #:transparent)
@@ -35,8 +37,9 @@
   
   (define build-test/proc
     (λ (line input expected [arrow-table '()] #:tooltips [tooltips #f] 
-             #:setup [setup void] #:teardown [teardown void] #:extra-info? [extra-info? #f])
-      (make-test line input expected arrow-table tooltips setup teardown extra-info?)))
+             #:setup [setup void] #:teardown [teardown void] #:extra-files [extra-files (hash)]
+             #:extra-info? [extra-info? #f])
+      (make-test line input expected arrow-table tooltips setup teardown extra-files extra-info?)))
   
   (define-syntax (build-test stx)
     (syntax-case stx ()
@@ -61,7 +64,7 @@
       [(_ args ...)
        (with-syntax ([line (syntax-line stx)])
          ;; #f is for the tooltip portion of the test, just skip 'em
-         #'(make-dir-test line args ... #f void void #f))]))
+         #'(make-dir-test line args ... #f void void (hash) #f))]))
   
   ;; tests : (listof test)
   (define tests
@@ -1223,149 +1226,126 @@
                  (list '((6 12) (14 21) (23 32) (48 55) (57 66))))
      
      (build-test 
-      (λ (fn) 
-        (string-append
-         "#lang racket/base\n"
-         ;; 'values' is here so we get to the require 
-         ;; before attempting to expand 'm'
-         "(values\n"
-         " (m a-x\n"
-         "    a a a\n"
-         "    a-x a-x))\n"
-         ;; this is last because its length might change
-         (format "~s\n" `(require (file ,(path->string fn))))))
-      '(("#lang racket/base\n("    default-color)
-        ("values"                  imported)
-        ("\n ("                    default-color)
-        ("m"                       imported)
-        (" "                       default-color)
-        ("a-x"                     lexically-bound)
-        ("\n    "                  default-color)
-        ("a"                       lexically-bound)
-        (" "                       default-color)
-        ("a"                       lexically-bound)
-        (" "                       default-color)
-        ("a"                       lexically-bound)
-        ("\n    "                  default-color)
-        ("a-x"                     lexically-bound)
-        (" "                       default-color)
-        ("a-x"                     lexically-bound)
-        ("))\n("                   default-color)
-        ("require"                 imported)
-        (#rx" [(]file \"[^\"]*\"[)][)]\n" default-color))
-      `(((6 17) (19 25) (59 66))
-        ((30 33) (48 51) (52 55))
-        ((30 31) (38 39) (40 41) (42 43))
-        ((67 ,(λ (end-of-file) (- end-of-file 2))) (28 29)))
-      #:setup
-      (λ () 
-        (define fn (make-temporary-file "syncheck-test-~a.rkt"))
-        (call-with-output-file fn
-          (λ (port)
-            (fprintf port "#lang racket/base\n")
-            (pretty-write '(require (for-syntax racket/base)) port)
-            (pretty-write '(provide m) port)
-            (pretty-write
-             '(define-syntax (m stx)
-                (syntax-case stx ()
-                  [(_ a . rst)
-                   (let ()
-                     (define str (regexp-replace #rx"-.*$" (symbol->string (syntax-e #'a)) ""))
-                     (with-syntax ([a2 (datum->syntax #'a 
-                                                      (string->symbol str)
-                                                      (vector (syntax-source #'a)
-                                                              (syntax-line #'a)
-                                                              (syntax-column #'a)
-                                                              (syntax-position #'a)
-                                                              (string-length str))
-                                                      #'a)])
-                       #'(begin
-                           (let ([a 1][a2 1]) . rst))))]))
-             port))
-          #:exists 'truncate)
-        fn)
-      #:teardown (λ (fn) (delete-file fn)))
+      (string-append
+       "#lang racket/base\n"
+       "(require \"m.rkt\")\n"
+       "(m a-x\n"
+       "   a a a\n"
+       "   a-x a-x)\n")
+      '(("#lang racket/base\n(" default-color)
+        ("require" imported)
+        (" \"m.rkt\")\n(" default-color)
+        ("m" imported)
+        (" " default-color)
+        ("a-x" lexically-bound)
+        ("\n   " default-color)
+        ("a" lexically-bound)
+        (" " default-color)
+        ("a" lexically-bound)
+        (" " default-color)
+        ("a" lexically-bound)
+        ("\n   " default-color)
+        ("a-x" lexically-bound)
+        (" " default-color)
+        ("a-x" lexically-bound)
+        (")\n" default-color))
+      (list '((6 17) (19 26))
+            '((27 34) (37 38))
+            '((39 42) (55 58) (59 62))
+            '((39 40) (46 47) (48 49) (50 51)))
+      #:extra-files
+      (hash "m.rkt"
+            (with-output-to-string
+              (λ ()
+                (printf "#lang racket/base\n")
+                (pretty-write '(require (for-syntax racket/base)))
+                (pretty-write '(provide m))
+                (pretty-write
+                 '(define-syntax (m stx)
+                    (syntax-case stx ()
+                      [(_ a . rst)
+                       (let ()
+                         (define str (regexp-replace #rx"-.*$" (symbol->string (syntax-e #'a)) ""))
+                         (with-syntax ([a2 (datum->syntax #'a 
+                                                          (string->symbol str)
+                                                          (vector (syntax-source #'a)
+                                                                  (syntax-line #'a)
+                                                                  (syntax-column #'a)
+                                                                  (syntax-position #'a)
+                                                                  (string-length str))
+                                                          #'a)])
+                           #'(begin
+                               (let ([a 1][a2 1]) . rst))))])))))))
      
      (build-test 
-      (λ (fn) 
-        (string-append
-         "#lang racket/base\n"
-         ;; 'values' is here so we get to the require 
-         ;; before attempting to expand 'n'
-         "(values\n"
-         " (n e\n"
-         "    e_11111111111111\n"
-         "    e e e\n"
-         "    e_11111111111111 e_11111111111111))\n"
-         ;; this is last because its length might change
-         (format "~s\n" `(require (file ,(path->string fn))))))
+      (string-append
+       "#lang racket/base\n"
+       "(require \"n.rkt\")\n"
+       "(n e\n"
+       "   e_11111111111111\n"
+       "   e e e\n"
+       "   e_11111111111111 e_11111111111111)\n")
       '(("#lang racket/base\n(" default-color)
-        ("values" imported)
-        ("\n (" default-color)
+        ("require" imported)
+        (" \"n.rkt\")\n(" default-color)
         ("n" imported)
         (" " default-color)
         ("e" lexically-bound)
-        ("\n    " default-color)
+        ("\n   " default-color)
         ("e_11111111111111" lexically-bound)
-        ("\n    " default-color)
+        ("\n   " default-color)
         ("e" lexically-bound)
         (" " default-color)
         ("e" lexically-bound)
         (" " default-color)
         ("e" lexically-bound)
-        ("\n    " default-color)
+        ("\n   " default-color)
         ("e_11111111111111" lexically-bound)
         (" " default-color)
         ("e_11111111111111" lexically-bound)
-        ("))\n(" default-color)
-        ("require" imported)
-        (#rx" [(]file \"[^\"]*\"[)][)]\n" default-color))
-      `(((6 17) (19 25) (104 111))
-        ((36 52) (67 83) (84 100))
-        ((30 31) (36 37) (57 58) (59 60) (61 62) (67 68) (84 85))
-        ((112 ,(λ (end-of-file) (- end-of-file 2))) (28 29)))
-      #:setup
-      (λ () 
-        (define fn (make-temporary-file "syncheck-test-~a.rkt"))
-        (call-with-output-file fn
-          (λ (port)
-            (fprintf port "#lang racket/base\n")
-            (pretty-write '(require (for-syntax racket/base)) port)
-            (pretty-write '(provide n) port)
-            (pretty-write
-             '(define-syntax (n stx)
-                (syntax-case stx ()
-                  [(_ b1 b2 . rst)
-                   (let ()
-                     (define str (regexp-replace #rx"-.*$" (symbol->string (syntax-e #'a)) ""))
-                     #`(let ([b1 1]
-                             [b2 1])
-                         #,(datum->syntax #'b1
-                                          (syntax-e #'b1)
-                                          (vector (syntax-source #'b2)
-                                                  (syntax-line #'b2)
-                                                  (syntax-column #'b2)
-                                                  (syntax-position #'b2)
-                                                  (string-length (symbol->string (syntax-e #'b1))))
-                                          #'b1)
-                         (let-syntax ([b2 (λ (x)
-                                            (unless (identifier? x)
-                                              (raise-syntax-error 'b2 "only ids"))
-                                            (datum->syntax 
-                                             x
-                                             'b1
-                                             (vector (syntax-source x)
-                                                     (syntax-line x)
-                                                     (syntax-column x)
-                                                     (syntax-position x)
-                                                     (string-length (symbol->string 'b1)))
-                                             x))])
-                           . 
-                           rst)))]))
-             port))
-          #:exists 'truncate)
-        fn)
-      #:teardown (λ (fn) (delete-file fn)))
+        (")\n" default-color))
+      (list '((6 17) (19 26))
+            '((27 34) (37 38))
+            '((39 40) (44 45) (64 65) (66 67) (68 69) (73 74) (90 91))
+            '((44 60) (73 89) (90 106)))
+      #:extra-files
+      (hash
+       "n.rkt"
+       (with-output-to-string
+         (λ ()
+           (printf "#lang racket/base\n")
+           (pretty-write '(require (for-syntax racket/base)))
+           (pretty-write '(provide n))
+           (pretty-write
+            '(define-syntax (n stx)
+               (syntax-case stx ()
+                 [(_ b1 b2 . rst)
+                  (let ()
+                    (define str (regexp-replace #rx"-.*$" (symbol->string (syntax-e #'a)) ""))
+                    #`(let ([b1 1]
+                            [b2 1])
+                        #,(datum->syntax #'b1
+                                         (syntax-e #'b1)
+                                         (vector (syntax-source #'b2)
+                                                 (syntax-line #'b2)
+                                                 (syntax-column #'b2)
+                                                 (syntax-position #'b2)
+                                                 (string-length (symbol->string (syntax-e #'b1))))
+                                         #'b1)
+                        (let-syntax ([b2 (λ (x)
+                                           (unless (identifier? x)
+                                             (raise-syntax-error 'b2 "only ids"))
+                                           (datum->syntax 
+                                            x
+                                            'b1
+                                            (vector (syntax-source x)
+                                                    (syntax-line x)
+                                                    (syntax-column x)
+                                                    (syntax-position x)
+                                                    (string-length (symbol->string 'b1)))
+                                            x))])
+                          . 
+                          rst)))])))))))
 
      (build-prefix-test "(module m racket/base (require racket/list) first)"
                         32
@@ -1528,36 +1508,119 @@
        "#lang racket\n"
        "(let ([y 1])\n"
        "  y`1\n"
-       "  `2)\n"))))
-                  
-  
+       "  `2)\n"))
+
+     (build-test
+      #:extra-files
+      (hash "define-suffix.rkt"
+            (string-append
+             "#lang racket/base\n"
+             "(require (for-syntax racket/base))\n"
+             "(provide define/suffix)\n"
+             "(define-syntax (define/suffix stx)\n"
+             "  (syntax-case stx ()\n"
+             "    [(_ x)\n"
+             "     (let ()\n"
+             "       (define x-str (symbol->string (syntax-e #'x)))\n"
+             "       (define x-len (string-length x-str))\n"
+             "       (define x-s (datum->syntax #'x (string->symbol\n"
+             "                                       (string-append x-str \"-suffix\"))))\n"
+             "       (define prop (vector (syntax-local-introduce x-s) 0 x-len 0.5 0.5\n"
+             "                            (syntax-local-introduce #'x) 0 x-len 0.5 0.5))\n"
+             "       (define x-s* (syntax-property x-s 'sub-range-binders prop))\n"
+             "       #`(define-syntax-rule (#,x-s*) (void)))]))\n"))
+      (string-append "#lang racket/base\n"
+                     "(require \"define-suffix.rkt\")\n"
+                     "(define/suffix foo)\n"
+                     "(foo-suffix)\n"
+                     "(let ()\n"
+                     "  (define/suffix bar)\n"
+                     "  (bar-suffix))\n")
+      '(("#lang racket/base\n(" default-color)
+        ("require" imported)
+        (" \"define-suffix.rkt\")\n(" default-color)
+        ("define/suffix" imported)
+        (" foo)\n(" default-color)
+        ("foo-suffix" lexically-bound)
+        (")\n(" default-color)
+        ("let" imported)
+        (" ()\n  (" default-color)
+        ("define/suffix" imported)
+        (" bar)\n  (" default-color)
+        ("bar-suffix" lexically-bound)
+        ("))\n" default-color))
+      (list '((6 17) (19 26) (82 85))
+            '((27 46) (49 62) (92 105))
+            '((63 66) (69 72))
+            '((106 109) (114 117))))
+
+     (build-test
+      #:extra-files
+      (hash "m.rkt"
+            (string-append
+             "#lang racket/base\n"
+             "(require (for-syntax racket/base))\n"
+             "(provide m)\n"
+             "(define-syntax (m stx)\n"
+             "  (syntax-case stx ()\n"
+             "    [(_ binder use)\n"
+             "     (let ()\n"
+             "       (define binder-str (symbol->string (syntax-e #'binder)))\n"
+             "       (define binder-len (string-length binder-str))\n"
+             "       (define binder*-str (string-append binder-str \"-suffix\"))\n"
+             "       (define binder* (datum->syntax #'binder (string->symbol binder*-str)))\n"
+             "       (define prop (vector (syntax-local-introduce binder*) 0 binder-len 0.5 0.5\n"
+             "                            (syntax-local-introduce #'binder) 0 binder-len 0.5 0.5))\n"
+             "       (define use* (syntax-property #'use 'sub-range-binders prop))\n"
+             "       (syntax-property\n"
+             "        (syntax-property #'(void) 'disappeared-use (syntax-local-introduce use*))\n"
+             "        'disappeared-binding (syntax-local-introduce binder*)))]))\n"))
+      (string-append "#lang racket/base\n"
+                     "(require \"m.rkt\")\n"
+                     "(m foo foo-suffix)\n")
+      '(("#lang racket/base\n(" default-color)
+        ("require" imported)
+        (" \"m.rkt\")\n(" default-color)
+        ("m" imported)
+        (" foo " default-color)
+        ("foo-suffix" lexically-bound)
+        (")\n" default-color))
+      (list '((6 17) (19 26))
+            '((27 34) (37 38))
+            '((39 42) (43 46))))))
+
+
   (define (main)
-    (fire-up-drracket-and-run-tests
+    (define temp-dir (normalize-path (make-temporary-file "syncheck-test~a" 'directory)))
+    (dynamic-wind
+     void
      (λ ()
-       (let ([drs (wait-for-drracket-frame)])
-         ;(set-language-level! (list "Pretty Big"))
-         (begin
-           (set-language-level! (list "Pretty Big") #f)
-           (test:set-radio-box-item! "No debugging or profiling")
-           (let ([f (test:get-active-top-level-window)])
-             (test:button-push "OK")
-             (wait-for-new-frame f)))
-         (do-execute drs)
-         (let* ([defs (queue-callback/res (λ () (send drs get-definitions-text)))]
-                [filename (make-temporary-file "syncheck-test~a")])
-           (let-values ([(dir _1 _2) (split-path filename)])
-             (queue-callback/res (λ () (send defs save-file filename)))
-             (preferences:set 'framework:coloring-active #f)
-             (close-the-error-window-test drs)
-             (for-each (run-one-test (normalize-path dir)) tests)
-             (preferences:set 'framework:coloring-active #t)
-             (queue-callback/res
-              (λ () 
-                (send defs save-file) ;; clear out autosave
-                (send defs set-filename #f)))
-             (delete-file filename)
+       (fire-up-drracket-and-run-tests
+        (λ ()
+          (let ([drs (wait-for-drracket-frame)])
+            ;(set-language-level! (list "Pretty Big"))
+            (begin
+              (set-language-level! (list "Pretty Big") #f)
+              (test:set-radio-box-item! "No debugging or profiling")
+              (let ([f (test:get-active-top-level-window)])
+                (test:button-push "OK")
+                (wait-for-new-frame f)))
+            (do-execute drs)
+            (let* ([defs (queue-callback/res (λ () (send drs get-definitions-text)))]
+                   [filename (make-temporary-file "syncheck-test~a" #f temp-dir)])
+              (queue-callback/res (λ () (send defs save-file filename)))
+              (preferences:set 'framework:coloring-active #f)
+              (close-the-error-window-test drs)
+              (for-each (run-one-test temp-dir) tests)
+              (preferences:set 'framework:coloring-active #t)
+              (queue-callback/res
+               (λ () 
+                 (send defs save-file) ;; clear out autosave
+                 (send defs set-filename #f)))
+              (delete-file filename)
              
-             (printf "Ran ~a tests.\n" total-tests-run)))))))
+              (printf "Ran ~a tests.\n" total-tests-run))))))
+     (λ () (delete-directory/files temp-dir))))
   
   (define (close-the-error-window-test drs)
     (clear-definitions drs)
@@ -1586,7 +1649,14 @@
                [relative (find-relative-path save-dir (collection-file-path "list.rkt" "racket"))]
                [setup (test-setup test)]
                [teardown (test-teardown test)]
+               [extra-files (test-extra-files test)]
                [extra-info? (test-extra-info? test)])
+           (define extra-file-paths
+             (for/list ([(name contents) (in-hash extra-files)])
+               (define path (build-path save-dir name))
+               (display-to-file contents path #:mode 'text)
+               path))
+
            (define setup-result (setup))
            (define input (if (procedure? pre-input)
                              (pre-input setup-result)
@@ -1627,7 +1697,8 @@
                                tooltips
                                (test-line test)))
            
-           (teardown setup-result))]
+           (teardown setup-result)
+           (for-each delete-directory/files extra-file-paths))]
         [(rename-test? test)
          (insert-in-definitions drs (rename-test-input test))
          (click-check-syntax-and-check-errors drs test #f)
