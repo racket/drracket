@@ -195,6 +195,7 @@
          framework/private/srcloc-panel
          net/url
          net/head
+         browser/external
          setup/plt-installer
          help/bug-report
          setup/unpack
@@ -868,6 +869,23 @@
 
   (define (drracket-help-menu:after-about menu dlg-parent)
     (drracket:app:add-important-urls-to-help-menu menu '())
+    (new menu-item%
+         [label (string-constant have-an-issue?)]
+         [parent menu]
+         [callback
+          (λ (x y)
+            (define result
+              (message-box/custom
+               (string-constant drracket)
+               (string-constant use-github-or-the-mailing-list-for-issues)
+               (string-constant visit-github)
+               (string-constant visit-mailing-list)
+               #f
+               #:dialog-mixin frame:focus-table-mixin))
+            (case result
+              [(1) (send-url "https://github.com/racket/racket/issues/new")]
+              [(2) (send-url "https://lists.racket-lang.org/")]))])
+    #;
     (new menu-item%
          [label (string-constant bug-report-submit-menu-item)]
          [parent menu]
