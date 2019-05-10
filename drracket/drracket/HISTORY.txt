@@ -5,6 +5,8 @@
   . Improved DrRacket's support for the OS's
     light-on-dark color schemes
 
+  . minor bug fixes
+
 ------------------------------
        Version 7.2
 ------------------------------
