@@ -8,6 +8,8 @@
          syntax/readerr
          wxme
          (prefix-in el: errortrace/errortrace-lib))
+(module+ test (require rackunit))
+
 (provide start)
 
 (struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
@@ -357,18 +359,7 @@
                    #:unless (handler-monitor-pc handler))
                ((handler-proc handler) main-exn path the-source orig-cust)))
            
-           (define exn-type
-             (cond
-               [(exn:access? main-exn)
-                'access-violation]
-               [(and (exn:fail:read? main-exn)
-                     (andmap (λ (srcloc) (equal? (srcloc-source srcloc) the-source))
-                             (exn:fail:read-srclocs main-exn)))
-                'reader-in-defs-error]
-               [(and (exn? main-exn)
-                     (regexp-match #rx"expand: unbound identifier" (exn-message main-exn)))
-                'exn:variable]
-               [else 'exn]))
+           (define exn-type (exn->type main-exn the-source))
            
            (define (format-srcloc srcloc)
              (define pos
@@ -445,6 +436,39 @@
              (list-ref exn+loaded-paths 1)))))))))
   
   (job cust working-thd stop-watching-abnormal-termination))
+
+(define (exn->type main-exn the-source)
+  (cond
+    [(exn:access? main-exn)
+     'access-violation]
+    [(and (exn:fail:read? main-exn)
+          (andmap (λ (srcloc) (equal? (srcloc-source srcloc) the-source))
+                  (exn:fail:read-srclocs main-exn)))
+     'reader-in-defs-error]
+    [(and (exn? main-exn)
+          (regexp-match? #rx"[^\n]*: unbound identifier"
+                         (exn-message main-exn)))
+     'exn:variable]
+    [else 'exn]))
+
+(module+ test
+  (define (call-exn->type expr-to-eval #:use-the-src? [use-the-src? #t])
+    (define the-src 'the-src)
+    (with-handlers ([(λ (x) #t) (λ (x) (exn->type x the-src))])
+      (parameterize ([current-namespace (make-base-namespace)])
+        (eval (read-syntax (if use-the-src? the-src 'not-the-src)
+                           (open-input-string expr-to-eval))))))
+
+  (check-equal? (call-exn->type "(module m racket/base free-variable)")
+                'exn:variable)
+  (check-equal? (call-exn->type "(car 1)")
+                'exn)
+  (check-equal? (call-exn->type "(raise 1)")
+                'exn)
+  (check-equal? (call-exn->type "(car")
+                'reader-in-defs-error)
+  (check-equal? (call-exn->type "(car" #:use-the-src? #f)
+                'exn))
 
 (define (catch-and-log port the-io)
   (let loop ([no-io-happened? #t])
