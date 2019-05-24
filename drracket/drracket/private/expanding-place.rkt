@@ -385,7 +385,7 @@
                [else #f]))
            
            (define exn-infos
-             (for/list ([an-exn (in-list (cons main-exn extra-exns))])
+             (for/list ([an-exn (in-list (cons main-exn (reverse extra-exns)))])
                (exn-info 
                 (trim-message
                  (if (exn? an-exn) 

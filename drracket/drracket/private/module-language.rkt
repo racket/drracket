@@ -1223,7 +1223,6 @@
                                             force-visible?)
         (define new-error/status-message-str 
           (exn-info-str (car new-error/status-message-strs+srclocs)))
-        (define srclocs (exn-info-src-vecs (car new-error/status-message-strs+srclocs)))
         (unless (string? new-error/status-message-str)
           (error 'set-bottom-bar-status "expected a string, got ~s" new-error/status-message-str))
         (when (or (not (and (equal? error/status-message-strs+srclocs 
