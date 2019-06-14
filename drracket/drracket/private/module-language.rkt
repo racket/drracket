@@ -1545,9 +1545,10 @@
 
       (define/augment (on-save-file filename format)
         (unless (equal? filename (get-filename))
-          (if (in-edit-sequence?)
-            (set! need-to-dirty? #t)
-            (oc-set-dirty (get-tab))))
+          (unless (editor:doing-autosave?)
+            (if (in-edit-sequence?)
+                (set! need-to-dirty? #t)
+                (oc-set-dirty (get-tab)))))
         (inner (void) on-save-file filename format))
       
       (define/augment (after-save-file success?)
