@@ -1791,7 +1791,7 @@ TODO
           (insert/delta this (string-append " [" (string-constant custom) "]") dark-green-delta))
         (when custodian-limit
           (insert/delta this 
-                        "; memory limit: "
+                        (format " ~a " (string-constant memory-limit))
                         welcome-delta)
           (insert/delta this
                         (format "~a MB" (floor (/ custodian-limit 1024 1024)))
