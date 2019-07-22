@@ -271,6 +271,10 @@ The @onscreen{Editing} panel consists of several sub-panels:
       (even when it would ordinarily be scrolled off of the page),
       assuming that the @hash-lang[] line is the first line in the file.}
 
+ @item{@PrefItem{Save files whenever switching tabs or windows} ---
+  If checked, DrRacket will automatically save any unsaved files
+  when switching between windows or tabs.}
+
 ]
 
 

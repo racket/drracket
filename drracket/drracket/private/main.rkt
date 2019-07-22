@@ -80,6 +80,8 @@
 
 (application:current-app-name (string-constant drscheme))
 
+(preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
+
 (preferences:set-default 'drracket:inline-overview-shown? #f boolean?)
 
 (preferences:set-default 'drracket:coverage-show-overview-bar #t boolean?)
@@ -370,7 +372,10 @@
      (make-check-box 'drracket:coverage-show-overview-bar
                      (string-constant test-coverage-summary)
                      editor-panel)
-     
+
+     (make-check-box 'drracket:save-files-on-tab-switch?
+                     (string-constant save-after-switching-tabs?)
+                     editor-panel)
      ))
   
   (preferences:add-to-editor-checkbox-panel

@@ -7,6 +7,7 @@
          racket/port
          racket/list
          racket/match
+         racket/format
          string-constants
          framework
          framework/private/srcloc-panel
@@ -2267,9 +2268,14 @@
         (let ([label (gui-utils:trim-string (get-defs-tab-label (send tab get-defs) tab) 200)])
           (unless (equal? label (send tabs-panel get-item-label (send tab get-i)))
             (send tabs-panel set-item-label (send tab get-i) label))))
-      
-      (define/public (get-tab-filename i)
-        (get-defs-tab-filename (send (list-ref tabs i) get-defs)))
+
+      ;; get-tab-filename : (or/c (is-a?/c tab<%>) natural?) -> string? [the tab's label]
+      (define/public (get-tab-filename _tab)
+        (define tab
+          (cond
+            [(exact-nonnegative-integer? _tab) (list-ref tabs _tab)]
+            [else _tab]))
+        (get-defs-tab-filename (send tab get-defs)))
       
       (define/private (get-defs-tab-label defs tab)
         (define tab-index
@@ -2861,47 +2867,49 @@
       ;; just the execute button.
       (define/public (execute-callback)
         (when (send execute-button is-enabled?)
+          (when (check-if-unsaved-tabs-and-maybe-save)
           
-          ;; if the language is not-a-language, and the buffer looks like a module,
-          ;; automatically make the switch to the module language
-          (let ([next-settings (send definitions-text get-next-settings)])
-            (when (is-a? (drracket:language-configuration:language-settings-language next-settings) 
-                         drracket:language-configuration:not-a-language-language<%>)
-              (when (looks-like-module? definitions-text)
-                (define-values (module-language module-language-settings)
-                  (get-module-language/settings))
-                (when (and module-language module-language-settings)
-                  (send definitions-text set-next-settings 
-                        (drracket:language-configuration:language-settings
-                         module-language
-                         module-language-settings))))))
+            ;; if the language is not-a-language, and the buffer looks like a module,
+            ;; automatically make the switch to the module language
+            (let ([next-settings (send definitions-text get-next-settings)])
+              (when (is-a? (drracket:language-configuration:language-settings-language next-settings) 
+                           drracket:language-configuration:not-a-language-language<%>)
+                (when (looks-like-module? definitions-text)
+                  (define-values (module-language module-language-settings)
+                    (get-module-language/settings))
+                  (when (and module-language module-language-settings)
+                    (send definitions-text set-next-settings 
+                          (drracket:language-configuration:language-settings
+                           module-language
+                           module-language-settings))))))
           
-          (check-if-save-file-up-to-date)
-          (when (preferences:get 'drracket:show-interactions-on-execute)
-            (ensure-rep-shown interactions-text))
-          (when transcript
-            (record-definitions)
-            (record-interactions))
-          (send definitions-text just-executed)
-          (send language-message set-yellow #f)
-          (send interactions-canvas focus)
-          (send interactions-text reset-console)
-          (send interactions-text clear-undos)
+            (check-if-save-file-up-to-date)
+            (when (preferences:get 'drracket:show-interactions-on-execute)
+              (ensure-rep-shown interactions-text))
+            (when transcript
+              (record-definitions)
+              (record-interactions))
+            (send definitions-text just-executed)
+            (send language-message set-yellow #f)
+            (send interactions-canvas focus)
+            (send interactions-text reset-console)
+            (send interactions-text clear-undos)
           
-          (define name (send definitions-text get-port-name))
-          (define defs-copy (new text%))
-          (send defs-copy set-style-list (send definitions-text get-style-list)) ;; speeds up the copy
-          (send definitions-text copy-self-to defs-copy)
-          (define text-port (open-input-text-editor defs-copy 0 'end values name #t))
-          (port-count-lines! text-port)
-          (send interactions-text evaluate-from-port
-                text-port
-                #t
-                (λ ()
-                  (parameterize ([current-eventspace drracket:init:system-eventspace])
-                    (queue-callback 
-                     (λ ()
-                       (send interactions-text clear-undos))))))))
+            (define name (send definitions-text get-port-name))
+            (define defs-copy (new text%))
+             ;; speeds up the copy
+            (send defs-copy set-style-list (send definitions-text get-style-list))
+            (send definitions-text copy-self-to defs-copy)
+            (define text-port (open-input-text-editor defs-copy 0 'end values name #t))
+            (port-count-lines! text-port)
+            (send interactions-text evaluate-from-port
+                  text-port
+                  #t
+                  (λ ()
+                    (parameterize ([current-eventspace drracket:init:system-eventspace])
+                      (queue-callback 
+                       (λ ()
+                         (send interactions-text clear-undos)))))))))
       
       (inherit revert save)
       (define/private (check-if-save-file-up-to-date)
@@ -2920,7 +2928,76 @@
             (case user-choice
               [(1) (void)]
               [(2) (revert)]))))
+
+      ;; returns #f if we should abort `Run`, #t if it is okay to `Run`
+      (define/private (check-if-unsaved-tabs-and-maybe-save)
+        (define save-candidates (get-unsaved-candidate-tabs #t))
+        (cond
+          [(null? save-candidates) #t]
+          [else
+           (define-values (cancel-run? do-save?)
+             (does-user-want-to-save-all-unsaved-files? save-candidates))
+           (cond
+             [cancel-run? #f]
+             [do-save?
+              (define continue?
+                (let/ec k
+                  (for ([tab (in-list save-candidates)])
+                    (unless (send (send tab get-defs) save-file/gui-error)
+                      (k #f)))
+                  #t))
+              (update-tabs-labels)
+              continue?]
+             [else #t])]))
+
+      (define/private (save-all-unsaved-files)
+        (let/ec k
+          (for ([tab (in-list (get-unsaved-candidate-tabs #f))])
+            (unless (send (send tab get-defs) save-file/gui-error)
+              (k (void)))))
+        (update-tabs-labels))
+
+      (define/private (get-unsaved-candidate-tabs skip-me?)
+        (define focused-frame (get-top-level-focus-window))
+        (for*/list ([frame (in-list (send (group:get-the-frame-group) get-frames))]
+                    #:when (is-a? frame drracket:unit:frame<%>)
+                    [tab (in-list (send frame get-tabs))]
+                    #:unless (and skip-me?
+                                  (eq? focused-frame frame)
+                                  (eq? current-tab tab))
+                    #:when (let ([defs (send tab get-defs)])
+                             (and (send defs is-modified?)
+                                  (send defs get-filename))))
+          tab))
       
+      (define/private (does-user-want-to-save-all-unsaved-files? save-candidates)
+        (define-values (message-box-result checked?)
+          (message+check-box/custom
+           (string-constant drracket)
+           (if (= (length save-candidates) 1)
+               (format (string-constant one-file-not-saved-do-the-save?)
+                       (get-tab-filename (car save-candidates)))
+               (apply
+                string-append
+                (string-constant many-files-not-saved-do-the-save?)
+                (for/list ([tab (in-list save-candidates)])
+                  (~a "\n" (get-tab-filename tab)))))
+           (string-constant save-after-switching-tabs?)
+           (string-constant save-all-files)
+           (string-constant dont-save)
+           #f
+           this ; parent
+           (append
+            (if (preferences:get 'drracket:save-files-on-tab-switch?)
+                '(checked)
+                '())
+            '(default=1))))
+        (preferences:set 'drracket:save-files-on-tab-switch? checked?)
+        (case message-box-result
+          [(1) (values #f #t)]    ;; clicked save-all -> save (and run)
+          [(2) (values #f #f)]    ;; clicked dont-save -> don't save, but still run
+          [(#f) (values #t #f)])) ;; closed the dialog (with esc) -> cancel
+
       (inherit get-menu-bar get-focus-object get-edit-target-object)
       
       (define/override (get-editor) definitions-text)
@@ -3043,6 +3120,9 @@
             (for-each (λ (ints-canvas) (send ints-canvas refresh))
                       interactions-canvases)
             (set-color-status! (send definitions-text is-lexer-valid?))
+            
+            (when (preferences:get 'drracket:save-files-on-tab-switch?)
+              (save-all-unsaved-files))
             (send definitions-text end-edit-sequence)
             (send interactions-text end-edit-sequence)
             (end-container-sequence)
@@ -3268,6 +3348,8 @@
       
       (define/override (on-activate active?)
         (when active?
+          (when (preferences:get 'drracket:save-files-on-tab-switch?)
+            (save-all-unsaved-files))
           (send (get-current-tab) touched))
         (super on-activate active?))
       
