@@ -271,6 +271,12 @@ The @onscreen{Editing} panel consists of several sub-panels:
       (even when it would ordinarily be scrolled off of the page),
       assuming that the @hash-lang[] line is the first line in the file.}
 
+ @item{@PrefItem{Show test coverage results summary} --- If
+  checked, DrRacket shows a little note indicating that all
+  tests were covered in addition to not changing the colors.
+  If not checked, DrRacket remains silent (unchanged) when
+  test coverage is enabled but all of the code is covered.}
+
  @item{@PrefItem{Save files whenever switching tabs or windows} ---
   If checked, DrRacket will automatically save any unsaved files
   when switching between windows or tabs.}
