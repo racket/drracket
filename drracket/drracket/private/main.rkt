@@ -374,7 +374,7 @@
                      editor-panel)
 
      (make-check-box 'drracket:save-files-on-tab-switch?
-                     (string-constant save-after-switching-tabs?)
+                     (string-constant save-after-switching-tabs)
                      editor-panel)
      ))
   

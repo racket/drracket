@@ -2982,7 +2982,7 @@
                 (string-constant many-files-not-saved-do-the-save?)
                 (for/list ([tab (in-list save-candidates)])
                   (~a "\n" (get-tab-filename tab)))))
-           (string-constant save-after-switching-tabs?)
+           (string-constant save-after-switching-tabs)
            (string-constant save-all-files)
            (string-constant dont-save)
            #f
