@@ -2654,68 +2654,72 @@
          (λ (c) (set! interactions-canvases c))))
       
       (define/private (handle-collapse target get-canvases set-canvases!)
-        (if (= 1 (length (get-canvases)))
-            (bell)
-            (let* ([old-percentages (send resizable-panel get-percentages)]
-                   [soon-to-be-bigger-canvas #f]
-                   [percentages
-                    (if (and target (eq? (car (get-canvases)) target))
-                        (begin
-                          (set! soon-to-be-bigger-canvas (cadr (get-canvases)))
-                          (cons (+ (car old-percentages)
-                                   (cadr old-percentages))
-                                (cddr old-percentages)))
-                        (let loop ([canvases (cdr (get-canvases))]
-                                   [prev-canvas (car (get-canvases))]
-                                   [percentages (cdr old-percentages)]
-                                   [prev-percentage (car old-percentages)])
-                          (cond
-                            [(null? canvases)
-                             (error 'collapse "internal error.1")]
-                            [(null? percentages)
-                             (error 'collapse "internal error.2")]
-                            [else
-                             (if (and target (eq? (car canvases) target))
-                                 (begin
-                                   (set! soon-to-be-bigger-canvas prev-canvas)
-                                   (cons (+ (car percentages)
-                                            prev-percentage)
-                                         (cdr percentages)))
-                                 (cons prev-percentage
-                                       (loop (cdr canvases)
-                                             (car canvases)
-                                             (cdr percentages)
-                                             (car percentages))))])))])
-              (unless soon-to-be-bigger-canvas
-                (error 'collapse "internal error.3"))
-              (set-canvases! (remq target (get-canvases)))
-              (update-shown)
+        (cond
+          [(= 1 (length (get-canvases))) (bell)]
+          [else
+           (define old-percentages (send resizable-panel get-percentages))
+           (define soon-to-be-bigger-canvas #f)
+           (define percentages
+             (cond
+               [(and target (eq? (car (get-canvases)) target))
+                (set! soon-to-be-bigger-canvas (cadr (get-canvases)))
+                (cons (+ (car old-percentages)
+                         (cadr old-percentages))
+                      (cddr old-percentages))]
+               [else
+                (let loop ([canvases (cdr (get-canvases))]
+                           [prev-canvas (car (get-canvases))]
+                           [percentages (cdr old-percentages)]
+                           [prev-percentage (car old-percentages)])
+                  (cond
+                    [(null? canvases)
+                     (error 'collapse "internal error.1")]
+                    [(null? percentages)
+                     (error 'collapse "internal error.2")]
+                    [else
+                     (cond
+                       [(and target (eq? (car canvases) target))
+                        (set! soon-to-be-bigger-canvas prev-canvas)
+                        (cons (+ (car percentages)
+                                 prev-percentage)
+                              (cdr percentages))]
+                       [else
+                        (cons prev-percentage
+                              (loop (cdr canvases)
+                                    (car canvases)
+                                    (cdr percentages)
+                                    (car percentages)))])]))]))
+           (unless soon-to-be-bigger-canvas
+             (error 'collapse "internal error.3"))
+           (set-canvases! (remq target (get-canvases)))
+           (update-shown)
               
-              (let ([target-admin 
-                     (send target call-as-primary-owner
-                           (λ ()
-                             (send (send target get-editor) get-admin)))]
-                    [to-be-bigger-admin 
-                     (send soon-to-be-bigger-canvas call-as-primary-owner
-                           (λ ()
-                             (send (send soon-to-be-bigger-canvas get-editor) get-admin)))])
-                (let-values ([(bx by bw bh) (get-visible-area target-admin)])
+           (define target-admin
+             (send target call-as-primary-owner
+                   (λ ()
+                     (send (send target get-editor) get-admin))))
+           (define to-be-bigger-admin
+             (send soon-to-be-bigger-canvas call-as-primary-owner
+                   (λ ()
+                     (send (send soon-to-be-bigger-canvas get-editor) get-admin))))
+           (define-values (bx by bw bh) (get-visible-area target-admin))
                   
-                  ;; this line makes the soon-to-be-bigger-canvas bigger
-                  ;; if it fails, we're out of luck, but at least we don't crash.
-                  (with-handlers ([exn:fail? (λ (x) (void))])
-                    (send resizable-panel set-percentages percentages))
-                  
-                  (let-values ([(ax ay aw ah) (get-visible-area to-be-bigger-admin)])
-                    (send soon-to-be-bigger-canvas scroll-to
-                          bx
-                          (- by (/ (- ah bh) 2))
-                          aw
-                          ah
-                          #t))))
+           ;; this line makes the soon-to-be-bigger-canvas bigger
+           ;; if it fails, we're out of luck, but at least we don't crash.
+           (with-handlers ([exn:fail? (λ (x) (void))])
+             (send resizable-panel set-percentages percentages))
+
+           (define-values (ax ay aw ah) (get-visible-area to-be-bigger-admin))
+
+           (send soon-to-be-bigger-canvas scroll-to
+                 bx
+                 (- by (/ (- ah bh) 2))
+                 aw
+                 ah
+                 #t)
               
-              (send target set-editor #f)
-              (send soon-to-be-bigger-canvas focus))))
+           (send target set-editor #f)
+           (send soon-to-be-bigger-canvas focus)]))
       ;                                                                          
       ;                                                                          
       ;                                                                          
