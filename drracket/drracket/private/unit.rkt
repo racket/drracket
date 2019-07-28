@@ -2702,22 +2702,14 @@
              (send soon-to-be-bigger-canvas call-as-primary-owner
                    (λ ()
                      (send (send soon-to-be-bigger-canvas get-editor) get-admin))))
-           (define-values (bx by bw bh) (get-visible-area target-admin))
+           (define-values (bx by bw bh) (get-visible-area to-be-bigger-admin))
                   
            ;; this line makes the soon-to-be-bigger-canvas bigger
            ;; if it fails, we're out of luck, but at least we don't crash.
            (with-handlers ([exn:fail? (λ (x) (void))])
              (send resizable-panel set-percentages percentages))
 
-           (define-values (ax ay aw ah) (get-visible-area to-be-bigger-admin))
-
-           (send soon-to-be-bigger-canvas scroll-to
-                 bx
-                 (- by (/ (- ah bh) 2))
-                 aw
-                 ah
-                 #t)
-              
+           (send soon-to-be-bigger-canvas scroll-to bx by bw bh #t)
            (send target set-editor #f)
            (send soon-to-be-bigger-canvas focus)]))
       ;                                                                          
