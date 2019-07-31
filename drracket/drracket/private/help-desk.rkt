@@ -11,6 +11,7 @@
          help/private/buginfo
          drracket/private/drsig
          string-constants
+         setup/dirs
          "local-member-names.rkt")
 
 (import [prefix drracket:frame: drracket:frame^]
@@ -89,7 +90,7 @@
 (define (goto-plt-license)
   (send-main-page #:sub "license/index.html"))
 
-(define (maybe-try-to-materialize-docs)
+(define (maybe-try-to-materialize-docs parent)
   ;; under mac os x, the basic installation is put into a 'com.apple.quarantine'
   ;; which has the strange effect of making osascript drop the query parameters
   ;; for urls when they are sent to the browser. To work around this,
@@ -99,21 +100,76 @@
   ;; on non-mac os x platforms so that we don't try at all there.
   (define materialize-pref (preferences:get 'drracket:materialized-user-docs-versions))
   (when materialize-pref
-    (unless (member (version) materialize-pref)
-      (preferences:set 'drracket:materialized-user-docs-versions (cons (version) materialize-pref))
-      (define sp (open-output-string))
-      (define succeeded? #t)
-      (materialize-user-docs (λ (go)
-                               (set! succeeded? #f)
-                               (parameterize ([current-output-port sp]
-                                              [current-error-port sp])
-                                 (set! succeeded? (go)))))
-      (unless succeeded?
+    (define prev-doc-dir (hash-ref materialize-pref (version) #f))
+    (define might-take-a-long-time? (directory-exists? (find-user-doc-dir)))
+    (define looks-like-we-need-to-do-something?
+      (or (not prev-doc-dir)
+          (not (directory-exists? (bytes->path prev-doc-dir)))))
+    (when (and looks-like-we-need-to-do-something?
+               (if might-take-a-long-time?
+                   (user-okays-it? prev-doc-dir parent)
+                   #t))
+      (define error-output-or-false #t)
+      (cond
+        [might-take-a-long-time?
+         (define d (new dialog% [parent parent] [label (string-constant drracket)]))
+         (define m (new message%
+                        [label (string-constant help-desk-materializing-user-docs...)]
+                        [parent d]))
+         (define c (new button%
+                        [label (string-constant cancel)]
+                        [parent d]
+                        [callback
+                         (λ (_1 _2)
+                           (break-thread t)
+                           (send d show #f))]))
+         (define t
+           (thread
+            (λ ()
+              (define _error-output-or-false (do-materialize))
+              (queue-callback (λ ()
+                                (send d show #f)
+                                (set! error-output-or-false _error-output-or-false))))))
+         (send d show #t)]
+        [else (set! error-output-or-false (do-materialize))])
+      (preferences:set 'drracket:materialized-user-docs-versions
+                       (hash-set materialize-pref (version)
+                                 (path->bytes (find-doc-dir))))
+      (when error-output-or-false
         (message-box (string-constant drracket)
                      (string-append
                       "Attempting to materialize user docs failed:\n\n"
-                      (get-output-string sp)))))))
+                      error-output-or-false))))))
 
-(define (help-desk [key #f] [context #f])
-  (when key (maybe-try-to-materialize-docs))
+(define (do-materialize)
+  (define sp (open-output-string))
+  (define succeeded? #t)
+  (materialize-user-docs
+   (λ (go)
+     (set! succeeded? #f)
+     (parameterize ([current-output-port sp]
+                    [current-error-port sp])
+       (set! succeeded? (go))))
+   #:skip-user-doc-check? #t)
+  (if succeeded?
+      #f
+      (get-output-string sp)))
+
+(define (user-okays-it? prev-doc-dir parent)
+  (define choice
+    (message-box/custom
+     (string-constant drracket)
+     (if prev-doc-dir
+         (format (string-constant help-desk-materialize-docs-something-changed)
+                 prev-doc-dir)
+         (string-constant help-desk-materialize-docs-first-time))
+     (string-constant help-desk-materialize-user-docs)
+     (string-constant help-desk-do-nothing)
+     #f
+     parent
+     '(default=1)))
+  (equal? choice 1))
+
+(define (help-desk [key #f] [context #f] [parent #f])
+  (when key (maybe-try-to-materialize-docs parent))
   (if key (perform-search key context) (send-main-page)))

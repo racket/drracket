@@ -204,7 +204,7 @@ TODO
                     [ctxt (and l (send l capability-value 'drscheme:help-context-term))]
                     [name (and l (send l get-language-name))])
                (drracket:help-desk:help-desk
-                str (and ctxt (list ctxt name))))])]
+                str (and ctxt (list ctxt name)) frame))])]
          [else
           (drracket:help-desk:help-desk)])))
     

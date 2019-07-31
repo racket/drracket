@@ -935,15 +935,20 @@ all of the names in the tools library, for use defining keybindings
   drracket:help-desk:help-desk
   (->* ()
        ((or/c #f string?)
-        (or/c #f string? (list/c string? string?)))
+        (or/c #f string? (list/c string? string?))
+        (or/c (is-a?/c frame%) (is-a?/c dialog%) #f))
        any)
   (()
    ((search-key #f)
-    (search-context #f)))
-  @{if @racket[search-key] is a string, calls @racket[perform-search] with
-       @racket[search-key] and @racket[search-context].
-       
-       Otherwise, calls @racket[send-main-page] with no arguments.})
+    (search-context #f)
+    (parent #f)))
+  @{if @racket[search-key] is a string, performs a search in the docs with
+ @racket[search-key] and @racket[search-context].
+ Otherwise, calls @racket[send-main-page] with no arguments.
+
+ The search may involve asking the user a question, in which case the
+ dialog with the question uses @racket[parent] as its parent.
+ })
  
  (proc-doc
   drracket:help-desk:goto-plt-license
