@@ -35,7 +35,7 @@ interactions window. Given the definition of @racket[square] as in the
 figure above, typing @racket[(square 2)] in the interactions window
 produces the result @racket[4].
 
-The blue quarter circle in the upper right corner provides access
+The signature boxes (available via the blue quarter circle in the upper right corner) provide access
 to the summary information from the documentation.
 The @deftech{status line} at the bottom of DrRacket's window provides
 information about the current line and position of the editing caret,
