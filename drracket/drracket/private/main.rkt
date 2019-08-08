@@ -80,6 +80,8 @@
 
 (application:current-app-name (string-constant drscheme))
 
+(preferences:set-default 'drracket:most-recent-lang-line "#lang racket" string?)
+
 (preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
 
 (preferences:set-default 'drracket:inline-overview-shown? #f boolean?)
@@ -600,7 +602,7 @@
                    (or/c #f
                          (cons/c (or/c string? #f)
                                  (real-in 0 1024))))
-  (drr:set-default 'drracket:module-language:auto-text "#lang racket\n" string?)
+  (drr:set-default 'drracket:module-language:auto-text #f (or/c #f string?))
 
 (let ([drs-handler-recent-items-super%
        (class (drracket:frame:basics-mixin

@@ -101,6 +101,13 @@ of various libraries).
        and the @racketmodname[mzlib/pconvert] library.}
  @item{@bold{Collection Paths}: This corresponds to setting the @racket[current-library-collection-paths] parameter.}
  @item{@bold{Command-line arguments}: This corresponds to setting the @racket[current-command-line-arguments] parameter.}
+ @item{@bold{Automatic #lang line}: This panel controls the
+  default @tt{#lang} that DrRacket inserts into new windows
+  (or tabs). If the top option of the radio box is chosen (the
+  default), DrRacket uses the last @tt{#lang} that was edited
+  in a definitions window. If the lower option of the radio
+  box is chosen, DrRacket always uses the same @tt{#lang}
+  line, as given in the text field.}
 ]
 
 @; ----------------------------------------
