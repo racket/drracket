@@ -2,27 +2,26 @@
 A test case:
 
 #lang racket
-   (require racket/gui browser framework)
-   
-   (define f%
-     (frame:status-line-mixin 
-      frame:basic%))
-   
-   (define f (new f%
-                  (label "My Frame")
-                  (width 400)
-                  (height 300)))
-   (define browser (new hyper-panel% 
-                        (info-line? #f)
-                        (parent (send f get-area-container))))
-   (send f show #t)
-   
-   (send (send browser get-canvas)
-	 goto-url
-	 ;; The starting URL:
-	 "http://www.htdp.org/";
-	 ;; #f means not a relative URL:
-	 #f)
+(require racket/gui browser framework)
+
+(define f%
+  (hyper-no-show-frame-mixin
+   (frame:status-line-mixin
+    frame:basic%)))
+
+(define f (new f%
+               (label "My Frame")
+               (width 400)
+               (height 300)))
+(define browser (send f get-hyper-panel))
+(send f show #t)
+
+(send (send browser get-canvas)
+      goto-url
+      ;; The starting URL:
+      "http://www.htdp.org/";
+      ;; #f means not a relative URL:
+      #f)
 |#
 
 #lang racket/unit
