@@ -160,7 +160,10 @@ Will not work with the definitions text surrogate interposition that
               [(exn:fail? exn)
                (failure exn)
                (set-irl-use-evaluator?! an-irl #f)
-               (k (fallback-thunk))]
+               (call-with-values
+                fallback-thunk
+                (λ args
+                  (apply k args)))]
               [else exn]))
           thunk)))]
     [else (fallback-thunk)]))
