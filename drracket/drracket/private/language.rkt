@@ -1222,6 +1222,7 @@
          #:aux aux
          #:mred? gui?
          #:verbose? #f ;; verbose?
+         #:expand-namespace (make-base-namespace)
          #:modules to-be-embedded-module-specs
          #:literal-files (list 
                           bootstrap-tmp-filename
