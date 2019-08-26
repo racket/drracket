@@ -553,6 +553,7 @@
                             #:gracket? gui?
                             #:aux aux
                             #:verbose? #f
+                            #:expand-namespace (make-base-namespace)
                             #:modules (list (list #f program-filename))
                             #:configure-via-first-module? #t
                             #:literal-expression
