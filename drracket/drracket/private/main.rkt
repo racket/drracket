@@ -886,7 +886,13 @@
        (make-basic))
      (when (and (preferences:get 'drracket:open-in-tabs)
                 (not (null? no-dups)))
-       (define first-one (car no-dups))
-       (send (send (group:get-the-frame-group) locate-file first-one)
-             make-visible first-one))))
+       ;; usually first-one will be (car no-dups) but sometimes
+       ;; opening a file results in an error so we don't actually
+       ;; open it, so `locate-file` returns #f.
+       (define first-one
+         (for/or ([nd (in-list no-dups)])
+           (define f (send (group:get-the-frame-group) locate-file nd))
+           (and f (cons f nd))))
+       (when first-one
+         (send (car first-one) make-visible (cdr first-one))))))
  #f)
