@@ -1808,7 +1808,7 @@ If the namespace does not, they are colored the unbound color.
             ;; callback for the jump popup menu item
             (define/private (jump-to-next-callback start-pos end-pos txt backwards?)
               (define-values (_binders make-identifiers-hash)
-                (position->matching-identifiers-hash txt start-pos end-pos #t))
+                (position->matching-identifiers-hash txt start-pos end-pos #f))
               (define orig-arrows 
                 (sort (hash-map (make-identifiers-hash)
                                 (λ (x y) x))
