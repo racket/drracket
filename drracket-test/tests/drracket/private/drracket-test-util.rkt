@@ -146,7 +146,7 @@
     (define (wait-for-computation-to-finish)
       (fw:test:reraise-error)
       (not (computation-running?)))
-    ;(poll-until wait-for-computation-to-start 60) ;; hm.
+    (sync (system-idle-evt)) ; intended to ensure that the computation has started
     (poll-until wait-for-computation-to-finish 60)
     (sync (system-idle-evt)))
 
