@@ -305,7 +305,8 @@
           (get-read-language-port-start+end the-irl))
         (set! hash-lang-language (and lang-name-end (get-text lang-name-start lang-name-end)))
         (when hash-lang-language
-          (preferences:set 'drracket:most-recent-lang-line hash-lang-language))
+          (preferences:set 'drracket:most-recent-lang-line (string-append hash-lang-language
+                                                                          "\n")))
         (set! hash-lang-last-location (get-read-language-last-position the-irl))
         
         (clear-things-out)
