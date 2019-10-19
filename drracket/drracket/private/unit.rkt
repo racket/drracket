@@ -1415,7 +1415,8 @@
                file-menu:get-save-item
                file-menu:get-save-as-item
                file-menu:get-revert-item
-               file-menu:get-print-item)
+               file-menu:get-print-item
+               get-eventspace)
       
       (define resizable-panel (drr-named-undefined 'resizable-panel))
       (define definitions-canvas (drr-named-undefined 'definitions-canvas))
@@ -2954,7 +2955,9 @@
         (update-tabs-labels))
 
       (define/private (get-unsaved-candidate-tabs skip-me?)
-        (define focused-frame (get-top-level-focus-window))
+        (define focused-frame (or (get-top-level-focus-window)
+                                  (let ([ft (frame:lookup-focus-table (get-eventspace))])
+                                    (and (pair? ft) (car ft)))))
         (for*/list ([frame (in-list (send (group:get-the-frame-group) get-frames))]
                     #:when (is-a? frame drracket:unit:frame<%>)
                     [tab (in-list (send frame get-tabs))]
