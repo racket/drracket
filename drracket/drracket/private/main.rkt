@@ -80,7 +80,12 @@
 
 (application:current-app-name (string-constant drscheme))
 
-(preferences:set-default 'drracket:most-recent-lang-line "#lang racket\n" string?)
+(define (string-ending-with-newline? s)
+  (and (string? s)
+       (regexp-match? #rx"\n$" s)))
+
+(preferences:set-default 'drracket:most-recent-lang-line "#lang racket\n"
+                         string-ending-with-a-newline?)
 
 (preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
 
