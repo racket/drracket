@@ -85,7 +85,7 @@
        (regexp-match? #rx"\n$" s)))
 
 (preferences:set-default 'drracket:most-recent-lang-line "#lang racket\n"
-                         string-ending-with-a-newline?)
+                         string-ending-with-newline?)
 
 (preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
 
