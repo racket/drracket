@@ -141,6 +141,9 @@
         [(and (string? v)
               (> (string-length v) size))
          (string-append (substring v 0 size) "...")]
+        [(and (bytes? v)
+              (> (bytes-length v) size))
+         (bytes-append (subbytes v 0 size) #"...")]
         [(list? v)
          (let* ([len (length v)]
                 [res (build-list (min size len)
