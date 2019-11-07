@@ -1205,7 +1205,7 @@
           (for-each
            (lambda (name/value)
              (let ([name (format "~a" (syntax-e (first name/value)))]
-                   [value (format " => ~s\n" (second name/value))])
+                   [value (format " => ~s\n" (truncate-value (second name/value) 88 4))])
                (send variables-text insert name)
                (send variables-text change-style bold-sd
                      (- (send variables-text last-position) (string-length name))
