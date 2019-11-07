@@ -153,10 +153,6 @@
                                   (> size (vector-length v)))
                              '...
                              (truncate-value (vector-ref v i) size (sub1 depth)))))]
-        [(bytes? v)
-         (if (> (bytes-length v) size)
-             (bytes-append (subbytes v 0 size) #"...")
-             v)]
         [else v]))
     
     (define filename->defs
@@ -1206,7 +1202,7 @@
           (for-each
            (lambda (name/value)
              (let ([name (format "~a" (syntax-e (first name/value)))]
-                   [value (format " => ~s\n" (truncate-value (second name/value) 100 5))])
+                   [value (format " => ~s\n" (second name/value))])
                (send variables-text insert name)
                (send variables-text change-style bold-sd
                      (- (send variables-text last-position) (string-length name))
