@@ -56,16 +56,8 @@
                                                                    'scribble/pdf-render)
                                                                'render-mixin)
                                #:xrefs (list xref)))
-                            (define file-to-open (path-replace-suffix fn suffix)) 
-                            (cond
-                              [html?
-                               (send-url/file file-to-open)]
-                              [else
-                               (if (equal? (system-type) 'windows)
-                                   (send-url/file file-to-open)
-                                   (parameterize ([current-input-port (open-input-string "")])
-                                     (system (format "open \"~a\""
-                                                     (path->string file-to-open)))))])))])
+                            (define file-to-open (path-replace-suffix fn suffix))
+                            (send-url/file (path->string file-to-open))))])
           (send drs-frame execute-callback))]
        [else
         (message-box "Scribble" "Cannot render buffer without filename")]))
