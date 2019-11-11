@@ -772,7 +772,7 @@ A module browser window contains a square for each
 
 @section[#:tag "color-scheme"]{Color Schemes}
 
-DrRacket comes with three different color schemes, available in the preferences dialog's
+DrRacket comes with a selection of color schemes, available in the preferences dialog's
 @onscreen{color} panel.
 
 You can add your own color schemes to DrRacket, too. The first step is to
