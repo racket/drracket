@@ -9,8 +9,6 @@
 
   . minor bug fixes and documentation fixes
 
-  . relicense under the Apache v2 and MIT licenses
-
 ------------------------------
        Version 7.4
 ------------------------------
