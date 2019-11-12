@@ -1,4 +1,17 @@
 ------------------------------
+       Version 7.5
+------------------------------
+
+  . change the bound variable jumping around to ignore arrows that
+    come from `require`s.
+
+  . recall the most recently used #lang line and use that for new tabs
+
+  . minor bug fixes and documentation fixes
+
+  . relicense under the Apache v2 and MIT licenses
+
+------------------------------
        Version 7.4
 ------------------------------
 
