@@ -771,7 +771,7 @@
                                      #f]
                                     [(1)
                                      (turn-on/off-auto-text-text-box #t)
-                                     "#lang racket\n"])))]))
+                                     "#lang racket"])))]))
     (define auto-text-text-box (new text-field%
                                     [parent hp]
                                     [label #f]

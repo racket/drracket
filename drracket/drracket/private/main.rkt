@@ -80,7 +80,7 @@
 
 (application:current-app-name (string-constant drscheme))
 
-(preferences:set-default 'drracket:most-recent-lang-line "#lang racket\n" string?)
+(preferences:set-default 'drracket:most-recent-lang-line "#lang racket" string?)
 
 (preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
 
