@@ -868,8 +868,7 @@ all of the names in the tools library, for use defining keybindings
   drracket:debug:show-backtrace-window
   (->* (string?
         (or/c exn? 
-              (listof srcloc?)
-              (non-empty-listof (cons/c string? (listof srcloc?)))))
+              (listof srcloc?)))
        ((or/c #f (is-a?/c drracket:rep:text<%>))
         (or/c #f (is-a?/c drracket:unit:definitions-text<%>)))
        void?)
@@ -878,9 +877,18 @@ all of the names in the tools library, for use defining keybindings
     (defs #f)))
   @{Shows the backtrace window you get when clicking on the bug in
     DrRacket's REPL.
-    
-    This function simply calls @racket[drracket:debug:show-backtrace-window/edition-pairs],
-    using @racket[drracket:debug:srcloc->edition/pair].
+
+ If @racket[dis] is a list of @racket[srcloc?], then this function simply
+ calls @racket[drracket:debug:show-backtrace-window/edition-pairs],
+ passing @racket[error-message], @racket[dis], and a list of @racket[#f]
+ that is as long as @racket[dis].
+
+ If @racket[dis] is an @racket[exn:fail?], then this function calls
+ @racket[drracket:debug:show-backtrace-window/edition-pairs/two], extracting
+ the builtin stack trace (via @racket[continuation-mark-set->context])
+ and an errortrace stack trace from
+ the continuation marks in @racket[exn].
+
     })
  
  

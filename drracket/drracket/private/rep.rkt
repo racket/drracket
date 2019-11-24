@@ -33,7 +33,6 @@ TODO
          "stack-checkpoint.rkt"
          "parse-logger-args.rkt"
          "insulated-read-language.rkt"
-         "stack-checkpoint.rkt"
          
          ;; the dynamic-require below loads this module, 
          ;; so we make the dependency explicit here, even
@@ -644,10 +643,8 @@ TODO
         (set-error-ranges raw-locs)
         (define locs (or (get-error-ranges) '())) ;; calling set-error-range cleans up the locs
         (define error-arrows (and raw-error-arrows (cleanup-locs raw-error-arrows)))
-        
         (for ([loc (in-list locs)])
           (send (srcloc-source loc) begin-edit-sequence #t #f))
-        
         (when color?
           (define resets
             (for/list ([loc (in-list locs)])
@@ -681,9 +678,8 @@ TODO
               (when (eq? first-file definitions-text) ;; only move set the cursor in the defs window
                 (send first-file set-position first-start first-start))
               (send first-file scroll-to-position first-start #f first-finish)))
-          
+
           (for-each (λ (loc) (send (srcloc-source loc) end-edit-sequence)) locs)
-          
           (when first-loc
             
             (when (eq? first-file definitions-text)
@@ -918,7 +914,7 @@ TODO
       (define/public (set-show-no-user-evaluation-message? b)
         (set! show-no-user-evaluation-message? b))
       
-      (define/private (cleanup)
+      (define/private (cleanup) ;; =Kernel=, =Handler=
         (set! in-evaluation? #f)
         (update-running #f)
         (unless (and (get-user-thread) (thread-running? (get-user-thread)))
@@ -932,31 +928,51 @@ TODO
       
       (field (need-interaction-cleanup? #f))
       
-      (define/private (no-user-evaluation-message frame exit-code memory-killed?)
-        (define-values (cms1 cms2)
+      (define/private (no-user-evaluation-message frame exit-code memory-killed?)  ;; =Kernel=, =Handler=
+        (define defs (send frame get-definitions-text))
+        (define-values (vs1 vs2)
           (let ([ut (get-user-thread)])
             (cond
               [ut
                (define cms (continuation-marks ut))
-               (values (drracket:debug:cms->srclocs cms)
-                       (cut-stack-at-checkpoint cms))]
-              [else (values '() '())])))
+               (define interesting-editors
+                 (list defs (send frame get-interactions-text)))
+               (define a-viewable-stack (cms->errortrace-viewable-stack cms interesting-editors))
+               (values a-viewable-stack
+                       (cms->builtin-viewable-stack cms interesting-editors
+                                                    #:share-cache a-viewable-stack))]
+              [else (values empty-viewable-stack
+                            empty-viewable-stack)])))
         (no-user-evaluation-dialog frame exit-code memory-killed? #t)
         (set-insertion-point (last-position))
-        (define have-some-stack? (or (pair? cms1) (pair? cms2)))
+        (define have-some-stack? (not (and (empty-viewable-stack? vs1)
+                                           (empty-viewable-stack? vs2))))
         (when have-some-stack?
-          (insert-stacktrace cms1 cms2
-                             (send frame get-definitions-text)
-                             (send frame get-interactions-text)
-                             memory-killed?))
+          (insert-stacktrace vs1 vs2 memory-killed?))
         (insert-warning
          (string-append (if have-some-stack? "" "\n")
                         "Interactions disabled"
                         (if memory-killed?
                             "; out of memory"
-                            ""))))
+                            "")))
 
-      (define/private (insert-stacktrace cms1 cms2 defs ints memory-killed?)
+        ;; as kind of a cheap trick we use the next event boundary
+        ;; to escape the edit seqence that the rep is currently in,
+        ;; as the error arrows will be erased by the end of the edit
+        ;; sequence if we don't do that. We use a high priority event
+        ;; so that any keystrokes from the user or what not will be
+        ;; guaranteed to come after that (and thus will, properly,
+        ;; reset the error arrows)
+        (queue-callback
+         (λ ()
+           (define src-locs (get-exn-source-locs defs #f vs1 vs2))
+           (define arrows (viewable-stack->red-arrows-backtrace-srclocs
+                           (if (empty-viewable-stack? vs1)
+                               vs2
+                               vs1)))
+           (highlight-errors src-locs arrows))))
+
+      (define/private (insert-stacktrace vs1 vs2 memory-killed?)
         (define locked? (is-locked?))
         (when locked? (lock #f))
         (begin-edit-sequence)
@@ -966,11 +982,7 @@ TODO
            (cond
              [memory-killed? (string-constant program-ran-out-of-memory)]
              [else (string-constant evaluation-terminated)])
-           cms1
-           (drracket:debug:get-editions cache defs ints cms1)
-           cms2
-           (drracket:debug:get-editions cache defs ints cms2)
-           defs ints))
+           vs1 vs2))
         (insert-before note)
         (insert-before " ")
         (end-edit-sequence)

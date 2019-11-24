@@ -16,6 +16,7 @@
          drracket/private/drsig
          "bindings-browser.rkt"
          "stack-checkpoint.rkt"
+         (prefix-in : (only-in "stack-checkpoint.rkt" srcloc->edition/pair get-editions))
          "ellipsis-snip.rkt"
          "local-member-names.rkt"
          net/sendurl
@@ -62,14 +63,7 @@
   ;                     ;                                    
   ;                  ;;;                                     
   ;                                                          
-  
-  ;; type debug-source = (union symbol (instanceof editor<%>))
-  
-  ;; original-output-port : output-port
-  ;; for debugging -- be sure to print to here, not the current output port
-  (define original-output-port (current-output-port))
-  
-  ;; cms->srclocs : continuation-marks -> (listof srcloc)
+
   (define (cms->srclocs cms)
     (map 
      (λ (x) (make-srcloc (list-ref x 1)
@@ -78,6 +72,12 @@
                          (list-ref x 4)
                          (list-ref x 5)))
      (continuation-mark-set->list cms errortrace-key)))
+  
+  ;; type debug-source = (union symbol (instanceof editor<%>))
+  
+  ;; original-output-port : output-port
+  ;; for debugging -- be sure to print to here, not the current output port
+  (define original-output-port (current-output-port))
   
   ;; error-delta : (instanceof style-delta%)
   (define error-delta (make-object style-delta% 'change-style 'italic))
@@ -208,6 +208,11 @@
   (send clickable-string-snipclass set-classname "drclickable-string-snipclass")
   (send clickable-string-snipclass set-version 0)
   (send (get-the-snip-class-list) add clickable-string-snipclass)
+
+  (define (srcloc->edition/pair defs ints srcloc [port-name-matches-cache #f])
+    (define (is-drracket-frame? x) (is-a? x drracket:unit:frame<%>))
+    (:srcloc->edition/pair defs ints srcloc is-drracket-frame? port-name-matches-cache))
+  (define get-editions :get-editions)
   
   ;; make-note% : string -> (union class #f)
   (define (make-note% filename bitmap)
@@ -313,17 +318,22 @@
   ;; adds in the bug icon, if there are contexts to display
   (define (make-debug-error-display-handler orig-error-display-handler)
     (define (debug-error-display-handler msg exn)
-      (let ([rep (drracket:rep:current-rep)])
-        (cond
-          [rep
-           (error-display-handler/stacktrace 
-            msg
-            exn 
-            (and (exn? exn) 
-                 (continuation-mark-set? (exn-continuation-marks exn))
-                 (cms->srclocs (exn-continuation-marks exn))))]
-          [else 
-           (orig-error-display-handler msg exn)])))
+      
+      (call-with-exception-handler
+       (λ (exn)
+         (printf "-- ~s\n" exn)
+         (when (exn? exn)
+           (for ([e (in-list (continuation-mark-set->context
+                              (exn-continuation-marks exn)))])
+             (printf "  ~s\n" e)))
+         exn)
+       (λ ()
+         (let ([rep (drracket:rep:current-rep)])
+           (cond
+             [rep
+              (error-display-handler/stacktrace msg exn)]
+             [else 
+              (orig-error-display-handler msg exn)])))))
     debug-error-display-handler)
   
   ;; error-display-handler/stacktrace : string any (listof srcloc) -> void
@@ -335,61 +345,54 @@
            #:definitions-text [defs (let ([rep (drracket:rep:current-rep)])
                                       (and rep
                                            (send rep get-definitions-text)))])
-    (let* ([stack1 (or pre-stack '())]
-           [stack2 (if (exn? exn)
-                       (cut-stack-at-checkpoint (exn-continuation-marks exn))
-                       '())]
-           [port-name-matches-cache (make-hasheq)]
-           [stack1-editions (get-editions port-name-matches-cache defs ints stack1)]
-           [stack2-editions (get-editions port-name-matches-cache defs ints stack2)]
-           [src-locs (cond
-                       [(exn:srclocs? exn)
-                        ((exn:srclocs-accessor exn) exn)]
-                       [(pick-first-defs port-name-matches-cache defs stack1) => list]
-                       [(pick-first-defs port-name-matches-cache defs stack2) => list]
-                       [(pair? stack1)
-                        (list (car stack1))]
-                       [(pair? stack2)
-                        (list (car stack2))]
-                       [else '()])]
-           [src-locs-edition 
-            (and (pair? src-locs)
-                 (srcloc->edition/pair defs ints (car src-locs) port-name-matches-cache))])
+    (define stack1
+      (cond
+        [pre-stack pre-stack]
+        [(and (exn? exn)
+              (continuation-mark-set? (exn-continuation-marks exn)))
+         (cms->errortrace-viewable-stack (exn-continuation-marks exn)
+                                         (filter values (list ints defs)))]
+        [else (empty-viewable-stack)]))
+    (define stack2
+      (if (exn? exn)
+          (cms->builtin-viewable-stack (exn-continuation-marks exn)
+                                       (filter values (list ints defs))
+                                       #:share-cache stack1)
+          (empty-viewable-stack)))
+    (define port-name-matches-cache (make-hasheq))
+    (define src-locs (get-exn-source-locs defs exn stack1 stack2))
 
-      (print-planet-icon-to-stderr exn)
-      (unless (exn:fail:user? exn)
-        (unless (exn:fail:syntax? exn)
-          (unless (and (null? stack1) (null? stack2))
-            (unless (zero? (error-print-context-length))
-              (print-bug-to-stderr msg stack1 stack1-editions stack2 stack2-editions defs ints))))
-        (display-srclocs-in-error src-locs src-locs-edition))
-      (display-error-message exn msg)
-      (when (exn:fail:syntax? exn)
-        (unless (error-print-source-location)
-          (show-syntax-error-context (current-error-port) exn)))
-      (print-pkg-icon-to-stderr exn)
-      (newline (current-error-port))
-      (flush-output (current-error-port))
-      (when (and ints
-                 (eq? (current-error-port) 
-                      (send ints get-err-port)))
-        (parameterize ([current-eventspace drracket:init:system-eventspace])
-          (queue-callback
-           (λ ()
-             ;; need to make sure that the user's eventspace is still the same
-             ;; and still running here?
-             (send ints highlight-errors src-locs (if (null? stack1)
-                                                      stack2
-                                                      stack1))
+    (print-planet-icon-to-stderr exn)
+    (unless (exn:fail:user? exn)
+      (unless (exn:fail:syntax? exn)
+        (unless (and (null? stack1) (null? stack2))
+          (unless (zero? (error-print-context-length))
+            (print-bug-to-stderr msg stack1 stack2))))
+      (display-srclocs-in-error src-locs stack1))
+    (display-error-message exn msg)
+    (when (exn:fail:syntax? exn)
+      (unless (error-print-source-location)
+        (show-syntax-error-context (current-error-port) exn)))
+    (print-pkg-icon-to-stderr exn)
+    (newline (current-error-port))
+    (flush-output (current-error-port))
+    (when (and ints
+               (eq? (current-error-port) 
+                    (send ints get-err-port)))
+      (parameterize ([current-eventspace drracket:init:system-eventspace])
+        (queue-callback
+         (λ ()
+           ;; need to make sure that the user's eventspace is still the same
+           ;; and still running here?
+           (send ints highlight-errors src-locs
+                 (viewable-stack->red-arrows-backtrace-srclocs
+                  (if (empty-viewable-stack? stack1)
+                      stack2
+                      stack1)))
              
-             (when (and ints (exn:fail:out-of-memory? exn))
-               (define frame (send ints get-top-level-window))
-               (send ints no-user-evaluation-dialog frame #f #t #f))))))))
-
-  ;; =User= =Kernel=
-  (define (get-editions port-name-matches-cache defs ints stack)
-    (map (λ (x) (srcloc->edition/pair defs ints x port-name-matches-cache))
-         stack))
+           (when (and ints (exn:fail:out-of-memory? exn))
+             (define frame (send ints get-top-level-window))
+             (send ints no-user-evaluation-dialog frame #f #t #f)))))))
   
   (define (render-message lines)
     (define collected (collect-hidden-lines lines))
@@ -422,39 +425,7 @@
     (and ((length lines) . > . 1)
          (for/or ([x (in-list (cdr lines))])
            (regexp-match ellipsis-error-message-field x))))
-  
-  (define (srcloc->edition/pair defs ints srcloc [port-name-matches-cache #f])
-    (let ([src (srcloc-source srcloc)])
-      (cond
-        [(and (or (symbol? src)
-                  (path? src))
-              ints
-              (port-name-matches?/use-cache ints src port-name-matches-cache))
-         (cons (make-weak-box ints) (send ints get-edition-number))]
-        [(and (or (symbol? src)
-                  (path? src))
-              defs
-              (port-name-matches?/use-cache defs src port-name-matches-cache))
-         (cons (make-weak-box defs) (send defs get-edition-number))]
-        [(path? src)
-         (let ([frame (send (group:get-the-frame-group) locate-file src)])
-           (and frame
-                (is-a? frame drracket:unit:frame<%>)
-                (cons (make-weak-box (send frame get-definitions-text))
-                      (send (send frame get-definitions-text) get-edition-number))))]
-        [else #f])))
-  
-  (define (pick-first-defs port-name-matches-cache defs stack)
-    (for/or ([srcloc (in-list stack)])
-      (and (srcloc? srcloc)
-           (port-name-matches?/use-cache defs (srcloc-source srcloc) port-name-matches-cache)
-           srcloc)))
-  
-  (define (port-name-matches?/use-cache txt src port-name-matches-cache)
-    (if port-name-matches-cache
-        (hash-ref! port-name-matches-cache (cons txt src) (λ () (send txt port-name-matches? src)))
-        (send txt port-name-matches? src)))
-  
+    
   ;; =User=
   (define (print-planet-icon-to-stderr exn)
     (when (exn:fail:contract:blame? exn)
@@ -558,97 +529,82 @@
       (get-output-string sp)))
   
   ;; =User=
-  (define (print-bug-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
+  (define (print-bug-to-stderr msg viewable-stack1 viewable-stack2)
     (when (port-writes-special? (current-error-port))
-      (define note (make-note-to-print-to-stderr msg cms1 editions1 cms2 editions2 defs ints))
+      (define note (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2))
       (when note
         (write-special note (current-error-port))
         (display #\space (current-error-port)))))
 
   ;; =Kernel= =User=
-  (define (make-note-to-print-to-stderr msg cms1 editions1 cms2 editions2 defs ints)
-    (unless (= (length cms1) (length editions1))
-      (raise-argument-error 'make-note-to-print-to-stderr
-                            "length of cms1 to match length of cm2"
-                            2
-                            msg cms1 editions1 cms2 editions2 defs ints))
-    (unless (= (length cms2) (length editions2))
-      (raise-argument-error 'make-note-to-print-to-stderr
-                            "length of cms1 to match length of cm2"
-                            2
-                            msg cms1 editions1 cms2 editions2 defs ints))
+  (define (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2)
     (define note% (if (mf-bday?) mf-note% bug-note%))
     (cond
       [note%
        (define note (new note%))
-       (send note set-stacks cms1 cms2)
+       (send note set-stacks viewable-stack1 viewable-stack2)
        (send note set-callback
-             (λ (snp) (show-backtrace-window/edition-pairs/two msg
-                                                               cms1 editions1
-                                                               cms2 editions2
-                                                               defs ints)))
+             (λ (snp)
+               (show-backtrace-window/viewable-stacks msg
+                                                      viewable-stack1
+                                                      viewable-stack2)))
        note]
       [else #f]))
 
-  ;; display-srclocs-in-error : (listof src-loc) -> void
+  ;; display-srclocs-in-error : (listof src-loc) viewable-stack? -> void
   ;; prints out the src location information for src-to-display
   ;; as it would appear in an error message
-  (define (display-srclocs-in-error srcs-to-display edition-pair)
+  (define (display-srclocs-in-error srcs-to-display a-viewable-stack)
     (unless (null? srcs-to-display)
-      (let ([src-to-display (car srcs-to-display)])
-        (let* ([src (srcloc-source src-to-display)]
-               [line (srcloc-line src-to-display)]
-               [col (srcloc-column src-to-display)]
-               [pos (srcloc-position src-to-display)]
-               [do-icon
-                (λ ()
-                  (when file-note%
-                    (when (port-writes-special? (current-error-port))
-                      (let ([note (new file-note%)])
-                        (send note set-callback 
-                              (λ (snp) (open-and-highlight-in-file srcs-to-display edition-pair)))
-                        (write-special note (current-error-port))
-                        (display #\space (current-error-port))))))]
-               [do-src
-                (λ ()
-                  (cond
-                    [(path? src)
-                     (define-values (n-cd n-src)
-                       (with-handlers ([exn:fail? (λ (x) (values (current-directory) src))])
-                         (values (normalize-path (current-directory)) (normalize-path src))))
-                     (display (path->string (find-relative-path n-cd n-src))
-                              (current-error-port))]
-                    [else
-                     (define name
-                       (cond
-                         [(string? src) src]
-                         [(symbol? src) (symbol->string src)]
-                         [else "<unsaved editor>"]))
-                     (display name (current-error-port))]))]
-               [do-line/col (λ () (eprintf ":~a:~a" line col))]
-               [do-pos (λ () (eprintf "::~a" pos))]
-               [src-loc-in-defs/ints?
-                (let ([rep (drracket:rep:current-rep)])
-                  (and rep
-                       (is-a? rep drracket:rep:text<%>)
-                       (let ([defs (send rep get-definitions-text)])
-                         (or (send rep port-name-matches? src)
-                             (eq? rep src)
-                             (send defs port-name-matches? src)
-                             (eq? defs src)))))])
-          (cond
-            [(and src line col)
-             (do-icon)
-             (unless src-loc-in-defs/ints?
-               (do-src)
-               (do-line/col)
-               (display ": " (current-error-port)))]
-            [(and src pos)
-             (do-icon)
-             (unless src-loc-in-defs/ints?
-               (do-src)
-               (do-pos)
-               (display ": " (current-error-port)))])))))
+      (define src-to-display (car srcs-to-display))
+      (match-define (srcloc src line col pos _span) src-to-display)
+      (define (do-icon)
+        (when file-note%
+          (when (port-writes-special? (current-error-port))
+            (define note (new file-note%))
+            (send note set-callback 
+                  (λ (snp) (open-and-highlight-in-file srcs-to-display a-viewable-stack)))
+            (write-special note (current-error-port))
+            (display #\space (current-error-port)))))
+      (define (do-src)
+        (cond
+          [(path? src)
+           (define-values (n-cd n-src)
+             (with-handlers ([exn:fail? (λ (x) (values (current-directory) src))])
+               (values (normalize-path (current-directory)) (normalize-path src))))
+           (display (path->string (find-relative-path n-cd n-src))
+                    (current-error-port))]
+          [else
+           (define name
+             (cond
+               [(string? src) src]
+               [(symbol? src) (symbol->string src)]
+               [else "<unsaved editor>"]))
+           (display name (current-error-port))]))
+      (define (do-line/col) (eprintf ":~a:~a" line col))
+      (define (do-pos) (eprintf "::~a" pos))
+      (define src-loc-in-defs/ints?
+        (let ([rep (drracket:rep:current-rep)])
+          (and rep
+               (is-a? rep drracket:rep:text<%>)
+               (let ([defs (send rep get-definitions-text)])
+                 (or (send rep port-name-matches? src)
+                     (eq? rep src)
+                     (send defs port-name-matches? src)
+                     (eq? defs src))))))
+      (cond
+        [(and src line col)
+         (do-icon)
+         (unless src-loc-in-defs/ints?
+           (do-src)
+           (do-line/col)
+           (display ": " (current-error-port)))]
+        [(and src pos)
+         (do-icon)
+         (unless src-loc-in-defs/ints?
+           (do-src)
+           (do-pos)
+           (display ": " (current-error-port)))])))
   
   ;; find-src-to-display : exn (union #f (listof srcloc))
   ;;                    -> (listof srclocs)
@@ -816,23 +772,55 @@
   ;;                         (listof srcloc?)
   ;;                         -> 
   ;;                         void
-  (define (show-backtrace-window error-text dis/exn [rep #f] [defs #f])
-    (let ([dis (if (exn? dis/exn)
-                   (cms->srclocs (exn-continuation-marks dis/exn))
-                   dis/exn)])
-      (show-backtrace-window/edition-pairs error-text dis (map (λ (x) #f) dis) defs rep)))
+  (define (show-backtrace-window error-text dis/exn [ints #f] [defs #f])
+    (cond
+      [(exn? dis/exn)
+       (define a-viewable-stack
+         (cms->builtin-viewable-stack (exn-continuation-marks dis/exn)
+                                      (filter values (list ints defs))))
+       (show-backtrace-window/viewable-stacks
+        error-text
+        a-viewable-stack
+        (cms->errortrace-viewable-stack (exn-continuation-marks dis/exn)
+                                        (filter values (list ints defs))
+                                        #:share-cache a-viewable-stack))]
+      [else
+       (define (is-drracket-frame? x) (is-a? x drracket:unit:frame<%>))
+       (show-backtrace-window/viewable-stacks
+        error-text
+        (dis+edition->viewable-stack
+         dis/exn
+         (get-editions (make-hasheq)
+                       defs ints dis/exn
+                       is-drracket-frame?)
+         (list defs ints))
+        (empty-viewable-stack))]))
   
   (define (show-backtrace-window/edition-pairs error-text dis editions defs ints)
-    (show-backtrace-window/edition-pairs/two error-text dis editions '() '() defs ints))
+    (show-backtrace-window/viewable-stacks
+     error-text
+     (dis+edition->viewable-stack dis editions (list defs ints))
+     (dis+edition->viewable-stack '() '() '())
+     defs ints))
   
   (define (show-backtrace-window/edition-pairs/two error-text dis1 editions1 dis2 editions2 defs ints)
+    (show-backtrace-window/viewable-stacks
+     error-text
+     (dis+edition->viewable-stack dis1 editions1 (list defs ints))
+     (dis+edition->viewable-stack dis2 editions2 (list defs ints))))
+
+  (define (show-backtrace-window/viewable-stacks error-text viewable-stack1 viewable-stack2)
     (reset-backtrace-window)
     (when (mf-bday?)
       (new message%
            [label (string-constant happy-birthday-matthias)]
            [parent (send current-backtrace-window get-area-container)]))
+    (define both-non-empty?
+      (and (not (empty-viewable-stack? viewable-stack1))
+           (not (empty-viewable-stack? viewable-stack2))))
+    
     (define tab-panel 
-      (if (and (pair? dis1) (pair? dis2))
+      (if both-non-empty?
           (new tab-panel% 
                [choices (list "Errortrace" "Builtin")]
                [parent (send current-backtrace-window get-area-container)]
@@ -843,206 +831,136 @@
                                    (list ec1)
                                    (list ec2)))))])
           (new-vertical-panel% [parent (send current-backtrace-window get-area-container)])))
-    (define ec1 (add-ec/text dis1 editions1 defs ints tab-panel error-text))
-    (define ec2 (add-ec/text dis2 editions2 defs ints tab-panel error-text))
-    (when (and (pair? dis1) (pair? dis2))
+    (define ec1 (add-ec/text viewable-stack1 tab-panel error-text))
+    (define ec2 (add-ec/text viewable-stack2 tab-panel error-text))
+    (when both-non-empty?
       (send tab-panel change-children (λ (l) (list ec1)))))
-  
-  (define (add-ec/text dis1 editions1 defs ints tab-panel error-text)
+
+  (define (add-ec/text viewable-stack tab-panel error-text)
     (cond
-      [(pair? dis1)
+      [(empty-viewable-stack? viewable-stack) #f]
+      [else
        (define text1 (new (text:wide-snip-mixin
                            (editor:standard-style-list-mixin
                             text:hide-caret/selection%))))
        (define ec1 (new (canvas:color-mixin canvas:wide-snip%)
                         [parent tab-panel]
                         [editor text1]))
-       (add-one-set-to-frame text1 ec1 error-text dis1 editions1 defs ints)
-       ec1]
-      [else #f]))
-  
-  (define (add-one-set-to-frame text ec error-text dups-dis dups-editions defs ints)
-    (define-values (dis editions skips) (remove-adjacent-duplicates dups-dis dups-editions))
-    (letrec ([di-vec (list->vector dis)]
-             [editions-vec (list->vector editions)]
-             [skip-counts (list->vector skips)]
-             [index 0]
-             [how-many-at-once 15]
-             [show-next-dis
-              (λ ()
-                (let ([start-pos (send text get-start-position)]
-                      [end-pos (send text get-end-position)])
-                  (send text begin-edit-sequence)
-                  (send text set-position (send text last-position))
-                  (let loop ([n index])
-                    (cond
-                      [(and (< n (vector-length di-vec))
-                            (< n (+ index how-many-at-once)))
-                       (show-frame ec text (vector-ref di-vec n) 
-                                   (vector-ref editions-vec n)
-                                   (vector-ref skip-counts n)
-                                   defs ints)
-                       (loop (+ n 1))]
-                      [else
-                       (set! index n)]))
+       (add-one-set-to-frame text1 ec1 error-text viewable-stack)
+       ec1]))
+
+  (define (add-one-set-to-frame text ec error-text a-viewable-stack)
+    (define (show-next-dis)
+      (define start-pos (send text get-start-position))
+      (define end-pos (send text get-end-position))
+      (send text begin-edit-sequence)
+      (send text set-position (send text last-position))
+      (define-values (items more-to-show?) (viewable-stack-get-next-items! a-viewable-stack))
+      (for ([item (in-list items)])
+        (show-frame ec text
+                    (car item) (cdr item)
+                    a-viewable-stack))
                   
-                  ;; add 'more frames' link
-                  (when (< index (vector-length di-vec))
-                    (let ([end-of-current (send text last-position)])
-                      (send text insert #\newline)
-                      (let ([hyper-start (send text last-position)])
-                        (send text insert 
-                              (let* ([num-left
-                                      (- (vector-length di-vec)
-                                         index)]
-                                     [num-to-show
-                                      (min how-many-at-once
-                                           num-left)])
-                                (if (= num-left 1)
-                                    (string-constant last-stack-frame)
-                                    (format (if (num-left . <= . num-to-show)
-                                                (string-constant last-stack-frames)
-                                                (string-constant next-stack-frames))
-                                            num-to-show))))
-                        (let ([hyper-end (send text last-position)])
-                          (send text change-style (gui-utils:get-clickback-delta
-                                                   (preferences:get 'framework:white-on-black?))
-                                hyper-start hyper-end)
-                          (send text set-clickback
-                                hyper-start hyper-end
-                                (λ x
-                                  (send text begin-edit-sequence)
-                                  (send text lock #f)
-                                  (send text delete end-of-current (send text last-position))
-                                  (show-next-dis)
-                                  (send text set-position 
-                                        (send text last-position)
-                                        (send text last-position))
-                                  (send text lock #t)
-                                  (send text end-edit-sequence)))
+      ;; add 'more frames' link
+      (when more-to-show?
+        (define end-of-current (send text last-position))
+        (send text insert #\newline)
+        (define hyper-start (send text last-position))
+        ;(send text insert (string-constant more-stack-frames))
+        (send text insert (format (string-constant next-stack-frames) "..."))
+        (define hyper-end (send text last-position))
+        (send text change-style (gui-utils:get-clickback-delta
+                                 (preferences:get 'framework:white-on-black?))
+              hyper-start hyper-end)
+        (send text set-clickback
+              hyper-start hyper-end
+              (λ x
+                (send text begin-edit-sequence)
+                (send text lock #f)
+                (send text delete end-of-current (send text last-position))
+                (show-next-dis)
+                (send text set-position 
+                      (send text last-position)
+                      (send text last-position))
+                (send text lock #t)
+                (send text end-edit-sequence)))
                           
-                          (send text insert #\newline)
-                          (send text set-paragraph-alignment (send text last-paragraph) 'center)))))
+        (send text insert #\newline)
+        (send text set-paragraph-alignment (send text last-paragraph) 'center))
                   
-                  (send text set-position start-pos end-pos)
-                  (send text end-edit-sequence)))])
-      (send current-backtrace-window set-alignment 'center 'center)
-      (send current-backtrace-window reflow-container)
-      (send text auto-wrap #t)
-      (send text set-autowrap-bitmap #f)
-      (send text insert error-text)
-      (send text insert "\n\n")
-      (send text change-style error-delta 0 (- (send text last-position) 1))
-      (show-next-dis)
-      (send text set-position 0 0)
-      (send text lock #t)
-      (send text hide-caret #t)
-      (send current-backtrace-window show #t)))
+      (send text set-position start-pos end-pos)
+      (send text end-edit-sequence))
+    (send current-backtrace-window set-alignment 'center 'center)
+    (send current-backtrace-window reflow-container)
+    (send text auto-wrap #t)
+    (send text set-autowrap-bitmap #f)
+    (send text insert error-text)
+    (send text insert "\n\n")
+    (send text change-style error-delta 0 (- (send text last-position) 1))
+    (show-next-dis)
+    (send text set-position 0 0)
+    (send text lock #t)
+    (send text hide-caret #t)
+    (send current-backtrace-window show #t))
   
-  (define (remove-adjacent-duplicates dis editions)
-    (cond
-      [(null? dis) (values '() '() '())]
-      [else
-       (let loop ([di (car dis)]
-                  [edition (car editions)]
-                  [dis (cdr dis)]
-                  [editions (cdr editions)])
-         (cond
-           [(null? dis) (values (list di) (list edition) (list 0))]
-           [else
-            (define di2 (car dis))
-            (define edition2 (car editions))
-            (define-values (res-dis res-editions skip-counts)
-              (loop di2 edition2 (cdr dis) (cdr editions)))
-            (if (equal? di di2)
-                (values res-dis res-editions (cons (+ (car skip-counts) 1) (cdr skip-counts)))
-                (values (cons di res-dis)
-                        (cons edition res-editions)
-                        (cons 0 skip-counts)))]))]))
-  
-  (let ()
-    (define (check dis-in editions-in dis-expected editions-expected skip-expected)
-      (define-values (dis-got editions-got skip-got) (remove-adjacent-duplicates dis-in editions-in))
-      (unless (and (equal? dis-got dis-expected)
-                   (equal? editions-got editions-expected)
-                   (equal? skip-got skip-expected))
-        (eprintf "~s =\n  ~s, but expected\n  ~s\n\n"
-                 `(remove-adjacent-duplicates ',dis-in ',editions-in)
-                 `(values ',dis-got ',editions-got ',skip-got)
-                 `(values ',dis-expected ',editions-expected ',skip-expected))))
-    (check '() '() '() '() '())
-    (check '(1) '(2) '(1) '(2) '(0))
-    (check '(1 2 3) '(4 5 6) '(1 2 3) '(4 5 6) '(0 0 0))
-    (check '(1 1) '(2 3) '(1) '(3) '(1))
-    (check '(1 2) '(3 3) '(1 2) '(3 3) '(0 0))
-    (check '(1 2 2 3 4 4 3) '(a b c d e f g)
-           '(1 2 3 4 3) '(a c d f g) '(0 1 0 1 0))
-    (check '(1 2 2 2 2 2 3) '(a b c d e f g)
-           '(1 2 3) '(a f g) '(0 4 0)))
-    
-                 
   
   ;; show-frame : (instanceof editor-canvas%)
   ;;              (instanceof text%) 
   ;;              st-mark   // see format description at `with-mark`
   ;;              def ints  // definitions and interactions texts
+  ;;              viewable-stack?
   ;;              -> 
   ;;              void 
   ;; shows one frame of the continuation
-  (define (show-frame editor-canvas text di edition skip-count defs ints)
-    (let* ([debug-source (srcloc-source di)]
-           [fn (get-filename debug-source)]
-           [line (srcloc-line di)]
-           [column (srcloc-column di)]
-           [start (srcloc-position di)]
-           [span (srcloc-span di)]
-           [start-pos (send text last-position)])
+  (define (show-frame editor-canvas text di skip-count a-viewable-stack)
+    (match-define (srcloc debug-source line column start span) di)
+    (define fn (get-filename debug-source))
+    (define start-pos (send text last-position))
       
-      ;; make hyper link to the file
-      (send text insert (format "~a: ~a:~a" fn line column))
-      (let ([end-pos (send text last-position)])
-        (send text insert " ")
-        (send text change-style 
-              (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
-              start-pos 
-              end-pos)
-        (send text set-clickback
-              start-pos end-pos
-              (λ (ed start end)
-                (open-and-highlight-in-file (list di) edition))))
+    ;; make hyper link to the file
+    (send text insert (format "~a: ~a:~a" fn line column))
+    (define end-pos (send text last-position))
+    (send text insert " ")
+    (send text change-style 
+          (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+          start-pos 
+          end-pos)
+    (send text set-clickback
+          start-pos end-pos
+          (λ (ed start end)
+            (open-and-highlight-in-file (list di) a-viewable-stack)))
 
-      (unless (zero? skip-count)
-        (define before (send text last-position))
-        (send text insert " skipped ")
-        (send text insert (number->string skip-count))
-        (send text insert " duplicate frame")
-        (unless (= skip-count 1)
-          (send text insert "s"))
-        (send text change-style
-              (send (send text get-style-list) find-named-style
-                    (editor:get-default-color-style-name))
-              before
-              (send text last-position)))
-      (send text insert #\newline)
+    (unless (zero? skip-count)
+      (define before (send text last-position))
+      (send text insert " skipped ")
+      (send text insert (number->string skip-count))
+      (send text insert " duplicate frame")
+      (unless (= skip-count 1)
+        (send text insert "s"))
+      (send text change-style
+            (send (send text get-style-list) find-named-style
+                  (editor:get-default-color-style-name))
+            before
+            (send text last-position)))
+    (send text insert #\newline)
       
-      (when (and start span)
-        (insert-context editor-canvas text debug-source start span defs ints)
-        (send text insert #\newline))))
+    (when (and start span)
+      (insert-context editor-canvas text a-viewable-stack di)
+      (send text insert #\newline)))
   
   ;; insert-context : (instanceof editor-canvas%)
   ;;                  (instanceof text%)
   ;;                  debug-info
   ;;                  number
-  ;;                  defs ints // definitions and interactions texts
   ;;                  -> 
   ;;                  void
-  (define (insert-context editor-canvas text file start span defs ints)
+  (define (insert-context editor-canvas text a-viewable-stack a-srcloc)
+    (match-define (srcloc file line col start span) a-srcloc)
     (define-values (from-text close-text)
       (cond
-        [(and ints (send ints port-name-matches? file))
-         (values ints void)]
-        [(and defs (send defs port-name-matches? file))
-         (values defs void)]
+        [(viewable-stack-matching-editor a-viewable-stack a-srcloc)
+         =>
+         (λ (txt) (values txt void))]
         [(path? file)
          (define normalized-file
            (with-handlers ((exn:fail? (λ (x) #f)))
@@ -1155,53 +1073,67 @@
           (or (send editor get-filename) 
               untitled))))
   
-  ;; open-and-highlight-in-file : (or/c srcloc (listof srcloc)) -> void
+  ;; open-and-highlight-in-file : (or/c srcloc (listof srcloc))
+  ;;                              (or/c #f (cons/c weak-box nat) viewable-stack?)
+  ;;                           -> void
   (define (open-and-highlight-in-file raw-srcloc [edition-pair #f])
-    (let* ([srclocs (if (srcloc? raw-srcloc) (list raw-srcloc) raw-srcloc)]
-           [sources (filter values (map srcloc-source srclocs))])
-      (unless (null? sources)
-        (let* ([debug-source (car sources)]
-               [same-src-srclocs
-                (filter (λ (x) (eq? debug-source (srcloc-source x)))
-                        srclocs)]
-               [frame (cond
-                        [(path? debug-source) (handler:edit-file debug-source)]
-                        [(and (symbol? debug-source)
-                              (text:lookup-port-name debug-source))
-                         =>
-                         (lambda (editor)
-                           (get-enclosing-editor-frame editor))]
-                        [else #f])]
-               [editor (cond
-                         [(path? debug-source)
-                          (cond
-                            [(and frame (is-a? frame drracket:unit:frame%))
-                             (send frame get-definitions-text)]
-                            [(and frame (is-a? frame frame:editor<%>))
-                             (send frame get-editor)]
-                            [else #f])]
-                         [(and (symbol? debug-source)
-                               (text:lookup-port-name debug-source))
-                          =>
-                          values]
-                         [else #f])]
-               [rep (and (is-a? frame drracket:unit:frame%)
-                         (send frame get-interactions-text))])
-          (when frame
-            (send frame show #t))
-          (when (and edition-pair
-                     (let ([wbv (weak-box-value (car edition-pair))])
-                       (and wbv (eq? editor wbv))))
-            (unless (= (cdr edition-pair) (send editor get-edition-number))
-              (message-box (string-constant drscheme)
-                           (string-constant editor-changed-since-srcloc-recorded)
-                           frame
-                           '(ok caution)
-                           #:dialog-mixin frame:focus-table-mixin)))
-          (when (and rep editor)
-            (when (is-a? editor text:basic<%>)
-              (send rep highlight-errors same-src-srclocs '())
-              (send editor set-caret-owner #f 'global)))))))
+    (define srclocs (if (srcloc? raw-srcloc) (list raw-srcloc) raw-srcloc))
+    (define sources (filter values (map srcloc-source srclocs)))
+    (unless (null? sources)
+      (define debug-source (car sources))
+      (define same-src-srclocs
+        (filter (λ (x) (eq? debug-source (srcloc-source x)))
+                srclocs))
+      (define frame
+        (cond
+          [(path? debug-source) (handler:edit-file debug-source)]
+          [(and (symbol? debug-source)
+                (text:lookup-port-name debug-source))
+           =>
+           (lambda (editor)
+             (get-enclosing-editor-frame editor))]
+          [else #f]))
+      (define editor
+        (cond
+          [(path? debug-source)
+           (cond
+             [(and frame (is-a? frame drracket:unit:frame%))
+              (send frame get-definitions-text)]
+             [(and frame (is-a? frame frame:editor<%>))
+              (send frame get-editor)]
+             [else #f])]
+          [(and (symbol? debug-source)
+                (text:lookup-port-name debug-source))
+           =>
+           values]
+          [else #f]))
+      (define rep (and (is-a? frame drracket:unit:frame%)
+                       (send frame get-interactions-text)))
+      (when frame
+        (send frame show #t))
+      (define out-of-date?
+        (cond
+          [(not edition-pair) #f]
+          [(pair? edition-pair)
+           (define wbv (weak-box-value (car edition-pair)))
+           (and wbv
+                (eq? editor wbv)
+                (not (= (cdr edition-pair)
+                        (send editor get-edition-number))))]
+          [else
+           (viewable-stack-out-of-date-editor? edition-pair
+                                               (car same-src-srclocs))]))
+                                               
+      (when out-of-date?
+        (message-box (string-constant drscheme)
+                     (string-constant editor-changed-since-srcloc-recorded)
+                     frame
+                     '(ok caution)
+                     #:dialog-mixin frame:focus-table-mixin))
+      (when (and rep editor)
+        (when (is-a? editor text:basic<%>)
+          (send rep highlight-errors same-src-srclocs '())
+          (send editor set-caret-owner #f 'global)))))
   
   
   
