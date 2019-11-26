@@ -9,7 +9,7 @@
          pkg/lib
          framework/preferences
          (prefix-in *** '#%foreign) ;; just to make sure it is here
-         )
+         "compiled-dir.rkt")
 
 (provide set-basic-parameters/no-gui
          set-module-language-parameters
@@ -130,8 +130,8 @@
     
     (define extra-compiled-file-path
       (case (prefab-module-settings-annotations settings)
-        [(none) (build-path "compiled" "drracket")]
-        [(debug) (build-path "compiled" "drracket" "errortrace")]
+        [(none) (build-path compiled-dir "drracket")]
+        [(debug) (build-path compiled-dir "drracket" "errortrace")]
         [else #f]))
     (when extra-compiled-file-path
       ;; Add extra compiled-file path:

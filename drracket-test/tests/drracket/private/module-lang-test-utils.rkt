@@ -234,11 +234,16 @@
   (define (spaces-equal? a b)
     (equal? (regexp-replace* #rx"[\n\t ]+" a " ")
             (regexp-replace* #rx"[\n\t ]+" b " ")))
+
+  (define compiled-dir (let ([l (use-compiled-file-paths)])
+                         (if (null? l)
+                             "compiled"
+                             (car l))))
   
-  (define drs/compiled/et (build-path "compiled" "drracket" "errortrace"))
-  (define drs/compiled (build-path "compiled" "drracket"))
-  (define compiled/et (build-path "compiled" "errortrace"))
-  (define compiled (build-path "compiled"))
+  (define drs/compiled/et (build-path compiled-dir "drracket" "errortrace"))
+  (define drs/compiled (build-path compiled-dir "drracket"))
+  (define compiled/et (build-path compiled-dir "errortrace"))
+  (define compiled (build-path compiled-dir))
   
   (clear-definitions drs)
   (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")

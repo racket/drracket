@@ -29,6 +29,7 @@
          (prefix-in file: file/convertible)
          "rep.rkt"
          "local-member-names.rkt"
+         "compiled-dir.rkt"
          (prefix-in pict-snip: "pict-snip.rkt"))
   
   (import [prefix drracket:debug: drracket:debug^]
@@ -579,7 +580,7 @@
              (drracket:debug:make-debug-error-display-handler
               (error-display-handler)))
             (use-compiled-file-paths
-             (cons (build-path "compiled" "errortrace")
+             (cons (build-path compiled-dir "errortrace")
                    (use-compiled-file-paths)))]
            
            [(debug/profile)

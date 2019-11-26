@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/gui/base "private/key.rkt")
+(require racket/gui/base "private/key.rkt" "private/compiled-dir.rkt")
 
 (module test racket/base)
 
@@ -48,7 +48,7 @@
                     (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)))])
      (flprintf "PLTDRDEBUG: installing CM to load/create errortrace zos\n")
      (current-compile zo-compile)
-     (use-compiled-file-paths (list (build-path "compiled" "errortrace")))
+     (use-compiled-file-paths (list (build-path compiled-dir "errortrace")))
      (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
      (error-display-handler (dynamic-require 'errortrace/errortrace-lib
                                              'errortrace-error-display-handler))
