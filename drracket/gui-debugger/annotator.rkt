@@ -164,19 +164,21 @@
           (general-top-level-expr-iterator stx  #f)]))
 
       (define (module-annotate stx)
-        (syntax-case stx ()
+        (syntax-case (disarm stx) ()
           [(_ identifier name mb)
            (syntax-case (disarm #'mb) ()
              [(plain-module-begin . module-level-exprs)
               (with-syntax ([(module . _) stx])
-                (quasisyntax/loc stx (module identifier name
-                                       #,(rearm
-                                          #'mb
-                                          #`(plain-module-begin 
-                                             #,@(map (lambda (e) (module-level-expr-iterator
-                                                                  e (list (syntax-e #'identifier)
-                                                                          (syntax-source #'identifier))))
-                                                     (syntax->list #'module-level-exprs)))))))])]))
+                (rearm
+                 stx
+                 (quasisyntax/loc stx (module identifier name
+                                        #,(rearm
+                                           #'mb
+                                           #`(plain-module-begin
+                                              #,@(map (lambda (e) (module-level-expr-iterator
+                                                                   e (list (syntax-e #'identifier)
+                                                                           (syntax-source #'identifier))))
+                                                      (syntax->list #'module-level-exprs))))))))])]))
       
       (define (module-level-expr-iterator stx module-name )
         (kernel:kernel-syntax-case
