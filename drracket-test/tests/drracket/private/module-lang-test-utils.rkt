@@ -226,7 +226,7 @@
          (λ () 
            (test:set-radio-box-item! radio-box)
            (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f))))
-      (unless (equal? got (format "~s" no-check-expected))
+      (unless (spaces-equal? got (format "~s" no-check-expected))
         (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
                got
                (format "~s" no-check-expected)))))
