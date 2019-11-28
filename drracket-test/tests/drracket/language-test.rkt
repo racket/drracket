@@ -523,7 +523,7 @@ the settings above should match r5rs
     (test-expression "(cons 1 2)" 
                      "cons: second argument must be a list, but received 1 and 2")
     (test-expression "(+ (list 1) 2)"
-                     "+: expects a number as 1st argument, given (cons 1 '())")
+                     #rx"[+]: expects a number(?: as 1st argument)?, given [(]cons 1 '[(][)][)]")
     (test-expression "'(1)"
                      "quote: expected the name of a symbol or () after the quote, but found a part")
     (test-expression "(define shrd (list 1)) (list shrd shrd)"
@@ -714,7 +714,7 @@ the settings above should match r5rs
      #rx"cons: second argument must be a list, but received 1 and 2")
     (test-expression
      "(+ (list 1) 2)"
-     (regexp (regexp-quote "+: expects a number as 1st argument, given (cons 1 '())")))
+     #rx"[+]: expects a number(?: as 1st argument)?, given [(]cons 1 '[(][)][)]")
     (test-expression
      "'(1)"
      (regexp
@@ -893,7 +893,7 @@ the settings above should match r5rs
     (test-undefined-fn "(define qqq 2) (set! qqq 1)" "set!")
     (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
     (test-expression "(cons 1 2)" "cons: second argument must be a list, but received 1 and 2")
-    (test-expression "(+ (list 1) 2)" "+: expects a number as 1st argument, given (list 1)")
+    (test-expression "(+ (list 1) 2)" #rx"[+]: expects a number(?: as 1st argument)?, given [(]list 1[)]")
     (test-expression "'(1)" 
                      "(list 1)"
                      "(list 1)")
@@ -1053,7 +1053,7 @@ the settings above should match r5rs
     (test-undefined-fn "(define qqq 2) (set! qqq 1)" "set!")
     (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
     (test-expression "(cons 1 2)"   "cons: second argument must be a list, but received 1 and 2")
-    (test-expression "(+ (list 1) 2)" "+: expects a number as 1st argument, given (list 1)")
+    (test-expression "(+ (list 1) 2)" #rx"[+]: expects a number(?: as 1st argument)?, given [(]list 1[)]")
     (test-expression "'(1)" 
                      "(list 1)"
                      "(list 1)")
@@ -1207,7 +1207,7 @@ the settings above should match r5rs
     (test-undefined-fn "(define qqq 2) (set! qqq 1)" "set!")
     (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
     (test-expression "(cons 1 2)" "cons: second argument must be a list, but received 1 and 2")
-    (test-expression "(+ (list 1) 2)" "+: expects a number as 1st argument, given (list 1)")
+    (test-expression "(+ (list 1) 2)" #rx"[+]: expects a number(?: as 1st argument)?, given [(]list 1[)]")
     (test-expression "'(1)" 
                      "(list 1)"
                      "(list 1)")
@@ -1362,7 +1362,7 @@ the settings above should match r5rs
                      "qqq: this name was defined previously and cannot be re-defined")
     (test-expression "(cond [(= 1 2) 3])" "cond: all question results were false")
     (test-expression "(cons 1 2)"  "cons: second argument must be a list, but received 1 and 2")
-    (test-expression "(+ (list 1) 2)" "+: expects a number as 1st argument, given (list 1)")
+    (test-expression "(+ (list 1) 2)" #rx"[+]: expects a number(?: as 1st argument)?, given [(]list 1[)]")
     (test-expression "'(1)" 
                      "(list 1)"
                      "(list 1)")
