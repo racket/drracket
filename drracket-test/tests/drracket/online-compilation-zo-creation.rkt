@@ -28,15 +28,20 @@
       (queue-callback/res
        (λ ()
          (clean? (send (send drs-frame get-current-tab) get-oc-status))))))
-   
+
+   (define compiled-dir (let ([l (use-compiled-file-paths)])
+                          (if (pair? l)
+                              (car l)
+                              "compiled")))
+
    (define compiled-dir-files
      (cond
-       [(directory-exists? (build-path tmp-dir "compiled"))
-        (for/list ([file (in-directory (build-path tmp-dir "compiled"))])
-          (path->string (find-relative-path tmp-dir file)))]
+       [(directory-exists? (build-path tmp-dir compiled-dir))
+        (for/list ([file (in-directory (build-path tmp-dir compiled-dir))])
+          (find-relative-path tmp-dir file))]
        [else
         '()]))
-   (define expected-file "compiled/drracket/errortrace/y_rkt.zo")
+   (define expected-file (build-path compiled-dir "drracket/errortrace/y_rkt.zo"))
    (unless (member expected-file compiled-dir-files)
      (eprintf "expected to find ~s in compiled dir but it contained ~s\n"
               expected-file compiled-dir-files))
