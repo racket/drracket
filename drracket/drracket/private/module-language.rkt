@@ -30,6 +30,7 @@
          drracket/private/rectangle-intersect
          pkg/lib
          pkg/gui
+         mrlib/private/panel-wob
          framework/private/logging-timer
          (submod "frame.rkt" install-pkg)
          (for-syntax racket/base)
@@ -1982,7 +1983,9 @@
       (define/override (on-paint)
         (define dc (get-dc))
         (define-values (cw ch) (get-client-size))
-        (send dc set-text-foreground (if err? "firebrick" "black"))
+        (send dc set-text-foreground (if (white-on-black-panel-scheme?)
+                                         (if err? "pink" "white")
+                                         (if err? "firebrick" "black")))
         (define-values (tot-th gap-space) (height/gap-space dc))
         (for/fold ([y (- (/ ch 2) (/ tot-th 2))]) ([msg (in-list msgs)])
           (define-values (tw th td ta) (send dc get-text-extent msg))
