@@ -30,7 +30,7 @@
          drracket/private/rectangle-intersect
          pkg/lib
          pkg/gui
-         mrlib/private/panel-wob
+         mrlib/panel-wob
          framework/private/logging-timer
          (submod "frame.rkt" install-pkg)
          (for-syntax racket/base)
