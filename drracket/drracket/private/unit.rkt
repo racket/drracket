@@ -19,6 +19,7 @@
          (prefix-in image-core: mrlib/image-core)
          mrlib/include-bitmap
          mrlib/close-icon
+         mrlib/panel-wob
          net/sendurl
          net/url
          
@@ -5239,6 +5240,13 @@
           (if (member (car (car l)) (map car (cdr l)))
               (loop (cdr l))
               (cons (car l) (loop (cdr l))))]))))
+
+  (define dark-yellow-color #f)
+  (define (get-dark-yellow-color)
+    (unless dark-yellow-color
+      (set! dark-yellow-color
+            (make-object color% #x9b #x87 #x0c)))
+    dark-yellow-color)
   
   (define language-label-message%
     (class name-message%
@@ -5247,7 +5255,11 @@
       
       (inherit set-message)
       (define yellow? #f)
-      (define/override (get-background-color) (and yellow? "yellow"))
+      (define/override (get-background-color)
+        (and yellow?
+             (if (white-on-black-panel-scheme?)
+                 (get-dark-yellow-color)
+                 "yellow")))
       (define/public (set-yellow y?) 
         (set! yellow? y?)
         (refresh))
