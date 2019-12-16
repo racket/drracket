@@ -15,10 +15,13 @@
 
 (define on (current-namespace))
 
-(parameterize ([use-compiled-file-paths '()])
-  ;; setting the use-compiled-file-paths here is important
+(parameterize (#;[use-compiled-file-paths '()])
+  ;; Setting the use-compiled-file-paths is extra safe to
   ;; so we don't "cheat" by using the wxme version to compile
   ;; the file and then just avoid using the GUI version at all.
+  ;; But the "info.rkt" file above this one ensures that
+  ;; the modules in this directory are not compiled, and
+  ;; disabling all compiled files makes the test very slow.
   
   (for ([f (in-list (sort (directory-list here) string<=? 
                           #:key path->string))])
