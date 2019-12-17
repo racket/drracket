@@ -13,7 +13,7 @@
 (printf "a place was created and the docs loaded there.\n")
 
 ;; mem-cnt returns the amount of memory used, iterating (collect-garbage)
-;; until the delta is less than 10k or we've done it 20 times.
+;; until the delta is less than 1% or we've done it 20 times.
 (define (mem-cnt)
   (let loop ([cmu (current-memory-use)]
              [n 20])
@@ -22,7 +22,7 @@
       (cond
         [(or (< n 0)
              (< (abs (- cmu new-cmu)) 
-                (* 10 1024)))
+                (* 0.01 cmu)))
          new-cmu]
         [else
          (loop new-cmu (- n 1))]))))
