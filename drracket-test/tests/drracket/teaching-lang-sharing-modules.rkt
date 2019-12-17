@@ -36,6 +36,7 @@ Of course, other (similar) things can go wrong, too.
    (λ ()
      (putenv "PLTDRHTDPNOCOMPILED" "yes")
      (define drs-frame (wait-for-drracket-frame))
+     (send (send drs-frame get-interactions-text) set-custodian-limit #f)
      (set-language-level! '("Beginning Student"))
      (clear-definitions drs-frame)
      (for ([exp (in-list things-to-try)])
@@ -47,7 +48,8 @@ Of course, other (similar) things can go wrong, too.
           (try-interaction-test drs-frame)]
          [else
           (eprintf "teaching-lang-sharing-modules.rkt: got bad output from execute: ~s"
-                   output)])))))
+                   output)])))
+   #:prefs '([plt:framework-pref:framework:autosaving-on? #f])))
 
 (define (try-interaction-test drs-frame)
   (type-in-interactions drs-frame "1\n")

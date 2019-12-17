@@ -280,8 +280,10 @@
   ;(bad-tests)
   (test-built-in-teachpacks))
 
-(fire-up-drracket-and-run-tests run-test)
+(fire-up-drracket-and-run-tests
+ run-test
+ #:prefs '([plt:framework-pref:framework:autosaving-on? #f]))
 
 (module+ test
   (module config info
-    (define timeout 150)))
+    (define timeout 300)))
