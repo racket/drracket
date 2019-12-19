@@ -33,15 +33,24 @@
 (preferences:set-default 'drracket:syncheck:show-blueboxes? #t boolean?)
 
 (define corner-radius 48)
-(define blue-box-color (make-object color% 232 240 252))
-(define blue-box-gradient-stop-color (make-object color% 252 252 252))
-(define var-color (make-object color% 68 68 68))
+(define bow-blue-box-color (make-object color% 232 240 252))
+(define (get-blue-box-color) (if (preferences:get 'framework:white-on-black?)
+                                 (send the-color-database find-color "navy") ;; MidnightBlue
+                                 bow-blue-box-color))
+(define bow-var-color (make-object color% 68 68 68))
+(define wob-var-color
+  (let ([g (send bow-var-color red)])
+    (make-object color% (- 255 g) (- 255 g) (- 255 g))))
 (define blue-box-label-text-color (make-object color% 128 128 128))
 (define blue-box-margin 5)
 
-(define stops (list (list 0 blue-box-color)
-                    (list 1 blue-box-gradient-stop-color)))
+(define box-gradient-stop-color-bow (make-object color% 252 252 252))
+(define box-gradient-stop-color-wob (make-object color% 8 8 8))
 (define (make-blue-box-gradient-pen x y w h)
+  (define stops (list (list 0 (get-blue-box-color))
+                      (list 1 (if (preferences:get 'framework:white-on-black?)
+                                  box-gradient-stop-color-wob
+                                  box-gradient-stop-color-bow))))
   (make-object brush% "black" 'solid #f
     (new linear-gradient%
          [x0 x] [y0 (+ y h)]
@@ -784,13 +793,17 @@
         pi (* pi #e1.5))
   (send dc set-origin ox oy)
 
-  (send dc set-brush blue-box-color 'solid)
+  (send dc set-brush (get-blue-box-color) 'solid)
   (send dc draw-arc 
         (- x corner-radius 1) (- y corner-radius 1)
         (+ (* corner-radius 2) 2) (+ (* corner-radius 2) 2)
         pi (* pi #e1.5))
  
-  (send dc set-brush "white" 'solid)
+  (send dc set-brush
+        (if (preferences:get 'framework:white-on-black?)
+            "black"
+            "white")
+        'solid)
   (send dc draw-path open-arrow-path (- x 6) (+ y 6))
     
   (send dc set-smoothing smoothing)
@@ -839,6 +852,10 @@
                           (get-read-more-font sl)))
     (define-values (read-more-w read-more-h read-more-d read-more-a)
       (send dc get-text-extent sc-read-more... (get-read-more-underline-font sl)))
+    (send dc set-text-foreground
+          (if (preferences:get 'framework:white-on-black?)
+              "lightblue"
+              "darkblue"))
     (send dc draw-text 
           sc-read-more...
           (+ dx (- br read-more-w read-more-gap))
@@ -869,7 +886,10 @@
     (define-values (first-line-w first-line-h _1 _2)
       (send dc get-text-extent (if (null? (cdr strs)) "" (list-ref strs 1))))
     
-    (send dc set-text-foreground var-color)
+    (send dc set-text-foreground
+          (if (preferences:get 'framework:white-on-black?)
+              wob-var-color
+              bow-var-color))
     (for/fold ([y (if label-overlap? 
                       (+ blue-box-margin (extra-first-line-space dc sl strs))
                       (+ blue-box-margin label-h))])
