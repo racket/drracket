@@ -7,6 +7,7 @@
          framework/splash
          racket/runtime-path
          (for-syntax racket/base)
+         mrlib/panel-wob
          "frame-icon.rkt"
          "eb.rkt")
 
@@ -165,12 +166,37 @@
      (define-values (sx sy) (send dc get-scale))
      (send dc clear)
      (define border .05) ;; percentage border in the splash around the bitmap
+     (when (white-on-black-panel-scheme?)
+       (define pen (send dc get-pen))
+       (define brush (send dc get-brush))
+       (send dc set-brush "black" 'solid)
+       (send dc set-pen "black" 1 'transparent)
+       (send dc draw-rectangle 0 0 width height)
+       (send dc set-pen pen)
+       (send dc set-brush brush))
      (define-values (ox oy) (send dc get-origin))
      (send dc set-origin (* border mb-flat-width) (* border mb-flat-height))
      (send dc set-scale (* (- 1 (* 2 border)) mb-scale-factor) (* (- 1 (* 2 border)) mb-scale-factor))
      (send dc set-smoothing 'smoothed)
      (send dc set-pen "black" 1 'transparent)
+     (define clipping-region (send dc get-clipping-region))
+     (when (white-on-black-panel-scheme?)
+       (define rgn (new region% [dc dc]))
+       (define pen (send dc get-pen))
+       (define brush (send dc get-brush))
+       (define offset 4) ;; this offset seems to make a tight fit around the actual logo
+       (send rgn set-ellipse
+             offset offset
+             (- mb-plain-width offset offset)
+             (- mb-plain-height offset offset))
+       (send dc set-clipping-region rgn)
+       (send dc set-brush "white" 'solid)
+       (send dc set-pen "black" 1 'transparent)
+       (send dc draw-rectangle 0 0  mb-plain-width  mb-plain-height)
+       (send dc set-pen pen)
+       (send dc set-brush brush))
      (mb-main-drawing dc)
+     (send dc set-clipping-region clipping-region)
      (send dc set-pen pen)
      (send dc set-brush brush)
      (send dc set-smoothing smoothing)

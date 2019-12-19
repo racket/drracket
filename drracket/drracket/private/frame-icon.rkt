@@ -5,6 +5,29 @@
          mb-flat-width mb-flat-height
          mb-plain-width mb-plain-height)
 
+(define (draw-badness str)
+  (values
+   (λ (dc)
+     (send dc clear)
+     (send dc set-scale 1 1)
+     (define-values (_1 h _2 _3) (send dc get-text-extent "x"))
+     (define one-line 30)
+     (let loop ([i 0]
+                [l 0])
+       (cond
+         [(<= (string-length str) (+ i one-line))
+          (send dc draw-text
+                (substring str i (string-length str))
+                0
+                (* l h))]
+         [else
+          (send dc draw-text
+                (substring str i (+ i one-line))
+                0
+                (* l h))
+          (loop (+ i one-line) (+ l 1))])))
+   300 300))
+
 (begin-for-syntax
   (define (draw-svg)
     (define xexpr
@@ -17,28 +40,7 @@
                 (read-xml port))))))))
     (cond
       [(string? xexpr)
-       #`(values
-          (λ (dc)
-            (define str #,xexpr)
-            (send dc clear)
-            (send dc set-scale 1 1)
-            (define-values (_1 h _2 _3) (send dc get-text-extent "x"))
-            (define one-line 30)
-            (let loop ([i 0]
-                       [l 0])
-              (cond
-                [(<= (string-length str) (+ i one-line))
-                 (send dc draw-text
-                       (substring str i (string-length str))
-                       0
-                       (* l h))]
-                [else
-                 (send dc draw-text
-                       (substring str i (+ i one-line))
-                       0
-                       (* l h))
-                 (loop (+ i one-line) (+ l 1))])))
-          300 300)]
+       #`(draw-badness #,xexpr)]
       [else
        (draw-paths-code xexpr)]))
   
