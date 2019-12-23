@@ -699,7 +699,8 @@
         (send-out " in:"
                   (λ (snp)
                     (send snp set-style
-                          (send (editor:get-standard-style-list) find-named-style "Standard")))))
+                          (send (editor:get-standard-style-list) find-named-style
+                                (editor:get-default-color-style-name))))))
       (cond
         [(null? exprs) (void)]
         [(null? (cdr exprs))
