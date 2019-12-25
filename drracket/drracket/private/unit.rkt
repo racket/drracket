@@ -1636,7 +1636,10 @@
       
       (define/private (set-logger-text-field-bg-color good?)
         (send logger-text-field set-field-background 
-              (send the-color-database find-color (if good? "white" "pink"))))
+              (color-prefs:lookup-in-color-scheme
+               (if good?
+                   'framework:basic-canvas-background
+                   'framework:failed-background-color))))
       
       (define/private (log-shown?)
         (and logger-gui-content-panel
@@ -1652,6 +1655,14 @@
         (when logger-gui-text 
           (define admin (send logger-gui-text get-admin))
           (define canvas (send logger-gui-text get-canvas))
+          (define (adjust-color start)
+            (when (white-on-black-panel-scheme?)
+              (define sd (make-object style-delta%))
+              (send sd set-delta-foreground "white")
+              (send logger-gui-text change-style
+                    sd
+                    start
+                    (send logger-gui-text last-position))))
           (when (and canvas admin)
             (define logger-messages (send interactions-text get-logger-messages))
             (cond
@@ -1665,6 +1676,7 @@
                                    #t))
                (send logger-gui-text begin-edit-sequence)
                (send logger-gui-text lock #f)
+               (define start (send logger-gui-text last-position))
                (case (car command)
                  [(add-line) (void)]
                  [(clear-last-and-add-line)
@@ -1687,12 +1699,14 @@
                        (send logger-gui-text
                              paragraph-start-position
                              (send logger-gui-text last-paragraph))))
+               (adjust-color start)
                (send logger-gui-text end-edit-sequence)
                (send logger-gui-text lock #t)]
               [else
                (send logger-gui-text begin-edit-sequence)
                (send logger-gui-text lock #f)
                (send logger-gui-text erase)
+               (define start (send logger-gui-text last-position))
                
                (define (insert-one msg)
                  (send logger-gui-text insert msg 0 0)) 
@@ -1703,7 +1717,8 @@
                  (for ([msg (in-list (cdr (send interactions-text get-logger-messages)))])
                    (insert-one "\n")
                    (insert-one msg)))
-               
+
+               (adjust-color start)
                (send logger-gui-text lock #t)
                (send logger-gui-text end-edit-sequence)]))))
       
@@ -5241,13 +5256,6 @@
               (loop (cdr l))
               (cons (car l) (loop (cdr l))))]))))
 
-  (define dark-yellow-color #f)
-  (define (get-dark-yellow-color)
-    (unless dark-yellow-color
-      (set! dark-yellow-color
-            (make-object color% #x9b #x87 #x0c)))
-    dark-yellow-color)
-  
   (define language-label-message%
     (class name-message%
       (init-field frame)
@@ -5257,10 +5265,9 @@
       (define yellow? #f)
       (define/override (get-background-color)
         (and yellow?
-             (if (white-on-black-panel-scheme?)
-                 (get-dark-yellow-color)
-                 "yellow")))
-      (define/public (set-yellow y?) 
+             (color-prefs:lookup-in-color-scheme
+              'framework:warning-background-color)))
+      (define/public (set-yellow y?)
         (set! yellow? y?)
         (refresh))
       (define/public (set-yellow/lang y? lang) 

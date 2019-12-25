@@ -188,10 +188,10 @@
         [(and (path-string? pth)
               (file-exists? pth) 
               (member 'execute (file-or-directory-permissions pth)))
-         "white"]
-        [else "yellow"]))
-    (send racket-path-tf set-field-background 
-          (send the-color-database find-color bkg)))
+         #f]
+        [else
+         (color-prefs:lookup-in-color-scheme 'framework:warning-background-color)]))
+    (send racket-path-tf set-field-background bkg))
   
   (define (update-different-racket-gui)
     (send different-racket-panel

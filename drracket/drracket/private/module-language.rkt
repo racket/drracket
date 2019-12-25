@@ -784,8 +784,10 @@
     (define (turn-on/off-auto-text-text-box on?)
       (send auto-text-text-box enable on?)
       (send auto-text-text-box set-field-background
-            (send the-color-database find-color
-                  (if on? "white" "gray"))))
+            (color-prefs:lookup-in-color-scheme
+             (if on?
+                 'framework:basic-canvas-background
+                 'framework:disabled-background-color))))
     
     ;; data associated with each item in listbox : boolean
     ;; indicates if the entry is the default paths.
