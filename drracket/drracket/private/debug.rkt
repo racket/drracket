@@ -855,7 +855,9 @@
   (define (add-ec/text dis1 editions1 defs ints tab-panel error-text)
     (cond
       [(pair? dis1)
-       (define text1 (new (text:wide-snip-mixin text:hide-caret/selection%)))
+       (define text1 (new (text:wide-snip-mixin
+                           (editor:standard-style-list-mixin
+                            text:hide-caret/selection%))))
        (define ec1 (new (canvas:color-mixin canvas:wide-snip%)
                         [parent tab-panel]
                         [editor text1]))
@@ -1012,13 +1014,19 @@
               start-pos end-pos
               (λ (ed start end)
                 (open-and-highlight-in-file (list di) edition))))
-      
+
       (unless (zero? skip-count)
+        (define before (send text last-position))
         (send text insert " skipped ")
         (send text insert (number->string skip-count))
         (send text insert " duplicate frame")
         (unless (= skip-count 1)
-          (send text insert "s")))
+          (send text insert "s"))
+        (send text change-style
+              (send (send text get-style-list) find-named-style
+                    (editor:get-default-color-style-name))
+              before
+              (send text last-position)))
       (send text insert #\newline)
       
       (when (and start span)
@@ -1068,11 +1076,18 @@
                  (values (send frame get-editor) void)]
                 [else (values #f void)]))]
            [(path? normalized-file)
-            (let ([text (new text:basic%)])
-              (if (send text load-file normalized-file)
-                  (values text 
-                          (λ () (send text on-close)))
-                  (values #f (λ () (void)))))]
+            (define text (new (editor:standard-style-list-mixin text:basic%)))
+            (cond
+              [(send text load-file normalized-file)
+               (send text change-style
+                     (send (send text get-style-list) find-named-style
+                           (editor:get-default-color-style-name))
+                     0
+                     (send text last-position))
+               (values text
+                       (λ () (send text on-close)))]
+              [else
+               (values #f (λ () (void)))])]
            [else
             (values #f void)])]
         [(is-a? file editor<%>)
@@ -1090,13 +1105,12 @@
           (let ([p (send text last-position)])
             (send text insert snip p p)
             (send text insert #\newline)
-            (when (preferences:get 'framework:white-on-black?)
-              (send text change-style white-on-black-style p (+ p 1))))))
+            (send text change-style
+                  (send (send text get-style-list) find-named-style
+                        (editor:get-default-color-style-name))
+                  p (+ p 1)))))
       (close-text)))
-  
-  (define white-on-black-style (make-object style-delta%))
-  (define stupid-internal-define-syntax1 (send white-on-black-style set-delta-foreground "white"))
-  
+
   ;; copy/highlight-text : text number number -> text
   ;; copies the range from `start' to `finish', including the entire paragraph at
   ;; each end and highlights the characters corresponding the original range,
