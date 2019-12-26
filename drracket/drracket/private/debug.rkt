@@ -2207,14 +2207,18 @@
               (let ([after (send src-loc-editor last-position)])
                 (cond
                   [(string? expr-src)
-                   (send src-loc-editor change-style (gui-utils:get-clickback-delta) before after)
+                   (send src-loc-editor change-style
+                         (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                         before after)
                    (let ([after (send src-loc-editor last-position)])
                      (send src-loc-editor set-clickback 
                            before after 
                            (λ (text start end)
                              (open-file-and-goto-position expr-src (syntax-position expr)))))]
                   [(is-a? expr-src editor:basic<%>)
-                   (send src-loc-editor change-style (gui-utils:get-clickback-delta) before after)
+                   (send src-loc-editor change-style
+                         (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                         before after)
                    (send src-loc-editor set-clickback
                          before after
                          (λ (text start end)

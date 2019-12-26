@@ -322,40 +322,36 @@ TODO
                             (λ (p v) (adjust-alt-as-meta v)))
   (adjust-alt-as-meta (preferences:get 'framework:alt-as-meta))
   
-  (define drs-font-delta (make-object style-delta% 'change-family 'decorative))
+  (define (get-error-delta)
+    (define error-delta (make-object style-delta%
+                          'change-style
+                          'italic))
+    (send error-delta set-delta-foreground (make-object color% 255 0 0))
+    error-delta)
+
+  (define (get-error-text-style-delta)
+    (define error-text-style-delta (make-object style-delta%))
+    (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
+    error-text-style-delta)
   
-  (define output-delta (make-object style-delta%)) ; used to be 'change-weight 'bold
-  (define result-delta (make-object style-delta%)) ; used to be 'change-weight 'bold
-  (define error-delta (make-object style-delta%
-                        'change-style
-                        'italic))
-  (send error-delta set-delta-foreground (make-object color% 255 0 0))
-  (define (get-error-delta) error-delta)
-  (send result-delta set-delta-foreground (make-object color% 0 0 175))
-  (send output-delta set-delta-foreground (make-object color% 150 0 150))
-  
-  (define error-text-style-delta (make-object style-delta%))
-  (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
-  
-  (define grey-delta (make-object style-delta%))
-  (send grey-delta set-delta-foreground "GREY")
-  
-  (define welcome-delta (make-object style-delta% 'change-family 'decorative))
-  (define click-delta (gui-utils:get-clickback-delta))
-  (define red-delta (make-object style-delta%))
-  (define dark-green-delta (make-object style-delta%))
-  (send* red-delta
-    (copy welcome-delta)
-    (set-delta-foreground "RED"))  
-  (send* dark-green-delta
-    (copy welcome-delta)
-    (set-delta-foreground "dark green"))
-  (define warning-style-delta (make-object style-delta% 'change-bold))
-  (send* warning-style-delta
-    (set-delta-foreground "BLACK")
-    (set-delta-background "YELLOW"))
-  (define (get-welcome-delta) welcome-delta)
-  (define (get-dark-green-delta) dark-green-delta)
+  (define (click-delta)
+    (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?)))  
+
+  (define (get-warning-style-delta)
+    (define warning-style-delta (make-object style-delta% 'change-bold))
+    (send* warning-style-delta
+      (set-delta-foreground "BLACK")
+      (set-delta-background "YELLOW"))
+    warning-style-delta)
+  (define (get-welcome-delta) (make-object style-delta% 'change-family 'decorative))
+  (define (get-dark-green-delta)
+    (define dark-green-delta (make-object style-delta%))
+    (send* dark-green-delta
+      (copy (get-welcome-delta))
+      (set-delta-foreground
+       (color-prefs:lookup-in-color-scheme
+        'drracket:language-name-and-memory-use-at-top-of-interactions)))
+    dark-green-delta)
   
   ;; is-default-settings? : language-settings -> boolean
   ;; determines if the settings in `language-settings'
@@ -911,7 +907,7 @@ TODO
           (let ([start (get-unread-start-point)])
             (insert-before message)
             (let ([end (get-unread-start-point)])
-              (change-style warning-style-delta start end)
+              (change-style (get-warning-style-delta) start end)
               (insert-before "\n")))
           (end-edit-sequence)
           (when locked? (lock #t))))
@@ -1776,6 +1772,8 @@ TODO
         (set-position (last-position) (last-position))
         
         (set! setting-up-repl? #t)
+        (define welcome-delta (get-welcome-delta))
+        (define dark-green-delta (get-dark-green-delta))
         (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
         (let-values (((before after)
                       (insert/delta
@@ -1786,7 +1784,7 @@ TODO
                      ((url) (extract-language-url user-language-settings)))
           (when url
             (set-clickback before after (λ args (send-url url))
-                           click-delta)))
+                           (click-delta))))
         (unless (is-default-settings? user-language-settings)
           (insert/delta this (string-append " [" (string-constant custom) "]") dark-green-delta))
         (when custodian-limit
@@ -1820,18 +1818,19 @@ TODO
         (begin-edit-sequence)
         (freeze-colorer)
         (set! setting-up-repl? #t)
+        (define welcome-delta (get-welcome-delta))
         (insert/delta this (string-append (string-constant welcome-to) " ") welcome-delta)
         (let-values ([(before after)
                       (insert/delta this 
                                     (string-constant drscheme)
-                                    click-delta
-                                    drs-font-delta)])
+                                    (click-delta)
+                                    welcome-delta)])
           (insert/delta this (format (string-append ", " (string-constant version) " ~a [~a].\n") 
                                      (version:version) (system-type 'gc))
                         welcome-delta)
           (set-clickback before after 
                          (λ args (drracket:app:about-drscheme))
-                         click-delta))
+                         (click-delta)))
         (set! setting-up-repl? #f)
         (send context disable-evaluation)
         (reset-console)
@@ -2156,9 +2155,6 @@ TODO
         [(null? (cdr o)) null]
         [else (cons (car o) (loop (cdr o)))])))
   
-  (define input-delta (make-object style-delta%))
-  (send input-delta set-delta-foreground (make-object color% 0 150 0))
-  
   ;; insert-error-in-text : (is-a?/c text%)
   ;;                        (union #f (is-a?/c drracket:rep:text<%>))
   ;;                        string?
@@ -2233,11 +2229,11 @@ TODO
                          (number? line)
                          (number? col))
                 (insert-file-name/icon src pos span line col))
-              (insert/delta text (format "~a" (exn-message exn)) error-delta)
+              (insert/delta text (format "~a" (exn-message exn)) (get-error-delta))
               (when (and (error-print-source-location)
                          (syntax? expr))
                 (insert/delta text " in: ")
-                (insert/delta text (format "~s" (syntax->datum expr)) error-text-style-delta))
+                (insert/delta text (format "~s" (syntax->datum expr)) (get-error-text-style-delta)))
               (insert/delta text "\n")
               (when (and (is-a? src text:basic<%>)
                          (number? pos)
@@ -2263,9 +2259,10 @@ TODO
                        (number? span))
               (highlight-errors (list (list src (- pos 1) (+ pos -1 span))))))]
         [(exn? exn)
-         (insert/delta text (format "~a" (exn-message exn)) error-delta)
+         (insert/delta text (format "~a" (exn-message exn)) (get-error-delta))
          (insert/delta text "\n")]
         [else
+         (define error-delta (get-error-delta))
          (insert/delta text "uncaught exception: " error-delta)
          (insert/delta text (format "~s" exn) error-delta)
          (insert/delta text "\n")])

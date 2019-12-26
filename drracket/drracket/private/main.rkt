@@ -625,6 +625,9 @@
   [else
    (preferences:set 'framework:exit-when-no-frames #t)]) 
 
+(color-prefs:add-color-scheme-entry 'drracket:language-name-and-memory-use-at-top-of-interactions
+                                    "dark green"
+                                    "pale green")
 
 (define repl-error-pref 'drracket:read-eval-print-loop:error-color)
 (define repl-out-pref 'drracket:read-eval-print-loop:out-color)
