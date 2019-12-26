@@ -5122,6 +5122,8 @@
         (send sdb set-size-add (send normal-control-font get-point-size))
         (send sdb set-size-in-pixels-off #t)
         (send sdb set-weight-on 'bold)
+        (when (white-on-black-panel-scheme?)
+          (send sdb set-delta-foreground "white"))
         (define sd (make-object style-delta%))
         (send sd copy sdb)
         (send sd set-weight-on 'normal)
@@ -5216,10 +5218,12 @@
     (define (background sd)
       (let ([txt (send tb get-editor)])
         (send txt change-style sd 0 (send txt last-position))))
-    
-    (send clear-sd set-delta-background "white")
+
+    (send clear-sd set-delta-background
+          (if (white-on-black-panel-scheme?) "black" "white"))
     (send yellow-sd set-delta-background "yellow")
-    (send black-foreground-sd set-delta-foreground "black")
+    (send black-foreground-sd set-delta-foreground
+          (if (white-on-black-panel-scheme?) "white" "black"))
     (send gray-foreground-sd set-delta-foreground "gray")
     (send d set-alignment 'left 'center)
     (send bp set-alignment 'right 'center)
