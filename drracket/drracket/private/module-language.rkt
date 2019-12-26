@@ -1416,7 +1416,10 @@
               (for/list ([range (in-list ranges)]) 
                 (define pos (vector-ref range 0))
                 (define span (vector-ref range 1))
-                (highlight-range (- pos 1) (+ pos span -1) "gold"))))
+                (highlight-range (- pos 1) (+ pos span -1)
+                                 (if (preferences:get 'framework:white-on-black?)
+                                     (make-object color% 145 107 0)
+                                     "gold")))))
       
       (define/public (set-margin-error-ranges rngs)
         (unless (equal? online-error-ranges rngs)
