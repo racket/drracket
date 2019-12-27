@@ -89,6 +89,21 @@
      (send dc set-scale mb-scale-factor mb-scale-factor)
      (send dc set-smoothing 'smoothed)
      (send dc set-pen "black" 1 'transparent)
+     (when (preferences:get 'framework:white-on-black?)
+       (define rgn (new region% [dc dc]))
+       (define pen (send dc get-pen))
+       (define brush (send dc get-brush))
+       (define offset 4) ;; this offset seems to make a tight fit around the actual logo
+       (send rgn set-ellipse
+             offset offset
+             (- mb-plain-width offset offset)
+             (- mb-plain-height offset offset))
+       (send dc set-clipping-region rgn)
+       (send dc set-brush "white" 'solid)
+       (send dc set-pen "black" 1 'transparent)
+       (send dc draw-rectangle 0 0  mb-plain-width  mb-plain-height)
+       (send dc set-pen pen)
+       (send dc set-brush brush))
      (mb-main-drawing dc)
      (send dc set-pen pen)
      (send dc set-brush brush)
@@ -105,34 +120,31 @@
          [editor-snip (make-object editor-snip% e #f)]
          [f (make-object about-frame% main-text)]
          [main-panel (send f get-area-container)]
-         [editor-canvas (make-object editor-canvas% main-panel)]
+         [editor-canvas (make-object canvas:color% main-panel)]
          [button-panel (make-object horizontal-panel% main-panel)]
          [top (make-object style-delta% 'change-alignment 'top)]
          [d-usual (make-object style-delta% 'change-family 'decorative)]
          [d-dr (make-object style-delta%)]
-         [d-http (make-object style-delta%)]
          
          [insert/clickback
           (λ (str clickback)
-            (send e change-style d-http)
+            (send e change-style (gui-utils:get-clickback-delta
+                                  (preferences:get 'framework:white-on-black?)))
             (let* ([before (send e get-start-position)]
                    [_ (send e insert str)]
                    [after (send e get-start-position)])
               (send e set-clickback before after 
                     (λ (a b c) (clickback))
-                    d-http))
+                    (gui-utils:get-clickback-delta
+                     (preferences:get 'framework:white-on-black?))))
             (send e change-style d-usual))]
          
          [insert-url/external-browser
           (λ (str url)
             (insert/clickback str (λ () (send-url url))))])
     
-    (send* d-http 
-      (copy d-usual)
-      (set-delta-foreground "BLUE")
-      (set-delta 'change-underline #t))
     (send* d-usual 
-      (set-delta-foreground "BLACK")
+      (set-delta-foreground (if (preferences:get 'framework:white-on-black?) "white" "black"))
       (set-delta 'change-underline #f))
     
     (send* d-dr (copy d-usual) (set-delta 'change-bold))
@@ -189,7 +201,9 @@
                       (insert #\space)))
                   (let ([name (or name (format "~a" spec))])
                     (cond [url  (insert-url/external-browser name url)]
-                          [else (send e insert name)]))
+                          [else (send* e
+                                  (insert name)
+                                  (change-style d-usual))]))
                   (send e insert #\newline))
                 (if name
                     (loop (cons action actions1) actions2 (cdr tools))
@@ -220,7 +234,7 @@
       (insert editor-snip)
       (change-style top 0 2)
       (hide-caret #t))
-    
+    (send editor-snip use-style-background #t)
     (send f reflow-container)
     
     (send* main-text
