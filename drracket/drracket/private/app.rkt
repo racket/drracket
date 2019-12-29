@@ -202,6 +202,7 @@
                   (let ([name (or name (format "~a" spec))])
                     (cond [url  (insert-url/external-browser name url)]
                           [else (send* e
+                                  (change-style d-usual)
                                   (insert name)
                                   (change-style d-usual))]))
                   (send e insert #\newline))
