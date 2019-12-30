@@ -3,7 +3,12 @@
 (require typed/racket/gui
          typed/framework
          string-constants)
-
+(require/typed racket/gui/base
+               [get-label-background-color
+                (-> (Instance Color%))])
+(require/typed mrlib/panel-wob
+               [white-on-black-panel-scheme?
+                (-> Boolean)])
 (provide insert-large-letters)
 
 (: insert-large-letters (String Char (Instance Text:Basic<%>) (Instance Frame%) -> Void))
@@ -95,16 +100,23 @@
                      (define n (string->number (send font-size-field get-value)))
                      (cond
                        [(and n (real? n) (<= 0 n 1024))
-                        (send font-size-field set-field-background default-background)
+                        (send font-size-field set-field-background #f)
                         (define-values (current-font current-size) (get-current-pref))
                         (set-current-pref current-font n)
                         (update-txt (send text-field get-value))]
                        [else
-                        (send font-size-field set-field-background warning-background)]))]
+                        (define name 'framework:failed-background-color)
+                        (cond
+                          [(and (color-prefs:known-color-scheme-name? name)
+                                (color-prefs:color-scheme-color-name? name))
+                           (send font-size-field set-field-background
+                                 (color-prefs:lookup-in-color-scheme name))]
+                          [else
+                           ;; can't happen because `'framework:failed-background-color` is always
+                           ;; in the set of color names but the type system doesn't know that
+                           (send font-size-field set-field-background warning-background)])]))]
          [label (string-constant font-size)]))
 
-  (: default-background (Instance Color%))
-  (define default-background (send font-size-field get-field-background))
   (: warning-background (Instance Color%))
   (define warning-background (assert (send the-color-database find-color "pink")))
   
@@ -120,7 +132,7 @@
   (: txt (Instance Text:Basic%))
   (define txt (new racket:text%))
   (: ec (Instance Editor-Canvas%))
-  (define ec (new editor-canvas% [parent dlg] [editor txt]))
+  (define ec (new canvas:color% [parent dlg] [editor txt]))
   (: button-panel (Instance Horizontal-Panel%))
   (define button-panel (new horizontal-panel%
                             [parent dlg]
@@ -179,26 +191,56 @@
 
 (define bitmap-message%
   (class canvas%
-    (inherit min-width min-height get-dc refresh)
+    (inherit min-width min-height get-dc refresh get-client-size)
     (: bm (Option (Instance Bitmap%)))
     (define bm #f)
     (define/override (on-paint)
       (define bm* bm)
-      (when bm*
-        (let ([dc (get-dc)])
-          (send dc draw-bitmap bm* 0 0)))
+      (define dc (get-dc))
+      (cond
+        [bm*
+         (send dc draw-bitmap bm* 0 0)]
+        [else
+         (define color (get-label-background-color))
+         (define-values (cw ch) (get-client-size))
+         (define brush (send dc get-brush))
+         (define pen (send dc get-pen))
+         (send dc set-brush color 'solid)
+         (send dc set-pen color 1 'transparent)
+         (send dc draw-rectangle 0 0 cw ch)
+         (send dc set-brush brush)
+         (send dc set-pen pen)])
       (void))
     (: set-bm ((Option (Instance Bitmap%)) -> Void))
     (define/public (set-bm b)
       (set! bm b)
       (define bm* bm)
-      (when bm*
-        (min-width (send bm* get-width))
-        (min-height (send bm* get-height)))
+      (cond
+        [bm*
+         (when (white-on-black-panel-scheme?)
+           (invert-bm bm*))
+         (min-width (send bm* get-width))
+         (min-height (send bm* get-height))]
+        [else
+         (min-width 0)
+         (min-height 0)])
       (refresh))
     (super-new (stretchable-width #f)
                (stretchable-height #f)
                (style '(no-focus)))))
+
+(: invert-bm (-> (Instance Bitmap%) Void))
+(define (invert-bm bm)
+  (define w (send bm get-width))
+  (define h (send bm get-height))
+  (define argb (make-bytes (* w h 4)))
+  (send bm get-argb-pixels 0 0 w h argb)
+  (for ([i (in-range 0 (* w h 4) 4)])
+    (bytes-set! argb (+ i 1) (- 255 (bytes-ref argb (+ i 1))))
+    (bytes-set! argb (+ i 2) (- 255 (bytes-ref argb (+ i 2))))
+    (bytes-set! argb (+ i 3) (- 255 (bytes-ref argb (+ i 3)))))
+  (send bm set-argb-pixels 0 0 w h argb))
+  
 
 (: render-large-letters (-> String Char (Instance Font%) String (Instance Text:Basic<%>)
                             (Instance Bitmap%)))
@@ -246,6 +288,25 @@
         (send edit insert comment-prefix start start)
         (send edit insert "\n" start start)
         (loop (- y 1)))))
+
+
+  (define name 'framework:syntax-color:scheme:comment)
+  (define sd
+    (cond
+      [(and (color-prefs:known-color-scheme-name? name)
+            (color-prefs:color-scheme-style-name? name))
+       ;; cast won't fail because of the above condition
+       (cast (color-prefs:lookup-in-color-scheme name)
+             (Instance Style-Delta%))]
+      [else
+       ;; shouldn't happen, but types aren't strong enough to prove it.
+       (send (editor:get-standard-style-list) find-named-style
+             (editor:get-default-color-style-name))]))
+  (send edit change-style
+        sd
+        0
+        (send edit last-position))
+  
   (send edit end-edit-sequence)
   (send bdc set-bitmap #f)
   bitmap)
