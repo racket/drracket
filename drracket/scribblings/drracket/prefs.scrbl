@@ -280,6 +280,13 @@ The @onscreen{Editing} panel consists of several sub-panels:
  @item{@PrefItem{Save files whenever switching tabs or windows} ---
   If checked, DrRacket will automatically save any unsaved files
   when switching between windows or tabs.}
+ 
+ @item{@PrefItem{Don't ask and don't save files when
+   clicking Run with unsaved tabs or windows} --- If checked,
+  DrRacket will not show a warning dialog about unsaved tabs
+  when clicking the @onscreen{Run} button, nor will it save
+  the files automatically. If this is checked, the previous
+  checkbox's value is ignored.}
 
 ]
 
