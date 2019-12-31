@@ -2944,24 +2944,27 @@
 
       ;; returns #f if we should abort `Run`, #t if it is okay to `Run`
       (define/private (check-if-unsaved-tabs-and-maybe-save)
-        (define save-candidates (get-unsaved-candidate-tabs #t))
         (cond
-          [(null? save-candidates) #t]
+          [(preferences:get 'drracket:dont-ask-about-saving-files-on-tab-switch?) #t]
           [else
-           (define-values (cancel-run? do-save?)
-             (does-user-want-to-save-all-unsaved-files? save-candidates))
+           (define save-candidates (get-unsaved-candidate-tabs #t))
            (cond
-             [cancel-run? #f]
-             [do-save?
-              (define continue?
-                (let/ec k
-                  (for ([tab (in-list save-candidates)])
-                    (unless (send (send tab get-defs) save-file/gui-error)
-                      (k #f)))
-                  #t))
-              (update-tabs-labels)
-              continue?]
-             [else #t])]))
+             [(null? save-candidates) #t]
+             [else
+              (define-values (cancel-run? do-save?)
+                (does-user-want-to-save-all-unsaved-files? save-candidates))
+              (cond
+                [cancel-run? #f]
+                [do-save?
+                 (define continue?
+                   (let/ec k
+                     (for ([tab (in-list save-candidates)])
+                       (unless (send (send tab get-defs) save-file/gui-error)
+                         (k #f)))
+                     #t))
+                 (update-tabs-labels)
+                 continue?]
+                [else #t])])]))
 
       (define/private (save-all-unsaved-files)
         (let/ec k

@@ -88,6 +88,7 @@
                          string-ending-with-newline?)
 
 (preferences:set-default 'drracket:save-files-on-tab-switch? #f boolean?)
+(preferences:set-default 'drracket:dont-ask-about-saving-files-on-tab-switch? #f boolean?)
 
 (preferences:set-default 'drracket:inline-overview-shown? #f boolean?)
 
@@ -345,16 +346,18 @@
 
 (let ([make-check-box
        (λ (pref-sym string parent [extra-functionality #f])
-         (let ([q (make-object check-box%
-                    string
-                    parent
-                    (λ (checkbox evt)
-                      (define value (send checkbox get-value))
-                      (preferences:set pref-sym value)
-                      (when extra-functionality
-                        (extra-functionality value))))])
-           (preferences:add-callback pref-sym (λ (p v) (send q set-value v)))
-           (send q set-value (preferences:get pref-sym))))])
+         (define check-box
+           (new check-box%
+                [label string]
+                [parent parent]
+                [callback (λ (checkbox evt)
+                            (define value (send checkbox get-value))
+                            (preferences:set pref-sym value)
+                            (when extra-functionality
+                              (extra-functionality value)))]))
+         (preferences:add-callback pref-sym (λ (p v) (send check-box set-value v)))
+         (send check-box set-value (preferences:get pref-sym))
+         check-box)])
   (preferences:add-to-general-checkbox-panel
    (λ (editor-panel)
      (make-check-box 'drracket:open-in-tabs 
@@ -382,10 +385,17 @@
                      (string-constant test-coverage-summary)
                      editor-panel)
 
-     (make-check-box 'drracket:save-files-on-tab-switch?
-                     (string-constant save-after-switching-tabs)
-                     editor-panel)
-     ))
+     (define save-files-on-tab-switch-check-box
+       (make-check-box 'drracket:save-files-on-tab-switch?
+                       (string-constant save-after-switching-tabs)
+                       editor-panel))
+     (send save-files-on-tab-switch-check-box enable
+           (not (preferences:get 'drracket:dont-ask-about-saving-files-on-tab-switch?)))
+     (make-check-box 'drracket:dont-ask-about-saving-files-on-tab-switch?
+                     (string-constant dont-ask-about-saving-after-switching-tabs)
+                     editor-panel
+                     (λ (nv) (send save-files-on-tab-switch-check-box enable (not nv))))
+     (void)))
   
   (preferences:add-to-editor-checkbox-panel
    (λ (editor-panel)
@@ -431,7 +441,9 @@
                    (send cb set-value on?)
                    (send sl set-value (cdr v))))])
        (preferences:add-callback 'drracket:repl-buffer-size (λ (p v) (update-controls v)))
-       (update-controls (preferences:get 'drracket:repl-buffer-size)))))
+       (update-controls (preferences:get 'drracket:repl-buffer-size)))
+
+     (void)))
   
   (preferences:add-to-warnings-checkbox-panel
    (λ (warnings-panel)
@@ -443,7 +455,8 @@
                      warnings-panel)
      (make-check-box 'drracket:show-killed-dialog
                      (string-constant show-evaluation-terminated-dialog)
-                     warnings-panel))))
+                     warnings-panel)
+     (void))))
 
 (drracket:debug:add-prefs-panel)
 (install-help-browser-preference-panel)
