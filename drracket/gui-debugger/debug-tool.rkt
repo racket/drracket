@@ -12,7 +12,6 @@
          drscheme/tool
          "marks.rkt"
          mrlib/switchable-button
-         mrlib/bitmap-label
          mrlib/close-icon
          "annotator.rkt"
          "load-sandbox.rkt"
@@ -1145,12 +1144,6 @@
     (define resume-bitmap (compiled-bitmap (play-icon #:color run-icon-color)))
     (define step-bitmap (compiled-bitmap (step-icon #:color run-icon-color)))
 
-    (define make-pause-label (bitmap-label-maker "Pause" pause-bitmap))
-    (define make-resume-label (bitmap-label-maker "Go" resume-bitmap))
-    (define make-step-label (bitmap-label-maker "Step" step-bitmap))
-    (define make-over-label (bitmap-label-maker "Over" over-bitmap))
-    (define make-out-label (bitmap-label-maker "Out" out-bitmap))
-    
     (define (debug-unit-frame-mixin super%)
       (class super%
         
@@ -1296,7 +1289,8 @@
                      [min-width 160]
                      [stretchable-width #f]))
           (set! stack-frames
-                (new (class text%
+                (new (class (text:foreground-color-mixin
+                             (editor:standard-style-list-mixin text:basic%))
                        (super-new)
                        (inherit find-line line-start-position line-end-position
                                 change-style begin-edit-sequence end-edit-sequence
@@ -1353,13 +1347,15 @@
                               (when (and paragraph expr)
                                 (send (get-current-tab) move-to-frame paragraph))]
                              [else (void)]))))))
-          (set! variables-text (new text% [auto-wrap #f]))
+          (set! variables-text (new (text:foreground-color-mixin
+                                     (editor:standard-style-list-mixin text:basic%))
+                                    [auto-wrap #f]))
           (let ([stack-frames-panel (make-object vertical-pane% stack-view-panel)])
             (new editor:font-size-message% [parent stack-frames-panel] [message "Stack"])
-            (new editor-canvas% [parent stack-frames-panel] [editor stack-frames] [style '(auto-hscroll)]))
+            (new canvas:color% [parent stack-frames-panel] [editor stack-frames] [style '(auto-hscroll)]))
           (let ([variables-panel (make-object vertical-pane% stack-view-panel)])
             (new editor:font-size-message% [parent variables-panel] [message "Variables"])
-            (new editor-canvas% [parent variables-panel] [editor variables-text] [style '(auto-hscroll)]))
+            (new canvas:color% [parent variables-panel] [editor variables-text] [style '(auto-hscroll)]))
           ;; parent of panel with debug buttons
           (set! debug-parent-panel
                 (make-object vertical-pane% debug-grandparent-panel))
@@ -1422,39 +1418,49 @@
           (inner (void) disable-evaluation))
 
         (define pause-button
-          (instantiate button% ()
-            [label (make-pause-label this)]
-            [parent debug-panel]
-            [callback (lambda (button evt)
-                        (cond [(send (get-current-tab) get-stack-frames) (bell)]
-                              [else (send (get-current-tab) suspend-on-break? #t)
-                                    (send (get-current-tab) break-callback)
-                                    (send (get-current-tab) reset-offer-kill)]))]
-            [enabled #t]))
+          (new switchable-button%
+               [label "Pause"]
+               [bitmap pause-bitmap]
+               [alternate-bitmap pause-bitmap]
+               [parent debug-panel]
+               [callback (λ _
+                           (cond [(send (get-current-tab) get-stack-frames) (bell)]
+                                 [else (send (get-current-tab) suspend-on-break? #t)
+                                       (send (get-current-tab) break-callback)
+                                       (send (get-current-tab) reset-offer-kill)]))]
+               [min-width-includes-label? #t]
+               [enabled #t]))
         
         (define resume-button
-          (instantiate button% ()
-            [label (make-resume-label this)]
-            [parent debug-panel]
-            [callback (lambda (button evt)
-                        (if (send (get-current-tab) get-stack-frames)
-                            (send (get-current-tab) resume)
-                            (bell)))]
-            [enabled #f]))
+          (new switchable-button%
+               [label "Go"]
+               [bitmap resume-bitmap]
+               [alternate-bitmap resume-bitmap]
+               [parent debug-panel]
+               [callback (λ _
+                           (if (send (get-current-tab) get-stack-frames)
+                               (send (get-current-tab) resume)
+                               (bell)))]
+               [min-width-includes-label? #t]
+               [enabled #f]))
+        (send resume-button set-label-visible #t)
         
         (define step-button
-          (instantiate button% ()
-            [label (make-step-label this)]
-            [parent debug-panel]
-            [callback (lambda (btn evt)
-                        (cond [(send (get-current-tab) get-stack-frames)
-                               (send (get-current-tab) set-single-step?! #t)
-                               (send (get-current-tab) resume)]
-                              [else (bell)]))]
-            [enabled #f]))
+          (new switchable-button%
+               [label "Step"]
+               [bitmap step-bitmap]
+               [alternate-bitmap step-bitmap]
+               [parent debug-panel]
+               [callback (λ _
+                           (cond [(send (get-current-tab) get-stack-frames)
+                                  (send (get-current-tab) set-single-step?! #t)
+                                  (send (get-current-tab) resume)]
+                                 [else (bell)]))]
+               [min-width-includes-label? #t]
+               [enabled #f]))
         
         (define (make-big-step-callback out?)
-          (lambda (btn evt)
+          (λ _
             ; go through stack frames until it's possible to set a breakpoint at the end
             (let* ([frames (list-tail (send (get-current-tab) get-stack-frames)
                                       (send (get-current-tab) get-frame-num))]
@@ -1491,17 +1497,23 @@
                     [else (bell)]))))
         
         (define step-over-button
-          (new button%
-               [label (make-over-label this)]
+          (new switchable-button%
+               [label "Over"]
+               [bitmap over-bitmap]
+               [alternate-bitmap over-bitmap]
                [parent debug-panel]
                [callback (make-big-step-callback #f)]
+               [min-width-includes-label? #t]
                [enabled #f]))
         
         (define step-out-button
-          (new button%
-               [label (make-out-label this)]
+          (new switchable-button%
+               [label "Out"]
+               [bitmap out-bitmap]
+               [alternate-bitmap out-bitmap]
                [parent debug-panel]
                [callback (make-big-step-callback #t)]
+               [min-width-includes-label? #t]
                [enabled #f]))
         
         (define/public (get-debug-button) debug-button)
