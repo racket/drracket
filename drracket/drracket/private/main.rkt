@@ -24,7 +24,8 @@
          scribble/xref
          net/url
          racket/place
-         racket/future)
+         racket/future
+         mrlib/syntax-browser)
 
 (import [prefix drracket:app: drracket:app^]
         [prefix drracket:unit: drracket:unit^]
@@ -703,6 +704,35 @@
 (drracket:module-language:initialize-prefs-panel)
 
 (editor:set-change-font-size-when-monitors-change? #t)
+
+(define (add-and-monitor-render-syntax-style name bow-color wob-color)
+  (define (set-the-color wob? bkg-color)
+    (define sl (editor:get-standard-style-list))
+    (define st (send sl new-named-style name (send sl basic-style)))
+    (define sd (make-object style-delta%))
+    (send sd set-delta-foreground
+          (if wob? wob-color bow-color))
+    (send sd set-delta-background bkg-color)
+    (send st set-delta sd))
+  (set-the-color (preferences:get 'framework:white-on-black?)
+                 (color-prefs:lookup-in-color-scheme
+                  'framework:basic-canvas-background))
+  (preferences:add-callback
+   'framework:white-on-black?
+   (λ (name b) (set-the-color b
+                              (color-prefs:lookup-in-color-scheme
+                               'framework:basic-canvas-background))))
+  (color-prefs:register-color-scheme-entry-change-callback
+   'framework:basic-canvas-background
+   (λ (bkg-color) (set-the-color (preferences:get 'framework:white-on-black?)
+                             bkg-color))))
+
+(add-and-monitor-render-syntax-style render-syntax-subtitle-color-style-name
+                                     "navy"
+                                     "CornflowerBlue")
+(add-and-monitor-render-syntax-style render-syntax-focused-syntax-color-style-name
+                                     "forestgreen"
+                                     "limegreen")
 
 (let* ([find-frame
         (λ (item)
