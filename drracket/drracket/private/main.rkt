@@ -674,6 +674,9 @@
                                             repl-out-pref
                                             "text:ports out"
                                             (string-constant repl-out-color))))
+(color-prefs:add-color-scheme-entry 'drracket:error-background-highlighting
+                                    "pink"
+                                    (make-object color% 117 0 0))
 
 
 (define test-coverage-on-style-pref (string->symbol drracket:debug:test-coverage-on-style-name))

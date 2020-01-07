@@ -84,13 +84,9 @@
   (send error-delta set-delta-foreground (make-object color% 255 0 0))
   
   ;; get-error-color : -> (instanceof color%)
-  (define get-error-color
-    (let ([w-o-b (make-object color% 63 0 0)]
-          [b-o-w (make-object color% "PINK")])
-      (λ ()
-        (if (preferences:get 'framework:white-on-black?)
-            w-o-b
-            b-o-w))))
+  (define (get-error-color)
+    (color-prefs:lookup-in-color-scheme
+     'drracket:error-background-highlighting))
   
   (define arrow-cursor (make-object cursor% 'arrow))
   (define (clickable-snip-mixin snip%)
