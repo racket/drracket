@@ -2223,7 +2223,10 @@
       (define green-style
         (let ([list (editor:get-standard-style-list)]
               [green-style-delta (make-object style-delta% 'change-family 'default)])
-          (send green-style-delta set-delta-foreground "DarkViolet")
+          (send green-style-delta set-delta-foreground
+                (if (preferences:get 'framework:white-on-black?)
+                    (make-object color% 170 151 240)
+                    "DarkViolet"))
           (send green-style-delta set-delta 'change-italic)
           (send list
                 find-or-create-style
@@ -2271,15 +2274,15 @@
                      [right-margin 0]
                      [top-margin 0]
                      [bottom-margin 0])
-          (inherit get-flags set-flags set-style)
+          (inherit get-flags set-flags set-style use-style-background)
+          (use-style-background #t)
           (set-flags (cons 'handles-events (get-flags)))
           
           (send txt insert words)
-          (send txt change-style link-sd 0 (send txt last-position))))
-      
-      (define link-sd (make-object style-delta% 'change-underline #t))
-      (send link-sd set-delta-foreground "blue")
-      (send link-sd set-family 'default)
+          (send txt change-style
+                (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
+                0
+                (send txt last-position))))
       
       (main))
     
@@ -2315,13 +2318,6 @@
         (space-em-out)
         (fix-msg-sizes)
         (send dialog show #t))
-      
-      (define (insert-red-message)
-        (new canvas-message% 
-             (parent qa-panel)
-             (font (get-font #:style 'italic))
-             (label (string-constant must-choose-language))
-             (color (send the-color-database find-color "red"))))
       
       (define (space-em-out)
         (send qa-panel change-children
@@ -2369,7 +2365,10 @@
         (new canvas-message%
              (parent racketeer-panel) 
              (label (string-constant use-language-in-source))
-             (color (send the-color-database find-color "blue"))
+             (color (send the-color-database find-color
+                          (if (white-on-black-panel-scheme?)
+                              "deepskyblue"
+                              "blue")))
              (callback (λ () (change-current-lang-to
                               (λ (x) (is-a? x drracket:module-language:module-language<%>)))))
              (font (get-font #:underlined #t))))
@@ -2419,7 +2418,7 @@
           (init-field label
                       [font (get-font)]
                       [callback void]
-                      [color (send the-color-database find-color "black")])
+                      [color #f])
           
           (define/override (on-event evt)
             (cond
@@ -2434,7 +2433,11 @@
               [(string? label)
                (define old-font (send dc get-font))
                (define old-tf (send dc get-text-foreground))
-               (send dc set-text-foreground color)
+               (send dc set-text-foreground
+                     (or color
+                         (if (white-on-black-panel-scheme?)
+                             (send the-color-database find-color "lightgray")
+                             (send the-color-database find-color "black"))))
                (send dc set-font font)
                (send dc draw-text label 0 0 #t)
                (send dc set-font old-font)
@@ -2468,7 +2471,10 @@
         (new canvas-message%
              (parent panel2) 
              (label lang-name)
-             (color (send the-color-database find-color "blue"))
+             (color (send the-color-database find-color
+                          (if (white-on-black-panel-scheme?)
+                              "deepskyblue"
+                              "blue")))
              (callback (λ () (change-current-lang-to lang)))
              (font (get-font #:underlined #t)))
         (new canvas-message% (parent panel2) (label (string-constant start-with-after))))
