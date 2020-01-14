@@ -2369,9 +2369,9 @@
        (let* ([src (syntax-source stx)]
               [filename 
                (cond
-                 [(string? src) src]
+                 [(not src) (string-constant profiling-unknown-src)]
                  [(is-a? src editor<%>) (get-filename-from-editor src)]
-                 [else (string-constant profiling-unknown-src)])]
+                 [else (format "~a" src)])]
               [col (syntax-column stx)]
               [line (syntax-line stx)]
               [pos (syntax-position stx)]
