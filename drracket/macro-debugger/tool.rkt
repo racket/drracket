@@ -38,8 +38,9 @@
 (define macro-stepper-frame%
   (drracket-macro-stepper-frame-mixin
    (macro-stepper-frame-mixin
-    (frame:standard-menus-mixin
-     frame:basic%))))
+    (frame:searchable-mixin
+     (frame:standard-menus-mixin
+      frame:basic%)))))
 
 (define drracket-macro-stepper-director%
   (class macro-stepper-director/process%
