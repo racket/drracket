@@ -2027,7 +2027,7 @@
                                      (stretchable-height #f)))
           (define profile-left-side (new-vertical-panel% [parent profile-info-panel]))
           (set! profile-info-editor-canvas 
-                (new canvas:basic% 
+                (new canvas:color%
                      (parent profile-info-panel)
                      (editor (send (get-current-tab) get-profile-info-text))))
           (define profile-message (instantiate message% ()
@@ -2104,7 +2104,9 @@
   ;; GUI. They only manage the profiling information reported
   ;; in the bottom window
   (define profile-text% 
-    (class text:line-spacing%
+    (class (text:foreground-color-mixin
+            (editor:standard-style-list-mixin
+             text:line-spacing%))
       (init-field tab)
       
       ;; clear-profile-display : -> void
@@ -2121,7 +2123,8 @@
       (inherit lock is-locked?
                get-canvas hide-caret get-snip-location
                begin-edit-sequence end-edit-sequence 
-               erase insert)
+               erase insert get-start-position
+               change-style get-style-list default-style-name)
       
       ;; clear-old-results : -> void
       ;; removes the profile highlighting
@@ -2308,15 +2311,23 @@
         (set! time-editor #f)
         (set! count-editor #f))
       (define/private (initialize-editors)
-        (set! src-loc-editor (instantiate text% ()))
-        (set! time-editor (instantiate text% ()))
-        (set! count-editor (instantiate text% ()))
+        (set! src-loc-editor (new profile-content-text%))
+        (set! time-editor (new profile-content-text%))
+        (set! count-editor (new profile-content-text%))
         (send src-loc-editor set-styles-sticky #f)            
         (send time-editor set-styles-sticky #f)
         (send count-editor set-styles-sticky #f)
-        (insert (instantiate editor-snip% (time-editor)))
-        (insert (instantiate editor-snip% (count-editor)))
-        (insert (instantiate editor-snip% (src-loc-editor)))
+        (define (insert-es e)
+          (define es (new editor-snip% [editor e]))
+          (send es use-style-background #t)
+          (define before (get-start-position))
+          (insert es)
+          (change-style (send (get-style-list) find-named-style (default-style-name))
+                        before
+                        (+ before 1)))
+        (insert-es time-editor)
+        (insert-es count-editor)
+        (insert-es src-loc-editor)
         (insert-title (string-constant profiling-col-function) src-loc-editor)
         (insert-title (string-constant profiling-col-time-in-msec) time-editor)
         (insert-title (string-constant profiling-col-calls) count-editor))
@@ -2329,6 +2340,8 @@
       
       (super-new)
       (hide-caret #t)))
+
+  (define profile-content-text% (text:foreground-color-mixin text:standard-style-list%))
   
   ;; format-percentage : number[0 <= n <= 1] -> string
   ;; formats the number as a percentage string with trailing zeros,
