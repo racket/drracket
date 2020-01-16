@@ -5,6 +5,7 @@
          racket/gui/base
          racket/class
          racket/contract
+         rackunit/log
          drracket/private/local-member-names
          "gui.rkt"
          "no-fw-test-util.rkt")
@@ -634,7 +635,8 @@
                          (eprintf "uncaught exception ~s\n" x))
                      (exit 1))))
                 (run-test)
-                (exit)))
+                (test-log #:display? #t #:exit? #t)
+                (exit 0)))
       (yield (make-semaphore 0))))
   
 (define (wait-for-online-compilation-to-finish frame) 
