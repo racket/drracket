@@ -4,6 +4,8 @@
 
   . improved the responsivness of scrolling via trackpads
 
+  . improved dark mode on mac os and linux
+
 ------------------------------
        Version 7.5
 ------------------------------
