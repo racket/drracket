@@ -102,7 +102,9 @@
                  pref-key)]))))
 
 (define (queue-callback/res thunk)
-  (not-on-eventspace-handler-thread 'queue-callback/res)
+  (not-on-eventspace-handler-thread
+   'queue-callback/res
+   #:more (λ () (format "\n  thunk: ~e" thunk)))
   (let ([c (make-channel)])
     (queue-callback (λ () (channel-put c (with-handlers ((exn:fail? values))
                                            (call-with-values thunk list))))
@@ -139,9 +141,12 @@
   (semaphore-wait sema))
 
 
-(define (not-on-eventspace-handler-thread fn)
+(define (not-on-eventspace-handler-thread fn #:more [more #f])
   (when (eq? (current-thread) (eventspace-handler-thread (current-eventspace)))
-    (error fn "expected to be run on some thread other than the eventspace handler thread")))
+    (error fn
+           (string-append
+            "expected to be run on some thread other than the eventspace handler thread"
+            (if more (more) "")))))
 
 (define (on-eventspace-handler-thread fn)
   (unless (eq? (current-thread) (eventspace-handler-thread (current-eventspace)))
