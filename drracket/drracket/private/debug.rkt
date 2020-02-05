@@ -866,8 +866,7 @@
         (define end-of-current (send text last-position))
         (send text insert #\newline)
         (define hyper-start (send text last-position))
-        ;(send text insert (string-constant more-stack-frames))
-        (send text insert (format (string-constant next-stack-frames) "..."))
+        (send text insert (string-constant more-stack-frames))
         (define hyper-end (send text last-position))
         (send text change-style (gui-utils:get-clickback-delta
                                  (preferences:get 'framework:white-on-black?))
