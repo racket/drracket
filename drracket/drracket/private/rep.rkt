@@ -883,6 +883,7 @@ TODO
              ;; user-exit-code (union #f byte?)
              ;; #f indicates that exit wasn't called. Integer indicates exit code
              (user-exit-code #f))
+      (define gc-on-run? #f)
             
       (define/public (get-user-language-settings) user-language-settings)
       (define/public (get-user-custodian) user-custodian)
@@ -916,6 +917,8 @@ TODO
       
       (define/private (cleanup) ;; =Kernel=, =Handler=
         (set! in-evaluation? #f)
+        (define memory-killed? (not (custodian-box-value memory-killed-cust-box)))
+        (set! gc-on-run? memory-killed?)
         (update-running #f)
         (unless (and (get-user-thread) (thread-running? (get-user-thread)))
           (lock #t)
@@ -923,7 +926,7 @@ TODO
             (no-user-evaluation-message
              (get-frame)
              user-exit-code
-             (not (custodian-box-value memory-killed-cust-box))))
+             memory-killed?))
           (set! show-no-user-evaluation-message? #t)))
       
       (field (need-interaction-cleanup? #f))
@@ -1346,6 +1349,9 @@ TODO
           (custodian-limit-memory user-custodian-parent 
                                   custodian-limit
                                   user-custodian-parent))
+        (when gc-on-run?
+          (collect-garbage)
+          (set! gc-on-run? #f))
         (let ([user-eventspace (parameterize ([current-custodian user-custodian])
                                  (make-eventspace #:suspend-to-kill? #t))])
           (set! user-eventspace-box (make-weak-box user-eventspace))
