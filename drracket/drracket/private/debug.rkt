@@ -365,7 +365,7 @@
     (print-planet-icon-to-stderr exn)
     (unless (exn:fail:user? exn)
       (unless (exn:fail:syntax? exn)
-        (unless (and (null? stack1) (null? stack2))
+        (unless (and (empty-viewable-stack? stack1) (empty-viewable-stack? stack2))
           (unless (zero? (error-print-context-length))
             (print-bug-to-stderr msg stack1 stack2))))
       (display-srclocs-in-error src-locs stack1))
