@@ -28,9 +28,9 @@
 ;; does not have an errortrace-based stack, as appropriate
 (define (check-stack-appearance errortrace-stack? setup-language)
   (define drracket-frame (wait-for-drracket-frame))
-  
+
   (define ints-text (queue-callback/res (λ () (send drracket-frame get-interactions-text))))
-  
+
   (setup-language)
   (clear-definitions drracket-frame)
   (insert-in-definitions
@@ -44,23 +44,23 @@
       (+ 1 (+ 1 (+ 1 (f x)))))
 
     (g 0)})
-                  
+
   (do-execute drracket-frame)
-  
+
   (define ints-content (queue-callback/res (λ () (send ints-text get-text))))
   (unless (regexp-match? #rx"division by zero" ints-content)
     (error 'errortrace-stacks.rkt
            "expected a division by zero error in the interactions window, got:\n~a"
            ints-content))
-  
+
   ;; try to find the stacktrace button in the interactions window
   (define cb
     (queue-callback/res
      (λ ()
        (let loop ([snip (send ints-text find-first-snip)])
          (cond
-           [snip 
-            (define cb 
+           [snip
+            (define cb
               (with-handlers ([exn:fail? (λ (x) #f)])
                 ;; string snips will fail this
                 (send snip get-callback)))
@@ -70,18 +70,18 @@
            [else #f])))))
 
   (unless cb
-    (error 'errortrace-stacks.rkt 
+    (error 'errortrace-stacks.rkt
            (string-append
             "could not find the second clickable snip"
             "in the interactions text, got: ~a")
            ints-content))
-  
+
   (queue-callback (λ () (cb)))
-  
+
   (define stacks (wait-for-new-frame drracket-frame))
 
   (define tab-panel-labels (get-tab-panel-labels stacks))
-  
+
   (define test-passed?
     (cond
       [errortrace-stack?
@@ -89,16 +89,16 @@
       [else
        (equal? tab-panel-labels #f)]))
   (check-true test-passed?)
-  
+
   (unless test-passed?
     (eprintf "errortrace-stack? ~s and tab-panel-labels ~s don't match up for ~s"
              errortrace-stack? tab-panel-labels setup-language))
-  
+
   ;; close the stacks window and log the test's result
   (queue-callback/res (λ ()
                         (test-log! test-passed?)
                         (send stacks close)))
-  
+
   ;; wait for it to close
   (wait-for-new-frame stacks))
 
@@ -145,7 +145,7 @@
 
   (delete-file tmp1-rkt-file)
   (delete-file tmp2-rkt-file)
-  
+
   (void))
 
 (define (test-show-backtrace-window/edition-pairs/two)
@@ -162,7 +162,7 @@
   (queue-callback/res
    (λ ()
      (send (send drracket-frame get-definitions-text) load-file tmp1-rkt-file)))
-  
+
   (queue-callback/res
    (λ ()
      (drracket:debug:show-backtrace-window/edition-pairs/two
@@ -215,7 +215,7 @@
        @string-append{
  #lang racket/base
  (provide main)
- 
+
  (define (f x)
    (+ 1 (/ x)))
 
@@ -226,7 +226,7 @@
  }
        port))
     #:exists 'truncate)
-  
+
   (queue-callback/res
    (λ ()
      (send (send drracket-frame get-definitions-text) load-file tmp1-rkt-file)))
@@ -260,7 +260,7 @@
             (λ () (count-embedded-editors-in-container stacks1)))])
       (check-true (frames-in-error . > . 0)))
 
-  
+
     (queue-callback (λ () (send stacks1 close))))
 
   ;; test for passing an exn to
@@ -282,10 +282,56 @@
             (λ () (count-embedded-editors-in-container stacks2)))])
       (check-true (frames-in-error . > . 0)))
 
-  
+
     (queue-callback (λ () (send stacks2 close))))
 
   (delete-file tmp1-rkt-file)
+  (void))
+
+;; make sure that we see the context of the file when there is an unsaved file
+(define (test-show-backtrace-window/unsaved-file)
+  (get drracket:debug:show-backtrace-window)
+
+  (define drracket-frame (wait-for-drracket-frame))
+  (queue-callback
+   (λ ()
+     (send (send drracket-frame get-definitions-text) insert
+           @string-append{
+ #lang racket/base
+ (define (f x)
+   (+ 1 (/ x)))
+
+ (define (g x)
+   (+ 1 (+ 1 (+ 1 (f x)))))
+ (set! f f) (set! g g)
+ (g 0)
+ })))
+
+  (do-execute drracket-frame)
+
+  (define found-and-clicked-snip?
+    (queue-callback/res
+     (λ ()
+       (define ints (send drracket-frame get-interactions-text))
+       (let loop ([snip (send ints find-first-snip)])
+         (cond
+           [(not snip) #f]
+           [(object-method-arity-includes? snip 'get-callback 0)
+            ((send snip get-callback) snip)
+            #t]
+           [else (loop (send snip next))])))))
+
+  (check-true found-and-clicked-snip?)
+
+  (when found-and-clicked-snip?
+    (define stacks2 (wait-for-new-frame drracket-frame))
+
+    (let ([frames-in-error
+           (queue-callback/res
+            (λ () (count-embedded-editors-in-container stacks2)))])
+      (check-true (frames-in-error . > . 0)))
+
+    (queue-callback (λ () (send stacks2 close))))
   (void))
 
 
@@ -332,6 +378,7 @@
 
 (fire-up-drracket-and-run-tests
  (λ ()
+   (test-show-backtrace-window/unsaved-file)
    (test-show-backtrace-window/edition-pairs/two)
    (test-show-backtrace-window)
    (test-open-and-highlight-in-file)

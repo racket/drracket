@@ -235,13 +235,12 @@
   (and txt+edition (car txt+edition)))
 
 (define (viewable-stack-matching-editor+edition a-viewable-stack a-srcloc)
-  (match-define (viewable-stack _ _ interesting-editor-editions _ _)
+  (match-define (viewable-stack _ _ interesting-editor-editions port-name-matches-cache _)
     a-viewable-stack)
   (match-define (srcloc source line col position span) a-srcloc)
-    (and (path? source)
-         (for/or ([(txt edition) (in-hash interesting-editor-editions)])
-           (and (send txt port-name-matches? source)
-                (cons txt edition)))))
+  (for/or ([(txt edition) (in-hash interesting-editor-editions)])
+    (and (port-name-matches?/use-cache txt source port-name-matches-cache)
+         (cons txt edition))))
 
 (define (remove-adjacent-duplicates things thing->di)
   (cond
