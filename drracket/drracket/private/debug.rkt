@@ -101,7 +101,7 @@
       (define grabbed? #f)
       (define in-bounds? #f)
       
-      (define (set-clicked new-grabbed? new-in-bounds? dc)
+      (define/private (set-clicked new-grabbed? new-in-bounds? dc)
         (define needs-invalidate?
           (or (not (equal? grabbed? new-grabbed?))
               (not (equal? new-in-bounds? in-bounds?))))
