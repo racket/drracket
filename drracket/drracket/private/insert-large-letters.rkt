@@ -105,14 +105,14 @@
                         (set-current-pref current-font n)
                         (update-txt (send text-field get-value))]
                        [else
-                        (define name 'framework:failed-background-color)
+                        (define name 'framework:failed-search-background-color)
                         (cond
                           [(and (color-prefs:known-color-scheme-name? name)
                                 (color-prefs:color-scheme-color-name? name))
                            (send font-size-field set-field-background
                                  (color-prefs:lookup-in-color-scheme name))]
                           [else
-                           ;; can't happen because `'framework:failed-background-color` is always
+                           ;; can't happen because `'framework:failed-search-background-color` is always
                            ;; in the set of color names but the type system doesn't know that
                            (send font-size-field set-field-background warning-background)])]))]
          [label (string-constant font-size)]))

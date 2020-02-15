@@ -1639,7 +1639,7 @@
               (color-prefs:lookup-in-color-scheme
                (if good?
                    'framework:basic-canvas-background
-                   'framework:failed-background-color))))
+                   'framework:failed-search-background-color))))
       
       (define/private (log-shown?)
         (and logger-gui-content-panel
