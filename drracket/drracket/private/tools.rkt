@@ -492,12 +492,12 @@
 
 ;; Preferences GUI
 
-(define load-action "Load the tool")
-(define skip-action "Skip the tool")
+(define load-action (string-constant load-tool-load))
+(define skip-action (string-constant load-tool-skip))
 
 (define (add-prefs-panel)
   (preferences:add-panel
-   "Tools"
+   (string-constant tool-prefs-panel-title)
    (lambda (parent)
      (define main (new-vertical-panel% (parent parent)))
      (define advisory
