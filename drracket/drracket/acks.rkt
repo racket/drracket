@@ -24,6 +24,7 @@
    "Jens Axel Søgaard, "
    "Reini Urban, "
    "ChongKai Zhu, "
+   "Paolo Zoppetti, "
    "and "
-   "Paolo Zoppetti "
+   "Alexander Shopov "
    "for their help translating DrRacket's GUI to other languages."))
