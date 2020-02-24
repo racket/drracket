@@ -199,6 +199,7 @@
          help/bug-report
          setup/unpack
          mrlib/terminal
+         browser/external
          (submod "." install-pkg)
          drracket/get-module-path)
 (provide frame@)
@@ -869,42 +870,20 @@
   (define (drracket-help-menu:after-about menu dlg-parent)
     (drracket:app:add-important-urls-to-help-menu menu '())
     (new menu-item%
-         [label (string-constant bug-report-submit-menu-item)]
+         [label (string-constant having-an-issue)]
          [parent menu]
          [callback
           (λ (x y)
-            (define saved (saved-bug-report-titles/ids))
-            (cond
-              [(null? saved)
-               (help-desk:report-bug #f #:frame-mixin basics-mixin)]
-              [else
-               (define which #f)
-               (define (done the-one)
-                 (set! which the-one)
-                 (send dlg show #f))
-               (define dlg (new dialog% 
-                                [label (string-constant drscheme)]
-                                [parent dlg-parent]))
-               (define btn1 (new button% 
-                                 [parent dlg]
-                                 [label (string-constant new-bug-report)]
-                                 [callback (λ (x y) (done #f))]))
-               (new message% [parent dlg] [label (string-constant saved-unsubmitted-bug-reports)])
-               (define btns
-                 (cons btn1
-                       (for/list ([a-brinfo (in-list saved)])
-                         (new button%
-                              [parent dlg]
-                              [label (brinfo-title a-brinfo)]
-                              [callback
-                               (λ (x y) (done (brinfo-id a-brinfo)))]))))
-               (define width (apply max (map (λ (x) (let-values ([(w h) (send x get-client-size)]) w))
-                                             btns)))
-               (for ([x (in-list btns)])
-                 (send x min-width width))
-               (send btn1 focus)
-               (send dlg show #t)
-               (help-desk:report-bug which #:frame-mixin basics-mixin)]))])
+            (define rslt
+              (message-box/custom (string-constant drracket)
+                                  (string-constant having-an-issue-dialog-content)
+                                  (string-constant visit-mailing-lists)
+                                  (string-constant visit-github)
+                                  #f
+                                  dlg-parent))
+            (case rslt
+              [(1) (send-url "https://lists.racket-lang.org/")]
+              [(2) (send-url "https://github.com/racket/racket/issues/new")]))])
     (new menu%
          [label (string-constant saved-bug-reports-menu-item)]
          [parent menu]
