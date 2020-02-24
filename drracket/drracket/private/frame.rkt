@@ -884,38 +884,6 @@
             (case rslt
               [(1) (send-url "https://lists.racket-lang.org/")]
               [(2) (send-url "https://github.com/racket/racket/issues/new")]))])
-    (new menu%
-         [label (string-constant saved-bug-reports-menu-item)]
-         [parent menu]
-         [demand-callback
-          (let ([last-time (gensym)]) ;;  a unique thing to guarantee the menu is built the first time
-            (λ (saved-bug-reports-menu)
-              (define this-time (saved-bug-report-titles/ids))
-              (unless (equal? last-time this-time)
-                (set! last-time this-time)
-                (for ([x (in-list (send saved-bug-reports-menu get-items))])
-                  (send x delete))
-                (cond
-                  [(null? this-time)
-                   (send (new menu-item%
-                              [parent saved-bug-reports-menu]
-                              [label (string-constant no-saved-bug-reports)]
-                              [callback void])
-                         enable #f)]
-                  [else
-                   (for ([a-brinfo (in-list this-time)])
-                     (new menu-item%
-                          [parent saved-bug-reports-menu]
-                          [label (brinfo-title a-brinfo)]
-                          [callback
-                           (λ (x y)
-                             (help-desk:report-bug (brinfo-id a-brinfo) 
-                                                   #:frame-mixin basics-mixin))]))
-                   (new separator-menu-item% [parent saved-bug-reports-menu])
-                   (new menu-item%
-                        [parent saved-bug-reports-menu]
-                        [label (string-constant disacard-all-saved-bug-reports)]
-                        [callback (λ (x y) (discard-all-saved-bug-reports))])]))))])
     (add-menu-macosx-path-item menu)
     (drracket:app:add-language-items-to-help-menu menu)))
 

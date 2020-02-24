@@ -1,4 +1,10 @@
 ------------------------------
+       Version 7.7
+------------------------------
+
+  . replaced DrRacket's internal bug report mechanism with a pointer to GitHub
+
+------------------------------
        Version 7.6
 ------------------------------
 

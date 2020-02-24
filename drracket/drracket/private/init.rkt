@@ -40,14 +40,12 @@
   ;;
   
   (define error-display-chan (make-channel))
-  (define get-last-N-errors-chan (make-channel))
   (define number-of-errors-to-save 5)
   (thread
    (λ () 
      (define-struct recent (msg when))
      (define currently-visible-chan (make-channel))
      (let loop ([recently-seen-errors/unfiltered '()]
-                [last-N-errors '()]
                 [currently-visible #f])
        (sync
         (handle-evt
@@ -58,19 +56,15 @@
              (let ([now (current-seconds)])
                (filter (λ (x) (<= (+ (recent-when x) (* 60 5)) now))
                        recently-seen-errors/unfiltered)))
-           (define new-last-N-errors (cons msg+exn 
-                                           (take last-N-errors 
-                                                 (min (- number-of-errors-to-save 1)
-                                                      (length last-N-errors)))))
            (define-values (msg exn) (apply values msg+exn))
            (cond
              [currently-visible 
               ;; drop errors when we have one waiting to be clicked on
-              (loop recently-seen-errors new-last-N-errors #t)]
+              (loop recently-seen-errors #t)]
              [(ormap (λ (x) (equal? msg (recent-msg x))) 
                      recently-seen-errors)
               ;; drop the error if we've seen it recently
-              (loop recently-seen-errors new-last-N-errors #f)]
+              (loop recently-seen-errors #f)]
              [else
               ;; show the error
               (define title (error-display-handler-message-box-title))
@@ -87,24 +81,11 @@
                    (message-box title text #f '(stop ok) #:dialog-mixin frame:focus-table-mixin)
                    (channel-put currently-visible-chan #f))))
               (loop (cons (make-recent msg (current-seconds)) recently-seen-errors)
-                    new-last-N-errors
                     #t)])))
-        (handle-evt
-         get-last-N-errors-chan
-         (λ (c)
-           (channel-put c last-N-errors)
-           (loop recently-seen-errors/unfiltered
-                 last-N-errors
-                 currently-visible)))
         (handle-evt
          currently-visible-chan
          (λ (val) 
-           (loop recently-seen-errors/unfiltered last-N-errors #f)))))))
-  
-  (define (get-last-N-errors)
-    (define c (make-channel))
-    (channel-put get-last-N-errors-chan c)
-    (channel-get c))
+           (loop recently-seen-errors/unfiltered #f)))))))
   
   ;; override error-display-handler to duplicate the error
   ;; message in both the standard place (as defined by the
