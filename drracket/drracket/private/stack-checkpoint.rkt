@@ -227,7 +227,7 @@
   (cond
     [txt+edition
      (match-define (cons txt edition) txt+edition)
-     (not (= (send txt get-edition) edition))]
+     (not (= (send txt get-edition-number) edition))]
     [else #f]))
 
 (define (viewable-stack-matching-editor a-viewable-stack a-srcloc)
