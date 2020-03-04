@@ -5,7 +5,7 @@
 
 (define (run-tests)
   (start-up-on-day  2 14 "Valentine's Day")
-  (start-up-on-day  3  2 "Texas Indepenence Day")
+  (start-up-on-day  3  2 "Texas Independence Day")
   (start-up-on-day  3 26 "Prince Kuhio Day")
   (start-up-on-day  6 11 "King Kamehameha Day")
   (start-up-on-day  7 30 "Eli's birthday")
