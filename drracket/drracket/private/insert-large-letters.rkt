@@ -16,7 +16,7 @@
   (let ([str (make-large-letters-dialog comment-prefix comment-character #f)])
     (when (and str
                (not (equal? str "")))
-      (render-large-letters comment-prefix comment-character (get-chosen-font) str edit)
+      (render-large-letters comment-prefix comment-character (get-chosen-font) str edit #f)
       (void))))
 
 (: get-default-font (-> (Instance Font%)))
@@ -150,7 +150,7 @@
     (send txt begin-edit-sequence)
     (send txt lock #f)
     (send txt delete 0 (send txt last-position))
-    (let ([bm (render-large-letters comment-prefix comment-character (get-chosen-font) str txt)])
+    (let ([bm (render-large-letters comment-prefix comment-character (get-chosen-font) str txt #t)])
       (send ec set-line-count (+ 1 (send txt last-paragraph)))
       (send txt lock #t)
       (send txt end-edit-sequence)
@@ -242,9 +242,9 @@
   (send bm set-argb-pixels 0 0 w h argb))
   
 
-(: render-large-letters (-> String Char (Instance Font%) String (Instance Text:Basic<%>)
+(: render-large-letters (-> String Char (Instance Font%) String (Instance Text:Basic<%>) Boolean
                             (Instance Bitmap%)))
-(define (render-large-letters comment-prefix comment-character the-font str edit)
+(define (render-large-letters comment-prefix comment-character the-font str edit color-insertion?)
   (define bdc (new bitmap-dc% [bitmap (make-bitmap 1 1 #t)]))
   (define-values (tw raw-th td ta) (send bdc get-text-extent str the-font))
   (define th (let-values ([(_1 h _2 _3) (send bdc get-text-extent "X" the-font)])
@@ -290,22 +290,23 @@
         (loop (- y 1)))))
 
 
-  (define name 'framework:syntax-color:scheme:comment)
-  (define sd
-    (cond
-      [(and (color-prefs:known-color-scheme-name? name)
-            (color-prefs:color-scheme-style-name? name))
-       ;; cast won't fail because of the above condition
-       (cast (color-prefs:lookup-in-color-scheme name)
-             (Instance Style-Delta%))]
-      [else
-       ;; shouldn't happen, but types aren't strong enough to prove it.
-       (send (editor:get-standard-style-list) find-named-style
-             (editor:get-default-color-style-name))]))
-  (send edit change-style
-        sd
-        0
-        (send edit last-position))
+  (when color-insertion?
+    (define name 'framework:syntax-color:scheme:comment)
+    (define sd
+      (cond
+        [(and (color-prefs:known-color-scheme-name? name)
+              (color-prefs:color-scheme-style-name? name))
+         ;; cast won't fail because of the above condition
+         (cast (color-prefs:lookup-in-color-scheme name)
+               (Instance Style-Delta%))]
+        [else
+         ;; shouldn't happen, but types aren't strong enough to prove it.
+         (send (editor:get-standard-style-list) find-named-style
+               (editor:get-default-color-style-name))]))
+    (send edit change-style
+          sd
+          0
+          (send edit last-position)))
   
   (send edit end-edit-sequence)
   (send bdc set-bitmap #f)
