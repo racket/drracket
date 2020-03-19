@@ -7,7 +7,7 @@
          racket/match
          framework
          "interface.rkt")
-(module+ test (require rackunit racket/list))
+(module+ test (require (rename-in rackunit [check r:check]) racket/list))
 
 (define oprintf
   (let ([op (current-output-port)])
@@ -146,9 +146,9 @@
 
     (define all-context (map cdr (continuation-mark-set->context cms)))
     (define cut-context (cut-stack-at-checkpoint cms))
-    (check-true (pair? all-context))
+    (check-pred pair? all-context)
     (check-not-equal? all-context cut-context)
-    (check-true (strict-prefix-of? cut-context all-context))))
+    (r:check strict-prefix-of? cut-context all-context)))
 
 (struct viewable-stack (stack-items
                         stack-item->srcloc
