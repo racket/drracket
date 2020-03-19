@@ -144,7 +144,7 @@
            (and (equal? (car l1) (car l2))
                 (loop (cdr l1) (cdr l2)))])))
 
-    (define all-context (map cdr (continuation-mark-set->context cms)))
+    (define all-context (map cdr (filter cdr (continuation-mark-set->context cms))))
     (define cut-context (cut-stack-at-checkpoint cms))
     (check-pred pair? all-context)
     (check-not-equal? all-context cut-context)
