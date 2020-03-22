@@ -336,7 +336,7 @@
               (orig-error-display-handler msg exn)])))))
     debug-error-display-handler)
   
-  ;; error-display-handler/stacktrace : string any (listof srcloc) -> void
+  ;; error-display-handler/stacktrace : string any (or/c #f viewable-stack? (listof srcloc)) -> void
   ;; =User=
   (define (error-display-handler/stacktrace 
            msg exn 
@@ -347,7 +347,8 @@
                                            (send rep get-definitions-text)))])
     (define stack1
       (cond
-        [pre-stack pre-stack]
+        [(viewable-stack? pre-stack) pre-stack]
+        [(list? pre-stack) (srclocs->viewable-stack pre-stack (list ints defs))]
         [(and (exn? exn)
               (continuation-mark-set? (exn-continuation-marks exn)))
          (cms->errortrace-viewable-stack (exn-continuation-marks exn)

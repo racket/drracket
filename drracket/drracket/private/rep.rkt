@@ -944,8 +944,8 @@ TODO
                (values a-viewable-stack
                        (cms->builtin-viewable-stack cms interesting-editors
                                                     #:share-cache a-viewable-stack))]
-              [else (values empty-viewable-stack
-                            empty-viewable-stack)])))
+              [else (values (empty-viewable-stack)
+                            (empty-viewable-stack))])))
         (no-user-evaluation-dialog frame exit-code memory-killed? #t)
         (set-insertion-point (last-position))
         (define have-some-stack? (not (and (empty-viewable-stack? vs1)
