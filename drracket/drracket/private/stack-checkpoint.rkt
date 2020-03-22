@@ -28,7 +28,8 @@
 
 (provide with-stack-checkpoint
          empty-viewable-stack?
-
+         srclocs->viewable-stack
+         viewable-stack?
          ;; provided only for backwards compatibility (exported via debug unit)
          srcloc->edition/pair
          get-editions)
