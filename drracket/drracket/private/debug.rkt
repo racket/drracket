@@ -348,7 +348,7 @@
     (define stack1
       (cond
         [(viewable-stack? pre-stack) pre-stack]
-        [(list? pre-stack) (srclocs->viewable-stack pre-stack (list ints defs))]
+        [(list? pre-stack) (srclocs->viewable-stack pre-stack (filter values (list ints defs)))]
         [(and (exn? exn)
               (continuation-mark-set? (exn-continuation-marks exn)))
          (cms->errortrace-viewable-stack (exn-continuation-marks exn)

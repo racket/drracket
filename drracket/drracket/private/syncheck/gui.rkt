@@ -2382,6 +2382,7 @@ If the namespace does not, they are colored the unbound color.
                     msg 
                     exn 
                     '()
+                    #:interactions-text interactions-text
                     #:definitions-text definitions-text)
                    
                    (semaphore-post error-display-semaphore)))
