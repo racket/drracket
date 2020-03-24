@@ -26,7 +26,8 @@
    (parameter/c (or/c #f (is-a?/c syncheck-annotations<%>)))]
   [annotations-mixin 
    (and/c mixin-contract
-          (-> any/c (implementation?/c syncheck-annotations<%>)))]))
+          (-> any/c (implementation?/c syncheck-annotations<%>)))])
+ build-trace%)
 
 (define (has-path-string-source? stx)
   (path-string? (syntax-source stx)))
