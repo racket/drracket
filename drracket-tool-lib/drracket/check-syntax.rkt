@@ -1,6 +1,7 @@
 #lang racket/base
 (require racket/contract
          racket/class
+         racket/path
          syntax/modread
          "private/syncheck/traversals.rkt"
          "private/syncheck/syncheck-intf.rkt"
@@ -62,7 +63,7 @@
   
   (parameterize ([current-annotations o])
     (define-values (expanded-expression expansion-completed) 
-      (make-traversal ns src))
+      (make-traversal ns (path-only src)))
     (cond
       [(path-string? file-or-stx)
        (parameterize ([current-namespace ns])
