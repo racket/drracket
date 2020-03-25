@@ -801,18 +801,22 @@
       (unless (hash-ref module-lang-requires (list (syntax-source stx)
                                                    (syntax-position stx)
                                                    (syntax-span stx)) #f)
+        ;; Use module path portion of syntax: Its more-specific
+        ;; location matters for e.g. combine-in and things that expand
+        ;; to it. See issue #110.
+        (define mod-stx (phaseless-spec->raw-module-path stx))
         (define defs-text (current-annotations))
-        (define source-editor (find-source-editor stx))
+        (define source-editor (find-source-editor mod-stx))
         (when (and defs-text source-editor)
-          (define pos (syntax-position stx))
-          (define span (syntax-span stx))
+          (define pos (syntax-position mod-stx))
+          (define span (syntax-span mod-stx))
           (when (and pos span)
             (define start (- pos 1))
             (define fin (+ start span))
             (send defs-text syncheck:add-unused-require source-editor start fin)
             (send defs-text syncheck:add-text-type
                   source-editor start fin 'unused-identifier)))
-        (color stx unused-require-style-name)))))
+        (color mod-stx unused-require-style-name)))))
 
 ;; color-unused-binder : source integer integer -> void
 (define (color-unused-binder source start end)
