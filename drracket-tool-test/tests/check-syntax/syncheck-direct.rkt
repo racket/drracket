@@ -4,7 +4,8 @@
          racket/class
          racket/set
          rackunit
-         syntax/modread)
+         syntax/modread
+         racket/file)
 
 (check-true
  (let ()
@@ -371,3 +372,50 @@
                  (list (list "prefix.rkt" 41 54
                              ': "prefix.rkt" 39 40))))
 
+(let ()
+  (define tmp-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (define src (build-path tmp-dir "prefix.rkt"))
+  (call-with-output-file src
+    (λ (port)
+      (displayln "#lang racket/base\n" port)
+      (writeln '(require "x.rkt") port)
+      (writeln 'x port)))
+  (call-with-output-file (build-path tmp-dir "x.rkt")
+    (λ (port)
+      (displayln "#lang racket/base\n" port)
+      (writeln '(define x 1) port)
+      (writeln '(provide x) port)))
+
+  (define content
+    (parameterize ([current-directory tmp-dir])
+      (show-content src)))
+
+  (define paths
+    (let loop ([content content])
+      (cond
+        [(vector? content)
+         (apply
+          set-union
+          (for/list ([x (in-vector content)])
+            (loop x)))]
+        [(pair? content)
+         (set-union (loop (car content))
+                    (loop (cdr content)))]
+        [(path? content)
+         (set content)]
+        [else
+         (set)])))
+
+  (define (path-extension-of? p1 p2)
+    (define p1-eles (explode-path p1))
+    (define p2-eles (explode-path p2))
+    (and (<= (length p1-eles) (length p2-eles))
+         (for/and ([p1-ele (in-list p1-eles)]
+                   [p2-ele (in-list p2-eles)])
+           (equal? p1-ele p2-ele))))
+
+  (for ([path (in-set paths)])
+    (when (path-extension-of? tmp-dir path)
+      (check-pred file-exists? path)))
+
+  (delete-directory/files tmp-dir))
