@@ -27,22 +27,27 @@ that are exposed via Racket APIs to be used with other editors.
 
 @defproc[(show-content [file-or-stx (or/c path-string?
                                           (and/c syntax?
-                                                 (λ (x) (path-string? (syntax-source x)))))])
+                                                 (λ (x) (path-string? (syntax-source x)))))]
+                       [#:fully-expanded? fully-expanded? #f])
          (listof vector?)]{
 
-This procedure composes the other pieces of this library together in a way that can be used
-for REPL-style experimentation with the results from Check Syntax, as shown in the example
-below. The list it returns has one vector for each call that would be made to the
-object in @racket[current-annotations]. Each vector's first element is a symbol naming
-a method in @racket[syncheck-annotations<%>] and the other elements of the vector are
-the arguments passed to the method.
+ This procedure provides a simplified interface to the rest
+ of the library, as shown in the example below. The list it
+ returns has one vector for each call that would be made to
+ the object in @racket[current-annotations]. Each vector's
+ first element is a symbol naming a method in
+ @racket[syncheck-annotations<%>] and the other elements of
+ the vector are the arguments passed to the method.
+ (Note that this procedure does not account for the callback
+ procedures present in
+ @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
+ and @method[syncheck-annotations<%> syncheck:add-id-set].)
 
-This doesn't work as well for use in a real tool, however, because it doesn't account for
-the callback procedures present in @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
-and @method[syncheck-annotations<%> syncheck:add-id-set] and the resulting vectors are probably less
-convenient to work with than direct method calls for most uses of this library. Nevertheless,
-it gives a quick feel for the results that can come back from Check Syntax.
-
+ The @racket[file-or-stx] argument gives the input program and
+ @racket[fully-expanded?] indicates if the @racket[file-or-stx]
+ argument has already been fully expanded (it is ignored if
+ @racket[file-or-stx] is not syntax).
+ 
 See @racket[annotations-mixin] for some example code to use the other parts of this library.
 
 Note that the paths in the example below have been replaced via @racket[make-paths-be-module-paths]
@@ -67,6 +72,9 @@ in order to make the results be platform independent.
                    (read-syntax
                     (build-path (current-directory) "dummy-file.rkt")
                     (open-input-string (format "~s" example-module))))))]
+
+ @history[#:changed "1.2" @list{Added the @racket[#:fully-expanded] argument.}]
+
 }
 
 @defproc[(make-traversal [namespace namespace?]

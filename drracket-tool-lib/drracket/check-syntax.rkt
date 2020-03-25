@@ -9,10 +9,11 @@
 
 (provide
  (contract-out
-  [show-content (-> (or/c path-string?
-                          (and/c syntax?
-                                 has-path-string-source?))
-                    (listof vector?))]
+  [show-content (->* ((or/c path-string?
+                            (and/c syntax?
+                                   has-path-string-source?)))
+                     (#:fully-expanded? any/c)
+                     (listof vector?))]
   [make-traversal 
    (-> namespace?
        (or/c path-string? #f)
@@ -51,7 +52,8 @@
  syncheck:add-unused-require
  syncheck:color-range)
 
-(define (show-content file-or-stx)
+(define (show-content file-or-stx #:fully-expanded? [fully-expanded? #t])
+  (define expand? (or (not fully-expanded?) (not (syntax? file-or-stx))))
   (define ns (make-base-namespace))
   (define src
     (cond
@@ -78,8 +80,9 @@
       [else 
        (parameterize ([current-namespace ns])
          (expanded-expression
-          (expand
-           file-or-stx)))])
+          (if expand?
+              (expand file-or-stx)
+              file-or-stx)))])
     (expansion-completed))
   
   (send o get-trace))
