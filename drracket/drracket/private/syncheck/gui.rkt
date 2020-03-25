@@ -693,7 +693,7 @@ If the namespace does not, they are colored the unbound color.
                 [else #f]))
             
             (define/public (syncheck:add-require-open-menu text start-pos end-pos file)
-              (define ((make-require-open-menu file) menu)
+              (define (make-require-open-menu menu)
                 (define-values (base name dir?) (split-path file))
                 (new menu-item%
                      (label (fw:gui-utils:format-literal-label
@@ -701,7 +701,7 @@ If the namespace does not, they are colored the unbound color.
                      (parent menu)
                      (callback (λ (x y) (fw:handler:edit-file file))))
                 (void))
-              (syncheck:add-menu text start-pos end-pos #f (make-require-open-menu file))
+              (syncheck:add-menu text start-pos end-pos file make-require-open-menu)
               (syncheck:add-require-candidate file))
             
             (define/public (syncheck:add-docs-menu text start-pos end-pos id
@@ -1114,7 +1114,7 @@ If the namespace does not, they are colored the unbound color.
                        (interval-map-update*! arrow-record start end
                                               (λ (old)
                                                 (if (for/or ([x (in-list old)])
-                                                      (and (pair? x) (car x) (eq? (car x) key)))
+                                                      (and (pair? x) (car x) (equal? (car x) key)))
                                                     old
                                                     (cons (cons key to-add) old)))
                                               null)]
