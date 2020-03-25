@@ -12,7 +12,8 @@
   [show-content (->* ((or/c path-string?
                             (and/c syntax?
                                    has-path-string-source?)))
-                     (#:fully-expanded? any/c)
+                     (#:fully-expanded? any/c
+                      #:namespace (or/c #f namespace?))
                      (listof vector?))]
   [make-traversal 
    (-> namespace?
@@ -52,9 +53,11 @@
  syncheck:add-unused-require
  syncheck:color-range)
 
-(define (show-content file-or-stx #:fully-expanded? [fully-expanded? #t])
+(define (show-content file-or-stx
+                      #:fully-expanded? [fully-expanded? #t]
+                      #:namespace [_namespace #f])
   (define expand? (or (not fully-expanded?) (not (syntax? file-or-stx))))
-  (define ns (make-base-namespace))
+  (define ns (or _namespace (make-base-namespace)))
   (define src
     (cond
       [(path-string? file-or-stx)

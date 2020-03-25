@@ -28,7 +28,8 @@ that are exposed via Racket APIs to be used with other editors.
 @defproc[(show-content [file-or-stx (or/c path-string?
                                           (and/c syntax?
                                                  (λ (x) (path-string? (syntax-source x)))))]
-                       [#:fully-expanded? fully-expanded? #f])
+                       [#:fully-expanded? fully-expanded? boolean? #f]
+                       [#:namespace namespace (or/c #f namespace?) #f])
          (listof vector?)]{
 
  This procedure provides a simplified interface to the rest
@@ -43,10 +44,14 @@ that are exposed via Racket APIs to be used with other editors.
  @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
  and @method[syncheck-annotations<%> syncheck:add-id-set].)
 
- The @racket[file-or-stx] argument gives the input program and
- @racket[fully-expanded?] indicates if the @racket[file-or-stx]
- argument has already been fully expanded (it is ignored if
- @racket[file-or-stx] is not syntax).
+ The @racket[file-or-stx] argument gives the input program
+ and @racket[fully-expanded?] indicates if the
+ @racket[file-or-stx] argument has already been fully
+ expanded (it is ignored if @racket[file-or-stx] is not
+ syntax). The @racket[namespace] argument is installed as the
+ @racket[current-namespace] or, if @racket[namespace] is
+ @racket[#f], then a new namespace is created, using
+ @racket[(make-base-namespace)].
  
 See @racket[annotations-mixin] for some example code to use the other parts of this library.
 
@@ -73,7 +78,7 @@ in order to make the results be platform independent.
                     (build-path (current-directory) "dummy-file.rkt")
                     (open-input-string (format "~s" example-module))))))]
 
- @history[#:changed "1.2" @list{Added the @racket[#:fully-expanded] argument.}]
+ @history[#:changed "1.2" @list{Added the @racket[#:fully-expanded] and @racket[#:namespace] arguments.}]
 
 }
 
