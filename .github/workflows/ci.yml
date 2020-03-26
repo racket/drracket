@@ -23,5 +23,5 @@ jobs:
       - run: raco pkg config catalogs >> catalog-config.txt
       - run: sudo raco pkg config --set catalogs `cat catalog-config.txt`
       - run: sudo raco pkg update -i --auto --no-setup drracket/ drracket-test/ drracket-tool/ drracket-tool-test/ drracket-tool-lib/ drracket-tool-doc/ drracket-plugin-lib/
-      - run: sudo raco setup --check-pkg-deps drracket drracket-test drracket-tool drracket-tool-test drracket-tool-lib drracket-tool-doc drracket-plugin-lib
+      - run: sudo raco setup --check-pkg-deps drracket tests/drracket
       - run: xvfb-run raco test -l tests/drracket/syncheck-test
