@@ -26,5 +26,5 @@ jobs:
              sudo raco pkg update -i --auto --no-setup drracket/ drracket-test/ drracket-tool/ drracket-tool-test/ drracket-tool-lib/ drracket-tool-doc/ drracket-plugin-lib/
       - run: sudo raco setup --check-pkg-deps drracket tests/drracket
       - run: mkdir .racket/
-      - run: chmod -R w+a .racket/
+      - run: chmod -R a+w .racket/
       - run: xvfb-run raco test -e -l tests/drracket/module-lang-test
