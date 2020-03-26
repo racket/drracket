@@ -1,0 +1,30 @@
+on: [push, pull_request]
+name: CI
+jobs:
+  build:
+    name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        racket-version: ["current"]
+        racket-variant: ["regular", "CS"]
+    steps:
+      - uses: actions/checkout@master
+      - uses: Bogdanp/setup-racket@v0.3
+        with:
+          architecture: x64
+          distribution: full
+          variant: ${{ matrix.racket-variant }}
+          version: ${{ matrix.racket-version }}
+      - run: |
+             sudo raco pkg install --auto -i --no-setup --skip-installed drracket-test drracket-tool-test
+             racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
+             echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
+             raco pkg config catalogs >> catalog-config.txt
+             sudo raco pkg config --set catalogs `cat catalog-config.txt`
+             sudo raco pkg update -i --auto --no-setup drracket/ drracket-test/ drracket-tool/ drracket-tool-test/ drracket-tool-lib/ drracket-tool-doc/ drracket-plugin-lib/
+      - run: sudo raco setup --check-pkg-deps drracket tests/drracket
+      - run: mkdir .racket/
+      - run: chmod -R a+w .racket/
+      - run: xvfb-run raco test -e -l tests/drracket/module-lang-test
