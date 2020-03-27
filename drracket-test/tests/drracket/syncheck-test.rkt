@@ -1595,6 +1595,11 @@
     (dynamic-wind
      void
      (λ ()
+       (call-with-input-file (collection-file-path "list.rkt" "racket")
+         (λ (in-port)
+           (call-with-output-file (build-path temp-dir "list.rkt")
+             (λ (out-port)
+               (copy-port in-port out-port)))))
        (fire-up-drracket-and-run-tests
         (λ ()
           (let ([drs (wait-for-drracket-frame)])
@@ -1646,7 +1651,7 @@
                [expected (test-expected test)]
                [arrows (test-arrows test)]
                [tooltips (test-tooltips test)]
-               [relative (find-relative-path save-dir (collection-file-path "list.rkt" "racket"))]
+               [relative "list.rkt"]
                [setup (test-setup test)]
                [teardown (test-teardown test)]
                [extra-files (test-extra-files test)]
