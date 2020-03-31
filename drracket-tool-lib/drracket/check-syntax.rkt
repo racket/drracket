@@ -54,7 +54,7 @@
  syncheck:color-range)
 
 (define (show-content file-or-stx
-                      #:fully-expanded? [fully-expanded? #t]
+                      #:fully-expanded? [fully-expanded? #f]
                       #:namespace [_namespace #f])
   (define expand? (or (not fully-expanded?) (not (syntax? file-or-stx))))
   (define ns (or _namespace (make-base-namespace)))
