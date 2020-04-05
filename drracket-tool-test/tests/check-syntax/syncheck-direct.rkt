@@ -25,7 +25,9 @@
   (define annotations
     (new (mixin (class (annotations-mixin object%)
                   (super-new)
-                  (define/public (add-item x) (set! results (cons x results)))
+                  (define/public (add-item x)
+                    (when x
+                      (set! results (cons x results))))
                   (define/override (syncheck:find-source-object stx)
                     (if (eq? 'the-source (syntax-source stx))
                         'yep
@@ -233,6 +235,10 @@
                "(module m racket/base (require racket/match) (+ 1 2)))")
               (set '(31 43)))
 
+(check-equal? (get-unused-requires
+               "(module m racket/base (require racket/match) #'match))")
+              (set))
+
 (define-get-arrows get-prefixed-require-reference
   (syncheck:add-prefixed-require-reference req-src
                                            req-pos-left
@@ -256,6 +262,108 @@
    "(:string-prefix? \"abcdefg\" \"abc\")\n"))
  (set (list 41 54 ': 39 40)))
 
+
+(define-get-arrows get-require-arrows
+  (syncheck:add-arrow/name-dup/pxpy start-source-obj
+                                    start-left
+                                    start-right
+                                    start-px
+                                    start-py
+                                    end-source-obj
+                                    end-left
+                                    end-right
+                                    end-px
+                                    end-py
+                                    actual?
+                                    phase-level
+                                    require-arrows?
+                                    name-dup?)
+  ;; #t means an arrow from `require` (but not the #lang built-in require)
+  (and (equal? require-arrows? #t)
+       (list start-left end-left)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require racket/string)\n"
+   "(string-prefix? \"abcdefg\" \"abc\")\n"))
+ (set '(28 44)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require racket/string)\n"
+   "(string-prefix? \"abcdefg\" \"abc\")\n"
+   "(string-prefix? \"abcdefg\" \"abc\")\n"))
+ (set '(28 44) '(28 77)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (only-in racket/list first [second deuxième]))\n"
+   "first deuxième\n"))
+ (set '(37 76) '(37 82)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (except-in racket/list first))\n"
+   "second\n"))
+ (set '(39 59)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (prefix-in : racket/string))\n"
+   "(:string-prefix? \"abcdefg\" \"abc\")\n"))
+ (set '(39 58) '(41 59)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (rename-in racket/list [second deuxième]))\n"
+   "deuxième\n"))
+  (set '(39 72)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (combine-in racket/list racket/string))\n"
+   "first string-prefix?\n"))
+ (set '(52 74) '(40 68)))
+
+#;
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (relative-in racket \"list.rkt\"))\n"
+   "first\n"))
+ (set 'dunno!))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (for-meta 1 racket/base))\n"
+   "(begin-for-syntax +)\n"))
+ (set '(40 72)))
 
 
 ;                                 
