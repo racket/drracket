@@ -5,7 +5,8 @@
          racket/set
          rackunit
          syntax/modread
-         racket/file)
+         racket/file
+         racket/format)
 
 (define-syntax-rule
   (define-get-arrows get-what-arrows method-header arrow-info)
@@ -207,6 +208,21 @@
            (subtract-prefix (list-ref arrow 1))))
    (set '((15 19 0.5 0.5) (24 28 0.5 0.5)))))
 
+(check-equal? (get-binding-arrows/pxpy
+               (~s
+                '(module m racket/base
+                   (require racket/require
+                            (multi-in racket (list match))
+                            racket/set
+                            (rename-in racket/list [first 1st]))
+                   first
+                   1st)))
+              (set '((31 45 0.5 0.5) (47 55 0.5 0.5))
+                   '((10 21 0.5 0.5) (89 98 0.5 0.5))
+                   '((10 21 0.5 0.5) (23 30 0.5 0.5))
+                   '((64 68 0.5 0.5) (125 130 0.5 0.5))
+                   '((99 110 0.5 0.5) (131 134 0.5 0.5))))
+
 
 
 ;                                                       
@@ -366,6 +382,57 @@
  (set '(40 72)))
 
 
+
+;                                                 
+;                                                 
+;                                                 
+;                                                 
+;                                             ;;; 
+;                                             ;;; 
+;  ;;; ;;; ;;; ;;  ;;; ;;;  ;;;;    ;;;;   ;; ;;; 
+;  ;;; ;;; ;;;;;;; ;;; ;;; ;;; ;;  ;; ;;; ;;;;;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;; ;;;    ;;; ;;; ;;; ;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;;  ;;;;  ;;;;;;; ;;; ;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;;    ;;; ;;;     ;;; ;;; 
+;  ;;;;;;; ;;; ;;; ;;;;;;; ;; ;;;  ;;;;;; ;;;;;;; 
+;   ;; ;;; ;;; ;;;  ;; ;;;  ;;;;    ;;;;   ;; ;;; 
+;                                                 
+;                                                 
+;                                                 
+;                                                 
+
+(define-get-arrows get-text-type
+  (syncheck:add-text-type _ start end type)
+  (and (equal? type 'unused-identifier)
+       (list start end)))
+
+(check-equal?
+ (get-text-type
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/dict)\n"))
+ (set '(27 38)))
+
+(check-equal?
+ (get-text-type
+  (string-append
+   "#lang racket/base\n"
+   "(require (combine-in racket/list racket/dict))\n"
+   "first"))
+ (set '(51 62)))
+
+(check-equal? (get-text-type
+               (~s
+                '(module m racket/base
+                   (require racket/require
+                            (multi-in racket (list match))
+                            racket/set
+                            (rename-in racket/list [first 1st]))
+                   first
+                   1st)))
+              (set '(69 74)           ;racket/match from multi-in
+                   '(77 87)))         ;racket/set
+
 ;                                 
 ;                                 
 ;                                 
@@ -485,47 +552,3 @@
        '(let-syntax ([m (λ (_) #`(let ([x 1]) x))])
           (m))))
      (done))))
-
-;;; Issue #110
-(let ()
-  (define src (format "~s"
-                      '(module m racket/base
-                         (require racket/require
-                                  (multi-in racket (list match))
-                                  racket/set
-                                  (rename-in racket/list [first 1st]))
-                         first
-                         1st)))
-  ;; Check that change doesn't break arrows
-  (check-equal? (get-binding-arrows/pxpy src)
-                (set '((31 45 0.5 0.5) (47 55 0.5 0.5))
-                     '((10 21 0.5 0.5) (89 98 0.5 0.5))
-                     '((10 21 0.5 0.5) (23 30 0.5 0.5))
-                     '((64 68 0.5 0.5) (125 130 0.5 0.5))
-                     '((99 110 0.5 0.5) (131 134 0.5 0.5))))
-  ;; Check unused requires
-  (define collector%
-    (class (annotations-mixin object%)
-      (super-new)
-      (define unused-requires (set))
-      (define/override (syncheck:find-source-object stx) stx)
-      (define/override (syncheck:add-unused-require _ beg end)
-        (set! unused-requires
-              (set-add unused-requires
-                       (list beg end))))
-      (define/public (get-unused-requires) unused-requires)))
-  (define annotations (new collector%))
-  (parameterize ([current-annotations annotations]
-                 [current-namespace (make-base-namespace)])
-    (define-values (add-syntax done)
-      (make-traversal (current-namespace) #f))
-    (add-syntax (expand
-                 (read-syntax
-                   'the-source
-                   (open-input-string
-                    src))))
-    (done))
-  (check-equal? (send annotations get-unused-requires)
-                ;; Note: These positions are from (format "~s")
-                (set '(69 74)           ;racket/match from multi-in
-                     '(77 87))))        ;racket/set

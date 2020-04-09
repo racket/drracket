@@ -804,7 +804,8 @@
         ;; Use module path portion of syntax: Its more-specific
         ;; location matters for e.g. combine-in and things that expand
         ;; to it. See issue #110.
-        (define mod-stx (phaseless-spec->raw-module-path stx))
+        (define raw-mod-stx (phaseless-spec->raw-module-path stx))
+        (define mod-stx (if (syntax-source raw-mod-stx) raw-mod-stx stx))
         (define defs-text (current-annotations))
         (define source-editor (find-source-editor mod-stx))
         (when (and defs-text source-editor)
