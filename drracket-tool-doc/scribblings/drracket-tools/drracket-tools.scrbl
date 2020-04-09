@@ -437,10 +437,11 @@ in order to make the results be platform independent.
 
 @(define-syntax-rule 
    (syncheck-method-id x ...)
-   (begin @defidform[x]{Bound to an identifier created with
-                        @racket[define-local-member-name]
-                        that is used in @racket[syncheck-annotations<%>].}
-          ...))
+   (begin @defidform[x]{
+ Bound to an identifier created with
+ @racket[define-local-member-name]
+ that is used as the @method[syncheck-annotations<%> x] method
+ of @racket[syncheck-annotations<%>].} ...))
 @syncheck-method-id[syncheck:find-source-object
                     syncheck:add-text-type
                     syncheck:add-background-color
