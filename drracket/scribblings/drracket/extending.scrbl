@@ -6,10 +6,21 @@
 
 @title[#:tag "extending-drracket"]{Extending DrRacket}
 
-DrRacket supports two forms of extension to the programming
- environment:
+DrRacket supports four forms of extension to the programming
+ environment: keybindings, teachpacks, scripts and plugins.
 
 @itemize[
+  
+@item{The @deftech{Keybindings} menu item allows the addition of user 
+  defined keybindings. For information on creating user defined 
+  keybindings, see @secref["defining-shortcuts" #:doc 
+  '(lib "scribblings/drracket/drracket.scrbl")].}
+
+@item{The @deftech{Scripts} menu provided by the Quickscript plugin, makes
+  it easy to extend DrRacket with small Racket scripts that can be used
+  in the definition (or interaction) window, or to graphically interact
+  with the user. For information on creating @tech{scripts}, see 
+  @other-doc['(lib "quickscript/scribblings/quickscript.scrbl")].}
 
 @item{@index['("languages" "extending")]{@index['("DrRacket
   Teachpacks")]{A @deftech{teachpack}}} extends the set of procedures
@@ -30,8 +41,16 @@ DrRacket supports two forms of extension to the programming
   Syntax} button starts a syntax-checking plugin. For information on
   creating @tech{plugin}s, see @other-manual['(lib
   "scribblings/tools/tools.scrbl")].}
-
+  
 ]
+
+Customization of the DrRacket environment is available via @deftech{Preferences}
+menu item, along the the facility to define new 
+@secref["color-scheme" #:doc '(lib "scribblings/drracket/drracket.scrbl")].
+Existing colorschemes packages are  
+@hyperlink["https://pkgd.racket-lang.org/pkgn/search?tags=colorscheme"]{@italic{tagged 
+`colorscheme'}}.
+
 
 @; ----------------------------------------
 
