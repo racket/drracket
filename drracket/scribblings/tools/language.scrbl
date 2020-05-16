@@ -133,8 +133,7 @@ is rendered.  The insert newlines field determines if values in the repl
 are formatted with @racket[write] style-line printouts, or with
 @racket[pretty-print] multi-line printouts.
 
-@defmethod[#:mode override
-           (config-panel)
+@defmethod[(config-panel)
            (case-> (-> settings) (settings -> void))]{
   Constructs a configuration panel that lets the user configure all of
   the settings for this language.
@@ -145,8 +144,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (default-settings)
+@defmethod[(default-settings)
            settings]{
   The defaults for the settings are
   @itemize[
@@ -162,13 +160,11 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (default-settings?)
+@defmethod[(default-settings?)
            boolean?]{
 }
 
-@defmethod[#:mode override
-           (get-init-code [settings settings])
+@defmethod[(get-init-code [settings settings])
            sexpression]{
   Creates an s-expression of a module that sets the
   @racket[current-inspector], @racket[read-case-sensitive], and
@@ -176,14 +172,12 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[errortrace], if debugging is enabled.
 }
 
-@defmethod[#:mode override
-           (get-transformer-module)
+@defmethod[(get-transformer-module)
            s-expression]{
   Returns @racket['mzscheme].
 }
 
-@defmethod[#:mode override
-           (marshall-settings)
+@defmethod[(marshall-settings)
            writable]{
   Constructs a vector from the structure.
 
@@ -193,8 +187,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (on-execute)
+@defmethod[(on-execute)
            void?]{
   Sets the case sensitivity of the language.
 
@@ -215,8 +208,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (render-value)
+@defmethod[(render-value)
            void?]{
   Translates the value to a string, based on the settings.
 
@@ -230,8 +222,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (render-value/format)
+@defmethod[(render-value/format)
            void?]{
   Translates the value to a string, based on the settings.
 
@@ -245,8 +236,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (unmarshall-settings)
+@defmethod[(unmarshall-settings)
            (or/c false/c settings)]{
   Builds a settings structure from the vector, or @racket[#f] if the
   vector doesn't match the types of the structure.
@@ -257,8 +247,7 @@ are formatted with @racket[write] style-line printouts, or with
   @racket[settings] type.
 }
 
-@defmethod[#:mode override
-           (use-mred-launcher)
+@defmethod[(use-mred-launcher)
            boolean?]{
   Returns @racket[#t].
 }}
@@ -413,8 +402,7 @@ interface.
 
 @defmixin[drracket:language:module-based-language->language-mixin (drracket:language:module-based-language<%>) (drracket:language:language<%>)]{
 
-@defmethod[#:mode override
-           (front-end/complete-program)
+@defmethod[(front-end/complete-program)
            (-> (or/c sexp/c syntax? eof-object?))]{
   Reads a syntax object, from @racket[input].  Does not use
   @racket[settings].
@@ -424,8 +412,7 @@ interface.
   @method[drracket:language:module-based-language->language-mixin% front-end/interaction].
 }
 
-@defmethod[#:mode override
-           (front-end/interaction)
+@defmethod[(front-end/interaction)
            (-> (or/c sexp/c syntax? eof-object?))]{
   Reads a syntax object, from @racket[input]. Does not use
   @racket[settings].
@@ -435,8 +422,7 @@ interface.
   @method[drracket:language:module-based-language->language-mixin% front-end/complete-program].
 }
 
-@defmethod[#:mode override
-           (get-language-name)
+@defmethod[(get-language-name)
            string?]{
   Returns the last element of the list returned by
   @method[drracket:language:language<%> get-language-position].

@@ -66,7 +66,7 @@ are just ignored.
   This method must be called from the DrRacket main thread.
   }
                  
-@defmethod[#:mode augment (after-many-evals) any]{
+@defmethod[#:mode pubment (after-many-evals) any]{
   Called from the DrRacket main thread after
   @method[drracket:rep:text% evaluate-from-port] finishes (no matter
   how it finishes).
