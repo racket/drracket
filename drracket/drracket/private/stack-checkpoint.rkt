@@ -202,7 +202,7 @@
 (define (get-port-name-matches-cache a-viewable-stack)
   (if a-viewable-stack
       (viewable-stack-port-name-matches-cache a-viewable-stack)
-      (make-weak-hash)))
+      (make-weak-hasheq)))
 
 (define (get-interesting-editions interesting-editors)
   (define interesting-editor-editions (make-weak-hash))
@@ -308,9 +308,13 @@
     [else #f]))
 
 (define (port-name-matches?/use-cache txt src port-name-matches-cache)
-  (if port-name-matches-cache
-      (hash-ref! port-name-matches-cache (cons txt src) (λ () (send txt port-name-matches? src)))
-      (send txt port-name-matches? src)))
+  (cond
+    [port-name-matches-cache
+     (define txt-cache (hash-ref! port-name-matches-cache txt (λ () (make-weak-hash))))
+     (hash-ref! txt-cache src
+                (λ () (send txt port-name-matches? src)))]
+    [else
+     (send txt port-name-matches? src)]))
 
 (define (viewable-stack->red-arrows-backtrace-srclocs a-viewable-stack)
   (match-define (viewable-stack stack-items stack-item->srcloc interesting-editor-editions port-name-matches-cache env)
