@@ -45,7 +45,7 @@ DrRacket supports four forms of extension to the programming
 
 Don't forget you can also define new color schemes for DrRacket 
 @secref["color-scheme" #:doc '(lib "scribblings/drracket/drracket.scrbl")].
-Existing colorschemes packeges are  
+Existing colorschemes packages are  
 @hyperlink["https://pkgd.racket-lang.org/pkgn/search?tags=colorscheme"]{@italic{tagged 
 'colorscheme'}}.
 
