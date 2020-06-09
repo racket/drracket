@@ -223,7 +223,17 @@
                    '((64 68 0.5 0.5) (125 130 0.5 0.5))
                    '((99 110 0.5 0.5) (131 134 0.5 0.5))))
 
-
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket\n"
+                "(class object%\n"
+                "  (super-new)\n"
+                "  (define-syntax (mac stx)\n"
+                "    #'1))"))
+              (set '((6 12) (14 19))
+                   '((6 12) (20 27))
+                   '((6 12) (31 40))
+                   '((6 12) (45 58))))
 
 ;                                                       
 ;                                                       
