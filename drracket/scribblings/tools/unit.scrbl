@@ -569,8 +569,7 @@ items based on the contents of the windows.
 
 }}
 
-
-@definterface[drracket:unit:frame<%> ()]{
+@definterface[drracket:unit:frame<%> (drracket:frame:<%>)]{
 
 @defmethod[(get-language-menu) (is-a?/c menu%)]{ Returns the
   language-specific menu. This menu is called the
