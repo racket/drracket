@@ -2973,8 +2973,9 @@
       (define/private (save-all-unsaved-files)
         (let/ec k
           (for ([tab (in-list (get-unsaved-candidate-tabs #f))])
-            (unless (send (send tab get-defs) save-file/gui-error)
-              (k (void)))))
+            (parameterize ([editor:doing-autosave? #t])
+              (unless (send (send tab get-defs) save-file #f 'same #f)
+                (k (void))))))
         (update-tabs-labels))
 
       (define/private (get-unsaved-candidate-tabs skip-me?)
