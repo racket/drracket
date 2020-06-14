@@ -823,34 +823,7 @@ that the button is not referenced by this frame and thus can be gc'd.
 
 }
 
-
-@defclass[drracket:unit:definitions-text%
-          (drracket:rep:drs-bindings-keymap-mixin
-           (drracket:unit:program-editor-mixin (racket:text-mixin text:info%)))
-          (drracket:unit:definitions-text<%>)]{
-
-@defconstructor[()]{
-Passes all arguments to @racket[super-init].
-}
-
-@defmethod[#:mode override 
-           (set-filename)
-           void?]{
-
-Calls
-@method[drracket:unit:frame% update-save-message].
-}
-
-@defmethod[#:mode override 
-           (set-modified)
-           void?]{
-
-Calls
-@method[drracket:unit:frame% update-save-button].
-}}
-
-
-@definterface[drracket:unit:definitions-text<%> ()]{
+@definterface[drracket:unit:definitions-text<%> (editor<%>)]{
 
 This interface is implemented by the definitions text. 
 
@@ -943,9 +916,27 @@ changed, which affects newly created windows.
 See also
 @method[drracket:unit:definitions-text<%> after-set-next-settings] and
 @method[drracket:unit:definitions-text<%> get-next-settings].
+}
 
+ @defmethod[#:mode override
+ (set-filename [filename (or/c path-string? #f)]
+               [temporary? any/c #f])
+ void?]{
 
-}}
+  The class that is the result of
+  @racket[(get-drracket:unit:definitions-text%)]
+  overrides this method and calls
+  @method[drracket:unit:frame% update-save-message].
+ }
+
+ @defmethod[#:mode override
+ (set-modified [modified? any/c])
+ void?]{
+   The class that is the result of
+   @racket[(get-drracket:unit:definitions-text%)]
+   overrides this method and calls
+   @method[drracket:unit:frame% update-save-button].
+ }}
 
 
 @defclass[drracket:unit:definitions-canvas% editor-canvas% ()]{
@@ -955,9 +946,12 @@ Initializes the visibility of the save button.
 }
 
 @defproc[(drracket:unit:get-definitions-text%)
-         (implementation?/c drracket:unit:definitions-text<%>)]{
+         (and/c (instanceof/c racket:text<%>)
+                (instanceof/c text:info%)
+                (implementation?/c drracket:unit:definitions-text<%>))]{
  Returns the class used to implement the definitions text
- in the DrRacket frame.
+ in the DrRacket frame.  Its result mixes in
+ @racket[drracket:unit:program-editor-mixin].
 }
 
 @(tools-include "unit")
