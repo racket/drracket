@@ -494,29 +494,33 @@
       (match basic-info
         [(list start end tag path url-tag)
          (define id (string->symbol (get-text start end)))
-         (define meth-tags
-           (fetch-blueboxes-method-tags id #:blueboxes-cache (get-blueboxes-cache)))
+         (define the-blueboxes-cache (get-blueboxes-cache this))
          (cond
-           [(and (not tag) (null? meth-tags))
-            #f]
-           [else
-            (define id-strs
-              (and tag
-                   (fetch-blueboxes-strs tag #:blueboxes-cache (get-blueboxes-cache))))
-            (and id-strs
-                 (list start
-                       end
-                       (apply
-                        append
-                        id-strs
-                        (for/list ([meth-tag (in-list meth-tags)]
-                                   [i (in-naturals)])
-                          (define bbs
-                            (fetch-blueboxes-strs meth-tag #:blueboxes-cache (get-blueboxes-cache)))
-                          (if (zero? i)
-                              (or bbs '())
-                              (if bbs (cdr bbs) '()))))
-                       path url-tag))])]
+           [the-blueboxes-cache
+            (define meth-tags
+              (fetch-blueboxes-method-tags id #:blueboxes-cache the-blueboxes-cache))
+            (cond
+              [(and (not tag) (null? meth-tags))
+               #f]
+              [else
+               (define id-strs
+                 (and tag
+                      (fetch-blueboxes-strs tag #:blueboxes-cache the-blueboxes-cache)))
+               (and id-strs
+                    (list start
+                          end
+                          (apply
+                           append
+                           id-strs
+                           (for/list ([meth-tag (in-list meth-tags)]
+                                      [i (in-naturals)])
+                             (define bbs
+                               (fetch-blueboxes-strs meth-tag #:blueboxes-cache the-blueboxes-cache))
+                             (if (zero? i)
+                                 (or bbs '())
+                                 (if bbs (cdr bbs) '()))))
+                          path url-tag))])]
+           [else #f])]
         [#f #f]))
     
     (define/private (check-nearby-symbol pos maybe-pause)
@@ -713,18 +717,84 @@
    (docs-text-linked-info-mixin
     %)))
 
-(define blueboxes-cache #f)
-(define docs-state #f)
-(define (get-blueboxes-cache)
-  (define (fetch)
-    (set! blueboxes-cache
-          (make-blueboxes-cache #t #:blueboxes-dirs (get-rendered-doc-directories #f #f)))
-    (set! docs-state (get-current-doc-state)))
-  (cond
-    [blueboxes-cache
-     (when (doc-state-changed? docs-state) (fetch))]
-    [else (fetch)])
-  blueboxes-cache)
+;; (is-a/c? docs-text-info<%>) -> (or/c #f blueboxes-cache)
+;; when this returns #f the cache needs
+;; to be computed so we start the computation of the cache
+;; in another thread; when the cache is ready we queue a callback
+;; that calls the `update-the-strs` callback on `a-docs-text-info`
+(define (get-blueboxes-cache a-docs-text-info)
+  (define resp-chan (make-channel))
+  (channel-put get-blueboxes-cache-chan (list resp-chan a-docs-text-info))
+  (channel-get resp-chan))
+
+(define got-blueboxes-cache-chan (make-channel))
+(define get-blueboxes-cache-chan (make-channel))
+
+(void
+ (thread
+  (λ ()
+    (struct init () #:transparent)
+    (struct pending (to-update-the-strss) #:transparent)
+    (struct computed (blueboxes-cache doc-state) #:transparent)
+
+    ;; state: (or/c (struct/c init)
+    ;;              (struct/c pending (non-empty-listof (is-a/c? docs-text-info<%>)))
+    ;;              (struct/c computed blueboxes-cache? doc-state?))
+    (let loop ([state (init)])
+      (sync
+       (handle-evt
+        got-blueboxes-cache-chan
+        (λ (blueboxes-cache+doc-state)
+          (match state
+            [(pending to-update-the-strss)
+             (for ([to-update-the-strs (in-list to-update-the-strss)])
+               (queue-callback
+                (λ ()
+                  (send to-update-the-strs update-the-strs))))
+             (loop (computed (list-ref blueboxes-cache+doc-state 0)
+                             (list-ref blueboxes-cache+doc-state 1)))]
+            [_
+             ;; shouldn't happen, but if it does, let someone know about it
+             (queue-callback
+              (λ ()
+                (error 'blueboxes-gui.rkt
+                       "got the cache result back in a state where we didn't ask for it!\n  state: ~s"
+                       state)))])))
+       (handle-evt
+        get-blueboxes-cache-chan
+        (λ (resp-chan+to-update-the-strs)
+          (define resp-chan (list-ref resp-chan+to-update-the-strs 0))
+          (define to-update-the-strs (list-ref resp-chan+to-update-the-strs 1))
+
+          (define (start-blueboxes-computation)
+            (thread
+             (λ ()
+               (define blueboxes-cache
+                 (make-blueboxes-cache #t #:blueboxes-dirs (get-rendered-doc-directories #f #f)))
+               (define doc-state (get-current-doc-state))
+               (channel-put got-blueboxes-cache-chan (list blueboxes-cache doc-state)))))
+
+          (match state
+            [(init)
+             (start-blueboxes-computation)
+             (channel-put resp-chan #f)
+             (loop (pending (list to-update-the-strs)))]
+            [(pending to-update-the-strss)
+             (channel-put resp-chan #f)
+             (cond
+               [(member to-update-the-strs to-update-the-strss)
+                (loop state)]
+               [else
+                (loop (pending (cons to-update-the-strs to-update-the-strss)))])]
+            [(computed blueboxes-cache doc-state)
+             (cond
+               [(doc-state-changed? doc-state)
+                (start-blueboxes-computation)
+                (channel-put resp-chan #f)
+                (loop (pending (list to-update-the-strs)))]
+               [else
+                (channel-put resp-chan blueboxes-cache)
+                (loop state)])]))))))))
 
 (define arrow-cursor (make-object cursor% 'arrow))
 
