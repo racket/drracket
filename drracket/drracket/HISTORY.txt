@@ -4,6 +4,10 @@
 
   . make Scribble's PDF button work under unix
 
+  . compiled/errortrace is no longer consulted by DrRacket as
+    a source of zo files (before it was consulted when in debugging
+    mode, but this was problematic)
+
 ------------------------------
        Version 7.7
 ------------------------------

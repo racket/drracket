@@ -575,13 +575,10 @@
        (let ([annotations (simple-settings-annotations setting)])
          (case annotations
            [(debug)
-            (current-compile (el:make-errortrace-compile-handler))
+            (current-compile (drracket:debug:make-debug-compile-handler (current-compile)))
             (error-display-handler 
              (drracket:debug:make-debug-error-display-handler
-              (error-display-handler)))
-            (use-compiled-file-paths
-             (cons (build-path compiled-dir "errortrace")
-                   (use-compiled-file-paths)))]
+              (error-display-handler)))]
            
            [(debug/profile)
             (drracket:debug:profiling-enabled #t)

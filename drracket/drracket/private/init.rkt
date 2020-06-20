@@ -23,7 +23,8 @@
   (define system-thread (current-thread))
   (define system-namespace (current-namespace))
   (define first-dir (current-directory))
-  
+  (define system-inspector (current-inspector))
+
   (define error-display-eventspace (make-eventspace))
   
   (define original-error-display-handler (error-display-handler))

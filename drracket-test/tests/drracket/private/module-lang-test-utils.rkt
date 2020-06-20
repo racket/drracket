@@ -216,9 +216,10 @@
   (define (run-one-test radio-box expected [no-check-expected #f])
     (let ([got (setup-dialog/run (λ () (test:set-radio-box-item! radio-box)))])
       (unless (spaces-equal? got (format "~s" expected))
-        (error 'r-u-c-f-p-t "got ~s expected ~s"
+        (error 'r-u-c-f-p-t "test failed\n  got: ~s\n  expected: ~s\n  radio-box: ~s"
                got
-               (format "~s" expected))))
+               (format "~s" expected)
+               radio-box)))
     
     (when no-check-expected
       (define got
@@ -227,9 +228,10 @@
            (test:set-radio-box-item! radio-box)
            (test:set-check-box! "Populate “compiled” directories (for faster loading)" #f))))
       (unless (spaces-equal? got (format "~s" no-check-expected))
-        (error 'r-u-c-f-p-t.2 "got ~s expected ~s"
+        (error 'r-u-c-f-p-t.2 "test-failed\n  got: ~s\n  expected: ~s\n  radio-box: ~s"
                got
-               (format "~s" no-check-expected)))))
+               (format "~s" no-check-expected)
+               radio-box))))
 
   (define (spaces-equal? a b)
     (equal? (regexp-replace* #rx"[\n\t ]+" a " ")
@@ -242,12 +244,11 @@
   
   (define drs/compiled/et (build-path compiled-dir "drracket" "errortrace"))
   (define drs/compiled (build-path compiled-dir "drracket"))
-  (define compiled/et (build-path compiled-dir "errortrace"))
   (define compiled (build-path compiled-dir))
   
   (clear-definitions drs)
   (insert-in-definitions drs "#lang scheme\n(use-compiled-file-paths)")
   (run-one-test "No debugging or profiling" (list drs/compiled compiled) (list compiled))
-  (run-one-test "Debugging" (list drs/compiled/et compiled/et compiled) (list compiled/et compiled))
+  (run-one-test "Debugging" (list drs/compiled/et compiled) (list compiled))
   (run-one-test "Debugging and profiling" (list compiled))
   (run-one-test "Syntactic test suite coverage" (list compiled)))

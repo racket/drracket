@@ -308,10 +308,35 @@
                                       list))]))]
                        [_else 
                         ;; Not `begin', so proceed with normal expand and eval 
-                        (let* ([annotated (annotate-top (expand-syntax top-e)
-                                                        (namespace-base-phase))])
-                          (oe annotated))])))))])
+                        (oe (errortrace-annotate top-e #f))])))))])
       debug-tool-eval-handler))
+
+  (define (make-debug-compile-handler orig)
+    (define reg (namespace-module-registry (current-namespace)))
+    (define phase (namespace-base-phase (current-namespace)))
+    (define (drracket-debug-compile-handler e immediate-eval?)
+      (orig
+       (if (and (eq? reg
+                     (namespace-module-registry (current-namespace)))
+                (or (equal? phase
+                            (namespace-base-phase (current-namespace)))
+                    ;; annotate a module at any phase
+                    (syntax-case e ()
+                      [(mod . _)
+                       (and (identifier? #'mod)
+                            (free-identifier=? #'mod #'module (namespace-base-phase (current-namespace)) phase))]
+                      [_ #f]))
+                (not (compiled-expression? (if (syntax? e)
+                                               (syntax-e e)
+                                               e))))
+           (errortrace-annotate
+            (if (syntax? e)
+                e
+                (namespace-syntax-introduce
+                 (datum->syntax #f e))))
+           e)
+       immediate-eval?))
+    drracket-debug-compile-handler)
   
   ;; make-debug-error-display-handler : 
   ;;    (string (union TST exn) -> void) -> string (union TST exn) -> void
@@ -691,37 +716,39 @@
   ;; Note that this is not necessarily the same format used by `make-st-mark`
   ;; which is unspecified.
   (define (with-mark src-stx expr phase)
-    (let ([source (cond
-                    [(path? (syntax-source src-stx))
-                     (syntax-source src-stx)]
-                    [(is-a? (syntax-source src-stx) editor<%>)
-                     (syntax-source src-stx)]
-                    [else 
-                     (let* ([rep (drracket:rep:current-rep)])
-                       (and
-                        rep
-                        (let ([defs (send rep get-definitions-text)])
-                          (cond
-                            [(send rep port-name-matches? (syntax-source src-stx))
-                             (send rep get-port-name)]
-                            [(send defs port-name-matches? (syntax-source src-stx))
-                             (send defs get-port-name)]
-                            [else #f]))))])]
-          [position (or (syntax-position src-stx) 0)]
-          [span (or (syntax-span src-stx) 0)]
-          [line (or (syntax-line src-stx) 0)]
-          [column (or (syntax-column src-stx) 0)])
-      (if source
-          (with-syntax ([expr expr]
-                        [mark (list 'dummy-thing source line column position span)]
-                        [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
-                        [errortrace-key errortrace-key] ; a symbol
-                        [qte (syntax-shift-phase-level #'quote phase)])
-            (syntax
-             (wcm (qte errortrace-key)
-                  (qte mark)
-                  expr)))
-          expr)))
+    (cond
+      [(should-annotate? expr phase)
+       (define source
+         (cond
+           [(path? (syntax-source src-stx))
+            (syntax-source src-stx)]
+           [(is-a? (syntax-source src-stx) editor<%>)
+            (syntax-source src-stx)]
+           [else
+            (let* ([rep (drracket:rep:current-rep)])
+              (and
+               rep
+               (let ([defs (send rep get-definitions-text)])
+                 (cond
+                   [(send rep port-name-matches? (syntax-source src-stx))
+                    (send rep get-port-name)]
+                   [(send defs port-name-matches? (syntax-source src-stx))
+                    (send defs get-port-name)]
+                   [else #f]))))]))
+       (define position (or (syntax-position src-stx) 0))
+       (define span (or (syntax-span src-stx) 0))
+       (define line (or (syntax-line src-stx) 0))
+       (define column (or (syntax-column src-stx) 0))
+       (with-syntax ([expr expr]
+                     [mark (list 'dummy-thing source line column position span)]
+                     [et-key (syntax-shift-phase-level #'errortrace-key phase)]
+                     [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
+                     [qte (syntax-shift-phase-level #'quote phase)])
+         (syntax
+          (wcm et-key
+               (qte mark)
+               expr)))]
+      [else expr]))
   
   ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
   ;; the currently visible backtrace window, or #f, if none
@@ -1159,28 +1186,68 @@
   (define test-coverage-enabled (make-parameter #f))
   
   (define current-test-coverage-info (make-thread-cell #f))
+
+  (define (should-annotate? s phase)
+    (and (syntax-source s)
+         (syntax-property s 'errortrace:annotate)))
   
-  (define (initialize-test-coverage-point expr)
-    (unless (hash? (thread-cell-ref current-test-coverage-info))
-      (let ([rep (drracket:rep:current-rep)])
-        (when rep
-          (let ([ut (eventspace-handler-thread (send rep get-user-eventspace))])
-            (when (eq? ut (current-thread))
-              (let ([ht (make-hasheq)])
-                (thread-cell-set! current-test-coverage-info ht)
-                (send rep set-test-coverage-info ht)))))))
-    (let ([ht (thread-cell-ref current-test-coverage-info)])
-      (when (hash? ht)
-        ;; if rep isn't around, we don't do test coverage...
-        ;; this can happen when check syntax expands, for example
-        (hash-set! ht expr #;(box #f) (mcons #f #f)))))
-  
-  (define (test-covered expr)
-    (let ([ht (thread-cell-ref current-test-coverage-info)])
-      (and (hash? ht) ;; as in the `when' test in `initialize-test-coverage-point'
-           (let ([v (hash-ref ht expr #f)])
-             ;; (and v (λ () (set-box! v #t)))
-             (and v (with-syntax ([v v]) #'(#%plain-app set-mcar! v #t)))))))
+  (define (test-coverage-point body expr phase)
+    (cond
+      [(and (test-coverage-enabled)
+            (zero? phase)
+            (should-annotate? expr phase))
+       ;; initialize the hash holding test coverage results
+       (unless (hash? (thread-cell-ref current-test-coverage-info))
+         (define rep (drracket:rep:current-rep))
+         (when rep
+           (define ut (eventspace-handler-thread (send rep get-user-eventspace)))
+           (when (eq? ut (current-thread))
+             (define ht (make-hasheq))
+             (thread-cell-set! current-test-coverage-info ht)
+             (send rep set-test-coverage-info ht))))
+       (define ht (thread-cell-ref current-test-coverage-info))
+       (cond
+         [(hash? ht) ;; the initialization may have failed, give up in that case
+          (syntax-case expr (#%plain-module-begin)
+            [(_mod _name _init-import (#%plain-module-begin . _body))
+             ;; skip module expressions
+             body]
+
+            #;
+            ;; this approach results in a tainting error when running
+            ;; a #lang scheme program (and probably others too)
+            ;; so we'll just not annotate modules
+            [(_mod _name _init-import (#%plain-module-begin . _body))
+             (let ()
+               (define (drop-in-sequence stx path to-add)
+                 (let loop ([stx stx]
+                            [path path])
+                   (cond
+                     [(null? path)
+                      (cons to-add stx)]
+                     [(syntax? stx)
+                      (syntax-rearm
+                       (datum->syntax
+                        stx
+                        (loop (syntax-e (disarm stx)) path)
+                        stx
+                        stx)
+                       stx)]
+                     [(pair? stx)
+                      (case (car path)
+                        [(hd) (cons (loop (car stx) (cdr path)) (cdr stx))]
+                        [(tl) (cons (car stx) (loop (cdr stx) (cdr path)))])])))
+               (drop-in-sequence body '(tl tl tl hd tl) update-coverage))]
+            [_else
+             (let ()
+               (define v (mcons #f #f))
+               (hash-set! ht expr v) ;; record as point that might get executed
+               (define update-coverage #`(#%plain-app set-mcar! #,v #t))
+               #`(begin #,update-coverage #,body))])]
+         [else body])]
+      [else body]))
+
+  (define (disarm orig) (syntax-disarm orig drracket:init:system-inspector))
   
   (define test-coverage-interactions-text<%>
     (interface ()
@@ -2483,8 +2550,7 @@
       
       (super-instantiate ())))
 
-
-  (define-values/invoke-unit/infer stacktrace@))
+  (define-values/invoke-unit/infer stacktrace/errortrace-annotate@))
 
 (define ellipsis-error-message-field #rx"  [^ ].*[.][.][.]:$")
 

@@ -72,6 +72,7 @@
 (define-signature drracket:debug^ extends drracket:debug-cm^
   (make-debug-error-display-handler
    make-debug-eval-handler
+   make-debug-compile-handler
    error-display-handler/stacktrace
    bug-info->ticket-url
    test-coverage-enabled
@@ -167,6 +168,7 @@
    system-eventspace
    system-namespace
    system-security-guard
+   system-inspector
    first-dir))
 
 (define-signature drracket:language-configuration-cm^

@@ -9,7 +9,7 @@
                "planet-lib"
                "compatibility-lib"
                ["draw-lib" #:version "1.7"]
-               "errortrace-lib"
+               ["errortrace-lib" #:version "1.3"]
                "macro-debugger-text-lib"
                "parser-tools-lib"
                "pconvert-lib"

@@ -703,6 +703,16 @@ all of the names in the tools library, for use defining keybindings
   @{Adds the profiling preferences panel.})
  
  (proc-doc/names
+  drracket:debug:make-debug-compile-handler
+  (-> (-> any/c boolean? compiled-expression?)
+      (-> any/c boolean? compiled-expression?))
+  (oc)
+  @{Returns a function suitable for use with @racket[current-compile].
+
+    The result function first adds debugging information to
+    its argument and then passes it to @racket[oc].})
+
+ (proc-doc/names
   drracket:debug:make-debug-eval-handler
   (-> (-> any/c any) (-> any/c any))
   (oe)
