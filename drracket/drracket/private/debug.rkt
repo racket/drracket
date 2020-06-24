@@ -1204,44 +1204,36 @@
        (define ht (thread-cell-ref current-test-coverage-info))
        (cond
          [(hash? ht) ;; the initialization may have failed, give up in that case
+          (define v (mcons #f #f))
+          (hash-set! ht expr v) ;; record as point that might get executed
+          (define update-coverage #`(#%plain-app set-mcar! #,v #t))
           (syntax-case expr (#%plain-module-begin)
             [(_mod _name _init-import (#%plain-module-begin . _body))
-             ;; skip module expressions
-             body]
-
-            #;
-            ;; this approach results in a tainting error when running
-            ;; a #lang scheme program (and probably others too)
-            ;; so we'll just not annotate modules
-            [(_mod _name _init-import (#%plain-module-begin . _body))
-             (let ()
-               (define (drop-in-sequence stx path to-add)
-                 (let loop ([stx stx]
-                            [path path])
-                   (cond
-                     [(null? path)
-                      (cons to-add stx)]
-                     [(syntax? stx)
-                      (syntax-rearm
-                       (datum->syntax
-                        stx
-                        (loop (syntax-e (disarm stx)) path)
-                        stx
-                        stx)
-                       stx)]
-                     [(pair? stx)
-                      (case (car path)
-                        [(hd) (cons (loop (car stx) (cdr path)) (cdr stx))]
-                        [(tl) (cons (car stx) (loop (cdr stx) (cdr path)))])])))
-               (drop-in-sequence body '(tl tl tl hd tl) update-coverage))]
+             (drop-in-sequence body '(tl tl tl hd tl) update-coverage)]
             [_else
-             (let ()
-               (define v (mcons #f #f))
-               (hash-set! ht expr v) ;; record as point that might get executed
-               (define update-coverage #`(#%plain-app set-mcar! #,v #t))
-               #`(begin #,update-coverage #,body))])]
+             #`(begin #,update-coverage #,body)])]
          [else body])]
       [else body]))
+
+  (define (drop-in-sequence stx path to-add)
+    (let loop ([stx stx]
+               [path path])
+      (cond
+        [(null? path)
+         (cons to-add stx)]
+        [(syntax? stx)
+         (define dstx (disarm stx))
+         (syntax-rearm
+          (datum->syntax
+           dstx
+           (loop (syntax-e dstx) path)
+           dstx
+           dstx)
+          stx)]
+        [(pair? stx)
+         (case (car path)
+           [(hd) (cons (loop (car stx) (cdr path)) (cdr stx))]
+           [(tl) (cons (car stx) (loop (cdr stx) (cdr path)))])])))
 
   (define (disarm orig) (syntax-disarm orig drracket:init:system-inspector))
   
