@@ -32,7 +32,8 @@
          viewable-stack?
          ;; provided only for backwards compatibility (exported via debug unit)
          srcloc->edition/pair
-         get-editions)
+         get-editions
+         errortrace-stack-item->srcloc)
 
 (provide
  (contract-out
@@ -159,16 +160,17 @@
 
 (define (cms->errortrace-viewable-stack cms interesting-editors
                                         #:share-cache [a-viewable-stack #f])
-  (define (errortrace-stack-item->srcloc x)
-    (make-srcloc (list-ref x 1)
-                 (list-ref x 2)
-                 (list-ref x 3)
-                 (list-ref x 4)
-                 (list-ref x 5)))
   (build-viewable-stack (continuation-mark-set->list cms errortrace-key)
                         errortrace-stack-item->srcloc
                         interesting-editors
                         a-viewable-stack))
+
+(define (errortrace-stack-item->srcloc x)
+  (make-srcloc (vector-ref x 0)
+               (vector-ref x 1)
+               (vector-ref x 2)
+               (vector-ref x 3)
+               (vector-ref x 4)))
 
 (define (cms->builtin-viewable-stack cms interesting-editors
                                      #:share-cache [a-viewable-stack #f])
