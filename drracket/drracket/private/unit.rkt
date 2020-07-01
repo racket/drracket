@@ -553,7 +553,8 @@
                        (text:inline-overview-mixin
                         (text:all-string-snips-mixin
                          (text:ascii-art-enlarge-boxes-mixin
-                          text:info%))))))))))))))])
+                          (editor:autoload-mixin
+                           text:info%)))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit get-top-level-window is-locked? lock while-unlocked

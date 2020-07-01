@@ -2,6 +2,13 @@
        Version 7.8
 ------------------------------
 
+  . add autoloading support to DrRacket's editor (when a file
+    is changed on the disk, DrRacket will notice and offer to
+    always load the file to make the definitions window's content
+    and the file be the same), in order to facilitate people
+    working with DrRacket and some other editor simultaneously
+    on the same set of files.
+
   . make Scribble's PDF button work under unix
 
   . compiled/errortrace is no longer consulted by DrRacket as
