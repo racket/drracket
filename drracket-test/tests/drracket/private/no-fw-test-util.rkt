@@ -1,16 +1,14 @@
 #lang racket/base
 (require racket/gui/base
-         racket/class
-         racket/contract)
+         racket/class)
 
 (provide use-hash-for-prefs
          fire-up-separate-drracket-and-run-tests
+         queue-callback/res
          not-on-eventspace-handler-thread
          on-eventspace-handler-thread
          poll-until
-         wait-for-events-in-frame-eventspace
-         (contract-out
-          [queue-callback/res (-> (-> any) any)]))
+         wait-for-events-in-frame-eventspace)
 
 ;; fire-up-separate-drracket-and-run-tests : (-> any) -> any
 ;; creates a separate custodian, eventspace, namespace, etc to
