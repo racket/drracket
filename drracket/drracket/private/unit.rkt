@@ -606,14 +606,6 @@
                                               ""))))
           
           (define/augment (after-save-file success?)
-            (when success?
-              (let ([filename (get-filename)])
-                (when filename
-                  ;; if a filesystem error happens, just give up
-                  ;; on setting the file creator and type.
-                  (with-handlers ([exn:fail:filesystem? void])
-                    (let-values ([(creator type) (file-creator-and-type filename)])
-                      (file-creator-and-type filename #"DrSc" type))))))
             (when save-file-metadata
               (let ([modified? (is-modified?)]
                     [locked? (is-locked?)])
@@ -935,8 +927,11 @@
           (set-max-undo-history 'forever)
 
           (inherit set-inline-overview-enabled?)
-          (set-inline-overview-enabled? (preferences:get 'drracket:inline-overview-shown?))))))
-  
+          (set-inline-overview-enabled? (preferences:get 'drracket:inline-overview-shown?))
+
+          (inherit set-file-creator-and-type)
+          (set-file-creator-and-type #"DrSc" #f)))))
+
   (define (get-module-language/settings)
     (let* ([module-language
             (and (preferences:get 'drracket:switch-to-module-language-automatically?)
