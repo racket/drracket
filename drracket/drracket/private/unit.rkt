@@ -551,7 +551,8 @@
                         (text:all-string-snips-mixin
                          (text:ascii-art-enlarge-boxes-mixin
                           (number-snip:remove-decimal-looking-number-snips-on-insertion-mixin
-                           text:info%)))))))))))))))])
+                           (editor:autoload-mixin
+                            text:info%))))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit is-locked? lock while-unlocked

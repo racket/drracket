@@ -221,7 +221,7 @@ The @onscreen{Editing} panel consists of several sub-panels:
 
 @itemize[
 
-@item{@PrefItem{Number of recent items} --- controls the length of the
+@item{@PrefItem{Number of recent items} --- Controls the length of the
       @onscreen{Open Recent} menu (in the @onscreen{File} menu).}
 
 @item{@PrefItem{Auto-save files} --- If checked, the editor generates
@@ -233,6 +233,16 @@ The @onscreen{Editing} panel consists of several sub-panels:
       is copied to a backup file in the same directory.  The backup
       files have the same name as the original, except that they end in
       either @indexed-file{.bak} or @indexed-file{~}.}
+
+@item{@PrefItem{Automatically Reload Changed Files} --- Determines
+  DrRacket's policy for how to act when a file has changed on the
+ disk, outside of DrRacket. If the first radio button is chosen, DrRacket
+ will simply pull the contents of the file into the definitions window
+ automatically, unless there are changes that have not been saved, in
+ which case it will ask what to do. If the second radio button is chosen,
+ DrRacket will not watch for changes to the file on disk. If the last radio
+ button is chosen (the default), DrRacket will ask what action to take
+ and offer the opportunity to remember that choice if the file changes again.}
 
 @item{@PrefItem{Show status-line} --- If checked, DrRacket shows a
       status line at the bottom of each window.}
