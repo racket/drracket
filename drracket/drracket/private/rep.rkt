@@ -924,29 +924,27 @@ TODO
           (lock #t)
           (when (and show-no-user-evaluation-message? (not shutting-down?))
             (no-user-evaluation-message
-             (get-frame)
              user-exit-code
              memory-killed?))
           (set! show-no-user-evaluation-message? #t)))
       
       (field (need-interaction-cleanup? #f))
       
-      (define/private (no-user-evaluation-message frame exit-code memory-killed?)  ;; =Kernel=, =Handler=
-        (define defs (send frame get-definitions-text))
+      (define/private (no-user-evaluation-message exit-code memory-killed?)  ;; =Kernel=, =Handler=
         (define-values (vs1 vs2)
           (let ([ut (get-user-thread)])
             (cond
               [ut
                (define cms (continuation-marks ut))
                (define interesting-editors
-                 (list defs (send frame get-interactions-text)))
+                 (list definitions-text this))
                (define a-viewable-stack (cms->errortrace-viewable-stack cms interesting-editors))
                (values a-viewable-stack
                        (cms->builtin-viewable-stack cms interesting-editors
                                                     #:share-cache a-viewable-stack))]
               [else (values (empty-viewable-stack)
                             (empty-viewable-stack))])))
-        (no-user-evaluation-dialog frame exit-code memory-killed? #t)
+        (no-user-evaluation-dialog (get-frame) exit-code memory-killed? #t)
         (set-insertion-point (last-position))
         (define have-some-stack? (not (and (empty-viewable-stack? vs1)
                                            (empty-viewable-stack? vs2))))
@@ -968,7 +966,7 @@ TODO
         ;; reset the error arrows)
         (queue-callback
          (λ ()
-           (define src-locs (get-exn-source-locs defs #f vs1 vs2))
+           (define src-locs (get-exn-source-locs definitions-text #f vs1 vs2))
            (define arrows (viewable-stack->red-arrows-backtrace-srclocs
                            (if (empty-viewable-stack? vs1)
                                vs2
