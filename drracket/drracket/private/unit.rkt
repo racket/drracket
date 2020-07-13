@@ -12,12 +12,9 @@
          framework
          framework/private/srcloc-panel
          mrlib/name-message
-         mrlib/bitmap-label
-         mrlib/include-bitmap
          mrlib/switchable-button
          mrlib/cache-image-snip
          (prefix-in image-core: mrlib/image-core)
-         mrlib/include-bitmap
          mrlib/close-icon
          mrlib/panel-wob
          net/sendurl
