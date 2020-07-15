@@ -8,6 +8,11 @@
     a source of zo files (before it was consulted when in debugging
     mode, but this was problematic)
 
+  . performance improvements for killing programs that are infinite
+    non-tail recursive loops
+
+  . misc small bug fixes and performance improvements
+
 ------------------------------
        Version 7.7
 ------------------------------
