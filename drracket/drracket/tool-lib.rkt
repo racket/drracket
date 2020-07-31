@@ -239,7 +239,7 @@ all of the names in the tools library, for use defining keybindings
     (See also @racket[drracket:module-language-tools:add-online-expansion-monitor].)
     
     The procedure @racket[id] from @racket[mod-path] is loaded by 
-    @racket[dynamic-require] into a specially designed separate @racket[place].
+    @racket[dynamic-require] into a specially designed separate @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{place}.
     When DrRacket detects that
     the editor has been modified, it sends the contents of the editor over to
     that separate place, @racket[expand]s the program there, and then supplies
