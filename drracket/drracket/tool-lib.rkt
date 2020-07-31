@@ -238,8 +238,8 @@ all of the names in the tools library, for use defining keybindings
   @{Registers a pair of procedures with DrRacket's online expansion machinery. 
     (See also @racket[drracket:module-language-tools:add-online-expansion-monitor].)
     
-    The first two arguments name a procedure in a module that is loaded by 
-    @racket[dynamic-require] is specially designed separate @racket[place].
+    The procedure @racket[id] from @racket[mod-path] is loaded by 
+    @racket[dynamic-require] into a specially designed separate @racket[place].
     When DrRacket detects that
     the editor has been modified, it sends the contents of the editor over to
     that separate place, @racket[expand]s the program there, and then supplies
@@ -297,7 +297,7 @@ all of the names in the tools library, for use defining keybindings
   @{Registers a pair of procedures with DrRacket's online expansion machinery. 
     
     Like @racket[drracket:module-language-tools:add-online-expansion-handler], 
-    the first two arguments name a procedure that is called in the separate place
+    the first two arguments specify a procedure that is called in the separate place
     designated for expansion.
     
     The procedure is called before expansion starts and once it returns, expansion
