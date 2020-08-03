@@ -347,8 +347,13 @@ in order to make the results be platform independent.
  @defmethod[(syncheck:add-definition-target [source-obj (not/c #f)]
                                             [start exact-nonnegative-integer?]
                                             [finish exact-nonnegative-integer?]
-                                            [style-name any/c]) void?]{
-     
+                                            [id symbol?]
+                                            [mods (listof symbol?)])
+            void?]{
+  Called to indicate a top-level definition at the location spanned by @racket[start]
+  and @racket[finish]. The @racket[id] argument is the name of the defined variable
+  and the @racket[mods] are the submodules enclosing the definition, which will be empty
+  if the definition is in the top-level module.
   }
                                                       
  @defmethod[(syncheck:color-range [source-obj (not/c #f)]
