@@ -533,6 +533,43 @@
                    ((56 57) (64 65))
                    ((58 59) (61 62))
                    ((84 87) (92 95))))
+
+     (build-test
+      (string-append
+       "(module x racket\n"
+       "  (module m racket\n"
+       "    (define-syntax (lam stx) #'1)\n"
+       "    (provide lam))\n"
+       "  (require 'm)\n"
+       "  lam)\n")
+      '(("("                default-color)
+        ("module"           imported)
+        (" x racket\n  ("   default-color)
+        ("module"           imported)
+        (" m racket\n    (" default-color)
+        ("define-syntax"    imported)
+        (" ("               default-color)
+        ("lam"              lexically-bound)
+        (" "                default-color)
+        ("stx"              lexically-bound)
+        (") "               default-color)
+        ("#'"               imported)
+        ("1)\n    ("        default-color)
+        ("provide"          imported)
+        (" "                default-color)
+        ("lam"              lexically-bound)
+        ("))\n  ("          default-color)
+        ("require"          imported)
+        (" 'm)\n  "         default-color)
+        ("lam"              imported)
+        (")\n"              default-color))
+      '(((10 16) (20 26) (92 99))
+        ((29 35) (41 54) (65 67) (75 82))
+        ((56 59) (83 86))
+        ((100 102) (106 109))))
+
+
+
      
      (build-test "(define-syntax s (lambda (stx) (syntax-case stx () (_ 123))))"
                 '(("("             default-color)

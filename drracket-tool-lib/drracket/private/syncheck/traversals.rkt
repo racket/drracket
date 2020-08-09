@@ -468,7 +468,15 @@
              (define raw-module-path (phaseless-spec->raw-module-path stx))
              (annotate-require-open user-namespace user-directory raw-module-path level stx)
              (when (original-enough? raw-module-path)
-               (define key (syntax->datum raw-module-path))
+               (define key
+                 (match (syntax->datum raw-module-path)
+                   [`',m
+                    (define we-have-seen-this-sumodule?
+                      (hash-has-key? phase-to-requires (list adjusted-level (cons m mods))))
+                    (if we-have-seen-this-sumodule?
+                        `(submod "." ,m)
+                        `',m)]
+                   [rmp rmp]))
                (hash-set! require-ht
                           key
                           (cons stx (hash-ref require-ht key '())))))
