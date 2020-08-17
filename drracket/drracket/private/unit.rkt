@@ -4711,7 +4711,13 @@
                (if (is-a? f drracket:unit:frame<%>)
                    1
                    0))))
-        
+
+      (define/override (find-editor predicate)
+        (or (findf predicate (map (lambda (tab) (send tab get-defs))
+                                  tabs))
+            (findf predicate (map (lambda (tab) (send tab get-ints))
+                                  tabs))))
+                      
       (super-new
        [filename filename]
        [style '(toolbar-button fullscreen-button)]
