@@ -19,6 +19,7 @@
          (prefix-in : (only-in "stack-checkpoint.rkt" srcloc->edition/pair get-editions))
          "ellipsis-snip.rkt"
          "local-member-names.rkt"
+         "eval-helpers-and-pref-init.rkt"
          net/sendurl
          net/url
          racket/match
@@ -308,31 +309,7 @@
       debug-tool-eval-handler))
 
   (define (make-debug-compile-handler orig)
-    (define reg (namespace-module-registry (current-namespace)))
-    (define phase (namespace-base-phase (current-namespace)))
-    (define (drracket-debug-compile-handler e immediate-eval?)
-      (orig
-       (if (and (eq? reg
-                     (namespace-module-registry (current-namespace)))
-                (or (equal? phase
-                            (namespace-base-phase (current-namespace)))
-                    ;; annotate a module at any phase
-                    (syntax-case e ()
-                      [(mod . _)
-                       (and (identifier? #'mod)
-                            (free-identifier=? #'mod #'module (namespace-base-phase (current-namespace)) phase))]
-                      [_ #f]))
-                (not (compiled-expression? (if (syntax? e)
-                                               (syntax-e e)
-                                               e))))
-           (errortrace-annotate
-            (if (syntax? e)
-                e
-                (namespace-syntax-introduce
-                 (datum->syntax #f e))))
-           e)
-       immediate-eval?))
-    drracket-debug-compile-handler)
+    (make-debug-compile-handler/errortrace-annotate orig errortrace-annotate))
   
   ;; make-debug-error-display-handler : 
   ;;    (string (union TST exn) -> void) -> string (union TST exn) -> void
@@ -703,48 +680,22 @@
               (λ (txt start end)
                 (clickback))))))
   
-  ;; with-mark : mark-stx syntax (any? -> syntax) -> syntax
-  ;; a member of stacktrace-imports^
-  ;; This uses the following format for continuation marks:
-  ;;    (cons Dummy srcloc-list)
-  ;; where Dummy is always ignored.
-  
   ;; Note that this is not necessarily the same format used by `make-st-mark`
   ;; which is unspecified.
-  (define (with-mark src-stx expr phase)
+  (define (special-source-handling-for-drr src)
+    (define rep (drracket:rep:current-rep))
     (cond
-      [(should-annotate? expr phase)
-       (define source
-         (cond
-           [(path? (syntax-source src-stx))
-            (syntax-source src-stx)]
-           [(is-a? (syntax-source src-stx) editor<%>)
-            (syntax-source src-stx)]
-           [else
-            (let* ([rep (drracket:rep:current-rep)])
-              (and
-               rep
-               (let ([defs (send rep get-definitions-text)])
-                 (cond
-                   [(send rep port-name-matches? (syntax-source src-stx))
-                    (send rep get-port-name)]
-                   [(send defs port-name-matches? (syntax-source src-stx))
-                    (send defs get-port-name)]
-                   [else #f]))))]))
-       (define position (or (syntax-position src-stx) 0))
-       (define span (or (syntax-span src-stx) 0))
-       (define line (or (syntax-line src-stx) 0))
-       (define column (or (syntax-column src-stx) 0))
-       (with-syntax ([expr expr]
-                     [mark (vector source line column position span)]
-                     [et-key (syntax-shift-phase-level #'errortrace-key phase)]
-                     [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
-                     [qte (syntax-shift-phase-level #'quote phase)])
-         (syntax
-          (wcm et-key
-               (qte mark)
-               expr)))]
-      [else expr]))
+      [rep
+       (define defs (send rep get-definitions-text))
+       (cond
+         [(send rep port-name-matches? src)
+          (send rep get-port-name)]
+         [(send defs port-name-matches? src)
+          (send defs get-port-name)]
+         [else #f])]
+      [(is-a? src editor<%>) src]
+      [else #f]))
+  (define with-mark (make-with-mark special-source-handling-for-drr))
   
   ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
   ;; the currently visible backtrace window, or #f, if none
@@ -1182,10 +1133,6 @@
   (define test-coverage-enabled (make-parameter #f))
   
   (define current-test-coverage-info (make-thread-cell #f))
-
-  (define (should-annotate? s phase)
-    (and (syntax-source s)
-         (syntax-property s 'errortrace:annotate)))
   
   (define (test-coverage-point body expr phase)
     (cond

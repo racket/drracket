@@ -2,12 +2,15 @@
 (require racket/class
          racket/draw
          racket/list
+         racket/unit
          racket/set
          compiler/cm
          setup/dirs
          planet/config
          pkg/lib
          framework/preferences
+         errortrace/stacktrace
+         errortrace/errortrace-key
          (prefix-in *** '#%foreign) ;; just to make sure it is here
          "compiled-dir.rkt")
 
@@ -15,7 +18,10 @@
          set-module-language-parameters
          (struct-out prefab-module-settings)
          transform-module
-         get-init-dir)
+         get-init-dir
+         should-annotate?
+         make-with-mark
+         make-debug-compile-handler/errortrace-annotate)
 
 (preferences:set-default 'drracket:child-only-memory-limit
                          (* 1024 1024 128)
@@ -179,3 +185,66 @@
          [mod  (datum->syntax #'here 'module mod)]
          [expr (datum->syntax stx `(,mod ,name ,lang . ,body) stx stx)])
     (values name* (syntax->datum lang) expr)))
+
+
+  ;; inputs to stacktrace/errortrace-annotate@ that are used both
+  ;; in debug.rkt and also for online expansion
+
+;; make-with-mark : (any/c -> any/c) -> mark-stx syntax natural -> syntax
+;; the result of the first application should be bound to `with-mark`,
+;; a member of stacktrace-imports^
+(define ((make-with-mark special-source-handling) src-stx expr phase)
+  (cond
+    [(should-annotate? expr phase)
+     (define source
+       (cond
+         [(path? (syntax-source src-stx))
+          (syntax-source src-stx)]
+         [(special-source-handling (syntax-source src-stx)) => values]
+         [else #f]))
+     (define position (or (syntax-position src-stx) 0))
+     (define span (or (syntax-span src-stx) 0))
+     (define line (or (syntax-line src-stx) 0))
+     (define column (or (syntax-column src-stx) 0))
+     (with-syntax ([expr expr]
+                   [mark (vector source line column position span)]
+                   [et-key (syntax-shift-phase-level #'errortrace-key phase)]
+                   [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
+                   [qte (syntax-shift-phase-level #'quote phase)])
+       (syntax
+        (wcm et-key
+             (qte mark)
+             expr)))]
+    [else expr]))
+
+(define (should-annotate? s phase)
+  (and (syntax-source s)
+       (syntax-property s 'errortrace:annotate)))
+
+
+(define (make-debug-compile-handler/errortrace-annotate orig errortrace-annotate)
+  (define reg (namespace-module-registry (current-namespace)))
+  (define phase (namespace-base-phase (current-namespace)))
+  (define (drracket-debug-compile-handler e immediate-eval?)
+    (orig
+     (if (and (eq? reg
+                   (namespace-module-registry (current-namespace)))
+              (or (equal? phase
+                          (namespace-base-phase (current-namespace)))
+                  ;; annotate a module at any phase
+                  (syntax-case e ()
+                    [(mod . _)
+                     (and (identifier? #'mod)
+                          (free-identifier=? #'mod #'module (namespace-base-phase (current-namespace)) phase))]
+                    [_ #f]))
+              (not (compiled-expression? (if (syntax? e)
+                                             (syntax-e e)
+                                             e))))
+         (errortrace-annotate
+          (if (syntax? e)
+              e
+              (namespace-syntax-introduce
+               (datum->syntax #f e))))
+         e)
+     immediate-eval?))
+  drracket-debug-compile-handler)

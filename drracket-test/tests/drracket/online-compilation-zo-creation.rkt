@@ -17,7 +17,7 @@
      #:exists 'truncate)
    (call-with-output-file y.rkt
      (λ (port)
-       (fprintf port "#lang racket/base\n"))
+       (fprintf port "#lang racket/base\n(+ 1 (+ 2 (+ 3 (car 'i-am-not-a-pair))))\n"))
      #:exists 'truncate)
    (define drs-frame (wait-for-drracket-frame))
    (queue-callback/res
@@ -45,5 +45,16 @@
    (unless (member expected-file compiled-dir-files)
      (eprintf "expected to find ~s in compiled dir but it contained ~s\n"
               expected-file compiled-dir-files))
+
+   (do-execute drs-frame)
+   (define the-output (fetch-output drs-frame))
+
+   (unless (regexp-match?
+            (string-append
+             "^[^\n]*" ;; this makes sure the real error message is on the first line
+             (regexp-quote "car: contract violation\n  expected: pair?\n  given: 'i-am-not-a-pair"))
+            the-output)
+     (eprintf "wrong error message in interactions window:\n--------------------\n\n~a\n\n--------------------\n"
+              the-output))
    
    (delete-directory/files tmp-dir)))

@@ -2,12 +2,13 @@
 (require racket/place
          racket/port
          racket/list
+         racket/unit
          "eval-helpers-and-pref-init.rkt"
          compiler/cm
          framework/preferences
          syntax/readerr
          wxme
-         (prefix-in el: errortrace/errortrace-lib))
+         errortrace/stacktrace)
 (module+ test (require rackunit))
 
 (provide start)
@@ -167,7 +168,10 @@
               (cl path mod-name))))
          (ep-log-info "expanding-place.rkt: 03 setting module language parameters")
          (when (equal? (prefab-module-settings-annotations settings) 'debug)
-           (current-compile (el:make-errortrace-compile-handler)))
+           (current-compile
+            (make-debug-compile-handler/errortrace-annotate
+             (current-compile)
+             errortrace-annotate)))
          (set-module-language-parameters settings
                                          module-language-parallel-lock-client
                                          null
@@ -540,3 +544,14 @@
      (string-append (substring str 0 prefix-len)
                     middle
                     (substring str (- (string-length str) suffix-len) (string-length str)))]))
+
+(define with-mark (make-with-mark (λ (x) #f)))
+
+;; these never get used as the invocation is used only for debugging annotations
+(define (test-coverage-point body expr phase) body)
+(define profile-key #f)
+(define (initialize-profile-point key name expr) (void))
+(define profiling-enabled (make-parameter #f))
+(define (register-profile-start key) (void))
+(define (register-profile-done key start) (void))
+(define-values/invoke-unit/infer stacktrace/errortrace-annotate@)
