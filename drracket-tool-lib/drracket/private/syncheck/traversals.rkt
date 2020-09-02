@@ -49,7 +49,7 @@
                            [current-load-relative-directory user-directory])
               (let ([is-module? (syntax-case sexp (module)
                                   [(module . rest) #t]
-                                  [else #f])])
+                                  [_ #f])])
                 (cond
                   [is-module?
                    (let ([phase-to-binders (make-hash)]
@@ -101,7 +101,7 @@
                                                (list 'requires requires)
                                                (list 'require-for-syntaxes require-for-syntaxes)
                                                (list 'require-for-templates require-for-templates)
-                                               (list 'require-for-labels require-for-templates)
+                                               (list 'require-for-labels require-for-labels)
                                                (list 'sub-identifier-binding-directives
                                                      sub-identifier-binding-directives)))))]
                   [else
@@ -458,7 +458,7 @@
                  [(just-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
-                 [else
+                 [_
                   (handle-phaseless-spec spec level)])))
            (define (handle-phaseless-spec stx level)
              (define adjusted-level (and level (+ level level-of-enclosing-module)))
@@ -1206,7 +1206,7 @@
                 symbolic-compare?
               [(prefix pfx . _) #'pfx]
               [(prefix-all-except pfx . _) #'pfx]
-              [other #f]))
+              [_ #f]))
           (when prefix
             (define prefix-source (find-source-editor prefix))
             (define prefix-start (and prefix-source
