@@ -127,7 +127,7 @@
                                         (list 'tl-phase-to-tops tl-phase-to-tops)
                                         (list 'tl-templrefs tl-templrefs)
                                         (list 'tl-module-lang-requires tl-module-lang-requires)
-                                        (list 'tl-phase-to-requires tl-module-lang-requires)
+                                        (list 'tl-phase-to-requires tl-phase-to-requires)
                                         (list 'tl-sub-identifier-binding-directives
                                               tl-sub-identifier-binding-directives))))
               (annotate-variables user-namespace
