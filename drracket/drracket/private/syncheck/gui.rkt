@@ -753,7 +753,9 @@ If the namespace does not, they are colored the unbound color.
                                                      (send text get-end-position)
                                                      #t))
               (unless (null? binding-identifiers)
-                (define name-to-offer (find-name-to-offer binding-identifiers))
+                (define name-to-offer (find-name-to-offer binding-identifiers
+                                                          (send text get-start-position)
+                                                          (send text get-end-position)))
                 (rename-menu-callback make-identifiers-hash
                                       name-to-offer
                                       binding-identifiers
@@ -941,19 +943,59 @@ If the namespace does not, they are colored the unbound color.
               (for ([txt (in-list edit-sequence-txts)])
                 (send txt end-edit-sequence)))
                 
-            ;; find-name-to-offer : (non-empty-listof identifier?) -> string?
-            (define/private (find-name-to-offer binding-var-arrows)
-              (define longest-var-arrow
+            ;; find-name-to-offer : (non-empty-listof identifier?) pos pos -> string?
+            (define/private (find-name-to-offer binding-var-arrows start-sel end-sel)
+              ;; NOTE: for consistency, try to match how selection currently works
+              ;; in DrRacket, even though it is potentially buggy. See issue #414.
+              ;;
+              ;; Find an identifier in both binding and bound occurrences
+              ;; of binding-var-arrows that overlaps the selection
+              ;; {start-sel, ..., end-sel}
+              ;;
+              ;; Consider an identifier `xy` at the position [10,12),
+              ;; the following selections are considered overlapped:
+              ;;
+              ;; - {10,11,12} = [xy]
+              ;; - {10} = |xy
+              ;; - {11} = x|y
+              ;; - {9,10} = [ ]xy
+              ;; - {11,12} = x[y]
+              ;;
+              ;; and the following selections are not considered overlapped:
+              ;;
+              ;; - {12} = xy|
+              ;; - {12,13} = xy[ ]
+              ;;
+              ;; In general, for an identifier at position [a,b), any selection
+              ;; that intersects {a,...,b-1} is considered overlapped.
+              ;;
+              ;; The above behavior is for keybinding. Right click is similar
+              ;; but if the position is between two text positions, it will
+              ;; choose the left one.
+
+              (define (intersect? _text a b)
+                (define b* (sub1 b))
+                ;; does {a,...,b*} intersect {start-sel,...,end-sel}?
+                (<= (max a start-sel) (min b* end-sel)))
+
+              (define ids
+                (for*/list ([arrow (in-list binding-var-arrows)]
+                            [id (in-list (list (list (var-arrow-start-text arrow)
+                                                     (var-arrow-start-pos-left arrow)
+                                                     (var-arrow-start-pos-right arrow))
+                                               (list (var-arrow-end-text arrow)
+                                                     (var-arrow-end-pos-left arrow)
+                                                     (var-arrow-end-pos-right arrow))))]
+                            #:when (apply intersect? id))
+                  id))
+              (match-define (list longest-text longest-left longest-right)
                 (car 
-                 (sort binding-var-arrows
+                 (sort ids
                        >
-                       #:key (λ (x) (- (var-arrow-start-pos-right x)
-                                       (var-arrow-start-pos-left x))))))
-              (send (var-arrow-start-text longest-var-arrow)
-                    get-text
-                    (var-arrow-start-pos-left longest-var-arrow)
-                    (var-arrow-start-pos-right longest-var-arrow)))
-              
+                       #:key (λ (x)
+                               (match-define (list _ left right) x)
+                               (- right left)))))
+              (send longest-text get-text longest-left longest-right))
               
             ;; find-parent : menu-item-container<%> -> (union #f (is-a?/c top-level-window<%>)
             (define/private (find-menu-parent menu)
@@ -1477,7 +1519,7 @@ If the namespace does not, they are colored the unbound color.
                   (define-values (binding-identifiers make-identifiers-hash)
                     (position->matching-identifiers-hash text pos pos #t))
                   (unless (null? binding-identifiers)
-                    (define name-to-offer (find-name-to-offer binding-identifiers))
+                    (define name-to-offer (find-name-to-offer binding-identifiers pos pos))
                     (new menu-item%
                          [parent menu]
                          [label (fw:gui-utils:format-literal-label (string-constant cs-rename-var)
