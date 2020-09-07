@@ -31,7 +31,8 @@
   (define-struct test (line input expected arrows tooltips setup teardown extra-files extra-info?)
     #:transparent)
   (define-struct (dir-test test) () #:transparent)
-  
+
+  ;; When either `new-name` or `output` is `#f`, only test that `old-name` is on the menu
   (define-struct rename-test (line input pos old-name new-name output) #:transparent)
   (define-struct prefix-test (line input pos prefix output) #:transparent)
   
@@ -1547,6 +1548,24 @@
        "  y`1\n"
        "  `2)\n"))
 
+     (build-rename-test
+      (string-append
+       "#lang racket\n"
+       "(require racket/list)\n")
+      14
+      "require"
+      #f
+      #f)
+
+     (build-rename-test
+      (string-append
+       "#lang racket\n"
+       "(require racket/list)\n")
+      20
+      "require"
+      #f
+      #f)
+
      (build-test
       #:extra-files
       (hash "define-suffix.rkt"
@@ -1766,7 +1785,7 @@
                           (map (λ (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
                                (send menu get-items)))
                  #f]))))
-         (when menu-item
+         (when (and menu-item (rename-test-new-name test) (rename-test-output test))
            (queue-callback (λ () (send menu-item command (make-object control-event% 'menu))))
            (wait-for-new-frame drs)
            (for ([x (in-string (rename-test-new-name test))])
