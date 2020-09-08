@@ -948,7 +948,7 @@ If the namespace does not, they are colored the unbound color.
               ;; NOTE: for consistency, try to match how selection currently works
               ;; in DrRacket, even though it is potentially buggy. See issue #414.
               ;;
-              ;; Find an identifier in both binding and bound occurrences
+              ;; Find an identifier in either binding and bound occurrences
               ;; of binding-var-arrows that overlaps the selection
               ;; {start-sel, ..., end-sel}
               ;;
