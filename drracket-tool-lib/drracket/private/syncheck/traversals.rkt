@@ -1144,10 +1144,14 @@
            ans)
          (when (and (<= from-pos-left from-pos-right)
                     (<= to-pos-left to-pos-right))
-           (send defs-text syncheck:add-arrow/name-dup/pxpy
+           (define renamable?
+             (not (or require-arrow?
+                      (syntax-property to 'inhibit-renaming?)
+                      (syntax-property from 'inhibit-renaming?))))
+           (send defs-text syncheck:add-arrow/name-dup/pxpy/renamable
                  from-source from-pos-left from-pos-right from-dx from-dy
                  to-source to-pos-left to-pos-right to-dx to-dy
-                 actual? level require-arrow? name-dup?))]
+                 actual? level require-arrow? name-dup? renamable?))]
         [else
          (unless (hash-ref connections connections-key #f)
            (hash-set! connections connections-key #t)

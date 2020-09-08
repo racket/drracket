@@ -1548,24 +1548,6 @@
        "  y`1\n"
        "  `2)\n"))
 
-     (build-rename-test
-      (string-append
-       "#lang racket\n"
-       "(require racket/list)\n")
-      14
-      "require"
-      #f
-      #f)
-
-     (build-rename-test
-      (string-append
-       "#lang racket\n"
-       "(require racket/list)\n")
-      20
-      "require"
-      #f
-      #f)
-
      (build-test
       #:extra-files
       (hash "define-suffix.rkt"

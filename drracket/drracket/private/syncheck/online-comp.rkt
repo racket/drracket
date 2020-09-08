@@ -61,19 +61,21 @@
     (define-values (remote-chan local-chan) (place-channel))
     (define table (make-hash))
     (create-rename-answerer-thread orig-cust local-chan table)
-    (define/override (syncheck:add-arrow/name-dup/pxpy _start-text
-                                                       start-pos-left start-pos-right
-                                                       start-px start-py
-                                                       _end-text
-                                                       end-pos-left end-pos-right
-                                                       end-px end-py
-                                                       actual? level require-arrow? name-dup?)
+    (define/override (syncheck:add-arrow/name-dup/pxpy/renamable
+                      _start-text
+                      start-pos-left start-pos-right
+                      start-px start-py
+                      _end-text
+                      end-pos-left end-pos-right
+                      end-px end-py
+                      actual? level require-arrow? name-dup?
+                      renamable?)
       (define id (hash-count table))
       (hash-set! table id name-dup?)
-      (add-to-trace (vector 'syncheck:add-arrow/name-dup/pxpy
+      (add-to-trace (vector 'syncheck:add-arrow/name-dup/pxpy/renamable
                             start-pos-left start-pos-right start-px start-py
                             end-pos-left end-pos-right end-px end-py
-                            actual? level require-arrow? remote-chan id)))
+                            actual? level require-arrow? remote-chan id renamable?)))
     
     (define/override (syncheck:add-id-set to-be-renamed/poss dup-name?)
       (define id (hash-count table))

@@ -251,7 +251,7 @@ If the namespace does not, they are colored the unbound color.
     (define-struct (var-arrow arrow)
       (start-text start-pos-left start-pos-right start-px start-py
                   end-text end-pos-left end-pos-right end-px end-py
-                  actual? level require-arrow? name-dup?)
+                  actual? level require-arrow? name-dup? renamable?)
       ;; level is one of 'lexical, 'top-level, 'import
       #:transparent)
     (define-struct (tail-arrow arrow) (from-text from-pos to-text to-pos) #:transparent)
@@ -751,6 +751,7 @@ If the namespace does not, they are colored the unbound color.
                 (position->matching-identifiers-hash text 
                                                      (send text get-start-position) 
                                                      (send text get-end-position)
+                                                     #t
                                                      #t))
               (unless (null? binding-identifiers)
                 (define name-to-offer (find-name-to-offer binding-identifiers
@@ -804,7 +805,7 @@ If the namespace does not, they are colored the unbound color.
               (end-edit-sequence))
 
             (define/public (add-prefix-for-require txt pos)
-              (define binding-identifiers (position->binding-arrows txt pos pos #t))
+              (define binding-identifiers (position->binding-arrows txt pos pos #t #f))
               (define candidate-binders/possibly-prefixed
                 (for/list ([binding-identifier (in-list binding-identifiers)]
                            #:when (equal? (var-arrow-require-arrow? binding-identifier)
@@ -857,7 +858,7 @@ If the namespace does not, they are colored the unbound color.
                  (when prefix
                    (define binder (car candidate-binders))
                    (define make-identifiers-hash
-                     (binding-arrows->identifiers-hash #t (list binder)))
+                     (binding-arrows->identifiers-hash #t #f (list binder)))
                    (define req-txt (var-arrow-start-text binder))
                    (define req-start (var-arrow-start-pos-left binder))
                    (define req-end (var-arrow-start-pos-right binder))
@@ -1057,15 +1058,24 @@ If the namespace does not, they are colored the unbound color.
                                                         end-pos-left end-pos-right
                                                         actual? level require-arrow? name-dup?)
               (void))
+            (define/public (syncheck:add-arrow/name-dup/pxpy
+                            start-text
+                            start-pos-left start-pos-right
+                            end-text
+                            end-pos-left end-pos-right
+                            actual? level require-arrow? name-dup?)
+              (void))
             
             ;; pre: start-editor, end-editor are embedded in `this' (or are `this')
-            (define/public (syncheck:add-arrow/name-dup/pxpy start-text
-                                                             start-pos-left start-pos-right
-                                                             start-px start-py
-                                                             end-text
-                                                             end-pos-left end-pos-right
-                                                             end-px end-py
-                                                             actual? level require-arrow? name-dup?)
+            (define/public (syncheck:add-arrow/name-dup/pxpy/renamable
+                            start-text
+                            start-pos-left start-pos-right
+                            start-px start-py
+                            end-text
+                            end-pos-left end-pos-right
+                            end-px end-py
+                            actual? level require-arrow? name-dup?
+                            renamable?)
               (when (and arrow-records
                          (preferences:get 'drracket:syncheck:show-arrows?))
                 (when (add-to-bindings-table
@@ -1075,7 +1085,7 @@ If the namespace does not, they are colored the unbound color.
                                                start-px start-py
                                                end-text end-pos-left end-pos-right
                                                end-px end-py
-                                               actual? level require-arrow? name-dup?)])
+                                               actual? level require-arrow? name-dup? renamable?)])
                     (add-to-range/key start-text start-pos-left start-pos-right arrow #f #f)
                     (add-to-range/key end-text end-pos-left end-pos-right arrow #f #f)))))
             
@@ -1517,7 +1527,7 @@ If the namespace does not, they are colored the unbound color.
                     (f menu))
                   
                   (define-values (binding-identifiers make-identifiers-hash)
-                    (position->matching-identifiers-hash text pos pos #t))
+                    (position->matching-identifiers-hash text pos pos #t #t))
                   (unless (null? binding-identifiers)
                     (define name-to-offer (find-name-to-offer binding-identifiers pos pos))
                     (new menu-item%
@@ -1581,7 +1591,7 @@ If the namespace does not, they are colored the unbound color.
                       [(and cursor-text cursor-pos)
                        (define-values (_binders make-identifiers-hash)
                          (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos
-                                                              #f))
+                                                              #f #f))
                        (make-identifiers-hash)]
                       [else
                        (make-hash)]))
@@ -1594,24 +1604,33 @@ If the namespace does not, they are colored the unbound color.
             ;; position->matching-identifiers-hash 
             ;; : txt pos pos -> (values (listof var-arrow?) hash[(list txt pos pos) -o> #t])
             (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
-                                                                 include-require-arrows?)
+                                                                 include-require-arrows?
+                                                                 only-renamable?)
               (define binding-arrows (position->binding-arrows the-text the-start-pos the-end-pos
-                                                               include-require-arrows?))
+                                                               include-require-arrows?
+                                                               only-renamable?))
               (values binding-arrows
-                      (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)))
+                      (binding-arrows->identifiers-hash include-require-arrows?
+                                                        only-renamable?
+                                                        binding-arrows)))
 
             (define/private (position->binding-arrows the-text the-start-pos the-end-pos
-                                                      include-require-arrows?)
+                                                      include-require-arrows?
+                                                      only-renamable?)
               (define binding-arrows '())
               (define (add-binding-arrow arr)
-                (when (or include-require-arrows?
-                          (not (var-arrow-require-arrow? arr)))
+                (when (and (or include-require-arrows?
+                               (not (var-arrow-require-arrow? arr)))
+                           (or (not only-renamable?)
+                               (var-arrow-renamable? arr)))
                   (set! binding-arrows (cons arr binding-arrows))))
               (for ([the-pos (in-range the-start-pos (+ the-end-pos 1))])
                 (define arrs (fetch-arrow-records the-text the-pos))
                 (when arrs
                   (for ([arrow (in-list arrs)])
-                    (when (var-arrow? arrow)
+                    (when (and (var-arrow? arrow)
+                               (or (not only-renamable?)
+                                   (var-arrow-renamable? arrow)))
                       (cond
                         [(and (equal? (var-arrow-start-text arrow) the-text)
                               (<= (var-arrow-start-pos-left arrow) 
@@ -1634,7 +1653,9 @@ If the namespace does not, they are colored the unbound color.
                                (add-binding-arrow candidate-binder))))])))))
               binding-arrows)
             
-            (define (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)
+            (define (binding-arrows->identifiers-hash include-require-arrows?
+                                                      only-renamable?
+                                                      binding-arrows)
               (define identifiers-hash #f)
               (define (add-one txt start end)
                 (hash-set! identifiers-hash (list txt start end) #t))
@@ -1656,8 +1677,10 @@ If the namespace does not, they are colored the unbound color.
                                                (var-arrow-start-text binding-arrow)
                                                pos))])
                           (when (var-arrow? arrow)
-                            (when (or include-require-arrows?
-                                      (not (var-arrow-require-arrow? arrow)))
+                            (when (and (or include-require-arrows?
+                                           (not (var-arrow-require-arrow? arrow)))
+                                       (or (not only-renamable?)
+                                           (var-arrow-renamable? arrow)))
                               (when (and (equal? (var-arrow-start-text arrow)
                                                  (var-arrow-start-text binding-arrow))
                                          (equal? (var-arrow-start-pos-left arrow)
@@ -1850,7 +1873,7 @@ If the namespace does not, they are colored the unbound color.
             ;; callback for the jump popup menu item
             (define/private (jump-to-next-callback start-pos end-pos txt backwards?)
               (define-values (_binders make-identifiers-hash)
-                (position->matching-identifiers-hash txt start-pos end-pos #f))
+                (position->matching-identifiers-hash txt start-pos end-pos #f #f))
               (define orig-arrows 
                 (sort (hash-map (make-identifiers-hash)
                                 (λ (x y) x))
@@ -2198,15 +2221,15 @@ If the namespace does not, they are colored the unbound color.
           ;; using 'defs-text' all the time is wrong in the case of embedded editors,
           ;; but they already don't work and we've arranged for them to not appear here ....
           (match x
-            [`#(syncheck:add-arrow/name-dup/pxpy
+            [`#(syncheck:add-arrow/name-dup/pxpy/renamable
                 ,start-pos-left ,start-pos-right ,start-px ,start-py
                 ,end-pos-left ,end-pos-right ,end-px ,end-py
-                ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
+                ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id ,renamable?)
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id  known-dead-place-channels))
-             (send defs-text syncheck:add-arrow/name-dup/pxpy
+             (send defs-text syncheck:add-arrow/name-dup/pxpy/renamable
                    defs-text start-pos-left start-pos-right start-px start-py
                    defs-text end-pos-left end-pos-right end-px end-py
-                   actual? level require-arrow? name-dup?)]
+                   actual? level require-arrow? name-dup? renamable?)]
             [`#(syncheck:add-tail-arrow ,from-pos ,to-pos)
              (send defs-text syncheck:add-tail-arrow defs-text from-pos defs-text to-pos)]
             [`#(syncheck:add-mouse-over-status ,pos-left ,pos-right ,str)
