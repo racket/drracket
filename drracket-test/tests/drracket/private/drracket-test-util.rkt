@@ -7,6 +7,7 @@
          racket/contract
          rackunit/log
          drracket/private/local-member-names
+         (for-syntax racket/base)
          "gui.rkt"
          "no-fw-test-util.rkt")
 
@@ -106,7 +107,9 @@
   ;; returns the newly opened frame, waiting until old-frame
   ;; is no longer frontmost. Optionally checks other eventspaces
   ;; waits until the new frame has a focus'd window, too. 
-  (define (wait-for-new-frame/proc old-frame old-frame-id-name [extra-eventspaces '()] [timeout 10])
+  (define (wait-for-new-frame/proc #:line line #:source source
+                                   old-frame old-frame-id-name
+                                   [extra-eventspaces '()] [timeout 10])
     (define (wait-for-new-frame-pred)
       (define active (or (fw:test:get-active-top-level-window)
                          (for/or ([eventspace (in-list extra-eventspaces)]) 
@@ -120,16 +123,21 @@
     (define fr (poll-until 
                 (procedure-rename wait-for-new-frame-pred
                                   (string->symbol
-                                   (format "wait-for-new-frame-pred; old: ~s id: ~a"
-                                           lab old-frame-id-name)))
+                                   (format "wait-for-new-frame-pred; old: ~s id: ~a call on ~a:~a"
+                                           lab old-frame-id-name
+                                           source line)))
                 timeout))
     (when fr (wait-for-events-in-frame-eventspace fr))
     (sleep 1)
     fr)
 
-(define-syntax-rule 
-  (wait-for-new-frame a b ...)
-  (wait-for-new-frame/proc a 'a b ...))
+(define-syntax (wait-for-new-frame stx)
+  (syntax-case stx ()
+    [(_ a b ...)
+     #`(wait-for-new-frame/proc
+        #:line #,(syntax-line stx)
+        #:source '#,(syntax-source stx)
+        a 'a b ...)]))
   
 
 
