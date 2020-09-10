@@ -65,13 +65,15 @@
       [(syntax? file-or-stx)
        (syntax-source file-or-stx)]))
   (define o (new build-trace% [src src]))
+  (define user-dir (path-only (simple-form-path src)))
   
   (parameterize ([current-annotations o])
     (define-values (expanded-expression expansion-completed) 
-      (make-traversal ns (path-only src)))
+      (make-traversal ns user-dir))
     (cond
       [(path-string? file-or-stx)
-       (parameterize ([current-namespace ns])
+       (parameterize ([current-namespace ns]
+                      [current-load-relative-directory user-dir])
          (expanded-expression
           (expand
            (call-with-input-file file-or-stx
@@ -81,7 +83,8 @@
                 (λ ()
                   (read-syntax file-or-stx port))))))))]
       [else 
-       (parameterize ([current-namespace ns])
+       (parameterize ([current-namespace ns]
+                      [current-load-relative-directory user-dir])
          (expanded-expression
           (if expand?
               (expand file-or-stx)
