@@ -82,7 +82,7 @@ in order to make the results be platform independent.
 }
 
 @defproc[(make-traversal [namespace namespace?]
-                         [path (or/c #f (and/c path-string? complete-path?))])
+                         [path (or/c #f path-string?)])
          (values (->* (syntax?)
                       ((-> any/c void?))
                       void?)
@@ -104,6 +104,10 @@ in order to make the results be platform independent.
   methods are invoked in the corresponding object (if any), to indicate
   what has been found in the syntax object. These methods will only be called
   if the syntax objects have source locations.
+
+  The @racket[path] argument indicates a directory whose traversal should operate on.
+  When @racket[path] is @racket[#f], it defaults to @racket[(current-directory)].
+  Otherwise, the path is simplified via @racket[simple-form-path] before it's used.
 }
 
 @defparam[current-annotations ca (or/c #f (is-a?/c syncheck-annotations<%>))]{

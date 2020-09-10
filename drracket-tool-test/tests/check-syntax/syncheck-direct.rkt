@@ -1,7 +1,10 @@
 #lang racket/base
 
 (require drracket/check-syntax
+         (only-in drracket/private/syncheck/traversals
+                  [build-trace% basic-build-trace%])
          racket/class
+         racket/match
          racket/set
          rackunit
          syntax/modread
@@ -515,10 +518,38 @@
     (parameterize ([current-directory tmp-dir])
       (show-content src)))
 
+  ;; test show-content on relative path
   (check-not-exn
    (λ ()
      (parameterize ([current-directory root-dir])
        (show-content "test/prefix.rkt"))))
+
+  ;; test make-traversal on relative path
+  (parameterize ([current-directory root-dir])
+    (define ns (make-base-namespace))
+    (define-values (add-syntax done)
+      (make-traversal ns "test"))
+    (parameterize ([current-annotations (new basic-build-trace% [src src])]
+                   [current-load-relative-directory tmp-dir]
+                   [current-namespace ns])
+      (define stx (call-with-input-file src
+                    (λ (port)
+                      (port-count-lines! port)
+                      (with-module-reading-parameterization
+                        (λ ()
+                          (read-syntax src port))))))
+      (add-syntax (expand stx))
+      (done)
+      (define trace (send (current-annotations) get-trace))
+
+      ;; if it's successful, we should see add-require-open-menu to x.rkt
+      (check-true
+       (for/or ([entry (in-list trace)])
+         (match entry
+           [(vector 'syncheck:add-require-open-menu _ _ path)
+            (equal? path (build-path tmp-dir "x.rkt"))]
+           [_ #f])))))
+
 
   (define paths
     (let loop ([content content])
@@ -548,7 +579,7 @@
     (when (path-extension-of? tmp-dir path)
       (check-pred file-exists? path)))
 
-  (delete-directory/files tmp-dir))
+  (delete-directory/files root-dir))
 
 (check-not-exn
  (λ ()
