@@ -13,7 +13,7 @@
          racket/list
          racket/contract
          racket/pretty
-         racket/bool
+         racket/path
          racket/dict
          syntax/id-table
          scribble/manual-struct
@@ -43,6 +43,7 @@
          [tl-module-lang-requires (make-hash)]
          [tl-phase-to-requires (make-hash)]
          [tl-sub-identifier-binding-directives (make-hash)]
+         [user-directory (and user-directory (simple-form-path user-directory))]
          [expanded-expression
           (λ (sexp [ignored void])
             (parameterize ([current-directory (or user-directory (current-directory))]
