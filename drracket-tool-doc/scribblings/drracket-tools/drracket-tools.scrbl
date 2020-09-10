@@ -41,8 +41,7 @@ that are exposed via Racket APIs to be used with other editors.
  the vector are the arguments passed to the method.
  (Note that this procedure does not account for the callback
  procedures present in
- @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
- and @method[syncheck-annotations<%> syncheck:add-id-set].)
+ @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy].)
 
  The @racket[file-or-stx] argument gives the input program
  and @racket[fully-expanded?] indicates if the
@@ -83,7 +82,7 @@ in order to make the results be platform independent.
 }
 
 @defproc[(make-traversal [namespace namespace?]
-                         [path (or/c #f path-string?)])
+                         [path (or/c #f (and/c path-string? complete-path?))])
          (values (->* (syntax?)
                       ((-> any/c void?))
                       void?)

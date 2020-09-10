@@ -495,7 +495,10 @@
 ;; make sure that `make-traversal` is called with
 ;; the containing directory by `show-content`
 (let ()
-  (define tmp-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (define root-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (parameterize ([current-directory root-dir])
+    (make-directory "test"))
+  (define tmp-dir (build-path root-dir "test"))
   (define src (build-path tmp-dir "prefix.rkt"))
   (call-with-output-file src
     (λ (port)
@@ -511,6 +514,11 @@
   (define content
     (parameterize ([current-directory tmp-dir])
       (show-content src)))
+
+  (check-not-exn
+   (λ ()
+     (parameterize ([current-directory root-dir])
+       (show-content "test/prefix.rkt"))))
 
   (define paths
     (let loop ([content content])
