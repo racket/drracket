@@ -753,11 +753,13 @@ If the namespace does not, they are colored the unbound color.
                                                      (send text get-end-position)
                                                      #t))
               (unless (null? binding-identifiers)
-                (define name-to-offer (find-name-to-offer binding-identifiers
-                                                          (send text get-start-position)
-                                                          (send text get-end-position)))
+                (define-values (name-to-offer description-of-name)
+                  (find-name-to-offer binding-identifiers
+                                      (send text get-start-position)
+                                      (send text get-end-position)))
                 (rename-menu-callback make-identifiers-hash
                                       name-to-offer
+                                      description-of-name
                                       binding-identifiers
                                       (and canvas (send canvas get-top-level-window)))))
             
@@ -804,7 +806,7 @@ If the namespace does not, they are colored the unbound color.
               (end-edit-sequence))
 
             (define/public (add-prefix-for-require txt pos)
-              (define binding-identifiers (position->binding-arrows txt pos pos #t))
+              (define binding-identifiers (position-range->binding-arrows txt pos pos #t))
               (define candidate-binders/possibly-prefixed
                 (for/list ([binding-identifier (in-list binding-identifiers)]
                            #:when (equal? (var-arrow-require-arrow? binding-identifier)
@@ -878,7 +880,8 @@ If the namespace does not, they are colored the unbound color.
                          (send txt insert prefix start start)]))))]))
             
             ;; callback for the rename popup menu item
-            (define/private (rename-menu-callback make-identifiers-hash name-to-offer
+            (define/private (rename-menu-callback make-identifiers-hash
+                                                  name-to-offer description-of-name
                                                   binding-identifiers parent)
               (define (name-dup? x) 
                 (for/or ([var-arrow (in-list binding-identifiers)])
@@ -889,7 +892,7 @@ If the namespace does not, they are colored the unbound color.
                    (get-text-from-user
                     (string-constant cs-rename-id)
                     (fw:gui-utils:format-literal-label (string-constant cs-rename-var-to) 
-                                                       name-to-offer)
+                                                       description-of-name)
                     parent
                     name-to-offer
                     #:dialog-mixin frame:focus-table-mixin))))
@@ -943,7 +946,7 @@ If the namespace does not, they are colored the unbound color.
               (for ([txt (in-list edit-sequence-txts)])
                 (send txt end-edit-sequence)))
                 
-            ;; find-name-to-offer : (non-empty-listof identifier?) pos pos -> string?
+            ;; find-name-to-offer : (non-empty-listof identifier?) pos pos -> (values string? string?)
             (define/private (find-name-to-offer binding-var-arrows start-sel end-sel)
               ;; NOTE: for consistency, try to match how selection currently works
               ;; in DrRacket, even though it is potentially buggy. See issue #414.
@@ -960,10 +963,10 @@ If the namespace does not, they are colored the unbound color.
               ;; - {11} = x|y
               ;; - {9,10} = [ ]xy
               ;; - {11,12} = x[y]
-              ;;
-              ;; and the following selections are not considered overlapped:
-              ;;
               ;; - {12} = xy|
+              ;;
+              ;; and the following selection is not considered overlapped:
+              ;;
               ;; - {12,13} = xy[ ]
               ;;
               ;; In general, for an identifier at position [a,b), any selection
@@ -976,26 +979,40 @@ If the namespace does not, they are colored the unbound color.
               (define (intersect? _text a b)
                 (define b* (sub1 b))
                 ;; does {a,...,b*} intersect {start-sel,...,end-sel}?
-                (<= (max a start-sel) (min b* end-sel)))
-
-              (define ids
-                (for*/list ([arrow (in-list binding-var-arrows)]
-                            [id (in-list (list (list (var-arrow-start-text arrow)
-                                                     (var-arrow-start-pos-left arrow)
-                                                     (var-arrow-start-pos-right arrow))
-                                               (list (var-arrow-end-text arrow)
-                                                     (var-arrow-end-pos-left arrow)
-                                                     (var-arrow-end-pos-right arrow))))]
-                            #:when (apply intersect? id))
-                  id))
-              (match-define (list longest-text longest-left longest-right)
-                (car 
-                 (sort ids
-                       >
-                       #:key (λ (x)
-                               (match-define (list _ left right) x)
-                               (- right left)))))
-              (send longest-text get-text longest-left longest-right))
+                (or (<= (max a start-sel) (min b* end-sel))
+                    ;; matches the special case in `position-range->binding-arrows`
+                    (and (= start-sel end-sel) (not (zero? start-sel))
+                         (<= (max a (- start-sel 1)) (min b* (- start-sel 1))))))
+              (define id-set
+                (for*/set ([arrow (in-list binding-var-arrows)]
+                           [id (in-list (list (list (var-arrow-start-text arrow)
+                                                    (var-arrow-start-pos-left arrow)
+                                                    (var-arrow-start-pos-right arrow))
+                                              (list (var-arrow-end-text arrow)
+                                                    (var-arrow-end-pos-left arrow)
+                                                    (var-arrow-end-pos-right arrow))))]
+                           #:when (apply intersect? id))
+                  (send (list-ref id 0) get-text (list-ref id 1) (list-ref id 2))))
+              (define ids (sort (set->list id-set) string<?))
+              (define description-of-name
+                (cond
+                  [(null? ids)
+                   ;; hopefully this cannot happen, but maybe it
+                   ;; can with some twisty language definition?
+                   "??"]
+                  [(null? (cdr ids)) (car ids)]
+                  [(null? (cddr ids)) (format "~a and ~a" (car ids) (cadr ids))]
+                  [else
+                   (apply
+                    string-append
+                    (format "~a" (car ids))
+                    (let loop ([ids (cdr ids)])
+                      (cond
+                        [(null? (cdr ids)) (list (format ", and ~a" (car ids)))]
+                        [else (cons (format ", ~a" (car ids))
+                                    (loop (cdr ids)))])))]))
+              (values (if (null? ids) "?" (car ids))
+                      description-of-name))
               
             ;; find-parent : menu-item-container<%> -> (union #f (is-a?/c top-level-window<%>)
             (define/private (find-menu-parent menu)
@@ -1519,16 +1536,18 @@ If the namespace does not, they are colored the unbound color.
                   (define-values (binding-identifiers make-identifiers-hash)
                     (position->matching-identifiers-hash text pos pos #t))
                   (unless (null? binding-identifiers)
-                    (define name-to-offer (find-name-to-offer binding-identifiers pos pos))
+                    (define-values (name-to-offer description-of-name)
+                      (find-name-to-offer binding-identifiers pos pos))
                     (new menu-item%
                          [parent menu]
                          [label (fw:gui-utils:format-literal-label (string-constant cs-rename-var)
-                                                                   name-to-offer)]
+                                                                   description-of-name)]
                          [callback
                           (λ (x y)
                             (let ([frame-parent (find-menu-parent menu)])
                               (rename-menu-callback make-identifiers-hash
-                                                    name-to-offer 
+                                                    name-to-offer
+                                                    name-to-offer
                                                     binding-identifiers
                                                     frame-parent)))]))
                   (unless sep-before?
@@ -1579,7 +1598,7 @@ If the namespace does not, they are colored the unbound color.
               (set! current-matching-identifiers
                     (cond
                       [(and cursor-text cursor-pos)
-                       (define-values (_binders make-identifiers-hash)
+                       (define-values (binders make-identifiers-hash)
                          (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos
                                                               #f))
                        (make-identifiers-hash)]
@@ -1595,45 +1614,60 @@ If the namespace does not, they are colored the unbound color.
             ;; : txt pos pos -> (values (listof var-arrow?) hash[(list txt pos pos) -o> #t])
             (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
                                                                  include-require-arrows?)
-              (define binding-arrows (position->binding-arrows the-text the-start-pos the-end-pos
+              (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos
                                                                include-require-arrows?))
               (values binding-arrows
                       (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)))
 
-            (define/private (position->binding-arrows the-text the-start-pos the-end-pos
-                                                      include-require-arrows?)
+            (define/private (position-range->binding-arrows the-text the-start-pos the-end-pos
+                                                            include-require-arrows?)
+              (cond
+                [(= the-start-pos the-end-pos)
+                 (define forward (position->binding-arrows the-text the-start-pos include-require-arrows?))
+                 (cond
+                   [(and (null? forward)
+                         (not (zero? the-start-pos)))
+                    ;; if we don't find anything here, check behind us.
+                    ;; (but only when there isn't a selection)
+                    (position->binding-arrows the-text (- the-start-pos 1) include-require-arrows?)]
+                   [else forward])]
+                [else
+                 (apply
+                  append
+                  (for/list ([the-pos (in-range the-start-pos (+ the-end-pos 1))])
+                    (position->binding-arrows the-text the-pos include-require-arrows?)))]))
+
+            (define/private (position->binding-arrows the-text the-pos include-require-arrows?)
               (define binding-arrows '())
               (define (add-binding-arrow arr)
                 (when (or include-require-arrows?
                           (not (var-arrow-require-arrow? arr)))
                   (set! binding-arrows (cons arr binding-arrows))))
-              (for ([the-pos (in-range the-start-pos (+ the-end-pos 1))])
-                (define arrs (fetch-arrow-records the-text the-pos))
-                (when arrs
-                  (for ([arrow (in-list arrs)])
-                    (when (var-arrow? arrow)
-                      (cond
-                        [(and (equal? (var-arrow-start-text arrow) the-text)
-                              (<= (var-arrow-start-pos-left arrow) 
-                                  the-pos 
-                                  (var-arrow-start-pos-right arrow)))
-                         ;; a binding occurrence => keep it
-                         (add-binding-arrow arrow)]
-                        [else
-                         ;; a bound occurrence => find binders
-                         (for ([candidate-binder 
-                                (in-list (fetch-arrow-records (var-arrow-start-text arrow)
-                                                              (var-arrow-start-pos-left arrow)))])
-                           (when (var-arrow? candidate-binder)
-                             (when (and (equal? (var-arrow-start-text arrow) 
-                                                (var-arrow-start-text candidate-binder))
-                                        (equal? (var-arrow-start-pos-left arrow)
-                                                (var-arrow-start-pos-left candidate-binder))
-                                        (equal? (var-arrow-start-pos-right arrow)
-                                                (var-arrow-start-pos-right candidate-binder)))
-                               (add-binding-arrow candidate-binder))))])))))
+              (define arrs (fetch-arrow-records the-text the-pos))
+              (when arrs
+                (for ([arrow (in-list arrs)])
+                  (when (var-arrow? arrow)
+                    (cond
+                      [(and (equal? (var-arrow-start-text arrow) the-text)
+                            (<= (var-arrow-start-pos-left arrow) the-pos)
+                            (< the-pos (var-arrow-start-pos-right arrow)))
+                       ;; a binding occurrence => keep it
+                       (add-binding-arrow arrow)]
+                      [else
+                       ;; a bound occurrence => find binders
+                       (for ([candidate-binder
+                              (in-list (fetch-arrow-records (var-arrow-start-text arrow)
+                                                            (var-arrow-start-pos-left arrow)))])
+                         (when (var-arrow? candidate-binder)
+                           (when (and (equal? (var-arrow-start-text arrow)
+                                              (var-arrow-start-text candidate-binder))
+                                      (equal? (var-arrow-start-pos-left arrow)
+                                              (var-arrow-start-pos-left candidate-binder))
+                                      (equal? (var-arrow-start-pos-right arrow)
+                                              (var-arrow-start-pos-right candidate-binder)))
+                             (add-binding-arrow candidate-binder))))]))))
               binding-arrows)
-            
+
             (define (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)
               (define identifiers-hash #f)
               (define (add-one txt start end)
