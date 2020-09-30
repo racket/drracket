@@ -235,6 +235,18 @@
                    '((6 12) (31 40))
                    '((6 12) (45 58))))
 
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket\n"
+                "(unit (import) (export)\n"
+                "      (define color-scheme-colors 3)\n"
+                "      (set! color-scheme-colors color-scheme-colors))\n"))
+              (set '((6 12) (14 18))
+                   ;'((6 12) (44 50)) ;; maybe the define should also get an arrow?
+                   '((6 12) (81 85))
+                   '((51 70) (86 105))
+                   '((51 70) (106 125))))
+
 ;                                                       
 ;                                                       
 ;                                                       

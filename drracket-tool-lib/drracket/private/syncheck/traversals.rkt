@@ -339,7 +339,7 @@
         [(set! var e)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-
+           (add-origins (list-ref (syntax->list stx-obj) 1) varrefs level-of-enclosing-module)
            ;; tops are used here because a binding free use of a set!'d variable
            ;; is treated just the same as (#%top . x).
            (add-id varsets (syntax var) level-of-enclosing-module)
