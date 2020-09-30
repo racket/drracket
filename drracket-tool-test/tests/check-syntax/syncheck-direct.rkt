@@ -242,7 +242,7 @@
                 "      (define color-scheme-colors 3)\n"
                 "      (set! color-scheme-colors color-scheme-colors))\n"))
               (set '((6 12) (14 18))
-                   ;'((6 12) (44 50)) ;; maybe the define should also get an arrow?
+                   '((6 12) (44 50))
                    '((6 12) (81 85))
                    '((51 70) (86 105))
                    '((51 70) (106 125))))
