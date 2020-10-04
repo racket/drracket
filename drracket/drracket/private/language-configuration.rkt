@@ -9,6 +9,7 @@
          drracket/private/drsig
          "tooltip.rkt"
          "local-member-names.rkt"
+         "frame-icon.rkt"
          string-constants
          framework
          framework/private/srcloc-panel
@@ -2358,7 +2359,7 @@
              (parent racketeer-panel)
              (label (string-constant racketeer?)))
         (new canvas-message% 
-             [label (read-bitmap (collection-file-path "plt-logo-red-shiny.png" "icons"))]
+             [label todays-icon]
              [parent racketeer-panel]
              [callback (λ () (change-current-lang-to
                               (λ (x) (is-a? x drracket:module-language:module-language<%>))))])
