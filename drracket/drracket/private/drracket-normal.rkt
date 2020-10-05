@@ -316,7 +316,8 @@
               (format "DrRacket ~a" (version))
               700
               #:allow-funny? #t
-              #:frame-icon todays-icon)
+              #:frame-icon (and (equal? (system-type) 'unix)
+                                (get-todays-icon)))
 
 (when (getenv "PLTDRBREAK")
   (printf "PLTDRBREAK: creating break frame\n") (flush-output)

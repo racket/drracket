@@ -1,6 +1,6 @@
 #lang racket/base
 (require racket/class racket/draw (for-syntax racket/base racket/match racket/string xml))
-(provide todays-icon
+(provide get-todays-icon
          mb-scale-factor mb-main-drawing
          mb-flat-width mb-flat-height
          mb-plain-width mb-plain-height)
@@ -136,17 +136,20 @@
 (define mb-flat-width (inexact->exact (ceiling (* mb-plain-width mb-scale-factor))))
 (define mb-flat-height (inexact->exact (ceiling (* mb-plain-height mb-scale-factor))))
 
-(define todays-icon
-  (and (eq? (system-type) 'unix)
-       (let ()
-         (define bmp (make-object bitmap% mb-flat-width mb-flat-height #f #t))
-         (define dc  (make-object bitmap-dc% bmp))
-         (send dc set-smoothing 'smoothed)
-         (send dc set-pen "black" 1 'transparent)
-         (send dc set-brush "white" 'solid)
-         ;; draw white background circle to give color to lambda portion
-         (send dc draw-ellipse 2 2 (- mb-flat-width 4) (- mb-flat-height 4))
-         (send dc set-scale mb-scale-factor mb-scale-factor)
-         (mb-main-drawing dc)
-         (send dc set-bitmap #f)
-         bmp)))
+(define todays-icon #f)
+
+(define (get-todays-icon)
+  (unless todays-icon
+    (define bmp (make-object bitmap% mb-flat-width mb-flat-height #f #t))
+    (define dc  (make-object bitmap-dc% bmp))
+    (send dc set-smoothing 'smoothed)
+    (send dc set-pen "black" 1 'transparent)
+    (send dc set-brush "white" 'solid)
+    ;; draw white background circle to give color to lambda portion
+    (send dc draw-ellipse 2 2 (- mb-flat-width 4) (- mb-flat-height 4))
+    (send dc set-scale mb-scale-factor mb-scale-factor)
+    (mb-main-drawing dc)
+    (send dc set-bitmap #f)
+    (set! todays-icon bmp))
+  todays-icon)
+

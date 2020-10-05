@@ -9,6 +9,7 @@
          drracket/private/drsig
          "tooltip.rkt"
          "local-member-names.rkt"
+         "frame-icon.rkt"
          string-constants
          framework
          framework/private/srcloc-panel
@@ -2358,7 +2359,8 @@
              (parent racketeer-panel)
              (label (string-constant racketeer?)))
         (new canvas-message% 
-             [label (read-bitmap (collection-file-path "plt-logo-red-shiny.png" "icons"))]
+             [label (get-todays-icon)]
+             [label-scale 2/3]
              [parent racketeer-panel]
              [callback (λ () (change-current-lang-to
                               (λ (x) (is-a? x drracket:module-language:module-language<%>))))])
@@ -2416,6 +2418,7 @@
       (define canvas-message%
         (class canvas%
           (init-field label
+                      [label-scale 1]
                       [font (get-font)]
                       [callback void]
                       [color #f])
@@ -2443,7 +2446,10 @@
                (send dc set-font old-font)
                (send dc set-text-foreground old-tf)]
               [(is-a? label bitmap%)
-               (send dc draw-bitmap label 0 0)]))
+               (define-values (x-scale y-scale) (send dc get-scale))
+               (send dc set-scale label-scale label-scale)
+               (send dc draw-bitmap label 0 0)
+               (send dc set-scale x-scale y-scale)]))
           
           (super-new [stretchable-width #f]
                      [stretchable-height #f]
@@ -2456,8 +2462,8 @@
              (min-width (inexact->exact (ceiling w)))
              (min-height (inexact->exact (ceiling h)))]
             [(is-a? label bitmap%)
-             (min-width (inexact->exact (ceiling (send label get-width))))
-             (min-height (inexact->exact (ceiling (send label get-height))))])))
+             (min-width (inexact->exact (ceiling (* label-scale (send label get-width)))))
+             (min-height (inexact->exact (ceiling (* label-scale (send label get-height)))))])))
       
       (define (question/answer line1 line2 icon-lst)
         (display-two-line-choice 
