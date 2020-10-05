@@ -49,7 +49,8 @@
                                                    (symbol->string name)
                                                    "drscheme:")))))
 
-(frame:current-icon todays-icon)
+(when (equal? (system-type) 'unix)
+  (frame:current-icon (get-todays-icon)))
   
 (define file-opened-via-application-file-handler? #f)
 (application-file-handler
