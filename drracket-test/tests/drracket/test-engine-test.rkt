@@ -262,6 +262,7 @@
 
 (define (parse-number txt)
   (cond
+    ((not txt) 0)
     ((string=? txt "No") 0)
     ((string=? txt "One") 1)
     ((string=? txt "Two") 2)
@@ -269,17 +270,17 @@
 
 (define (parse-test-failure-header txt)
   (cond
-    ((regexp-match #rx"^Ran ([NoOneTwo0-9]+) tests?.\n([NoOneTwo0-9]+) tests? passed.\n([NoOneTwo0-9]+) signature violations?."
+    ((regexp-match #rx"^Ran ([NoOneTwo0-9]+) tests?.\n([NoOneTwo0-9]+) tests? passed.\n(([NoOneTwo0-9]+) signature violations?.)?"
                           txt)
      => (lambda (match)
-          (let-values (((_ test-count-text test-passed-count-text signature-violations-count-text)
+          (let-values (((_ test-count-text test-passed-count-text __ signature-violations-count-text)
                         (apply values match)))
             (values (parse-number test-count-text)
                     (parse-number test-passed-count-text)
                     (parse-number signature-violations-count-text)))))
-    ((regexp-match #rx"^This program must be tested!\n([NoOneTwo0-9]+) signature violations?." txt)
+    ((regexp-match #rx"^This program must be tested!\n(([NoOneTwo0-9]+) signature violations?.)?" txt)
      => (lambda (match)
-          (values 0 0 (parse-number (cadr match)))))
+          (values 0 0 (parse-number (caddr match)))))
     (else
      (error 'parse-test-failure-header "bad test failure header" txt))))
 
