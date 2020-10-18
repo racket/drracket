@@ -268,7 +268,7 @@
 
       (syntax-case* stx-obj (#%plain-lambda case-lambda if begin begin0 let-values letrec-values
                                             set! quote quote-syntax with-continuation-mark
-                                            #%plain-app #%top #%plain-module-begin
+                                            #%plain-app #%top
                                             define-values define-syntaxes begin-for-syntax
                                             module module*
                                             #%require #%provide #%declare #%expression)
@@ -401,7 +401,7 @@
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
            (for ([e (in-list (syntax->list (syntax (exp ...))))])
              (level-loop e (+ level 1))))]
-        [(module m-name lang (#%plain-module-begin bodies ...))
+        [(module m-name lang (mb bodies ...))
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
            (add-module-lang-require module-lang-requires (syntax lang))
@@ -414,7 +414,7 @@
            (hash-cons! sub-requires (syntax->datum (syntax lang)) (syntax lang))
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (mod-loop body module-name)))]
-        [(module* m-name lang (#%plain-module-begin bodies ...))
+        [(module* m-name lang (mb bodies ...))
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
            (define module-name (syntax-e #'m-name))

@@ -247,6 +247,20 @@
                    '((51 70) (86 105))
                    '((51 70) (106 125))))
 
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket\n"
+                "(require (for-meta 2 racket/base))\n"
+                "(begin-for-syntax\n"
+                "  (begin-for-syntax\n"
+                "    (module a racket/base)))\n"))
+              (set
+               '((6 12) (14 21))
+               '((6 12) (23 31))
+               '((6 12) (49 65))
+               '((6 12) (69 85))
+               '((34 45) (91 97))))
+
 ;                                                       
 ;                                                       
 ;                                                       
