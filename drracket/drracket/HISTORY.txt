@@ -1,4 +1,13 @@
 ------------------------------
+       Version 7.9
+------------------------------
+
+   . various improvements to Check Syntax arrows
+     and renaming, thanks to Sorawee Porncharoenwase
+
+   . misc other bug fixes and documentation improvements
+
+------------------------------
        Version 7.8
 ------------------------------
 
