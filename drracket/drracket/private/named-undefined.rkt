@@ -1,7 +1,10 @@
 #lang racket/base
 
+(require racket/contract)
+
 (provide (rename-out [-drr-undefined drr-undefined])
-         drr-named-undefined
+         (contract-out
+          [drr-named-undefined (-> symbol? drr-undefined?)])
          drr-undefined?)
 
 (struct drr-undefined (name) 
@@ -15,9 +18,8 @@
        [else
         (display "#<drr's undefined>" p)]))])
 (define -drr-undefined (drr-undefined #f))
+
 (define (drr-named-undefined name)
-  (unless (symbol? name)
-    (raise-argument-error 'named-undefined "string?" name))
   (drr-undefined name))
 (define-values (struct:undef make-undef undef? undef-ref undef-set!)
   (make-struct-type 'undefined #f 0 0))
