@@ -49,12 +49,12 @@
 		   ""
 		   #:repl-expected "foo: this name was defined previously and cannot be re-defined"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"bar\" at line 1, column 28 " 1 7)))
+		   (list (make-signature-violation "\"bar\" at line 1, column 28" 1 7)))
   (test-expression "(: foo (Integer -> Integer)) (define (foo x) x) (foo \"foo\")"
 		   "\"foo\""
 		   #:repl-expected "foo: this name was defined previously and cannot be re-defined\n"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"foo\" at line 1, column 48 " 1 8))
+		   (list (make-signature-violation "\"foo\" at line 1, column 48" 1 8))
 		   #:repl-signature-violations-expected
                    (list))
   (test-expression "(: foo (Integer -> Integer)) (define foo (lambda (x) x))"
@@ -62,7 +62,7 @@
 		   #:repl-expression "(foo \"foo\")"
 		   #:repl-expected "\"foo\""
 		   #:repl-signature-violations-expected
-		   (list (make-signature-violation "\"foo\" at line 3, column 2 " 1 8))))
+		   (list (make-signature-violation "\"foo\" at line 3, column 2" 1 8))))
 
 (define (common-signatures-sdp)
   (test-expression "(: foo integer) (define foo 5)"
@@ -72,12 +72,12 @@
 		   ""
 		   #:repl-expected "define: Zweite Definition für denselben Namen"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"bar\" at line 1, column 28 " 1 7)))
+		   (list (make-signature-violation "\"bar\" at line 1, column 28" 1 7)))
   (test-expression "(: foo (integer -> integer)) (define foo (lambda (x) x)) (foo \"foo\")"
 		   "\"foo\""
                    #:repl-expected "define: Zweite Definition für denselben Namen"
 		   #:signature-violations-expected
-		   (list (make-signature-violation "\"foo\" at line 1, column 57 " 1 8))
+		   (list (make-signature-violation "\"foo\" at line 1, column 57" 1 8))
 		   #:repl-signature-violations-expected
 		   (list))
   (test-expression "(: foo (integer -> integer)) (define foo (lambda (x) x))"
@@ -85,7 +85,7 @@
 		   #:repl-expression "(foo \"foo\")"
 		   #:repl-expected "\"foo\""
 		   #:repl-signature-violations-expected
-		   (list (make-signature-violation "\"foo\" at line 3, column 2 " 1 8))))
+		   (list (make-signature-violation "\"foo\" at line 3, column 2" 1 8))))
 
 
 
