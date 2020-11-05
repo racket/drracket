@@ -15,13 +15,14 @@
    (for ([rfile (in-list (directory-list snip))])
      (define file (build-path snip rfile))
      (when (file-exists? file)  ;; skip subdirectories
-       (printf "  trying ~a\n" rfile)
-       (queue-callback/res 
-        (λ () (send defs load-file file)))
-       (save-drracket-window-as (build-path tmpdir rfile))
-       (define drs2 (wait-for-drracket-frame))
-       (unless (eq? drs drs2)
-         (error 'snips.rkt "lost drracket frame while saving ~s" rfile))))
+       (unless (equal? file (build-path "info.rkt"))
+         (printf "  trying ~a\n" rfile)
+         (queue-callback/res
+          (λ () (send defs load-file file)))
+         (save-drracket-window-as (build-path tmpdir rfile))
+         (define drs2 (wait-for-drracket-frame))
+         (unless (eq? drs drs2)
+           (error 'snips.rkt "lost drracket frame while saving ~s" rfile)))))
    
    (delete-directory/files tmpdir)))
 
