@@ -71,7 +71,7 @@
 	  (fw:test:keystroke #\a (list (case (system-type)
 					 [(windows) 'control]
 					 [(macosx macos) 'meta]
-					 [(unix) 'meta]
+					 [(unix) 'control]
                                          [else (error 'use-get/put-dialog "unknown platform: ~s\n"
                                                       (system-type))])))
 	  (for-each fw:test:keystroke (string->list (path->string filename)))
