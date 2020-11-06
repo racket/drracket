@@ -1035,11 +1035,6 @@ This produces an ACK message
   (define (wait-for-drr-frame-computation) (wait-for-computation drr-frame))
   (define (get-int-pos) (queue-callback/res (λ () (get-text-pos ints-text))))
   
-  
-  (define short-tmp-load-filename
-    (let-values ([(base name dir?) (split-path tmp-load-filename)])
-      (path->string name)))
-  
   ;; setup-fraction-sum-interactions : -> void 
   ;; clears the definitions window, and executes `1/2' to
   ;; get a fraction snip in the interactions window.
