@@ -9,7 +9,8 @@
          (for-syntax racket/base)
          mrlib/panel-wob
          "frame-icon.rkt"
-         "eb.rkt")
+         "eb.rkt"
+         "dates.rkt")
 
 (module test racket/base)
 
@@ -45,31 +46,11 @@
 ;; to open. See also main.rkt.
 (current-command-line-arguments (apply vector files-to-open))
 
-(define (weekend-date? date)
-  (define dow (date-week-day date))
-  (or (= dow 6) (= dow 0)))
-
-(define (valentines-date? date)
-  (and (= 2 (date-month date))
-       (= 14 (date-day date))))
-
 (define (icon-state date)
   (cond
     [(valentines-date? date) 'valentines]
     [(weekend-date? date) 'weekend]
     [else 'normal]))
-
-(define-values (texas-independence-day? 
-                prince-kuhio-day? kamehameha-day? halloween?
-                ada-lovelace-bday?)
-  (let* ([month (date-month startup-date)]
-         [day (date-day startup-date)]
-         [dow (date-week-day startup-date)])
-    (values (and (= 3 month) (= 2 day))
-            (and (= 3 month) (= 26 day))
-            (and (= 6 month) (= 11 day))
-            (and (= 10 month) (= 31 day))
-            (and (= 12 month) (= 10 day)))))
 
 (define special-state #f)
 
@@ -237,21 +218,22 @@
   (cond
     [(valentines-date? startup-date)
      valentines-days-spec]
-    [(or prince-kuhio-day? kamehameha-day?)
+    [(or (prince-kuhio-day? startup-date)
+         (kamehameha-day? startup-date))
      (set-splash-progress-bar?! #f)
      (let ([size ((dynamic-require 'drracket/private/palaka 'palaka-pattern-size) 4)])
        (vector (dynamic-require 'drracket/private/honu-logo 'draw-honu) 
                size 
                size))]
-    [ada-lovelace-bday?
+    [(ada-lovelace-bday? startup-date)
      (set-splash-progress-bar?! #f)
      (let ([size (dynamic-require 'drracket/private/ada 'ada-size)])
        (vector (dynamic-require 'drracket/private/ada 'draw-splash-ada) 
                size 
                size))]
-    [texas-independence-day?
+    [(texas-independence-day? startup-date)
      (collection-file-path texas-plt-bw.gif "icons")]
-    [halloween?
+    [(halloween? startup-date)
      (collection-file-path PLT-pumpkin.png "icons")]
     ;; don't use the weekend spinning because drawing
     ;; the splash screen repeatedly adds about 40%
