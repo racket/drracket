@@ -10,7 +10,6 @@
          racket/gui/base
          string-constants
          framework
-         framework/private/bday
          framework/private/srcloc-panel
          "embedded-snip-utils.rkt"
          drracket/private/drsig
@@ -537,10 +536,9 @@
 
   ;; =Kernel= =User=
   (define (make-note-to-print-to-stderr msg viewable-stack1 viewable-stack2)
-    (define note% (if (mf-bday?) mf-note% bug-note%))
     (cond
-      [note%
-       (define note (new note%))
+      [bug-note%
+       (define note (new bug-note%))
        (send note set-stacks viewable-stack1 viewable-stack2)
        (send note set-callback
              (λ (snp)
@@ -786,10 +784,6 @@
 
   (define (show-backtrace-window/viewable-stacks error-text viewable-stack1 viewable-stack2)
     (reset-backtrace-window)
-    (when (mf-bday?)
-      (new message%
-           [label (string-constant happy-birthday-matthias)]
-           [parent (send current-backtrace-window get-area-container)]))
     (define both-non-empty?
       (and (not (empty-viewable-stack? viewable-stack1))
            (not (empty-viewable-stack? viewable-stack2))))

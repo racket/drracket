@@ -3,13 +3,11 @@
 (require racket/gui/base
          racket/class
          racket/cmdline
-         framework/private/bday
          framework/splash
          racket/runtime-path
          (for-syntax racket/base)
          mrlib/panel-wob
          "frame-icon.rkt"
-         "eb.rkt"
          "dates.rkt")
 
 (module test racket/base)
@@ -124,8 +122,6 @@
                    #f
                    match))
          (refresh-splash)]))))
-
-(when (eb-bday?) (install-eb))
 
 (define (draw-magic dc width height)
   (define-values (sw sh) (send dc get-scale))
