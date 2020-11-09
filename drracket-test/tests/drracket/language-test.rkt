@@ -595,8 +595,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read-syntax: `#lang` not enabled"
-                     "read-syntax: `#lang` not enabled")
+                     #rx"read-syntax: `#lang` not enabled"
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -966,8 +966,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read-syntax: `#lang` not enabled"
-                     "read-syntax: `#lang` not enabled")
+                     #rx"read-syntax: `#lang` not enabled"
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
@@ -1118,8 +1118,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read-syntax: `#lang` not enabled"
-                     "read-syntax: `#lang` not enabled")
+                     #rx"read-syntax: `#lang` not enabled"
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression
      (string-append "(define (f)\n"
                     "(+ (raise-user-error 'a \"b\")))\n"
@@ -1268,8 +1268,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read-syntax: `#lang` not enabled"
-                     "read-syntax: `#lang` not enabled")
+                     #rx"read-syntax: `#lang` not enabled"
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression
      (string-append "(define (f)\n"
                     "(+ (raise-user-error 'a \"b\")))\n"
@@ -1427,8 +1427,8 @@ the settings above should match r5rs
     (test-undefined-fn "(define-syntax app syntax-case)" "define-syntax")
     
     (test-expression "#lang racket"
-                     "read-syntax: `#lang` not enabled"
-                     "read-syntax: `#lang` not enabled")
+                     #rx"read-syntax: `#lang` not enabled"
+                     #rx"read-syntax: `#lang` not enabled")
     (test-expression (string-append "(define (f)\n"
                                     "(+ (raise-user-error 'a \"b\")))\n"
                                     "(if (zero? (random 1)) (void) (set! f void))\n"
