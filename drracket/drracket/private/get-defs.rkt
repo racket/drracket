@@ -12,7 +12,8 @@
          (struct-out define-popup-info))
 
 ;; defn = (make-defn number string number number)
-(define-struct defn (indent name start-pos end-pos) #:mutable)
+(define-struct defn (indent name start-pos end-pos)
+  #:mutable #:transparent)
 
 (struct define-popup-info (prefix long-name short-name) #:transparent)
 
@@ -181,6 +182,9 @@
 (define (skip-past-non-whitespace text pos)
   (skip text (skip text pos char-whitespace?) (negate char-whitespace?)))
 
+(define (forward-to-next-token text pos)
+  (send text forward-match pos (send text last-position)))
+
 ;; get-defn-name : text number -> string
 ;; returns the name of the definition starting at `define-pos',
 ;; assuming that the bound name is the first symbol to appear
@@ -201,7 +205,64 @@
                              end-suffix-pos))))]
                 [else end-suffix-pos])]
          [start-name-pos (skip-whitespace/paren text end-header-pos)]
-         [end-name-pos (skip-to-whitespace/paren text start-name-pos)])
+         [end-name-pos (forward-to-next-token text start-name-pos)])
     (if (>= end-suffix-pos (send text last-position))
         (string-constant end-of-buffer-define)
         (send text get-text start-name-pos end-name-pos))))
+
+(module+ test
+  (require rackunit racket/gui/base framework)
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define (f x) x)\n")
+    (send t insert "  (define (g x) x)\n")
+    (send t insert "(module m racket/base)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ")
+            (define-popup-info "(module" "(module ...)" "ρ"))
+      #t
+      t)
+     (list (defn 0 "f" 0 18)
+           (defn 2 "  g" 19 35)
+           (defn 0 "m" 36 59)))
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(module" "(module ...)" "ρ"))
+      #t
+      t)
+     (list (defn 0 "m" 36 59))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define-metafunction L\n")
+    (send t insert "  M : any -> any\n")
+    (send t insert "  [(M any_1) any_1])\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ"))
+      #t
+      t)
+     (list (defn 0 "M" 0 61))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define-metafunction L\n")
+    (send t insert "  [(M any_1) any_1])\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ"))
+      #t
+      t)
+     (list (defn 0 "M" 0 44))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define (|(| x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ"))
+      #t
+      t)
+     (list (defn 0 "|(|" 0 19)))))
