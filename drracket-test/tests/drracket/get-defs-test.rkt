@@ -1,7 +1,8 @@
 #lang racket
 
 (require drracket/private/get-defs
-         racket/gui
+         racket/gui/base
+         framework
          string-constants)
 
 (define (get-definitions/string
@@ -9,7 +10,7 @@
          #:define-prefix
          [define-prefix
            (list (define-popup-info "(define" "(define ...)" "δ"))])
-  (define text (new text%))
+  (define text (new racket:text%))
   (send text insert string)
   (get-definitions define-prefix #f text))
 

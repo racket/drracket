@@ -210,6 +210,7 @@
         (string-constant end-of-buffer-define)
         (send text get-text start-name-pos end-name-pos))))
 
+;; more tests are in tests/drracket/get-defs-test
 (module+ test
   (require rackunit racket/gui/base framework)
 
