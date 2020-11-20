@@ -823,7 +823,7 @@ that the button is not referenced by this frame and thus can be gc'd.
 
 }
 
-@definterface[drracket:unit:definitions-text<%> (editor<%>)]{
+@definterface[drracket:unit:definitions-text<%> ()]{
 
 This interface is implemented by the definitions text. 
 
