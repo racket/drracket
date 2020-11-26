@@ -91,12 +91,17 @@
       (cond
         [(not defn-pos) null]
         [else
-         (let ([indent (get-defn-indent text defn-pos)]
-               [name (get-defn-name text (+ defn-pos tag-length))])
-           (set! min-indent (min indent min-indent))
-           (cons (make-defn indent name defn-pos defn-pos)
-                 (loop (+ defn-pos tag-length)
-                       new-find-state)))])))
+         (define indent (get-defn-indent text defn-pos))
+         (define name (get-defn-name text (+ defn-pos tag-length)))
+         (cond
+           [name
+            (set! min-indent (min indent min-indent))
+            (cons (make-defn indent name defn-pos defn-pos)
+                  (loop (+ defn-pos tag-length)
+                        new-find-state))]
+           [else
+             (loop (+ defn-pos tag-length)
+                        new-find-state)])])))
   
   ;; update end-pos's based on the start pos of the next defn
   (unless (null? defs)
@@ -192,23 +197,25 @@
 ;; usually finds the bound name, but it breaks for Redex
 ;; metafunction definitions (thus the hack below).
 (define (get-defn-name text define-pos)
-  (let* ([end-suffix-pos (skip-to-whitespace/paren text define-pos)]
-         [suffix (send text get-text define-pos end-suffix-pos)]
-         [end-header-pos 
-          (cond [(regexp-match #rx"^-metafunction(/extension)?$" suffix)
-                 => (λ (m)
-                      (let ([extension? (second m)])
-                        (skip-past-non-whitespace
-                         text
-                         (if extension?
-                             (skip-past-non-whitespace text end-suffix-pos)
-                             end-suffix-pos))))]
-                [else end-suffix-pos])]
-         [start-name-pos (skip-whitespace/paren text end-header-pos)]
-         [end-name-pos (forward-to-next-token text start-name-pos)])
-    (if (>= end-suffix-pos (send text last-position))
-        (string-constant end-of-buffer-define)
-        (send text get-text start-name-pos end-name-pos))))
+  (define end-suffix-pos (skip-to-whitespace/paren text define-pos))
+  (define suffix (send text get-text define-pos end-suffix-pos))
+  (define end-header-pos
+    (cond [(regexp-match #rx"^-metafunction(/extension)?$" suffix)
+           => (λ (m)
+                (let ([extension? (second m)])
+                  (skip-past-non-whitespace
+                   text
+                   (if extension?
+                       (skip-past-non-whitespace text end-suffix-pos)
+                       end-suffix-pos))))]
+          [else end-suffix-pos]))
+  (define start-name-pos (skip-whitespace/paren text end-header-pos))
+  (define end-name-pos (forward-to-next-token text start-name-pos))
+  (cond
+    [(not end-name-pos) #f]
+    [(>= end-suffix-pos (send text last-position))
+     (string-constant end-of-buffer-define)]
+    [else (send text get-text start-name-pos end-name-pos)]))
 
 ;; more tests are in tests/drracket/get-defs-test
 (module+ test
@@ -266,4 +273,15 @@
       (list (define-popup-info "(define" "(define ...)" "δ"))
       #t
       t)
-     (list (defn 0 "|(|" 0 19)))))
+     (list (defn 0 "|(|" 0 19))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ"))
+      #t
+      t)
+     (list)))
+  )
