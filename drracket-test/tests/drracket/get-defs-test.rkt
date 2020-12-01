@@ -1,7 +1,6 @@
 #lang racket
 
 (require drracket/private/get-defs
-         racket/gui/base
          framework
          string-constants)
 
@@ -17,17 +16,19 @@
 (define-syntax (test-definitions stx)
   (syntax-case stx ()
     [(_ string stuff ... ((name start end) ...))
-     #`(let ([actual (map (match-lambda [(defn _ n s e)
-                                         (list n s e)])
-                          (get-definitions/string string stuff ...))]
-             [expected (list (list name start end) ...)])
-         (unless (equal? actual expected)
-           (eprintf "Test failure at ~a\nActual:   ~s\nExpected: ~s\n"
-                    (format "~a:~a"
-                            '#,(syntax-source stx)
-                            #,(syntax-line stx))
-                    actual
-                    expected)))]))
+     #`(test-definitions/proc
+        #,(syntax-line stx)
+        (get-definitions/string string stuff ...)
+        (list (list name start end) ...))]))
+
+(define (test-definitions/proc line _actual expected)
+  (define actual (map (match-lambda [(defn _ n s e) (list n s e)])
+                      _actual))
+  (unless (equal? actual expected)
+    (eprintf "Test failure at line ~a\nActual:   ~s\nExpected: ~s\n"
+             line
+             actual
+             expected)))
 
 (test-definitions 
  #<<END

@@ -93,15 +93,12 @@
         [else
          (define indent (get-defn-indent text defn-pos))
          (define name (get-defn-name text (+ defn-pos tag-length)))
-         (cond
-           [name
-            (set! min-indent (min indent min-indent))
-            (cons (make-defn indent name defn-pos defn-pos)
-                  (loop (+ defn-pos tag-length)
-                        new-find-state))]
-           [else
-             (loop (+ defn-pos tag-length)
-                        new-find-state)])])))
+         (set! min-indent (min indent min-indent))
+         (define next-defn (make-defn indent (or name (string-constant end-of-buffer-define))
+                                      defn-pos defn-pos))
+         (cons next-defn
+               (loop (+ defn-pos tag-length)
+                     new-find-state))])))
   
   ;; update end-pos's based on the start pos of the next defn
   (unless (null? defs)
@@ -283,5 +280,5 @@
       (list (define-popup-info "(define" "(define ...)" "δ"))
       #t
       t)
-     (list)))
+     (list (defn 0 "<< end of buffer >>" 0 9))))
   )
