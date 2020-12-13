@@ -151,7 +151,9 @@
                 "  (let ([y 1]) y))\n"))
               (set
                '((10 21) (25 31))
+               '((10 21) (34 34))
                '((10 21) (44 47))
+               '((10 21) (52 52))
                '((32 33) (39 40))
                '((50 51) (56 57))))
 
@@ -246,6 +248,7 @@
                 "      (set! color-scheme-colors color-scheme-colors))\n"))
               (set '((6 12) (14 18))
                    '((6 12) (44 50))
+                   '((6 12) (71 71))
                    '((6 12) (81 85))
                    '((51 70) (86 105))
                    '((51 70) (106 125))))
@@ -420,6 +423,24 @@
    "(begin-for-syntax +)\n"))
  (set '(40 72)))
 
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (only-in racket/base #%app))\n"
+   "(+ 1 2)\n"))
+ (set '(37 57)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "\n"
+   "(require (only-in racket/base #%datum))\n"
+   "(+ 1 2)\n"))
+ (set '(37 62)
+      '(37 64)))
 
 
 ;                                                 

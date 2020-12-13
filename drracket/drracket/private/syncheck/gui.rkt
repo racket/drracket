@@ -1589,9 +1589,10 @@ If the namespace does not, they are colored the unbound color.
                     (unless (member txt in-edit-sequence)
                       (set! in-edit-sequence (cons txt in-edit-sequence))
                       (send txt begin-edit-sequence)))
-                  (if highlight?
-                      (send txt highlight-range start end clr #f 'low style)
-                      (send txt unhighlight-range start end clr #f style))))
+                  (unless (= start end)
+                    (if highlight?
+                        (send txt highlight-range start end clr #f 'low style)
+                        (send txt unhighlight-range start end clr #f style)))))
               
               (un/highlight #f)
               
@@ -1778,19 +1779,17 @@ If the namespace does not, they are colored the unbound color.
             (define current-colored-region #f)
             ;; update-docs-background : (or/c false/c (listof any)) -> void
             (define/private (update-docs-background eles)
-              (let ([new-region (and eles (ormap (λ (x) (and (colored-region? x) x)) eles))])
-                (unless (eq? current-colored-region new-region)
-                  (when current-colored-region
-                    (send (colored-region-text current-colored-region) unhighlight-range 
-                          (colored-region-start current-colored-region)
-                          (colored-region-fin current-colored-region)
-                          (colored-region-color current-colored-region)))
-                  (when new-region
-                    (send (colored-region-text new-region) highlight-range
-                          (colored-region-start new-region)
-                          (colored-region-fin new-region)
-                          (colored-region-color new-region)))
-                  (set! current-colored-region new-region))))
+              (define new-region (and eles (ormap (λ (x) (and (colored-region? x) x)) eles)))
+              (unless (equal? current-colored-region new-region)
+                (when current-colored-region
+                  (match-define (colored-region color text start fin) current-colored-region)
+                  (unless (= start fin)
+                    (send text unhighlight-range start fin color)))
+                (when new-region
+                  (match-define (colored-region color text start fin) new-region)
+                  (unless (= start fin)
+                    (send text highlight-range start fin color)))
+                (set! current-colored-region new-region)))
                 
             ;; tack/untack-callback : (listof arrow) -> void
             ;; callback for the tack/untack menu item

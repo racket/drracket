@@ -399,7 +399,7 @@
                   (" "             default-color)
                   ("1"             constant)
                   ("))"            default-color))
-                (list '((10 18) (20 27) (32 38))
+                (list '((10 18) (20 27) (32 38) (41 41))
                       '((39 40) (28 29))))
      
      (build-test "(module m mzscheme (+ 1 2))"
@@ -412,7 +412,7 @@
 		  (" "             default-color)
 		  ("2"             constant)
                   ("))"            default-color))
-                (list '((10 18) (20 21))))
+                (list '((10 18) (19 19) (20 21) (22 22) (24 24))))
      
      (build-test "(module m mzscheme (require mzlib/list))"
                 '(("("                 default-color)
@@ -874,7 +874,7 @@
                   (" "                     default-color)
                   ("1"                     constant)
                   ("))"                    default-color))
-                (list '((10 18) (20 27))
+                (list '((10 18) (20 27) (46 46))
                       '((28 37) (40 43))))
 
      (build-test "(module m lang/htdp-intermediate (local ((define x x)) x))"
@@ -923,7 +923,7 @@
                    (" (rename "       default-color)
                    ("f"               lexically-bound)
                    (" g)))"           default-color))
-                 (list '((10 18) (20 33) (46 52) (59 66))
+                 (list '((10 18) (20 33) (46 52) (55 55) (59 66))
                        '((53 54) (75 76))))
      
      (build-test "(module m mzscheme (define X 1) (provide (all-defined-except X)))"
@@ -939,7 +939,7 @@
                    ("X"                     lexically-bound)
                    (")))"                   default-color))
                  
-                 (list '((10 18) (20 26) (33 40))
+                 (list '((10 18) (20 26) (29 29) (33 40))
                        '((27 28) (61 62))))     
      
      (build-test (string-append "(module m mzscheme (require-for-syntax mzscheme)"
@@ -1013,8 +1013,9 @@
                    ("sv" lexically-bound)
                    (" #f #f #f #f))))\n\n#reader'reader\n1\n" default-color))
                  
-                 (list '((15 23) (25 32) (58 62) (65 71) (84 104) (106 117)
-                                 (122 139) (147 157) (205 209))
+                 (list '((15 23) (25 32) (58 62) (65 71) (83 83) (84 104) (105 105) (106 117)
+                                 (118 118) (121 121) (122 139) (140 140) (147 157) (204 204)
+                                 (205 209) (213 213) (216 216) (219 219) (222 222))
                        '((77 79) (210 212))
                        '((73 76) (41 44))))
      
@@ -1072,8 +1073,8 @@
                    (" 2) " default-color)
                    ("x" lexically-bound)
                    ("))" default-color))
-                 (list '((6 12) (14 30) (32 39) (41 51) (62 68) (75 91))
-                       '((52 58) (93 99))
+                 (list '((6 12) (14 30) (32 39) (41 51) (62 68) (71 71) (75 91))
+                       '((52 58) (93 99) (102 102))
                        '((100 101) (105 106))))
      
      (build-test
@@ -1103,7 +1104,7 @@
         (") 1)" default-color))
       (list '((82 83) (37 38))
             '((46 48) (61 63) (65 67))
-            '((6 12) (14 21) (23 35) (40 43) (49 54) (74 80))))
+            '((6 12) (14 21) (23 35) (40 43) (49 54) (74 80) (87 87))))
 
      (build-test "#lang racket/base\n(define red 1)\n(module+ test red)"
                  '(("#lang racket/base\n(" default-color)
@@ -1114,7 +1115,7 @@
                    ("red"                  imported)
                    (")"                    default-color))
                  '(((26 29) (47 50))
-                   ((6 17) (19 25))))
+                   ((6 17) (19 25) (30 30))))
      
      (build-test "#lang racket/base\n(require '#%kernel)\npair?"
                  '(("#lang racket/base\n(" default-color)
@@ -1151,7 +1152,7 @@
                    (" m #f " default-color)
                    ("x" imported)
                    ("))" default-color))
-                 (list '((6 12) (14 31) (38 54) (56 63))
+                 (list '((6 12) (14 31) (34 34) (38 54) (56 63))
                        '((32 33) (69 70))))
 
      (build-test
@@ -1193,7 +1194,7 @@
         (" "                      default-color)
         ("x"                      lexically-bound)
         (" 1)\n"                  default-color))
-      (list '((6 12) (14 32) (57 62) (64 70) (86 93))
+      (list '((6 12) (14 32) (57 62) (64 70) (86 93) (117 117))
             '((34 48) (100 114))
             '((49 50) (71 72) (94 95))
             '((51 52) (73 74))))
@@ -1245,7 +1246,7 @@
                    (" " default-color)
                    ("x" lexically-bound)
                    (" #f))" default-color))
-                 (list '((6 12) (14 21) (23 33) (39 55) (57 63))
+                 (list '((6 12) (14 21) (23 33) (39 55) (57 63) (66 66))
                        '((64 65) (34 35))))
 
      (build-test (string-append
