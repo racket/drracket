@@ -3492,15 +3492,19 @@
                       (string-constant hide-overview)
                       (string-constant show-overview)))
                  (parent (get-show-menu))
+                 [demand-callback
+                  (λ (mi)
+                    (send mi set-label
+                          (if (overview-shown?)
+                              (string-constant hide-overview)
+                              (string-constant show-overview))))]
                  (callback
                   (λ (menu evt)
                     (cond
                       [(overview-shown?)
-                       (send menu set-label (string-constant show-overview))
                        (preferences:set 'drracket:inline-overview-shown? #f)
                        (send (send (get-current-tab) get-defs) set-inline-overview-enabled? #f)]
                       [else
-                       (send menu set-label (string-constant hide-overview))
                        (preferences:set 'drracket:inline-overview-shown? #t)
                        (send (send (get-current-tab) get-defs) set-inline-overview-enabled? #t)])))))
           (set-show-menu-sort-key overview-menu-item 301))
