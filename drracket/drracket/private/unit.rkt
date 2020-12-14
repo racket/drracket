@@ -3362,9 +3362,9 @@
           (super-new)))
       
       (define/override (on-activate active?)
+        (when (preferences:get 'drracket:save-files-on-tab-switch?)
+          (save-all-unsaved-files))
         (when active?
-          (when (preferences:get 'drracket:save-files-on-tab-switch?)
-            (save-all-unsaved-files))
           (send (get-current-tab) touched))
         (super on-activate active?))
       
