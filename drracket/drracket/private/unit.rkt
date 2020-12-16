@@ -553,7 +553,7 @@
                           text:info%))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
-          (inherit get-top-level-window is-locked? lock while-unlocked
+          (inherit is-locked? lock while-unlocked
                    highlight-first-line is-printing?)
           
           (define interactions-text #f)
@@ -659,6 +659,19 @@
           
           (define/override (get-can-close-parent)
             (and tab (send tab get-frame)))
+
+          ;; if we use the tab to get to the top-level frame too
+          ;; soon then we use some GUI controls before they are
+          ;; initialized, so delay this until the file is
+          ;; opened in the definitions window
+          (define allow-top-level-connection #f)
+          (define/public (enable-top-level-window-connection)
+            (set! allow-top-level-connection #t))
+          (define/override (get-top-level-window)
+            (or (super get-top-level-window)
+                (and allow-top-level-connection
+                     tab
+                     (send tab get-frame))))
           
           (inherit is-modified? run-after-edit-sequence)
           (define/override (set-modified mod?)
@@ -1390,7 +1403,8 @@
     update-toolbar-visibility
     show/hide-log
     set-logger-text-field-value
-    show-planet-status)
+    show-planet-status
+    enable-top-level-window-connection)
   
   (define frame-mixin
     (mixin (drracket:frame:<%> frame:status-line<%> frame:searchable-text<%> frame:size-pref<%>)
@@ -3080,6 +3094,7 @@
                    200))
             (init-definitions-text new-tab)
             (when filename (send defs load-file filename))
+            (send defs enable-top-level-window-connection)
             (change-to-nth-tab (- (send tabs-panel get-number) 1))
             (send ints initialize-console)
             (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
@@ -4963,7 +4978,8 @@
       ;; definitions text is connected to the frame, so we do an extra initialization
       ;; now, once we know we have the right connection
       (set-color-status! (send definitions-text is-lexer-valid?))
-      (send definitions-canvas focus)))
+      (send definitions-canvas focus)
+      (send definitions-text enable-top-level-window-connection)))
   
   (define (get-define-popup-name infos vertical?)
     (cond

@@ -1631,6 +1631,13 @@
       (define expand-error-multiple-child #f)
       (define expand-error-zero-child #f)
       
+      (define expand-error-msgs #f)
+      (define expand-error-msgs+stack "")
+      (define expand-error-msg-is-err? #f)
+      (define expand-error-srcloc-count 0)
+      (define expand-error-hidden? #f)
+      (define expand-error-install-suggestions '())
+
       ;; colors : (or/c #f (listof string?))
       (define colors #f)
       (define star? #f)
@@ -1716,14 +1723,7 @@
         
         (send expand-error-parent-panel change-children (λ (l) (remq expand-error-panel l)))
         root)
-      
-      (define expand-error-msgs #f)
-      (define expand-error-msgs+stack "")
-      (define expand-error-msg-is-err? #f)
-      (define expand-error-srcloc-count 0)
-      (define expand-error-hidden? #f)
-      (define expand-error-install-suggestions '())
-      
+
       (define/public (set-expand-error/status hidden? msgs msgs+stacks err?
                                               srcloc-count install-suggestions)
         (unless (and (equal? expand-error-hidden? hidden?)
