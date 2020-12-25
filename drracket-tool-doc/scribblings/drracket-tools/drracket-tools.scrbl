@@ -181,9 +181,20 @@ in order to make the results be platform independent.
                                             [end exact-nonnegative-integer?]
                                             [file path-string?])
             void?]{
-   Called to indicate that there is a @racket[require] at the location from 
-                                      @racket[start] to @racket[end],
-   and that it corresponds to @racket[file]. Check Syntax adds a popup menu.
+  Called to indicate that there is a @racket[require] at the location from
+  @racket[start] to @racket[end], and that it corresponds to @racket[file].
+
+  The @racket[start] and @racket[end] coordinates typically
+  come from a syntax object in the file that was processed
+  (although they can be completely synthesized by macros in
+  some situations). The @racket[start] coordinate is one less
+  than that syntax object's @racket[syntax-position] field,
+  and the @racket[end] is the @racket[start] plus that
+  syntax-object's @racket[syntax-span] field. Thus, it is always
+  the case that @racket[(<= start end)] is true. In some situations,
+  it may be that @racket[start] can equal @racket[end].
+
+  Check Syntax adds a popup menu.
  }
 
  @defmethod[(syncheck:add-docs-menu [source-obj (not/c #f)]
@@ -201,6 +212,9 @@ in order to make the results be platform independent.
    The @racket[definition-tag] argument matches the documented definition.
    The @racket[label] argument describes the binding for use in the menu item (although it may
    be longer than 200 characters).
+
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the coordinates @racket[start] and @racket[end].
  }
                   
  @defmethod[(syncheck:add-id-set [all-ids (listof (list/c (not/c #f) 
@@ -227,6 +241,12 @@ in order to make the results be platform independent.
     This method is invoked by the default implementation of 
     @racket[_syncheck:add-arrow/name-dup] in 
     @racket[annotations-mixin].
+
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the coordinates; @racket[start-left] and @racket[start-right] are a pair
+   like @method[syncheck-annotations<%> syncheck:add-require-open-menu]'s @racket[_start]
+   and @racket[_end], as are @racket[end-left] and @racket[end-right].
+
  }
  @defmethod[(syncheck:add-arrow/name-dup [start-source-obj (not/c #f)]
                                          [start-left exact-nonnegative-integer?]
@@ -245,6 +265,11 @@ in order to make the results be platform independent.
     The default implementation of @method[syncheck-annotations<%> syncheck:add-arrow/name-dup/pxpy]
     discards the @racket[_start-px] @racket[_start-py] @racket[_end-px] @racket[_end-py]
     arguments and calls this method.
+
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the coordinates; @racket[start-left] and @racket[start-right] are a pair
+   like @method[syncheck-annotations<%> syncheck:add-require-open-menu]'s @racket[_start]
+   and @racket[_end], as are @racket[end-left] and @racket[end-right].
  }
  @defmethod[(syncheck:add-arrow/name-dup/pxpy [start-source-obj (not/c #f)]
                                               [start-left exact-nonnegative-integer?]
@@ -282,6 +307,11 @@ in order to make the results be platform independent.
    shadow some other binding (or otherwise interfere with the binding structure of the program at
    the time the program was expanded).
 
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the coordinates; @racket[start-left] and @racket[start-right] are a pair
+   like @method[syncheck-annotations<%> syncheck:add-require-open-menu]'s @racket[_start]
+   and @racket[_end], as are @racket[end-left] and @racket[end-right].
+
    @history[#:changed "1.1" @list{Changed @racket[require-arrow] to sometimes
                be @racket['module-lang].}]
    
@@ -296,12 +326,15 @@ in order to make the results be platform independent.
    that are in tail position with respect to each other.
  }
  @defmethod[(syncheck:add-mouse-over-status [source-obj (not/c #f)]
-                                            [pos-left exact-nonnegative-integer?]
-                                            [pos-right exact-nonnegative-integer?]
+                                            [start exact-nonnegative-integer?]
+                                            [end exact-nonnegative-integer?]
                                             [str string?])
             void?]{
    Called to indicate that the message in @racket[str] should be shown when the mouse 
-                                          passes over the given position.
+  passes over a position in the given range between @racket[start] and @racket[end].
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates @racket[start] and @racket[end].
  }
 
  @defmethod[(syncheck:add-prefixed-require-reference
@@ -322,16 +355,25 @@ in order to make the results be platform independent.
   in the original program, as well as the prefix (as a symbol)
   and the source locations of the prefix (if they are
   available).
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates; @racket[req-pos-left] and @racket[req-pos-right] are a pair
+   like @method[syncheck-annotations<%> syncheck:add-require-open-menu]'s @racket[_start]
+   and @racket[_end], as are @racket[prefix-left] and @racket[prefix-right].
+
  }
 
  @defmethod[(syncheck:add-unused-require
              [req-src (not/c #f)]
-             [req-pos-left exact-nonnegative-integer?]
-             [req-pos-right exact-nonnegative-integer?])
+             [start exact-nonnegative-integer?]
+             [end exact-nonnegative-integer?])
             void?]{
   This method is called for each @racket[require] that Check Syntax
   determines to be unused. The method is passed the location of the
   name of the required module in the original program.
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates @racket[start] and @racket[end].
  }
                   
  @defmethod[(syncheck:add-jump-to-definition [source-obj (not/c #f)] 
@@ -345,6 +387,9 @@ in order to make the results be platform independent.
    Called to indicate that there is some identifier at the given location (named @racket[id]) that
    is defined in the @racket[submods] of the file @racket[filename] (where an empty list in
    @racket[submods] means that the identifier is defined at the top-level module).
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates @racket[start] and @racket[end].
  }
                   
  @defmethod[(syncheck:add-definition-target [source-obj (not/c #f)]
@@ -357,11 +402,14 @@ in order to make the results be platform independent.
   and @racket[finish]. The @racket[id] argument is the name of the defined variable
   and the @racket[mods] are the submodules enclosing the definition, which will be empty
   if the definition is in the top-level module.
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates @racket[start] and @racket[end].
   }
                                                       
  @defmethod[(syncheck:color-range [source-obj (not/c #f)]
                                   [start exact-nonnegative-integer?]
-                                  [finish exact-nonnegative-integer?]
+                                  [end exact-nonnegative-integer?]
                                   [style-name any/c]
                                   [mode any/c])
             void?]{
@@ -369,6 +417,10 @@ in order to make the results be platform independent.
    style @racket[style-name] when in @racket[mode]. The mode either indicates regular
    check syntax or is used indicate blame for potential contract violations 
    (and still experimental).
+
+  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+  about the coordinates @racket[start] and @racket[end].
+
  }
  @defmethod[(syncheck:add-rename-menu [id symbol?]
                                       [all-ids (listof (list/c (not/c #f) 
