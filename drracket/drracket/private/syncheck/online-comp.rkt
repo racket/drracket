@@ -31,12 +31,27 @@
            (loop))))))
   (void))
 
+;; the online-check-syntax logger is a public api
+;; so use this struct so the listener can trust
+;; the messages that are coming from this file
+(struct instructions-to-monitor-thread (val))
+
 (define-logger online-check-syntax)
 (define (go expanded path the-source orig-cust)
+  ;; this is called from expanding-place.rkt
+  ;; in a context where current-library-collection-paths
+  ;; is set properly (via eval-helpers-and-pref-init.rkt)
+  ;; so send that over to the thread that is going
+  ;; to process the syntax objects so it is set there too
+  (log-message online-check-syntax-logger 'info  ""
+               (instructions-to-monitor-thread
+                (let ([clcp (current-library-collection-paths)])
+                  (λ ()
+                    (current-library-collection-paths clcp)))))
   (define c (make-channel))
   (unless (exn? expanded)
     (log-message online-check-syntax-logger 'info  "" (list expanded)))
-  (log-message online-check-syntax-logger 'info  "" c)
+  (log-message online-check-syntax-logger 'info  "" (instructions-to-monitor-thread c))
   ;; wait for everything to actually get sent back to the main place
   (channel-get c))
 
@@ -102,9 +117,16 @@
                                 (send-back (get-output-string sp)))])
                (define trace (build-trace obj the-source orig-cust path))
                (send-back trace))]
-            [(channel? obj)
-             ;; signal back to the main place that we've gotten everything
-             ;; and sent it back over
-             (channel-put obj (void))])]
+            [(instructions-to-monitor-thread? obj)
+             (define val (instructions-to-monitor-thread-val obj))
+             (cond
+               [(procedure? val)
+                ;; initialize this thread with state need to make the expansion
+                ;; work properly
+                (val)]
+               [(channel? val)
+                ;; signal back to the main place that we've gotten everything
+                ;; and sent it back over
+                (channel-put val (void))])])]
          [_ (void)])
        (loop)))))
