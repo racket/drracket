@@ -661,6 +661,20 @@ Returns the currently active tab.
   If there is only one tab open, this method does nothing.
 }
 
+@defmethod[#:mode public-final (close-ith-tab [i natural?]) void?]{
+  Closes the tab located at position @racket[i] in the
+  list returned by @method[drracket:unit:frame<%> get-tabs].
+  If there is only one tab open, this method does nothing.
+
+  @history[#:added "1.9"]
+}
+
+@defmethod[#:mode public-final (close-given-tab [tab (is-a?/c drracket:unit:tab<%>)]) void?]{
+  Closes @racket[tab]. If @racket[tab] is the only open tab, this method does nothing.
+
+  @history[#:added "1.9"]
+}
+
 @defmethod[(get-definitions-canvas)
            (is-a?/c drracket:unit:definitions-canvas%)]{
 

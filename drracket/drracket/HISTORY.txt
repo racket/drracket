@@ -1,4 +1,11 @@
 ------------------------------
+       Version 7.10
+------------------------------
+
+   . tabs can be dragged around and have close buttons,
+     except on Windows
+
+------------------------------
        Version 7.9
 ------------------------------
 

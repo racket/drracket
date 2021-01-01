@@ -21,7 +21,7 @@
                ["string-constants-lib" #:version "1.33"]
                "typed-racket-lib"
                "wxme-lib"
-               ["gui-lib" #:version "1.53"]
+               ["gui-lib" #:version "1.55"]
                ("racket-index" #:version "1.2")
                ["racket-doc" #:version "1.1"]
                "html-lib"
@@ -65,4 +65,4 @@
 
 (define pkg-authors '(robby))
 
-(define version "1.8")
+(define version "1.9")
