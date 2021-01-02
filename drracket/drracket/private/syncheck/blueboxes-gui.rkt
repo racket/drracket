@@ -6,6 +6,7 @@
          racket/math
          racket/match
          racket/runtime-path
+         racket/set
          data/interval-map
          images/icons/misc
          drracket/private/rectangle-intersect
@@ -529,31 +530,31 @@
         [(or (is-stopped?)
              (is-frozen?)
              (not (is-lexer-valid?))
-             (null? require-candidates))
+             (set-empty? require-candidates))
          #f]
         [else
+         (define mps
+           (for/list ([require-candidate (in-set require-candidates)])
+             (path->module-path require-candidate #:cache (get-path->pkg-cache))))
          (let loop ([pos pos])
            (cond
              [(member (classify-position pos) '(symbol keyword))
               (define-values (start end) (get-token-range pos))
               (cond
                 [(and start end)
-                 (define candidate (try-to-find-docs start end
-                                                     maybe-pause
-                                                     require-candidates))
-                 (or candidate (loop (- pos 1)))]
+                 (define candidate (try-to-find-docs start end maybe-pause mps))
+                 (or candidate (loop (- start 1)))]
                 [else (loop (- pos 1))])]
              [(zero? pos) #f]
              [else
               (maybe-pause)
               (loop (- pos 1))]))]))
 
-    (define/private (try-to-find-docs start end maybe-pause require-candidates)
+    (define/private (try-to-find-docs start end maybe-pause mps)
       (define id (string->symbol (get-text start end)))
       (define xref (load-collections-xref))
-      (for/or ([require-candidate (in-list require-candidates)])
+      (for/or ([mp (in-list mps)])
         (maybe-pause)
-        (define mp (path->module-path require-candidate #:cache (get-path->pkg-cache)))
         (define definition-tag (xref-binding->definition-tag xref (list mp id) #f))
         (cond
           [definition-tag
@@ -661,7 +662,7 @@
       (define rng (list start (+ end 1) tag path url-tag))
       (interval-map-set! (get/start-docs-im) start (+ end 1) rng))
     (define/public (syncheck:add-require-candidate path)
-      (set! require-candidates (cons path require-candidates)))
+      (set! require-candidates (set-add require-candidates path)))
     (define/public (get-require-candidates) require-candidates)
     (define/public (syncheck:update-blue-boxes other-text)
       (update-the-strs)
