@@ -538,6 +538,7 @@
              (path->module-path require-candidate #:cache (get-path->pkg-cache))))
          (let loop ([pos pos])
            (cond
+             [(interval-map-ref (get/start-docs-im) pos #f) => values]
              [(member (classify-position pos) '(symbol keyword))
               (define-values (start end) (get-token-range pos))
               (cond
