@@ -390,7 +390,7 @@
                ;; add the bitmap, but centered at its position
                ;; (used to truncate the bitmap
                ;; if it was too large, but no longer)
-               ((dynamic-require 'framework/splash 'add-splash-icon)
+               (add-splash-icon
                 bitmap
                 (floor (+ tool-bitmap-x
                           (- (/ tool-bitmap-size 2)
