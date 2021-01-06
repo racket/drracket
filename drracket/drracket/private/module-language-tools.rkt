@@ -356,8 +356,10 @@
          (or (call-read-language the-irl 'drracket:toolbar-buttons #f)
              (call-read-language the-irl 'drscheme:toolbar-buttons #f))
          
-         (or (call-read-language the-irl 'drracket:opt-out-toolbar-buttons '())
-             (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '()))
+         (let ([drracket-opt-out (call-read-language the-irl 'drracket:opt-out-toolbar-buttons '())]
+               [drscheme-opt-out (call-read-language the-irl 'drscheme:opt-out-toolbar-buttons '())])
+           (and drracket-opt-out drscheme-opt-out
+                (append drracket-opt-out drscheme-opt-out)))
 
          (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '())))
 
