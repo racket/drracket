@@ -6,10 +6,7 @@
          (for-syntax racket/base images/icons/tool images/icons/style))
 (provide syncheck-drracket-button
          syncheck-bitmap
-         syncheck-small-bitmap
-         syncheck:button-callback)
-
-(define-local-member-name syncheck:button-callback)
+         syncheck-small-bitmap)
 
 (define syncheck-bitmap
   (compiled-bitmap (check-syntax-icon #:height (toolbar-icon-height))))
