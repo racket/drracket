@@ -4798,7 +4798,7 @@
                              (font small-control-font)
                              (parent panel-with-tabs)
                              (stretchable-height #f)
-                             (style '(deleted no-border))
+                             (style '(deleted no-border can-reorder can-close))
                              (choices '("first name"))
                              (callback (λ (x y)
                                          (define sel (send tabs-panel get-selection))
