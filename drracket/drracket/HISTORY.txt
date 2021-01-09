@@ -2,8 +2,6 @@
        Version 8.0
 ------------------------------
 
-   . tabs can be dragged around and have close buttons
-
    . add arrows for #%datum and #%app implicit forms,
      which avoids problems when removing requires
 
