@@ -1950,7 +1950,7 @@
     (class canvas%
       (init-field msgs err? [copy-msg ""])
       (define menu-items '())
-      (inherit refresh get-dc get-client-size popup-menu)
+      (inherit refresh get-dc get-client-size popup-menu show is-shown?)
       (define/public (set-msgs _msgs _err? _copy-msg _menu-items)
         (unless (string? _copy-msg)
           (raise-argument-error 'error-message%::set-msgs
@@ -1961,8 +1961,15 @@
         (set! err? _err?)
         (set! copy-msg _copy-msg)
         (set! menu-items _menu-items)
-        (set-the-height/dc-font (editor:get-current-preferred-font-size))
-        (refresh))
+        (define no-content-in-msgs?
+          (or (equal? msgs '()) (equal? msgs '(""))))
+        (cond
+          [(and no-content-in-msgs? (not err?))
+           (show #f)]
+          [else
+           (unless (is-shown?) (show #t))
+           (set-the-height/dc-font (editor:get-current-preferred-font-size))
+           (refresh)]))
       (define/override (on-event evt)
         (cond
           [(and (send evt button-down?) err?)
