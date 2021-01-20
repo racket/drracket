@@ -201,9 +201,12 @@
               (begin (define-values (var ...) #,(annotate #`expr '() #t module-name))
                      #,(if (syntax-source stx)
                            #`(begin (#%plain-app 
-                                     #,record-top-level-id '#,module-name #'var (case-lambda
-                                                                                 [() var]
-                                                                                 [(v) (set! var v)])) ...)
+                                     #,record-top-level-id
+                                     '#,module-name
+                                     (quote-syntax var)
+                                     (case-lambda
+                                       [() var]
+                                       [(v) (set! var v)])) ...)
                            #'(#%plain-app void))
                      (#%plain-app void))))]
          [(define-syntaxes (var ...) expr)
