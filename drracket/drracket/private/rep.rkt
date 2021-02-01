@@ -433,7 +433,7 @@ TODO
   
   (define after-expression (make-parameter #f))
   
-  (define do-dance (make-parameter #f))
+  (define outermost (make-parameter #f))
 
   (define module-language-initial-run (make-parameter #f))
   
@@ -1215,7 +1215,7 @@ TODO
                              (define results
                                (call-with-values
                                 (λ ()
-                                  (parameterize ([do-dance #t])
+                                  (parameterize ([outermost #t])
                                     (eval-syntax sexp/syntax/eof)))
                                 list))
                              (parameterize ([pretty-print-columns pretty-print-width])
@@ -1367,35 +1367,19 @@ TODO
            (let ([oe (current-eval)])
              (define (drracket-eval-handler sexp/syntax)
                (cond
-                 [(and (do-dance) 
+                 [(and (outermost)
                        (syntax? sexp/syntax)
                        (not (compiled-expression? (syntax-e sexp/syntax))))
-                  ;; we duplicate the 'expand-syntax-to-top-form' dance that eval-syntax
-                  ;; does here, so that we can put 'with-stack-checkpoint's in to limit
-                  ;; the amount of DrRacket code we see in stacktraces
-                  (parameterize ([do-dance #f])
-                    (let loop ([stx sexp/syntax])
-                      (define top-expanded (with-stack-checkpoint (expand-syntax-to-top-form stx)))
-                      (syntax-case top-expanded (begin)
-                        [(begin a1 . args)
-                         (let lloop ([args (syntax->list #'(a1 . args))])
-                           (cond
-                             [(null? (cdr args))
-                              (loop (car args))]
-                             [else
-                              (loop (car args))
-                              (lloop (cdr args))]))]
-                        [_ 
-                         (let ([expanded (with-stack-checkpoint (expand-syntax top-expanded))])
-                           (call-with-continuation-prompt
-                            (λ ()
-                              (with-stack-checkpoint (oe expanded)))
-                            (default-continuation-prompt-tag)
-                            (λ args
-                              (apply
-                               abort-current-continuation 
-                               (default-continuation-prompt-tag)
-                               args))))])))]
+                  (parameterize ([outermost #f])
+                    (call-with-continuation-prompt
+                     (λ ()
+                       (with-stack-checkpoint (oe sexp/syntax)))
+                     (default-continuation-prompt-tag)
+                     (λ args
+                       (apply
+                        abort-current-continuation
+                        (default-continuation-prompt-tag)
+                        args))))]
                  [else
                   (oe sexp/syntax)]))
              drracket-eval-handler))
