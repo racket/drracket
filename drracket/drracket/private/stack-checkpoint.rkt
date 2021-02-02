@@ -7,7 +7,7 @@
          racket/match
          framework
          "interface.rkt")
-(module+ test (require (rename-in rackunit [check r:check]) racket/list))
+(module+ test (require (rename-in rackunit [check r:check]) racket/list racket/bool))
 
 (define oprintf
   (let ([op (current-output-port)])
@@ -115,6 +115,10 @@
                                 expr)))
 
 (module+ test
+
+  (define test-suite-start-line-number (syntax-line #'here))
+  (define test-suite-filename (syntax-source #'here))
+
   (let ()
     (define (a x) (+ (f x)))
     (set! a a)
@@ -150,6 +154,11 @@
     (define cut-context (cut-stack-at-checkpoint cms))
     (check-pred pair? all-context)
     (check-not-equal? all-context cut-context)
+    ;; ensure that there are no source locations from the implementation
+    ;; of cut-stack-at-checkpoint in the stack that comes out
+    (check-true (for/and ([a-srcloc (in-list cut-context)])
+                  (implies (equal? (srcloc-source a-srcloc) test-suite-filename)
+                           (test-suite-start-line-number . < . (srcloc-line a-srcloc)))))
     (r:check strict-prefix-of? cut-context all-context)))
 
 (struct viewable-stack (stack-items
