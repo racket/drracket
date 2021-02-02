@@ -76,10 +76,10 @@
                            viewable-stack?
                            (listof srcloc?))]))
 
-;; run a thunk, and if an exception is raised, make it possible to cut the
+;; run a proc, and if an exception is raised, make it possible to cut the
 ;; stack so that the surrounding context is hidden
 (define checkpoints (make-weak-hasheq))
-(define (call-with-stack-checkpoint thunk)
+(define (call-with-stack-checkpoint proc)
   (define checkpoint #f)
   (call-with-exception-handler
    (λ (exn)
@@ -88,9 +88,7 @@
        (unless (hash-has-key? checkpoints key)
          (hash-set! checkpoints key checkpoint)))
      exn)
-   (lambda ()
-     (set! checkpoint (current-continuation-marks))
-     (thunk))))
+   (λ () (proc (λ (ccm) (set! checkpoint ccm))))))
 ;; returns the stack of the input exception, cutting off any tail that was
 ;; registered as a checkpoint
 (define (cut-stack-at-checkpoint cont-marks)
@@ -112,7 +110,9 @@
   (map cdr (filter cdr stack-with-gaps-and-extra-info)))
 
 (define-syntax-rule (with-stack-checkpoint expr)
-  (call-with-stack-checkpoint (λ () expr)))
+  (call-with-stack-checkpoint (λ (ccm-receiver)
+                                (ccm-receiver (current-continuation-marks))
+                                expr)))
 
 (module+ test
   (let ()
