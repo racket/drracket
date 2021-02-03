@@ -358,7 +358,18 @@
                                        #:share-cache stack1)
           (empty-viewable-stack)))
     (define port-name-matches-cache (make-hasheq))
-    (define src-locs (get-exn-source-locs defs exn stack1 stack2))
+    (define raw-src-locs (get-exn-source-locs defs exn stack1 stack2))
+    (define src-locs
+      (for/list ([src-loc (in-list raw-src-locs)])
+        (match-define (srcloc src line col pos span) src-loc)
+        (srcloc (if (and defs (equal? "unsaved editor" src))
+                    ;; if source is "unsaved editor", it comes from an
+                    ;; expanding place of an unsaved editor. We need to fix
+                    ;; its source to be the port name for error highlighting
+                    ;; to work correctly.
+                    (send defs get-port-name)
+                    src)
+                line col pos span)))
 
     (print-planet-icon-to-stderr exn)
     (unless (exn:fail:user? exn)
