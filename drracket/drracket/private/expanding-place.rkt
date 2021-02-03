@@ -75,12 +75,12 @@
           [(vector? message)
            (when current-job (abort-job current-job))
            (define program-as-string (vector-ref message 0))
-           (define path (vector-ref message 1))
+           (define port-name (vector-ref message 1))
            (define response-pc (vector-ref message 2))
            (define settings (vector-ref message 3))
            (define pc-status-expanding-place (vector-ref message 4))
            (define currently-open-files (vector-ref message 5))
-           (loop (new-job program-as-string path response-pc settings pc-status-expanding-place)
+           (loop (new-job program-as-string port-name response-pc settings pc-status-expanding-place)
                  old-registry)]))))))
 
 (define (abort-job job)
@@ -100,7 +100,7 @@
 
 (define sys-namespace (current-namespace))
 
-(define (new-job program-as-string path response-pc settings pc-status-expanding-place)
+(define (new-job program-as-string the-source response-pc settings pc-status-expanding-place)
   (define custodian-limit
     (and (custodian-memory-accounting-available?)
          (preferences:get 'drracket:child-only-memory-limit)))
@@ -115,7 +115,7 @@
   (define result-chan (make-channel))
   (define normal-termination (make-channel))
   (define abnormal-termination (make-channel))
-  (define the-source (or path "unsaved editor"))
+  (define path (and (path? the-source) the-source))
   (define orig-cust (current-custodian))
   (define (stop-watching-abnormal-termination) 
     (channel-put normal-termination #t))
