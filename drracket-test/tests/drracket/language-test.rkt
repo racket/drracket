@@ -190,8 +190,8 @@ the settings above should match r5rs
                      "{image}")
     
     (test-expression "(syntax-source #'x)"
-                     "'unsaved-editor"
-                     "'|interactions from an unsaved editor|")))
+                     #rx"'[0-9]+-unsaved-editor"
+                     #rx"'|[0-9]+-interactions from an unsaved editor|")))
 
 
 ;                                                                               
