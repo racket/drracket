@@ -872,8 +872,14 @@
     (send text lock #t)
     (send text hide-caret #t)
     (send current-backtrace-window show #t))
-  
-  
+
+  (define (change-regular-style text start-pos end-pos)
+    (send text change-style
+          (send (send text get-style-list) find-named-style
+                (editor:get-default-color-style-name))
+          start-pos
+          end-pos))
+
   ;; show-frame : (instanceof editor-canvas%)
   ;;              (instanceof text%) 
   ;;              st-mark   // see format description at `with-mark`
@@ -888,9 +894,10 @@
     (define start-pos (send text last-position))
       
     ;; make hyper link to the file
-    (send text insert (format "~a: ~a:~a" fn line column))
+    (send text insert (format "~a:~a:~a" fn line column))
     (define end-pos (send text last-position))
     (send text insert " ")
+    (change-regular-style text start-pos end-pos)
     (send text change-style 
           (gui-utils:get-clickback-delta (preferences:get 'framework:white-on-black?))
           start-pos 
@@ -907,11 +914,7 @@
       (send text insert " duplicate frame")
       (unless (= skip-count 1)
         (send text insert "s"))
-      (send text change-style
-            (send (send text get-style-list) find-named-style
-                  (editor:get-default-color-style-name))
-            before
-            (send text last-position)))
+      (change-regular-style text before (send text last-position)))
     (send text insert #\newline)
       
     (when (and start span)
@@ -963,11 +966,7 @@
             (define text (new (editor:standard-style-list-mixin text:basic%)))
             (cond
               [(send text load-file normalized-file)
-               (send text change-style
-                     (send (send text get-style-list) find-named-style
-                           (editor:get-default-color-style-name))
-                     0
-                     (send text last-position))
+               (change-regular-style text 0 (send text last-position))
                (values text
                        (λ () (send text on-close)))]
               [else
@@ -989,10 +988,7 @@
           (let ([p (send text last-position)])
             (send text insert snip p p)
             (send text insert #\newline)
-            (send text change-style
-                  (send (send text get-style-list) find-named-style
-                        (editor:get-default-color-style-name))
-                  p (+ p 1)))))
+            (change-regular-style text p (add1 p)))))
       (close-text)))
 
   ;; copy/highlight-text : text number number -> text
