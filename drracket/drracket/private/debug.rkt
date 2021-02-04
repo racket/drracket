@@ -542,10 +542,9 @@
        (send note set-stacks viewable-stack1 viewable-stack2)
        (send note set-callback
              (λ (snp)
-               (show-backtrace-window/viewable-stacks
-                msg
-                (copy-viewable-stack viewable-stack1)
-                (copy-viewable-stack viewable-stack2))))
+               (show-backtrace-window/viewable-stacks msg
+                                                      viewable-stack1
+                                                      viewable-stack2)))
        note]
       [else #f]))
 
@@ -783,7 +782,9 @@
      (dis+edition->viewable-stack dis1 editions1 (list defs ints))
      (dis+edition->viewable-stack dis2 editions2 (list defs ints))))
 
-  (define (show-backtrace-window/viewable-stacks error-text viewable-stack1 viewable-stack2)
+  (define (show-backtrace-window/viewable-stacks error-text orig-viewable-stack1 orig-viewable-stack2)
+    (define viewable-stack1 (copy-viewable-stack orig-viewable-stack1))
+    (define viewable-stack2 (copy-viewable-stack orig-viewable-stack2))
     (reset-backtrace-window)
     (define both-non-empty?
       (and (not (empty-viewable-stack? viewable-stack1))
