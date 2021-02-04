@@ -33,7 +33,8 @@
          ;; provided only for backwards compatibility (exported via debug unit)
          srcloc->edition/pair
          get-editions
-         errortrace-stack-item->srcloc)
+         errortrace-stack-item->srcloc
+         copy-viewable-stack)
 
 (provide
  (contract-out
@@ -356,6 +357,9 @@
      (and (srcloc? srcloc)
           srcloc)]
     [else #f]))
+
+(define (copy-viewable-stack s)
+  (struct-copy viewable-stack s))
 
 (define (viewable-stack-get-next-items! a-viewable-stack)
   (match-define (viewable-stack stack-items stack-item->srcloc interesting-editor-editions port-name-matches-cache stack-next-items)

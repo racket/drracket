@@ -542,9 +542,10 @@
        (send note set-stacks viewable-stack1 viewable-stack2)
        (send note set-callback
              (λ (snp)
-               (show-backtrace-window/viewable-stacks msg
-                                                      viewable-stack1
-                                                      viewable-stack2)))
+               (show-backtrace-window/viewable-stacks
+                msg
+                (copy-viewable-stack viewable-stack1)
+                (copy-viewable-stack viewable-stack2))))
        note]
       [else #f]))
 
