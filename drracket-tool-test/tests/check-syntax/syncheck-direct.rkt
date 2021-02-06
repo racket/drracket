@@ -119,7 +119,8 @@
                       end-right	 
                       actual?	 
                       phase-level)
-  (list (list start-left start-right) (list end-left end-right)))
+  (and actual? ;; skip the purple `?` arrows
+       (list (list start-left start-right) (list end-left end-right))))
 
 (define-get-arrows get-binding-arrows/pxpy
   (syncheck:add-arrow/name-dup/pxpy start-source-obj    
@@ -266,6 +267,35 @@
                '((6 12) (49 65))
                '((6 12) (69 85))
                '((34 45) (91 97))))
+
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket\n"
+                "(define fff 1)\n"
+                "\n"
+                "(define-syntax (m stx)\n"
+                "  (syntax-case stx ()\n"
+                "    [(_ x)\n"
+                "     #`#'#,(syntax-property\n"
+                "            #'x\n"
+                "            'identifiers-as-disappeared-uses? #t)]))\n"
+                "\n"
+                "(m fff)\n"))
+              (set
+               '((6 12) (14 20))      ;; define
+               '((6 12) (25 25))      ;; #%datum in 1
+               '((6 12) (30 43))      ;; define-syntax
+               '((6 12) (55 66))      ;; syntax-case
+               '((6 12) (90 92))      ;; #`
+               '((6 12) (96 96))      ;; #%app in syntax-property
+               '((6 12) (97 112))     ;; syntax-property
+               '((6 12) (125 127))    ;; #' in front of x
+               '((6 12) (141 142))    ;; ' in front of identifiers-as-disappeared-uses?
+               '((6 12) (175 175))    ;; #%datum in front of #t
+               '((45 46) (184 185))   ;; m -> m
+               '((47 50) (67 70))     ;; stx -> stx
+               '((82 83) (127 128))   ;; x -> x
+               '((21 24) (186 189)))) ;; fff -> fff
 
 ;                                                       
 ;                                                       

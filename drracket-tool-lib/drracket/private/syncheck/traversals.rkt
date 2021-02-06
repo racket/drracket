@@ -354,19 +354,27 @@
         [(quote-syntax datum)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-           (let loop ([stx #'datum])
-             (cond [(identifier? stx)
-                    (add-id templrefs stx level-of-enclosing-module)]
-                   [(syntax? stx)
-                    (loop (syntax-e stx))]
-                   [(pair? stx)
-                    (loop (car stx))
-                    (loop (cdr stx))]
-                   [(vector? stx)
-                    (for-each loop (vector->list stx))]
-                   [(box? stx)
-                    (loop (unbox stx))]
-                   [else (void)])))]
+           (let loop ([stx #'datum]
+                      [identifiers-as-disappeared-uses?
+                       (syntax-property stx-obj 'identifiers-as-disappeared-uses?)])
+             (cond
+               [(and (not identifiers-as-disappeared-uses?)
+                     (syntax? stx)
+                     (syntax-property stx 'identifiers-as-disappeared-uses?))
+                (loop stx #t)]
+               [(identifier? stx)
+                (add-id (if identifiers-as-disappeared-uses? varrefs templrefs)
+                        stx level-of-enclosing-module)]
+               [(syntax? stx)
+                (loop (syntax-e stx) identifiers-as-disappeared-uses?)]
+               [(pair? stx)
+                (loop (car stx) identifiers-as-disappeared-uses?)
+                (loop (cdr stx) identifiers-as-disappeared-uses?)]
+               [(vector? stx)
+                (for ([e (in-vector stx)])
+                  (loop e identifiers-as-disappeared-uses?))]
+               [(box? stx)
+                (loop (unbox stx) identifiers-as-disappeared-uses?)])))]
         [(with-continuation-mark a b c)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
