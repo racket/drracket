@@ -122,6 +122,18 @@
   (and actual? ;; skip the purple `?` arrows
        (list (list start-left start-right) (list end-left end-right))))
 
+(define-get-arrows get-purple-binding-arrows
+  (syncheck:add-arrow start-source-obj
+                      start-left
+                      start-right
+                      end-source-obj
+                      end-left
+                      end-right
+                      actual?
+                      phase-level)
+  (and (not actual?) ;; only the purple `?` arrows
+       (list (list start-left start-right) (list end-left end-right))))
+
 (define-get-arrows get-binding-arrows/pxpy
   (syncheck:add-arrow/name-dup/pxpy start-source-obj    
                                     start-left  
@@ -296,6 +308,16 @@
                '((47 50) (67 70))     ;; stx -> stx
                '((82 83) (127 128))   ;; x -> x
                '((21 24) (186 189)))) ;; fff -> fff
+
+(check-equal? (get-purple-binding-arrows
+               (string-append
+                "#lang racket\n"
+                "(define (f x)\n"
+                "  (quote-syntax (f x)\n"
+                "                #:local))\n"))
+              (set '((22 23) (44 45))
+                   '((24 25) (46 47))))
+
 
 ;                                                       
 ;                                                       

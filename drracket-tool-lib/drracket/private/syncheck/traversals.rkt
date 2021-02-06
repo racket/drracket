@@ -351,7 +351,7 @@
            (loop (syntax e)))]
         [(quote datum)
          (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)]
-        [(quote-syntax datum)
+        [(quote-syntax datum . maybe-hash-colon-local)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
            (let loop ([stx #'datum]
