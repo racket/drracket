@@ -328,7 +328,7 @@
                                         (string->number line-text)
                                         (string->number col-text))
              (parse-check-failures rest)))))
-    ((regexp-match #rx"^[ \t]+check-expect encountered the following error instead of the expected value, ([^\n]*). *\n[ \t]*([^\n]*)\n[^\n]*line ([0-9]+), column ([0-9]+)[^\n]*line ([0-9]+), column ([0-9]+) *\n(.*)$"
+    ((regexp-match #rx"^[ \t]+check-expect encountered the following error instead of the expected value, ([^\n]*). *\n[ \t]*([^\n]*)\n[^\n]*line ([0-9]+), column ([0-9]+)[^\n]*line ([0-9]+), column ([0-9]+)(.*)"
                    txt)
      => (lambda (match)
           (define-values (_ value message line-text col-text line-expr col-expr rest) (apply values match))
