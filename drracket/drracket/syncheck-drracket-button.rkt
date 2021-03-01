@@ -1,6 +1,5 @@
 #lang racket/base
 (require racket/class 
-         racket/gui/base
          string-constants/string-constant
          images/compile-time
          (for-syntax racket/base images/icons/tool images/icons/style))

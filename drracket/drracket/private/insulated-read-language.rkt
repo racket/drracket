@@ -22,6 +22,7 @@ Will not work with the definitions text surrogate interposition that
          racket/match
          racket/port
          syntax-color/racket-lexer
+         drracket/syncheck-drracket-button
          (for-syntax racket/base))
 
 (define recognized-read-language-symbol/c
@@ -246,7 +247,19 @@ Will not work with the definitions text surrogate interposition that
   (define ns (make-base-empty-namespace))
   (define trusted-namespace (current-namespace))
   (parameterize ([current-namespace ns])
-    (namespace-attach-module trusted-namespace 'drracket/tool-lib))
+    (namespace-attach-module trusted-namespace 'drracket/tool-lib)
+    ;; attaching drracket/syncheck-drracket-button is an unfortunate
+    ;; hack. It is needed to make the check syntax button work in
+    ;; #lang-based langauges that go via the the
+    ;; insulated-read-language apparatus. It is a hack becuase it adds
+    ;; a dependency between DrRacket itself and check syntax (the
+    ;; dependencies are supposed to only go the other way because
+    ;; check syntax is a plugin).  This is related to the code in the
+    ;; drracket:toolbar-buttons case in the key->contract function. It
+    ;; is in the invocation of the local-member-name in the callback
+    ;; that passes the drracket frame there that requires this to be
+    ;; in the irl namespace.
+    (namespace-attach-module trusted-namespace 'drracket/syncheck-drracket-button))
   ns)
 
 (define (pick-new-language text all-languages module-language
