@@ -484,11 +484,20 @@ brings the corresponding window to the front.
         you've started editing but haven't yet sent in.}
 
  @item{@defmenuitem{Configure Command Line for Racket...} This menu item is
-        available only under Mac OS. After prompting you for your password,
-        it adds a file named @filepath{racket} to @filepath{/etc/init.d/}
-        that contains the location of the @filepath{bin} directory. 
-        This has the effect of adding that path to the default PATH environment
-        variable (unless your shell explicitly changes teh default behavior).}
+        available under Mac OS and Windows.
+
+  On MacOS, after prompting you for your password, it adds a
+  file named @filepath{racket} to @filepath{/etc/init.d/} that
+  contains the location of the @filepath{bin} directory. This
+  has the effect of adding that path to the default PATH
+  environment variable (unless your shell explicitly changes
+  the default behavior).
+
+  On Windows, it changes the @tt{HKEY_CURRENT_USER\Environment\Path}
+  registry key to add the location of the @filepath{bin} directory.
+  Once it finishes, newly created @tt{command.com} shells should have
+  Racket in their path.
+ }
   
  @item{@defmenuitem{Interact with DrRacket in English} Changes DrRacket's
    interface to use English; the menu item appears only when the

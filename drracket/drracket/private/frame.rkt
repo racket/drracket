@@ -19,20 +19,24 @@
                         #:wrap-terminal-action wrap-terminal-action
                         #:package-to-offer package-to-offer)))
 
-(module add-racket-to-macosx-path racket/base
+(module add-racket-to-path racket/base
   (require string-constants 
            racket/system
            racket/gui/base
            racket/class
            setup/dirs)
   
-  (provide add-menu-macosx-path-item)
+  (provide add-menu-path-item)
   
   (define authopen "/usr/libexec/authopen")
   (define paths.d "/etc/paths.d") 
   
+  (define (add-menu-path-item menu)
+    (case (system-type)
+      [(macosx) (add-menu-macosx-path-item menu)]
+      [(windows) (add-menu-windows-path-item menu)]))
+
   (define (add-menu-macosx-path-item menu)
-    (when (equal? (system-type) 'macosx)
       (define bin-dir (find-console-bin-dir))
       (when bin-dir
         (when (file-exists? authopen)
@@ -75,7 +79,69 @@
             (new menu-item% 
                  [label (string-constant add-racket/bin-to-path)]
                  [parent menu]
-                 [callback (λ (x y) (add-racket/bin-to-path))])))))))
+                 [callback (λ (x y) (add-racket/bin-to-path))])))))
+
+  (define (add-menu-windows-path-item menu)
+    (new menu-item%
+         [label (string-constant add-racket/bin-to-path)]
+         [parent menu]
+         [callback (λ (x y) (add-path-if-not-present/windows))]))
+
+  (define error-name 'add-to-windows-path)
+
+  (define (add-path-if-not-present/windows)
+    (with-handlers ([exn:fail?
+                     (λ (x)
+                       (message-box (string-constant drracket)
+                                    (exn-message x)))])
+      (add-path-if-not-present/windows/raise-error)))
+
+  (define (add-path-if-not-present/windows/raise-error)
+    (define HKEY_CURRENT_USER "HKEY_CURRENT_USER")
+    (define Environment\\Path "Environment\\Path")
+    (define resource-bytes
+      (get-resource HKEY_CURRENT_USER Environment\\Path
+                    #:type 'bytes))
+    (unless (bytes? resource-bytes)
+      (raise-user-error error-name "could not read the resource ~a\\~a"
+                        HKEY_CURRENT_USER Environment\\Path))
+    (define converted-bytes (reecode resource-bytes "WTF-16" "WTF-8"))
+    (define no-null-bytes (regexp-replace #rx#"\0$" converted-bytes #""))
+    (define already-there (path-list-string->path-list no-null-bytes '()))
+    (define bin-dir (find-console-bin-dir))
+    (unless bin-dir
+      (raise-user-error error-name
+                        "could not find the path to add"))
+    (when (member bin-dir already-there)
+      (raise-user-error error-name
+                        "directory already present\n  dir: ~a"
+                        bin-dir))
+    (define extended-path-bytes
+      (bytes-append (path->bytes bin-dir) #";" converted-bytes))
+    (define to-be-written-bytes (reecode extended-path-bytes "WTF-8" "WTF-16"))
+    (define result
+      (write-resource HKEY_CURRENT_USER
+                      Environment\\Path
+                      to-be-written-bytes
+                      #:type 'bytes/expand-string))
+    (unless result
+      (raise-user-error error-name
+                        "could not write the resource\n  section: ~s\n  entry: ~s\n  bytes: ~.s"
+                        HKEY_CURRENT_USER
+                        Environment\\Path
+                        to-be-written-bytes)))
+
+  (define (reecode resource-bytes from to)
+    (define converter (bytes-open-converter from to))
+    (define-values (converted-bytes amt termination)
+      (bytes-convert converter resource-bytes))
+    (bytes-close-converter converter)
+    (unless (equal? termination 'complete)
+      (raise-user-error error-name
+                        "could not convert from ~a to ~a\n  bytes: ~s"
+                        from to
+                        resource-bytes))
+    converted-bytes))
 
 (module key-bindings racket/base
   
@@ -884,11 +950,11 @@
             (case rslt
               [(1) (send-url "https://lists.racket-lang.org/")]
               [(2) (send-url "https://github.com/racket/racket/issues/new")]))])
-    (add-menu-macosx-path-item menu)
+    (add-menu-path-item menu)
     (drracket:app:add-language-items-to-help-menu menu)))
 
 
-(require (submod "." add-racket-to-macosx-path)
+(require (submod "." add-racket-to-path)
          (submod "." key-bindings))
 
 
