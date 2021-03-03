@@ -34,7 +34,20 @@
   (define (add-menu-path-item menu)
     (case (system-type)
       [(macosx) (add-menu-macosx-path-item menu)]
-      [(windows) (add-menu-windows-path-item menu)]))
+      [(windows) (add-menu-windows-path-item menu)]
+      [(unix) (add-menu-unix-path-item menu)]))
+
+  (define (add-menu-unix-path-item menu)
+    (define console-bin-dir (find-console-bin-dir))
+    (when console-bin-dir
+      (new menu-item%
+           [label (string-constant add-racket/bin-to-path)]
+           [parent menu]
+           [callback (λ (x y)
+                       (message-box
+                        (string-constant drracket)
+                        (format (string-constant didnt-add-racket/bin-to-path/unix)
+                                console-bin-dir)))])))
 
   (define (add-menu-macosx-path-item menu)
       (define bin-dir (find-console-bin-dir))
@@ -129,7 +142,11 @@
                         "could not write the resource\n  section: ~s\n  entry: ~s\n  bytes: ~.s"
                         HKEY_CURRENT_USER
                         Environment\\Path
-                        to-be-written-bytes)))
+                        to-be-written-bytes))
+    (message-box
+     (string-constant drracket)
+     (format (string-constant added-racket/bin-to-path/windows)
+             bin-dir)))
 
   (define (reecode resource-bytes from to)
     (define converter (bytes-open-converter from to))
