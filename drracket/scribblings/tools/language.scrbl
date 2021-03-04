@@ -1,5 +1,6 @@
 #lang scribble/doc
-@(require "common.rkt")
+@(require "common.rkt"
+          (for-label (only-in mzscheme namespace-transformer-require)))
 @(tools-title "language")
 
 @definterface[drracket:language:simple-module-based-language<%> ()]{
@@ -15,7 +16,7 @@ The class @racket[drracket:language:simple-module-based-language%] provides an
 implementation of this interface.
 
 @defmethod[(get-language-numbers)
-           (cons number (listof number))]{
+           (cons/c number? (listof number?))]{
   Returns a list of numbers, whose length must be the same as the result
   of
   @method[drracket:language:simple-module-based-language<%> get-language-position].
@@ -24,7 +25,7 @@ implementation of this interface.
 }
 
 @defmethod[(get-language-position)
-           (cons string (listof string))]{
+           (cons/c string? (listof string?))]{
   This method is the same as
   @method[drracket:language:language<%> get-language-position].
 }
@@ -61,10 +62,10 @@ implementation of this interface.
           (drracket:language:simple-module-based-language<%>)]{
 
 @defconstructor/make[([module s-expression]
-                      [language-position (cons string (listof string))]
-                      [language-numbers (cons number (listof number)) (map (lambda (x) 0) language-position)]
+                      [language-position (cons/c string? (listof string?))]
+                      [language-numbers (cons/c number? (listof number?)) (map (lambda (x) 0) language-position)]
                       [one-line-summary string? ""]
-                      [documentation-reference (or/c false/c something-else) #f]
+                      [documentation-reference (or/c #f something-else) #f]
                       [reader (->* () (any/c input-port?) (or/c syntax? eof-object?))]
                       [language-id string?])]{
   The init args are used as the results of the
@@ -76,7 +77,7 @@ implementation of this interface.
 
 @defmethod[#:mode override
            (get-language-numbers)
-           (cons number (listof number))]{
+           (cons/c number? (listof number?))]{
   returns the corresponding init arg.
 }
 
@@ -88,7 +89,7 @@ implementation of this interface.
 
 @defmethod[#:mode override
            (get-module)
-           (cons string (listof string))]{
+           (cons/c string? (listof string?))]{
   returns the corresponding init arg.
 }
 
@@ -114,13 +115,13 @@ This mixin uses a struct definition for its settings:
 @racketblock[
 (define-struct drracket:language:simple-settings
   (case-sensitive  (code:comment @#,t{boolean?})
-   printing-style  (code:comment @#,t{(symbols 'constructor 'quasiquote 'write 'print)})
-   fraction-style  (code:comment @#,t{(symbols 'mixed-fraction 'mixed-fraction-e})
-                   (code:comment @#,t{         'repeating-decimal 'repeating-decimal-e)})
+   printing-style  (code:comment @#,t{(or/c 'constructor 'quasiquote 'write 'print)})
+   fraction-style  (code:comment @#,t{(or/c 'mixed-fraction 'mixed-fraction-e})
+                   (code:comment @#,t{      'repeating-decimal 'repeating-decimal-e)})
    show-sharing    (code:comment @#,t{boolean?})
    insert-newlines (code:comment @#,t{boolean?})
-   annotations))   (code:comment @#,t{(symbols 'none 'debug 'debug/profile})
-                   (code:comment @#,t{         'test-coverage)})
+   annotations))   (code:comment @#,t{(or/c 'none 'debug 'debug/profile})
+                   (code:comment @#,t{      'test-coverage)})
 ]
 
 The settings in this structure reflect the settings show in the language
@@ -134,7 +135,7 @@ are formatted with @racket[write] style-line printouts, or with
 @racket[pretty-print] multi-line printouts.
 
 @defmethod[(config-panel)
-           (case-> (-> settings) (settings -> void))]{
+           (case-> (-> settings) (settings -> void?))]{
   Constructs a configuration panel that lets the user configure all of
   the settings for this language.
 
@@ -237,7 +238,7 @@ are formatted with @racket[write] style-line printouts, or with
 }
 
 @defmethod[(unmarshall-settings)
-           (or/c false/c settings)]{
+           (or/c #f settings)]{
   Builds a settings structure from the vector, or @racket[#f] if the
   vector doesn't match the types of the structure.
 
@@ -264,7 +265,7 @@ mixin to construct an implementation of
 interface.
 
 @defmethod[(config-panel [parent (is-a?/c panel%)])
-           (case-> (-> settings) (settings -> void))]{
+           (case-> (-> settings) (settings -> void?))]{
   This method is the same as
   @method[drracket:language:language<%> config-panel].
 }
@@ -293,13 +294,13 @@ interface.
 }
 
 @defmethod[(get-language-numbers)
-           (cons number (listof number))]{
+           (cons/c number? (listof number?))]{
   This method is the same as
   @method[drracket:language:language<%> get-language-numbers].
 }
 
 @defmethod[(get-language-position)
-           (cons string (listof string))]{
+           (cons/c string? (listof string?))]{
   This method is the same as
   @method[drracket:language:language<%> get-language-position].
 }
@@ -352,7 +353,7 @@ interface.
 }
 
 @defmethod[(on-execute [settings settings]
-                       [run-on-user-thread ((-> void) -> void)])
+                       [run-on-user-thread ((-> void?) -> void?)])
            void?]{
   This method is the same as
   @method[drracket:language:language<%> on-execute].
@@ -360,7 +361,7 @@ interface.
 
 @defmethod[(render-value [value TST]
                          [settings settings]
-                         [port port])
+                         [port port?])
            void?]{
   This method is the same as
   @method[drracket:language:language<%> render-value].
@@ -368,15 +369,15 @@ interface.
 
 @defmethod[(render-value/format [value TST]
                                 [settings settings]
-                                [port port]
-                                [width (or/c number (symbols 'infinity))])
+                                [port port?]
+                                [width (or/c number? 'infinity)])
            void?]{
   This method is the same as
   @method[drracket:language:language<%> render-value/format].
 }
 
 @defmethod[(unmarshall-settings [input writable])
-           (or/c settings false/c)]{
+           (or/c settings #f)]{
   This method is the same as
   @method[drracket:language:language<%> unmarshall-settings].
 }
@@ -409,7 +410,7 @@ interface.
 
   For languages that use these mixins, there is no difference between
   this method and
-  @method[drracket:language:module-based-language->language-mixin% front-end/interaction].
+  @method[drracket:language:module-based-language->language-mixin front-end/interaction].
 }
 
 @defmethod[(front-end/interaction)
@@ -419,7 +420,7 @@ interface.
 
   For languages that use these mixins, there is no difference between
   this method and
-  @method[drracket:language:module-based-language->language-mixin% front-end/complete-program].
+  @method[drracket:language:module-based-language->language-mixin front-end/complete-program].
 }
 
 @defmethod[(get-language-name)
@@ -448,7 +449,7 @@ Implementations of this interface are languages that DrRacket supports.
 See @secref["adding-languages"] for an overview of adding languages to
 DrRacket.
 
-@defmethod[(capability-value [key symbol])
+@defmethod[(capability-value [key symbol?])
            any]{
 @methspec{
   Returns the language-specific value for some capability. See also
@@ -460,7 +461,7 @@ DrRacket.
 }}
 
 @defmethod[(config-panel [parent (is-a?/c panel%)])
-           (case-> (-> settings) (settings -> void))]{
+           (case-> (-> settings) (settings -> void?))]{
   This method used by the language configuration dialog to construct the
   ``details'' panel for this language.  It accepts a parent panel and
   returns a get/set function that either updates the GUI to the argument
@@ -520,7 +521,7 @@ DrRacket.
 
 }
 
-@defmethod[(front-end/complete-program [port port]
+@defmethod[(front-end/complete-program [port port?]
                                        [settings settings])
            (-> (or/c sexp/c syntax? eof-object?))]{
   @racket[front-end/complete-program] method reads and parses a program
@@ -570,7 +571,7 @@ DrRacket.
   raising an error, or else the DrRacket window will be wedged.
 }
 
-@defmethod[(front-end/interaction [port input-port]
+@defmethod[(front-end/interaction [port input-port?]
                                   [settings settings])
            (-> (or/c sexp/c syntax? eof-object?))]{
   This method is just like
@@ -599,7 +600,7 @@ DrRacket.
 }
 
 @defmethod[(get-language-numbers)
-           (cons number (listof number))]{
+           (cons/c number? (listof number?))]{
   This method is used in a manner analogous to
   @method[drracket:language:language<%> get-language-position].
 
@@ -616,7 +617,7 @@ DrRacket.
 }
 
 @defmethod[(get-language-position)
-           (cons string (listof string))]{
+           (cons/c string? (listof string?))]{
   This method returns a list of strings that is used to organize this
   language with the other languages.  Each entry in that list is a
   category or subcategory of the language and the last entry in the list
@@ -641,7 +642,7 @@ DrRacket.
 }
 
 @defmethod[(get-language-url)
-           (or/c string? false/c)]{
+           (or/c string? #f)]{
 @methspec{
   Returns a url for the language.
 }
@@ -675,7 +676,7 @@ DrRacket.
 }
 
 @defmethod[(get-metadata-lines)
-           number]{
+           number?]{
   This method is only called when
   @method[drracket:language:language<%> get-reader-module] returns an
   sexp.
@@ -699,7 +700,7 @@ DrRacket.
 }}
 
 @defmethod[(get-reader-module)
-           (or/c sexp-representing-a-require-spec false/c)]{
+           (or/c sexp-representing-a-require-spec #f)]{
   The result of this method is used when saving or loading files.
 
   If the result is a sexp, saved files get a prefix inserted at the
@@ -835,7 +836,7 @@ DrRacket.
 
 @defmethod[(render-value [value TST]
                          [settings settings]
-                         [port port])
+                         [port port?])
            void?]{
   This method is just like
   @method[drracket:language:language<%> render-value/format] except that
@@ -845,8 +846,8 @@ DrRacket.
 
 @defmethod[(render-value/format [value TST]
                                 [settings settings]
-                                [port port]
-                                [width (or/c number (symbols 'infinity))])
+                                [port port?]
+                                [width (or/c number? 'infinity)])
            void?]{
   This method is used to print values into a port, for display to a
   user.  The final argument is a maximum width to use (in characters)
@@ -860,7 +861,7 @@ DrRacket.
 }
 
 @defmethod[(unmarshall-settings [input writable])
-           (or/c settings false/c)]{
+           (or/c settings #f)]{
   Translates a Racket value into a settings, returning @racket[#f] if
   that is not possible.
 }}
