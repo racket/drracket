@@ -183,7 +183,8 @@
           [else (and (equal? (car addon) (car candidate))
                      (loop (cdr addon) (cdr candidate)))])))
     (define w/out-addon (for/list ([dir (in-list dirs)]
-                                   #:unless (is-below-addon? dir))
+                                   #:when (or (equal? dir #"")
+                                              (not (is-below-addon? dir))))
                           dir))
     (apply bytes-append (add-between w/out-addon #";")))
   )
