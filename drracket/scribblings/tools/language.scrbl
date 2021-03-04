@@ -1,6 +1,5 @@
 #lang scribble/doc
-@(require "common.rkt"
-          (for-label (only-in mzscheme namespace-transformer-require)))
+@(require "common.rkt")
 @(tools-title "language")
 
 @definterface[drracket:language:simple-module-based-language<%> ()]{
@@ -436,7 +435,7 @@ interface.
 
   Uses @racket[namespace-require] to install the result of
   @method[drracket:language:module-based-language<%> get-module] and
-  Uses @racket[namespace-transformer-require] to install the result of
+  Uses @racket[namespace-require] combined with @racket[for-syntax] to install the result of
   @method[drracket:language:module-based-language<%>
   get-transformer-module] into the user's namespace.
 }}
