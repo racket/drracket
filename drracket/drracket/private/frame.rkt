@@ -134,7 +134,7 @@
                         "directories already present\n  dir: ~a\n  dir: ~a"
                         bin-dir
                         (find-user-console-bin-dir)))
-    (define extended-path-bytes converted-bytes)
+    (define extended-path-bytes no-null-bytes)
     (unless has-bin-dir?
       (set! extended-path-bytes (bytes-append (path->bytes bin-dir) #";" extended-path-bytes)))
     (unless has-user-console-dir?
@@ -142,7 +142,7 @@
             (bytes-append user-console-dir
                           #";"
                           (remove-addon-dir-extensions extended-path-bytes))))
-    (define to-be-written-bytes (reecode extended-path-bytes "WTF-8" "WTF-16"))
+    (define to-be-written-bytes (reecode (bytes-append extended-path-bytes #"\0") "WTF-8" "WTF-16"))
     (define result
       (write-resource HKEY_CURRENT_USER
                       Environment\\Path
