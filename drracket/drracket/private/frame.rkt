@@ -123,11 +123,12 @@
     (define no-null-bytes (regexp-replace #rx#"\0$" converted-bytes #""))
     (define already-there (path-list-string->path-list no-null-bytes '()))
     (define bin-dir (find-console-bin-dir))
+    (define user-console-dir (find-user-console-bin-dir))
     (unless bin-dir
       (raise-user-error error-name
                         "could not find the path to add"))
     (define has-bin-dir? (member bin-dir already-there))
-    (define has-user-console-dir? (has-user-console-dir? already-there))
+    (define has-user-console-dir? (member user-console-dir already-there))
     (when (and has-bin-dir? has-user-console-dir?)
       (raise-user-error error-name
                         "directories already present\n  dir: ~a\n  dir: ~a"
@@ -138,7 +139,7 @@
       (set! extended-path-bytes (bytes-append (path->bytes bin-dir) #";" extended-path-bytes)))
     (unless has-user-console-dir?
       (set! extended-path-bytes
-            (bytes-append (find-user-console-bin-dir)
+            (bytes-append user-console-dir
                           #";"
                           (remove-addon-dir-extensions extended-path-bytes))))
     (define to-be-written-bytes (reecode extended-path-bytes "WTF-8" "WTF-16"))
