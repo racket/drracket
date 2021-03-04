@@ -24,6 +24,7 @@
            racket/system
            racket/gui/base
            racket/class
+           racket/list
            setup/dirs)
   
   (provide add-menu-path-item)
@@ -125,12 +126,21 @@
     (unless bin-dir
       (raise-user-error error-name
                         "could not find the path to add"))
-    (when (member bin-dir already-there)
+    (define has-bin-dir? (member bin-dir already-there))
+    (define has-user-console-dir? (has-user-console-dir? already-there))
+    (when (and has-bin-dir? has-user-console-dir?)
       (raise-user-error error-name
-                        "directory already present\n  dir: ~a"
-                        bin-dir))
-    (define extended-path-bytes
-      (bytes-append (path->bytes bin-dir) #";" converted-bytes))
+                        "directories already present\n  dir: ~a\n  dir: ~a"
+                        bin-dir
+                        (find-user-console-bin-dir)))
+    (define extended-path-bytes converted-bytes)
+    (unless has-bin-dir?
+      (set! extended-path-bytes (bytes-append (path->bytes bin-dir) #";" extended-path-bytes)))
+    (unless has-user-console-dir?
+      (set! extended-path-bytes
+            (bytes-append (find-user-console-bin-dir)
+                          #";"
+                          (remove-addon-dir-extensions extended-path-bytes))))
     (define to-be-written-bytes (reecode extended-path-bytes "WTF-8" "WTF-16"))
     (define result
       (write-resource HKEY_CURRENT_USER
@@ -158,7 +168,24 @@
                         "could not convert from ~a to ~a\n  bytes: ~s"
                         from to
                         resource-bytes))
-    converted-bytes))
+    converted-bytes)
+
+  (define (remove-addon-dir-extensions bytes)
+    (define dirs (regexp-split #rx#";" bytes))
+    (define exploded-addon (explode-path (find-system-path 'addon-dir)))
+    (define (is-below-addon? dir)
+      (let loop ([addon exploded-addon]
+                 [candidate (explode-path (bytes->path dir))])
+        (cond
+          [(null? addon) #t]
+          [(null? candidate) #f]
+          [else (and (equal? (car addon) (car candidate))
+                     (loop (cdr addon) (cdr candidate)))])))
+    (define w/out-addon (for/list ([dir (in-list dirs)]
+                                   #:unless (is-below-addon? dir))
+                          dir))
+    (apply bytes-append (add-between w/out-addon #";")))
+  )
 
 (module key-bindings racket/base
   
