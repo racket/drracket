@@ -51,49 +51,59 @@
                                 console-bin-dir)))])))
 
   (define (add-menu-macosx-path-item menu)
-      (define bin-dir (find-console-bin-dir))
+    (define bin-dir (find-console-bin-dir))
       (when bin-dir
         (when (file-exists? authopen)
-          (when (directory-exists? paths.d)
-            (define paths.d/racket (build-path paths.d "racket"))
-            (define (add-racket/bin-to-path)
-              (define sp (open-output-string))
-              (define succeeded?
-                (parameterize ([current-input-port 
-                                (open-input-string 
-                                 (format "~a\n" bin-dir))]
-                               [current-output-port sp]
-                               [current-error-port sp])
-                  (system* authopen "-c" "-w" (path->string paths.d/racket))))
-              (define output (get-output-string sp))
-              (define basic-success-message
-                (format (string-constant added-racket/bin-to-path)
-                        paths.d/racket
-                        bin-dir
-                        paths.d/racket))
-              (cond
-                [(and (equal? output "") succeeded?)
-                 (message-box (string-constant drracket)
-                              basic-success-message)]
-                [succeeded?
-                 (message-box (string-constant drracket)
-                              (string-append
-                               basic-success-message
-                               "\n\n" output))]
-                [else
-                 (message-box (string-constant drracket)
-                              (string-append
-                               (format (string-constant adding-racket/bin-to-path-failed)
-                                       (if (equal? output "")
-                                           ""
-                                           (string-append "\n\n" output "\n\n"))
-                                       paths.d/racket
-                                       bin-dir)))])
-              (void))
-            (new menu-item% 
-                 [label (string-constant add-racket/bin-to-path)]
-                 [parent menu]
-                 [callback (λ (x y) (add-racket/bin-to-path))])))))
+          (cond
+            [(directory-exists? paths.d)
+             (define paths.d/racket (build-path paths.d "racket"))
+             (define (add-racket/bin-to-path)
+               (define sp (open-output-string))
+               (define succeeded?
+                 (parameterize ([current-input-port
+                                 (open-input-string
+                                  (format "~a\n" bin-dir))]
+                                [current-output-port sp]
+                                [current-error-port sp])
+                   (system* authopen "-c" "-w" (path->string paths.d/racket))))
+               (define output (get-output-string sp))
+               (define basic-success-message
+                 (format (string-constant added-racket/bin-to-path)
+                         paths.d/racket
+                         bin-dir
+                         paths.d/racket))
+               (cond
+                 [(and (equal? output "") succeeded?)
+                  (message-box (string-constant drracket)
+                               basic-success-message)]
+                 [succeeded?
+                  (message-box (string-constant drracket)
+                               (string-append
+                                basic-success-message
+                                "\n\n" output))]
+                 [else
+                  (message-box (string-constant drracket)
+                               (string-append
+                                (format (string-constant adding-racket/bin-to-path-failed)
+                                        (if (equal? output "")
+                                            ""
+                                            (string-append "\n\n" output "\n\n"))
+                                        paths.d/racket
+                                        bin-dir)))])
+               (void))
+             (new menu-item%
+                  [label (string-constant add-racket/bin-to-path)]
+                  [parent menu]
+                  [callback (λ (x y) (add-racket/bin-to-path))])]
+            [else
+             (new menu-item%
+                  [label (string-constant add-racket/bin-to-path)]
+                  [parent menu]
+                  [callback (λ (x y)
+                              (message-box (string-constant drracket)
+                                           (string-constant adding-racket/bin-no-paths.d)
+                                           #f
+                                           '(stop ok)))])]))))
 
   (define (add-menu-windows-path-item menu)
     (new menu-item%
