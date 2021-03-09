@@ -460,10 +460,10 @@ This produces an ACK message
    
    ;; error across separate files
    (mktest
-    "(load \"repl-test-tmp2.rkt\") (define (g) (+ 1 (expt 3 #f))) (f g)"
+    "(load \"repl-test-tmp2.rkt\") (define (g n) (+ 1 (expt 3 n))) (f g)"
     (#rx"{stop-multi.png} {stop-22x22.png} expt: contract violation.*given: #f"
      #rx"{stop-multi.png} {stop-22x22.png} expt: contract violation.*given: #f"
-     #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:45: expt: contract violation.*given: #f"
+     #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:47: expt: contract violation.*given: #f"
      #rx"{stop-multi.png} {stop-22x22.png} expt: contract violation.*given: #f"
      #rx"{stop-multi.png} {stop-22x22.png} expt: contract violation.*given: #f"
      #rx"{stop-multi.png} {stop-22x22.png} repl-test-tmp3.rkt:1:28: expt: contract violation.*given: #f")
@@ -472,7 +472,7 @@ This produces an ACK message
     (λ ()
       (call-with-output-file (build-path tmp-load-directory "repl-test-tmp2.rkt")
         (lambda (port)
-          (write '(define (f t) (+ 1 (t)))
+          (write '(define (f t) (+ 1 (t #f)))
                  port))
         #:exists 'truncate))
     (λ () (delete-file (build-path tmp-load-directory "repl-test-tmp2.rkt"))))
