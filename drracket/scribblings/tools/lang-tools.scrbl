@@ -31,7 +31,7 @@ error, DrRacket would not notice that error and would not
 remove the extensions.
 
 When experimenting with changes to these extensions, use the
-@menuitem["Racket" "Reload #lang extensions"] menu item to
+@menuitem["Racket" "Reload #lang Extensions"] menu item to
 cause DrRacket to remove the extensions and reload the
 implementations from the files on disk.
 
@@ -164,7 +164,7 @@ specified both ways, then the predicate supplied via
 @history[#:changed "1.5" @elem{Look for @racket[drracket:submit-predicate] via
           @racket[read-language].}]
 
-@section{Show big “Definitions” and “Interactions” labels}
+@section{Show Big ``Definitions'' and ``Interactions'' Labels}
 
 @language-info-def[drracket:show-big-defs/ints-labels]{
   If the @racket[read-language] predicate returns @racket[#t]
@@ -176,7 +176,7 @@ specified both ways, then the predicate supplied via
  bit of DrRacket terminology.
 }
 
-@section{Opting out of Standard Toolbar Buttons}
+@section{Opting Out of Standard Toolbar Buttons}
 
 @language-info-def[drracket:opt-out-toolbar-buttons]{
  Some of the built-in buttons in the DrRacket button bar at the top of the
@@ -197,7 +197,7 @@ specified both ways, then the predicate supplied via
 
 }
 
-@section{Opting in to Language-Specific Toolbar Buttons}
+@section{Opting In to Language-Specific Toolbar Buttons}
 
 @language-info-def[drracket:opt-in-toolbar-buttons]{
  Like @language-info-ref[drracket:opt-out-toolbar-buttons], but for languages to opt in to

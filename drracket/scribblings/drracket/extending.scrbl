@@ -7,7 +7,7 @@
 @title[#:tag "extending-drracket"]{Extending DrRacket}
 
 DrRacket supports four forms of extension to the programming
- environment: keybindings, teachpacks, scripts and plugins.
+ environment: keybindings, teachpacks, scripts, and plugins.
 
 @itemize[
   
@@ -46,10 +46,10 @@ DrRacket supports four forms of extension to the programming
 
 Customization of the DrRacket environment is available via @deftech{Preferences}
 menu item, along the the facility to define new 
-@secref["color-scheme" #:doc '(lib "scribblings/drracket/drracket.scrbl")].
-Existing colorschemes packages are  
-@hyperlink["https://pkgd.racket-lang.org/pkgn/search?tags=colorscheme"]{@italic{tagged 
-`colorscheme'}}.
+@seclink["color-scheme" #:doc '(lib "scribblings/drracket/drracket.scrbl")]{color schemes}.
+Existing color-scheme packages are  
+@hyperlink["https://pkgd.racket-lang.org/pkgn/search?tags=colorscheme"]{tagged 
+``colorscheme''}.
 
 
 @; ----------------------------------------

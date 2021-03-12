@@ -778,7 +778,7 @@ DrRacket comes with a selection of color schemes, available in the preferences d
 @onscreen{color} panel.
 
 You can add your own color schemes to DrRacket, too. The first step is to
-create a pkg (see @secref["how-to-create" #:doc '(lib "pkg/scribblings/pkg.scrbl")])
+create a package (see @secref["how-to-create" #:doc '(lib "pkg/scribblings/pkg.scrbl")])
 and add an @filepath{info.rkt} file to it. The file should define
 @racket[framework:color-schemes] as a list of hashes that describe the color schemes.
 
@@ -827,15 +827,15 @@ As an example, this is the specification of the @racket["Modern"] style:
     (string-append "#lang info\n"
                    (get-output-string sp))))
 
-Each of the keys, e.g., @code[(format "'~s" example-key)], maps to a color and possibly to
+Each of the keys, e.g., @racketvalfont[(format "'~s" example-key)], maps to a color and possibly to
 some style information. All keys accept colors (the vectors shown
-above represent colors in r/g/b format), but only some accept style information. To
+above represent colors in red--green--blue format), but only some accept style information. To
 find out which are which and to get a complete list of the possible keys, click the button
 labeled @onscreen[(regexp-replace #rx"&&" (string-constant style-and-color-names) "\\&")]
 at the bottom of the 
 @onscreen[(string-constant color-schemes)] tab of the
 @onscreen[(string-constant preferences-colors)] tab in the preferences dialog.
-If one can accept style information, then you may include any of the symbols @racket['bold],
+If one can accept style information, then you may include any of @racket['bold],
 @racket['underline], @racket['italic] or @racket[`#s(background ,_color)] in the list with the color.
 
 Full details on the specification of the info files can be found in the documentation
