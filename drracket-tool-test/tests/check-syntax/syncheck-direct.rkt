@@ -545,6 +545,50 @@
               (set '(69 74)           ;racket/match from multi-in
                    '(77 87)))         ;racket/set
 
+
+
+;                                                                                              
+;                                                                                              
+;                                                                                              
+;                                                                                              
+;                                                                                              
+;                                                                                              
+;        ;;;             ;;;;                  ;                                           ;   
+;        ;;;            ;;;;;                ;;;                                         ;;;   
+;        ;;;            ;;;                  ;;;                                         ;;;   
+;     ;; ;;;    ;;;;   ;;;;;  ;;; ;;;       ;;;;;;   ;;;;;;   ;;; ;;   ;; ;;;    ;;;;   ;;;;;; 
+;    ;;;;;;;   ;;;;;;  ;;;;;  ;;;;;;;;      ;;;;;;  ;;;;;;;;  ;;;;;   ;;;;;;;   ;;;;;;  ;;;;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;   ;;;  ;;;       ;;;    ;;;  ;;;  ;;;    ;;;  ;;;  ;;;  ;;;  ;;;   
+;   ;;;  ;;;  ;;;;;;;;  ;;;   ;;;  ;;;       ;;;       ;;;;;  ;;;    ;;;  ;;;  ;;;;;;;;  ;;;   
+;   ;;;  ;;;  ;;;;;;;;  ;;;   ;;;  ;;;       ;;;     ;;;;;;;  ;;;    ;;;  ;;;  ;;;;;;;;  ;;;   
+;   ;;;  ;;;  ;;;       ;;;   ;;;  ;;;       ;;;    ;;;  ;;;  ;;;    ;;;  ;;;  ;;;       ;;;   
+;    ;;;;;;;   ;;;;;;;  ;;;   ;;;  ;;;       ;;;;;  ;;;;;;;;  ;;;     ;;;;;;;   ;;;;;;;  ;;;;; 
+;     ;; ;;;    ;;;;;   ;;;   ;;;  ;;;        ;;;;   ;;; ;;;  ;;;      ;; ;;;    ;;;;;    ;;;; 
+;                                                                         ;;;                  
+;                                                                    ;;;;;;;;                  
+;                                                                     ;;;;;                    
+;                                                                                              
+;                                                                                              
+
+
+(define-get-arrows add-definition-target
+  (syncheck:add-definition-target source start-pos end-pos id mods)
+  (list id mods))
+
+;; ensure that we get two different
+;; identifiers for the two different `x`s
+;; that show up
+(check-equal? (set-size
+               (add-definition-target
+                (string-append
+                 "#lang racket/base\n"
+                 "(define-syntax-rule (m) (begin (define x 10) x))\n"
+                 "(m)\n"
+                 "(m)\n")))
+              3)
+
+
+
 ;                                 
 ;                                 
 ;                                 

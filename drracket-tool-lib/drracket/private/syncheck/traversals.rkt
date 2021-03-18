@@ -395,7 +395,7 @@
            (add-binders (syntax vars) binders binding-inits #'b
                         level level-of-enclosing-module
                         sub-identifier-binding-directives mods)
-           (add-definition-target (syntax vars) mods)
+           (add-definition-target (syntax vars) mods level)
            (loop (syntax b)))]
         [(define-syntaxes names exp)
          (begin
@@ -403,7 +403,7 @@
            (add-binders (syntax names) binders binding-inits #'exp
                         level level-of-enclosing-module
                         sub-identifier-binding-directives mods)
-           (add-definition-target (syntax names) mods)
+           (add-definition-target (syntax names) mods level)
            (level-loop (syntax exp) (+ level 1)))]
         [(begin-for-syntax exp ...)
          (begin
@@ -1352,12 +1352,14 @@
          (add-id&init&sub-range-binders stx)]))))
 
 ;; add-definition-target : syntax[(sequence of identifiers)] (listof symbol) -> void
-(define (add-definition-target stx mods)
+(define (add-definition-target stx mods phase-level)
   (when mods
     (define defs-text (current-annotations))
     (for ([id (in-list (syntax->list stx))])
       (define source (syntax-source id))
-      (when (and source
+      (define ib (identifier-binding id phase-level))
+      (when (and (list? ib)
+                 source
                  defs-text
                  (syntax-position id)
                  (syntax-span id))
@@ -1367,7 +1369,7 @@
                 source
                 pos-left
                 pos-right
-                (syntax-e id)
+                (list-ref ib 1)
                 mods))))))
 
 ;; annotate-raw-keyword : syntax id-map integer -> void
