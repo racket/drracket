@@ -578,7 +578,7 @@
 ;; ensure that we get two different
 ;; identifiers for the two different `x`s
 ;; that show up
-(check-equal? (set-size
+(check-equal? (set-count
                (add-definition-target
                 (string-append
                  "#lang racket/base\n"
