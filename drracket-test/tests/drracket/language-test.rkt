@@ -53,7 +53,7 @@ the settings above should match r5rs
     
     (check-top-of-repl)
 
-    (generic-output #t #t #t #t #t)
+    (generic-output #t #t #t #t #t #t)
     
     (test-setting
      (lambda () (fw:test:set-check-box! "Enforce constant definitions (enables some inlining)" #f))
@@ -216,7 +216,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #f)
-    (generic-output #t #f #t #t #f)
+    (generic-output #t #f #t #t #f #f)
     
     (test-hash-bang)
     (test-error-after-definition)
@@ -334,7 +334,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #f)
-    (generic-output #t #f #t #f #f)
+    (generic-output #t #f #t #f #f #f)
     
     (test-hash-bang)
     (test-error-after-definition)
@@ -469,7 +469,7 @@ the settings above should match r5rs
   (parameterize ([language (list #rx"Beginning Student(;|$)")])
     (check-top-of-repl)
     (generic-settings #t)
-    (generic-output #f #f #f #f #f)
+    (generic-output #f #f #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -841,7 +841,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f #f)
+    (generic-output #t #f #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1001,7 +1001,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f #f)
+    (generic-output #t #f #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1156,7 +1156,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #f #f #f)
+    (generic-output #t #f #f #f #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1306,7 +1306,7 @@ the settings above should match r5rs
     (check-top-of-repl)
     
     (generic-settings #t)
-    (generic-output #t #f #t #t #f)
+    (generic-output #t #f #t #t #f #f)
     (teaching-language-fraction-output)
     
     (test-hash-bang)
@@ -1583,7 +1583,7 @@ the settings above should match r5rs
    "(eq? 'g 'G)" 
    (if false/true? "#true" "#t")))
 
-(define (generic-output list? uses-qq-for-plain-print? quasi-quote? has-sharing? has-print-printing?)
+(define (generic-output list? uses-qq-for-plain-print? quasi-quote? has-sharing? has-print-printing? print-value-columns?)
   (define plain-print-style (if has-print-printing? "print" "write"))
   (define drr (wait-for-drracket-frame))
   (define expression "(define x (list 2))\n(list x x)")
@@ -1671,7 +1671,28 @@ the settings above should match r5rs
     (insert-in-definitions drr (defs-prefix))
     (insert-in-definitions drr "(print 'hello (current-output-port) 1)")
     (test plain-print-style #f #t "hello")
-    (test plain-print-style #f #f "hello")))
+    (test plain-print-style #f #f "hello"))
+
+  (when print-value-columns?
+    (set-output-choice plain-print-style #f #t)
+    (let ()
+      (clear-definitions drr)
+      (insert-in-definitions drr (defs-prefix))
+      (insert-in-definitions drr "(build-list 100 values)")
+      (do-execute drr)
+      (define got (fetch-output/should-be-tested drr))
+      (unless (member #\newline (string->list got))
+        (eprintf "long output should have contained newlines, got ~s\n" got)))
+    
+    (let ()
+      (clear-definitions drr)
+      (insert-in-definitions drr (defs-prefix))
+      (insert-in-definitions drr "(print-value-columns 1000)")
+      (insert-in-definitions drr "(build-list 100 values)")
+      (do-execute drr)
+      (define got (fetch-output/should-be-tested drr))
+      (when (member #\newline (string->list got))
+        (eprintf "long output should not have contained newlines, got ~s\n" got)))))
 
 (define (find-output-radio-box label)
   (define frame (test:get-active-top-level-window))
