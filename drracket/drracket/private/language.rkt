@@ -612,6 +612,15 @@
                           (case-lambda
                            [(converted-value) (values converted-value #t)]
                            [(converted-value write?) (values converted-value write?)]))])
+            (define cols
+              (cond
+                [(not (simple-settings-insert-newlines setting))
+                 'infinity]
+                [(exact-integer? (print-value-columns))
+                 (print-value-columns)]
+                [else
+                 (drracket:module-language:drracket-determined-width)]))
+
             (my-setup-printing-parameters
              (λ ()
                (define (do-print)
@@ -620,11 +629,6 @@
                      (pretty-print converted-value port depth)))
                (cond
                  [(first-time?)
-                  (define cols
-                    (if (simple-settings-insert-newlines setting)
-                        ;; this is set only by the module language
-                        (drracket:module-language:drracket-determined-width)
-                        'infinity))
                   (define orig-pretty-print-print-line (pretty-print-print-line))
                   (define pppl
                     (if (simple-settings-insert-newlines setting)
