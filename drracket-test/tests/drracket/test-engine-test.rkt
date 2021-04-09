@@ -27,7 +27,23 @@
                    (list (make-check-expect-failure "1" "2" 1 0))
                    #:repl-check-failures-expected
                    (list (make-check-expect-failure "1" "2" 3 2)))
-  
+
+  (define image-markup-test
+    (string-append
+     "(require 2htdp/image)\n"
+     "(check-expect"
+     " (circle 20 \"solid\" \"red\")"
+     " (circle 10 \"outline\" \"blue\"))"))
+  (test-expression image-markup-test
+                   ""
+                   ;; If image snips are in the output of test failure
+                   ;; messages, they will be replaced by "." when extracting
+                   ;; texts from the editor.
+                   #:check-failures-expected
+                   (list (make-check-expect-failure "." "." 2 0))
+                   #:repl-check-failures-expected
+                   (list (make-check-expect-failure "." "." 4 0)))
+
   (unless dmda?
     (test-expression (format "~s" '(check-error (first 212) "first: expects a non-empty list; given: 212"))
                      "The test passed!"
