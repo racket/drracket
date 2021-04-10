@@ -4,6 +4,14 @@
 
    . tabs can be dragged around and have close buttons
 
+   . improved arrows on identifiers with contracts (they
+     can go to the definition site now)
+
+   . make the Help | Configure Command Line for Racket
+     menu item work under windows
+
+   . misc bug fixes
+
 ------------------------------
        Version 8.0
 ------------------------------
