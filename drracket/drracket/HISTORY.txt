@@ -16,6 +16,10 @@
        Version 8.0
 ------------------------------
 
+   . the DrRacket REPL ports accept simple-tree-text-markup
+     objects and renders them, offering the ability to print
+     things with boxes around them, among other things
+
    . add arrows for #%datum and #%app implicit forms,
      which avoids problems when removing requires
 
