@@ -16,7 +16,7 @@
 
 (import [prefix drracket:frame: drracket:frame^]
         [prefix drracket:language-configuration: drracket:language-configuration/internal^]
-        [prefix drracket:init: drracket:init^])
+        [prefix drracket:init: drracket:init/int^])
 (export drracket:help-desk^)
 
 (define (-add-help-desk-font-prefs b) '(add-help-desk-font-prefs b))

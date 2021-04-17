@@ -331,7 +331,7 @@
           [prefix drracket:app: drracket:app^]
           [prefix help: drracket:help-desk^]
           [prefix drracket:multi-file-search: drracket:multi-file-search^]
-          [prefix drracket:init: drracket:init^]
+          [prefix drracket:init: drracket:init/int^]
           [prefix drracket: drracket:interface^])
   (export (rename drracket:frame/int^
                   [-mixin mixin]))

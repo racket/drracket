@@ -31,6 +31,7 @@
   (import)
   (export drracket:debug^
           drracket:unit^
+          drracket:init/int^
           drracket:rep^
           drracket:frame^
           drracket:get/extend^
@@ -58,6 +59,7 @@
   (export drscheme/drracket:tool^)
   (((prefix drracket:debug: drracket:debug^)
     (prefix drracket:unit: drracket:unit^)
+    (prefix drracket:init: drracket:init^)
     (prefix drracket:rep: drracket:rep^)
     (prefix drracket:frame: drracket:frame^)
     (prefix drracket:get/extend: drracket:get/extend^)
@@ -73,6 +75,7 @@
     
     (prefix drscheme:debug: drracket:debug^)
     (prefix drscheme:unit: drracket:unit^)
+    (prefix drscheme:init: drracket:init^)
     (prefix drscheme:rep: drracket:rep^)
     (prefix drscheme:frame: drracket:frame^)
     (prefix drscheme:get/extend: drracket:get/extend^)

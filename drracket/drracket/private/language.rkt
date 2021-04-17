@@ -35,7 +35,7 @@
   (import [prefix drracket:debug: drracket:debug^]
           [prefix drracket:tools: drracket:tools^]
           [prefix drracket:rep: drracket:rep^]
-          [prefix drracket:init: drracket:init^]
+          [prefix drracket:init: drracket:init/int^]
           [prefix drracket:help-desk: drracket:help-desk^]
           [prefix drracket:module-language: drracket:module-language/int^])
   (export drracket:language/int^)

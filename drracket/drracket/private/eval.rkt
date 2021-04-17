@@ -23,7 +23,7 @@
   (define-unit eval@
     (import [prefix drracket:language-configuration: drracket:language-configuration/internal^]
             [prefix drracket:rep: drracket:rep^]
-            [prefix drracket:init: drracket:init^]
+            [prefix drracket:init: drracket:init/int^]
             [prefix drracket:language: drracket:language^]
             [prefix drracket:unit: drracket:unit^])
     (export drracket:eval^)

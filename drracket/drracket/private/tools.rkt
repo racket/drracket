@@ -24,7 +24,7 @@
         [prefix drracket:language: drracket:language^]
         [prefix drracket:language-configuration: drracket:language-configuration^]
         [prefix drracket:help-desk: drracket:help-desk^]
-        [prefix drracket:init: drracket:init^]
+        [prefix drracket:init: drracket:init/int^]
         [prefix drracket:debug: drracket:debug^]
         [prefix drracket:eval: drracket:eval^]
         [prefix drracket:modes: drracket:modes^]

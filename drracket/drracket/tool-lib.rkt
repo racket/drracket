@@ -1475,6 +1475,41 @@ all of the names in the tools library, for use defining keybindings
   @{Call this function to add tracing annotations to the a fully-expanded
     expression. When the program runs, DrRacket will pop open the tracing
     window to display the trace.})
+
+
+;                             
+;                             
+;                             
+;                             
+;                             
+;                             
+;   ;;;            ;;;    ;   
+;   ;;;            ;;;  ;;;   
+;                       ;;;   
+;   ;;;  ;;; ;;;   ;;; ;;;;;; 
+;   ;;;  ;;;;;;;;  ;;; ;;;;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;   
+;   ;;;  ;;;  ;;;  ;;;  ;;;   
+;   ;;;  ;;;  ;;;  ;;;  ;;;   
+;   ;;;  ;;;  ;;;  ;;;  ;;;   
+;   ;;;  ;;;  ;;;  ;;;  ;;;;; 
+;   ;;;  ;;;  ;;;  ;;;   ;;;; 
+;                             
+;                             
+;                             
+;                             
+;                             
+
+ 
+ (proc-doc/names
+  drracket:init:original-error-display-handler
+  (-> string? any/c any)
+  (message exn)
+  @{This is the @racket[error-display-handler] installed
+ at the time that DrRacket starts up.
+
+ DrRacket sets the @racket[error-display-handler] to one that
+ shows an ``Internal Error'' dialog box.})
  
  ;                                                           
  ;                                                           

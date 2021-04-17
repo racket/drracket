@@ -26,7 +26,7 @@
           [prefix drracket:module-language: drracket:module-language/int^]
           [prefix drracket:language: drracket:language^]
           [prefix drracket:language-configuration: drracket:language-configuration^]
-          [prefix drracket:init: drracket:init^]
+          [prefix drracket:init: drracket:init/int^]
           [prefix drracket: drracket:interface^])
   (export drracket:module-language-tools/int^)
 

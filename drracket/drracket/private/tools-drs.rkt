@@ -30,7 +30,7 @@ invoke the tools that want to use the drscheme: names.
         [prefix drscheme:language: drracket:language^]
         [prefix drscheme:language-configuration: drracket:language-configuration^]
         [prefix drscheme:help-desk: drracket:help-desk^]
-        [prefix drscheme:init: drracket:init^]
+        [prefix drscheme:init: drracket:init/int^]
         [prefix drscheme:debug: drracket:debug^]
         [prefix drscheme:eval: drracket:eval^]
         [prefix drscheme:modes: drracket:modes^]

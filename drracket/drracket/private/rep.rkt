@@ -48,7 +48,7 @@ TODO
   (parameterize-break #f (current-break-parameterization)))
 
 (define-unit rep@
-  (import [prefix drracket:init: drracket:init^]
+  (import [prefix drracket:init: drracket:init/int^]
           [prefix drracket:language-configuration: drracket:language-configuration/internal^]
           [prefix drracket:language: drracket:language/int^]
           [prefix drracket:app: drracket:app^]

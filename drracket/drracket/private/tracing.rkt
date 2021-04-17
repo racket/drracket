@@ -17,7 +17,7 @@
 (define-unit tracing@
   (import [prefix drracket:frame: drracket:frame^]
           [prefix drracket:rep: drracket:rep^]
-          [prefix drracket:init: drracket:init^]
+          [prefix drracket:init: drracket:init/int^]
           [prefix drracket:unit: drracket:unit^]
           [prefix drracket: drracket:interface^])
   (export drracket:tracing^)

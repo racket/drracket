@@ -66,7 +66,7 @@
   (define-unit language-configuration@
     (import [prefix drracket:unit: drracket:unit^]
             [prefix drracket:rep: drracket:rep^]
-            [prefix drracket:init: drracket:init^]
+            [prefix drracket:init: drracket:init/int^]
             [prefix drracket:language: drracket:language/int^]
             [prefix drracket:app: drracket:app^]
             [prefix drracket:tools: drracket:tools^]

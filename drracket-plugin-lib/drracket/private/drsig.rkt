@@ -11,6 +11,7 @@
          drracket:get-collection^
          drracket:main^
          drracket:init^
+         drracket:init/int^
          drracket:language-configuration^
          drracket:language-configuration/internal^
          drracket:tools^
@@ -156,9 +157,10 @@
 (define-signature drracket:init-cm^
   ())
 (define-signature drracket:init^ extends drracket:init-cm^
+  (original-error-display-handler))
+(define-signature drracket:init/int^ extends drracket:init^
   (original-output-port
    original-error-port
-   original-error-display-handler
    original-print
    primitive-eval
    primitive-load
@@ -429,6 +431,7 @@
 (define-signature no-prefix:tool^ 
   ((open (prefix debug: drracket:debug^))
    (open (prefix unit: drracket:unit^))
+   (open (prefix init: drracket:init^))
    (open (prefix rep: drracket:rep^))
    (open (prefix frame: drracket:frame^))
    (open (prefix get/extend: drracket:get/extend^))

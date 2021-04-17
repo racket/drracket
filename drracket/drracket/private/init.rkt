@@ -8,7 +8,7 @@
   
   (import [prefix drracket: drracket:interface^]
           [prefix drracket:rep: drracket:rep^])
-  (export drracket:init^)
+  (export drracket:init/int^)
   
   (define original-output-port (current-output-port))
   (define original-error-port (current-error-port))
