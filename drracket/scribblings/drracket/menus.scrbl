@@ -29,11 +29,18 @@
         @litchar{racket/base.rkt} or @litchar{data/splay-tree.rkt}
         or @litchar{"x.rkt"})
         and edit the corresponding files in the @tech{definitions window}.}
- 
+
  @item{@defmenuitem{Install PLT File...} Opens a dialog asking for the
    location of the @filepath{.plt} file (either on the local disk or
    on the web) and installs the contents of the file.}
 
+ @item{@defmenuitem{Install Package...} Opens a dialog asking for
+  the name of a package to install. See @other-doc['(lib "pkg/scribblings/pkg.scrbl")]
+  for more information on packages.}
+ @item{@defmenuitem{Package Manager...} Provides a graphical interface
+        to the command-line tool
+        @seclink["cmdline" #:doc '(lib "pkg/scribblings/pkg.scrbl")]{@tt{raco} @tt{pkg}}.}
+ 
  @item{@defmenuitem{Revert} Re-loads the file that is currently in the
   @tech{definitions window}. All changes since the file was last saved
   will be lost.}
@@ -77,6 +84,9 @@
   @filepath{02-interactions}, @|etc| as you interact with various
   programs.}
 
+ @item{@defmenuitem{Page Setup...} Opens a dialog box to configure
+  various details for printing.}
+
  @item{@defmenuitem{Print Definitions...} Opens a dialog for printing
   the current program in the @tech{definitions window}.}
 
@@ -87,9 +97,11 @@
   specify the parameters of a multi-file search. The results of the
   search are displayed in a separate window.}
 
- @item{@defmenuitem{Close} Closes this DrRacket window. If this window
+ @item{@defmenuitem{Close Window} Closes this DrRacket window. If this window
   is the only open DrRacket window, then DrRacket quits, except on
   Mac OS.}
+
+ @item{@defmenuitem{Close Tab} Closes the active tab in this DrRacket window.}
 
  @item{{@onscreen{Quit} or @onscreen{Exit}} Exits DrRacket. (On Mac
   OS, this menu item is in the Apple menu.)}
@@ -123,6 +135,9 @@ blinking caret. Each window maintains its own Undo and Redo history.
  @item{@defmenuitem{Paste} Pastes the current clipboard contents into the
   window.}
 
+ @item{@defmenuitem{Paste and Indent} Pastes the current clipboard contents into the
+  window and indents it, doing the same thing the tab key would do.}
+
  @item{@defmenuitem{Delete} or @defmenuitem{Clear} Deletes the selected text.}
 
  @item{@defmenuitem{Select All} Highlights the entire text of the buffer.}
@@ -144,19 +159,17 @@ blinking caret. Each window maintains its own Undo and Redo history.
         paste will paste whatever was last copied,
         not the new search string)}
 
- @item{@defmenuitem{Find Again} Finds the next occurrence of the text 
+ @item{@defmenuitem{Find Next} Finds the next occurrence of the text 
  in the search window.}
   
- @item{@defmenuitem{Find Again Backwards} Finds the next occurrence of the text 
+ @item{@defmenuitem{Find Previous} Finds the next occurrence of the text 
  in the search window, but searching backwards.}
   
-@item{@defmenuitem{Replace & Find Again} Replaces the selection with the
+ @item{@defmenuitem{Show Replace}}
+
+@item{@defmenuitem{Replace} Replaces the selection with the
   replace string (if it matches the find string) and finds the next
   occurrence of the text that was last searched for, looking forwards.}
-
-@item{@defmenuitem{Replace & Find Again Backwards} Replaces the selection with the
-  replace string (if it matches the find string) and finds the next
-  occurrence of the text that was last searched for, looking backwards.}
 
 @item{@defmenuitem{Replace All} Replaces all occurrences of
 the search string with the replace string.}
@@ -164,7 +177,10 @@ the search string with the replace string.}
 @item{@defmenuitem{Find Case Sensitive} Toggles between
 case-sensitive and case-insensitive search.}
   
-@item{@defmenuitem{Keybindings} 
+@item{@defmenuitem{Find Longest Line} Moves the insertion
+  point to the longest line in the editor.}
+  
+@item{@defmenuitem{Keybindings}
 @itemize[
 
 @item{@defmenuitem{Show Active Keybindings} Shows all of the
@@ -180,6 +196,18 @@ case-sensitive and case-insensitive search.}
 @item{@defmenuitem{Spell Check String Constants} Uses @tt{aspell}
        or @tt{ispell} to look for unknown words in string constants
        (things that would otherwise be colored green).}
+
+@item{@defmenuitem{Spell Check Text (between @"{}" in Scribble} Uses @tt{aspell}
+       or @tt{ispell} to look for unknown words in Scribble text.}
+
+@item{@defmenuitem{Skip to Next Misspelled Word} Sets the insertion
+  point to the next word that is misspelled in the editor (if any).}
+
+@item{@defmenuitem{Suggest Spelling Corrections...} Opens a window
+  showing spelling corrections for the word at the insertion point.}
+
+@item{@defmenuitem{Spelling Dictionaries} A submenu that lists all
+       of the available spelling dictionaries.}
 
 @item{@defmenuitem{Complete Word} Completes the word at the
 insertion point, using the manuals as a source of completions.}
