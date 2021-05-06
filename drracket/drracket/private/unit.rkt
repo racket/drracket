@@ -4389,7 +4389,7 @@
                                                   'drscheme:language-menu-title)]
                                           [parent mb]))
         (define ((send-method method) _1 _2)
-          (define text (get-focus-object))
+          (define text (get-edit-target-object))
           (when (is-a? text racket:text<%>)
             (method text)))
         (define (show/hide-capability-menus)
