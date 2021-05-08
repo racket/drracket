@@ -1,4 +1,11 @@
 ------------------------------
+       Version 8.2
+------------------------------
+
+   . performance improvements when editing files with
+     picts that have large bitmaps embedded in them
+
+------------------------------
        Version 8.1
 ------------------------------
 
