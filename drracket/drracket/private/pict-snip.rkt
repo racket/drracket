@@ -195,12 +195,12 @@
        (loop (car recorded-datum))
        (loop (cdr recorded-datum))]
       [(string? recorded-datum)
-       (define m (regexp-match? #rx"^bmpref([0-9]+):" recorded-datum))
+       (define m (regexp-match #rx"^bmpref([0-9]+):" recorded-datum))
        (when m
          (define n (string->number (list-ref m 1)))
          (set! prefix (max (+ n 1) prefix)))]))
   (~a "bmpref" prefix ":"))
 
 (module+ test
-  (check-equal? (get-unique-string '(((1) 2))) "bmpref0")
-  (check-equal? (get-unique-string '((("bmpref4") "bmpref1"))) "bmpref5"))
+  (check-equal? (get-unique-string '(((1) 2))) "bmpref0:")
+  (check-equal? (get-unique-string '((("bmpref4:") "bmpref1:"))) "bmpref5:"))
