@@ -13,4 +13,5 @@
                             ("teaching-lang-save-file.rkt" (robby matthias))
                             ("teaching-lang-coverage.rkt" (robby matthias))
                             ("language-test.rkt" (robby matthias))
-                            ("hangman.rkt" (robby matthias))))
+                            ("hangman.rkt" (robby matthias))
+                            (all robby)))
