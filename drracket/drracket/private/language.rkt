@@ -430,19 +430,16 @@
         (thread-cell-set! convert-table-thread-cell (make-weak-hasheq)))
       (thread-cell-ref convert-table-thread-cell))
 
-    (define (fraction-style->number->number-snip fraction-style)
+    (define (fraction-style->exact-prefix+view fraction-style)
       (case fraction-style
-        [(mixed-fraction) 
-         (λ (value) (number-snip:make-fraction-snip value #f))]
-        [(mixed-fraction-e)
-         (λ (value) (number-snip:make-fraction-snip value #t))]
-        [(repeating-decimal)
-         (λ (value) (number-snip:make-repeating-decimal-snip value #f))]
-        [(repeating-decimal-e)
-         (λ (value) (number-snip:make-repeating-decimal-snip value #t))]))
-
+        [(mixed-fraction) (values 'never 'mixed)]
+        [(mixed-fraction-e) (values 'never  'mixed)]
+        [(repeating-decimal) (values 'never  'decimal)]
+        [(repeating-decimal-e) (values 'when-necessary 'decimal)]))
+      
     (define original-pretty-print-print-hook (pretty-print-print-hook))
-    (define (make-drracket-pretty-print-print-hook number->number-snip)
+    (define (make-drracket-pretty-print-print-hook exact-prefix fraction-view)
+
       (define (drracket-pretty-print-print-hook value display? port)
         (define convert-table (get-convert-table))
         (cond
@@ -450,13 +447,18 @@
           ;; note: 'write' and 'display' have special handling in mrlib/interactive-value-port
           ;; that is installed by framework/private/text into the ports
           [(is-a? value snip%)
-           (text:send-snip-to-port value port)
-           1]
+           (text:send-snip-to-port value port)]
           [(pict:convertible? value)
            (write-special (mk-pict-snip value) port)]
-          [(use-number-snip? value)
-           (write-special (number->number-snip value) port)
-           1]
+          [(and (number? value)
+                (number-snip:number->string/snip value
+                                                 #:exact-prefix exact-prefix
+                                                 #:inexact-prefix (if (pretty-print-show-inexactness) 'always 'never)
+                                                 #:fraction-view fraction-view))
+           => (lambda (snip/string)
+                (if (string? snip/string)
+                    (display snip/string port)
+                    (write-special snip/string port)))]
           [(syntax? value)
            (write-special (render-syntax/snip value) port)]
           [(to-snip-value? value)
@@ -474,37 +476,37 @@
       drracket-pretty-print-print-hook)
 
     (define original-pretty-print-size-hook (pretty-print-size-hook))
-    (define (drracket-pretty-print-size-hook value display? port)
-      (define convert-table (get-convert-table))
-      (cond
-        [(not (port-writes-special? port)) (original-pretty-print-size-hook value display? port)]
-        [(is-a? value snip%) 1]
-        [(pict:convertible? value) 1]
-        [(use-number-snip? value) 1]
-        [(syntax? value) 1]
-        [(to-snip-value? value) 1]
-        [(hash-ref convert-table value #f) 
-         ;; this handler can be called multiple times per value
-         ;; avoid building the png bytes more than once
-         1]
-        [(and (file:convertible? value)
-              (file:convert value 'png@2x-bytes #f))
-         =>
-         (λ (converted)
-           (hash-set! convert-table value (list 2 converted))
-           1)]
-        [(and (file:convertible? value)
-              (file:convert value 'png-bytes #f))
-         =>
-         (λ (converted)
-           (hash-set! convert-table value (list 1 converted))
-           1)]
-        [else (original-pretty-print-size-hook value display? port)]))
-    (define (use-number-snip? x)
-      (and (number? x)
-           (exact? x)
-           (real? x)
-           (not (integer? x))))
+    (define (make-drracket-pretty-print-size-hook exact-prefix fraction-view)
+      (define number-size (number-snip:make-pretty-print-size #:exact-prefix exact-prefix
+                                                              #:inexact-prefix (if (pretty-print-show-inexactness) 'always 'never)
+                                                              #:fraction-view fraction-view))
+      (define (drracket-pretty-print-size-hook value display? port)
+        (define convert-table (get-convert-table))
+        (cond
+          [(not (port-writes-special? port)) (original-pretty-print-size-hook value display? port)]
+          [(is-a? value snip%) 1]
+          [(pict:convertible? value) 1]
+          [(and (number? value) (number-size value display? port))]
+          [(syntax? value) 1]
+          [(hash-ref convert-table value #f) 
+           ;; this handler can be called multiple times per value
+           ;; avoid building the png bytes more than once
+           1]
+          [(and (file:convertible? value)
+                (file:convert value 'png@2x-bytes #f))
+           =>
+           (λ (converted)
+             (hash-set! convert-table value (list 2 converted))
+             1)]
+          [(and (file:convertible? value)
+                (file:convert value 'png-bytes #f))
+           =>
+           (λ (converted)
+             (hash-set! convert-table value (list 1 converted))
+             1)]
+          [else (original-pretty-print-size-hook value display? port)]))
+
+      drracket-pretty-print-size-hook)
     
     (values
      (λ (thunk settings width)
@@ -525,10 +527,12 @@
                          0)]
                       
                       [pretty-print-columns width]
-                      [pretty-print-size-hook drracket-pretty-print-size-hook]
-                      [pretty-print-print-hook (make-drracket-pretty-print-print-hook
-                                                (fraction-style->number->number-snip
-                                                 (simple-settings-fraction-style settings)))]
+                      [pretty-print-size-hook (call-with-values
+                                               (lambda () (fraction-style->exact-prefix+view (simple-settings-fraction-style settings)))
+                                               make-drracket-pretty-print-size-hook)]
+                      [pretty-print-print-hook (call-with-values
+                                                (lambda () (fraction-style->exact-prefix+view (simple-settings-fraction-style settings)))
+                                                make-drracket-pretty-print-print-hook)]
                       [print-graph
                        ;; only turn on print-graph when using `write' or `print' printing 
                        ;; style, because the sharing is being taken care of
@@ -538,10 +542,8 @@
                                   '(trad-write write print))
                             (simple-settings-show-sharing settings))])
          (thunk)))
-     drracket-pretty-print-size-hook
-     (make-drracket-pretty-print-print-hook
-      (λ (n)
-        (number-snip:make-fraction-snip n (not (pretty-print-show-inexactness)))))))
+     (make-drracket-pretty-print-size-hook 'never #f)
+     (make-drracket-pretty-print-print-hook 'never #f)))
       
   ;; simple-module-based-language-convert-value : TST settings -> TST
   (define (simple-module-based-language-convert-value value settings)
