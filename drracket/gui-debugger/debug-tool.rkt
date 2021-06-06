@@ -45,7 +45,7 @@
 (define tool@
   (unit 
     (import drscheme:tool^)
-    (export drscheme:tool-exports^) 
+    (export drscheme:tool-exports^)
 
     (define (phase1)
       (drscheme:module-language-tools:add-opt-out-toolbar-button
@@ -106,7 +106,7 @@
     
     (define (safe-min . args)
       (apply min (filter identity args)))
-    
+
     ;; trim-expr-str: string -> string
     ;; examples:
     ;; short-id                   => short-id
@@ -596,7 +596,9 @@
     ;; pen and brush for marking the location following a break
     (define pc-brk-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
     (define pc-brk-brush (send the-brush-list find-or-create-brush "gray" 'solid))
-    
+
+    (define system-eventspace (current-eventspace))
+
     (define (debug-interactions-text-mixin super%)
       (class super%
         
@@ -647,17 +649,18 @@
                                (let ([src (syntax-source orig-exp)])
                                  (and (path? src)
                                       src))))
+               (define annotating-tabs (make-hasheq))
                (cond
                  [(or (eq? (filename->defs (and (syntax? orig-exp)
                                                 (syntax-source orig-exp)))
                            (send (get-tab) get-defs))
-                      (annotate-this-module? fn))
+                      (annotate-this-module? fn annotating-tabs))
                   (parameterize ([current-eval oe])
                    (eval/annotations
                     top-e
                     ; annotate-module?
                     (lambda (fn m) 
-                      (annotate-this-module? fn))
+                      (annotate-this-module? fn annotating-tabs))
                     ; annotator
                     (lambda (stx)
                       (define source (syntax-source stx))
@@ -707,39 +710,55 @@
                       annotated)))]
                  [else (oe top-e)])])))
         
-        (define/private (annotate-this-module? fn)
-          (cond
-            [(filename->defs fn)
-             =>
-             ; fn is loaded into defs
-             (lambda (defs)
-               (let ([extern-tab (send defs get-tab)]
-                     [this-tab (get-tab)])
-                 (case (if (or (not (send extern-tab debug?))
-                               (eq? this-tab (send extern-tab get-master)))
-                           (message-box
-                            "Debugging Multi-File Program"
-                            (format "Debug ~a?" fn)
-                            #f
-                            '(yes-no))
-                           (message-box
-                            "Debugging Multi-File Program"
-                            (format "~a is already involved in a debugging session." fn)
-                            #f
-                            '(ok)))
-                   [(yes)
-                    ; set tab up with shared data from the master tab
-                    (send extern-tab prepare-execution #t)
-                    (send this-tab add-slave extern-tab)
-                    (call-with-values
-                     (lambda () (send this-tab get-shared-data))
-                     (lambda vals (send extern-tab set-shared-data . vals)))
-                    #t]
-                   [(no ok)
-                    (send extern-tab prepare-execution #f)
-                    #f])))]
-            ; fn is not open, so don't try to debug it
-            [else #f]))
+        (define/private (annotate-this-module? fn annotating-tabs)
+          ;; ==called from user thread==
+          (define result-ch (make-channel))
+          (parameterize ([current-eventspace system-eventspace])
+            (queue-callback
+             (lambda ()
+               ;; ==drscheme eventspace thread==
+               (cond
+                 [(filename->defs fn)
+                  =>
+                  ; fn is loaded into defs
+                  (lambda (defs)
+                    (let ([extern-tab (send defs get-tab)]
+                          [this-tab (get-tab)])
+                      (define frame (send this-tab get-frame))
+                      (hash-ref
+                       annotating-tabs extern-tab
+                       (lambda ()
+                         (define extern-debug?
+                           (eq? 'yes (if (or (not (send extern-tab debug?))
+                                             (eq? this-tab (send extern-tab get-master)))
+                                         (message-box
+                                          "Debugging Multi-File Program"
+                                          (format "Debug ~a?" fn)
+                                          frame
+                                          '(yes-no))
+                                         (message-box
+                                          "Debugging Multi-File Program"
+                                          (format "~a is already involved in a debugging session." fn)
+                                          frame
+                                          '(ok)))))
+                         (hash-set! annotating-tabs extern-tab extern-debug?)
+                         (cond
+                           [extern-debug?
+                            ;; set tab up with shared data from the master tab
+                            (send this-tab add-slave extern-tab)
+                            (send extern-tab prepare-execution #t #f)
+                            (call-with-values
+                             (lambda () (send this-tab get-shared-data))
+                             (lambda vals (send extern-tab set-shared-data . vals)))]
+                           [else
+                            ;; leave `extern-tab` alone, unless it was previously
+                            ;; tied to this tab:
+                            (when (eq? this-tab (send extern-tab get-master))
+                              (send extern-tab prepare-execution #f #f))])
+                         (channel-put result-ch extern-debug?)))))]
+                 ; fn is not open, so don't try to debug it
+                 [else (channel-put result-ch #f)]))))
+          (channel-get result-ch))
         
         (define/override (reset-console)
           (super reset-console)
@@ -1094,13 +1113,14 @@
               [(pair? status) (cdr status)]
               [else #f])))
         
-        (define/public (prepare-execution debug?)
+        (define/public (prepare-execution debug? [to-front? #t])
           (set! want-debug? debug?)
           (cond
             [debug? (send (get-frame) show-debug)]
-            [else (send (get-frame) hide-debug)
+            [else (when to-front?
+                    (send (get-frame) hide-debug))
                   (set! master this)
-                  (for-each (lambda (t) (send t prepare-execution #f)) slaves)
+                  (for-each (lambda (t) (send t prepare-execution #f #f)) slaves)
                   (set! slaves empty)])
           (set! current-language-settings (and debug? (send (get-defs) get-next-settings)))
           (set! single-step? (box #t))
@@ -1112,12 +1132,13 @@
           (set! break-status (box #f))
           (set! want-suspend-on-break? #f)
           (set! stack-frames (box #f))
-          (send (get-ints) set-tab this))
+          (when to-front?
+            (send (get-ints) set-tab this)))
         
         (define/augment (on-close)
           (inner (void) on-close)
           (set-box! closed? #t)
-          (for-each (lambda (t) (send t prepare-execution #f)) slaves))
+          (for-each (lambda (t) (send t prepare-execution #f #f)) slaves))
         
         (define/public (hide-debug)
           (send (get-frame) hide-debug))
