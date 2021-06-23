@@ -45,7 +45,8 @@
   (set! module-language-parallel-lock-client
         (compile-lock->parallel-lock-client
          (place-channel-get p)
-         (current-custodian)))
+         (current-custodian)
+         current-parallel-lock-shutdown-evt))
   
   ;; get the handlers in a second message
   (set! handlers 
