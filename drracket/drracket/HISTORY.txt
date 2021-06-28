@@ -5,6 +5,8 @@
    . performance improvements when editing files with
      picts that have large bitmaps embedded in them
 
+   . bug fixes
+
 ------------------------------
        Version 8.1
 ------------------------------
