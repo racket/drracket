@@ -29,6 +29,7 @@ Will not work with the definitions text surrogate interposition that
   (or/c 'drracket:default-filters
         'drracket:default-extension
         'drracket:indentation
+        'drracket:range-indentation
         'drracket:keystrokes
         'drracket:show-big-defs/ints-labels
         'drracket:submit-predicate
@@ -207,6 +208,13 @@ Will not work with the definitions text surrogate interposition that
              an-irl
              (λ () #f)
              (λ () (val txt pos)))))]
+    [(drracket:range-indentation)
+     (and val
+          (λ (txt start-pos end-pos)
+            (call-in-irl-context/abort
+             an-irl
+             (λ () #f)
+             (λ () (val txt start-pos end-pos)))))]
     [(drracket:keystrokes)
      (for/list ([pr (in-list val)])
        (define key (list-ref pr 0))
