@@ -164,6 +164,12 @@
            (-> read-only-text/c
                exact-nonnegative-integer?
                (or/c #f exact-nonnegative-integer?)))]
+    [(drracket:range-indentation)
+     (or/c #f
+           (-> read-only-text/c
+               exact-nonnegative-integer?
+               exact-nonnegative-integer?
+               (or/c #f (listof (list/c exact-nonnegative-integer? string?)))))]
     [(drracket:keystrokes)
      ;; string? is too permissive; need racket/gui to publish
      ;; the actual contract (used on `map-function`)

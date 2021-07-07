@@ -213,6 +213,14 @@
                set-lang-wants-big-defs/ints-labels?
                get-tab
                last-position
+               get-start-position
+               get-end-position
+               insert
+               delete
+               begin-edit-sequence
+               end-edit-sequence
+               position-paragraph
+               paragraph-start-position
                get-surrogate
                start-colorer
                set-surrogate
@@ -334,6 +342,9 @@
         (set! indentation-function
               (or (call-read-language the-irl 'drracket:indentation #f)
                   (λ (x y) #f)))
+        (set! range-indentation-function
+              (or (call-read-language the-irl 'drracket:range-indentation #f)
+                  (λ (x y z) #f)))
 
         (set! lang-keymap (new keymap:aug-keymap%))
         (for ([key+proc (in-list (call-read-language the-irl 'drracket:keystrokes '()))])
@@ -373,6 +384,7 @@
         (set! extra-default-filters '())
         (set! default-extension "")
         (set! indentation-function (λ (x y) #f))
+        (set! range-indentation-function (λ (x y z) #f))
         (when lang-keymap
           (send (get-keymap) remove-chained-keymap lang-keymap)
           (set! lang-keymap #f))
@@ -484,6 +496,7 @@
       (define extra-default-filters '())
       (define default-extension "")
       (define indentation-function (λ (x y) #f))
+      (define range-indentation-function (λ (x y z) #f))
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
         (parameterize ([finder:default-extension default-extension]
@@ -499,7 +512,38 @@
                (compute-racket-amount-to-indent pos))]
           [else
            (compute-racket-amount-to-indent pos)]))
-      
+
+      (define/private (range-indent start end)
+        (define substs (range-indentation-function this start end))
+        (and substs
+             (let ()
+               (define start-line (position-paragraph start #f))
+               (define end-line (position-paragraph end #t))
+               (begin-edit-sequence)
+               (let loop ([substs substs] [line start-line])
+                 (unless (or (null? substs)
+                             (line . > . end-line))
+                   (define pos (paragraph-start-position line))
+                   (define del-amt (caar substs))
+                   (define insert-str (cadar substs))
+                   (unless (zero? del-amt)
+                     (delete pos (+ pos del-amt)))
+                   (unless (equal? insert-str "")
+                     (insert insert-str pos))
+                   (loop (cdr substs) (add1 line))))
+               (end-edit-sequence))))
+
+      (define/override (tabify-selection [start (get-start-position)]
+                                         [end (get-end-position)])
+        (unless (and in-module-language?
+                     (range-indent start end))
+          (super tabify-selection start end)))
+
+      (define/override (tabify-all)
+        (unless (and in-module-language?
+                     (range-indent 0 (last-position)))
+          (super tabify-all)))
+
       (define/private (get-irl-directory)
         (define tmp-b (box #f))
         (define fn (get-filename tmp-b))

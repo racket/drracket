@@ -42,6 +42,7 @@ DrRacket calls the language's @racket[read-language]'s
 @itemize[@item{@language-info-ref[drracket:default-filters]}
          @item{@language-info-ref[drracket:default-extension]}
          @item{@language-info-ref[drracket:indentation]}
+         @item{@language-info-ref[drracket:range-indentation]}
          @item{@language-info-ref[drracket:keystrokes]}
          @item{@language-info-ref[drracket:show-big-defs/ints-labels]}
          @item{@language-info-ref[drracket:opt-out-toolbar-buttons]}
@@ -86,6 +87,34 @@ These precise colors for these identifiers are controlled by the preferences dia
  DrRacket uses the standard s-expression indentation rules.
 
  @history[#:added "1.3"]
+}
+
+@language-info-def[drracket:range-indentation]{
+ When a language's @racket[_get-info] procedure responds to @racket['drracket:range-indentation],
+ it is expected to return a function with this contract:
+ @racketblock[(-> (is-a?/c racket:text<%>)
+                  exact-nonnegative-integer?
+                  exact-nonnegative-integer?
+                  (or/c #f (listof (list/c exact-nonnegative-integer? string?))))]
+ The function is used to indent a range that potentially spans multiple lines in DrRacket.
+ It is called with the start and ending position of the range. The function is expected to return
+ either @racket[#f] or a list with an item for each line in the range. Returning @racket[#f]
+ falls back to iterating indentation over every line in the range (using @racket['drracket:indentation],
+ if available). Returning a list indicates an update for each corresponding line, where
+ a line update takes the form @racket[(list _delete-amount _insert-string)]:
+ first delete @racket[_delete-amount] items from the start of the line, and then
+ insert @racket[_insert-string] at the start of the line. If the returned list has fewer
+ items then the range of lines to indent, the list is effectively padded with @racket[(list 0 "")]
+ no-op items. If the list has more items than the range of lines to indent, the extra items
+ are ignored. Note that returning an empty list causes no lines to be updated, as opposed to
+ returning @racket[#f] to trigger a different indentation mechanism.
+
+ When both @racket['drracket:indentation] and @racket['drracket:range-indentation]
+ are available, the function for @racket['drracket:range-indentation] is called first---except
+ in the case of an implicit indentation from creating a newline, in which case only
+ @racket['drracket:indentation] is used.
+
+ @history[#:added "1.10"]
 }
 
 @section{Keystrokes}
