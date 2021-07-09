@@ -43,6 +43,7 @@ DrRacket calls the language's @racket[read-language]'s
          @item{@language-info-ref[drracket:default-extension]}
          @item{@language-info-ref[drracket:indentation]}
          @item{@language-info-ref[drracket:range-indentation]}
+         @item{@language-info-ref[drracket:grouping-position]}
          @item{@language-info-ref[drracket:keystrokes]}
          @item{@language-info-ref[drracket:show-big-defs/ints-labels]}
          @item{@language-info-ref[drracket:opt-out-toolbar-buttons]}
@@ -137,6 +138,50 @@ These precise colors for these identifiers are controlled by the preferences dia
  The procedure's first argument will be the definitions text, the
  second will be the event object supplied from the GUI system
  and the result of the procedure is ignored.
+}
+
+@language-info-def[drracket:grouping-position]{
+
+ When a language's @racket[_get-info] procedure responds to
+ @racket['drracket:keystrokes], it is expected to return a
+ function that determines where positions relevant to the
+ nesting structure of the program appear. This function is
+ used for a number of motion and selection operations in the
+ editor, as well as determining where to flash to for closing
+ parentheses.
+
+ Specifically the result must be a function matching this
+ contract:
+ @racket[(-> natural?
+             natural?
+             (or/c 'up 'down 'backward 'forward)
+             (or/c #f #t natural?))]
+
+ Consider first the first and third argument. The first
+ argument indicates a position in the editor to start from
+ and the third argument is a direction to look. The result
+ return the position for the corresponding direction, where
+ the nesting structure of the program is viewed as a tree.
+ That is, if the third argument is @racket['up], the function
+ should return the position that goes up one layer in the
+ tree from the given position to the parent. Similarly
+ @racket['down] should return the position going on layer
+ deeper into that tree, going down to the first child. The
+ @racket['backward] and @racket['forward] arguments
+ correspond to position where we stay at the same level in
+ the tree, moving between siblings. The result should be
+ @racket[#f] when there is no corresponding position to move
+ to, e.g., when the current position has no children, no
+ parents, or no siblings in the corresponding direction.
+
+ The second argument is a limit. Positions smaller than the
+ limit should be ignored, so if the corresponding position
+ appears to be before the limit, return @racket[#f].
+
+ Finally, return @racket[#t] to get the default behavior,
+ namely motion in Racket-style s-expressions.
+
+ @history[#:added "1.11"]
 }
 
 @section{Filename Extensions}

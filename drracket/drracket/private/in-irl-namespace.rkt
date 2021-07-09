@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/match
+         racket/math
          racket/class
          racket/contract/option
          racket/contract
@@ -170,6 +171,10 @@
                exact-nonnegative-integer?
                exact-nonnegative-integer?
                (or/c #f (listof (list/c exact-nonnegative-integer? string?)))))]
+    [(drracket:grouping-position)
+     (or/c #f
+           (-> natural? natural? (or/c 'up 'down 'backward 'forward)
+               (or/c #f #t natural?)))]
     [(drracket:keystrokes)
      ;; string? is too permissive; need racket/gui to publish
      ;; the actual contract (used on `map-function`)

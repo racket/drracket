@@ -345,6 +345,9 @@
         (set! range-indentation-function
               (or (call-read-language the-irl 'drracket:range-indentation #f)
                   (λ (x y z) #f)))
+        (set! grouping-position
+              (or (call-read-language the-irl 'drracket:grouping-position #f)
+                  default-grouping-position))
 
         (set! lang-keymap (new keymap:aug-keymap%))
         (for ([key+proc (in-list (call-read-language the-irl 'drracket:keystrokes '()))])
@@ -385,6 +388,7 @@
         (set! default-extension "")
         (set! indentation-function (λ (x y) #f))
         (set! range-indentation-function (λ (x y z) #f))
+        (set! grouping-position default-grouping-position)
         (when lang-keymap
           (send (get-keymap) remove-chained-keymap lang-keymap)
           (set! lang-keymap #f))
@@ -497,6 +501,7 @@
       (define default-extension "")
       (define indentation-function (λ (x y) #f))
       (define range-indentation-function (λ (x y z) #f))
+      (define grouping-position default-grouping-position)
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
         (parameterize ([finder:default-extension default-extension]
@@ -544,6 +549,22 @@
                      (range-indent 0 (last-position)))
           (super tabify-all)))
 
+      (define/override (find-up-sexp start-pos)
+        (*-sexp start-pos 'up (λ () (super find-up-sexp start-pos))))
+      (define/override (find-down-sexp start-pos)
+        (*-sexp start-pos 'down (λ () (super find-down-sexp start-pos))))
+      (define/override (get-backward-sexp start-pos)
+        (*-sexp start-pos 'backward (λ () (super get-backward-sexp start-pos))))
+      (define/override (get-forward-sexp start-pos)
+        (*-sexp start-pos 'forward (λ () (super get-forward-sexp start-pos))))
+
+      (inherit get-limit)
+      (define/private (*-sexp start-pos direction do-super)
+        (define irl-answer (grouping-position start-pos (get-limit start-pos) direction))
+        (cond
+          [(equal? irl-answer #t) (do-super)]
+          [else irl-answer]))
+
       (define/private (get-irl-directory)
         (define tmp-b (box #f))
         (define fn (get-filename tmp-b))
@@ -558,7 +579,8 @@
       (set! in-module-language? 
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))
-  
+
+  (define default-grouping-position (λ (start limit dir) #t))
   
   (define no-more-online-expansion-handlers? #f)
   (define (no-more-online-expansion-handlers) (set! no-more-online-expansion-handlers? #t))
