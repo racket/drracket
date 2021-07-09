@@ -143,7 +143,7 @@ These precise colors for these identifiers are controlled by the preferences dia
 @language-info-def[drracket:grouping-position]{
 
  When a language's @racket[_get-info] procedure responds to
- @racket['drracket:keystrokes], it is expected to return a
+ @racket['drracket:grouping-position], it is expected to return a
  function that determines where positions relevant to the
  nesting structure of the program appear. This function is
  used for a number of motion and selection operations in the
@@ -152,11 +152,11 @@ These precise colors for these identifiers are controlled by the preferences dia
 
  Specifically the result must be a function matching this
  contract:
- @racket[(-> (is-a?/c text%)
-             natural?
-             natural?
-             (or/c 'up 'down 'backward 'forward)
-             (or/c #f #t natural?))]
+ @racketblock[(-> (is-a?/c text%)
+                  natural?
+                  natural?
+                  (or/c 'up 'down 'backward 'forward)
+                  (or/c #f #t natural?))]
 
  Consider first the first and third argument. The first
  argument indicates a position in the editor to start from

@@ -20,6 +20,7 @@
                     racket/gui/base
                     racket/snip
                     racket/unit
+                    racket/math
                     drracket/tool-lib
                     drracket/check-syntax
                     mrlib/switchable-button
@@ -31,6 +32,7 @@
                     (all-from-out racket/gui/base)
                     (all-from-out racket/snip)
                     (all-from-out racket/unit)
+                    (all-from-out racket/math)
                     (all-from-out drracket/tool-lib)
                     (all-from-out drracket/check-syntax)
                     (all-from-out mrlib/switchable-button)
