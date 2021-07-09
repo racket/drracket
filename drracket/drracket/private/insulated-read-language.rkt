@@ -218,11 +218,11 @@ Will not work with the definitions text surrogate interposition that
              (λ () (val txt start-pos end-pos)))))]
     [(drracket:grouping-position)
      (and val
-          (λ (start-position limit-position direction)
+          (λ (text start-position limit-position direction)
             (call-in-irl-context/abort
              an-irl
              (λ () #t)
-             (λ () (val start-position limit-position direction)))))]
+             (λ () (val text start-position limit-position direction)))))]
     [(drracket:keystrokes)
      (for/list ([pr (in-list val)])
        (define key (list-ref pr 0))

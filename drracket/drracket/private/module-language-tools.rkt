@@ -560,7 +560,7 @@
 
       (inherit get-limit)
       (define/private (*-sexp start-pos direction do-super)
-        (define irl-answer (grouping-position start-pos (get-limit start-pos) direction))
+        (define irl-answer (grouping-position this start-pos (get-limit start-pos) direction))
         (cond
           [(equal? irl-answer #t) (do-super)]
           [else irl-answer]))
@@ -580,7 +580,7 @@
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))
 
-  (define default-grouping-position (λ (start limit dir) #t))
+  (define default-grouping-position (λ (text start limit dir) #t))
   
   (define no-more-online-expansion-handlers? #f)
   (define (no-more-online-expansion-handlers) (set! no-more-online-expansion-handlers? #t))

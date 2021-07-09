@@ -152,7 +152,8 @@ These precise colors for these identifiers are controlled by the preferences dia
 
  Specifically the result must be a function matching this
  contract:
- @racket[(-> natural?
+ @racket[(-> (is-a?/c text%)
+             natural?
              natural?
              (or/c 'up 'down 'backward 'forward)
              (or/c #f #t natural?))]
