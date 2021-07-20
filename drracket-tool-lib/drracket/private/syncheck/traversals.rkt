@@ -450,7 +450,7 @@
              (let loop ([spec spec]
                         [level level])
                (define (add-to-level n) (and n level (+ n level)))
-               (syntax-case* spec (for-meta for-syntax for-template for-label just-meta)
+               (syntax-case* spec (for-meta for-syntax for-template for-label just-meta for-space just-space)
                    symbolic-compare?
                  [(for-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
@@ -465,6 +465,12 @@
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec #f))]
                  [(just-meta phase specs ...)
+                  (for ([spec (in-list (syntax->list #'(specs ...)))])
+                    (loop spec level))]
+                 [(for-space #f specs ...)
+                  (for ([spec (in-list (syntax->list #'(specs ...)))])
+                    (loop spec level))]
+                 [(just-space #f specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
                  [_
@@ -1304,7 +1310,7 @@
 
 ;; trim-require-prefix : syntax -> syntax
 (define (trim-require-prefix require-spec)
-  (syntax-case* require-spec (only prefix all-except prefix-all-except rename just-meta)
+  (syntax-case* require-spec (only prefix all-except prefix-all-except rename)
       symbolic-compare?
     [(only module-name identifier ...)
      (syntax module-name)]
