@@ -979,6 +979,8 @@
   (define binding (identifier-binding var phase-level))
   (and (pair? binding)
        (or (not (number? phase-level))
+           (not (number? (list-ref binding 5)))
+           (not (number? (list-ref binding 6)))
            (= phase-level
               (+ (list-ref binding 5)
                  (list-ref binding 6))))
