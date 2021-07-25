@@ -977,27 +977,31 @@
 ;;                    -> (union #f (list require-sexp sym ?? module-path-index?))
 (define (get-module-req-path var phase-level #:nominal? [nominal-source-path? #t])
   (define binding (identifier-binding var phase-level))
-  (and (pair? binding)
-       (or (not (number? phase-level))
-           (not (number? (list-ref binding 5)))
-           (not (number? (list-ref binding 6)))
-           (= phase-level
-              (+ (list-ref binding 5)
-                 (list-ref binding 6))))
-       (let ([mod-path (if nominal-source-path? (list-ref binding 2) (list-ref binding 0))])
-         (cond
-           [(module-path-index? mod-path)
-            (let-values ([(base offset) (module-path-index-split mod-path)])
-              (list base
-                    (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
-                    (list-ref binding 5)
-                    mod-path))]
-           [(symbol? mod-path)
-            (list mod-path
-                  (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
-                  (list-ref binding 5)
-                  mod-path)]
-           [else #f]))))
+  (let/ec return
+    (unless (pair? binding) (return #f))
+    (define phase-shift+space (list-ref binding 5))
+    (define phase-shift (if (pair? phase-shift+space) (car phase-shift+space) phase-shift+space))
+    (define phase+space (list-ref binding 6))
+    (define phase (if (pair? phase+space) (car phase+space) phase+space))
+    (when (and (number? phase-level)
+               (not (= phase-level
+                       (+ phase-shift
+                          phase))))
+      (return #f))
+    (define mod-path (if nominal-source-path? (list-ref binding 2) (list-ref binding 0)))
+    (cond
+      [(module-path-index? mod-path)
+       (define-values (base offset) (module-path-index-split mod-path))
+       (list base
+             (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
+             phase-shift
+             mod-path)]
+      [(symbol? mod-path)
+       (list mod-path
+             (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
+             phase-shift
+             mod-path)]
+      [else #f])))
 
 ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
 (define (color/connect-top user-namespace user-directory binders var connections

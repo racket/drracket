@@ -9,7 +9,8 @@
          rackunit
          syntax/modread
          racket/file
-         racket/format)
+         racket/format
+         racket/runtime-path)
 
 (define-syntax-rule
   (define-get-arrows get-what-arrows method-header arrow-info)
@@ -22,6 +23,8 @@
             (add-item arrow-info))
           (super-new)))
       str)))
+
+(define-runtime-path here ".")
 
 (define (define-get-arrows/proc mixin str)
   (define results '())
@@ -41,7 +44,8 @@
     (make-traversal (make-base-namespace) #f))
 
   (parameterize ([current-annotations annotations]
-                 [current-namespace (make-base-namespace)])
+                 [current-namespace (make-base-namespace)]
+                 [current-load-relative-directory here])
     (add-syntax (expand
                  (parameterize ([read-accept-reader #t])
                    (read-syntax 'the-source (open-input-string str)))))
@@ -318,6 +322,17 @@
               (set '((22 23) (44 45))
                    '((24 25) (46 47))))
 
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(require \"soup.rkt\")\n"
+                "(soup-ref kettle)\n"
+                "kettle\n"))
+              (set
+               '((6 17) (19 26))
+               '((27 37) (40 48))
+               '((27 37) (49 55))
+               '((27 37) (57 63))))
 
 ;                                                       
 ;                                                       
