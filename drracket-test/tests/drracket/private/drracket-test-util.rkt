@@ -437,7 +437,7 @@
           (fw:test:button-push "OK")
           (let ([new-frame (wait-for-new-frame language-dialog)])
             (unless (eq? new-frame drs-frame)
-              (error 'set-language-level! 
+              (error 'set-module-language!
                      "didn't get drracket frame back, got: ~s (drs-frame ~s)\n"
                      new-frame
                      drs-frame)))))))
