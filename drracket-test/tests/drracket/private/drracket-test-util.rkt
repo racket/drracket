@@ -128,7 +128,6 @@
                                            source line)))
                 timeout))
     (when fr (wait-for-events-in-frame-eventspace fr))
-    (sleep 1)
     fr)
 
 (define-syntax (wait-for-new-frame stx)
