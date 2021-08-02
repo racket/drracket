@@ -29,7 +29,8 @@
          pkg/gui
          (for-syntax images/icons/misc images/icons/style images/icons/control images/logos)
          (for-syntax racket/base)
-         (submod "frame.rkt" install-pkg))
+         (submod "frame.rkt" install-pkg)
+         (only-in simple-tree-text-markup/port srclocs-special<%>))
 
 (define orig (current-output-port))
 (define (oprintf . args) (apply fprintf orig args))
@@ -214,17 +215,22 @@
   (define (make-note% filename bitmap)
     (and (send bitmap ok?)
          (letrec ([note%
-                   (class clickable-image-snip%
+                   (class* clickable-image-snip% (srclocs-special<%>)
                      (inherit get-callback)
                      (define/public (get-image-name) filename)
                      (define stack1 #f)
                      (define stack2 #f)
                      (define/public (set-stacks s1 s2) (set! stack1 s1) (set! stack2 s2))
                      (define/public (get-stacks) (values stack1 stack2))
+                     (define srclocs #f)
+                     (define/public (set-srclocs s)
+                       (set! srclocs s))
+                     (define/public (get-srclocs) srclocs)
                      (define/override (copy) 
                        (let ([n (new note%)])
                          (send n set-callback (get-callback))
                          (send n set-stacks stack1 stack2)
+                         (send n set-srclocs srclocs)
                          n))
                      (super-make-object bitmap))])
            note%)))
@@ -559,6 +565,7 @@
         (when file-note%
           (when (port-writes-special? (current-error-port))
             (define note (new file-note%))
+            (send note set-srclocs srcs-to-display)
             (send note set-callback 
                   (λ (snp) (open-and-highlight-in-file srcs-to-display a-viewable-stack)))
             (write-special note (current-error-port))

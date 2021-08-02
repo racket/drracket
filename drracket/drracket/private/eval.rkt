@@ -189,6 +189,8 @@
             '(lib "planet/terse-info.rkt")
             '(lib "errortrace/errortrace-key.rkt")
             '(lib "simple-tree-text-markup/data.rkt")
+            ; srclocs-special<%>
+            '(lib "simple-tree-text-markup/port.rkt")
             ;; preserve the invariant that:
             ;;   if a module is shared, so 
             ;;   are all of its submodules
