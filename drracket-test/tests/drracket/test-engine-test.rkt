@@ -28,6 +28,14 @@
                    #:repl-check-failures-expected
                    (list (make-check-expect-failure "1" "2" 3 2)))
 
+  ; number snips
+  (test-expression "(check-within 1/3 5/3 1/2)"
+                   ""
+                   #:check-failures-expected
+                   (list (make-check-within-failure "0.3" "0.5" "1.6" 1 0))
+                   #:repl-check-failures-expected
+                   (list (make-check-within-failure "0.3" "0.5" "1.6" 3 2)))
+
   (define image-markup-test
     (string-append
      "(require 2htdp/image)\n"
@@ -323,6 +331,10 @@
   (actual expected line column)
   #:transparent)
 
+(define-struct check-within-failure
+  (actual within expected line column)
+  #:transparent)
+
 (define-struct check-expect-error
   (value message line column expr-line expr-column)
   #:transparent)
@@ -356,6 +368,15 @@
 				    (string->number line-expr)
                                     (string->number col-expr))
            (parse-check-failures rest))))
+    ((regexp-match #rx"^[ \t]+Actual value ([^\n]+) is not within ([^\n]+) of expected value ([^\n]+).\nat line ([0-9]+), column ([0-9]+)(.*)"
+                   txt)
+     => (lambda (match)
+          (define-values (_ actual within expected line-text col-text rest) (apply values match))
+            (cons
+             (make-check-within-failure actual within expected
+                                        (string->number line-text)
+                                        (string->number col-text))
+             (parse-check-failures rest))))
     (else 
      (error "unknown check failure" txt (string-ref txt 0)))))
 
