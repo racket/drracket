@@ -144,7 +144,7 @@
 (drr:set-default 'drracket:module-language-first-line-special? #t boolean?)
 
 (drr:set-default 'drracket:defns-popup-sort-by-name? #f boolean?)
-(drr:set-default 'drracket:show-line-numbers? #f boolean?)
+(drr:set-default 'drracket:show-line-numbers? #t boolean?)
 
 (drr:set-default 'drracket:toolbar-state 
                  '(#f . top)
