@@ -644,7 +644,7 @@
       (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
       (define (show-one expr)
         (display " " (current-error-port))
-        (send-out (format "~s" (syntax->datum expr))
+        (send-out ((error-syntax->string-handler) expr #f)
                   (λ (snp)
                     (send snp set-style
                           (send (editor:get-standard-style-list) find-or-create-style

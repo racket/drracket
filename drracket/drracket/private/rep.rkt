@@ -1679,7 +1679,7 @@ TODO
         (current-load-relative-directory #f)
         (current-custodian user-custodian)
         (current-load text-editor-load-handler)
-        
+
         (drracket:eval:set-basic-parameters snip-classes)
         (current-rep this)
         (let ([dir (or (send context get-directory)
@@ -2233,7 +2233,7 @@ TODO
               (when (and (error-print-source-location)
                          (syntax? expr))
                 (insert/delta text " in: ")
-                (insert/delta text (format "~s" (syntax->datum expr)) (get-error-text-style-delta)))
+                (insert/delta text ((error-syntax->string-handler) expr #f) (get-error-text-style-delta)))
               (insert/delta text "\n")
               (when (and (is-a? src text:basic<%>)
                          (number? pos)
