@@ -637,20 +637,31 @@
           [send-out
            (λ (msg f) 
              (if (port-writes-special? (current-error-port))
-                 (let ([snp (make-object string-snip% msg)])
-                   (f snp)
-                   (write-special snp (current-error-port)))
+                 (let loop ([msg msg])
+                   (cond
+                     [(equal? msg "") (void)]
+                     [(regexp-match-positions #rx"\n" msg)
+                      => (lambda (m)
+                           (loop (substring msg 0 (caar m)))
+                           (display "\n  " (current-error-port))
+                           (loop (substring msg (cdar m))))]
+                     [else
+                      (define snp (make-object string-snip% msg))
+                      (f snp)
+                      (write-special snp (current-error-port))]))
                  (display msg (current-error-port))))])
       (send error-text-style-delta set-delta-foreground (make-object color% 200 0 0))
-      (define (show-one expr)
+      (define (show-one str)
         (display " " (current-error-port))
-        (send-out ((error-syntax->string-handler) expr #f)
+        (send-out str
                   (λ (snp)
                     (send snp set-style
                           (send (editor:get-standard-style-list) find-or-create-style
                                 (send (editor:get-standard-style-list) find-named-style "Standard")
                                 error-text-style-delta)))))
       (define exprs (exn:fail:syntax-exprs exn))
+      (define strs (for/list ([expr (in-list exprs)])
+                     ((error-syntax->string-handler) expr #f)))
       (define (show-in)
         (send-out " in:"
                   (λ (snp)
@@ -658,16 +669,17 @@
                           (send (editor:get-standard-style-list) find-named-style
                                 (editor:get-default-color-style-name))))))
       (cond
-        [(null? exprs) (void)]
-        [(null? (cdr exprs))
+        [(null? strs) (void)]
+        [(and (null? (cdr strs))
+              (not (regexp-match? #rx"\n" (car strs))))
          (show-in)
-         (show-one (car exprs))]
+         (show-one (car strs))]
         [else
          (show-in)
-         (for-each (λ (expr)
+         (for-each (λ (str)
                      (display "\n " (current-error-port))
-                     (show-one expr))
-                   exprs)])))
+                     (show-one str))
+                   strs)])))
   
   
   ;; insert/clickback : (instanceof text%) (union string (instanceof snip%)) (-> void)
