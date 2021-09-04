@@ -718,8 +718,8 @@
     (for ([vars (in-list (get-idss binders))])
       (for ([var (in-list vars)])
         (define varset (lookup-phase-to-mapping phase-to-varsets level))
-        (color-variable var 0 varset)
-        (document-variable var 0))))
+        (color-variable var level varset)
+        (document-variable var level))))
 
   (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
     (define level (list-ref level+mods 0))

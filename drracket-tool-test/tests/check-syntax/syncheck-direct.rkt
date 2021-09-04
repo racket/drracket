@@ -603,6 +603,57 @@
               3)
 
 
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;        ;;;                                                                                
+;        ;;;                                                                                
+;        ;;;                                                                                
+;     ;; ;;;    ;;;;      ;;;;     ;;;;;        ;;; ;;;  ;;;     ;;;;    ;;; ;;;   ;;;  ;;; 
+;    ;;;;;;;   ;;;;;;    ;;;;;;   ;;;  ;;       ;;;;;;;;;;;;;   ;;;;;;   ;;;;;;;;  ;;;  ;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;  ;;;  ;;;           ;;;  ;;;  ;;;  ;;;  ;;;  ;;;  ;;;  ;;;  ;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;       ;;;;;;        ;;;  ;;;  ;;;  ;;;;;;;;  ;;;  ;;;  ;;;  ;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;        ;;;;;;       ;;;  ;;;  ;;;  ;;;;;;;;  ;;;  ;;;  ;;;  ;;; 
+;   ;;;  ;;;  ;;;  ;;;  ;;;  ;;;      ;;;       ;;;  ;;;  ;;;  ;;;       ;;;  ;;;  ;;;  ;;; 
+;    ;;;;;;;   ;;;;;;    ;;;;;;   ;;  ;;;       ;;;  ;;;  ;;;   ;;;;;;;  ;;;  ;;;  ;;;;;;;; 
+;     ;; ;;;    ;;;;      ;;;;     ;;;;;        ;;;  ;;;  ;;;    ;;;;;   ;;;  ;;;   ;;; ;;; 
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;                                                                                           
+;                                                                                           
+
+
+(define-get-arrows add-docs-menu
+  (syncheck:add-docs-menu src start end id label definition-tag path tag)
+  id)
+
+(check-equal? (add-docs-menu
+               (string-append
+                "#lang racket/base\n"
+                "(+ 1 2)"))
+              (set '#%datum '#%app '+))
+
+(check-equal? (add-docs-menu
+               (string-append
+                "#lang racket/base\n"
+                "(require (for-syntax racket/base))\n"
+                "(begin-for-syntax\n"
+                "  (λ (car cdr)"
+                "    #t))"))
+              (set '#%datum 'for-syntax 'λ 'require 'begin-for-syntax))
+
+(check-equal? (add-docs-menu
+               (string-append
+                "#lang racket/base\n"
+                "(require (for-syntax racket/match racket/base))\n"
+                "(begin-for-syntax\n"
+                "  (match 1 [_ 1]))"))
+              (set '#%datum 'for-syntax 'require 'match 'begin-for-syntax))
+
 
 ;                                 
 ;                                 
