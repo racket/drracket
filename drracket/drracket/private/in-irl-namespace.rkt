@@ -15,6 +15,7 @@
          get-read-language-last-position/inside
          get-read-language-name/inside
          get-insulated-module-lexer/inside
+         get-definitions-text-surrogate-list/inside
          get-definitions-text-surrogate/inside
          get-submit-predicate/inside
          set-irl-mcli-vec!/inside
@@ -49,6 +50,33 @@
   (unless module-lexer
     (set! module-lexer (waive-option (dynamic-require 'syntax-color/module-lexer 'module-lexer))))
   module-lexer)
+
+(define (get-definitions-text-surrogate-list/inside)
+  (define surrogate-modules
+    (and language-get-info
+         (or
+          (add-contract 'definitions-text-surrogate-list
+                        (key->contract 'definitions-text-surrogate-list)
+                        (language-get-info 'definitions-text-surrogate-list #f)))))
+  (or
+   (and surrogate-modules
+        (not (null? surrogate-modules))
+        (new (let* ([surrogate-modules (reverse surrogate-modules)])
+               (for/fold ([base (add-contract 'definitions-text-surrogate-list
+                                              (implementation?/c
+                                               (dynamic-require 'framework 'racket:text-mode<%>))
+                                              (dynamic-require (car surrogate-modules) 'surrogate%))])
+                         ([mix (in-list (cdr surrogate-modules))])
+                 (define mixin
+                   (add-contract 'definitions-text-surrogate-list
+                                 (->
+                                  (implementation?/c
+                                   (dynamic-require 'framework 'racket:text-mode<%>))
+                                  (implementation?/c
+                                   (dynamic-require 'framework 'racket:text-mode<%>)))
+                                 (dynamic-require mix 'surrogate%)))
+                 (mixin base)))))
+   (get-definitions-text-surrogate/inside)))
 
 (define (get-definitions-text-surrogate/inside)
   (define surrogate-module
@@ -153,6 +181,7 @@
 (define (key->contract key)
   (case key
     [(definitions-text-surrogate) (or/c #f module-path?)]
+    [(definitions-text-surrogate-list) (or/c #f (listof module-path?))]
     [(color-lexer)
      ;; the contract here is taken care of inside module-lexer
      any/c]

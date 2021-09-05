@@ -1160,7 +1160,8 @@ all of the names in the tools library, for use defining keybindings
     Note that the @racket[_surrogate] field of the
     mode corresponding to the module language does not
     take into account the 
-    @language-info-ref[definitions-text-surrogate], so it
+    @language-info-ref[definitions-text-surrogate] or the
+    @language-info-ref[definitions-text-surrogate-list], so it
     may not be the actual class used directly in DrRacket,
     even when the mode is active.
     

@@ -40,7 +40,8 @@ Will not work with the definitions text surrogate interposition that
         'drscheme:opt-out-toolbar-buttons
         'drracket:opt-in-toolbar-buttons
         'color-lexer
-        'definitions-text-surrogate))
+        'definitions-text-surrogate
+        'definitions-text-surrogate-list))
 
 (provide
  (contract-out
@@ -71,6 +72,7 @@ Will not work with the definitions text surrogate interposition that
 
   [get-insulated-module-lexer (-> irl? (procedure-arity-includes/c 3))]
   [get-definitions-text-surrogate (-> irl? (or/c object? #f))]
+  [get-definitions-text-surrogate-list (-> irl? (or/c object? #f))]
 
   [set-irl-mcli-vec! (-> irl? (or/c mcli? #f) void?)]
   [get-insulated-submit-predicate (-> irl? (or/c #f (procedure-arity-includes/c 2)))]
@@ -128,6 +130,11 @@ Will not work with the definitions text surrogate interposition that
   (call-irl-proc an-irl
                  (λ () #f)
                  'get-definitions-text-surrogate/inside))
+
+(define (get-definitions-text-surrogate-list an-irl)
+  (call-irl-proc an-irl
+                 (λ () #f)
+                 'get-definitions-text-surrogate-list/inside))
 
 (define mcli? (vector/c module-path? symbol? any/c #:flat? #t))
 (define (get-insulated-submit-predicate an-irl)

@@ -319,7 +319,7 @@
         
         (clear-things-out)
 
-        (define mode (or (get-definitions-text-surrogate the-irl)
+        (define mode (or (get-definitions-text-surrogate-list the-irl)
                          (new racket:text-mode%)))
         (send mode set-get-token (get-insulated-module-lexer the-irl))
         (set-surrogate mode)
