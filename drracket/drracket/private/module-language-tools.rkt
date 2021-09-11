@@ -221,8 +221,6 @@
                end-edit-sequence
                position-paragraph
                paragraph-start-position
-               get-surrogate
-               start-colorer
                set-surrogate
                get-keymap)
       (define in-module-language? #f)      ;; true when we are in the module language
@@ -322,6 +320,10 @@
         (define mode (or (get-definitions-text-surrogate the-irl)
                          (new racket:text-mode%)))
         (send mode set-get-token (get-insulated-module-lexer the-irl))
+        (send mode set-matches (let ([ans (call-read-language the-irl 'drracket:paren-matches
+                                                              racket:default-paren-matches)])
+                                 (printf "setting matches to ~s\n" ans)
+                                 ans))
         (set-surrogate mode)
         
         (define lang-wants-big-defs/ints-labels?

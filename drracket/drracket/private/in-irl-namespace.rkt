@@ -194,6 +194,7 @@
 
     [(drracket:opt-out-toolbar-buttons drscheme:opt-out-toolbar-buttons drracket:opt-in-toolbar-buttons)
      (or/c #f (listof symbol?))]
+    [(drracket:paren-matches) (or/c #f (listof (list/c symbol? symbol?)))]
     [else
      (error 'key->contract "unknown key")]))
 

@@ -42,6 +42,7 @@ DrRacket calls the language's @racket[read-language]'s
 @itemize[@item{@language-info-ref[drracket:default-filters]}
          @item{@language-info-ref[drracket:default-extension]}
          @item{@language-info-ref[drracket:indentation]}
+         @item{@language-info-ref[drracket:paren-matches]}
          @item{@language-info-ref[drracket:range-indentation]}
          @item{@language-info-ref[drracket:grouping-position]}
          @item{@language-info-ref[drracket:keystrokes]}
@@ -88,6 +89,26 @@ These precise colors for these identifiers are controlled by the preferences dia
  DrRacket uses the standard s-expression indentation rules.
 
  @history[#:added "1.3"]
+}
+
+@language-info-def[drracket:paren-matches]{
+ When a language's @racket[_get-info] procedure responds to @racket['drracket:paren-matches],
+ it is expected to return a list of opening and closing parentheses, matching
+ this contract:
+ @racketblock[(listof (list/c symbol? symbol?))]
+ Each element of the outer list corresponds to a pair of parentheses, opening
+ first and closing second.
+
+ These are used with the @racketmodname[framework] library's @racket[color:text<%>]
+ object; they are supplied as the @racket[_pairs] argument to the @method[color:text<%> start-colorer]
+ method.
+ 
+ The default value is:
+ @racketblock['((|(| |)|)
+                (|[| |]|)
+                (|{| |}|))]
+
+ @history[#:added "1.12"]
 }
 
 @language-info-def[drracket:range-indentation]{

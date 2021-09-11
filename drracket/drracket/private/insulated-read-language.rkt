@@ -40,7 +40,8 @@ Will not work with the definitions text surrogate interposition that
         'drscheme:opt-out-toolbar-buttons
         'drracket:opt-in-toolbar-buttons
         'color-lexer
-        'definitions-text-surrogate))
+        'definitions-text-surrogate
+        'drracket:paren-matches))
 
 (provide
  (contract-out
@@ -232,6 +233,8 @@ Will not work with the definitions text surrogate interposition that
                     an-irl
                     void
                     (λ () (proc txt evt))))))]
+    [(drracket:paren-matches)
+     (or val racket:default-paren-matches)]
     [else
      val]))
   
