@@ -320,10 +320,10 @@
         (define mode (or (get-definitions-text-surrogate the-irl)
                          (new racket:text-mode%)))
         (send mode set-get-token (get-insulated-module-lexer the-irl))
-        (send mode set-matches (let ([ans (call-read-language the-irl 'drracket:paren-matches
-                                                              racket:default-paren-matches)])
-                                 (printf "setting matches to ~s\n" ans)
-                                 ans))
+        (send mode set-matches
+              (call-read-language the-irl
+                                  'drracket:paren-matches
+                                  racket:default-paren-matches))
         (set-surrogate mode)
         
         (define lang-wants-big-defs/ints-labels?
