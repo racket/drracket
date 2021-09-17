@@ -283,7 +283,6 @@ If the namespace does not, they are colored the unbound color.
             (color-prefs:lookup-in-color-scheme 'drracket:syncheck:var-arrow)
             1 'solid))
     
-    (define templ-color (send the-color-database find-color "purple"))
     (define (get-templ-pen)
       (send the-pen-list find-or-create-pen
             (color-prefs:lookup-in-color-scheme 'drracket:syncheck:template-arrow)
@@ -1253,7 +1252,8 @@ If the namespace does not, they are colored the unbound color.
                               'default
                               'normal
                               'bold))
-                  (send dc set-text-foreground templ-color)
+                  (send dc set-text-foreground
+                        (color-prefs:lookup-in-color-scheme 'drracket:syncheck:template-arrow))
                   (send dc set-alpha 0.5)
                   (for ([(arrow v) (in-hash tacked-hash-table)])
                     (when v 
