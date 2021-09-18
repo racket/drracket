@@ -1552,20 +1552,17 @@
      (build-rename-test
       (string-append
        "#lang racket\n"
-       "(require racket/list)\n")
-      14
-      "require"
-      #f
-      #f)
-
-     (build-rename-test
+       "(define cons 5)\n"
+       "(quote-syntax cons)\n"
+       "(define-syntax x #f)\n")
+      44
+      "cons"
+      "abc"
       (string-append
        "#lang racket\n"
-       "(require racket/list)\n")
-      20
-      "require"
-      #f
-      #f)
+       "(define abc 5)\n"
+       "(quote-syntax abc)\n"
+       "(define-syntax x #f)\n"))
 
      (build-test
       #:extra-files

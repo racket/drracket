@@ -749,8 +749,7 @@ If the namespace does not, they are colored the unbound color.
               (define-values (binding-identifiers make-identifiers-hash)
                 (position->matching-identifiers-hash text 
                                                      (send text get-start-position) 
-                                                     (send text get-end-position)
-                                                     #t))
+                                                     (send text get-end-position)))
               (unless (null? binding-identifiers)
                 (define-values (name-to-offer description-of-name)
                   (find-name-to-offer binding-identifiers
@@ -1534,7 +1533,7 @@ If the namespace does not, they are colored the unbound color.
                     (f menu))
                   
                   (define-values (binding-identifiers make-identifiers-hash)
-                    (position->matching-identifiers-hash text pos pos #t))
+                    (position->matching-identifiers-hash text pos pos))
                   (unless (null? binding-identifiers)
                     (define-values (name-to-offer description-of-name)
                       (find-name-to-offer binding-identifiers pos pos))
@@ -1600,8 +1599,7 @@ If the namespace does not, they are colored the unbound color.
                     (cond
                       [(and cursor-text cursor-pos)
                        (define-values (binders make-identifiers-hash)
-                         (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos
-                                                              #f))
+                         (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos))
                        (make-identifiers-hash)]
                       [else
                        (make-hash)]))
@@ -1613,12 +1611,10 @@ If the namespace does not, they are colored the unbound color.
 
             ;; position->matching-identifiers-hash 
             ;; : txt pos pos -> (values (listof var-arrow?) hash[(list txt pos pos) -o> #t])
-            (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
-                                                                 include-require-arrows?)
-              (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos
-                                                               include-require-arrows?))
+            (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos)
+              (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos #f))
               (values binding-arrows
-                      (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)))
+                      (binding-arrows->identifiers-hash #f binding-arrows)))
 
             (define/private (position-range->binding-arrows the-text the-start-pos the-end-pos
                                                             include-require-arrows?)
@@ -1883,7 +1879,7 @@ If the namespace does not, they are colored the unbound color.
             ;; callback for the jump popup menu item
             (define/private (jump-to-next-callback start-pos end-pos txt backwards?)
               (define-values (_binders make-identifiers-hash)
-                (position->matching-identifiers-hash txt start-pos end-pos #f))
+                (position->matching-identifiers-hash txt start-pos end-pos))
               (define orig-arrows 
                 (sort (hash-map (make-identifiers-hash)
                                 (λ (x y) x))
