@@ -480,7 +480,13 @@
              (define require-ht (hash-ref! phase-to-requires
                                            (list adjusted-level mods)
                                            (λ () (make-hash))))
-             (define raw-module-path (phaseless-spec->raw-module-path stx))
+             (define raw-module-path
+               (phaseless-spec->raw-module-path
+                stx
+                (λ (local-id)
+                  (add-binders (list local-id) binders binding-inits #'b
+                               level level-of-enclosing-module
+                               sub-identifier-binding-directives mods))))
              (annotate-require-open user-namespace user-directory raw-module-path level stx)
              (when (original-enough? raw-module-path)
                (define key
@@ -963,13 +969,15 @@
     [raw-mod-path
      (eq? var id)]))
 
-(define (phaseless-spec->raw-module-path stx)
+(define (phaseless-spec->raw-module-path stx [found-local-id void])
   (syntax-case* stx (only prefix all-except prefix-all-except rename) symbolic-compare?
     [(only raw-module-path id ...) #'raw-module-path]
     [(prefix prefix-id raw-module-path) #'raw-module-path]
     [(all-except raw-module-path id ...) #'raw-module-path]
     [(prefix-all-except prefix-id raw-module-path id ...) #'raw-module-path]
-    [(rename raw-module-path local-id exported-id) #'raw-module-path]
+    [(rename raw-module-path local-id exported-id)
+     (found-local-id #'local-id)
+     #'raw-module-path]
     [_ stx]))
 
 

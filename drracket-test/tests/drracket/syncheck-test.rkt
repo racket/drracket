@@ -903,7 +903,9 @@
                    ("rename"                    lexically-bound)
                    (" #f) ("                    default-color)
                    ("require"                   imported)
-                   (" (rename mzscheme ++ +)))" default-color))
+                   (" (rename mzscheme "        default-color)
+                   ("++"                        imported)
+                   (" +)))"                     default-color))
                  
                  (list '((10 18) (20 33) (46 53))))
      
@@ -1563,6 +1565,19 @@
        "(define abc 5)\n"
        "(quote-syntax abc)\n"
        "(define-syntax x #f)\n"))
+
+     (build-rename-test
+      (string-append
+       "#lang racket\n"
+       "(require (rename-in racket/base [cons abcdef]))\n"
+       "abcdef")
+      62
+      "abcdef"
+      "xyz"
+      (string-append
+       "#lang racket\n"
+       "(require (rename-in racket/base [cons xyz]))\n"
+       "xyz"))
 
      (build-test
       #:extra-files
