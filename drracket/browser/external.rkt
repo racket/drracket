@@ -6,6 +6,7 @@
            racket/list
            racket/match
            (prefix-in raw: net/sendurl)
+           net/sendurl/preferences
            net/url
            (prefix-in fw: framework))
   (provide send-url
@@ -19,12 +20,18 @@
     (eq? (system-type) 'unix))
 
   (fw:preferences:set-default
-   'external-browser
-   (let ([pref (get-preference 'external-browser 
+   browser-preference-key
+   (let ([pref (get-preference browser-preference-key
                                (lambda () #f)
                                #:timeout-lock-there (lambda (path) #f))])
      (and (raw:browser-preference? pref) pref))
    raw:browser-preference?)
+  (fw:preferences:set-default
+     trampoline-preference-key
+     (get-preference trampoline-preference-key
+                     (lambda () #t)
+                     #:timeout-lock-there (lambda (path) #t))
+   boolean?)
 
   (define http-proxy-preference 'plt:http-proxy)
 
@@ -56,7 +63,7 @@
   (define send-url
     (if (unix-browser?)
       (lambda (url . args)
-        (when (or (get-preference 'external-browser (lambda () #f))
+        (when (or (get-preference browser-preference-key (lambda () #f))
                   ;; either the preference doesn't exist or is #f
                   (update-browser-preference url))
           (apply raw:send-url url args)))
@@ -71,7 +78,9 @@
   ; : (U symbol #f) -> void
   ; to set the default browser
   (define (set-browser! browser)
-    (fw:preferences:set 'external-browser browser))
+    (fw:preferences:set browser-preference-key browser))
+  (define (set-send-allow-trampoline! allow-trampoline?)
+    (fw:preferences:set trampoline-preference-key allow-trampoline?))
 
   ;; Tries to put low-level prefs three times, sleeping a bit in
   ;; between, then gives up.
@@ -99,7 +108,7 @@
            [main-pane (make-object vertical-pane% d)]
            [internal-ok? (not url)]
            [ok? #f]
-           [orig-external (fw:preferences:get 'external-browser)])
+           [orig-external (fw:preferences:get browser-preference-key)])
       (make-object message% title main-pane)
       ;; No need to show the URL (it can be very long)
       ;; (when url
@@ -112,16 +121,16 @@
                         button-pane
                         (lambda (b e) (set! ok? #t) (send d show #f))
                         (lambda (b e)
-                          (fw:preferences:set 'external-browser orig-external)
+                          (fw:preferences:set browser-preference-key orig-external)
                           (send d show #f)))]
                       [(enable-button) (lambda (_n _v)
                                          (queue-callback
                                           (lambda ()
-                                            (send ok-button enable (fw:preferences:get 'external-browser)))))])
+                                            (send ok-button enable (fw:preferences:get browser-preference-key)))))])
           (send ok-button enable #f)
           (set! callbacks
                 (cons
-                 (fw:preferences:add-callback 'external-browser enable-button)
+                 (fw:preferences:add-callback browser-preference-key enable-button)
                  callbacks)))
         (send d show #t)
         (map (lambda (f) (f)) callbacks)
@@ -163,9 +172,13 @@
          (when (unix-browser?)
            (unless synchronized?
              ;; Keep 'external-browser in sync
-             (fw:preferences:add-callback 'external-browser
+             (fw:preferences:add-callback browser-preference-key
                (lambda (name browser)
-                 (try-put-preferences (list 'external-browser) (list browser)))))
+                 (try-put-preferences (list browser-preference-key) (list browser))))
+             (fw:preferences:add-callback trampoline-preference-key
+               (lambda (name allow-trampoline?)
+                 (try-put-preferences (list trampoline-preference-key)
+                                      (list allow-trampoline?)))))
 
            (letrec ([v-panel (instantiate group-box-panel% ()
                                           (parent pref-panel)
@@ -212,7 +225,16 @@
                                                   v-panel))]
                     [note2 (instantiate message% ((string-constant browser-cmdline-expl-line-2)
                                                   v-panel))]
-                    [refresh-controls (lambda (pref)
+                    [allow-trampoline-checkbox (instantiate check-box% ()
+                                                            (parent v-panel)
+                                                            (label (string-constant external-browser-allow-trampoline))
+                                                            (value #t)
+                                                            (stretchable-width #t)
+                                                            (callback (lambda (checkbox event)
+                                                                        (set-send-allow-trampoline!
+                                                                         (send checkbox get-value)))))]
+                    [refresh-controls (lambda (pref allow-trampoline?)
+                                        (send allow-trampoline-checkbox set-value allow-trampoline?)
                                         (if (pair? pref)
                                           (begin
                                             (send r set-selection custom-index)
@@ -228,10 +250,20 @@
              (unless ask-later?
                (send r enable none-index #f))
 
-             (refresh-controls (fw:preferences:get 'external-browser))
+             (refresh-controls (fw:preferences:get browser-preference-key)
+                               (fw:preferences:get trampoline-preference-key))
              (set! callbacks
-                   (cons (fw:preferences:add-callback 'external-browser
-                           (lambda (name browser) (refresh-controls browser)))
+                   (list*
+                    (fw:preferences:add-callback
+                     browser-preference-key
+                     (lambda (name browser)
+                       (refresh-controls browser
+                                         (fw:preferences:get trampoline-preference-key))))
+                    (fw:preferences:add-callback
+                      trampoline-preference-key
+                     (lambda (name allow-trampoline?)
+                       (refresh-controls (fw:preferences:get browser-preference-key)
+                                         allow-trampoline?)))
                     callbacks))))
 
          ;; -------------------- proxy for doc downloads --------------------

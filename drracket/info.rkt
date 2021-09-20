@@ -18,7 +18,7 @@
                "sandbox-lib"
                ("scribble-lib" #:version "1.11")
                ("snip-lib" #:version "1.2")
-               ["string-constants-lib" #:version "1.38"]
+               ["string-constants-lib" #:version "1.39"]
                "typed-racket-lib"
                "wxme-lib"
                ["gui-lib" #:version "1.64"]
@@ -30,7 +30,7 @@
                ["typed-racket-more" #:version "1.12"]
                "trace"
                ["macro-debugger" #:version "1.1"]
-               "net-lib"
+               ["net-lib" #:version "1.1"]
                "tex-table"
                "htdp-lib"
                ("drracket-plugin-lib" #:version "1.1")
