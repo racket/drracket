@@ -39,7 +39,7 @@
                "drracket-tool-doc"
                "pict-snip-lib"
                "option-contract-lib"
-               "syntax-color-lib"
+               ("syntax-color-lib" #:version "1.2")
                "quickscript"
                "simple-tree-text-markup-lib"))
 
