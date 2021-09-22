@@ -47,7 +47,7 @@
   
 (define (get-insulated-module-lexer/inside)
   (unless module-lexer
-    (set! module-lexer (waive-option (dynamic-require 'syntax-color/module-lexer 'module-lexer))))
+    (set! module-lexer (waive-option (dynamic-require 'syntax-color/module-lexer 'module-lexer*))))
   module-lexer)
 
 (define (get-definitions-text-surrogate/inside)
