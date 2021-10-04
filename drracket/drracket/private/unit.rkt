@@ -4883,10 +4883,11 @@
                   (λ (c dc)
                     (when (number? th)
                       (unless color-valid?
-                        (let-values ([(cw ch) (send c get-client-size)])
-                          (send dc set-font small-control-font)
-                          (send dc draw-text on-string 0 (- (/ ch 2) (/ th 2)))))))]))
-          (define-values (tw th ta td) 
+                        (define-values (cw ch) (send c get-client-size))
+                        (send dc set-text-foreground (get-label-foreground-color))
+                        (send dc set-font small-control-font)
+                        (send dc draw-text on-string 0 (- (/ ch 2) (/ th 2))))))]))
+          (define-values (tw th ta td)
             (send (send color-status-canvas get-dc) get-text-extent
                   on-string small-control-font))
           (send color-status-canvas min-width (inexact->exact (ceiling tw)))
