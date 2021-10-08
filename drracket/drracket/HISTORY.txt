@@ -1,4 +1,10 @@
 ------------------------------
+       Version 8.4
+------------------------------
+
+   . add coloring and indentation support to the interations window
+
+------------------------------
        Version 8.3
 ------------------------------
 

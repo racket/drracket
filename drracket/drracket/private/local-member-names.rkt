@@ -28,7 +28,8 @@
   when-initialized
   initialize-module-language
   ;move-to-new-language
-  get-in-module-language?)
+  get-in-module-language?
+  get-indentation-function)
 
 ;; for keybindings (otherwise private)
 (define/provide-local-member-name
