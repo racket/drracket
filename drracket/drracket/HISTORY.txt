@@ -1,4 +1,16 @@
 ------------------------------
+       Version 8.3
+------------------------------
+
+   . add 'drracket:range-indentation for #lang-controlled
+     block indentation
+
+   . add support for #lang-based languages to specify which
+     parenthesis should be matched
+
+   . bug fixes
+
+------------------------------
        Version 8.2
 ------------------------------
 
