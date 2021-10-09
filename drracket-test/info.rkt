@@ -20,3 +20,6 @@
 (define pkg-desc "tests for \"drracket\"")
 
 (define pkg-authors '(robby))
+
+(define license
+  '(Apache-2.0 OR MIT))

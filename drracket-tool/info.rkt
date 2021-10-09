@@ -10,3 +10,6 @@
 (define pkg-desc "Programmatic interface to some IDE tools that DrRacket supports")
 
 (define pkg-authors '(robby))
+
+(define license
+  '(Apache-2.0 OR MIT))
