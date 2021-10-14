@@ -43,6 +43,7 @@ DrRacket calls the language's @racket[read-language]'s
          @item{@language-info-ref[drracket:default-extension]}
          @item{@language-info-ref[drracket:indentation]}
          @item{@language-info-ref[drracket:paren-matches]}
+         @item{@language-info-ref[drracket:quote-matches]}
          @item{@language-info-ref[drracket:range-indentation]}
          @item{@language-info-ref[drracket:grouping-position]}
          @item{@language-info-ref[drracket:keystrokes]}
@@ -103,13 +104,33 @@ These precise colors for these identifiers are controlled by the preferences dia
  object; they are supplied as the @racket[_pairs] argument to the @method[color:text<%> start-colorer]
  method.
  
- The default value is:
+ The default value is
  @racketblock['((|(| |)|)
                 (|[| |]|)
                 (|{| |}|))]
 
+They are also used to introduce keybindings that match the parentheses, via
+@racket[racket:map-paren-keybinding-functions].
+
  @history[#:added "1.12"]
 }
+
+@language-info-def[drracket:quote-matches]{
+ When a language's @racket[_get-info] procedure responds to @racket['drracket:quote-matches],
+ it is expected to return a list of opening and closing parentheses, matching
+ this contract:
+ @racketblock[(listof char?)]
+
+ These characters are used to introduce keybindings via
+ @racket[racket:map-paren-keybinding-functions], where the
+ @racket[_open] and @racket[_close] arguments are both the
+ character.
+
+The default value is @racket[(list #\" #\|)].
+
+ @history[#:added "1.13"]
+}
+
 
 @language-info-def[drracket:range-indentation]{
  When a language's @racket[_get-info] procedure responds to @racket['drracket:range-indentation],

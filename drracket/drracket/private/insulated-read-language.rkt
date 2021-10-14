@@ -41,7 +41,8 @@ Will not work with the definitions text surrogate interposition that
         'drracket:opt-in-toolbar-buttons
         'color-lexer
         'definitions-text-surrogate
-        'drracket:paren-matches))
+        'drracket:paren-matches
+        'drracket:quote-matches))
 
 (provide
  (contract-out
@@ -235,6 +236,8 @@ Will not work with the definitions text surrogate interposition that
                     (λ () (proc txt evt))))))]
     [(drracket:paren-matches)
      (or val racket:default-paren-matches)]
+    [(drracket:quote-matches)
+     (or val (list #\" #\|))]
     [else
      val]))
   

@@ -318,12 +318,11 @@
         (clear-things-out)
 
         (define mode (or (get-definitions-text-surrogate the-irl)
-                         (new racket:text-mode%)))
+                         (new racket:text-mode% [include-paren-keymap? #f])))
         (send mode set-get-token (get-insulated-module-lexer the-irl))
-        (send mode set-matches
-              (call-read-language the-irl
-                                  'drracket:paren-matches
-                                  racket:default-paren-matches))
+        (define paren-matches
+          (call-read-language the-irl 'drracket:paren-matches racket:default-paren-matches))
+        (send mode set-matches paren-matches)
         (set-surrogate mode)
         
         (define lang-wants-big-defs/ints-labels?
@@ -366,6 +365,11 @@
                 [else name])))
           (send lang-keymap add-function name proc)
           (send lang-keymap map-function key name))
+        (send lang-keymap chain-to-keymap
+              (make-paren-matches-keymap
+               paren-matches
+               (call-read-language the-irl 'drracket:quote-matches (list #\" #\|)))
+              #t)
         (send (get-keymap) chain-to-keymap lang-keymap #t)
 
         (register-new-buttons
@@ -581,6 +585,25 @@
       (set! in-module-language? 
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))
+
+  (define paren-matches-keymaps (make-hash))
+  (define (make-paren-matches-keymap paren-matches quote-matches)
+    (cond
+      [(hash-ref paren-matches-keymaps paren-matches #f) => values]
+      [else
+       (define keymap (new keymap:aug-keymap%))
+       (racket:add-paren-keybinding-functions keymap)
+       (for ([paren-match (in-list paren-matches)])
+         (define open-str (symbol->string (list-ref paren-match 0)))
+         (define close-str (symbol->string (list-ref paren-match 1)))
+         (when (and (= 1 (string-length open-str)) (= 1 (string-length close-str)))
+           (racket:map-paren-keybinding-functions keymap (string-ref open-str 0) (string-ref close-str 0))))
+       (for ([c (in-list quote-matches)])
+         (racket:map-paren-keybinding-functions keymap c c))
+       (when (> (hash-count paren-matches-keymaps) 20)
+         (set! paren-matches-keymaps (make-hash)))
+       (hash-set! paren-matches-keymaps paren-matches keymap)
+       keymap]))
 
   (define default-grouping-position (λ (text start limit dir) #t))
   
