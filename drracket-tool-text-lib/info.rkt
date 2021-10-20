@@ -3,19 +3,14 @@
 (define collection 'multi)
 
 (define deps '(["base" #:version "6.2.900.10"]
-               "drracket-tool-text-lib"
                "scribble-lib"
                ["string-constants-lib" #:version "1.12"]
                "scribble-lib"
-               "racket-index"
-               "gui-lib"
-               "drracket-tool-text-lib"))
+               "racket-index"))
 (define build-deps '("at-exp-lib"
                      "rackunit-lib"))
 
-(define implies '("drracket-tool-text-lib"))
-
-(define pkg-desc "GUI code implementing programmatic interfaces to some IDE tools that DrRacket supports")
+(define pkg-desc "Non-GUI code implementing programmatic interfaces to some IDE tools that DrRacket supports")
 
 (define pkg-authors '(robby))
 
