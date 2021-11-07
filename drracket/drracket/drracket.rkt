@@ -17,7 +17,7 @@
                       (equal? (getenv "PLTDRDEBUG") "trace")
                       (equal? (getenv "PLTDRPAR") "trace")))
 
-;; the flush is only here to ensure that the output is 
+;; the flush is only here to ensure that the output
 ;; appears when running in cygwin under windows.
 (define (flprintf fmt . args)
   (apply printf fmt args)
