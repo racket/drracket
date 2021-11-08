@@ -982,7 +982,7 @@
                                   dlg-parent))
             (case rslt
               [(1) (send-url "https://lists.racket-lang.org/")]
-              [(2) (send-url "https://github.com/racket/racket/issues/new")]))])
+              [(2) (send-url "https://github.com/racket/racket/issues/new/choose")]))])
     (add-menu-path-item menu)
     (drracket:app:add-language-items-to-help-menu menu)))
 
