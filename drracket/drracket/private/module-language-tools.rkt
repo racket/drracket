@@ -588,22 +588,37 @@
 
   (define paren-matches-keymaps (make-hash))
   (define (make-paren-matches-keymap paren-matches quote-matches)
+    (define keymap-cache-key (cons paren-matches quote-matches))
     (cond
-      [(hash-ref paren-matches-keymaps paren-matches #f) => values]
+      [(hash-ref paren-matches-keymaps keymap-cache-key #f) => car]
       [else
        (define keymap (new keymap:aug-keymap%))
+       (define alt-as-meta-keymap (new keymap:aug-keymap%))
        (racket:add-paren-keybinding-functions keymap)
+       (racket:add-paren-keybinding-functions alt-as-meta-keymap)
        (for ([paren-match (in-list paren-matches)])
          (define open-str (symbol->string (list-ref paren-match 0)))
          (define close-str (symbol->string (list-ref paren-match 1)))
          (when (and (= 1 (string-length open-str)) (= 1 (string-length close-str)))
-           (racket:map-paren-keybinding-functions keymap (string-ref open-str 0) (string-ref close-str 0))))
+           (racket:map-paren-keybinding-functions keymap (string-ref open-str 0) (string-ref close-str 0)
+                                                  #:alt-as-meta-keymap alt-as-meta-keymap)))
        (for ([c (in-list quote-matches)])
          (racket:map-paren-keybinding-functions keymap c c))
        (when (> (hash-count paren-matches-keymaps) 20)
          (set! paren-matches-keymaps (make-hash)))
-       (hash-set! paren-matches-keymaps paren-matches keymap)
+       (hash-set! paren-matches-keymaps keymap-cache-key (list keymap alt-as-meta-keymap))
+       (when (preferences:get 'framework:alt-as-meta)
+         (send keymap chain-to-keymap alt-as-meta-keymap #f))
        keymap]))
+
+  (define (adjust-alt-as-meta on?)
+    (for ([(_ keymap+alt-as-meta-keymap) (in-hash paren-matches-keymaps)])
+      (define-values (keymap alt-as-meta-keymap) (apply values keymap+alt-as-meta-keymap))
+      (send keymap remove-chained-keymap alt-as-meta-keymap)
+      (when on?
+        (send keymap chain-to-keymap alt-as-meta-keymap #f))))
+  (preferences:add-callback 'framework:alt-as-meta
+                            (λ (p v) (adjust-alt-as-meta v)))
 
   (define default-grouping-position (λ (text start limit dir) #t))
   
