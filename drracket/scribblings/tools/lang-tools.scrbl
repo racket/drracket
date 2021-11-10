@@ -117,8 +117,8 @@ They are also used to introduce keybindings that match the parentheses, via
 
 @language-info-def[drracket:quote-matches]{
  When a language's @racket[_get-info] procedure responds to @racket['drracket:quote-matches],
- it is expected to return a list of opening and closing parentheses, matching
- this contract:
+ it is expected to return a list of characters that are self-matching, e.g.
+ @litchar{"} in racket, matching this contract:
  @racketblock[(listof char?)]
 
  These characters are used to introduce keybindings via
