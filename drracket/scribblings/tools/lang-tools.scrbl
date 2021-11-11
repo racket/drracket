@@ -110,7 +110,7 @@ These precise colors for these identifiers are controlled by the preferences dia
                 (|{| |}|))]
 
 They are also used to introduce keybindings that match the parentheses, via
-@racket[racket:map-paren-keybinding-functions].
+@racket[racket:map-pairs-keybinding-functions].
 
  @history[#:added "1.12"]
 }
@@ -122,7 +122,7 @@ They are also used to introduce keybindings that match the parentheses, via
  @racketblock[(listof char?)]
 
  These characters are used to introduce keybindings via
- @racket[racket:map-paren-keybinding-functions], where the
+ @racket[racket:map-pairs-keybinding-functions], where the
  @racket[_open] and @racket[_close] arguments are both the
  character.
 
