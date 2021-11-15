@@ -255,7 +255,6 @@
 
       (collect-general-info stx-obj)
 
-
       (define (list-loop/tail-last bodies)
         (unless (null? bodies)
           (let body-loop ([fst (car bodies)]
@@ -266,6 +265,29 @@
               [else
                (loop fst)
                (body-loop (car bodies) (cdr bodies))]))))
+
+      (define (handle-quoted-syntax datum)
+        (let loop ([stx datum]
+                   [identifiers-as-disappeared-uses?
+                    (syntax-property stx-obj 'identifiers-as-disappeared-uses?)])
+          (cond
+            [(and (not identifiers-as-disappeared-uses?)
+                  (syntax? stx)
+                  (syntax-property stx 'identifiers-as-disappeared-uses?))
+             (loop stx #t)]
+            [(identifier? stx)
+             (add-id (if identifiers-as-disappeared-uses? varrefs templrefs)
+                     stx level-of-enclosing-module)]
+            [(syntax? stx)
+             (loop (syntax-e stx) identifiers-as-disappeared-uses?)]
+            [(pair? stx)
+             (loop (car stx) identifiers-as-disappeared-uses?)
+             (loop (cdr stx) identifiers-as-disappeared-uses?)]
+            [(vector? stx)
+             (for ([e (in-vector stx)])
+               (loop e identifiers-as-disappeared-uses?))]
+            [(box? stx)
+             (loop (unbox stx) identifiers-as-disappeared-uses?)])))
 
       (syntax-case* stx-obj (#%plain-lambda case-lambda if begin begin0 let-values letrec-values
                                             set! quote quote-syntax with-continuation-mark
@@ -352,29 +374,8 @@
         [(quote datum)
          (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)]
         [(quote-syntax datum . maybe-hash-colon-local)
-         (begin
-           (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-           (let loop ([stx #'datum]
-                      [identifiers-as-disappeared-uses?
-                       (syntax-property stx-obj 'identifiers-as-disappeared-uses?)])
-             (cond
-               [(and (not identifiers-as-disappeared-uses?)
-                     (syntax? stx)
-                     (syntax-property stx 'identifiers-as-disappeared-uses?))
-                (loop stx #t)]
-               [(identifier? stx)
-                (add-id (if identifiers-as-disappeared-uses? varrefs templrefs)
-                        stx level-of-enclosing-module)]
-               [(syntax? stx)
-                (loop (syntax-e stx) identifiers-as-disappeared-uses?)]
-               [(pair? stx)
-                (loop (car stx) identifiers-as-disappeared-uses?)
-                (loop (cdr stx) identifiers-as-disappeared-uses?)]
-               [(vector? stx)
-                (for ([e (in-vector stx)])
-                  (loop e identifiers-as-disappeared-uses?))]
-               [(box? stx)
-                (loop (unbox stx) identifiers-as-disappeared-uses?)])))]
+         (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
+         (handle-quoted-syntax #'datum)]
         [(with-continuation-mark a b c)
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
@@ -450,7 +451,7 @@
              (let loop ([spec spec]
                         [level level])
                (define (add-to-level n) (and n level (+ n level)))
-               (syntax-case* spec (for-meta for-syntax for-template for-label just-meta for-space just-space)
+               (syntax-case* spec (for-meta for-syntax for-template for-label just-meta for-space just-space portal)
                    symbolic-compare?
                  [(for-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
@@ -473,6 +474,13 @@
                  [(just-space #f specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
+                 [(portal id content)
+                  (begin
+                    (handle-quoted-syntax #'content)
+                    (add-definition-target (list #'id) mods level)
+                    (add-binders (list #'id) binders binding-inits #'content
+                                 level level-of-enclosing-module
+                                 sub-identifier-binding-directives mods))]
                  [_
                   (handle-phaseless-spec spec level)])))
            (define (handle-phaseless-spec stx level)
@@ -1375,7 +1383,7 @@
 (define (add-definition-target stx mods phase-level)
   (when mods
     (define defs-text (current-annotations))
-    (for ([id (in-list (syntax->list stx))])
+    (for ([id (in-list (if (list? stx) stx (syntax->list stx)))])
       (define source (syntax-source id))
       (define ib (identifier-binding id phase-level))
       (when (and (list? ib)

@@ -324,6 +324,28 @@
               (set '((22 23) (44 45))
                    '((24 25) (46 47))))
 
+(check-equal? (get-purple-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(#%require (portal x (+ 2 λ)))\n"
+                "#'x\n"))
+              (set '((6 17) (40 41))
+                   '((6 17) (45 46))
+                   '((37 38) (52 53))))
+
+(check-equal? (get-purple-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(require (for-syntax racket/base))\n"
+                "(#%require (for-meta 1 (portal x (+ 2 λ))))\n"
+                "(define-syntax m #'x)\n"))
+              (set '((6 17) (92 93))
+                   '((6 17) (87 88))
+                   '((39 50) (87 88))
+                   '((39 50) (92 93))
+                   '((84 85) (117 118))))
+
+
 (check-equal? (get-binding-arrows
                (string-append
                 "#lang racket/base\n"
