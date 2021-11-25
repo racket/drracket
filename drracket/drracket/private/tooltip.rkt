@@ -183,6 +183,7 @@
 
     (super-new [style '(no-resize-border no-caption float)]
                [label ""]
+               [parent frame-to-track]
                [stretchable-width #f]
                [stretchable-height #f])
     (: yellow-message (Object [set-lab ((Listof (List String String)) -> Void)]))

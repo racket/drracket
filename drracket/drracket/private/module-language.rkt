@@ -1826,7 +1826,7 @@
         (cond
           [tooltip-labels-to-show
            (unless tooltip-frame
-             (set! tooltip-frame (new tooltip-frame%)))
+             (set! tooltip-frame (new tooltip-frame% [frame-to-track this])))
            (send tooltip-frame set-tooltip tooltip-labels-to-show)
            (define-values (rx ry) (send running-canvas client->screen 0 0))
            (define-values (cw ch) (send running-canvas get-client-size))

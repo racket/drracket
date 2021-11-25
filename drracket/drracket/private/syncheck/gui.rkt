@@ -1560,7 +1560,9 @@ If the namespace does not, they are colored the unbound color.
             
             (define tooltip-frame #f)
             (define/private (update-tooltip-frame)
-              (unless tooltip-frame (set! tooltip-frame (new tooltip-frame%)))
+              (define canvas (get-canvas))
+              (define frame (and canvas (send canvas get-top-level-window)))
+              (unless tooltip-frame (set! tooltip-frame (new tooltip-frame% [frame-to-track frame])))
               (match cursor-tooltip
                 [(tooltip-spec strings x y w h)
                  ;; hiding keeps it from flashing the new tooltip in the old location
