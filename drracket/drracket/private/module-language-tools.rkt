@@ -271,14 +271,18 @@
 
       (define/override (reset-console)
         (define ints-surrogate (get-surrogate))
-        (define the-irl (send (get-definitions-text) get-irl))
-        (send ints-surrogate set-get-token
-              (call-read-language the-irl 'color-lexer (waive-option module-lexer)))
-        (send ints-surrogate set-matches
-              (call-read-language the-irl
-                                  'drracket:paren-matches
-                                  racket:default-paren-matches))
-        (set-surrogate ints-surrogate)
+        (when ints-surrogate
+          ;; when ints-surrogate is #f, then we
+          ;; should in a language other than the module
+          ;; language so we can safely skip this
+          (define the-irl (send (get-definitions-text) get-irl))
+          (send ints-surrogate set-get-token
+                (call-read-language the-irl 'color-lexer (waive-option module-lexer)))
+          (send ints-surrogate set-matches
+                (call-read-language the-irl
+                                    'drracket:paren-matches
+                                    racket:default-paren-matches))
+          (set-surrogate ints-surrogate))
         (super reset-console))
 
       (super-new)))
@@ -474,6 +478,7 @@
         (define tab (get-tab))
         (define ints (send tab get-ints))
         (set-surrogate (new racket:text-mode%))
+        (send ints set-surrogate (new racket:text-mode%))
         (set-lang-wants-big-defs/ints-labels? #f)
         (send ints set-lang-wants-big-defs/ints-labels? #f)
         (set! extra-default-filters '())
