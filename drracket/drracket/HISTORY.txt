@@ -2,6 +2,9 @@
        Version 8.4
 ------------------------------
 
+   . automatically hide the error message panel when it contains no
+     error message
+
    . add coloring and indentation support to the interations window
 
 ------------------------------
