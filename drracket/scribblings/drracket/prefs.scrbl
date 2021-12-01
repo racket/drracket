@@ -224,14 +224,14 @@ The @onscreen{Editing} panel consists of several sub-panels:
 @item{@PrefItem{Number of recent items} --- controls the length of the
       @onscreen{Open Recent} menu (in the @onscreen{File} menu).}
 
-@item{@PrefItem{Auto-save files} --- If checked, the editor generates
-      autosave files (see @secref["drracket-autosave-files"]) for files
-      that have not been saved after five minutes.}
+ @item{@PrefItem{Make backups for unsaved files} --- If checked, the editor generates
+      copies of open files (see @secref["drracket-autosave-files"]) for files
+      that have not been saved after thirty seconds.}
 
-@item{@PrefItem{Backup files} --- If checked, when saving a file for the
+@item{@PrefItem{Create first-change files} --- If checked, when saving a file for the
       first time in each editing session, the original copy of the file
-      is copied to a backup file in the same directory.  The backup
-      files have the same name as the original, except that they end in
+      is copied to a new file in the same directory.  The new
+      files has the same name as the original, except that it ends in
       either @indexed-file{.bak} or @indexed-file{~}.}
 
 @item{@PrefItem{Show status-line} --- If checked, DrRacket shows a
