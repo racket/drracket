@@ -466,7 +466,14 @@
                     (compute-tag+rng maybe-pause sp)))))
       (define done? (coroutine-run update-the-strs-coroutine (void)))
       (cond
-        [done?
+        [(and done? update-the-strs-coroutine)
+         ;; check `update-the-strs-coroutine` because some
+         ;; query to the buffer might have caused a callback
+         ;; to call `trigger-buffer-changed-callback`
+         ;; I'm not sure how this can happen specifically,
+         ;; but we saw the symptom that this `coroutine-value`
+         ;; was getting `#f` as an argument and, if that happens
+         ;; then we want to start over anyway
          (define tag+rng (coroutine-value update-the-strs-coroutine))
          (set! update-the-strs-coroutine #f)
          (when tag+rng
