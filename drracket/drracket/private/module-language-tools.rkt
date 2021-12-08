@@ -258,13 +258,13 @@
       (define/override (tabify-selection [start (get-start-position)]
                                          [end (get-end-position)])
         (define defs (get-definitions-text))
-        (unless (and (send defs in-module-language?)
+        (unless (and (send defs get-in-module-language?)
                      (range-indent (send defs get-range-indentation-function) start end))
           (super tabify-selection start end)))
 
       (define/override (tabify-all)
         (define defs (get-definitions-text))
-        (unless (and (send defs in-module-language?)
+        (unless (and (send defs get-in-module-language?)
                      (range-indent (send defs get-range-indentation-function)
                                    0 (last-position)))
           (super tabify-all)))
@@ -599,6 +599,7 @@
       (define indentation-function (λ (x y) #f))
       (define/public (get-indentation-function) indentation-function)
       (define range-indentation-function (λ (x y z) #f))
+      (define/public (get-range-indentation-function) range-indentation-function)
       (define grouping-position default-grouping-position)
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
