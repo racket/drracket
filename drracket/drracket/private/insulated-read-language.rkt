@@ -22,8 +22,8 @@ Will not work with the definitions text surrogate interposition that
          racket/match
          racket/port
          syntax-color/racket-lexer
+         syntax-color/lexer-contract
          drracket/syncheck-drracket-button
-         (only-in framework/private/color-local-member-name check-colorer-results-match-port-before-and-afters)
          (for-syntax racket/base))
 
 (define recognized-read-language-symbol/c
@@ -207,7 +207,8 @@ Will not work with the definitions text surrogate interposition that
                                     backup-delta new-lexer-mode/cont)
                (val in in-start-pos lexer-mode))
              (define-values (_line2 _col2 pos-after) (port-next-location in))
-             (check-colorer-results-match-port-before-and-afters
+             (check-colorer-results-match-port-before-and-after
+              'color:text<%>
               type pos-before new-token-start new-token-end pos-after)
              (values lexeme type data new-token-start new-token-end
                      backup-delta new-lexer-mode/cont))))]
@@ -221,7 +222,8 @@ Will not work with the definitions text surrogate interposition that
              (define-values (lexeme type data new-token-start new-token-end)
                (val in))
              (define-values (_line2 _col2 pos-after) (port-next-location in))
-             (check-colorer-results-match-port-before-and-afters
+             (check-colorer-results-match-port-before-and-after
+              'color:text<%>
               type pos-before new-token-start new-token-end pos-after)
              (values lexeme type data new-token-start new-token-end))))])]
     [(drracket:submit-predicate)
