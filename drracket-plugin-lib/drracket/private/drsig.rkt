@@ -130,8 +130,7 @@
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin
    tab-mixin
-   definitions-text-mixin
-   interactions-text-mixin))
+   definitions-text-mixin))
 (define-signature drracket:module-language-tools^ extends drracket:module-language-tools-cm^
   (add-opt-out-toolbar-button
    add-opt-in-toolbar-button
@@ -146,7 +145,8 @@
   (get-online-expansion-pref-funcs
    (struct online-expansion-handler (mod-path id local-handler monitor?))
    get-online-expansion-handlers
-   no-more-online-expansion-handlers))
+   no-more-online-expansion-handlers
+   interactions-text-mixin))
 
 (define-signature drracket:get-collection-cm^ ())
 (define-signature drracket:get-collection^ extends drracket:get-collection-cm^

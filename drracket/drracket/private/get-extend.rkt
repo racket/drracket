@@ -10,7 +10,7 @@
         [prefix drracket:debug: drracket:debug^]
         [prefix drracket:tracing: drracket:tracing^]
         [prefix drracket:module-language: drracket:module-language/int^]
-        [prefix drracket:module-language-tools: drracket:module-language-tools^])
+        [prefix drracket:module-language-tools: drracket:module-language-tools/int^])
 (export drracket:get/extend^)
 
 (define re-extension-allowed? #f)
