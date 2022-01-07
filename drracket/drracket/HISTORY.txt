@@ -7,6 +7,15 @@
 
    . add coloring and indentation support to the interations window
 
+   . allow languages to specify which characters are parentheses, and
+     adapt the keybindings based on them
+
+   . added a drracket-tool-text-lib package to avoid dependencies on gui-lib
+
+   . improve the terminology around backup and autosave files
+
+   . bug fixes
+
 ------------------------------
        Version 8.3
 ------------------------------
