@@ -233,7 +233,8 @@
                    (unless (equal? insert-str "")
                      (insert insert-str pos))
                    (loop (cdr substs) (add1 line))))
-               (end-edit-sequence))))
+               (end-edit-sequence)
+               #t)))
 
       (super-new)))
 
