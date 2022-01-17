@@ -619,13 +619,22 @@ Returns the currently active tab.
   Returns the number of open tabs in the frame.
 }
 
-@defmethod[(open-in-new-tab [filename (or/c path-string? #f)]) void?]{
+@defmethod[(open-in-new-tab [filename (or/c path-string? #f)]
+                            [#:start-pos start-pos exact-nonnegative-integer? 0]
+                            [#:end-pos end-pos (or/c exact-nonnegative-integer? 'same) 'same])
+           void?]{
   Opens a new tab in this frame. If @racket[filename] is a @racket[path-string?],
-  It loads that file in the definitions window of the new tab.
+  load that file in the definitions window of the new tab. If @racket[start-pos] and
+  @racket[end-pos] are provided, call the tab's definition's window's @method[text% set-position]
+  with them.
 }
 
 @defmethod[(create-new-tab) void?]{
   Creates a new tab.
+}
+
+@defmethod[(reopen-closed-tab) void?]{
+  Opens the most recently closed tabs. 
 }
 
 @defmethod[(next-tab) void?]{

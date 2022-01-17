@@ -2877,6 +2877,7 @@
                       (send (send tab get-defs) on-close)
                       (send (send tab get-ints) on-close)))
                   tabs)
+        (update-recently-closed-tabs tabs)
         (when (eq? this newest-frame)
           (set! newest-frame #f))
         (when transcript
@@ -3075,7 +3076,7 @@
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
       (define/public create-new-tab
-        (lambda ([filename #f])
+        (lambda ([filename #f] #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
           (let* ([defs (new (drracket:get/extend:get-definitions-text))]
                  [tab-count (length tabs)]
                  [new-tab (new (drracket:get/extend:get-tab)
@@ -3086,6 +3087,7 @@
                                (ints-shown? (not filename)))]
                  [ints (make-object (drracket:get/extend:get-interactions-text) new-tab)])
             (send new-tab set-ints ints)
+            (send (send new-tab get-defs) set-position start-pos end-pos)
             (set! tabs (append tabs (list new-tab)))
             (send tabs-panel append 
                   (gui-utils:trim-string
@@ -3248,6 +3250,7 @@
               (send tab set-i (- (send tab get-i) 1)))
             (set! tabs (remq tab-to-close tabs))
             (send tabs-panel delete (send tab-to-close get-i))
+            (update-recently-closed-tabs (list tab-to-close))
             (update-menu-bindings)
             (cond
               [(eq? tab-to-close current-tab)
@@ -3265,9 +3268,34 @@
            #t]
           [else #f]))
       
-      (define/public (open-in-new-tab filename)
-        (create-new-tab filename))
+      (define/public (open-in-new-tab filename #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
+        (create-new-tab filename #:start-pos start-pos #:end-pos end-pos))
       
+      ;; reopen-closed-tab : -> void
+      ;; Opens previously closed tabs. If no tabs were closed in current session, files from 
+      ;; previous sessions are opened.
+      (define/public (reopen-closed-tab)
+        (define closed-tabs (preferences:get 'drracket:recently-closed-tabs))
+        (define-values (file-to-open new-closed-tabs)
+          (let loop ([closed-tabs closed-tabs])
+            (cond
+              [(null? closed-tabs) (values #f '())]
+              [else
+               (define closed-tab (car closed-tabs))
+               (cond
+                 [(file-exists? (car closed-tab))
+                  (values closed-tab (cdr closed-tabs))]
+                 [else (loop (cdr closed-tabs))])])))
+        (when file-to-open
+          (define tab (find-matching-tab (car file-to-open)))
+          (define start-pos (cadr file-to-open))
+          (define end-pos (caddr file-to-open))
+          (if tab
+              (change-to-tab tab)
+              (open-in-new-tab (car file-to-open) #:start-pos start-pos #:end-pos end-pos)))
+        (preferences:set 'drracket:recently-closed-tabs new-closed-tabs)
+        #f)
+
       (define/public (get-tab-count) (length tabs))
       (define/public (change-to-nth-tab n)
         (unless (< n (length tabs))
@@ -3350,7 +3378,7 @@
         (with-handlers ([exn:fail? (λ (x) #f)])
           (string=? (path->string (normal-case-path (normalize-path p1)))
                     (path->string (normal-case-path (normalize-path p2))))))
-      
+
       (define/override (make-visible filename)
         (let ([tab (find-matching-tab filename)])
           (when tab
@@ -3396,7 +3424,27 @@
         (when close-tab-menu-item
           (update-close-tab-menu-item-shortcut close-tab-menu-item))
         (update-close-menu-item-shortcut (file-menu:get-close-item)))
-      
+
+      (define/private (update-recently-closed-tabs tabs)
+        (define closed-tabs (preferences:get 'drracket:recently-closed-tabs))
+        (define recently-closed-tabs-max-count (preferences:get 'drracket:recently-closed-tabs-max-count))
+        (for ([tab (in-list tabs)])
+          (define defs (send tab get-defs))
+          (define tab-filename (send defs get-filename))
+          (when tab-filename
+            (define start-pos (send defs get-start-position))
+            (define end-pos (send defs get-end-position))
+            (define new-ent (list tab-filename start-pos end-pos))
+            (set! closed-tabs
+                  (cons new-ent
+                        (remove* (list new-ent)
+                                 closed-tabs
+                                 (λ (l1 l2)
+                                   (pathname-equal? (car l1) (car l2))))))))
+        (unless (<= (length closed-tabs) recently-closed-tabs-max-count)
+          (set! closed-tabs (take closed-tabs recently-closed-tabs-max-count)))
+        (preferences:set 'drracket:recently-closed-tabs closed-tabs))
+
       (define/private (update-close-tab-menu-item-shortcut item)
         (define just-one? (and (pair? tabs) (null? (cdr tabs))))
         (send item set-label (if just-one? 
@@ -3932,6 +3980,15 @@
                           (let-values ([(base name dir?) (split-path editing-path)])
                             base))))
                   (when pth (handler:edit-file pth)))])
+          (new menu:can-restore-menu-item%
+            (label (string-constant reopen-closed-tab))
+            (shortcut #\t)
+            (shortcut-prefix (cons 'shift (get-default-shortcut-prefix)))
+            (parent file-menu)
+            [demand-callback (λ (item) (send item enable (pair? (preferences:get 'drracket:recently-closed-tabs))))]
+            (callback
+             (λ (x y)
+               (reopen-closed-tab))))
           (super file-menu:between-open-and-revert file-menu)
           (make-object separator-menu-item% file-menu))]
       (define close-tab-menu-item #f)
@@ -4055,7 +4112,7 @@
         (mk-menu-item (λ (ed) (send ed get-spell-check-text)) 
                       (λ (ed new-val) (send ed set-spell-check-text new-val))
                       'framework:spell-check-text?
-                      #\t
+                      #f
                       (string-constant spell-check-scribble-text))
         
         (new menu:can-restore-menu-item%

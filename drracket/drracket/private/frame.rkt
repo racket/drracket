@@ -936,6 +936,16 @@
          (demand-callback
           (λ (menu)
             (handler:install-recent-items menu))))
+    (new menu:can-restore-menu-item%
+         (label (string-constant reopen-closed-tab))
+         (shortcut #\t)
+         (shortcut-prefix (cons 'shift (get-default-shortcut-prefix)))
+         (parent file-menu)
+         [demand-callback (λ (item) (send item enable (pair? (preferences:get 'drracket:recently-closed-tabs))))]
+         (callback
+          (λ (x y)
+            (define fr (handler:edit-file #f))
+            (send fr reopen-closed-tab))))
     (new menu-item%
          [label (string-constant mfs-multi-file-search-menu-item)]
          [parent file-menu]

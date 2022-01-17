@@ -617,6 +617,41 @@
   
   (preferences:set-default 'drracket:show-killed-dialog #t boolean?)
   
+  (preferences:set-default 
+    'drracket:recently-closed-tabs 
+    null 
+    (λ (x) (and (list? x) 
+                (andmap
+                (λ (x) 
+                  (and (list? x)
+                        (= 3 (length x))
+                        (path? (car x))
+                        (number? (cadr x))
+                        (number? (caddr x))))
+                x))))
+
+  (preferences:set-un/marshall 
+    'drracket:recently-closed-tabs
+    (λ (l) (map (λ (ele) (cons (path->bytes (car ele)) (cdr ele))) l))
+    (λ (l) 
+      (let/ec k
+        (unless (list? l)
+          (k '()))
+        (map (λ (x)
+                (unless (and (list? x)
+                            (= 3 (length x))
+                            (bytes? (car x))
+                            (number? (cadr x))
+                            (number? (caddr x)))
+                  (k '()))
+                (cons (bytes->path (car x)) (cdr x)))
+              l))))
+  
+  (preferences:set-default 'drracket:recently-closed-tabs-max-count 
+                           1000 
+                           (λ (x) (and (number? x)
+                                       (x . > . 0) 
+                                       (integer? x))))
   
   (drr:set-default 'drracket:large-letters-font #f
                    (or/c #f

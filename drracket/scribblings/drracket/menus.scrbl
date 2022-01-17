@@ -30,6 +30,10 @@
         or @litchar{"x.rkt"})
         and edit the corresponding files in the @tech{definitions window}.}
 
+ @item{@defmenuitem{Reopen Closed Tab} Opens previously closed tabs. 
+        If no tabs were closed in current session, files from 
+        previous sessions are opened.}
+
  @item{@defmenuitem{Install PLT File...} Opens a dialog asking for the
    location of the @filepath{.plt} file (either on the local disk or
    on the web) and installs the contents of the file.}
