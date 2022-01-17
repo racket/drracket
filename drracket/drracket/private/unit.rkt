@@ -3269,7 +3269,8 @@
         (create-new-tab filename))
       
       ;; reopen-closed-tab : -> void
-      ;; opens previously closed tab if the file still exists
+      ;; Opens previously closed tabs. If no tabs were closed in current session, files from 
+      ;; previous sessions are opened.
       (define/public reopen-closed-tab
         (lambda ()
           ; Get the list of recently opened files
