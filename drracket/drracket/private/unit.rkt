@@ -3268,6 +3268,21 @@
       (define/public (open-in-new-tab filename)
         (create-new-tab filename))
       
+      ;; reopen-closed-tab : -> void
+      ;; opens previously closed tab if the file still exists
+      (define/public reopen-closed-tab
+        (lambda ()
+          ; Get the list of recently opened files
+          (define recently-opened-files (preferences:get 'framework:recently-opened-files/pos))
+          (define file-to-open
+            (for/or ([file (in-list recently-opened-files)])
+              (define filename (first file))
+              (and (not (find-matching-tab filename))
+                   (file-exists? filename)
+                   filename)))
+          (open-in-new-tab file-to-open)
+          #f))
+
       (define/public (get-tab-count) (length tabs))
       (define/public (change-to-nth-tab n)
         (unless (< n (length tabs))
@@ -3932,6 +3947,13 @@
                           (let-values ([(base name dir?) (split-path editing-path)])
                             base))))
                   (when pth (handler:edit-file pth)))])
+          (new menu:can-restore-menu-item%
+            (label (string-constant reopen-closed-tab))
+            (shortcut #\*)
+            (parent file-menu)
+            (callback
+            (λ (x y)
+              (reopen-closed-tab))))
           (super file-menu:between-open-and-revert file-menu)
           (make-object separator-menu-item% file-menu))]
       (define close-tab-menu-item #f)
