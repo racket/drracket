@@ -270,19 +270,20 @@
           (super tabify-all)))
 
       (define/override (reset-console)
-        (define ints-surrogate (get-surrogate))
-        (when ints-surrogate
-          ;; when ints-surrogate is #f, then we
-          ;; should in a language other than the module
-          ;; language so we can safely skip this
-          (define the-irl (send (get-definitions-text) get-irl))
-          (send ints-surrogate set-get-token
-                (call-read-language the-irl 'color-lexer (waive-option module-lexer)))
-          (send ints-surrogate set-matches
-                (call-read-language the-irl
-                                    'drracket:paren-matches
-                                    racket:default-paren-matches))
-          (set-surrogate ints-surrogate))
+        (when (send (get-definitions-text) get-in-module-language?)
+          (define ints-surrogate (get-surrogate))
+          (when ints-surrogate
+            ;; when ints-surrogate is #f, then we
+            ;; should in a language other than the module
+            ;; language so we can safely skip this
+            (define the-irl (send (get-definitions-text) get-irl))
+            (send ints-surrogate set-get-token
+                  (call-read-language the-irl 'color-lexer (waive-option module-lexer)))
+            (send ints-surrogate set-matches
+                  (call-read-language the-irl
+                                      'drracket:paren-matches
+                                      racket:default-paren-matches))
+            (set-surrogate ints-surrogate)))
         (super reset-console))
 
       (super-new)))
