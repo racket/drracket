@@ -7,6 +7,7 @@
          browser/external
          setup/getinfo
          drracket/private/drsig
+         lang/htdp-langs-save-file-prefix
          "../acks.rkt"
          "frame-icon.rkt"
          pict/snip pict)
@@ -362,7 +363,7 @@
                  (send-url url)))))])
     (add (string-constant plt-homepage) "http://racket-lang.org/")
     (add (string-constant pbd-homepage) "http://programbydesign.org/")
-    (add (string-constant how-to-design-programs) "http://htdp.org/")
+    (add |How to Design Programs| "http://htdp.org/")
 
     (for-each (λ (tool)
                 (cond [(drracket:tools:successful-tool-url tool) 

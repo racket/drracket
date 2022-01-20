@@ -21,6 +21,7 @@
          syntax/toplevel
          browser/external
          mrlib/panel-wob
+         lang/htdp-langs-save-file-prefix
          (only-in mzlib/struct make-->vector)
 
          ;; ensure that this module is always loaded since it is shared below for pretty big
@@ -2347,9 +2348,9 @@
                       (find-relevant-directories '(textbook-pls get-textbook-pls))))
           (λ (x y)
             (cond
-              [(string=? (cadr x) (string-constant how-to-design-programs))
+              [(string=? (cadr x) |How to Design Programs|)
                #t]
-              [(string=? (string-constant how-to-design-programs) (cadr y))
+              [(string=? |How to Design Programs| (cadr y))
                #f]
               [else
                (string<=? (cadr x) (cadr y))])))))
