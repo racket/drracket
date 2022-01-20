@@ -217,7 +217,7 @@
 
 
 (module+ test
-  (require typed/rackunit)
+  (require rackunit)
   (check-equal? (strings->strings+spacers '()) '())
   (check-equal? (strings->strings+spacers '("x")) '(("" "x")))
   (check-equal? (strings->strings+spacers '("x" "x")) '(("" "x") ("" "x")))
