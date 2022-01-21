@@ -3248,6 +3248,7 @@
               (send tab set-i (- (send tab get-i) 1)))
             (set! tabs (remq tab-to-close tabs))
             (send tabs-panel delete (send tab-to-close get-i))
+            (update-closed-tabs tab)
             (update-menu-bindings)
             (cond
               [(eq? tab-to-close current-tab)
@@ -3273,15 +3274,16 @@
       ;; previous sessions are opened.
       (define/public reopen-closed-tab
         (lambda ()
-          ; Get the list of recently opened files
-          (define recently-opened-files (preferences:get 'framework:recently-opened-files/pos))
+          (define closed-tabs (preferences:get 'framework:recently-closed-tabs))
           (define file-to-open
-            (for/or ([file (in-list recently-opened-files)])
+            (for/or ([file (in-list closed-tabs)])
               (define filename (first file))
               (and (not (find-matching-tab filename))
                    (file-exists? filename)
+                   (set! closed-tabs (cdr closed-tabs))
                    filename)))
           (open-in-new-tab file-to-open)
+          (preferences:set 'framework:recently-closed-tabs closed-tabs)
           #f))
 
       (define/public (get-tab-count) (length tabs))
@@ -3412,6 +3414,12 @@
         (when close-tab-menu-item
           (update-close-tab-menu-item-shortcut close-tab-menu-item))
         (update-close-menu-item-shortcut (file-menu:get-close-item)))
+      
+      (define/private (update-closed-tabs tab)
+        (define tab-filename (send (send tab get-defs) get-filename))
+        (when tab-filename 
+          (define closed-tabs (preferences:get 'framework:recently-closed-tabs))
+          (preferences:set 'framework:recently-closed-tabs (cons (list tab-filename 0 0) closed-tabs))))
       
       (define/private (update-close-tab-menu-item-shortcut item)
         (define just-one? (and (pair? tabs) (null? (cdr tabs))))
@@ -3950,7 +3958,8 @@
                   (when pth (handler:edit-file pth)))])
           (new menu:can-restore-menu-item%
             (label (string-constant reopen-closed-tab))
-            (shortcut #\*)
+            (shortcut #\t)
+            (shortcut-prefix (cons 'shift (get-default-shortcut-prefix)))
             (parent file-menu)
             (callback
             (λ (x y)
