@@ -648,7 +648,7 @@
               l))))
   
   (preferences:set-default 'drracket:recently-closed-tabs-max-count 
-                           50 
+                           1000 
                            (λ (x) (and (number? x)
                                        (x . > . 0) 
                                        (integer? x))))

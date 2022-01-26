@@ -1,4 +1,13 @@
 ------------------------------
+       Version 8.5
+------------------------------
+
+   . added new file menu item 'Reopen Closed Tab' to open previously
+     closed tabs.
+   . Removed keyboard shortcut for 'Spell Check test' in edit menu due  
+     to conflict with  'Reopen Closed Tab'.
+
+------------------------------
        Version 8.4
 ------------------------------
 

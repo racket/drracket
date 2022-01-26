@@ -3075,7 +3075,7 @@
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
       (define/public create-new-tab
-        (lambda ([filename #f])
+        (lambda ([filename #f] [start-pos 0] [end-pos 'same])
           (let* ([defs (new (drracket:get/extend:get-definitions-text))]
                  [tab-count (length tabs)]
                  [new-tab (new (drracket:get/extend:get-tab)
@@ -3086,6 +3086,7 @@
                                (ints-shown? (not filename)))]
                  [ints (make-object (drracket:get/extend:get-interactions-text) new-tab)])
             (send new-tab set-ints ints)
+            (send (send new-tab get-defs) set-position start-pos end-pos)
             (set! tabs (append tabs (list new-tab)))
             (send tabs-panel append 
                   (gui-utils:trim-string
@@ -3266,8 +3267,8 @@
            #t]
           [else #f]))
       
-      (define/public (open-in-new-tab filename)
-        (create-new-tab filename))
+      (define/public (open-in-new-tab filename [start-pos 0] [end-pos 0])
+        (create-new-tab filename start-pos end-pos))
       
       ;; reopen-closed-tab : -> void
       ;; Opens previously closed tabs. If no tabs were closed in current session, files from 
@@ -3421,7 +3422,7 @@
       ;; truncate-list : (listof X) -> (listof X)[< new-len]
       ;; takes a list and returns the
       ;; front of the list, up to 'new-len' number of items
-      (define (truncate-list l new-len)
+      (define/private (truncate-list l new-len)
         (define len (length l))
           (cond
             [(<= len new-len) l]
@@ -4110,7 +4111,7 @@
         (mk-menu-item (λ (ed) (send ed get-spell-check-text)) 
                       (λ (ed new-val) (send ed set-spell-check-text new-val))
                       'framework:spell-check-text?
-                      #\t
+                      #f
                       (string-constant spell-check-scribble-text))
         
         (new menu:can-restore-menu-item%
