@@ -3274,16 +3274,19 @@
       ;; previous sessions are opened.
       (define/public reopen-closed-tab
         (lambda ()
-          (define closed-tabs (preferences:get 'framework:recently-closed-tabs))
+          (define closed-tabs (preferences:get 'drracket:recently-closed-tabs))
           (define file-to-open
             (for/or ([file (in-list closed-tabs)])
               (define filename (first file))
-              (and (not (find-matching-tab filename))
-                   (file-exists? filename)
+              (and (file-exists? filename)
                    (set! closed-tabs (cdr closed-tabs))
                    filename)))
-          (open-in-new-tab file-to-open)
-          (preferences:set 'framework:recently-closed-tabs closed-tabs)
+          (when file-to-open
+            (let ((tab (find-matching-tab file-to-open)))
+              (if tab
+                (change-to-tab tab)
+                (open-in-new-tab file-to-open))))
+          (preferences:set 'drracket:recently-closed-tabs closed-tabs)
           #f))
 
       (define/public (get-tab-count) (length tabs))
@@ -3415,11 +3418,31 @@
           (update-close-tab-menu-item-shortcut close-tab-menu-item))
         (update-close-menu-item-shortcut (file-menu:get-close-item)))
       
+      ;; truncate-list : (listof X) -> (listof X)[< new-len]
+      ;; takes a list and returns the
+      ;; front of the list, up to 'new-len' number of items
+      (define (truncate-list l new-len)
+        (define len (length l))
+          (cond
+            [(<= len new-len) l]
+            [else (drop-right l (- len new-len))]))
+
       (define/private (update-closed-tabs tab)
         (define tab-filename (send (send tab get-defs) get-filename))
         (when tab-filename 
-          (define closed-tabs (preferences:get 'framework:recently-closed-tabs))
-          (preferences:set 'framework:recently-closed-tabs (cons (list tab-filename 0 0) closed-tabs))))
+          (let* ([old-closed-tabs (preferences:get 'drracket:recently-closed-tabs)]
+                 [max-list-len (preferences:get 'drracket:recently-closed-tabs-max-count)]
+                 [defs (send tab get-defs)]
+                 [start-pos (send defs get-start-position)]
+                 [end-pos (send defs get-end-position)]
+                 [new-ent (list tab-filename start-pos end-pos)])            
+            (define new-closed-tabs (cons new-ent 
+                                        (remove* (list new-ent)
+                                                 old-closed-tabs                                            
+                                                 (λ (l1 l2) 
+                                                   (pathname-equal? (car l1) (car l2))))))
+            (set! new-closed-tabs (truncate-list new-closed-tabs max-list-len))
+            (preferences:set 'drracket:recently-closed-tabs new-closed-tabs))))
       
       (define/private (update-close-tab-menu-item-shortcut item)
         (define just-one? (and (pair? tabs) (null? (cdr tabs))))

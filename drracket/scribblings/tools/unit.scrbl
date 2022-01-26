@@ -628,6 +628,10 @@ Returns the currently active tab.
   Creates a new tab.
 }
 
+@defmethod[(reopen-closed-tab) void?]{
+  Opens the most recently closed tabs. 
+}
+
 @defmethod[(next-tab) void?]{
   Switches to the next tab.
 }
