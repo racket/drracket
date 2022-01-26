@@ -3075,7 +3075,7 @@
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
       (define/public create-new-tab
-        (lambda ([filename #f] [start-pos 0] [end-pos 'same])
+        (lambda ([filename #f] #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
           (let* ([defs (new (drracket:get/extend:get-definitions-text))]
                  [tab-count (length tabs)]
                  [new-tab (new (drracket:get/extend:get-tab)
@@ -3267,8 +3267,8 @@
            #t]
           [else #f]))
       
-      (define/public (open-in-new-tab filename [start-pos 0] [end-pos 0])
-        (create-new-tab filename start-pos end-pos))
+      (define/public (open-in-new-tab filename #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
+        (create-new-tab filename #:start-pos start-pos #:end-pos end-pos))
       
       ;; reopen-closed-tab : -> void
       ;; Opens previously closed tabs. If no tabs were closed in current session, files from 
@@ -3281,12 +3281,14 @@
               (define filename (first file))
               (and (file-exists? filename)
                    (set! closed-tabs (cdr closed-tabs))
-                   filename)))
+                   file)))
           (when file-to-open
-            (let ((tab (find-matching-tab file-to-open)))
+            (let ([tab (find-matching-tab (car file-to-open))]
+                  [start-pos (cadr file-to-open)]
+                  [end-pos (caddr file-to-open)])
               (if tab
                 (change-to-tab tab)
-                (open-in-new-tab file-to-open))))
+                (open-in-new-tab (car file-to-open) #:start-pos start-pos #:end-pos end-pos))))
           (preferences:set 'drracket:recently-closed-tabs closed-tabs)
           #f))
 

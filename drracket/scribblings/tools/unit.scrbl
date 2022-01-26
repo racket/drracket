@@ -620,12 +620,12 @@ Returns the currently active tab.
 }
 
 @defmethod[(open-in-new-tab [filename (or/c path-string? #f)]
-                            [start exact-nonnegative-integer? 0]
-                            [end (or/c exact-nonnegative-integer? 'same) 'same]) 
+                            [#:start-pos start-pos exact-nonnegative-integer? 0]
+                            [#:end-pos end-pos (or/c exact-nonnegative-integer? 'same) 'same]) 
                             void?]{
   Opens a new tab in this frame. If @racket[filename] is a @racket[path-string?],
-  It loads that file in the definitions window of the new tab. If @racket[start] and 
-  @racket[end] are provided, it updates the tab's corresponding insertion positions. 
+  It loads that file in the definitions window of the new tab. If @racket[start-pos] and 
+  @racket[end-pos] are provided, it updates the tab's corresponding insertion positions. 
 }
 
 @defmethod[(create-new-tab) void?]{
