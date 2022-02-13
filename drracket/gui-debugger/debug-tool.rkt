@@ -685,7 +685,7 @@
                              [else (void)]))
                          ; record-top-level-identifier
                          (lambda (mod var rd/wr)
-                           ; filename->defs should succeed unless a slave tab gets closed
+                           ; filename->defs should succeed unless a secondary tab gets closed
                            (cond
                              [(filename->defs (robust-syntax-source var))
                               =>
@@ -730,7 +730,7 @@
                        (lambda ()
                          (define extern-debug?
                            (eq? 'yes (if (or (not (send extern-tab debug?))
-                                             (eq? this-tab (send extern-tab get-master)))
+                                             (eq? this-tab (send extern-tab get-primary)))
                                          (message-box
                                           "Debugging Multi-File Program"
                                           (format "Debug ~a?" fn)
@@ -744,8 +744,8 @@
                          (hash-set! annotating-tabs extern-tab extern-debug?)
                          (cond
                            [extern-debug?
-                            ;; set tab up with shared data from the master tab
-                            (send this-tab add-slave extern-tab)
+                            ;; set tab up with shared data from the primary tab
+                            (send this-tab add-secondary extern-tab)
                             (send extern-tab prepare-execution #t #f)
                             (call-with-values
                              (lambda () (send this-tab get-shared-data))
@@ -753,7 +753,7 @@
                            [else
                             ;; leave `extern-tab` alone, unless it was previously
                             ;; tied to this tab:
-                            (when (eq? this-tab (send extern-tab get-master))
+                            (when (eq? this-tab (send extern-tab get-primary))
                               (send extern-tab prepare-execution #f #f))])
                          (channel-put result-ch extern-debug?)))))]
                  ; fn is not open, so don't try to debug it
@@ -836,8 +836,8 @@
                [in-user-ch (make-channel)]
                [want-suspend-on-break? #f]
                [want-debug? #f]
-               [master this]
-               [slaves empty]
+               [primary this]
+               [secondaries empty]
                [closed? (box #f)]
                [stack-frames (box #f)]
                [frame-num (box 0)]
@@ -849,9 +849,9 @@
                [control-panel #f])
         
         (define/public (debug?) want-debug?)
-        (define/public (get-master) master)
-        (define/public (add-slave s)
-          (set! slaves (cons s slaves)))
+        (define/public (get-primary) primary)
+        (define/public (add-secondary s)
+          (set! secondaries (cons s secondaries)))
         (define/public (get-closed-box) closed?)
         (define/public suspend-on-break?
           (case-lambda
@@ -864,7 +864,7 @@
         (define/public (get-break-status) (unbox break-status))
         (define/public (get-frame-num) (unbox frame-num))
         
-        (define/public (set-shared-data bs sf sema res-ch usr-ch step? frame m)
+        (define/public (set-shared-data bs sf sema res-ch usr-ch step? frame p)
           (set! break-status bs)
           (set! stack-frames sf)
           (set! suspend-sema sema)
@@ -872,10 +872,10 @@
           (set! in-user-ch usr-ch)
           (set! single-step? step?)
           (set! frame-num frame)
-          (set! master m))
+          (set! primary p))
         
         (define/public (get-shared-data)
-          (values break-status stack-frames suspend-sema resume-ch in-user-ch single-step? frame-num master))
+          (values break-status stack-frames suspend-sema resume-ch in-user-ch single-step? frame-num primary))
         
         (define/public (get-single-step-box) single-step?)
         (define/public (set-single-step?! v) (set-box! single-step? v))
@@ -1036,7 +1036,7 @@
                     (if (and (cons? status) top-of-stack?)
                         (let ([expr (mark-source (first frames))])
                           (cond
-                            ; should succeed unless the user closes a slave tab during debugging
+                            ; should succeed unless the user closes a secondary tab during debugging
                             [(filename->defs (syntax-source expr))
                              => (lambda (defs)
                                   (clean-status
@@ -1119,9 +1119,9 @@
             [debug? (send (get-frame) show-debug)]
             [else (when to-front?
                     (send (get-frame) hide-debug))
-                  (set! master this)
-                  (for-each (lambda (t) (send t prepare-execution #f #f)) slaves)
-                  (set! slaves empty)])
+                  (set! primary this)
+                  (for-each (lambda (t) (send t prepare-execution #f #f)) secondaries)
+                  (set! secondaries empty)])
           (set! current-language-settings (and debug? (send (get-defs) get-next-settings)))
           (set! single-step? (box #t))
           (set! pos-vec (make-vector (add1 (send (get-defs) last-position)) #f))
@@ -1138,7 +1138,7 @@
         (define/augment (on-close)
           (inner (void) on-close)
           (set-box! closed? #t)
-          (for-each (lambda (t) (send t prepare-execution #f #f)) slaves))
+          (for-each (lambda (t) (send t prepare-execution #f #f)) secondaries))
         
         (define/public (hide-debug)
           (send (get-frame) hide-debug))
@@ -1186,7 +1186,7 @@
         (define/public (debug-callback)
           (let ([tab (get-current-tab)])
             (cond
-              [(eq? tab (send tab get-master))
+              [(eq? tab (send tab get-primary))
                (set! debug? #t)
                (execute-callback)
                (set! debug? #f)]
@@ -1196,7 +1196,7 @@
         (define/override (execute-callback)
           (let ([tab (get-current-tab)])
             (cond
-              [(eq? tab (send tab get-master))
+              [(eq? tab (send tab get-primary))
                (send (get-current-tab) prepare-execution debug?)
                (super execute-callback)]
               [else
@@ -1206,7 +1206,7 @@
           (message-box
            "Debugger"
            (format "This file is involved in a debugging session.  To run/debug this file, finish the session for ~a and close or re-run it."
-                   (send (send (send tab get-master) get-defs) get-filename/untitled-name))
+                   (send (send (send tab get-primary) get-defs) get-filename/untitled-name))
            this '(ok)))
         
         (define expr-positions empty)
@@ -1237,7 +1237,7 @@
                   (map (lambda (frame)
                          (let ([expr (mark-source frame)])
                            (cond
-                             ; should succeed unless the user closes a slave tab during debugging
+                             ; should succeed unless the user closes a secondary tab during debugging
                              [(and expr (filename->defs (syntax-source expr)))
                               => (lambda (defs)
                                    (trim-expr-str
