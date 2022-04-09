@@ -1845,7 +1845,7 @@ TODO
              (drracket:language-configuration:language-settings-settings user-language-settings))
            (define hash-lang-str (or (fetch-hash-lang-str definitions-text)
                                      (send lang get-auto-text settings)))
-           (when (equal? hash-lang-str "#lang pollen") (set! hash-lang-str "#lang racket/base"))
+           (when (regexp-match? #rx"^#lang pollen" hash-lang-str) (set! hash-lang-str "#lang racket/base"))
            (define prog-port (open-input-string hash-lang-str name))
            (port-count-lines! prog-port)
            (parameterize ([module-language-initial-run #t])
