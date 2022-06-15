@@ -43,7 +43,8 @@
            has-error?
            run-one/sync
            alt-return-in-interactions
-           wait-for-online-compilation-to-finish)
+           wait-for-online-compilation-to-finish
+           set-focus-and-wait)
   
   ;; save-drracket-window-as : string -> void
   ;; use the "save as" dialog in drracket to save the definitions
@@ -129,6 +130,14 @@
                 timeout))
     (when fr (wait-for-events-in-frame-eventspace fr))
     fr)
+
+(define (set-focus-and-wait window)
+  (not-on-eventspace-handler-thread 'set-focus-and-wait)
+  (queue-callback (λ () (send window focus)))
+  (define (waiting-for-focus)
+    (queue-callback/res
+     (λ () (send window has-focus?))))
+  (poll-until waiting-for-focus))
 
 (define-syntax (wait-for-new-frame stx)
   (syntax-case stx ()

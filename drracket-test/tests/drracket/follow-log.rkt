@@ -70,6 +70,7 @@ log message was reported.
       (test:menu-select "Edit" "Find")
       
       (define s (make-semaphore))
+      (define defs-canvas #f)
       (parameterize ([current-eventspace drr-eventspace])
         (queue-callback
          (λ () 
@@ -77,10 +78,11 @@ log message was reported.
            (send defs load-file (collection-file-path "class-internal.rkt" "racket" "private"))
            (define open-quote-pos (send defs find-string "\""))
            (when open-quote-pos (send defs set-position open-quote-pos))
-           (send (send defs get-canvas) focus)
+           (set! defs-canvas (send defs get-canvas))
            (semaphore-post s)))
         #f)
       (semaphore-wait s)
+      (set-focus-and-wait defs-canvas)
 
       ;(wait-until online-syncheck-done)
       
