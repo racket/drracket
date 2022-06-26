@@ -2669,7 +2669,7 @@
               (when (rectangles-intersect?
                      left top right bottom
                      tx ty (+ tx tw) (+ ty th))
-                (send dc set-text-foreground "black")
+                (send dc set-text-foreground (if (white-on-black-panel-scheme?) "white" "black"))
                 (send dc set-alpha (* fade-amount .5))
                 (send dc draw-text id (+ dx tx) (+ dy ty))
                 (send dc set-alpha α)
