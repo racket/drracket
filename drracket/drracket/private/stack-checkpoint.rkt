@@ -176,11 +176,7 @@
                         a-viewable-stack))
 
 (define (errortrace-stack-item->srcloc x)
-  (make-srcloc (vector-ref x 0)
-               (vector-ref x 1)
-               (vector-ref x 2)
-               (vector-ref x 3)
-               (vector-ref x 4)))
+  (apply make-srcloc (cdr x)))
 
 (define (cms->builtin-viewable-stack cms interesting-editors
                                      #:share-cache [a-viewable-stack #f])
