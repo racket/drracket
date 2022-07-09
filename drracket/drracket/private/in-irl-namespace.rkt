@@ -100,7 +100,7 @@
              (- after-pos 1))]
     [else
      (define-values (_5 _6 peeking-pos) (port-next-location peeking-port))
-     (values #f #f #f #f (+ before-pos peeking-pos -2))]))
+     (values #f #f #f #f before-pos)]))
     
 (define (reset-irl!/inside port)
   (set!-values (language-get-info
