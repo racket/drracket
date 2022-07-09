@@ -2,6 +2,7 @@
 (require "private/drracket-test-util.rkt"
          framework/test
          racket/class
+         racket/string
          rackunit)
 
 (define (setup-racket/base-raw) (setup/rb "No debugging or profiling"))
@@ -19,7 +20,7 @@
 ;; this test runs a program with an error and checks to make
 ;; sure that the stack dialog pops up and it either does or
 ;; does not have an errortrace-based stack, as appropriate
-(define (check-errortrace-module setup-language)
+(define (check-errortrace-module errortrace-stack? setup-language)
   (define drracket-frame (wait-for-drracket-frame))
 
   (define ints-text (queue-callback/res (λ () (send drracket-frame get-interactions-text))))
@@ -30,19 +31,42 @@
    drracket-frame
    @string-append{
     #lang errortrace racket/base
-    (error 'foobar)
+    (define (f)
+      (raise (exn "message" (current-continuation-marks))))
+    (f)
     })
 
   (do-execute drracket-frame)
 
   (define ints-content (queue-callback/res (λ () (send ints-text get-text))))
-  (check-regexp-match #rx"error: foobar\n  errortrace\\.\\.\\.:"
-                      ints-content))
+  (check string-contains?
+         ints-content
+         "message\n  errortrace...:\n")
+
+  (define (not-string-contains? a b)
+    (not (string-contains? a b)))
+
+  (cond
+    [errortrace-stack?
+     (check string-contains?
+            ints-content
+            "omitted; see the stacktrace for more information")
+     (check not-string-contains?
+            ints-content
+            "current-continuation-marks")]
+    [else
+     (check string-contains?
+            ints-content
+            "current-continuation-marks")
+     (check not-string-contains?
+            ints-content
+            "omitted; see the stacktrace for more information")]))
+
 
 (fire-up-drracket-and-run-tests
  (λ ()
-   (check-errortrace-module setup-racket/base-raw)
-   (check-errortrace-module setup-racket/base-debug)
-   (check-errortrace-module setup-racket/base-profile)
-   (check-errortrace-module setup-racket/base-coverage)
+   (check-errortrace-module #f setup-racket/base-raw)
+   (check-errortrace-module #t setup-racket/base-debug)
+   (check-errortrace-module #t setup-racket/base-profile)
+   (check-errortrace-module #t setup-racket/base-coverage)
    ))

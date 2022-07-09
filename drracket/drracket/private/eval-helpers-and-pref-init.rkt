@@ -198,6 +198,9 @@
   ;; inputs to stacktrace/errortrace-annotate@ that are used both
   ;; in debug.rkt and also for online expansion
 
+(define stx-info
+  (unquoted-printing-string "omitted; see the stacktrace for more information"))
+
 ;; make-with-mark : (any/c -> any/c) -> mark-stx syntax natural -> syntax
 ;; the result of the first application should be bound to `with-mark`,
 ;; a member of stacktrace-imports^
@@ -215,7 +218,7 @@
      (define line (or (syntax-line src-stx) 0))
      (define column (or (syntax-column src-stx) 0))
      (with-syntax ([expr expr]
-                   [mark (list 'dummy-thing source line column position span)]
+                   [mark (list stx-info source line column position span)]
                    [et-key (syntax-shift-phase-level #'errortrace-key phase)]
                    [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
                    [qte (syntax-shift-phase-level #'quote phase)])
