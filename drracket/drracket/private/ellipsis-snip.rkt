@@ -96,15 +96,20 @@
         (define pos (send ed get-snip-position this))
         (when pos
           (send ed begin-edit-sequence)
-          (define insertion-pos (+ pos (send str-snip get-count) 1))
-          (let loop ([strs extra])
-            (cond
-              [(null? strs) (void)]
-              [else
-               (define str (car strs))
-               (send ed insert/io str insertion-pos (send ed get-err-style-delta))
-               (send ed insert/io "\n" insertion-pos (send ed get-err-style-delta))
-               (loop (cdr strs))]))
+          (define is-locked? (send ed is-locked?))
+          (send ed lock #f)
+          (send ed while-unlocked
+                (λ ()
+                  (define insertion-pos (+ pos (send str-snip get-count) 1))
+                  (let loop ([strs extra])
+                    (cond
+                      [(null? strs) (void)]
+                      [else
+                       (define str (car strs))
+                       (send ed insert/io str insertion-pos (send ed get-err-style-delta))
+                       (send ed insert/io "\n" insertion-pos (send ed get-err-style-delta))
+                       (loop (cdr strs))]))))
+          (send ed lock is-locked?)
           (send ed end-edit-sequence))))
     (define/override (copy) (new ellipsis-snip% 
                                  [extra extra]
