@@ -1,5 +1,5 @@
 #lang racket/base
-(require "drracket-errortrace-key.rkt"
+(require errortrace/errortrace-key
          racket/class
          racket/contract
          racket/gui/base
@@ -170,7 +170,7 @@
 
 (define (cms->errortrace-viewable-stack cms interesting-editors
                                         #:share-cache [a-viewable-stack #f])
-  (build-viewable-stack (continuation-mark-set->list cms drracket-errortrace-key)
+  (build-viewable-stack (continuation-mark-set->list cms errortrace-key)
                         errortrace-stack-item->srcloc
                         interesting-editors
                         a-viewable-stack))

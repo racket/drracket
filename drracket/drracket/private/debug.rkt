@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "drracket-errortrace-key.rkt"
+(require errortrace/errortrace-key
          racket/unit
          racket/contract
          errortrace/stacktrace
@@ -68,7 +68,7 @@
   (define (cms->srclocs cms)
     (map 
      errortrace-stack-item->srcloc
-     (continuation-mark-set->list cms drracket-errortrace-key)))
+     (continuation-mark-set->list cms errortrace-key)))
   
   ;; type debug-source = (union symbol (instanceof editor<%>))
   
@@ -321,6 +321,7 @@
   ;; adds in the bug icon, if there are contexts to display
   (define (make-debug-error-display-handler orig-error-display-handler)
     (define (debug-error-display-handler msg exn)
+      
       (call-with-exception-handler
        (λ (exn)
          (printf "-- ~s\n" exn)
@@ -712,8 +713,6 @@
       [(is-a? src editor<%>) src]
       [else #f]))
   (define with-mark (make-with-mark special-source-handling-for-drr))
-
-  (define key-module-name 'drracket/private/drracket-errortrace-key)
   
   ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
   ;; the currently visible backtrace window, or #f, if none
@@ -2497,7 +2496,7 @@
       
       (super-instantiate ())))
 
-  (define-values/invoke-unit/infer stacktrace/errortrace-annotate/key-module-name@))
+  (define-values/invoke-unit/infer stacktrace/errortrace-annotate@))
 
 (define ellipsis-error-message-field #rx"  [^ ].*[.][.][.]:$")
 
