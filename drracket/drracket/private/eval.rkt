@@ -187,7 +187,7 @@
       (list ''#%foreign
             '(lib "mzlib/pconvert-prop.rkt")
             '(lib "planet/terse-info.rkt")
-            '(lib "errortrace/errortrace-key.rkt")
+            '(lib "drracket/private/drracket-errortrace-key.rkt")
             '(lib "simple-tree-text-markup/data.rkt")
             ; srclocs-special<%>
             '(lib "simple-tree-text-markup/port.rkt")

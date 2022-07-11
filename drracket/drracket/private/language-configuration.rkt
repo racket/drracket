@@ -2016,8 +2016,8 @@
           (super on-execute setting run-in-user-thread)
           (run-in-user-thread
            (λ ()
-             (namespace-require 'errortrace/errortrace-key)
-             (namespace-require '(for-syntax errortrace/errortrace-key)))))
+             (namespace-require 'drracket/private/drracket-errortrace-key)
+             (namespace-require '(for-syntax drracket/private/drracket-errortrace-key)))))
         (super-new)))
   
     (define (r5rs-mixin %)
