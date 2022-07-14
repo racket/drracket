@@ -55,7 +55,8 @@
                      "profile-doc"
                      "r5rs-doc"
                      "at-exp-lib"
-                     "rackunit-lib"))
+                     "rackunit-lib"
+                     "scheme-doc"))
 
 ;; implies drracket-tool-lib so that others dependencies don't break
 ;; (redex, in particular, used to depend on drracket but it really
