@@ -38,7 +38,7 @@
                                    (only-in mrlib/image-core
                                             render-image))))
 
-(struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
+(struct exn-info (str full-str src-vecs exn-stack missing-mods) #:prefab)
 
 ;; submodule to make these accessible to the test suite
 (module oc-status-structs racket/base
@@ -48,6 +48,7 @@
   (clean (or/c symbol? #f)
          (or/c (non-empty-listof
                 (exn-info string?
+                          string?
                           (listof (vector number? number?))
                           (listof string?)
                           (or/c #f module-path?)))
@@ -1130,7 +1131,7 @@
           [(and (dirty? running-status) our-turn?)
            (set-bottom-bar-status/blank)]
           [(and (dirty? running-status) (not our-turn?))
-           (send (get-defs) set-bottom-bar-status (list (exn-info "" '() '() #f)) #f #f)]
+           (send (get-defs) set-bottom-bar-status (list (exn-info "" "" '() '() #f)) #f #f)]
           [(clean? running-status)
            (if (clean-error-messages+locs running-status)
                (send (get-defs) set-bottom-bar-status 
@@ -1142,7 +1143,7 @@
       
       (define/private (set-bottom-bar-status/blank)
         (send (get-defs) set-bottom-bar-status
-              (list (exn-info "" '() '() #f))
+              (list (exn-info "" "" '() '() #f))
               #f
               #f))
       
@@ -1259,7 +1260,7 @@
       (define error/status-message-hidden? #t) 
       ; a list of triples (in a vector of size 3) of strings, srclocs, and stackframes (as strings)
       ; that show up in the bar and control the "jump to error" / next prev buttons
-      (define error/status-message-strs+srclocs (list (exn-info "" '() '() #f)))
+      (define error/status-message-strs+srclocs (list (exn-info "" "" '() '() #f)))
       (define error/status-index 0)
       
       ; if the string should be red/italic or just normal font
@@ -1329,7 +1330,7 @@
               (not (null? missing-mods))))
             
           (define (combine-msg vec)
-            (define msg (exn-info-str vec))
+            (define msg (exn-info-full-str vec))
             (define stack (exn-info-src-vecs vec))
             (apply
              string-append
@@ -2317,6 +2318,7 @@
          (send dirty/pending-tab set-oc-status
                (clean 'exn
                       (list (exn-info sc-only-raw-text-files-supported
+                                      sc-only-raw-text-files-supported
                                       (list (vector (+ filename/loc 1) 1))
                                       '()
                                       #f))
@@ -2355,10 +2357,11 @@
          (send running-tab set-oc-status
                (clean (vector-ref res 0)
                       (if (equal? (vector-ref res 0) 'abnormal-termination)
-                          (list (exn-info (if (regexp-match #rx"memory" (vector-ref res 1))
-                                              sc-abnormal-termination-out-of-memory
-                                              sc-abnormal-termination)
-                                          '() '() #f))
+                          (let ([msg
+                                 (if (regexp-match #rx"memory" (vector-ref res 1))
+                                     sc-abnormal-termination-out-of-memory
+                                     sc-abnormal-termination)])
+                            (list (exn-info msg msg '() '() #f)))
                           (vector-ref res 1))
                       #f))
          (send running-tab set-dep-paths (list->set (vector-ref res 2)) #t)])

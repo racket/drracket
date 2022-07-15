@@ -13,7 +13,7 @@
 
 (provide start)
 
-(struct exn-info (str src-vecs exn-stack missing-mods) #:prefab)
+(struct exn-info (str full-str src-vecs exn-stack missing-mods) #:prefab)
 
 (struct job (cust working-thd stop-watching-abnormal-termination))
 
@@ -394,8 +394,11 @@
                (exn-info 
                 (trim-message
                  (if (exn? an-exn) 
-                     (regexp-replace* #rx"[ \t]*\n[ \t]*" (exn-message an-exn) " ") 
+                     (regexp-replace* #rx"[ \t]*\n[ \t]*" (exn-message an-exn) " ")
                      (format "uncaught exn: ~s" an-exn)))
+                (if (exn? an-exn)
+                    (exn-message an-exn)
+                    (format "uncaught exn: ~s" an-exn))
                 (cond
                   [(exn:srclocs? an-exn)
                    (sort
