@@ -205,7 +205,7 @@
     (define visit-docs-path #f)
     (define visit-docs-tag #f)
     (define/private (visit-docs-url)
-      (when (and visit-docs-path visit-docs-tag)
+      (when visit-docs-path
         (define url (path->url visit-docs-path))
         (define url2 (if visit-docs-tag
                          (make-url (url-scheme url)
