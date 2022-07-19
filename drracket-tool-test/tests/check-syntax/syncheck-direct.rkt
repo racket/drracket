@@ -115,13 +115,13 @@
 
 
 (define-get-arrows get-binding-arrows
-  (syncheck:add-arrow start-source-obj	 
-                      start-left	 
-                      start-right	 
-                      end-source-obj	 
-                      end-left	 
-                      end-right	 
-                      actual?	 
+  (syncheck:add-arrow start-source-obj
+                      start-left
+                      start-right
+                      end-source-obj
+                      end-left
+                      end-right
+                      actual?
                       phase-level)
   (and actual? ;; skip the purple `?` arrows
        (list (list start-left start-right) (list end-left end-right))))
@@ -139,17 +139,17 @@
        (list (list start-left start-right) (list end-left end-right))))
 
 (define-get-arrows get-binding-arrows/pxpy
-  (syncheck:add-arrow/name-dup/pxpy start-source-obj    
-                                    start-left  
+  (syncheck:add-arrow/name-dup/pxpy start-source-obj
+                                    start-left
                                     start-right
                                     start-px
                                     start-py
-                                    end-source-obj      
-                                    end-left    
+                                    end-source-obj
+                                    end-left
                                     end-right
                                     end-px
                                     end-py
-                                    actual?     
+                                    actual?
                                     phase-level
                                     require-arrows?
                                     name-dup?)
