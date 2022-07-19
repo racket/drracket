@@ -94,6 +94,8 @@
               (set '(18 46)))
 (check-equal? (get-tail-arrows "#lang racket\n(define (f x) (match 'x ['x (f x)]))")
               (set '(13 27) '(27 41)))
+(check-equal? (get-tail-arrows "#lang racket/base\n(if '🏴‍☠️ 2 3)")
+              (set '(18 25) '(18 27)))
 
 
 
@@ -168,6 +170,19 @@
                 "  (define x 4)\n"
                 "  x\n"
                 "  (let ([y 1]) y))\n"))
+              (set
+               '((10 21) (25 31))
+               '((10 21) (34 34))
+               '((10 21) (44 47))
+               '((10 21) (52 52))
+               '((32 33) (39 40))
+               '((50 51) (56 57))))
+(check-equal? (get-binding-arrows
+               (string-append
+                "(module m racket/base\n"
+                "  (define 🏴‍☠️ 4)\n"
+                "  🏴‍☠️\n"
+                "  (let ([🏴‍☠️ 1]) 🏴‍☠️))\n"))
               (set
                '((10 21) (25 31))
                '((10 21) (34 34))
