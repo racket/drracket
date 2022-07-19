@@ -48,7 +48,9 @@
                  [current-load-relative-directory here])
     (add-syntax (expand
                  (parameterize ([read-accept-reader #t])
-                   (read-syntax 'the-source (open-input-string str)))))
+                   (define p (open-input-string str))
+                   (port-count-lines! p)
+                   (read-syntax 'the-source p))))
     (done))
   (apply set results))
 
@@ -77,7 +79,7 @@
 (check-equal? (get-tail-arrows "#lang racket/base\n(if 1 2 3)")
               (set '(18 24) '(18 26)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(λ (x) 1 2)")
-              (set '(18 28)))
+              (set '(18 27)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(case-lambda [(x) 1 2][(y z) 3 4 5 6])")
               (set '(18 38) '(18 53)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(let ([x 3]) (#%expression (begin 1 2)))")
@@ -330,8 +332,8 @@
                 "(#%require (portal x (+ 2 λ)))\n"
                 "#'x\n"))
               (set '((6 17) (40 41))
-                   '((6 17) (45 46))
-                   '((37 38) (52 53))))
+                   '((6 17) (44 45))
+                   '((37 38) (51 52))))
 
 (check-equal? (get-purple-binding-arrows
                (string-append
@@ -339,11 +341,11 @@
                 "(require (for-syntax racket/base))\n"
                 "(#%require (for-meta 1 (portal x (+ 2 λ))))\n"
                 "(define-syntax m #'x)\n"))
-              (set '((6 17) (92 93))
+              (set '((6 17) (91 92))
                    '((6 17) (87 88))
                    '((39 50) (87 88))
-                   '((39 50) (92 93))
-                   '((84 85) (117 118))))
+                   '((39 50) (91 92))
+                   '((84 85) (116 117))))
 
 
 (check-equal? (get-binding-arrows
@@ -457,7 +459,7 @@
    "\n"
    "(require (only-in racket/list first [second deuxième]))\n"
    "first deuxième\n"))
- (set '(37 76) '(37 82)))
+ (set '(37 75) '(37 81)))
 
 (check-equal?
  (get-require-arrows
@@ -484,7 +486,7 @@
    "\n"
    "(require (rename-in racket/list [second deuxième]))\n"
    "deuxième\n"))
-  (set '(39 72)))
+  (set '(39 71)))
 
 (check-equal?
  (get-require-arrows
