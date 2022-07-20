@@ -94,6 +94,16 @@
                   (")"      default-color))
                 (list '((9 10) (12 13)))
                 #:tooltips '((9 10 "1 bound occurrence")))
+     (build-test "(lambda (🏴‍☠️) 🏴‍☠️)"
+                '(("("      default-color)
+                  ("lambda" imported-syntax)
+                  (" ("     default-color)
+                  ("🏴‍☠️"      lexically-bound-variable)
+                  (") "     default-color)
+                  ("🏴‍☠️"      lexically-bound-variable)
+                  (")"      default-color))
+                (list '((9 10) (12 13)))
+                #:tooltips '((9 10 "1 bound occurrence")))
      (build-test "(lambda x x)"
                 '(("("      default-color)
                   ("lambda" imported-syntax)
@@ -1118,6 +1128,16 @@
                    (")"                    default-color))
                  '(((26 29) (47 50))
                    ((6 17) (19 25) (30 30))))
+     (build-test "#lang racket/base\n(define 🏴‍☠️🏴‍☠️🏴‍☠️ 1)\n(module+ test 🏴‍☠️🏴‍☠️🏴‍☠️)"
+                 '(("#lang racket/base\n(" default-color)
+                   ("define"               imported)
+                   (" "                    default-color)
+                   ("🏴‍☠️🏴‍☠️🏴‍☠️"                  lexically-bound)
+                   (" 1)\n(module+ test "  default-color)
+                   ("🏴‍☠️🏴‍☠️🏴‍☠️"                  imported)
+                   (")"                    default-color))
+                 '(((26 29) (47 50))
+                   ((6 17) (19 25) (30 30))))
      
      (build-test "#lang racket/base\n(require '#%kernel)\npair?"
                  '(("#lang racket/base\n(" default-color)
@@ -1396,13 +1416,26 @@
                         45
                         "x."
                         "(module m racket/base (require (prefix-in x. racket/list)) x.first)")
+     (build-prefix-test "(module m racket/base (require racket/list) first)"
+                        45
+                        "🏴‍☠️."
+                        "(module m racket/base (require (prefix-in 🏴‍☠️. racket/list)) 🏴‍☠️.first)")
      
      (build-rename-test "(lambda (x) x)"
                         9
                         "x"
                         "y"
                         "(lambda (y) y)")
-     
+     (build-rename-test "(lambda (x) x)"
+                        9
+                        "x"
+                        "🏴‍☠️"
+                        "(lambda (🏴‍☠️) 🏴‍☠️)")
+     (build-rename-test "(lambda (🏴‍☠️) 🏴‍☠️)"
+                        9
+                        "🏴‍☠️"
+                        "y"
+                        "(lambda (y) y)")
      (build-rename-test "(lambda (x) x)"
                         9
                         "x"

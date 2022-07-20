@@ -38,7 +38,7 @@ If the namespace does not, they are colored the unbound color.
          framework/private/srcloc-panel
          net/url
          browser/external
-         (for-syntax racket/base)
+         (for-syntax racket/base syntax/parse)
          (only-in ffi/unsafe register-finalizer)
          "../../syncheck-drracket-button.rkt"
          "../../private/eval-helpers-and-pref-init.rkt"
@@ -408,7 +408,7 @@ If the namespace does not, they are colored the unbound color.
                      find-position begin-edit-sequence end-edit-sequence
                      highlight-range unhighlight-range
                      paragraph-end-position first-line-currently-drawn-specially?
-                     line-end-position position-line
+                     line-end-position position-line position-grapheme
                      syncheck:add-docs-range syncheck:add-require-candidate get-padding)
             
             ;; arrow-records : (U #f hash[text% => arrow-record])
@@ -493,7 +493,9 @@ If the namespace does not, they are colored the unbound color.
             (define prefix-table (make-hash))
             
             ;; for use in the automatic test suite (both)
-            (define/public (syncheck:get-bindings-table [tooltips? #f])
+            (define/public (syncheck:get-bindings-table [tooltips? #f]
+                                                        #:convert-to-grapheme? [convert-to-grapheme? #t])
+              (define (->g n) (if convert-to-grapheme? (position-grapheme n) n))
               (cond
                 [tooltips?
                  (define unsorted
@@ -507,8 +509,8 @@ If the namespace does not, they are colored the unbound color.
                         (λ (key x)
                           (for/list ([x (in-list x)]
                                      #:when (tooltip-info? x))
-                            (list (tooltip-info-pos-left x)
-                                  (tooltip-info-pos-right x)
+                            (list (->g (tooltip-info-pos-left x))
+                                  (->g (tooltip-info-pos-right x))
                                   (tooltip-info-msg x)))))))))
                  (define (compare l1 l2)
                    (cond
@@ -522,7 +524,14 @@ If the namespace does not, they are colored the unbound color.
                       (< (list-ref l1 0) (list-ref l2 0))]))
                  (sort unsorted compare)]
                 [else
-                 bindings-table]))
+                 (let loop ([x bindings-table])
+                   (cond
+                     [(hash? x)
+                      (for/hash ([(k v) (in-hash x)])
+                        (values (loop k) (loop v)))]
+                     [(list? x) (map loop x)]
+                     [(integer? x) (->g x)]
+                     [(set? x) (for/set ([x (in-set x)]) (loop x))]))]))
             
             ;; compare-bindings : (list text number number) (list text number number) -> boolean
             ;; compares two bindings in the sets inside the bindings table, returning
@@ -2224,10 +2233,13 @@ If the namespace does not, they are colored the unbound color.
           (send defs-text disable-blue-boxes)
           (send (send tab get-ints) disable-blue-boxes)
           (send defs-text syncheck:init-arrows))
-        
+
+        ;; the positions that come in the trace are grapheme based but now that we are
+        ;; in the context of a text% object, we switch them all to be item-based.
         (define/private (process-trace-element known-dead-place-channels defs-text x)
           ;; using 'defs-text' all the time is wrong in the case of embedded editors,
           ;; but they already don't work and we've arranged for them to not appear here ....
+          (define (->i n) (send defs-text grapheme-position n))
           (match x
             [`#(syncheck:add-arrow/name-dup/pxpy
                 ,start-pos-left ,start-pos-right ,start-px ,start-py
@@ -2235,40 +2247,43 @@ If the namespace does not, they are colored the unbound color.
                 ,actual? ,level ,require-arrow? ,name-dup-pc ,name-dup-id)
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id  known-dead-place-channels))
              (send defs-text syncheck:add-arrow/name-dup/pxpy
-                   defs-text start-pos-left start-pos-right start-px start-py
-                   defs-text end-pos-left end-pos-right end-px end-py
+                   defs-text (->i start-pos-left) (->i start-pos-right) start-px start-py
+                   defs-text (->i end-pos-left) (->i end-pos-right) end-px end-py
                    actual? level require-arrow? name-dup?)]
             [`#(syncheck:add-tail-arrow ,from-pos ,to-pos)
-             (send defs-text syncheck:add-tail-arrow defs-text from-pos defs-text to-pos)]
+             (send defs-text syncheck:add-tail-arrow defs-text (->i from-pos) defs-text (->i to-pos))]
             [`#(syncheck:add-mouse-over-status ,pos-left ,pos-right ,str)
-             (send defs-text syncheck:add-mouse-over-status defs-text pos-left pos-right str)]
+             (send defs-text syncheck:add-mouse-over-status defs-text (->i pos-left) (->i pos-right) str)]
             [`#(syncheck:add-text-type ,start ,fin ,text-type)
-             (send defs-text syncheck:add-text-type defs-text start fin text-type)]
+             (send defs-text syncheck:add-text-type defs-text (->i start) (->i fin) text-type)]
             [`#(syncheck:add-background-color ,start ,fin ,color) ; unused
-             (send defs-text syncheck:add-background-color defs-text start fin color)]
+             (send defs-text syncheck:add-background-color defs-text (->i start) (->i fin) color)]
             [`#(syncheck:add-jump-to-definition ,start ,end ,id ,filename ,submods)
-             (send defs-text syncheck:add-jump-to-definition defs-text start end id filename submods)]
+             (send defs-text syncheck:add-jump-to-definition defs-text (->i start) (->i end) id filename submods)]
 
             [`#(syncheck:add-require-open-menu ,start-pos ,end-pos ,file)
-             (send defs-text syncheck:add-require-open-menu defs-text start-pos end-pos file)]
+             (send defs-text syncheck:add-require-open-menu defs-text (->i start-pos) (->i end-pos) file)]
             [`#(syncheck:add-docs-menu ,start-pos ,end-pos ,key ,the-label ,path ,definition-tag ,tag)
-             (send defs-text syncheck:add-docs-menu defs-text start-pos end-pos
+             (send defs-text syncheck:add-docs-menu defs-text (->i start-pos) (->i end-pos)
                    key the-label path definition-tag tag)]
             [`#(syncheck:add-definition-target ,start-pos ,end-pos ,id ,mods)
-             (send defs-text syncheck:add-definition-target defs-text start-pos end-pos id mods)]
+             (send defs-text syncheck:add-definition-target defs-text (->i start-pos) (->i end-pos) id mods)]
             [`#(syncheck:add-id-set ,to-be-renamed/poss ,name-dup-pc ,name-dup-id)
              (define to-be-renamed/poss/fixed
                (for/list ([lst (in-list to-be-renamed/poss)])
-                 (list defs-text (list-ref lst 0) (list-ref lst 1))))
+                 (list defs-text (->i (list-ref lst 0)) (->i (list-ref lst 1)))))
+
              (define name-dup? (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels))
              (send defs-text syncheck:add-id-set to-be-renamed/poss/fixed name-dup?)]
             [`#(syncheck:add-prefixed-require-reference ,id-pos-left ,id-pos-right
                                                         ,prefix ,prefix-left ,prefix-right)
              (send defs-text syncheck:add-prefixed-require-reference
-                   defs-text id-pos-left id-pos-right
-                   prefix defs-text prefix-left prefix-right)]
+                   defs-text (->i id-pos-left) (->i id-pos-right)
+                   prefix defs-text
+                   (and prefix-left (->i prefix-left))
+                   (and prefix-right (->i prefix-right)))]
             [`#(syncheck:add-unused-require ,req-pos-left ,req-pos-right)
-             (send defs-text syncheck:add-unused-require defs-text req-pos-left req-pos-right)]))
+             (send defs-text syncheck:add-unused-require defs-text (->i req-pos-left) (->i req-pos-right))]))
         
         (define/private (build-name-dup? name-dup-pc name-dup-id known-dead-place-channels)
           (define (name-dup? name) 
@@ -2516,7 +2531,9 @@ If the namespace does not, they are colored the unbound color.
                           (with-lock/edit-sequence
                            definitions-text
                            (λ ()
-                             (parameterize ([current-annotations definitions-text])
+                             (parameterize ([current-annotations
+                                             (new adjust-graphemes-delegate%
+                                                  [o definitions-text])])
                                (expansion-completed))))
                           (cleanup)
                           (custodian-shutdown-all user-custodian))))]
@@ -2534,7 +2551,9 @@ If the namespace does not, they are colored the unbound color.
                              (open-status-line 'drracket:check-syntax:status)
                              (update-status-line 
                               'drracket:check-syntax:status status-coloring-program)
-                             (parameterize ([current-annotations definitions-text])
+                             (parameterize ([current-annotations
+                                             (new adjust-graphemes-delegate%
+                                                  [o definitions-text])])
                                (expanded-expression sexp))
                              (close-status-line 'drracket:check-syntax:status))))))
                      (update-status-line 'drracket:check-syntax:status status-expanding-expression)
@@ -2761,6 +2780,47 @@ If the namespace does not, they are colored the unbound color.
      online-comp.rkt
      'go
      void)))
+
+(define adjust-graphemes-delegate%
+  (class* object% (syncheck-annotations<%>)
+    (init-field o)
+    (define/private (->i n) (and n (send o grapheme-position n)))
+    (define-syntax (fwd stx)
+      (syntax-parse stx
+        [(_ name args:id ...)
+         (with-syntax ([(adapted-arg ...)
+                        (for/list ([arg (in-list (syntax->list #'(args ...)))])
+                          (cond
+                            [(regexp-match? #rx"-pos$" (symbol->string (syntax-e arg)))
+                             #`(->i #,arg)]
+                            [else arg]))])
+           #`(define/public (name args ...)
+               (send o name adapted-arg ...)))]))
+    (fwd syncheck:find-source-object stx)
+    (fwd syncheck:add-text-type source-obj start-pos end-pos text-type)
+    (fwd syncheck:add-background-color source-obj start-pos end-pos color)
+    (fwd syncheck:add-require-open-menu source-obj start-pos end-pos file)
+    (fwd syncheck:add-docs-menu source-obj start-pos end-pos id label definition-tag path tag)
+    (fwd syncheck:add-id-set all-ids new-name-interferes?) ;; not called so no need to adjust positions
+    (fwd syncheck:add-arrow start-source-obj start-left-pos start-right-pos
+         end-source-obj end-left-pos end-right-pos actual? phase-level)
+    (fwd syncheck:add-arrow/name-dup start-source-obj start-left-pos start-right-pos
+         end-source-obj end-left-pos end-right-pos
+         actual? phase-level require-arrow? name-dup?)
+    (fwd syncheck:add-arrow/name-dup/pxpy
+         start-source-obj start-left-pos start-right-pos start-px start-py
+         end-source-obj end-left-pos end-right-pos end-px end-py
+         actual? phase-level require-arrow name-dup?)
+    (fwd syncheck:add-tail-arrow from-source-obj from-pos to-source-obj to-pos)
+    (fwd syncheck:add-mouse-over-status source-obj start-pos end-pos str)
+    (fwd syncheck:add-prefixed-require-reference req-src req-left-pos req-right-pos prefix
+         prefix-src prefix-left-pos prefix-right-pos)
+    (fwd syncheck:add-unused-require req-src start-pos end-pos)
+    (fwd syncheck:add-jump-to-definition source-obj start-pos end-pos id filename submods)
+    (fwd syncheck:add-definition-target source-obj start-pos finish-pos id mods)
+    (fwd syncheck:color-range source-obj start-pos end-pos style-name)
+    (fwd syncheck:add-rename-menu id all-ids new-name-interferes?)  ;; not called to no need to adjust positions
+    (super-new)))
 
 (define wbs '())
     
