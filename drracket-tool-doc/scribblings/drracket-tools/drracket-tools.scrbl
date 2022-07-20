@@ -410,13 +410,10 @@ in order to make the results be platform independent.
  @defmethod[(syncheck:color-range [source-obj (not/c #f)]
                                   [start exact-nonnegative-integer?]
                                   [end exact-nonnegative-integer?]
-                                  [style-name any/c]
-                                  [mode any/c])
+                                  [style-name any/c])
             void?]{
    Called to indicate that the given location should be colored according to the
-   style @racket[style-name] when in @racket[mode]. The mode either indicates regular
-   check syntax or is used indicate blame for potential contract violations 
-   (and still experimental).
+   style @racket[style-name].
 
   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
   about the coordinates @racket[start] and @racket[end].
