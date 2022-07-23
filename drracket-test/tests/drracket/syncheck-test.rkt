@@ -35,6 +35,7 @@
   ;; When either `new-name` or `output` is `#f`, only test that `old-name` is on the menu
   (define-struct rename-test (line input pos old-name new-name output) #:transparent)
   (define-struct prefix-test (line input pos prefix output) #:transparent)
+  (define-struct err-test (line input expected locations) #:transparent)
   
   (define build-test/proc
     (λ (line input expected [arrow-table '()] #:tooltips [tooltips #f] 
@@ -66,6 +67,13 @@
        (with-syntax ([line (syntax-line stx)])
          ;; #f is for the tooltip portion of the test, just skip 'em
          #'(make-dir-test line args ... #f void void (hash) #f))]))
+
+  (define-syntax (build-err-test stx)
+    (syntax-case stx ()
+      [(_ input expected locations)
+       (with-syntax ([line (syntax-line stx)])
+         ;; #f is for the tooltip portion of the test, just skip 'em
+         #'(make-err-test line input expected locations))]))
   
   ;; tests : (listof test)
   (define tests
@@ -1689,7 +1697,10 @@
         (")\n" default-color))
       (list '((6 17) (19 26))
             '((27 34) (37 38))
-            '((39 42) (43 46))))))
+            '((39 42) (43 46))))
+
+     (build-err-test "(module m racket/base free-var)" #rx"free-var: unbound"
+                     (list (list 23 8)))))
 
 
   (define (main)
@@ -1883,7 +1894,30 @@
            (unless (equal? result (prefix-test-output test))
              (eprintf "syncheck-test.rkt FAILED\n   test ~s\n  got ~s\n" 
                       test
-                      result)))])))
+                      result)))]
+        [(err-test? test)
+         (let/ec done
+           (insert-in-definitions drs (err-test-input test))
+           (define err (click-check-syntax-and-check-errors drs test #f #:err-ok? #t))
+           (printf "err: ~s\n" err)
+           (unless err
+             (eprintf "syncheck-test.rkt FAILED\n   test ~s\n   didn't get an error\n"
+                      test)
+             (done))
+           (define expected (err-test-expected test))
+           (define message-good?
+             (cond
+               [(string? expected)
+                (equal? expected err)]
+               [else
+                (regexp-match? expected err)]))
+           (unless message-good?
+             (eprintf "syncheck-test.rkt FAILED error doesn't match\n   test ~s\n   ~s\n"
+                      test
+                      err)
+             (done))
+           (printf ">> ~s\n" (queue-callback/res (λ () (send (send drs get-interactions-text) get-error-ranges))))
+           (void))])))
   
   (define (path->require-string relative)
     (define (p->string p)
@@ -2027,17 +2061,21 @@
   (define (get-annotated-output drs)
     (queue-callback/res (λ () (get-string/style-desc (send drs get-definitions-text)))))
   
-  (define (click-check-syntax-and-check-errors drs test extra-info?)
+  (define (click-check-syntax-and-check-errors drs test extra-info? #:err-ok? [err-ok? #f])
     (click-check-syntax-button drs extra-info?)
     (wait-for-computation drs)
     (when (queue-callback/res (λ () (send (send drs get-definitions-text) in-edit-sequence?)))
       (error 'syncheck-test.rkt "still in edit sequence for ~s" test))
-    
-    (let ([err (queue-callback/res (λ () (send drs syncheck:get-error-report-contents)))]) 
-      (when err
-        (eprintf "FAILED ~s\n   error report window is visible:\n   ~a\n"
-                 test
-                 err))))
+
+    (define err (queue-callback/res (λ () (send drs syncheck:get-error-report-contents))))
+    (cond
+      [err-ok?
+       err]
+      [else
+       (when err
+         (eprintf "FAILED ~s\n   error report window is visible:\n   ~a\n"
+                  test
+                  err))]))
   
   (define (click-check-syntax-button drs extra-info?)
     (test:run-one (lambda () (send drs syncheck:button-callback #:print-extra-info? extra-info?))))
