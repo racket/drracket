@@ -1700,7 +1700,7 @@
             '((39 42) (43 46))))
 
      (build-err-test "(module m racket/base free-var)" #rx"free-var: unbound"
-                     (list (list 23 8)))))
+                     (set (list 23 8)))))
 
 
   (define (main)
@@ -1916,7 +1916,16 @@
                       test
                       err)
              (done))
-           (printf ">> ~s\n" (queue-callback/res (λ () (send (send drs get-interactions-text) get-error-ranges))))
+           (define srclocs (queue-callback/res (λ () (send (send drs get-interactions-text) get-error-ranges))))
+           (define actual
+             (for/set ([srcloc (in-list srclocs)])
+               (list (srcloc-position srcloc)
+                     (srcloc-span srcloc))))
+           (unless (equal? actual (err-test-locations test))
+             (eprintf "syncheck-test.rkt FAILED srclocs don't match\n   test ~s\n   actual ~s\n   got    ~s\n"
+                      test
+                      actual
+                      (err-test-locations test)))
            (void))])))
   
   (define (path->require-string relative)
