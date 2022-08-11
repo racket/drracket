@@ -1700,7 +1700,9 @@
             '((39 42) (43 46))))
 
      (build-err-test "(module m racket/base free-var)" #rx"free-var: unbound"
-                     (set (list 23 8)))))
+                     (set (list 23 8)))
+     (build-err-test "#|🏴‍☠️|#(module m racket/base free-var)" #rx"free-var: unbound"
+                     (set (list 28 8)))))
 
 
   (define (main)
@@ -1899,7 +1901,6 @@
          (let/ec done
            (insert-in-definitions drs (err-test-input test))
            (define err (click-check-syntax-and-check-errors drs test #f #:err-ok? #t))
-           (printf "err: ~s\n" err)
            (unless err
              (eprintf "syncheck-test.rkt FAILED\n   test ~s\n   didn't get an error\n"
                       test)
