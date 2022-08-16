@@ -18,11 +18,7 @@
     interactions  ; (union #f string)
     result        ; (or/c string regexp)
     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
-    error-ranges  ; (or/c 'dont-test
-    ;                     (-> (is-a?/c text)
-    ;                         (is-a?/c text)
-    ;                         (or/c #f (listof ...))))
-    ;    fn => called with defs & ints, result must match get-error-ranges method's result
+    extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
     line)         ; number or #f: the line number of the test case
 
   #:omit-define-syntaxes)
@@ -37,12 +33,12 @@
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
 (define (test/proc line definitions interactions results [all? #f]
-                   #:error-ranges [error-ranges 'dont-test])
+                   #:extra-assert [extra-assert (λ (x) #t)])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
                                all? 
-                               error-ranges
+                               extra-assert
                                line)
                     tests)))
 
@@ -168,18 +164,9 @@
             (for ([frame (in-list stack)])
               (eprintf "  ~s\n" frame))
             (eprintf "----\n")))))
-    (cond
-      [(eq? (test-error-ranges test) 'dont-test)
-       (void)]
-      [else
-       (let ([error-ranges-expected
-              ((test-error-ranges test) definitions-text interactions-text)])
-         (unless (equal? error-ranges-expected (send interactions-text get-error-ranges))
-           (eprintf "FAILED (line ~a; ranges): ~a\n  expected: ~s\n       got: ~s\n"
-                    (test-line test)
-                    (test-definitions test)
-                    error-ranges-expected
-                    (send interactions-text get-error-ranges))))])))
+    (unless ((test-extra-assert test) definitions-text interactions-text)
+      (eprintf "FAILED line ~a; extra assertion returned #f\n"
+               (test-line test)))))
 
 (define drs 'not-yet-drs-frame)
 (define interactions-text 'not-yet-interactions-text)

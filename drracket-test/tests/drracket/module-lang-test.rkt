@@ -1,6 +1,8 @@
 #lang at-exp racket/base
 (require "private/module-lang-test-utils.rkt"
-         "private/drracket-test-util.rkt")
+         "private/drracket-test-util.rkt"
+         framework
+         racket/class)
 (provide run-test)
 
 ;; set up for tests that need external files
@@ -465,7 +467,16 @@
          (scale (blank 1 1) -1 1)}
       #f
       ".")
-
+(test @t{#lang racket
+         (void "🏴‍☠️")
+         free-🏴‍☠️-var}
+      #f
+      #rx"unbound identifier in: free-🏴‍☠️-var"
+      #:extra-assert (λ (defs ints)
+                       (equal?
+                        (for/list ([range (send defs get-highlighted-ranges)])
+                          (list (text:range-start range) (text:range-end range)))
+                        '((27 40)))))
 
 (fire-up-drracket-and-run-tests run-test)
 
