@@ -33,7 +33,7 @@
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
 (define (test/proc line definitions interactions results [all? #f]
-                   #:extra-assert [extra-assert (λ (x) #t)])
+                   #:extra-assert [extra-assert (λ (x y) #t)])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
