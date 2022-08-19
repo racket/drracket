@@ -1093,7 +1093,7 @@
                 [else (error 'module-language.rkt "unknown clean status: ~s" running-status)]))
             (case (preferences:get pref-key)
               [(margin) 
-               (send (get-defs) set-margin-error-ranges
+               (send (get-defs) set-margin-error-ranges ;; FIX HERE
                      (set->list
                       (for*/set ([error-message+loc (in-list error-messages+locs)]
                                  [range (in-list (exn-info-src-vecs error-message+loc))])
@@ -2012,8 +2012,8 @@
                                          (if err? "firebrick" "black")))
         (define-values (tot-th gap-space) (height/gap-space dc))
         (for/fold ([y (- (/ ch 2) (/ tot-th 2))]) ([msg (in-list msgs)])
-          (define-values (tw th td ta) (send dc get-text-extent msg))
-          (send dc draw-text msg 2 y)
+          (define-values (tw th td ta) (send dc get-text-extent msg #f 'grapheme))
+          (send dc draw-text msg 2 y 'grapheme)
           (+ y th gap-space)))
       (super-new [style '(transparent)])
       
@@ -2057,41 +2057,6 @@
       (inherit min-height)
       (set-the-height/dc-font
        (editor:get-current-preferred-font-size))))
-  
-  (define yellow-message%
-    (class canvas%
-      (inherit get-dc refresh get-client-size
-               min-width min-height
-               get-parent)
-      (define labels '(""))
-      (define/public (set-lab _ls) 
-        (unless (equal? labels _ls)
-          (set! labels _ls)
-          (update-size)
-          (refresh)))
-      (define/private (update-size)
-        (define dc (get-dc))
-        (send dc set-font small-control-font)
-        (define-values (w h _1 _2) (send dc get-text-extent (car labels)))
-        (send (get-parent) begin-container-sequence)
-        (min-width (+ 5 (inexact->exact (ceiling w))))
-        (min-height (+ 5 (* (length labels) (inexact->exact (ceiling h)))))
-        (send (get-parent) end-container-sequence)
-        (send (get-parent) reflow-container))
-      (define/override (on-paint)
-        (define dc (get-dc))
-        (send dc set-font small-control-font)
-        (define-values (w h) (get-client-size))
-        (define-values (tw th _1 _2) (send dc get-text-extent (car labels)))
-        (send dc set-pen "black" 1 'transparent)
-        (send dc set-brush "LemonChiffon" 'solid)
-        (send dc set-pen "black" 1 'solid)
-        (send dc draw-rectangle 0 0 (- w 1) (- h 1))
-        (for ([label (in-list labels)]
-              [i (in-naturals)])
-          (send dc draw-text label 2 (+ 2 (* i th)))))
-      (super-new [stretchable-width #f] [stretchable-height #f])))
-
   
   ;; get-current-oc-state : -> (or/c tab #f) (or/c tab #f) (listof tab) (listof tab)
   ;; the tabs in the results are only those that are in the module language
@@ -2639,7 +2604,7 @@
                 (get-admin))
            (define admin (get-admin))
            (define dc (get-dc))
-           (define-values (tw th _1 _2) (send dc get-text-extent id defs/ints-font))
+           (define-values (tw th _1 _2) (send dc get-text-extent id defs/ints-font 'grapheme))
            (define-values (mx my) (dc-location-to-editor-location 
                                    (send evt get-x) (send evt get-y)))
            (send admin get-view bx by bw bh)
@@ -2674,7 +2639,7 @@
                      tx ty (+ tx tw) (+ ty th))
                 (send dc set-text-foreground (if (white-on-black-panel-scheme?) "white" "black"))
                 (send dc set-alpha (* fade-amount .5))
-                (send dc draw-text id (+ dx tx) (+ dy ty))
+                (send dc draw-text id (+ dx tx) (+ dy ty) 'grapheme)
                 (send dc set-alpha α)
                 (send dc set-text-foreground fore))
               (send dc set-font defs/ints-font)))))
