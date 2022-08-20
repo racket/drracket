@@ -49,7 +49,7 @@
     (define/override (on-paint)
       (let ([dc (get-dc)]
             [dots "..."])
-        (let-values ([(tw th _1 _2) (send dc get-text-extent msg)]
+        (let-values ([(tw th _1 _2) (send dc get-text-extent msg #f 'grapheme)]
                      [(dw dh _3 _4) (send dc get-text-extent dots)]
                      [(cw ch) (get-client-size)])
           (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
@@ -58,12 +58,12 @@
           (send dc draw-rectangle 0 0 cw ch)
           (cond
             [(tw . <= . cw)
-             (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)))]
+             (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)) 'grapheme)]
             [(cw . <= . dw)  ;; just give up if there's not enough room to draw the dots
              (void)]
             [else
              (send dc set-clipping-rect 0 0 (- cw dw 2) ch)
-             (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)))
+             (send dc draw-text msg 0 (- (/ ch 2) (/ th 2)) 'grapheme)
              (send dc set-clipping-region #f)
              (send dc draw-text dots (- cw dw) (- (/ ch 2) (/ th 2)))]))))
     (super-new)))

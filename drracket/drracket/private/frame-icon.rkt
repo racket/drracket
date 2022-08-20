@@ -19,12 +19,14 @@
           (send dc draw-text
                 (substring str i (string-length str))
                 0
-                (* l h))]
+                (* l h)
+                'grapheme)]
          [else
           (send dc draw-text
                 (substring str i (+ i one-line))
                 0
-                (* l h))
+                (* l h)
+                'grapheme)
           (loop (+ i one-line) (+ l 1))])))
    300 300))
 

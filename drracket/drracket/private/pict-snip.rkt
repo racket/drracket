@@ -83,7 +83,7 @@
 (define ((mk-error-drawer exn) dc)
   (define clr (send dc get-text-foreground))
   (send dc set-text-foreground "red")
-  (send dc draw-text (exn-message exn) 0 0)
+  (send dc draw-text (exn-message exn) 0 0 'grapheme)
   (send dc set-text-foreground clr))
 
 (define snip-class 

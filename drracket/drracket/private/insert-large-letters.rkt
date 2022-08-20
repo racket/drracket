@@ -246,8 +246,8 @@
                             (Instance Bitmap%)))
 (define (render-large-letters comment-prefix comment-character the-font str edit color-insertion?)
   (define bdc (new bitmap-dc% [bitmap (make-bitmap 1 1 #t)]))
-  (define-values (tw raw-th td ta) (send bdc get-text-extent str the-font))
-  (define th (let-values ([(_1 h _2 _3) (send bdc get-text-extent "X" the-font)])
+  (define-values (tw raw-th td ta) (send bdc get-text-extent str the-font 'grapheme))
+  (define th (let-values ([(_1 h _2 _3) (send bdc get-text-extent "X" the-font 'grapheme)])
                (max raw-th h)))
   (define tmp-color (make-object color%))
   

@@ -2443,7 +2443,7 @@
                              (send the-color-database find-color "lightgray")
                              (send the-color-database find-color "black"))))
                (send dc set-font font)
-               (send dc draw-text label 0 0 #t)
+               (send dc draw-text label 0 0 'grapheme)
                (send dc set-font old-font)
                (send dc set-text-foreground old-tf)]
               [(is-a? label bitmap%)
@@ -2459,7 +2459,7 @@
           (inherit min-width min-height get-dc)
           (cond
             [(string? label)
-             (define-values (w h _1 _2) (send (get-dc) get-text-extent label font #t))
+             (define-values (w h _1 _2) (send (get-dc) get-text-extent label font 'grapheme))
              (min-width (inexact->exact (ceiling w)))
              (min-height (inexact->exact (ceiling h)))]
             [(is-a? label bitmap%)

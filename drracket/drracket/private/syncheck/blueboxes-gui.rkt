@@ -961,9 +961,7 @@
     (when std (send dc set-font (send std get-font)))
     (define label-font (get-label-font sl))
     (define-values (label-w label-h label-d label-a)
-      (send dc get-text-extent (list-ref strs 0) label-font))
-    (define-values (first-line-w first-line-h _1 _2)
-      (send dc get-text-extent (if (null? (cdr strs)) "" (list-ref strs 1))))
+      (send dc get-text-extent (list-ref strs 0) label-font 'grapheme))
     
     (send dc set-text-foreground
           (if (preferences:get 'framework:white-on-black?)
@@ -972,18 +970,19 @@
     (for/fold ([y (if label-overlap? 
                       (+ blue-box-margin (extra-first-line-space dc sl strs))
                       (+ blue-box-margin label-h))])
-      ([str (in-list (cdr strs))])
-      (define-values (w h d a) (send dc get-text-extent str))
-      (send dc draw-text str (+ (- dx+br  box-width) blue-box-margin) (+ dy+bt y))
+              ([str (in-list (cdr strs))])
+      (define-values (w h d a) (send dc get-text-extent str #f 'grapheme))
+      (send dc draw-text str (+ (- dx+br  box-width) blue-box-margin) (+ dy+bt y) 'grapheme)
       (+ y h))
     
     (draw-blue-box-shadow dc (- dx+br box-width) dy+bt box-width box-height)
     
     (send dc set-text-foreground blue-box-label-text-color)
     (send dc set-font label-font)
-    (send dc draw-text (list-ref strs 0) 
+    (send dc draw-text (list-ref strs 0)
           (- dx+br blue-box-margin label-w)
-          (+ dy+bt blue-box-margin))
+          (+ dy+bt blue-box-margin)
+          'grapheme)
     
     (send dc set-text-foreground text-foreground)
     (send dc set-smoothing smoothing)

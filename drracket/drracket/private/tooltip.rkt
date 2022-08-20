@@ -105,8 +105,8 @@
             [i (in-naturals)])
         (define space (list-ref space+label 0))
         (define label (list-ref space+label 1))
-        (define-values (space-w _1 _2 _3) (send dc get-text-extent space))
-        (send dc draw-text label (+ 2 space-w) (+ 2 (* i th)))))
+        (define-values (space-w _1 _2 _3) (send dc get-text-extent space #f 'grapheme))
+        (send dc draw-text label (+ 2 space-w) (+ 2 (* i th)) 'grapheme)))
     (super-new [stretchable-width #f] [stretchable-height #f])))
 
 (define tooltip-frame%
