@@ -275,7 +275,7 @@
   (send bdc set-bitmap bitmap)
   (send bdc clear)
   (send bdc set-font the-font)
-  (send bdc draw-text str 0 0)
+  (send bdc draw-text str 0 0 'grapheme)
   
   (send edit begin-edit-sequence)
   (let ([start (send edit get-start-position)]
