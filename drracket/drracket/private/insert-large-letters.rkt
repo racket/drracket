@@ -254,11 +254,11 @@
   (: get-char (Real Real -> Char))
   (define (get-char x y)
     (send bdc get-pixel x y tmp-color)
-    (define color-sum
-      (+ (send tmp-color red)
-         (send tmp-color green)
-         (send tmp-color blue)))
-    (if (<= color-sum (* 3 80))
+    (define max-color
+      (max (send tmp-color red)
+           (send tmp-color green)
+           (send tmp-color blue)))
+    (if (<= max-color 80)
         comment-character
         #\space))
   (define bitmap
