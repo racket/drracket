@@ -476,7 +476,7 @@
                        (equal?
                         (for/list ([range (send defs get-highlighted-ranges)])
                           (list (text:range-start range) (text:range-end range)))
-                        '((27 40)))))
+                        '((24 34)))))
 
 (fire-up-drracket-and-run-tests run-test)
 

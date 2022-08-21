@@ -1219,7 +1219,7 @@
             drracket:unit:definitions-text<%>
             drracket:module-language-tools:definitions-text<%>
             text:all-string-snips<%>) ()
-      (inherit last-position get-top-level-window get-filename
+      (inherit last-position last-position/char get-top-level-window get-filename
                get-tab get-canvas invalidate-bitmap-cache 
                set-position get-start-position get-end-position
                highlight-range dc-location-to-editor-location
@@ -1231,7 +1231,7 @@
         (define fn (get-port-name))
         (cond
           [(all-string-snips?)
-           (define str (make-string (last-position) #\space))
+           (define str (make-string (last-position/char) #\space))
            (fetch-string str)
            (values str fn)]
           [else
