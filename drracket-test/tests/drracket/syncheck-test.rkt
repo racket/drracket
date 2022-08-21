@@ -1702,7 +1702,49 @@
      (build-err-test "(module m racket/base free-var)" #rx"free-var: unbound"
                      (set (list 23 8)))
      (build-err-test "#|🏴‍☠️|#(module m racket/base free-var)" #rx"free-var: unbound"
-                     (set (list 28 8)))))
+                     (set (list 28 8)))
+
+     (build-test
+      #:extra-files
+      (hash "mouse-over-tooltips.rkt"
+            (with-output-to-string
+              (λ ()
+                (displayln "#lang racket/base")
+                (writeln '(require (for-syntax racket/base)))
+                (pretty-write
+                 '(define-syntax (char-span-bad-source stx)
+                    (syntax-case stx ()
+                      [(_ a)
+                       (syntax-property
+                        #'a
+                        'mouse-over-tooltips
+                        (vector
+                         (datum->syntax stx
+                                        (syntax-e stx)
+                                        (vector
+                                         "/file/that/does/not/exist.rkt"
+                                         (syntax-line stx)
+                                         (syntax-column stx)
+                                         (syntax-position stx)
+                                         (syntax-span stx))
+                                        stx)
+                         (sub1 (syntax-position stx))
+                         (sub1 (+ (syntax-position stx)
+                                  (syntax-span stx)))
+                         (format "this expression\nspans ~a chars"
+                                 (syntax-span stx))))])))
+                (write `(provide char-span-bad-source)))))
+      (string-append "#lang racket/base\n"
+                     "(require \"mouse-over-tooltips.rkt\")\n"
+                     "(char-span-bad-source 12345)\n")
+      '(("#lang racket/base\n(" default-color)
+        ("require" imported)
+        (" \"mouse-over-tooltips.rkt\")\n(" default-color)
+        ("char-span-bad-source" imported)
+        (" 12345)\n" default-color))
+      (list '((6 17) (19 26) (76 76))
+            '((27 52) (55 75))))
+     ))
 
 
   (define (main)

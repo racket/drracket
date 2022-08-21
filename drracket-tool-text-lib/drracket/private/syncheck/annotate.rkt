@@ -41,7 +41,7 @@
 
 (define (add-mouse-over/loc source pos-left pos-right str/proc)
   (define defs-text (current-annotations))
-  (when defs-text
+  (when (and defs-text source)
     (add-mouse-over/loc/proc defs-text source pos-left pos-right str/proc)))
 
 (define (add-mouse-over/loc/proc defs-text source pos-left pos-right str/proc)
