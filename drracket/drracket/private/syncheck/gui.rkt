@@ -1610,7 +1610,8 @@ If the namespace does not, they are colored the unbound color.
                     (cond
                       [(and cursor-text cursor-pos)
                        (define-values (binders make-identifiers-hash)
-                         (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos))
+                         (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos
+                                                              #:also-look-backward-one? #f))
                        (make-identifiers-hash)]
                       [else
                        (make-hash)]))
@@ -1622,15 +1623,26 @@ If the namespace does not, they are colored the unbound color.
 
             ;; position->matching-identifiers-hash 
             ;; : txt pos pos -> (values (listof var-arrow?) hash[(list txt pos pos) -o> #t])
-            (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos)
-              (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos #f))
+            (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
+                                                                 #:also-look-backward-one? [also-look-backward-one? #t])
+              (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos #f
+                                                                     #:also-look-backward-one? also-look-backward-one?))
               (values binding-arrows
                       (binding-arrows->identifiers-hash #f binding-arrows)))
 
+            ;; the also-look-backward-one? argument is intended for when the originating
+            ;; position is an insertion point coming, perhaps, via a keystroke. In that
+            ;; situation, positions are between the graphemes and so we might find information
+            ;; in the position to the right or we might find information in the position
+            ;; to the left. So if the start and end position are the same position, check
+            ;; both. When the position comes from a mouse over, however, looking backwards
+            ;; will look wrong, as the position we calculate from the mouse coordinates
+            ;; is always the one bfeore.
             (define/private (position-range->binding-arrows the-text the-start-pos the-end-pos
-                                                            include-require-arrows?)
+                                                            include-require-arrows?
+                                                            #:also-look-backward-one? [also-look-backward-one? #t])
               (cond
-                [(= the-start-pos the-end-pos)
+                [(and (= the-start-pos the-end-pos) also-look-backward-one?)
                  (define forward (position->binding-arrows the-text the-start-pos include-require-arrows?))
                  (cond
                    [(and (null? forward)
