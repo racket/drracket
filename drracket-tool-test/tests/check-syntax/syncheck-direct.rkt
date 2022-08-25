@@ -95,7 +95,7 @@
 (check-equal? (get-tail-arrows "#lang racket\n(define (f x) (match 'x ['x (f x)]))")
               (set '(13 27) '(27 41)))
 (check-equal? (get-tail-arrows "#lang racket/base\n(if '🏴‍☠️ 2 3)")
-              (set '(18 25) '(18 27)))
+              (set '(18 28) '(18 30)))
 
 
 
@@ -185,11 +185,11 @@
                 "  (let ([🏴‍☠️ 1]) 🏴‍☠️))\n"))
               (set
                '((10 21) (25 31))
-               '((10 21) (34 34))
-               '((10 21) (44 47))
-               '((10 21) (52 52))
-               '((32 33) (39 40))
-               '((50 51) (56 57))))
+               '((10 21) (37 37))
+               '((10 21) (50 53))
+               '((10 21) (61 61))
+               '((32 36) (42 46))
+               '((56 60) (65 69))))
 
 (check-equal? (get-binding-arrows/pxpy
                "#lang racket/base\n(require (only-in racket/base))")
