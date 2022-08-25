@@ -110,8 +110,8 @@
                   (") "     default-color)
                   ("🏴‍☠️"      lexically-bound-variable)
                   (")"      default-color))
-                (list '((9 10) (12 13)))
-                #:tooltips '((9 10 "1 bound occurrence")))
+                (list '((9 13) (15 19)))
+                #:tooltips '((9 13 "1 bound occurrence")))
      (build-test "(lambda x x)"
                 '(("("      default-color)
                   ("lambda" imported-syntax)
@@ -1144,8 +1144,8 @@
                    (" 1)\n(module+ test "  default-color)
                    ("🏴‍☠️🏴‍☠️🏴‍☠️"                  imported)
                    (")"                    default-color))
-                 '(((26 29) (47 50))
-                   ((6 17) (19 25) (30 30))))
+                 '(((26 38) (56 68))
+                   ((6 17) (19 25) (39 39))))
      
      (build-test "#lang racket/base\n(require '#%kernel)\npair?"
                  '(("#lang racket/base\n(" default-color)
@@ -1425,7 +1425,7 @@
                         "x."
                         "(module m racket/base (require (prefix-in x. racket/list)) x.first)")
      (build-prefix-test "(module m racket/base (require racket/list) first)"
-                        45
+                        48
                         "🏴‍☠️."
                         "(module m racket/base (require (prefix-in 🏴‍☠️. racket/list)) 🏴‍☠️.first)")
      
@@ -1702,7 +1702,7 @@
      (build-err-test "(module m racket/base free-var)" #rx"free-var: unbound"
                      (set (list 23 8)))
      (build-err-test "#|🏴‍☠️|#(module m racket/base free-var)" #rx"free-var: unbound"
-                     (set (list 28 8)))
+                     (set (list 31 8)))
 
      (build-test
       #:extra-files

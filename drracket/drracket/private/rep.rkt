@@ -649,12 +649,10 @@ TODO
           (define resets
             (for/list ([loc (in-list locs)])
               (define file (srcloc-source loc))
-              (define start-grapheme (- (srcloc-position loc) 1))
-              (define finish-grapheme (+ start-grapheme (srcloc-span loc)))
-              (send file highlight-range
-                    (send file grapheme-position start-grapheme)
-                    (send file grapheme-position finish-grapheme)
-                    (drracket:debug:get-error-color) #f 'high)))
+              (define start (- (srcloc-position loc) 1))
+              (define span (srcloc-span loc))
+              (define finish (+ start span))
+              (send file highlight-range start finish (drracket:debug:get-error-color) #f 'high)))
           (when (and definitions-text error-arrows)
             (let ([filtered-arrows
                    (remove-duplicate-error-arrows
@@ -705,26 +703,24 @@ TODO
           (send source begin-edit-sequence #t #f)
           
           (clear-error-highlighting) ;; clear the 'highlight-range' from previous errors
+
+          (define start (- (srcloc-position loc) 1))
+          (define span (srcloc-span loc))
+          (define finish (+ start span))
+
+          (let ([reset (send source highlight-range start finish
+                             (drracket:debug:get-error-color)
+                             #f 'high)])
+            (set! clear-error-highlighting
+                  (λ ()
+                    (set! clear-error-highlighting void)
+                    (reset))))
           
-          (define start-grapheme (- (srcloc-position loc) 1))
-          (define start-position (send source grapheme-position start-grapheme))
-          (define finish-grapheme (+ start-grapheme (srcloc-span loc)))
-          (define finish-position (send source grapheme-position finish-grapheme))
-          
-          (define reset
-            (send source highlight-range
-                  start-position
-                  finish-position
-                  (drracket:debug:get-error-color)
-                  #f 'high))
-          (set! clear-error-highlighting
-                (λ ()
-                  (set! clear-error-highlighting void)
-                  (reset)))
-          
-          (when (equal? source definitions-text) ;; only move set the cursor in the defs window
-            (send source set-position start-position start-position))
-          (send source scroll-to-position start-position #f finish-position)
+          (when (and start span)
+            (let ([finish (+ start span)])
+              (when (eq? source definitions-text) ;; only move set the cursor in the defs window
+                (send source set-position start start))
+              (send source scroll-to-position start #f finish)))
           
           (on-highlighted-errors loc)
           
