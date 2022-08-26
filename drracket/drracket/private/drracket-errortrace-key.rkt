@@ -1,4 +1,5 @@
 (module drracket-errortrace-key '#%kernel
+  (void '#:errortrace-dont-annotate)
 
   ;; as with errortrace/errortrace-key:
   ;; Defining `errortrace-key' as a function is a performance hack:
