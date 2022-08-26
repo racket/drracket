@@ -677,15 +677,17 @@
       ;; moves the snip (and any children) to at least `new-level'
       ;; doesn't move them if they are already past that level
       (define/private (fix-snip-level snip new-min-level)
+        (define cycle-guard (make-hash))
         (let loop ([snip snip]
                    [new-min-level new-min-level])
-          (let ([current-level (send snip get-level)])
+          (unless (hash-ref cycle-guard snip #f)
+            (hash-set! cycle-guard snip #t)
+            (define current-level (send snip get-level))
             (when (or (not current-level)
                       (new-min-level . > . current-level))
               (send snip set-level new-min-level)
-              (for-each
-               (λ (child) (loop child (+ new-min-level 1)))
-               (send snip get-children))))))
+              (for ([child (in-list (send snip get-children))])
+                (loop child (+ new-min-level 1)))))))
       
       ;; find/create-snip : (union path string) boolean? -> word-snip/lines
       ;; finds the snip with this key, or creates a new
