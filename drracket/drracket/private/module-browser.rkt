@@ -40,7 +40,8 @@
   (import [prefix drracket:frame: drracket:frame^]
           [prefix drracket:eval: drracket:eval^]
           [prefix drracket:language-configuration: drracket:language-configuration/internal^]
-          [prefix drracket:language: drracket:language^])
+          [prefix drracket:language: drracket:language^]
+          [prefix drracket:module-language: drracket:module-language/int^])
   (export (rename drracket:module-overview^ 
                   [_module-overview/file module-overview/file]
                   [_make-module-overview-pasteboard make-module-overview-pasteboard]))
@@ -182,7 +183,9 @@
     (define complete-program? #t)
 
     ((drracket:eval:traverse-program/multiple
-      (preferences:get (drracket:language-configuration:get-settings-preferences-symbol))
+      (drracket:module-language:disable-debugging-et-al
+       (preferences:get
+        (drracket:language-configuration:get-settings-preferences-symbol)))
       init
       kill-termination)
      text/pos

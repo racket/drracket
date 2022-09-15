@@ -125,7 +125,9 @@
    modes-mixin
    drracket-determined-width
 
-   error-message%))
+   error-message%
+
+   disable-debugging-et-al))
 
 (define-signature drracket:module-language-tools-cm^
   (frame-mixin

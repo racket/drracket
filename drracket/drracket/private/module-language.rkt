@@ -26,6 +26,7 @@
          "rep.rkt"
          "eval-helpers-and-pref-init.rkt"
          "local-member-names.rkt"
+         (prefix-in lmn: "local-member-names.rkt")
          "insulated-read-language.rkt"
          drracket/private/rectangle-intersect
          pkg/lib
@@ -138,7 +139,7 @@
   ;; collection-paths : (listof (union 'default string))
   ;; command-line-args : (vectorof string)
   ;; auto-text : string
-  (define-struct (module-language-settings drracket:language:simple-settings)
+  (define-struct (module-language-settings lmn:drracket:language:simple-settings)
     (collection-paths command-line-args auto-text compilation-on? full-trace? submodules-to-run
                       enforce-module-constants))
   
@@ -155,6 +156,19 @@
   (define default-submodules-to-run (list '(test) '(main)))
   (define default-enforce-module-constants #t)
   (define (get-default-auto-text) (preferences:get 'drracket:module-language:auto-text))
+
+  (define (disable-debugging-et-al language-settings)
+    (define lang
+      (drracket:language-configuration:language-settings-language language-settings))
+    (cond
+      [(is-a? lang module-language<%>)
+       (drracket:language-configuration:make-language-settings
+        lang
+        (struct-copy
+         module-language-settings
+         (drracket:language-configuration:language-settings-settings language-settings)
+         [annotations #:parent lmn:drracket:language:simple-settings 'none]))]
+      [else language-settings]))
   
   (define drracket-determined-width (make-parameter 'infinity))
   
