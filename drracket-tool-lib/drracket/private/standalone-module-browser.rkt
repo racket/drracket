@@ -847,10 +847,11 @@
                                                       (λ (x) (get-snip-width x))
                                                       (λ (x) (get-snip-height x)))
                                                   this-level-snips))]
-                        [this-major (apply max (map (if vertical? 
-                                                        (λ (x) (get-snip-height x))
-                                                        (λ (x) (get-snip-width x)))
-                                                    this-level-snips))])
+                        [this-major (apply max 0
+                                           (map (if vertical?
+                                                    (λ (x) (get-snip-height x))
+                                                    (λ (x) (get-snip-width x)))
+                                                this-level-snips))])
                    (let loop ([snips this-level-snips]
                               [minor-dim (/ (- max-minor this-minor) 2)])
                      (unless (null? snips)
