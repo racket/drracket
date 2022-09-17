@@ -1098,6 +1098,7 @@
 (define (standalone-fill-pasteboard pasteboard filename show-status _void)
   (define progress-channel (make-async-channel))
   (define connection-channel (make-async-channel))
+  (struct done (s))
   
   (define-values/invoke-unit process-program-unit
     (import process-program-import^)
@@ -1124,8 +1125,6 @@
            [else
             (loop)]))))
     out)
-  
-  (define done-chan (make-channel))
   
   (define user-thread
     (parameterize ([current-custodian user-custodian])
@@ -1158,21 +1157,26 @@
                                  filename))
            (add-connections
             (if relative? (build-path (current-directory) file-path) file-path))
-           (channel-put done-chan #t))))))
+           (define wait-until-done-sema (make-semaphore))
+           (async-channel-put connection-channel (done wait-until-done-sema))
+           (semaphore-wait wait-until-done-sema))))))
   
   (send pasteboard begin-adding-connections)
   (let ([evt
          (choice-evt
           (handle-evt progress-channel (λ (x) (cons 'progress x)))
-          (handle-evt connection-channel (λ (x) (cons 'connect x)))
-          (handle-evt done-chan (λ (x) (cons 'done #f)))
+          (handle-evt connection-channel
+                      (λ (x)
+                        (match x
+                          [(done c) (cons 'done c)]
+                          [else (cons 'connect x)])))
           (handle-evt user-thread (λ (x) (cons 'died #f))))])
     (let loop ()
       (define evt-value (yield evt))
       (define key (car evt-value))
       (define val (cdr evt-value))
       (case key
-        [(done) (void)]
+        [(done) (semaphore-post val)]
         [(died) (exit)]
         [(progress) 
          (show-status val)
