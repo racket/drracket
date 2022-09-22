@@ -1329,10 +1329,8 @@
                  (not custodian-to-kill))
              (bell)]
             [do-kill?
-             (cond
-               ;; this transitively shuts down custodian-to-kill too
-               [ints (send ints kill-evaluation)]
-               [else (custodian-shutdown-all custodian-to-kill)])
+             ;; this transitively shuts down custodian-to-kill too
+             (send ints kill-evaluation)
              (set! do-kill? #f)
              (send (get-frame) update-kill-button-label)]
             [else
