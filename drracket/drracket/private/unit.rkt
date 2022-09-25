@@ -21,6 +21,7 @@
          net/url
          
          drracket/private/drsig
+         drracket/private/standalone-module-browser
          "insulated-read-language.rkt"
          "insert-large-letters.rkt"
          "get-defs.rkt"
@@ -51,9 +52,8 @@
 
 (define module-browser-progress-constant (string-constant module-browser-progress))
 (define status-compiling-definitions (string-constant module-browser-compiling-defns))
-(define show-lib-paths (string-constant module-browser-show-lib-paths/short))
 (define show-planet-paths (string-constant module-browser-show-planet-paths/short))
-(define refresh (string-constant module-browser-refresh))
+(define module-browser-refresh (string-constant module-browser-refresh))
 
 (define oprintf
   (let ([op (current-output-port)])
@@ -3759,11 +3759,10 @@
              [module-browser-panel #f]
              [module-browser-ec #f]
              [module-browser-button #f]
-             [module-browser-lib-path-check-box #f]
-             [module-browser-planet-path-check-box #f]
              [module-browser-name-length-choice #f]
              [module-browser-pb #f]
              [module-browser-menu-item 'module-browser-menu-item-unset])
+      (define module-browser-pkg-set-choice #f)
       
       (inherit open-status-line close-status-line update-status-line)
       
@@ -3812,26 +3811,6 @@
                                     module-browser-panel
                                     module-browser-pb))
           
-          (let* ([show-callback
-                  (λ (cb key)
-                    (if (send cb get-value)
-                        (send module-browser-pb show-visible-paths key)
-                        (send module-browser-pb remove-visible-paths key))
-                    (preferences:set 'drracket:module-browser:hide-paths 
-                                     (send module-browser-pb get-hidden-paths)))]
-                 [mk-checkbox
-                  (λ (key label)
-                    (new check-box%
-                         (parent module-browser-panel)
-                         (label label)
-                         (value (not (memq key (preferences:get 
-                                                'drracket:module-browser:hide-paths))))
-                         (callback 
-                          (λ (cb _) 
-                            (show-callback cb key)))))])
-            (set! module-browser-lib-path-check-box (mk-checkbox 'lib show-lib-paths))
-            (set! module-browser-planet-path-check-box (mk-checkbox 'planet show-planet-paths)))
-          
           (set! module-browser-name-length-choice
                 (new choice%
                      (parent module-browser-panel)
@@ -3848,11 +3827,17 @@
                           (update-module-browser-name-length selection))))))
           (update-module-browser-name-length 
            (preferences:get 'drracket:module-browser:name-length))
+
+          (set! module-browser-pkg-set-choice
+                (new module-browser-pkg-set-choice%
+                     [parent module-browser-panel]
+                     [pasteboard #f]))
+          (send module-browser-pkg-set-choice stretchable-width #t)
           
-          (set! module-browser-button 
+          (set! module-browser-button
                 (new button%
                      (parent module-browser-panel)
-                     (label refresh)
+                     (label module-browser-refresh)
                      (callback (λ (x y) (update-module-browser-pane)))
                      (stretchable-width #t))))
         
@@ -3893,8 +3878,6 @@
             (open-status-line 'plt:module-browser)
             (update-status-line 'plt:module-browser status-compiling-definitions)
             (send module-browser-button enable #f)
-            (send module-browser-lib-path-check-box enable #f)
-            (send module-browser-planet-path-check-box enable #f)
             (send module-browser-name-length-choice enable #f)
             (disable-evaluation-in-tab current-tab)
             (drracket:module-overview:fill-pasteboard 
@@ -3903,16 +3886,20 @@
               definitions-text
               0
               (send definitions-text last-position))
-             (λ (str) (update-status-line 
-                       'plt:module-browser 
-                       (gui-utils:trim-string (format module-browser-progress-constant str) 200)))
+             (let ([n 0])
+               (λ (str)
+                 (when (zero? (modulo n 20))
+                   (update-status-line
+                    'plt:module-browser
+                    (gui-utils:trim-string (format module-browser-progress-constant str)
+                                           200)))
+                 (set! n (+ n 1))))
              (λ (user-thread user-custodian)
                (send mod-tab set-breakables user-thread user-custodian)))
+            (send module-browser-pkg-set-choice set-pasteboard module-browser-pb)
             (send mod-tab set-breakables old-break-thread old-custodian)
             (send mod-tab enable-evaluation)
             (send module-browser-button enable #t)
-            (send module-browser-lib-path-check-box enable #t)
-            (send module-browser-planet-path-check-box enable #t)
             (send module-browser-name-length-choice enable #t)
             (close-status-line 'plt:module-browser))))
       

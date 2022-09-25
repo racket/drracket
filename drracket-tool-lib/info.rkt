@@ -5,7 +5,7 @@
 (define deps '(["base" #:version "6.2.900.10"]
                "drracket-tool-text-lib"
                "scribble-lib"
-               ["string-constants-lib" #:version "1.12"]
+               ["string-constants-lib" #:version "1.43"]
                "scribble-lib"
                "racket-index"
                "gui-lib"

@@ -1,4 +1,13 @@
 ------------------------------
+       Version 8.7
+------------------------------
+
+   . improved raco dependencies-graph and the Module Browser
+     (available in the View menu and the Racket menu with different
+     GUI styles). It is faster and has new support for filtering based
+     on packages.
+
+------------------------------
        Version 8.6
 ------------------------------
 

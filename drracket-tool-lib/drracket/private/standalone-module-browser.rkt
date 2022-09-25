@@ -12,13 +12,15 @@
          framework/gui-utils
          string-constants
          mrlib/graph
+         mrlib/panel-wob
          racket/unit
          racket/async-channel
          racket/match
-         setup/private/lib-roots
+         setup/dirs
          racket/port
          compiler/module-suffix
-         drracket/private/rectangle-intersect)
+         drracket/private/rectangle-intersect
+         pkg/path)
 
 (define oprintf
   (let ([op (current-output-port)])
@@ -27,22 +29,20 @@
 
 (provide standalone-module-overview/file
          module-overview/file
-         make-module-overview-pasteboard)
+         make-module-overview-pasteboard
+         module-browser-pkg-set-choice%)
 
 (preferences:set-default 'drracket:module-overview:label-font-size 12 number?)
 (preferences:set-default 'drracket:module-overview:window-height 500 number?)
 (preferences:set-default 'drracket:module-overview:window-width 500 number?)
-(preferences:set-default 'drracket:module-browser:hide-paths '(lib)
-                         (λ (x)
-                           (and (list? x)
-                                (andmap symbol? x))))
 (preferences:set-default 'drracket:module-browser:name-length 1 
                          (λ (x) (memq x '(0 1 2 3))))
 
-(define-struct req (r-mpi key))
-;; type req = (make-req [result from resolve-module-path-index] -- except only when it has a path
-;;                      (or/c symbol? #f))
-
+(define-struct req (r-mpi))
+;; type req = (make-req [result from resolve-module-path-index]
+;;                   -- except only when it has a path
+;;                   -- and with the filename inside cleaned up
+;;                      (simplified and .ss/.rkt matching the filesystem)
 
 (provide process-program-unit
          process-program-import^
@@ -57,12 +57,14 @@
 (define original-output-port (current-output-port))
 (define original-error-port (current-error-port))
 
+(define pkg-constant "pkg: ~a")
+(define sc-main-collects (string-constant module-browser-main-collects))
+(define sc-unknown-pkg (string-constant module-browser-unknown-pkg))
+(define sc-visible-pkgs (string-constant module-browser-visible-pkgs))
 (define filename-constant (string-constant module-browser-filename-format))
 (define font-size-gauge-label (string-constant module-browser-font-size-gauge-label))
 (define progress-label (string-constant module-browser-progress-label))
-(define laying-out-graph-label (string-constant module-browser-laying-out-graph-label))
 (define open-file-format (string-constant module-browser-open-file-format))
-(define lib-paths-checkbox-constant (string-constant module-browser-show-lib-paths))
 
 (define (set-box/f b v) (when (box? b) (set-box! b v)))
 
@@ -73,19 +75,17 @@
   (interface ()
     set-label-font-size
     get-label-font-size
-    get-hidden-paths
-    show-visible-paths
-    remove-visible-paths
     set-name-length
-    get-name-length))
+    get-name-length
+    get-pkgs
+    get-main-file-pkg
+    restrict-files-to-pkgs))
 
 (define boxed-word-snip<%>
   (interface ()
     get-filename
     get-word
     get-lines
-    is-special-key-child?
-    add-special-key-child
     set-found!))
 
 (define/contract (render-phases s)
@@ -243,7 +243,6 @@
         (for ([require (in-list requires)])
           (add-connection module-name
                           (req-r-mpi require)
-                          (req-key require)
                           level)
           (add-submod/filename-connections (req-r-mpi require))))))
   
@@ -251,9 +250,9 @@
   ;; name-original and name-require and the identifiers for those paths and
   ;; original-filename? and require-filename? are booleans indicating if the names
   ;; are filenames.
-  (define (add-connection name-original name-require req-sym require-depth)
+  (define (add-connection name-original name-require require-depth)
     (async-channel-put connection-channel
-                       (list name-original name-require req-sym require-depth)))
+                       (list name-original name-require require-depth)))
   
   (define (extract-module-name stx)
     (syntax-case stx ()
@@ -262,12 +261,6 @@
             (identifier? (syntax m-name)))
        (format "~a" (syntax->datum (syntax m-name)))]
       [else unknown-module-name]))
-
-  ;; maps a path to the path of its "library" (see setup/private/lib-roots)
-  (define get-lib-root
-    (let ([t (make-hash)]) ; maps paths to their library roots
-      (lambda (path)
-        (hash-ref! t path (lambda () (path->library-root path))))))
 
   ;; extract-filenames :
   ;;   (listof (union symbol module-path-index)) 
@@ -278,39 +271,28 @@
       (match base/submod
         [`(submod ,p ,_ ...) p]
         [else base/submod]))
-    (define base-lib (get-lib-root base))
     (for*/list ([dr (in-list direct-requires)]
                 [r-mpi (in-value (and (module-path-index? dr)
                                       (resolve-module-path-index dr base)))]
-                #:when (to-path r-mpi))
-      (define path (build-module-filename (to-path r-mpi) #t))
+                #:when (or (path? r-mpi) (pair? r-mpi)))
+      (define r-mpi-filename
+        (match r-mpi
+          [(? path-string?) r-mpi]
+          [`(submod ,p ,_ ...) p]))
+      (build-module-filename r-mpi-filename #t)
+      (define true-filename #f)
+      (get-module-path r-mpi-filename
+                       #:choose (λ (src _1 _2) (set! true-filename src) #f)
+                       )
       (make-req (match r-mpi
-                  [(? path?) (simplify-path r-mpi)]
-                  [`(submod ,p ,submods ...) `(submod ,(simplify-path p) ,@submods)])
-                (get-key dr base-lib path))))
-  
+                  [(? path?) (simplify-path true-filename)]
+                  [`(submod ,p ,submods ...) `(submod ,(simplify-path true-filename) ,@submods)]))))
+
   (define (to-path r-mpi)
     (match r-mpi
       [(? path? p) p]
       [`(submod ,(? path? p) ,_ ...) p]
-      [_ #f]))
-
-  (define (get-key dr requiring-libroot required)
-    (and (module-path-index? dr)
-         ;; files in the same library => return #f as if the require
-         ;; is a relative one, so any kind of require from the same
-         ;; library is always displayed (regardless of hiding planet
-         ;; or lib links)
-         ;; if `requiring-libroot` is #f we just skip this check;
-         ;; this indicates that we're not in a libroot
-         (or (not requiring-libroot)
-             (not (equal? requiring-libroot (get-lib-root required))))
-         (let-values ([(a b) (module-path-index-split dr)])
-           (match a
-             [(? symbol?) 'lib]
-             [(list 'submod (? symbol?) _ ...) 'lib]
-             [(list (? symbol? s) _ ...) s]
-             [_ #f])))))
+      [(? symbol?) #f])))
 
 (define (standalone-module-overview/file filename)
   (module-overview/file filename #f standalone-fill-pasteboard
@@ -341,12 +323,24 @@
   
   
   (define update-label void)
-  
+  (define callback-queued?-sema (make-semaphore 1))
+  (define timer #f)
   (define (show-status str)
-    (parameterize ([current-eventspace progress-eventspace])
-      (queue-callback
-       (λ ()
-         (send progress-message set-label (gui-utils:trim-string str 200))))))
+    (semaphore-wait callback-queued?-sema)
+    (cond
+      [timer
+       (semaphore-post callback-queued?-sema)]
+      [else
+       (set! timer (new timer%
+                        [notify-callback
+                         (λ ()
+                           (semaphore-wait callback-queued?-sema)
+                           (set! timer #f)
+                           (semaphore-post callback-queued?-sema)
+                           (send progress-message set-label (gui-utils:trim-string str 200)))]
+                        [interval 50]
+                        [just-once? #t]))
+       (semaphore-post callback-queued?-sema)]))
   
   (define pasteboard (make-module-overview-pasteboard 
                       #f
@@ -385,6 +379,10 @@
         (define font/label-panel (new horizontal-panel%
                                       [parent vp]
                                       [stretchable-height #f]))
+        (define pkg-choice
+          (new module-browser-pkg-set-choice%
+               [parent font/label-panel]
+               [pasteboard pasteboard]))
         (define font-size-gauge
           (instantiate slider% ()
             (label font-size-gauge-label)
@@ -417,16 +415,7 @@
                           (case selection
                             [(0) 'long]
                             [(1) 'very-long])))))))
-        
-        (define lib-paths-checkbox
-          (instantiate check-box% ()
-            (label lib-paths-checkbox-constant)
-            (parent vp)
-            (callback
-             (λ (x y)
-               (if (send lib-paths-checkbox get-value)
-                   (send pasteboard show-visible-paths 'lib)
-                   (send pasteboard remove-visible-paths 'lib))))))
+        (send pkg-choice set-string-selection (send pasteboard get-main-file-pkg))
         
         (define ec (make-object overview-editor-canvas% vp pasteboard))
         
@@ -468,8 +457,6 @@
           (send pasteboard end-edit-sequence))
         (update-found-and-search-hits #f) ;; only to initialize search-hits
         
-        (send lib-paths-checkbox set-value
-              (not (memq 'lib (preferences:get 'drracket:module-browser:hide-paths))))
         (set! update-label
               (λ (s)
                 (if (and s (not (null? s)))
@@ -477,8 +464,10 @@
                            [fn (send currently-over get-filename)]
                            [lines (send currently-over get-lines)])
                       (when (and fn lines)
-                        (send label-message set-label
-                              (format filename-constant fn lines))))
+                        (define label (format filename-constant fn lines))
+                        (define pkg (send currently-over get-pkg))
+                        (when pkg (set! label (string-append (format pkg-constant pkg) "  " label)))
+                        (send label-message set-label label)))
                     (send label-message set-label ""))))
         
         (send pasteboard set-name-length 
@@ -486,12 +475,105 @@
                 [(0) 'long]
                 [(1) 'long]
                 [(2) 'long]
-                [(3) 'very-long]))          
+                [(3) 'very-long]))
         ;; shouldn't be necessary here -- need to find callback on editor
         (send pasteboard render-snips)
         
         (send frame show #t)))))
 
+(define module-browser-pkg-set-choice%
+  (class canvas%
+    (init-field pasteboard)
+    (define choices '())
+    (define selected (make-hash))
+    (define in? #f)
+    (super-new [style '(transparent)])
+    (when pasteboard (choices-refreshed))
+    (inherit get-client-size popup-menu refresh
+             min-width min-height get-dc
+             stretchable-width stretchable-height)
+    (let ()
+      (send (get-dc) set-font normal-control-font)
+      (send (get-dc) set-smoothing 'smoothed)
+      (define-values (tw th _1 _2) (send (get-dc) get-text-extent sc-visible-pkgs))
+      (min-width (+ menu-based-set-choice-inset (inexact->exact (ceiling tw)) menu-based-set-choice-inset))
+      (min-height (+ menu-based-set-choice-inset (inexact->exact (ceiling th)) menu-based-set-choice-inset))
+      (stretchable-width #f)
+      (stretchable-height #f))
+
+    (define/public (set-pasteboard _pb)
+      (set! pasteboard _pb)
+      (choices-refreshed))
+    (define/public (choices-refreshed)
+      (unless pasteboard (error 'choices-refreshed "pasteboard hasn't been set yet"))
+      (set! selected (make-hash))
+      (set! choices (sort (set->list (send pasteboard get-pkgs)) string<?))
+      (for ([choice (in-list choices)])
+        (hash-set! selected choice #f))
+      (for ([choice (in-set (send pasteboard get-pkg-restriction))])
+        (hash-set! selected choice #t)))
+    (define/private (update-the-pasteboard)
+      (define pkgs
+        (for/set ([selection (in-list (get-selections))])
+          (list-ref choices selection)))
+      (send pasteboard restrict-files-to-pkgs pkgs))
+
+    (define/override (on-paint)
+      (define dc (get-dc))
+      (define-values (cw ch) (get-client-size))
+      (define-values (tw th _1 _2) (send dc get-text-extent sc-visible-pkgs))
+      (when in?
+        (define color (if (white-on-black-panel-scheme?) 0.5 0.2))
+        (send dc set-pen "black" 1 'transparent)
+        (send dc set-brush (get-label-foreground-color) 'solid)
+        (define alpha (send dc get-alpha))
+        (send dc set-alpha color)
+        (send dc draw-rounded-rectangle 0 0 cw ch)
+        (send dc set-alpha alpha))
+      (send dc draw-text
+            sc-visible-pkgs
+            (- (/ cw 2) (/ tw 2))
+            (- (/ ch 2) (/ th 2))))
+    (define/override (on-event evt)
+      (super on-event evt)
+      (cond
+        [(send evt entering?)
+         (set-in? #t)]
+        [(send evt leaving?)
+         (set-in? #f)]
+        [(send evt button-down?)
+         (unless pasteboard
+           (error 'module-browser-pkg-set-choice%
+                  "pasteboard hasn't been set yet but we got a button down event"))
+         (define-values (cw ch) (get-client-size))
+         (define menu (new popup-menu%))
+         (for ([choice (in-list choices)])
+           (define item
+             (new checkable-menu-item%
+                  [parent menu]
+                  [label choice]
+                  [callback (λ (item evt)
+                              (hash-set! selected choice (not (hash-ref selected choice)))
+                              (update-the-pasteboard))]))
+           (send item check (hash-ref selected choice)))
+         (popup-menu menu 0 ch)]))
+
+    (define/private (set-in? _in?)
+      (unless (equal? in? _in?)
+        (set! in? _in?)
+        (refresh)))
+
+    (define/public (set-string-selection s)
+      (for ([choice (in-list choices)])
+        (hash-set! selected choice (equal? s choice))))
+    (define/public (get-selections)
+      (filter
+       values
+       (for/list ([choice (in-list choices)]
+                  [i (in-naturals)])
+         (and (hash-ref selected choice) i))))))
+
+(define menu-based-set-choice-inset 4)
 ;; make-module-overview-pasteboard : boolean
 ;;                                   ((union #f snip) -> void)
 ;;                                -> (union string pasteboard)
@@ -502,7 +584,7 @@
                                          #:on-boxed-word-double-click
                                          [on-boxed-word-double-click #f])
   
-  (define level-ht (make-hasheq))
+  (define level-ht (make-hash))
   
   ;; snip-table : hash-table[sym -o> snip]
   (define snip-table (make-hash))
@@ -544,12 +626,41 @@
       ;; maps parent/child snips (ie, those that match up to modules 
       ;; that require each other) to phase differences
       (define require-depth-ht (make-hash))
+
+      (define original-plain-links (make-hash))
+      (define original-for-syntax-links (make-hash))
+      (define roots '())
+
+      ;; (or/c #f (set/c string?)) -- #f when uninitialized
+      (define pkg-restriction #f)
+      (define/public (get-pkg-restriction) pkg-restriction)
+      (define/public (restrict-files-to-pkgs pkgs)
+        (unless (equal? pkgs pkg-restriction)
+          (set! pkg-restriction pkgs)
+          (begin-edit-sequence)
+          (remove-currrently-inserted)
+          (add-all)
+          (end-edit-sequence)
+          (render-snips)))
+
+      (define path->pkg-cache (make-hash))
+      (define all-pkgs #f)
+      (define/public (get-pkgs)
+        (unless all-pkgs (error 'get-pkgs "not yet computed"))
+        all-pkgs)
+      (define main-file-pkg #f)
+      (define/public (get-main-file-pkg)
+        (unless main-file-pkg (error 'get-main-file-pkg "not yet computed"))
+        main-file-pkg)
       
       (define name-length 'long)
       (define/public (set-name-length nl)
         (unless (eq? name-length nl)
           (set! name-length nl)
-          (re-add-snips)
+          (begin-edit-sequence)
+          (remove-currrently-inserted)
+          (add-all)
+          (end-edit-sequence)
           (render-snips)))
       (define/public (get-name-length) name-length)
       
@@ -597,7 +708,8 @@
              (set! font-label-size-callback-running? #f))
            #f)))
       
-      (define/public (begin-adding-connections)
+      (define/public (begin-adding-connections init-filename)
+        (set! main-file-pkg (path->pkg-as-string init-filename path->pkg-cache))
         (when max-lines
           (error 'begin-adding-connections
                  "already in begin-adding-connections/end-adding-connections sequence"))
@@ -617,16 +729,24 @@
                  "not in begin-adding-connections/end-adding-connections sequence"))
         
         (unless (zero? max-lines)
-          (let loop ([snip (find-first-snip)])
-            (when snip
-              (when (is-a? snip word-snip/lines%)
-                (send snip normalize-lines max-lines))
-              (loop (send snip next)))))
-        
+          (define all-the-pkgs
+            (let loop ([snip (find-first-snip)]
+                       [all-pkgs (set main-file-pkg)])
+              (cond
+                [(not snip) all-pkgs]
+                [(is-a? snip word-snip/lines%)
+                 (send snip normalize-lines max-lines)
+                 (define pkg (send snip get-pkg))
+                 (loop (send snip next)
+                       (set-add all-pkgs pkg))]
+                [else
+                 (loop (send snip next)
+                       all-pkgs)])))
+          (set! all-pkgs all-the-pkgs))
         
         (set! max-lines #f)
         (compute-snip-require-phases)
-        (remove-specially-linked)
+        (restrict-files-to-pkgs (set main-file-pkg))
         (render-snips)
         (end-edit-sequence))
       
@@ -647,31 +767,36 @@
       ;; name-original and name-require and the identifiers for those paths and
       ;; original-filename? and require-filename? are booleans indicating if the names
       ;; are filenames.
-      (define/public (add-connection name-original name-require path-key require-depth)
+      (define/public (add-connection name-original name-require require-depth)
         (unless max-lines
           (error 'add-connection "not in begin-adding-connections/end-adding-connections sequence"))
-        (let* ([original-snip (find/create-snip name-original)]
-               [require-snip (find/create-snip name-require)]
-               [original-level (send original-snip get-level)]
-               [require-level (send require-snip get-level)])
-          (let ([require-depth-key (list original-snip require-snip)])
-            (hash-set! require-depth-ht 
-                       require-depth-key
-                       (cons require-depth (hash-ref require-depth-ht require-depth-key '())))) 
-          (case require-depth 
-            [(0)
-             (add-links original-snip require-snip
-                        dark-pen light-pen
-                        dark-brush light-brush)]
-            [else
-             (add-links original-snip require-snip 
-                        dark-syntax-pen light-syntax-pen
-                        dark-syntax-brush light-syntax-brush)])
-          (when path-key
-            (send original-snip add-special-key-child path-key require-snip))
-          (if (send original-snip get-level)
-              (fix-snip-level require-snip (+ original-level 1))
-              (fix-snip-level original-snip 0))))
+        (define original-snip (find/create-snip name-original))
+        (define require-snip (find/create-snip name-require))
+        (set! roots (remove require-snip roots))
+        (let ([require-depth-key (list original-snip require-snip)])
+          (hash-set! require-depth-ht
+                     require-depth-key
+                     (cons require-depth (hash-ref require-depth-ht require-depth-key '()))))
+        (define table-to-add-to (if (equal? require-depth 0) original-plain-links original-for-syntax-links))
+        (define previous-children (hash-ref table-to-add-to original-snip '()))
+        (unless (member require-snip previous-children)
+          (hash-set! table-to-add-to original-snip (cons require-snip previous-children))))
+
+      (define/private (add-regular-link original-snip require-snip)
+        (add-links original-snip require-snip
+                   dark-pen light-pen
+                   dark-brush light-brush))
+
+      (define/private (add-for-syntax-link original-snip require-snip)
+        (add-links original-snip require-snip
+                   dark-syntax-pen light-syntax-pen
+                   dark-syntax-brush light-syntax-brush))
+
+      (define/private (fix-snip-level-after-linking original-snip require-snip)
+        (define original-level (send original-snip get-level))
+        (if original-level
+            (fix-snip-level require-snip (+ original-level 1))
+            (fix-snip-level original-snip 0)))
       
       ;; fix-snip-level : snip number -> void
       ;; moves the snip (and any children) to at least `new-level'
@@ -694,15 +819,15 @@
       ;; ones. For the same key, always returns the same snip.
       ;; uses snip-table as a cache for this purpose.
       (define/private (find/create-snip name)
-        (define filename
-          (match name
-            [(? path-string?) (and (file-exists? name) name)]
-            [`(submod ,p ,_ ...) (and (file-exists? p) p)]
-            [else #f]))
         (hash-ref
          snip-table
          name
-         (λ () 
+         (λ ()
+           (define filename
+             (match name
+               [(? path-string?) (and (file-exists? name) name)]
+               [`(submod ,p ,_ ...) (and (file-exists? p) p)]
+               [else #f]))
            (define snip
              (new word-snip/lines%
                   [lines (if filename (count-lines filename) #f)]
@@ -716,9 +841,16 @@
                             (format "~s" `(submod ,short-name ,@submods))]))
                        (format "~a" name))]
                   [pb this]
-                  [filename filename]))
+                  [filename filename]
+                  [pkg (cond
+                         [(and filename (path->pkg filename #:cache path->pkg-cache))
+                          => values]
+                         [(is-in-main-collects? filename)
+                          sc-main-collects]
+                         [else sc-unknown-pkg])]))
            (insert snip)
            (hash-set! snip-table name snip)
+           (set! roots (cons snip roots))
            snip)))
       
       ;; count-lines : string[filename] -> (union #f number)
@@ -755,67 +887,57 @@
           (get-snip-location snip #f bb #t)
           (- (unbox bb)
              (unbox tb))))
-      
-      (field [hidden-paths (preferences:get 'drracket:module-browser:hide-paths)])
-      (define/public (remove-visible-paths symbol)
-        (unless (memq symbol hidden-paths)
-          (set! hidden-paths (cons symbol hidden-paths))
-          (refresh-visible-paths)))
-      (define/public (show-visible-paths symbol)
-        (when (memq symbol hidden-paths)
-          (set! hidden-paths (remq symbol hidden-paths))
-          (refresh-visible-paths)))
-      (define/public (get-hidden-paths) hidden-paths)
-      
-      (define/private (refresh-visible-paths)
-        (begin-edit-sequence)
-        (re-add-snips)
-        (render-snips)
-        (end-edit-sequence))
-      
-      (define/private (re-add-snips)
-        (begin-edit-sequence)
-        (remove-specially-linked)
-        (end-edit-sequence))
-      
-      (define/private (remove-specially-linked)
-        (remove-currrently-inserted)
-        (cond
-          [(null? hidden-paths)
-           (add-all)]
-          [else
-           (let ([ht (make-hasheq)])
-             (for ([snip (in-list (get-top-most-snips))])
-               (insert snip)
-               (let loop ([snip snip])
-                 (unless (hash-ref ht snip #f)
-                   (hash-set! ht snip #t)
-                   (for ([child (in-list (send snip get-children))])
-                     (unless (ormap (λ (key) (send snip is-special-key-child?
-                                                   key child))
-                                    hidden-paths)
-                       (insert child)
-                       (loop child)))))))]))
-      
+
       (define/private (remove-currrently-inserted)
+        (let loop ([snip (find-first-snip)])
+          (when snip
+            (for ([child (in-list (send snip get-children))])
+              (remove-links snip child))
+            (loop (send snip next))))
         (let loop ()
           (let ([snip (find-first-snip)])
             (when snip
               (send snip release-from-owner)
               (loop)))))
-      
+
       (define/private (add-all)
-        (let ([ht (make-hasheq)])
-          (for-each
-           (λ (snip)
-             (let loop ([snip snip])
-               (unless (hash-ref ht snip (λ () #f))
-                 (hash-set! ht snip #t)
-                 (insert snip)
-                 (for-each loop (send snip get-children)))))
-           (get-top-most-snips))))
+        (define visited (make-hash))
+        (reset-levels)
+        (for ([root (in-list roots)])
+          (when (set-member? pkg-restriction (send root get-pkg))
+            (insert root)
+            (send root set-level 0))
+          (let loop ([parent-to-link (if (set-member? pkg-restriction (send root get-pkg)) root #f)]
+                     [parent root]
+                     [through-for-syntax? #f])
+            (unless (hash-ref visited parent #f)
+              (hash-set! visited parent #t)
+              (define (continue child for-syntax-child?)
+                (cond
+                  [(set-member? pkg-restriction (send child get-pkg))
+                   (insert child)
+                   (cond
+                     [parent-to-link
+                      (if (or for-syntax-child? through-for-syntax?)
+                          (add-for-syntax-link parent-to-link child)
+                          (add-regular-link parent-to-link child))
+                      (fix-snip-level-after-linking parent-to-link child)]
+                     [else (fix-snip-level child 0)])
+                   (loop child child #f)]
+                  [else
+                   (loop parent-to-link child (or through-for-syntax? for-syntax-child?))]))
+              (for ([child (in-list (hash-ref original-plain-links parent '()))])
+                (continue child #f))
+              (for ([child (in-list (hash-ref original-for-syntax-links parent '()))])
+                (continue child #t))))))
+
+      (define/private (reset-levels)
+        (for ([(level snips) (in-hash level-ht)])
+          (for ([snip (in-list snips)])
+            (send snip reset-level)))
+        (set! level-ht (make-hash)))
       
-      (define/private (get-top-most-snips) (hash-ref level-ht 0 (λ () null)))
+      (define/private (get-top-most-snips) (hash-ref level-ht 0 '()))
       
       ;; render-snips : -> void
       (define/public (render-snips)
@@ -943,24 +1065,30 @@
   
   (define (level-mixin %)
     (class %
-      (field (level #f))
+      (define level #f)
+      (define/public (reset-level) (set! level #f))
       (define/public (get-level) level)
       (define/public (set-level _l) 
         (when level
           (hash-set! level-ht level
-                     (remq this (hash-ref level-ht level))))
+                     (for/list ([snip (in-list (hash-ref level-ht level))]
+                                #:unless (object=? snip this))
+                       snip)))
         (set! level _l)
         (hash-set! level-ht level 
-                   (cons this (hash-ref level-ht level (λ () null)))))
+                   (cons this (hash-ref level-ht level '()))))
       
-      (super-instantiate ())))
+      (super-new)))
   
   (define (boxed-word-snip-mixin %)
     (class* % (boxed-word-snip<%>)
       (init-field word
                   filename
                   lines
-                  pb)
+                  pb
+                  pkg) ;; string; might be a pkg but might be some other descriptive string
+
+      (unless (string? pkg) (error 'pkg "is not a string"))
       
       (inherit get-admin)
       
@@ -972,16 +1100,11 @@
           (set! last-size #f)
           (set! require-phases (sort (cons d require-phases) < #:key (λ (x) (or x +inf.0))))))
       
-      (field [special-children (make-hasheq)])
-      (define/public (is-special-key-child? key child)
-        (let ([ht (hash-ref special-children key #f)])
-          (and ht (hash-ref ht child #f))))
-      (define/public (add-special-key-child key child)
-        (hash-set! (hash-ref! special-children key make-hasheq) child #t))
-      
       (define/public (get-filename) filename)
       (define/public (get-word) word)
       (define/public (get-lines) lines)
+
+      (define/public (get-pkg) pkg)
       
       (field (lines-brush #f))
       (define/public (normalize-lines n)
@@ -1095,6 +1218,25 @@
                                    overview-pasteboard%)))
   (new draw-lines-pasteboard% [cache-arrow-drawing? #t]))
 
+(define (path->pkg-as-string filename path->pkg-cache)
+  (cond
+    [(path->pkg filename #:cache path->pkg-cache)
+     => values]
+    [(is-in-main-collects? filename)
+     sc-main-collects]
+    [else sc-unknown-pkg]))
+
+(define (is-in-main-collects? path)
+  (define exploded (explode-path path))
+  (for/or ([search-dir-path (in-list (get-main-collects-search-dirs))])
+    (define search-dir-exploded (explode-path search-dir-path))
+    (and (>= (length exploded)
+             (length search-dir-exploded))
+         (for/and ([exploded (in-list exploded)]
+                   [search-dir-exploded (in-list search-dir-exploded)])
+           (equal? exploded
+                   search-dir-exploded)))))
+
 (define (standalone-fill-pasteboard pasteboard filename show-status _void)
   (define progress-channel (make-async-channel))
   (define connection-channel (make-async-channel))
@@ -1161,7 +1303,7 @@
            (async-channel-put connection-channel (done wait-until-done-sema))
            (semaphore-wait wait-until-done-sema))))))
   
-  (send pasteboard begin-adding-connections)
+  (send pasteboard begin-adding-connections filename)
   (let ([evt
          (choice-evt
           (handle-evt progress-channel (λ (x) (cons 'progress x)))
@@ -1183,10 +1325,9 @@
          (loop)]
         [(connect)
          (define name-original (list-ref val 0))
-         (define name-require (list-ref val 1))
-         (define path-key (list-ref val 2))
-         (define require-depth (list-ref val 3))
-         (send pasteboard add-connection name-original name-require path-key require-depth)
+         (define path-key (list-ref val 1))
+         (define require-depth (list-ref val 2))
+         (send pasteboard add-connection name-original path-key require-depth)
          (loop)])))
   (send pasteboard end-adding-connections)
   

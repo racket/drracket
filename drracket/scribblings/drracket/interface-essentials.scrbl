@@ -744,7 +744,8 @@ file cannot be included in another debugging session.
 The module browser shows you the structure of all of the files in your program.
 It can be opened via the @onscreen{Show} menu, or via the 
 @onscreen{Module Browser} 
-menu items in the @onscreen{Racket} menu.
+menu items in the @onscreen{Racket} menu. It is also available
+from the command-line via @index["raco dependencies-graph"]{@tt{raco dependencies-graph}}.
 
 A module browser window contains a square for each
   module. The squares are colored based on the number of
@@ -763,14 +764,18 @@ A module browser window contains a square for each
   on the box for that module.
   
   The module browser will also show you the phases that each
-  module is loaded in; choose the ``Long, with phases'' menu item
-  in the ``Names'' pop-up menu. The integers indicate the phases and
+  module is loaded in; choose the @onscreen{Long, with phases} menu item
+  in the @onscreen{Names} pop-up menu. The integers indicate the phases and
   if @racket[#f] is present, it means the module is loaded @racket[for-label].
   
   The bar along the bottom helps you find your way in a module graph. Specifically,
   if you type something there, then all of the modules whose filenames match
   what you type will turn green in the module window. This bar is only visible
-  in the stand alone module browser window (via the @onscreen{Racket} menu)
+  in the stand alone module browser window (via the @onscreen{Racket} menu).
+
+  The @onscreen{Visible Packages} menu controls which subset of the files
+  are visible. To start, all of the files in the same package as the
+  package that the initial file are shown.
 
 @section[#:tag "color-scheme"]{Color Schemes}
 

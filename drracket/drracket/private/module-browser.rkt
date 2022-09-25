@@ -4,9 +4,7 @@
          racket/class
          racket/set
          racket/contract
-         racket/list
          syntax/moddep
-         syntax/toplevel
          framework
          string-constants
          mrlib/graph
@@ -14,8 +12,6 @@
          "eval-helpers-and-pref-init.rkt"
          racket/unit
          racket/async-channel
-         racket/match
-         setup/private/lib-roots
          racket/port
          drracket/private/rectangle-intersect
          drracket/private/standalone-module-browser)
@@ -26,13 +22,6 @@
 ;; own output ports or something instead of wrapping these ones
 (define original-output-port (current-output-port))
 (define original-error-port (current-error-port))
-
-(define filename-constant (string-constant module-browser-filename-format))
-(define font-size-gauge-label (string-constant module-browser-font-size-gauge-label))
-(define progress-label (string-constant module-browser-progress-label))
-(define laying-out-graph-label (string-constant module-browser-laying-out-graph-label))
-(define open-file-format (string-constant module-browser-open-file-format))
-(define lib-paths-checkbox-constant (string-constant module-browser-show-lib-paths))
 
 (define (set-box/f b v) (when (box? b) (set-box! b v)))
 
@@ -115,11 +104,11 @@
     (define user-thread #f)
     (define error-str #f)
     
-    (define init-dir
+    (define init-filename
       (let* ([bx (box #f)]
              [filename (send (drracket:language:text/pos-text text/pos) get-filename bx)])
-        (get-init-dir 
-         (and (not (unbox bx)) filename))))
+        (and (not (unbox bx)) filename)))
+    (define init-dir (and init-filename (get-init-dir init-filename)))
     
     (define (init)
       (set! user-custodian (current-custodian))
@@ -204,7 +193,7 @@
        (sync (thread-dead-evt user-thread))
        (async-channel-put connection-channel 'done)))
     
-    (send pasteboard begin-adding-connections)
+    (send pasteboard begin-adding-connections init-filename)
     (let ([evt
            (choice-evt
             (handle-evt progress-channel (λ (x) (cons 'progress x)))
@@ -221,9 +210,8 @@
              (unless (eq? val 'done)
                (let ([name-original (list-ref val 0)]
                      [name-require (list-ref val 1)]
-                     [path-key (list-ref val 2)]
-                     [require-depth (list-ref val 3)])
-                 (send pasteboard add-connection name-original name-require path-key require-depth))
+                     [require-depth (list-ref val 2)])
+                 (send pasteboard add-connection name-original name-require require-depth))
                (loop))]))))
     (send pasteboard end-adding-connections)
     
