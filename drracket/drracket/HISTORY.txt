@@ -7,6 +7,8 @@
      GUI styles). It is faster and has new support for filtering based
      on packages.
 
+   . improve the responsiveness when killing programs that print a lot
+
 ------------------------------
        Version 8.6
 ------------------------------
