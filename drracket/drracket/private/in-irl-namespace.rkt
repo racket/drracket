@@ -99,8 +99,15 @@
              (- after-pos 1)
              (- after-pos 1))]
     [else
+     (define restarted-port (peeking-input-port port))
+     (define first-line-after-comments (read-line restarted-port))
      (define-values (_5 _6 peeking-pos) (port-next-location peeking-port))
-     (values #f #f #f #f before-pos)]))
+     (cond
+       [(or (regexp-match? #rx#"^#lang " first-line-after-comments)
+            (regexp-match? #rx#"^#![a-zA-Z0-9+-_]" first-line-after-comments))
+        (values #f #f #f #f (+ before-pos (string-length first-line-after-comments)))]
+       [else
+        (values #f #f #f #f before-pos)])]))
     
 (define (reset-irl!/inside port)
   (set!-values (language-get-info
@@ -236,4 +243,8 @@
   (check-equal? (compute-lang-info/wrap "(stuff)")
                 (list #f #f #f 1))
   (check-equal? (compute-lang-info/wrap "123 456")
-                (list #f #f #f 1)))
+                (list #f #f #f 1))
+  (check-equal? (compute-lang-info/wrap ";; abc\n#lang rackket\nabc")
+                (list #f #f #f 21))
+  (check-equal? (compute-lang-info/wrap ";; abc\n(whatevs)")
+                (list #f #f #f 8)))
