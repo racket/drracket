@@ -118,6 +118,11 @@
   (define bug-frame (new bug-frame% 
                          [bug-id (saved-report-id init-bug-report)]
                          [title (string-constant bug-report-form)]))
+  (define obsolete-msg
+    (new message%
+         [label "This window is obsolete; please do not use it. Use:\nhttps://github.com/racket/racket/issues/new/choose/"]
+         [parent (send bug-frame get-area-container)]
+         [vert-margin 30]))
   (define single (new panel:single% (parent (send bug-frame get-area-container))))
   (define compose-panel (make-object vertical-panel% single))
   
@@ -303,6 +308,7 @@
     (init-pending-view))
 
   (define (ok)
+    (message-box (string-constant drracket) "This window is obsolete; the report is not submitted; it is lost.")
     (when (sanity-checking)
       (send-bug-report)))
   
