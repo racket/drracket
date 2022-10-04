@@ -2,10 +2,24 @@
 @(require (for-label racket
                      help/search
                      help/bug-report
-                     help/help-utils))
+                     help/help-utils)
+          (only-in scribble/core
+                   style
+                   paragraph
+                   make-background-color-property))
 
 @title{Bug Reporting}
 @defmodule[help/bug-report]
+
+@(define yellow-style (style #f (list (make-background-color-property "yellow"))))
+
+@paragraph[yellow-style
+           @elem{To report a Racket bug, please
+                 @hyperlink["https://github.com/racket/racket/issues"]{create a new issue here}.}]
+
+The @racketmodname[help/bug-report] library is provided for backward
+compatibility, but the server that it attempts to contact has been
+disabled, so no bug submissions through this interface will succeed.
 
 @defproc[(help-desk:report-bug [this-bug-id #f (or/c #f exact-positive-integer?)] 
                                [#:frame-mixin 
