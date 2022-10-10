@@ -24,6 +24,7 @@ Will not work with the definitions text surrogate interposition that
          syntax-color/racket-lexer
          syntax-color/lexer-contract
          drracket/syncheck-drracket-button
+         gui-debugger/debug-tool-button
          (for-syntax racket/base))
 
 (define recognized-read-language-symbol/c
@@ -310,7 +311,8 @@ Will not work with the definitions text surrogate interposition that
     ;; is in the invocation of the local-member-name in the callback
     ;; that passes the drracket frame there that requires this to be
     ;; in the irl namespace.
-    (namespace-attach-module trusted-namespace 'drracket/syncheck-drracket-button))
+    (namespace-attach-module trusted-namespace 'drracket/syncheck-drracket-button)
+    (namespace-attach-module trusted-namespace 'gui-debugger/debug-tool-button))
   ns)
 
 (define (pick-new-language text all-languages module-language
