@@ -9,6 +9,10 @@
 
    . improve the responsiveness when killing programs that print a lot
 
+   . Emojis are supported in DrRacket's editor
+
+   . misc, minor bug fixes
+
 ------------------------------
        Version 8.6
 ------------------------------
