@@ -721,7 +721,10 @@
               (send s release-from-owner)
               (loop))))
         (set! level-ht (make-hasheq))
-        (set! snip-table (make-hash)))
+        (set! snip-table (make-hash))
+        (set! roots '())
+        (set! original-plain-links (make-hash))
+        (set! original-for-syntax-links (make-hash)))
       
       (define/public (end-adding-connections)
         (unless max-lines
