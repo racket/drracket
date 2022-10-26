@@ -749,8 +749,10 @@
         
         (set! max-lines #f)
         (compute-snip-require-phases)
+        ;; setting pkg-restriction ensures that
+        ;; restrict-files-to-pkgs moves snips properly
+        (set! pkg-restriction #f)
         (restrict-files-to-pkgs (set main-file-pkg))
-        (render-snips)
         (end-edit-sequence))
       
       (define/private (compute-snip-require-phases)
