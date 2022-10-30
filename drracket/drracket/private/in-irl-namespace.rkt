@@ -103,8 +103,9 @@
      (define first-line-after-comments (read-line restarted-port))
      (define-values (_5 _6 peeking-pos) (port-next-location peeking-port))
      (cond
-       [(or (regexp-match? #rx#"^#lang " first-line-after-comments)
-            (regexp-match? #rx#"^#![a-zA-Z0-9+-_]" first-line-after-comments))
+       [(and (not (eof-object? first-line-after-comments))
+             (or (regexp-match? #rx#"^#lang " first-line-after-comments)
+                 (regexp-match? #rx#"^#![a-zA-Z0-9+-_]" first-line-after-comments)))
         (values #f #f #f #f (+ before-pos (string-length first-line-after-comments)))]
        [else
         (values #f #f #f #f before-pos)])]))
