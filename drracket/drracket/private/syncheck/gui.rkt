@@ -732,6 +732,8 @@ If the namespace does not, they are colored the unbound color.
                        (λ (x y)
                          (visit-docs-url))]))))
             
+            (define/public (syncheck:add-definition-target/phase-level source start-pos end-pos id mods phase-level)
+              (syncheck:add-definition-target source start-pos end-pos id mods))
             (define/public (syncheck:add-definition-target source start-pos end-pos id mods)
               (hash-set! definition-targets (list id mods) (list source start-pos end-pos)))
             ;; syncheck:find-definition-target 
@@ -1105,6 +1107,8 @@ If the namespace does not, they are colored the unbound color.
             (define/public (syncheck:add-jump-to-definition text start end id filename submods)
               (when arrow-records
                 (add-to-range/key text start end (make-def-link id filename submods) #f #f)))
+            (define/public (syncheck:add-jump-to-definition/phase-level text start end id filename submods phase-level)
+              (syncheck:add-jump-to-definition text start end id filename submods))
 
             (define/public (syncheck:add-prefixed-require-reference req-text
                                                                     req-pos-left
