@@ -384,13 +384,32 @@ in order to make the results be platform independent.
                                              [submods (listof symbol?)])
             void?]{
 
+  This function is not called directly anymore by Check Syntax. Instead
+  @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level] is.
+
+  The default implementation of @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level]
+  discards the @racket[_phase-level] argument and calls this method.
+}
+
+ @defmethod[(syncheck:add-jump-to-definition/phase-level [source-obj (not/c #f)]
+                                                         [start exact-nonnegative-integer?]
+                                                         [end exact-nonnegative-integer?]
+                                                         [id any/c]
+                                                         [filename path-string?]
+                                                         [submods (listof symbol?)]
+                                                         [phase-level (or/c exact-integer? #f)])
+            void?]{
+
    Called to indicate that there is some identifier at the given location (named @racket[id]) that
    is defined in the @racket[submods] of the file @racket[filename] (where an empty list in
-   @racket[submods] means that the identifier is defined at the top-level module).
+   @racket[submods] means that the identifier is defined at the top-level module), at the
+  @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{phase level} @racket[phase-level].
 
-  See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
-  about the coordinates @racket[start] and @racket[end].
- }
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the coordinates @racket[start] and @racket[end].
+
+  @history[#:added "1.2"]
+}
                   
  @defmethod[(syncheck:add-definition-target [source-obj (not/c #f)]
                                             [start exact-nonnegative-integer?]
@@ -398,13 +417,30 @@ in order to make the results be platform independent.
                                             [id symbol?]
                                             [mods (listof symbol?)])
             void?]{
+  This function is not called directly anymore by Check Syntax. Instead
+  @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level] is.
+
+  The default implementation of @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level]
+  discards the @racket[_phase-level] argument and calls this method.
+
+ }
+ @defmethod[(syncheck:add-definition-target/phase-level [source-obj (not/c #f)]
+                                                        [start exact-nonnegative-integer?]
+                                                        [finish exact-nonnegative-integer?]
+                                                        [id symbol?]
+                                                        [mods (listof symbol?)]
+                                                        [phase-level (or/c exact-integer? #f)])
+            void?]{
   Called to indicate a top-level definition at the location spanned by @racket[start]
   and @racket[finish]. The @racket[id] argument is the name of the defined variable
   and the @racket[mods] are the submodules enclosing the definition, which will be empty
-  if the definition is in the top-level module.
+  if the definition is in the top-level module. The @racket[phase-level] argument indicates the
+  @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{phase level}.
 
   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
   about the coordinates @racket[start] and @racket[end].
+
+  @history[#:added "1.2"]
   }
                                                       
  @defmethod[(syncheck:color-range [source-obj (not/c #f)]
@@ -511,6 +547,9 @@ in order to make the results be platform independent.
                     syncheck:add-tail-arrow
                     syncheck:add-mouse-over-status
                     syncheck:add-jump-to-definition
+                    syncheck:add-jump-to-definition/phase-level
+                    syncheck:add-definition-target
+                    syncheck:add-definition-target/phase-level
                     syncheck:add-id-set 
                     syncheck:color-range
                     syncheck:add-prefixed-require-reference

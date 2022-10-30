@@ -16,7 +16,9 @@
     syncheck:add-tail-arrow
     syncheck:add-mouse-over-status
     syncheck:add-jump-to-definition
+    syncheck:add-jump-to-definition/phase-level
     syncheck:add-definition-target
+    syncheck:add-definition-target/phase-level
     syncheck:add-prefixed-require-reference
     syncheck:add-unused-require
     syncheck:color-range
@@ -67,7 +69,11 @@
     (define/public (syncheck:add-mouse-over-status text pos-left pos-right str) (void))
     
     (define/public (syncheck:add-jump-to-definition text start end id filename submods) (void))
+    (define/public (syncheck:add-jump-to-definition/phase-level text start end id filename submods phase-level)
+      (syncheck:add-jump-to-definition text start end id filename submods))
     (define/public (syncheck:add-definition-target source pos-left pos-right id mods) (void))
+    (define/public (syncheck:add-definition-target/phase-level source pos-left pos-right id mods phase-level)
+      (syncheck:add-definition-target source pos-left pos-right id mods))
     (define/public (syncheck:color-range source start finish style-name) (void))
     (define/public (syncheck:add-prefixed-require-reference
                     req-src req-pos-left req-pos-right

@@ -914,7 +914,8 @@
                    var
                    source-id
                    filename
-                   submods)))
+                   submods
+                   req-phase-level)))
               (define prefix-length
                 (cond
                   [(and (identifier? match/prefix)
@@ -1197,7 +1198,7 @@
 ;; registers the range in the editor so that the
 ;; popup menu in this area allows the programmer to jump
 ;; to the definition of the id.
-(define (add-jump-to-definition stx id filename submods)
+(define (add-jump-to-definition stx id filename submods phase-level)
   (let ([source (find-source-editor stx)]
         [defs-text (current-annotations)])
     (when (and source
@@ -1206,13 +1207,14 @@
                (syntax-span stx))
       (let* ([pos-left (- (syntax-position stx) 1)]
              [pos-right (+ pos-left (syntax-span stx))])
-        (send defs-text syncheck:add-jump-to-definition
+        (send defs-text syncheck:add-jump-to-definition/phase-level
               source
               pos-left
               pos-right
               id
               filename
-              submods)))))
+              submods
+              phase-level)))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
 ;; relies on current-module-name-resolver, which in turn depends on
@@ -1393,12 +1395,13 @@
                  (syntax-span id))
         (let* ([pos-left (- (syntax-position id) 1)]
                [pos-right (+ pos-left (syntax-span id))])
-          (send defs-text syncheck:add-definition-target
+          (send defs-text syncheck:add-definition-target/phase-level
                 source
                 pos-left
                 pos-right
                 (list-ref ib 1)
-                mods))))))
+                mods
+                phase-level))))))
 
 ;; annotate-raw-keyword : syntax id-map integer -> void
 ;; annotates keywords when they were never expanded. eg.
@@ -1564,8 +1567,8 @@
     (log syncheck:add-mouse-over-status _text pos-left pos-right str)
     (log syncheck:add-text-type _text start fin text-type)
     (log syncheck:add-background-color _text start fin color)
-    (log syncheck:add-jump-to-definition _text start end id filename submods)
-    (log syncheck:add-definition-target _text start-pos end-pos id mods)
+    (log syncheck:add-jump-to-definition/phase-level _text start end id filename submods phase-level)
+    (log syncheck:add-definition-target/phase-level _text start-pos end-pos id mods phase-level)
     (log syncheck:add-require-open-menu _text start-pos end-pos file)
     (log syncheck:add-docs-menu _text start-pos end-pos key the-label path definition-tag tag)
     (log syncheck:add-id-set to-be-renamed/poss dup-name?)

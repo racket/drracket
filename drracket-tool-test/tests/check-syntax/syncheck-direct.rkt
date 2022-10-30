@@ -603,33 +603,32 @@
 
 
 
-;                                                                                              
-;                                                                                              
-;                                                                                              
-;                                                                                              
-;                                                                                              
-;                                                                                              
-;        ;;;             ;;;;                  ;                                           ;   
-;        ;;;            ;;;;;                ;;;                                         ;;;   
-;        ;;;            ;;;                  ;;;                                         ;;;   
-;     ;; ;;;    ;;;;   ;;;;;  ;;; ;;;       ;;;;;;   ;;;;;;   ;;; ;;   ;; ;;;    ;;;;   ;;;;;; 
-;    ;;;;;;;   ;;;;;;  ;;;;;  ;;;;;;;;      ;;;;;;  ;;;;;;;;  ;;;;;   ;;;;;;;   ;;;;;;  ;;;;;; 
-;   ;;;  ;;;  ;;;  ;;;  ;;;   ;;;  ;;;       ;;;    ;;;  ;;;  ;;;    ;;;  ;;;  ;;;  ;;;  ;;;   
-;   ;;;  ;;;  ;;;;;;;;  ;;;   ;;;  ;;;       ;;;       ;;;;;  ;;;    ;;;  ;;;  ;;;;;;;;  ;;;   
-;   ;;;  ;;;  ;;;;;;;;  ;;;   ;;;  ;;;       ;;;     ;;;;;;;  ;;;    ;;;  ;;;  ;;;;;;;;  ;;;   
-;   ;;;  ;;;  ;;;       ;;;   ;;;  ;;;       ;;;    ;;;  ;;;  ;;;    ;;;  ;;;  ;;;       ;;;   
-;    ;;;;;;;   ;;;;;;;  ;;;   ;;;  ;;;       ;;;;;  ;;;;;;;;  ;;;     ;;;;;;;   ;;;;;;;  ;;;;; 
-;     ;; ;;;    ;;;;;   ;;;   ;;;  ;;;        ;;;;   ;;; ;;;  ;;;      ;; ;;;    ;;;;;    ;;;; 
-;                                                                         ;;;                  
-;                                                                    ;;;;;;;;                  
-;                                                                     ;;;;;                    
-;                                                                                              
-;                                                                                              
+
+;                                                                                                             
+;                                                                                                             
+;                                                                                                             
+;                                                                                                             
+;      ;;;          ;;;;            ;;;                               ;  ;                                 ;  
+;      ;;;         ;;;                                                ;;;;                               ;;;  
+;   ;; ;;;   ;;;;  ;;;; ;;; ;;      ;;; ;;; ;;; ;;; ;; ;;;  ;;; ;;   ; ;;;;  ;;;;;  ;;; ;;;; ;;;   ;;;;  ;;;; 
+;  ;;;;;;;  ;; ;;; ;;;; ;;;;;;;     ;;; ;;; ;;; ;;;;;;;;;;; ;;;;;;;  ; ;;;; ;;;;;;; ;;;;;;;;;;;;  ;; ;;; ;;;; 
+;  ;;; ;;; ;;; ;;; ;;;  ;;; ;;;     ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;  ; ;;;  ;;  ;;; ;;;  ;;; ;;; ;;; ;;; ;;;  
+;  ;;; ;;; ;;;;;;; ;;;  ;;; ;;;     ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;  ; ;;;    ;;;;; ;;;  ;;; ;;; ;;;;;;; ;;;  
+;  ;;; ;;; ;;;     ;;;  ;;; ;;;     ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;  ; ;;;  ;;; ;;; ;;;  ;;; ;;; ;;;     ;;;  
+;  ;;;;;;;  ;;;;;; ;;;  ;;; ;;;     ;;; ;;;;;;; ;;; ;;; ;;; ;;;;;;; ;  ;;;; ;;; ;;; ;;;  ;;;;;;;  ;;;;;; ;;;; 
+;   ;; ;;;   ;;;;  ;;;  ;;; ;;;     ;;;  ;; ;;; ;;; ;;; ;;; ;;; ;;  ;   ;;;  ;;;;;; ;;;   ;; ;;;   ;;;;   ;;; 
+;                                  ;;;;                     ;;;                              ;;;              
+;                                  ;;;                      ;;;                          ;;;;;;               
+;                                                                                                             
+;                                                                                                             
 
 
 (define-get-arrows add-definition-target
   (syncheck:add-definition-target source start-pos end-pos id mods)
   (list id mods))
+(define-get-arrows add-definition-target/phase-level
+  (syncheck:add-definition-target/phase-level source start-pos end-pos id mods phase-level)
+  (list id mods phase-level))
 
 ;; ensure that we get two different
 ;; identifiers for the two different `x`s
@@ -643,6 +642,58 @@
                  "(m)\n")))
               3)
 
+(define example-module-defining-x-in-multiple-phases
+#<<--
+#lang racket/base
+(require (for-syntax racket/base))
+
+(module m racket/base
+  (require (for-syntax racket/base))
+
+  (define x 0)
+  (provide x)
+
+  (begin-for-syntax
+    (define x 1)
+    (provide x)))
+--
+  )
+
+
+(check-equal? (add-definition-target example-module-defining-x-in-multiple-phases)
+              (set (list 'x '(m))))
+
+(check-equal? (add-definition-target/phase-level example-module-defining-x-in-multiple-phases)
+              (set (list 'x '(m) 1)
+                   (list 'x '(m) 0)))
+
+(define-get-arrows add-jump-to-definition
+  (syncheck:add-jump-to-definition source start-pos end-pos id filename mods)
+  (list id mods))
+(define-get-arrows add-jump-to-definition/phase-level
+  (syncheck:add-jump-to-definition/phase-level source start-pos end-pos id filename mods phase-level)
+  (list id mods phase-level))
+
+(define example-module-with-multiple-phases
+#<<--
+#lang racket/base
+(require (for-syntax racket/base racket/list) racket/list)
+(begin-for-syntax (void drop))
+(take)
+--
+  )
+
+(check-equal? (for/set ([x (in-set (add-jump-to-definition example-module-with-multiple-phases))]
+                        #:when (member (car x) '(drop take)))
+                x)
+              (set (list 'drop '())
+                   (list 'take '())))
+
+(check-equal? (for/set ([x (in-set (add-jump-to-definition/phase-level example-module-with-multiple-phases))]
+                        #:when (member (car x) '(drop take)))
+                x)
+              (set (list 'drop '() 1)
+                   (list 'take '() 0)))
 
 ;                                                                                           
 ;                                                                                           
