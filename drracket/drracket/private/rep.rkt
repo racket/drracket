@@ -2424,6 +2424,4 @@ TODO
   (define the-irl (send definitions-text get-irl))
   (define-values (before after)
     (get-read-language-port-start+end (send definitions-text get-irl)))
-  (let ([ans (and after (send definitions-text get-text 0 after))])
-    (printf ">> ~s\n" ans)
-    ans))
+  (and after (send definitions-text get-text 0 after)))

@@ -2262,16 +2262,16 @@ If the namespace does not, they are colored the unbound color.
              (send defs-text syncheck:add-text-type defs-text start fin text-type)]
             [`#(syncheck:add-background-color ,start ,fin ,color) ; unused
              (send defs-text syncheck:add-background-color defs-text start fin color)]
-            [`#(syncheck:add-jump-to-definition ,start ,end ,id ,filename ,submods)
-             (send defs-text syncheck:add-jump-to-definition defs-text start end id filename submods)]
+            [`#(syncheck:add-jump-to-definition/phase-level ,start ,end ,id ,filename ,submods ,phase-level)
+             (send defs-text syncheck:add-jump-to-definition/phase-level defs-text start end id filename submods phase-level)]
 
             [`#(syncheck:add-require-open-menu ,start-pos ,end-pos ,file)
              (send defs-text syncheck:add-require-open-menu defs-text start-pos end-pos file)]
             [`#(syncheck:add-docs-menu ,start-pos ,end-pos ,key ,the-label ,path ,definition-tag ,tag)
              (send defs-text syncheck:add-docs-menu defs-text start-pos end-pos
                    key the-label path definition-tag tag)]
-            [`#(syncheck:add-definition-target ,start-pos ,end-pos ,id ,mods)
-             (send defs-text syncheck:add-definition-target defs-text start-pos end-pos id mods)]
+            [`#(syncheck:add-definition-target/phase-level ,start-pos ,end-pos ,id ,mods ,phase-level)
+             (send defs-text syncheck:add-definition-target/phase-level defs-text start-pos end-pos id mods phase-level)]
             [`#(syncheck:add-id-set ,to-be-renamed/poss ,name-dup-pc ,name-dup-id)
              (define to-be-renamed/poss/fixed
                (for/list ([lst (in-list to-be-renamed/poss)])
