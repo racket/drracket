@@ -323,6 +323,11 @@
       ;; (this will be the end of the #lang line if there is one,
       ;; or it will be some conservative place if there isn't)
       (define hash-lang-last-location #f)
+      ;; the region between `hash-lang-comment-end-position` and `hash-lang-last-location`
+      ;; is known to be a comment and so edits there might not change the #lang line
+      ;; if `hash-lang-comment-end-position` is #f, then we don't have a comment region to track
+      ;; and so all edits before `hash-lang-last-location` will reload the #lang extensions
+      (define hash-lang-comment-end-position #f)
 
       (define/public (irl-get-read-language-port-start+end)
         (get-read-language-port-start+end the-irl))
@@ -339,11 +344,35 @@
       (define/public (get-in-module-language?) in-module-language?)
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
+        (when (and hash-lang-last-location
+                   hash-lang-comment-end-position)
+          (cond
+            [(<= start hash-lang-comment-end-position)
+             (set! hash-lang-comment-end-position (+ hash-lang-comment-end-position len))
+             (set! hash-lang-last-location (+ hash-lang-last-location len))]
+            [(<= start hash-lang-last-location)
+             (set! hash-lang-last-location (+ hash-lang-last-location len))]))
         (modification-at start))
       (define/augment (after-delete start len)
         (inner (void) after-delete start len)
+        (when (and hash-lang-last-location
+                   hash-lang-comment-end-position)
+          (cond
+            [(<= (+ start len) hash-lang-comment-end-position)
+             ;; a deletion entirely inside the comment region, so we optimistically
+             ;; update `hash-lang-comment-end-position` and `hash-lang-last-location`
+             ;; and the comment check in `modification-at` will confirm
+             (set! hash-lang-comment-end-position (- hash-lang-comment-end-position len))
+             (set! hash-lang-last-location (- hash-lang-last-location len))]
+            [(> start hash-lang-last-location)
+             ;; here the deletion is entirely after and so we don't need to update anything
+             (void)]
+            [else
+             ;; here the deletion spans the end of the comment region and possibly
+             ;; the lang line. Just give up and reload #lang extensions
+             (set! hash-lang-comment-end-position #f)]))
         (modification-at start))
-      
+
       (define/augment (after-save-file success?)
         (inner (void) after-save-file success?)
         (when success? (filename-maybe-changed)))
@@ -366,22 +395,36 @@
       ;; is in the region of the lang line, or when start is #f, or
       ;; when there is no #lang line known.
       (define/private (modification-at start)
+        (define (start-the-move-to-new-language-timer)
+          (unless timer
+            (set! timer (new logging-timer%
+                             [notify-callback
+                              (λ ()
+                                (when in-module-language?
+                                  (move-to-new-language)))]
+                             [just-once? #t])))
+          (send timer stop)
+          (send timer start 200 #t))
         (send (send (get-tab) get-frame) when-initialized
               (λ ()
                 (when in-module-language?
                   (when (or (not start)
                             (not hash-lang-last-location)
                             (<= start hash-lang-last-location))
-                    
-                    (unless timer
-                      (set! timer (new logging-timer%
-                                       [notify-callback
-                                        (λ ()
-                                          (when in-module-language?
-                                            (move-to-new-language)))]
-                                       [just-once? #t])))
-                    (send timer stop)
-                    (send timer start 200 #t))))))
+
+                    (cond
+                      [(and start
+                            hash-lang-last-location
+                            hash-lang-comment-end-position
+                            (<= start hash-lang-comment-end-position))
+                       (define prt (open-input-text-editor this))
+                       (port-count-lines! prt)
+                       (skip-past-comments prt)
+                       (define-values (_1 _2 current-end-of-comments+1) (port-next-location prt))
+                       (unless (= hash-lang-comment-end-position (- current-end-of-comments+1 1))
+                         (start-the-move-to-new-language-timer))]
+                      [else
+                       (start-the-move-to-new-language-timer)]))))))
 
       (define/private (update-in-module-language? new-one)
         (unless (equal? new-one in-module-language?)
@@ -391,6 +434,7 @@
              (move-to-new-language)]
             [else
              (set! hash-lang-language #f)
+             (set! hash-lang-comment-end-position #f)
              (set! hash-lang-last-location #f)
              (clear-things-out)])))
 
@@ -405,7 +449,11 @@
         (when hash-lang-language
           (preferences:set 'drracket:most-recent-lang-line (string-append hash-lang-language
                                                                           "\n")))
-        (set! hash-lang-last-location (get-read-language-last-position the-irl))
+        (set!-values (hash-lang-comment-end-position hash-lang-last-location)
+                     (get-read-language-port-start+end the-irl))
+        (unless hash-lang-last-location
+          (set! hash-lang-comment-end-position #f)
+          (set! hash-lang-last-location (get-read-language-last-position the-irl)))
         
         (clear-things-out)
 
