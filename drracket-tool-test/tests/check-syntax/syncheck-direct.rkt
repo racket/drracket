@@ -626,8 +626,8 @@
 (define-get-arrows add-definition-target
   (syncheck:add-definition-target source start-pos end-pos id mods)
   (list id mods))
-(define-get-arrows add-definition-target/phase-level
-  (syncheck:add-definition-target/phase-level source start-pos end-pos id mods phase-level)
+(define-get-arrows add-definition-target/phase-level+space
+  (syncheck:add-definition-target/phase-level+space source start-pos end-pos id mods phase-level)
   (list id mods phase-level))
 
 ;; ensure that we get two different
@@ -663,15 +663,15 @@
 (check-equal? (add-definition-target example-module-defining-x-in-multiple-phases)
               (set (list 'x '(m))))
 
-(check-equal? (add-definition-target/phase-level example-module-defining-x-in-multiple-phases)
+(check-equal? (add-definition-target/phase-level+space example-module-defining-x-in-multiple-phases)
               (set (list 'x '(m) 1)
                    (list 'x '(m) 0)))
 
 (define-get-arrows add-jump-to-definition
   (syncheck:add-jump-to-definition source start-pos end-pos id filename mods)
   (list id mods))
-(define-get-arrows add-jump-to-definition/phase-level
-  (syncheck:add-jump-to-definition/phase-level source start-pos end-pos id filename mods phase-level)
+(define-get-arrows add-jump-to-definition/phase-level+space
+  (syncheck:add-jump-to-definition/phase-level+space source start-pos end-pos id filename mods phase-level)
   (list id mods phase-level))
 
 (define example-module-with-multiple-phases
@@ -689,11 +689,23 @@
               (set (list 'drop '())
                    (list 'take '())))
 
-(check-equal? (for/set ([x (in-set (add-jump-to-definition/phase-level example-module-with-multiple-phases))]
+(check-equal? (for/set ([x (in-set (add-jump-to-definition/phase-level+space example-module-with-multiple-phases))]
                         #:when (member (car x) '(drop take)))
                 x)
               (set (list 'drop '() 1)
                    (list 'take '() 0)))
+
+(check-equal? (for/set ([x (in-set
+                            (add-jump-to-definition/phase-level+space
+                             (string-append
+                              "#lang racket/base\n"
+                              "(require (for-space qq racket/list) racket/list (for-syntax racket/base))\n"
+                              "(define-syntax (in-qq stx) (syntax-case stx () [(_ x) ((make-interned-syntax-introducer 'qq) #'x)]))\n"
+                              "(in-qq first)\n")))]
+                        #:when (equal? (car x) 'first))
+                x)
+              (set (list 'first '() (cons 0 'qq))))
+
 
 ;                                                                                           
 ;                                                                                           

@@ -895,6 +895,7 @@
       (define source-req-path (list-ref source-req-path/pr 3))
       (define source-id (list-ref source-req-path/pr 1))
       (define req-phase-level (list-ref req-path/pr 2))
+      (define req-phase+space-shift (list-ref req-path/pr 4))
       (define require-hash-key (list req-phase-level mods))
       (define require-ht (hash-ref phase-to-requires require-hash-key #f))
       (when require-ht
@@ -915,7 +916,7 @@
                    source-id
                    filename
                    submods
-                   req-phase-level)))
+                   req-phase+space-shift)))
               (define prefix-length
                 (cond
                   [(and (identifier? match/prefix)
@@ -991,13 +992,13 @@
 
 
 ;; get-module-req-path : identifier number [#:nominal? boolean]
-;;                    -> (union #f (list require-sexp sym ?? module-path-index?))
+;;                    -> (union #f (list require-sexp sym ?? module-path-index? phase+space?))
 (define (get-module-req-path var phase-level #:nominal? [nominal-source-path? #t])
   (define binding (identifier-binding var phase-level))
   (let/ec return
     (unless (pair? binding) (return #f))
-    (define phase-shift+space (list-ref binding 5))
-    (define phase-shift (if (pair? phase-shift+space) (car phase-shift+space) phase-shift+space))
+    (define phase+space-shift (list-ref binding 5))
+    (define phase-shift (if (pair? phase+space-shift) (car phase+space-shift) phase+space-shift))
     (define phase+space (list-ref binding 6))
     (define phase (if (pair? phase+space) (car phase+space) phase+space))
     (when (and (number? phase-level)
@@ -1012,12 +1013,14 @@
        (list base
              (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
              phase-shift
-             mod-path)]
+             mod-path
+             phase+space-shift)]
       [(symbol? mod-path)
        (list mod-path
              (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
              phase-shift
-             mod-path)]
+             mod-path
+             phase+space-shift)]
       [else #f])))
 
 ;; color/connect-top : namespace directory id-set syntax connections[see defn for ctc] -> void
@@ -1198,7 +1201,7 @@
 ;; registers the range in the editor so that the
 ;; popup menu in this area allows the programmer to jump
 ;; to the definition of the id.
-(define (add-jump-to-definition stx id filename submods phase-level)
+(define (add-jump-to-definition stx id filename submods phase-level+space)
   (let ([source (find-source-editor stx)]
         [defs-text (current-annotations)])
     (when (and source
@@ -1207,14 +1210,14 @@
                (syntax-span stx))
       (let* ([pos-left (- (syntax-position stx) 1)]
              [pos-right (+ pos-left (syntax-span stx))])
-        (send defs-text syncheck:add-jump-to-definition/phase-level
+        (send defs-text syncheck:add-jump-to-definition/phase-level+space
               source
               pos-left
               pos-right
               id
               filename
               submods
-              phase-level)))))
+              phase-level+space)))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
 ;; relies on current-module-name-resolver, which in turn depends on
@@ -1395,7 +1398,7 @@
                  (syntax-span id))
         (let* ([pos-left (- (syntax-position id) 1)]
                [pos-right (+ pos-left (syntax-span id))])
-          (send defs-text syncheck:add-definition-target/phase-level
+          (send defs-text syncheck:add-definition-target/phase-level+space
                 source
                 pos-left
                 pos-right
@@ -1567,8 +1570,8 @@
     (log syncheck:add-mouse-over-status _text pos-left pos-right str)
     (log syncheck:add-text-type _text start fin text-type)
     (log syncheck:add-background-color _text start fin color)
-    (log syncheck:add-jump-to-definition/phase-level _text start end id filename submods phase-level)
-    (log syncheck:add-definition-target/phase-level _text start-pos end-pos id mods phase-level)
+    (log syncheck:add-jump-to-definition/phase-level+space _text start end id filename submods phase-level)
+    (log syncheck:add-definition-target/phase-level+space _text start-pos end-pos id mods phase-level)
     (log syncheck:add-require-open-menu _text start-pos end-pos file)
     (log syncheck:add-docs-menu _text start-pos end-pos key the-label path definition-tag tag)
     (log syncheck:add-id-set to-be-renamed/poss dup-name?)

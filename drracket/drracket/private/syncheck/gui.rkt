@@ -732,7 +732,7 @@ If the namespace does not, they are colored the unbound color.
                        (λ (x y)
                          (visit-docs-url))]))))
             
-            (define/public (syncheck:add-definition-target/phase-level source start-pos end-pos id mods phase-level)
+            (define/public (syncheck:add-definition-target/phase-level+space source start-pos end-pos id mods phase-level)
               (syncheck:add-definition-target source start-pos end-pos id mods))
             (define/public (syncheck:add-definition-target source start-pos end-pos id mods)
               (hash-set! definition-targets (list id mods) (list source start-pos end-pos)))
@@ -1107,7 +1107,7 @@ If the namespace does not, they are colored the unbound color.
             (define/public (syncheck:add-jump-to-definition text start end id filename submods)
               (when arrow-records
                 (add-to-range/key text start end (make-def-link id filename submods) #f #f)))
-            (define/public (syncheck:add-jump-to-definition/phase-level text start end id filename submods phase-level)
+            (define/public (syncheck:add-jump-to-definition/phase-level+space text start end id filename submods phase-level)
               (syncheck:add-jump-to-definition text start end id filename submods))
 
             (define/public (syncheck:add-prefixed-require-reference req-text
@@ -2262,16 +2262,16 @@ If the namespace does not, they are colored the unbound color.
              (send defs-text syncheck:add-text-type defs-text start fin text-type)]
             [`#(syncheck:add-background-color ,start ,fin ,color) ; unused
              (send defs-text syncheck:add-background-color defs-text start fin color)]
-            [`#(syncheck:add-jump-to-definition/phase-level ,start ,end ,id ,filename ,submods ,phase-level)
-             (send defs-text syncheck:add-jump-to-definition/phase-level defs-text start end id filename submods phase-level)]
+            [`#(syncheck:add-jump-to-definition/phase-level+space ,start ,end ,id ,filename ,submods ,phase-level)
+             (send defs-text syncheck:add-jump-to-definition/phase-level+space defs-text start end id filename submods phase-level)]
 
             [`#(syncheck:add-require-open-menu ,start-pos ,end-pos ,file)
              (send defs-text syncheck:add-require-open-menu defs-text start-pos end-pos file)]
             [`#(syncheck:add-docs-menu ,start-pos ,end-pos ,key ,the-label ,path ,definition-tag ,tag)
              (send defs-text syncheck:add-docs-menu defs-text start-pos end-pos
                    key the-label path definition-tag tag)]
-            [`#(syncheck:add-definition-target/phase-level ,start-pos ,end-pos ,id ,mods ,phase-level)
-             (send defs-text syncheck:add-definition-target/phase-level defs-text start-pos end-pos id mods phase-level)]
+            [`#(syncheck:add-definition-target/phase-level+space ,start-pos ,end-pos ,id ,mods ,phase-level)
+             (send defs-text syncheck:add-definition-target/phase-level+space defs-text start-pos end-pos id mods phase-level)]
             [`#(syncheck:add-id-set ,to-be-renamed/poss ,name-dup-pc ,name-dup-id)
              (define to-be-renamed/poss/fixed
                (for/list ([lst (in-list to-be-renamed/poss)])

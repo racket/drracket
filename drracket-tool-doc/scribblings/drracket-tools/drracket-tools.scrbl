@@ -5,7 +5,8 @@
                      drracket/find-module-path-completions
                      framework
                      setup/path-to-relative
-                     racket))
+                     racket
+                     racket/phase+space))
 @(define syncheck-example-eval (make-base-eval))
 @(begin 
    (syncheck-example-eval
@@ -385,19 +386,19 @@ in order to make the results be platform independent.
             void?]{
 
   This function is not called directly anymore by Check Syntax. Instead
-  @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level] is.
+  @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level+space] is.
 
-  The default implementation of @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level]
+  The default implementation of @method[syncheck-annotations<%> syncheck:add-jump-to-definition/phase-level+space]
   discards the @racket[_phase-level] argument and calls this method.
 }
 
- @defmethod[(syncheck:add-jump-to-definition/phase-level [source-obj (not/c #f)]
-                                                         [start exact-nonnegative-integer?]
-                                                         [end exact-nonnegative-integer?]
-                                                         [id any/c]
-                                                         [filename path-string?]
-                                                         [submods (listof symbol?)]
-                                                         [phase-level (or/c exact-integer? #f)])
+ @defmethod[(syncheck:add-jump-to-definition/phase-level+space [source-obj (not/c #f)]
+                                                               [start exact-nonnegative-integer?]
+                                                               [end exact-nonnegative-integer?]
+                                                               [id any/c]
+                                                               [filename path-string?]
+                                                               [submods (listof symbol?)]
+                                                               [phase-level+space phase+space-shift?])
             void?]{
 
    Called to indicate that there is some identifier at the given location (named @racket[id]) that
@@ -418,18 +419,18 @@ in order to make the results be platform independent.
                                             [mods (listof symbol?)])
             void?]{
   This function is not called directly anymore by Check Syntax. Instead
-  @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level] is.
+  @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level+space] is.
 
-  The default implementation of @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level]
+  The default implementation of @method[syncheck-annotations<%> syncheck:add-definition-target/phase-level+space]
   discards the @racket[_phase-level] argument and calls this method.
 
  }
- @defmethod[(syncheck:add-definition-target/phase-level [source-obj (not/c #f)]
-                                                        [start exact-nonnegative-integer?]
-                                                        [finish exact-nonnegative-integer?]
-                                                        [id symbol?]
-                                                        [mods (listof symbol?)]
-                                                        [phase-level (or/c exact-integer? #f)])
+ @defmethod[(syncheck:add-definition-target/phase-level+space [source-obj (not/c #f)]
+                                                              [start exact-nonnegative-integer?]
+                                                              [finish exact-nonnegative-integer?]
+                                                              [id symbol?]
+                                                              [mods (listof symbol?)]
+                                                              [phase-level phase+space-shift?])
             void?]{
   Called to indicate a top-level definition at the location spanned by @racket[start]
   and @racket[finish]. The @racket[id] argument is the name of the defined variable
@@ -547,9 +548,9 @@ in order to make the results be platform independent.
                     syncheck:add-tail-arrow
                     syncheck:add-mouse-over-status
                     syncheck:add-jump-to-definition
-                    syncheck:add-jump-to-definition/phase-level
+                    syncheck:add-jump-to-definition/phase-level+space
                     syncheck:add-definition-target
-                    syncheck:add-definition-target/phase-level
+                    syncheck:add-definition-target/phase-level+space
                     syncheck:add-id-set 
                     syncheck:color-range
                     syncheck:add-prefixed-require-reference
