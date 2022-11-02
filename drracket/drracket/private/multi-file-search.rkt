@@ -412,14 +412,20 @@
               (λ (dir k)
                 (let* ([key (normalize-path dir)]
                        [traversed? (hash-ref touched key (λ () #f))])
-                  (if traversed? 
-                      (k)
-                      (begin
-                        (hash-set! touched key #t)
+                  (cond
+                    [traversed? (k)]
+                    [else
+                     (define content
+                       (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
+                         (directory-list dir)))
+                     (hash-set! touched key #t)
+                     (cond
+                       [content
                         (process-dir-contents 
                          (map (λ (x) (build-path dir x))
-                              (directory-list dir))
-                         k)))))]
+                              content)
+                         k)]
+                       [else (k)])])))]
              [process-dir-contents
               ; string[dirname] (listof string[filename]) -> (listof string[filename])
               (λ (contents k)
@@ -448,7 +454,9 @@
   ;; build-flat-file-list : path (union #f regexp) -> (-> (union string #f))
   ;; thread: searching thread
   (define (build-flat-file-list dir filter)
-    (let ([contents (map (λ (x) (build-path dir x)) (directory-list dir))])
+    (let ([contents (map (λ (x) (build-path dir x))
+                         (with-handlers ([exn:fail:filesystem? (λ (x) '())])
+                           (directory-list dir)))])
       (λ ()
         (let loop ()
           (cond
