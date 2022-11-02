@@ -477,6 +477,33 @@
                         (for/list ([range (send defs get-highlighted-ranges)])
                           (list (text:range-start range) (text:range-end range)))
                         '((27 40)))))
+(test @t{
+#lang racket
+(struct exn:fail:user-srcloc exn:fail:user (srclocs)
+  #:property prop:exn:srclocs
+  (λ (s) (exn:fail:user-srcloc-srclocs s)))
+
+(define-syntax (m stx)
+  (syntax-case stx ()
+    [(_ expr)
+     #`(raise (exn:fail:user-srcloc "srcloc" (current-continuation-marks)
+                                    (list
+                                     (srcloc '#,(syntax-source #'expr)
+                                             '#,(syntax-line #'expr)
+                                             '#,(syntax-column #'expr)
+                                             '#,(syntax-position #'expr)
+                                             '#,(syntax-span #'expr)))))]))
+
+(m abc)
+}
+      #f
+      #rx"^[.] srcloc"
+      #:extra-assert
+      (λ (defs ints)
+        (equal?
+         (for/list ([range (send defs get-highlighted-ranges)])
+           (list (text:range-start range) (text:range-end range)))
+         '((680 683)))))
 
 (fire-up-drracket-and-run-tests run-test)
 
