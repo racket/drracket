@@ -1037,18 +1037,20 @@ TODO
         (send context set-breakables #f #f))
       
       (define/augment (submit-to-port? key)
-        (or (send key get-control-down)
-            (send key get-alt-down)
-            (and prompt-position
-                 (let ([pred (get-insulated-submit-predicate (send definitions-text get-irl))])
-                   (cond
-                     [pred
-                      (pred 
-                       (open-input-text-editor this prompt-position)
-                       (only-whitespace-after-insertion-point))]
-                     [else
-                      (and (only-whitespace-after-insertion-point)
-                           (submit-predicate this prompt-position))])))))
+        (cond
+          [(or (send key get-control-down) (send key get-alt-down)) #t]
+          [(send key get-shift-down) #f]
+          [prompt-position
+           (define pred (get-insulated-submit-predicate (send definitions-text get-irl)))
+           (cond
+             [pred
+              (pred
+               (open-input-text-editor this prompt-position)
+               (only-whitespace-after-insertion-point))]
+             [else
+              (and (only-whitespace-after-insertion-point)
+                   (submit-predicate this prompt-position))])]
+          [else #f]))
       
       (define/private (only-whitespace-after-insertion-point)
         (let ([start (get-start-position)]
