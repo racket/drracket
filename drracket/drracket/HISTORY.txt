@@ -1,4 +1,17 @@
 ------------------------------
+       Version 8.8
+------------------------------
+
+   . changed the way expression submission works in the interactions
+     window, slightly. As before, just typing return defers to the
+     language to decide (for #lang racket and related languages it
+     looks for a complete sexp), and typing alt- and control-return
+     forces a submission, even if it does not look complete. 
+
+     The new behavior is that shift-return never submits, even if the
+     input looks complete.
+
+------------------------------
        Version 8.7
 ------------------------------
 

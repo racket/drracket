@@ -267,6 +267,27 @@ as the @tech{definitions window} plus a few more:
 @keybinding["M-h"]{Show the current expression history in a separate window}
 ]
 
+Also, in the interactions window, the return key is treated
+specially, in particular to determine if the expression
+that's been typed at the prompt is ready to be evaluated or
+not. There are three cases:
+@itemlist[
+
+ @item{When shift-return is typed: the expression is not
+  submitted and instead a new line is started}
+
+ @item{When alt-return or control return is typed: the
+  expression is submitted for evaluation}
+
+ @item{When return with no modified is typed: the language
+  is consulted to determine which of the two previous actions
+  makes the most sense. Typically the language's parser is
+  consulted to see if the expression looks complete. If so,
+  the expression is submitted and, if not, a new line is
+  started. (See also @(elemref "drracket:submit-predicate" @racket['drracket:submit-predicate]).)
+  }
+ ]
+
 @section{LaTeX and TeX inspired keybindings}
 
 @itemize[
