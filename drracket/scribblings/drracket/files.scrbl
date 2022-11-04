@@ -43,7 +43,7 @@ DrRacket's editor can save a program file in two different formats:
 
 Every 30 seconds, DrRacket checks each open file. If any
 file is modified and not saved, DrRacket saves the contents
-of the file in a new file, just in case there is a power
+of the file in a backup file, just in case there is a power
 failure or some other catastrophic error. If the original
 file is later saved, or if the user exits DrRacket and
 explicitly declines to save the file, the backup file is
@@ -64,18 +64,28 @@ from the original file's name:
 
 ]
 
+@margin-note{In DrRacket's implementation, these files are
+ called ``autosave'' files, not backup files.}
 If the definitions window is modified and there is no
 current file, then a backup file is written to the user's
 ``documents'' directory. The ``documents'' directory is
 determined by @racket[(find-system-path 'doc-dir)].
-@margin-note{In DrRacket's implementation, these files are
- called ``autosave'' files, not backup files.}
 
-When you modify an existing file in DrRacket and save it, DrRacket
-copies the old version of the file to a special ``first change'' file if no
-such file exists. The first-change file is saved in the same directory as
-the original file, and the first-change file's name is generated from the
-original file's name:
+When DrRacket first starts up, it looks to see if there are
+any backup files still present and if so, offers to restore
+the backup files, on the assumption that DrRacket was closed
+unintentionally. When it restores the files, DrRacket moves
+the current version of the original file out of the way
+(adding @index["autorec"]{``autorec''} to the name)
+and the moves the backup file in place of the original file.
+
+Separately, DrRacket creates ``first change'' files. When
+you modify an existing file in DrRacket and save it,
+DrRacket copies the old version of the file to a special
+first-change file if no such file exists. The
+first-change file is saved in the same directory as the
+original file, and the first-change file's name is generated
+from the original file's name:
 
 @itemize[
 
