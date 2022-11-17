@@ -1418,6 +1418,24 @@ If the namespace does not, they are colored the unbound color.
               (update-tooltip-frame-and-matching-identifiers #f)
               (update-docs-background cursor-eles)
               (unless (equal? latent-stuff cursor-stuff)
+                (define (get-item arrow)
+                  (list (quotient (+ (var-arrow-start-pos-left arrow)
+                                     (var-arrow-start-pos-right arrow))
+                                  2)
+                        (quotient (+ (var-arrow-end-pos-left arrow)
+                                     (var-arrow-end-pos-right arrow))
+                                  2)
+                        (if (var-arrow-actual? arrow)
+                            (get-var-pen)
+                            (get-templ-pen))))
+                (send this set-inline-overview-arrows
+                      (append
+                       (for/list ([(_ v) (in-hash tacked-hash-table)]
+                                  #:when (var-arrow? v))
+                         (get-item v))
+                       (for/list ([v (in-list (or latent-stuff '()))]
+                                  #:when (var-arrow? v))
+                         (get-item v))))
                 (invalidate-bitmap-cache/padding)))
             
             (define mouse-admin #f)  ; editor admin for the last mouse move
