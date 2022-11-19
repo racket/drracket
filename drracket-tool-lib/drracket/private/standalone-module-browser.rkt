@@ -186,7 +186,7 @@
   (define (add-connections filename/stx)
     (cond
       [(path-string? filename/stx)
-       (add-submod/filename-connections filename/stx)]
+       (add-module-code-connections/with-submods filename/stx (get-module-code filename/stx))]
       [(syntax? filename/stx)
        (add-syntax-connections filename/stx)]))
   
@@ -204,8 +204,20 @@
                                (current-directory))
                            name))
            #f))
-        (add-module-code-connections base module-code))))
-  
+        (add-module-code-connections/with-submods base module-code))))
+
+  (define (add-module-code-connections/with-submods base module-code)
+    (add-module-code-connections base module-code)
+    (let loop ([module-code module-code])
+      (for ([submod-code (in-list (append (module-compiled-submodules module-code #f)
+                                          (module-compiled-submodules module-code #t)))])
+        (add-module-code-connections
+         (match (module-compiled-name submod-code)
+           [`(,_main-module-name ,submod-names ...) `(submod ,base ,@submod-names)]
+           [the-name the-name])
+         submod-code)
+        (loop submod-code))))
+
   (define module-suffixes (delay (map (lambda (s) (bytes-append #"." s))
                                       (get-module-suffixes))))
 
@@ -850,7 +862,7 @@
                   [pkg (cond
                          [(and filename (path->pkg filename #:cache path->pkg-cache))
                           => values]
-                         [(is-in-main-collects? filename)
+                         [(and filename (is-in-main-collects? filename))
                           sc-main-collects]
                          [else sc-unknown-pkg])]))
            (insert snip)
