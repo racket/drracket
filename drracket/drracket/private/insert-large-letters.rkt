@@ -66,7 +66,8 @@
 (: make-large-letters-dialog (String Char (Option (Instance Frame%)) -> (Option String)))
 (define (make-large-letters-dialog comment-prefix comment-character parent)
   (define dlg (new (frame:focus-table-mixin dialog%)
-                   [parent parent] 
+                   [parent parent]
+                   [style '(close-button)]
                    [width 700]
                    [label (string-constant large-semicolon-letters)]))
   (define: text-field : (Instance Text-Field%) 
@@ -147,15 +148,18 @@
                                  (λ (x y) (send dlg show #f))))
   (: update-txt (String -> Any))
   (define (update-txt str)
+    (send dlg begin-container-sequence)
     (send txt begin-edit-sequence)
     (send txt lock #f)
     (send txt delete 0 (send txt last-position))
     (let ([bm (render-large-letters comment-prefix comment-character (get-chosen-font) str txt #t)])
       (send ec set-line-count (+ 1 (send txt last-paragraph)))
+      (send dlg resize 0 0)
       (send txt lock #t)
       (send txt end-edit-sequence)
       (send count set-label (format columns-string (get-max-line-width txt)))
-      (send dark-msg set-bm (if (equal? str "") #f bm))))
+      (send dark-msg set-bm (if (equal? str "") #f bm)))
+    (send dlg end-container-sequence))
   
   
   (let ()
