@@ -11,6 +11,8 @@
      The new behavior is that shift-return never submits, even if the
      input looks complete.
 
+   . bug fixes and documentation improvements
+
 ------------------------------
        Version 8.7
 ------------------------------
