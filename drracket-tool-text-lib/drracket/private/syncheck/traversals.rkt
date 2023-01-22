@@ -163,12 +163,39 @@
 ;; type req/tag = (make-req/tag syntax sexp boolean)
 (define-struct req/tag (req-stx req-sexp used?))
 
-;; annotate-basic : syntax
-;;                  namespace
-;;                  string[directory]
-;;                  id-set (8 of them)
-;;                  hash-table[require-spec -> syntax] (three of them)
-;;               -> void
+;; enclosing-bindings-visible? : boolean -- indicates of the bindings of
+;;    the containing module are visible inside this module (ie this
+;;    module was declared with a #f for the language (or via module+)
+;; name : symbol -- the name of the module
+(struct submodule (enclosing-bindings-visible? name) #:transparent)
+
+;; binder : syntax?
+;; mods : same contract as `mods` in level+tail+mod-loop
+(struct binder+mods (binder mods))
+
+;; annotate-basic :
+;;   stx-obj: syntax?
+;;   user-namespace: namespace?
+;;   user-directory: (or/c #f (and/c path? complete-path?))
+;;   phase-to-binders:
+;;      hash[(list/c (or/c integer? #f) -- level
+;;                   mods) -- same contract as `mods` in level+tail+mod-loop
+;;           -o>
+;;           free-id-table[identifier -o> (listof binder+mods?)]]
+;;   phase-to-varrefs, phase-to-varsets, phase-to-tops, binding-inits, templrefs:
+;;      hash[(list/c (or/c integer? #f) -- level
+;;                   mods) -- same contract as `mods` in level+tail+mod-loop
+;;           -o>
+;;           free-id-table[identifier -o> (listof syntax?)]]
+;;    module-lang-requires:
+;;      hash-table[(list/c src pos span) -o> #t]
+;;    phase-to-requires:
+;;      hash[(list/c (or/c integer? #f) -- level
+;;                   mods) -- same contract as `mods` in level+tail+mod-loop
+;;           -o>
+;;           hash[sexp -o> (listof binder+mods?)]]
+;;    sub-identifier-binding-directives: ?
+;; -> void
 (define (annotate-basic stx-obj
                         user-namespace user-directory
                         phase-to-binders
@@ -188,8 +215,8 @@
                             [tail-parent-pos #f]
                             ;; mods: (or/c #f   ; => outside a module
                             ;;             '()  ; => inside the main module in this file
-                            ;;             '(name names ...) ; => inside some submodules
-                            ;;                                    named by name & names
+                            ;;             (non-emptylistof submodule?)
+                            ;;                  ; => inside some submodules
                             [mods #f])
     (define-values (next-tail-parent-src next-tail-parent-pos)
       (let ([child-src (find-source-editor stx-obj)]
@@ -216,9 +243,7 @@
            [mod-loop (λ (sexp mod) (level+tail+mod-loop sexp 0
                                                         (+ level level-of-enclosing-module)
                                                         #f #f
-                                                        (if mod
-                                                            (sub-mods mod)
-                                                            mods)))]
+                                                        (sub-mods mod)))]
            [loop (λ (sexp) (level+tail+mod-loop sexp level level-of-enclosing-module
                                                 #f #f mods))]
            [varrefs (lookup-phase-to-mapping phase-to-varrefs
@@ -416,31 +441,33 @@
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
            (add-module-lang-require module-lang-requires (syntax lang))
            (annotate-require-open user-namespace user-directory (syntax lang) level #f)
-           (define module-name (syntax-e #'m-name))
+           (define this-submodule (submodule #f (syntax-e #'m-name)))
+           (define next-level-mods (sub-mods this-submodule))
            (define sub-requires
              (hash-ref! phase-to-requires
-                        (list (+ level level-of-enclosing-module) (sub-mods module-name))
+                        (list (+ level level-of-enclosing-module) next-level-mods)
                         (λ () (make-hash))))
-           (hash-cons! sub-requires (syntax->datum (syntax lang)) (syntax lang))
+           (hash-cons! sub-requires (syntax->datum (syntax lang)) (binder+mods (syntax lang) this-submodule))
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
-             (mod-loop body module-name)))]
+             (mod-loop body this-submodule)))]
         [(module* m-name lang (mb bodies ...))
          (begin
            (annotate-raw-keyword stx-obj varrefs level-of-enclosing-module)
-           (define module-name (syntax-e #'m-name))
+           (define this-submodule (submodule (not (syntax-e #'lang)) (syntax-e #'m-name)))
+           (define next-level-mods (sub-mods this-submodule))
            (when (syntax-e #'lang)
              (add-module-lang-require module-lang-requires (syntax lang))
              (annotate-require-open user-namespace user-directory (syntax lang) level #f)
              (define sub-requires
                (hash-ref! phase-to-requires
-                          (list (+ level level-of-enclosing-module) (sub-mods module-name))
+                          (list (+ level level-of-enclosing-module) next-level-mods)
                           (λ () (make-hash))))
-             (hash-cons! sub-requires (syntax->datum (syntax lang)) (syntax lang)))
+             (hash-cons! sub-requires (syntax->datum (syntax lang)) (binder+mods (syntax lang) this-submodule)))
 
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (if (syntax-e #'lang)
-                 (mod-loop body module-name)
-                 (mod-loop (syntax-shift-phase-level body (- level)) #f))))]
+                 (mod-loop body this-submodule)
+                 (mod-loop (syntax-shift-phase-level body (- level)) this-submodule))))]
 
 
         ; top level or module top level only:
@@ -506,9 +533,7 @@
                         `(submod "." ,m)
                         `',m)]
                    [rmp rmp]))
-               (hash-set! require-ht
-                          key
-                          (cons stx (hash-ref require-ht key '())))))
+               (hash-cons! require-ht key (binder+mods stx mods))))
 
            (for ([spec (in-list (syntax->list #'(raw-require-specs ...)))])
              (handle-raw-require-spec spec)))]
@@ -729,8 +754,9 @@
       (hash-set! new-hash k #t)))
 
   (for ([(level binders) (in-hash phase-to-binders)])
-    (for ([vars (in-list (get-idss binders))])
-      (for ([var (in-list vars)])
+    (for ([(_ binder+modss) (in-dict binders)])
+      (for ([binder+mods (in-list binder+modss)])
+        (define var (binder+mods-binder binder+mods))
         (define varset (lookup-phase-to-mapping phase-to-varsets level))
         (color-variable var level varset)
         (document-variable var level))))
@@ -828,13 +854,14 @@
 ;;             -> void
 (define (color-unused requires unused module-lang-requires)
   (for ([(k v) (in-hash unused)])
-    (define requires-stxes
+    (define requires-binder+modss
       (hash-ref requires k
                 (λ ()
                   (error 'syncheck/traversals.rkt
                          "requires doesn't have a mapping for ~s"
                          k))))
-    (for ([stx (in-list requires-stxes)])
+    (for ([binder+mods (in-list requires-binder+modss)])
+      (define stx (binder+mods-binder binder+mods))
       (unless (hash-ref module-lang-requires (list (syntax-source stx)
                                                    (syntax-position stx)
                                                    (syntax-span stx)) #f)
@@ -878,83 +905,114 @@
 ;;                      hash[(list source position span) -o> #t]
 ;;                   -> void
 ;; adds the arrows that correspond to binders/bindings
-(define (connect-identifier var mods all-binders unused/phases phase-to-requires
+(define (connect-identifier var mods-where-var-is all-binders unused/phases phase-to-requires
                             phase-level user-namespace user-directory actual?
                             connections module-lang-requires)
   (define binders (get-ids all-binders var))
   (when binders
-    (for ([x (in-list binders)])
-      (connect-syntaxes x var actual? all-binders phase-level connections #f)))
+    (for ([binder+mods (in-list binders)])
+      (define binder (binder+mods-binder binder+mods))
+      (define binder-is-outside-reference?
+        (let loop ([mods-where-var-is (reverse mods-where-var-is)]
+                   [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
+          (cond
+            [(null? mods-where-binder-is) #t]
+            [(null? mods-where-var-is) #f]
+            [else
+             (define mod (car mods-where-var-is))
+             (and (submodule-enclosing-bindings-visible? mod)
+                  (equal? mod (car mods-where-binder-is))
+                  (loop (cdr mods-where-var-is)
+                        (cdr mods-where-binder-is)))])))
+      (when binder-is-outside-reference?
+        (connect-syntaxes binder var actual? all-binders phase-level connections #f))))
 
   (when (and unused/phases phase-to-requires)
     (define req-path/pr (get-module-req-path var phase-level))
     (define source-req-path/pr (get-module-req-path var phase-level #:nominal? #f))
     (when (and req-path/pr source-req-path/pr)
-      (define req-path (list-ref req-path/pr 0))
-      (define id (list-ref req-path/pr 1))
-      (define source-req-path (list-ref source-req-path/pr 3))
-      (define source-id (list-ref source-req-path/pr 1))
-      (define req-phase-level (list-ref req-path/pr 2))
-      (define req-phase+space-shift (list-ref req-path/pr 4))
-      (define require-hash-key (list req-phase-level mods))
-      (define require-ht (hash-ref phase-to-requires require-hash-key #f))
-      (when require-ht
-        (define req-stxes (hash-ref require-ht req-path #f))
-        (when req-stxes
-          (define unused (hash-ref unused/phases require-hash-key #f))
-          (when unused (hash-remove! unused req-path))
-          (for ([req-stx (in-list req-stxes)])
-            (define match/prefix
-              (id/require-match (syntax->datum var) id req-stx))
-            (when match/prefix
-              (when id
-                (define-values (filename submods)
-                  (get-require-filename source-req-path user-namespace user-directory))
-                (when filename
-                  (add-jump-to-definition
-                   var
-                   source-id
-                   filename
-                   submods
-                   req-phase+space-shift)))
-              (define prefix-length
-                (cond
-                  [(and (identifier? match/prefix)
-                        (syntax-span match/prefix))
-                   (syntax-span match/prefix)]
-                  [else 0]))
-              (define raw-module-path (phaseless-spec->raw-module-path req-stx))
-              (add-mouse-over var
-                              (format
-                               (string-constant cs-mouse-over-import/library-only)
-                               req-path))
-              ;; connect the require to the identifier
-              (connect-syntaxes (if (syntax-source raw-module-path)
-                                    raw-module-path
-                                    req-stx)
-                                var actual? all-binders
-                                #:to-start prefix-length
-                                #:to-width (if (syntax-span var)
-                                               (- (syntax-span var) prefix-length)
-                                               0)
-                                phase-level
-                                connections
-                                (if (is-module-lang-require? module-lang-requires req-stx)
-                                    'module-lang
-                                    #t))
-              ;; connect the prefix
-              (when (and (identifier? match/prefix)
-                         (syntax-source match/prefix)
-                         (syntax-position match/prefix)
-                         (syntax-span match/prefix))
-                (connect-syntaxes match/prefix var actual? all-binders
-                                  #:to-start 0
-                                  #:to-width prefix-length
-                                  phase-level
-                                  connections
-                                  (if (is-module-lang-require? module-lang-requires req-stx)
-                                      'module-lang
-                                      #t))))))))))
+      (let loop ([mods mods-where-var-is])
+        (connect-identifier-to-a-require var mods all-binders unused/phases phase-to-requires
+                                         phase-level user-namespace user-directory actual?
+                                         connections module-lang-requires
+                                         req-path/pr source-req-path/pr)
+        (when (and (pair? mods)
+                   (submodule-enclosing-bindings-visible? (car mods)))
+          (loop (cdr mods)))))))
+
+;; accepts arguments given to `connect-identifier` and those have
+;; the same contracts as the matching names but also accepts:
+;; req-path/pr and source-req-path/pr, which are results from get-module-req-path
+(define (connect-identifier-to-a-require var mods all-binders unused/phases phase-to-requires
+                                         phase-level user-namespace user-directory actual?
+                                         connections module-lang-requires
+                                         req-path/pr source-req-path/pr)
+  (define req-path (list-ref req-path/pr 0))
+  (define id (list-ref req-path/pr 1))
+  (define source-req-path (list-ref source-req-path/pr 3))
+  (define source-id (list-ref source-req-path/pr 1))
+  (define req-phase-level (list-ref req-path/pr 2))
+  (define req-phase+space-shift (list-ref req-path/pr 4))
+  (define require-hash-key (list req-phase-level mods))
+  (define require-ht (hash-ref phase-to-requires require-hash-key #f))
+  (when require-ht
+    (define req-binder+modss (hash-ref require-ht req-path #f))
+    (when req-binder+modss
+      (define unused (hash-ref unused/phases require-hash-key #f))
+      (when unused (hash-remove! unused req-path))
+      (for ([binder+mods (in-list req-binder+modss)])
+        (define req-stx (binder+mods-binder binder+mods))
+        (define match/prefix
+          (id/require-match (syntax->datum var) id req-stx))
+        (when match/prefix
+          (when id
+            (define-values (filename submods)
+              (get-require-filename source-req-path user-namespace user-directory))
+            (when filename
+              (add-jump-to-definition
+               var
+               source-id
+               filename
+               submods
+               req-phase+space-shift)))
+          (define prefix-length
+            (cond
+              [(and (identifier? match/prefix)
+                    (syntax-span match/prefix))
+               (syntax-span match/prefix)]
+              [else 0]))
+          (define raw-module-path (phaseless-spec->raw-module-path req-stx))
+          (add-mouse-over var
+                          (format
+                           (string-constant cs-mouse-over-import/library-only)
+                           req-path))
+          ;; connect the require to the identifier
+          (connect-syntaxes (if (syntax-source raw-module-path)
+                                raw-module-path
+                                req-stx)
+                            var actual? all-binders
+                            #:to-start prefix-length
+                            #:to-width (if (syntax-span var)
+                                           (- (syntax-span var) prefix-length)
+                                           0)
+                            phase-level
+                            connections
+                            (if (is-module-lang-require? module-lang-requires req-stx)
+                                'module-lang
+                                #t))
+          ;; connect the prefix
+          (when (and (identifier? match/prefix)
+                     (syntax-source match/prefix)
+                     (syntax-position match/prefix)
+                     (syntax-span match/prefix))
+            (connect-syntaxes match/prefix var actual? all-binders
+                              #:to-start 0
+                              #:to-width prefix-length
+                              phase-level
+                              connections
+                              (if (is-module-lang-require? module-lang-requires req-stx)
+                                  'module-lang
+                                  #t))))))))
 
 (define (id/require-match var id req-stx)
   (syntax-case* req-stx (only prefix all-except prefix-all-except rename)
@@ -1174,15 +1232,11 @@
            (define sym (string->symbol str))
            (define id1 (datum->syntax from sym))
            (define id2 (datum->syntax to sym)) ;; do I need both?
-           (define ans #f)
-           (for-each-id
-            all-binders
-            (λ (ids)
-              (set! ans (or ans
-                            (for/or ([id (in-list ids)])
-                              (or (free-identifier=? id1 id level)
-                                  (free-identifier=? id2 id level)))))))
-           ans)
+           (for*/or ([(_ binder+modss) (in-dict all-binders)]
+                     [binder+mods (in-list binder+modss)])
+             (define id (binder+mods-binder binder+mods))
+             (or (free-identifier=? id1 id level)
+                 (free-identifier=? id2 id level))))
          (when (and (<= from-pos-left from-pos-right)
                     (<= to-pos-left to-pos-right))
            (send defs-text syncheck:add-arrow/name-dup/pxpy
@@ -1216,7 +1270,7 @@
               pos-right
               id
               filename
-              submods
+              (map submodule-name submods)
               phase-level+space)))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
@@ -1299,18 +1353,16 @@
             ss-path))))
     (values cleaned-up-path rkt-submods)))
 
-;; add-origins : sexp id-set integer -> void
-(define (add-origins sexp id-set level-of-enclosing-module)
-  (let ([origin (syntax-property sexp 'origin)])
-    (when origin
-      (let loop ([ct origin])
-        (cond
-          [(pair? ct)
-           (loop (car ct))
-           (loop (cdr ct))]
-          [(identifier? ct)
-           (add-id id-set ct level-of-enclosing-module)]
-          [else (void)])))))
+;; add-origins : syntax? id-set exact-integer? -> void
+(define (add-origins stx id-set level-of-enclosing-module)
+  (let loop ([ct (syntax-property stx 'origin)])
+    (match ct
+      [(cons hd tl)
+       (loop hd)
+       (loop tl)]
+      [(? identifier?)
+       (add-id id-set ct level-of-enclosing-module)]
+      [_ (void)])))
 
 ;; FIXME: handle for-template and for-label
 ;; extract-provided-vars : syntax -> (listof syntax[identifier])
@@ -1367,7 +1419,7 @@
                            mods)
     (when binding-to-init
       (add-init-exp binding-to-init stx init-exp level-of-enclosing-module))
-    (add-id id-set stx level-of-enclosing-module))
+    (add-id id-set stx level-of-enclosing-module #:mods mods))
   (let loop ([stx stx])
     (let ([e (if (syntax? stx) (syntax-e stx) stx)])
       (cond
@@ -1403,7 +1455,7 @@
                 pos-left
                 pos-right
                 (list-ref ib 1)
-                mods
+                (map submodule-name mods)
                 phase-level))))))
 
 ;; annotate-raw-keyword : syntax id-map integer -> void
@@ -1508,8 +1560,10 @@
     (define old (free-id-table-ref mapping id '()))
     (free-id-table-set! mapping id (cons init-exp old))))
 
+(define dont-add-binder+mods (gensym 'dont-add-binder+mods))
+
 ;; add-id : id-set identifier -> void
-(define (add-id mapping id level-of-enclosing-module)
+(define (add-id mapping id level-of-enclosing-module #:mods [mods dont-add-binder+mods])
   (when (original-enough? id)
     (define shifted-id (syntax-shift-phase-level id level-of-enclosing-module))
     (define old (free-id-table-ref mapping shifted-id '()))
@@ -1524,7 +1578,11 @@
                                  0)
                          shifted-id)
           shifted-id))
-    (free-id-table-set! mapping shifted-id (cons no-span-id old))))
+    (define with-binder+mods
+      (if (equal? mods dont-add-binder+mods)
+          no-span-id
+          (binder+mods no-span-id mods)))
+    (free-id-table-set! mapping shifted-id (cons with-binder+mods old))))
 
 (define (original-enough? x)
   (or (syntax-original? x)
@@ -1538,10 +1596,6 @@
 ;; get-ids : id-set identifier -> (union (listof identifier) #f)
 (define (get-ids mapping var)
   (free-id-table-ref mapping var #f))
-
-(define (for-each-id mapping f)
-  (for ([(x y) (in-dict mapping)])
-    (f y)))
 
 (define build-trace%
   (class (annotations-mixin object%)

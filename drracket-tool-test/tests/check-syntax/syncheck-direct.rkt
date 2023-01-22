@@ -375,6 +375,85 @@
                '((27 37) (49 55))
                '((27 37) (57 63))))
 
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(define x 1)\n"
+                "(module+ m x)\n"))
+              (set '((6 17) (19 25))
+                   '((6 17) (28 28))
+                   '((6 17) (32 39))
+                   '((26 27) (42 43))))
+
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(define x 1)\n"
+                "x\n"
+                "(module+ m\n"
+                "  x\n"
+                "  (define x 1))\n"))
+              (set
+               '((6 17) (19 25))
+               '((6 17) (28 28))
+               '((6 17) (34 41))
+               '((6 17) (60 60))
+               '((6 17) (51 57))
+               '((26 27) (31 32))
+               '((58 59) (46 47))))
+
+(check-equal? (get-binding-arrows
+               (string-append
+                "#lang racket/base\n"
+                "(require racket/list)\n"
+                "first\n"
+                "(module n racket\n"
+                "  first\n"
+                "  (module+ m\n"
+                "    (require (rename-in racket/list [first ABC]))))\n"
+                "(module o racket\n"
+                "  first)\n"))
+              (set
+               '((6 17) (47 53))
+               '((6 17) (19 26))
+               '((6 17) (137 143))
+               '((27 38) (40 45))
+               '((56 62) (65 70))
+               '((56 62) (74 81))
+               '((56 62) (89 96))
+               '((56 62) (98 107))
+               '((146 152) (155 160))))
+
+
+(check-equal?
+ (get-binding-arrows (string-append
+                      "#lang racket/base\n"
+                      "(require racket/list)\n"
+                      "first\n"
+                      "(module+ m\n"
+                      "  (require racket/list)\n"
+                      "  first)\n"))
+ (set
+  '((6 17) (19 26))
+  '((6 17) (47 54))
+  '((6 17) (60 67))
+  '((27 38) (83 88))
+  '((27 38) (40 45))
+  '((68 79) (83 88))))
+
+(check-equal?
+ (get-binding-arrows (string-append
+                      "#lang racket/base\n"
+                      "(module n racket/base\n"
+                      "  (unless #f 42))\n"))
+ (set
+  '((6 17) (19 25))
+  '((28 39) (53 53))
+  '((28 39) (43 49))
+  '((28 39) (50 50))))
+
+
+
 ;                                                       
 ;                                                       
 ;                                                       
@@ -549,6 +628,18 @@
    "(+ 1 2)\n"))
  (set '(37 62)
       '(37 64)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/list)\n"
+   "first\n"
+   "(module+ m\n"
+   "  (require racket/list)\n"
+   "  first)\n"))
+ (set '(27 83) '(68 83) '(27 40)))
+
 
 
 ;                                                 
