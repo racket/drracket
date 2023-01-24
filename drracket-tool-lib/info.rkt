@@ -8,8 +8,7 @@
                ["string-constants-lib" #:version "1.43"]
                "scribble-lib"
                "racket-index"
-               "gui-lib"
-               "drracket-tool-text-lib"))
+               "gui-lib"))
 (define build-deps '("at-exp-lib"
                      "rackunit-lib"))
 
