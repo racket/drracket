@@ -529,7 +529,7 @@
                  (match (syntax->datum raw-module-path)
                    [`',m
                     (define we-have-seen-this-sumodule?
-                      (hash-has-key? phase-to-requires (list adjusted-level (cons m mods))))
+                      (hash-has-key? phase-to-requires (list adjusted-level (cons (submodule #f m) mods))))
                     (if we-have-seen-this-sumodule?
                         `(submod "." ,m)
                         `',m)]
