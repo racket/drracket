@@ -8,7 +8,7 @@
          string-constants)
 (provide annotate-contracts)
 
-(define (annotate-contracts stx low-binders binding-inits)
+(define (annotate-contracts stx low-binders binding-inits binder+mods-binder)
   (define boundary-start-map (make-hash))
   (define internal-start-map (make-hash))
   (define domain-map (make-hash))
@@ -35,7 +35,8 @@
                              coloring-plans already-jumped-ids
                              low-binders binding-inits
                              domain-map range-map
-                             #t)))
+                             #t
+                             binder+mods-binder)))
   
   ;; fill in the coloring-plans table for internal contracts
   (for ([(start-k start-val) (in-hash internal-start-map)])
@@ -44,7 +45,8 @@
                              coloring-plans already-jumped-ids
                              low-binders binding-inits
                              domain-map range-map
-                             #f)))
+                             #f
+                             binder+mods-binder)))
   
   ;; enact the coloring plans
   (for ([(stx colors) (in-hash coloring-plans)])
@@ -61,7 +63,8 @@
 
 (define (do-contract-traversal start-stx boundary-contract?
                                coloring-plans already-jumped-ids
-                               low-binders binding-inits domain-map range-map polarity)
+                               low-binders binding-inits domain-map range-map polarity
+                               binder+mods-binder)
   (let ploop ([stx start-stx]
               [polarity polarity])
     
@@ -87,11 +90,13 @@
             (for ([stx (in-list (hash-ref domain-map id '()))])
               (do-contract-traversal stx boundary-contract?
                                      coloring-plans already-jumped-ids
-                                     low-binders binding-inits domain-map range-map (not polarity)))
+                                     low-binders binding-inits domain-map range-map (not polarity)
+                                     binder+mods-binder))
             (for ([stx (in-list (hash-ref range-map id '()))])
               (do-contract-traversal stx boundary-contract?
                                      coloring-plans already-jumped-ids
-                                     low-binders binding-inits domain-map range-map polarity))]))]
+                                     low-binders binding-inits domain-map range-map polarity
+                                     binder+mods-binder))]))]
       
       [else
        ;; we didn't find a contract, but we might find one in a subexpression
@@ -125,7 +130,8 @@
              (cond
                [binders
                 (base-color #'id polarity boundary-contract? coloring-plans)
-                (for ([binder (in-list binders)])
+                (for ([binder+mod (in-list binders)])
+                  (define binder (binder+mods-binder binder+mod))
                   (base-color binder polarity boundary-contract? coloring-plans)
                   (define visited? (free-id-table-ref already-jumped-ids binder #f))
                   (unless visited?
@@ -164,10 +170,12 @@
           ;; on one side will not pollute the other side.
           (do-contract-traversal #'b boundary-contract?
                                  coloring-plans already-jumped-ids
-                                 low-binders binding-inits domain-map range-map polarity)
+                                 low-binders binding-inits domain-map range-map polarity
+                                 binder+mods-binder)
           (do-contract-traversal #'c boundary-contract?
                                  coloring-plans already-jumped-ids
-                                 low-binders binding-inits domain-map range-map polarity)]
+                                 low-binders binding-inits domain-map range-map polarity
+                                 binder+mods-binder)]
          ;; [(begin expr ...) (void)]
          [(begin0 fst rst ...)
           (ploop #'fst polarity)]
@@ -287,5 +295,5 @@
            (loop #'a)
            (loop #'b))]
         [x (void)]))
-    (annotate-contracts expanded low-binders binding-inits)))
+    (annotate-contracts expanded low-binders binding-inits values)))
 

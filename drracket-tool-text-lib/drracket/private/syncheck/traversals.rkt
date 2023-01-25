@@ -89,7 +89,8 @@
                                          sub-identifier-binding-directives)
                      (annotate-contracts sexp
                                          (hash-ref phase-to-binders 0 (λ () (make-id-set 0)))
-                                         (hash-ref binding-inits 0 (λ () (make-id-set 0))))
+                                         (hash-ref binding-inits 0 (λ () (make-id-set 0)))
+                                         binder+mods-binder)
                      (when print-extra-info?
                        (print-extra-info (list (list 'phase-to-binders phase-to-binders)
                                                (list 'phase-to-varrefs phase-to-varrefs)
@@ -913,17 +914,19 @@
     (for ([binder+mods (in-list binders)])
       (define binder (binder+mods-binder binder+mods))
       (define binder-is-outside-reference?
-        (let loop ([mods-where-var-is (reverse mods-where-var-is)]
-                   [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
-          (cond
-            [(null? mods-where-binder-is) #t]
-            [(null? mods-where-var-is) #f]
-            [else
-             (define mod (car mods-where-var-is))
-             (and (submodule-enclosing-bindings-visible? mod)
-                  (equal? mod (car mods-where-binder-is))
-                  (loop (cdr mods-where-var-is)
-                        (cdr mods-where-binder-is)))])))
+        (or (not mods-where-var-is)
+            (not (binder+mods-mods binder+mods))
+            (let loop ([mods-where-var-is (reverse mods-where-var-is)]
+                       [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
+              (cond
+                [(null? mods-where-binder-is) #t]
+                [(null? mods-where-var-is) #f]
+                [else
+                 (define mod (car mods-where-var-is))
+                 (and (submodule-enclosing-bindings-visible? mod)
+                      (equal? mod (car mods-where-binder-is))
+                      (loop (cdr mods-where-var-is)
+                            (cdr mods-where-binder-is)))]))))
       (when binder-is-outside-reference?
         (connect-syntaxes binder var actual? all-binders phase-level connections #f))))
 
