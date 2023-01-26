@@ -453,6 +453,36 @@
   '((28 39) (50 50))))
 
 
+(check-equal?
+ (get-binding-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(module m racket/base\n"
+   "  (define lam 1)\n"
+   "  (provide lam)\n"
+   "  lam)\n"))
+ (set '((6 17) (19 25))
+      '((28 39) (43 49))
+      '((28 39) (54 54))
+      '((28 39) (60 67))
+      '((50 53) (75 78))
+      '((50 53) (68 71))))
+
+(check-equal?
+ (get-binding-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(module m racket/base\n"
+   "  (define lam 1)\n"
+   "  (module+ n (provide lam)))\n"))
+ (set '((6 17) (19 25))
+      '((28 39) (43 49))
+      '((28 39) (54 54))
+      '((28 39) (60 67))
+      '((28 39) (71 78))
+      '((50 53) (79 82))))
+
+
 
 ;                                                       
 ;                                                       

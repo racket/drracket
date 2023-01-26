@@ -919,12 +919,13 @@
             (let loop ([mods-where-var-is (reverse mods-where-var-is)]
                        [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
               (cond
-                [(null? mods-where-binder-is) #t]
+                [(null? mods-where-binder-is)
+                 (for/and ([mod (in-list mods-where-var-is)])
+                   (submodule-enclosing-bindings-visible? mod))]
                 [(null? mods-where-var-is) #f]
                 [else
-                 (define mod (car mods-where-var-is))
-                 (and (submodule-enclosing-bindings-visible? mod)
-                      (equal? mod (car mods-where-binder-is))
+                 (and (equal? (car mods-where-var-is)
+                              (car mods-where-binder-is))
                       (loop (cdr mods-where-var-is)
                             (cdr mods-where-binder-is)))]))))
       (when binder-is-outside-reference?
