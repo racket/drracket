@@ -929,6 +929,33 @@
     (add-syntax (expand stx))
     (done)))
 
+;; ensure that the submodules argument gets correctly sent along
+;; in a syncheck:add-jump-to-definition/phase-level+space call
+(let ()
+  (define root-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (define src (build-path root-dir "a.rkt"))
+  (call-with-output-file src
+    (λ (port)
+      (displayln "#lang racket/base\n" port)
+      (writeln '(require (submod "b.rkt" the-mod)) port)
+      (writeln 'the-name port)))
+  (call-with-output-file (build-path root-dir "b.rkt")
+    (λ (port)
+      (displayln "#lang racket/base\n" port)
+      (writeln '(module the-mod racket (provide the-name) (define the-name 1)) port)))
+
+  (define content
+    (parameterize ([current-directory root-dir])
+      (show-content "a.rkt")))
+
+  (check-true
+   (for/or ([item (in-list content)])
+     (match item
+       [(vector 'syncheck:add-jump-to-definition/phase-level+space _ _ 'the-name _ '(the-mod) _)
+        #t]
+       [_ #f])))
+  (delete-directory/files root-dir))
+
 ;; make sure that `make-traversal` is called with
 ;; the containing directory by `show-content`
 (let ()

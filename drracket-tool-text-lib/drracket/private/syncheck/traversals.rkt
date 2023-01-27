@@ -1274,7 +1274,7 @@
               pos-right
               id
               filename
-              (map submodule-name submods)
+              submods
               phase-level+space)))))
 
 ;; annotate-require-open : namespace string -> (stx -> void)
