@@ -283,6 +283,8 @@
                 "      (define color-scheme-colors 3)\n"
                 "      (set! color-scheme-colors color-scheme-colors))\n"))
               (set '((6 12) (14 18))
+                   '((6 12) (20 26))
+                   '((6 12) (29 35))
                    '((6 12) (44 50))
                    '((6 12) (71 71))
                    '((6 12) (81 85))
