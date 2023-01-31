@@ -172,7 +172,14 @@
 
 ;; binder : syntax?
 ;; mods : same contract as `mods` in level+tail+mod-loop
-(struct binder+mods (binder mods))
+(struct binder+mods (binder mods) #:transparent)
+
+;; ids : (listof syntax?)
+;; in? : boolean? -- indicates if `ids` are the only ones included (#t) or if they are excluded (#f)
+;; prefix : (or/c #f syntax?)
+;; b+m : binder+mods?
+;;   -- INVARIANT: if prefix? is syntax?, then in? must be #f
+(struct require-context (ids in? prefix b+m) #:transparent)
 
 ;; annotate-basic :
 ;;   stx-obj: syntax?
@@ -448,7 +455,8 @@
              (hash-ref! phase-to-requires
                         (list (+ level level-of-enclosing-module) next-level-mods)
                         (λ () (make-hash))))
-           (hash-cons! sub-requires (syntax->datum (syntax lang)) (binder+mods (syntax lang) this-submodule))
+           (hash-cons! sub-requires (syntax->datum #'lang)
+                       (require-context '() #f #f (binder+mods #'lang this-submodule)))
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (mod-loop body this-submodule)))]
         [(module* m-name lang (mb bodies ...))
@@ -463,7 +471,8 @@
                (hash-ref! phase-to-requires
                           (list (+ level level-of-enclosing-module) next-level-mods)
                           (λ () (make-hash))))
-             (hash-cons! sub-requires (syntax->datum (syntax lang)) (binder+mods (syntax lang) this-submodule)))
+             (hash-cons! sub-requires (syntax->datum #'lang)
+                         (require-context '() #f #f (binder+mods #'lang this-submodule))))
 
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (if (syntax-e #'lang)
@@ -516,13 +525,15 @@
              (define require-ht (hash-ref! phase-to-requires
                                            (list adjusted-level mods)
                                            (λ () (make-hash))))
-             (define raw-module-path
-               (phaseless-spec->raw-module-path
+             (define require-context
+               (phaseless-spec->require-context
+                mods
                 stx
                 (λ (local-id)
                   (add-binders (list local-id) binders binding-inits #'b
                                level level-of-enclosing-module
                                sub-identifier-binding-directives mods))))
+             (define raw-module-path (binder+mods-binder (require-context-b+m require-context)))
              (annotate-require-open user-namespace user-directory raw-module-path level stx)
              (when (original-enough? raw-module-path)
                (define key
@@ -534,7 +545,7 @@
                         `(submod "." ,m)
                         `',m)]
                    [rmp rmp]))
-               (hash-cons! require-ht key (binder+mods stx mods))))
+               (hash-cons! require-ht key require-context)))
 
            (for ([spec (in-list (syntax->list #'(raw-require-specs ...)))])
              (handle-raw-require-spec spec)))]
@@ -855,34 +866,30 @@
 ;;             -> void
 (define (color-unused requires unused module-lang-requires)
   (for ([(k v) (in-hash unused)])
-    (define requires-binder+modss
+    (define require-contexts
       (hash-ref requires k
                 (λ ()
                   (error 'syncheck/traversals.rkt
                          "requires doesn't have a mapping for ~s"
                          k))))
-    (for ([binder+mods (in-list requires-binder+modss)])
+    (for ([require-context (in-list require-contexts)])
+      (define binder+mods (require-context-b+m require-context))
       (define stx (binder+mods-binder binder+mods))
       (unless (hash-ref module-lang-requires (list (syntax-source stx)
                                                    (syntax-position stx)
                                                    (syntax-span stx)) #f)
-        ;; Use module path portion of syntax: Its more-specific
-        ;; location matters for e.g. combine-in and things that expand
-        ;; to it. See issue #110.
-        (define raw-mod-stx (phaseless-spec->raw-module-path stx))
-        (define mod-stx (if (syntax-source raw-mod-stx) raw-mod-stx stx))
         (define defs-text (current-annotations))
-        (define source-editor (find-source-editor mod-stx))
+        (define source-editor (find-source-editor stx))
         (when (and defs-text source-editor)
-          (define pos (syntax-position mod-stx))
-          (define span (syntax-span mod-stx))
+          (define pos (syntax-position stx))
+          (define span (syntax-span stx))
           (when (and pos span)
             (define start (- pos 1))
             (define fin (+ start span))
             (send defs-text syncheck:add-unused-require source-editor start fin)
             (send defs-text syncheck:add-text-type
                   source-editor start fin 'unused-identifier)))
-        (color mod-stx unused-require-style-name)))))
+        (color stx unused-require-style-name)))))
 
 ;; color-unused-binder : source integer integer -> void
 (define (color-unused-binder source start end)
@@ -913,23 +920,24 @@
   (when binders
     (for ([binder+mods (in-list binders)])
       (define binder (binder+mods-binder binder+mods))
-      (define binder-is-outside-reference?
-        (or (not mods-where-var-is)
-            (not (binder+mods-mods binder+mods))
-            (let loop ([mods-where-var-is (reverse mods-where-var-is)]
-                       [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
-              (cond
-                [(null? mods-where-binder-is)
-                 (for/and ([mod (in-list mods-where-var-is)])
-                   (submodule-enclosing-bindings-visible? mod))]
-                [(null? mods-where-var-is) #f]
-                [else
-                 (and (equal? (car mods-where-var-is)
-                              (car mods-where-binder-is))
-                      (loop (cdr mods-where-var-is)
-                            (cdr mods-where-binder-is)))]))))
-      (when binder-is-outside-reference?
-        (connect-syntaxes binder var actual? all-binders phase-level connections #f))))
+      (when (equal? (syntax->datum binder) (syntax->datum var))
+        (define binder-is-outside-reference?
+          (or (not mods-where-var-is)
+              (not (binder+mods-mods binder+mods))
+              (let loop ([mods-where-var-is (reverse mods-where-var-is)]
+                         [mods-where-binder-is (reverse (binder+mods-mods binder+mods))])
+                (cond
+                  [(null? mods-where-binder-is)
+                   (for/and ([mod (in-list mods-where-var-is)])
+                     (submodule-enclosing-bindings-visible? mod))]
+                  [(null? mods-where-var-is) #f]
+                  [else
+                   (and (equal? (car mods-where-var-is)
+                                (car mods-where-binder-is))
+                        (loop (cdr mods-where-var-is)
+                              (cdr mods-where-binder-is)))]))))
+        (when binder-is-outside-reference?
+          (connect-syntaxes binder var actual? all-binders phase-level connections #f)))))
 
   (when (and unused/phases phase-to-requires)
     (define req-path/pr (get-module-req-path var phase-level))
@@ -964,10 +972,11 @@
     (when req-binder+modss
       (define unused (hash-ref unused/phases require-hash-key #f))
       (when unused (hash-remove! unused req-path))
-      (for ([binder+mods (in-list req-binder+modss)])
+      (for ([require-context (in-list req-binder+modss)])
+        (define binder+mods (require-context-b+m require-context))
         (define req-stx (binder+mods-binder binder+mods))
         (define match/prefix
-          (id/require-match (syntax->datum var) id req-stx))
+          (id/require-match (syntax->datum var) id require-context))
         (when match/prefix
           (when id
             (define-values (filename submods)
@@ -985,7 +994,8 @@
                     (syntax-span match/prefix))
                (syntax-span match/prefix)]
               [else 0]))
-          (define raw-module-path (phaseless-spec->raw-module-path req-stx))
+          (define require-context (phaseless-spec->require-context mods req-stx))
+          (define raw-module-path (binder+mods-binder (require-context-b+m require-context)))
           (add-mouse-over var
                           (format
                            (string-constant cs-mouse-over-import/library-only)
@@ -1018,40 +1028,34 @@
                                   'module-lang
                                   #t))))))))
 
-(define (id/require-match var id req-stx)
-  (syntax-case* req-stx (only prefix all-except prefix-all-except rename)
-      symbolic-compare?
-    [(only raw-mod-path . ids)
-     (and (memq id (syntax->datum #'ids))
-          (eq? var id))]
-    [(prefix the-prefix raw-mod-path)
-     (and (equal? (format "~a~a" (syntax->datum #'the-prefix) id)
-                  (symbol->string var))
-          #'the-prefix)]
-    [(all-except raw-mod-path . ids)
-     (and (eq? var id)
-          (not (member var (syntax->datum #'ids))))]
-    [(prefix-all-except the-prefix raw-mod-path . rest)
-     (and (not (memq id (syntax->datum #'rest)))
-          (equal? (format "~a~a" (syntax->datum #'the-prefix) id)
-                  (symbol->string var))
-          #'the-prefix)]
-    [(rename raw-mod-path local-id exported-id)
-     (and (eq? (syntax->datum #'local-id) var))]
-    [raw-mod-path
-     (eq? var id)]))
+(define (id/require-match var id require-context)
+  (define prefix (require-context-prefix require-context))
+  (cond
+    [prefix
+     (and (equal? (format "~a~a" (syntax->datum prefix) id) (symbol->string var))
+          (not (member var (map syntax-e (require-context-ids require-context))))
+          prefix)]
+    [(require-context-in? require-context)
+     (member var (map syntax-e (require-context-ids require-context)))]
+    [else
+     (and (not (member var (map syntax-e (require-context-ids require-context))))
+          (equal? var id))]))
 
-(define (phaseless-spec->raw-module-path stx [found-local-id void])
+(define (phaseless-spec->require-context mods stx [found-local-id void])
   (syntax-case* stx (only prefix all-except prefix-all-except rename) symbolic-compare?
-    [(only raw-module-path id ...) #'raw-module-path]
-    [(prefix prefix-id raw-module-path) #'raw-module-path]
-    [(all-except raw-module-path id ...) #'raw-module-path]
-    [(prefix-all-except prefix-id raw-module-path id ...) #'raw-module-path]
+    [(only raw-module-path id ...)
+     (require-context (syntax->list #'(id ...)) #t #f (binder+mods #'raw-module-path mods))]
+    [(prefix prefix-id raw-module-path)
+     (require-context '() #f #'prefix-id (binder+mods #'raw-module-path mods))]
+    [(all-except raw-module-path id ...)
+     (require-context (syntax->list #'(id ...)) #f #f (binder+mods #'raw-module-path mods))]
+    [(prefix-all-except prefix-id raw-module-path id ...)
+     (require-context (syntax->list #'(id ...)) #t #'prefix-id (binder+mods #'raw-module-path mods))]
     [(rename raw-module-path local-id exported-id)
      (found-local-id #'local-id)
-     #'raw-module-path]
-    [_ stx]))
-
+     (require-context (list #'local-id) #t #f (binder+mods #'raw-module-path mods))]
+    [_
+     (require-context '() #f #f (binder+mods stx mods))]))
 
 ;; get-module-req-path : identifier number [#:nominal? boolean]
 ;;                    -> (union #f (list require-sexp sym ?? module-path-index? phase+space?))
@@ -1390,22 +1394,6 @@
      (syntax->list #'(identifier ...))]
     [_
      null]))
-
-;; trim-require-prefix : syntax -> syntax
-(define (trim-require-prefix require-spec)
-  (syntax-case* require-spec (only prefix all-except prefix-all-except rename)
-      symbolic-compare?
-    [(only module-name identifier ...)
-     (syntax module-name)]
-    [(prefix identifier module-name)
-     (syntax module-name)]
-    [(all-except module-name identifier ...)
-     (syntax module-name)]
-    [(prefix-all-except module-name identifier ...)
-     (syntax module-name)]
-    [(rename module-name local-identifier exported-identifier)
-     (syntax module-name)]
-    [_ require-spec]))
 
 (define (symbolic-compare? x y) (eq? (syntax-e x) (syntax-e y)))
 

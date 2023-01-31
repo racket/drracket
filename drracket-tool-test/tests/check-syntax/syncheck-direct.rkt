@@ -261,7 +261,7 @@
                    '((10 21 0.5 0.5) (23 30 0.5 0.5))
                    '((64 68 0.5 0.5) (125 130 0.5 0.5))
                    '((118 121 0.5 0.5) (131 134 0.5 0.5))
-                   '((118 121 0.5 0.5) (125 130 0.5 0.5))
+                   ;'((118 121 0.5 0.5) (125 130 0.5 0.5))
                    '((99 110 0.5 0.5) (131 134 0.5 0.5))))
 
 (check-equal? (get-binding-arrows
@@ -484,7 +484,41 @@
       '((28 39) (71 78))
       '((50 53) (79 82))))
 
+(check-equal?
+ (get-binding-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/list)\n"
+   "(let ([first #f])\n"
+   "  (local-require racket/list)\n"
+   "  first)\n"))
+ (set
+  '((6 17) (53 53))
+  '((6 17) (19 26))
+  '((6 17) (41 44))
+  '((6 17) (61 74))
+  '((75 86) (90 95))
 
+  ;; this one is wrong but there doesn't seem to be
+  ;; enough information in the fully-expanded form
+  ;; to drop it.
+  '((27 38) (90 95))))
+
+(check-equal?
+ (get-binding-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/list)\n"
+   "first\n"
+   "(require (rename-in racket/list [first 1st]))\n"
+   "1st\n"))
+ (set
+  '((6 17) (19 26))
+  '((6 17) (47 54))
+  '((6 17) (56 65))
+  '((27 38) (40 45))
+  '((66 77) (92 95)) ;; sketchy; should we eliminate?
+  '((85 88) (92 95))))
 
 ;                                                       
 ;                                                       
@@ -672,6 +706,42 @@
    "  first)\n"))
  (set '(27 83) '(68 83) '(27 40)))
 
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require (prefix-in x: racket/list) racket/list)\n"
+   "x:first\n"
+   "first\n"))
+ (set '(54 75) '(38 67) '(41 69)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/list)\n"
+   "(let ([first #f])\n"
+   "  (local-require racket/list)\n"
+   "  first)\n"))
+ (set '(75 90)
+
+      ;; this one is wrong but there doesn't seem to be
+      ;; enough information in the fully-expanded form
+      ;; to drop it.
+      '(27 90)))
+
+(check-equal?
+ (get-require-arrows
+  (string-append
+   "#lang racket/base\n"
+   "(require racket/list)\n"
+   "first\n"
+   "(require (rename-in racket/list [first 1st]))\n"
+   "1st\n"))
+ (set '(27 40)
+
+      ;; this arrow is sketchy. Can we get rid of it?
+      '(66 92)))
 
 
 ;                                                 
