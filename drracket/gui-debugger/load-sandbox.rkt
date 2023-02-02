@@ -32,7 +32,12 @@
         (let ([ocload/use-compiled (current-load/use-compiled)])
           (lambda (fn m)
             (cond [(annotate-module? fn m)
-                   (load-module/annotate annotator fn m)]
+                   (unless (and (pair? m)
+                                (pair? (cdr m))
+                                ;; if a submodule request for a module that's
+                                ;; already loaded, don't reload
+                                (module-declared? fn #f))
+                     (load-module/annotate annotator fn m))]
                   [else
                    (ocload/use-compiled fn m)])))])
       (eval-syntax (annotator stx))))
