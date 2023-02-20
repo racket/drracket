@@ -9,6 +9,7 @@
          racket/format
          racket/unit
          racket/class
+         racket/math
          racket/gui/base
          syntax-color/module-lexer
          framework
@@ -323,11 +324,28 @@
       ;; (this will be the end of the #lang line if there is one,
       ;; or it will be some conservative place if there isn't)
       (define hash-lang-last-location #f)
-      ;; the region between `hash-lang-comment-end-position` and `hash-lang-last-location`
+      ;; the region between 0 and `hash-lang-comment-end-position` (unless it is #f)
       ;; is known to be a comment and so edits there might not change the #lang line
       ;; if `hash-lang-comment-end-position` is #f, then we don't have a comment region to track
       ;; and so all edits before `hash-lang-last-location` will reload the #lang extensions
       (define hash-lang-comment-end-position #f)
+      (define/private (set-hash-lang-comment-end+last-location _hash-lang-last-location
+                                                               _hash-lang-comment-end-position)
+        (unless (or (and (not _hash-lang-last-location)
+                         (not _hash-lang-comment-end-position))
+                    (and (natural? _hash-lang-last-location)
+                         (natural? _hash-lang-comment-end-position)
+                         (<= _hash-lang-comment-end-position _hash-lang-last-location)))
+          (error 'set-hash-lang-comment-end+last-location
+                 (string-append
+                  "hash-lang-last-location and hash-lang-comment-end-position invariant broken;\n"
+                  " expected both to be #f or the comment-end to precede the last\n"
+                  "  hash-lang-last-location: ~s\n"
+                  "  hash-lang-comment-end-position: ~s")
+                 _hash-lang-last-location
+                 _hash-lang-comment-end-position))
+        (set! hash-lang-last-location _hash-lang-last-location)
+        (set! hash-lang-comment-end-position _hash-lang-comment-end-position))
 
       (define/public (irl-get-read-language-port-start+end)
         (get-read-language-port-start+end the-irl))
@@ -348,10 +366,11 @@
                    hash-lang-comment-end-position)
           (cond
             [(<= start hash-lang-comment-end-position)
-             (set! hash-lang-comment-end-position (+ hash-lang-comment-end-position len))
-             (set! hash-lang-last-location (+ hash-lang-last-location len))]
+             (set-hash-lang-comment-end+last-location (+ hash-lang-last-location len)
+                                                      (+ hash-lang-comment-end-position len))]
             [(<= start hash-lang-last-location)
-             (set! hash-lang-last-location (+ hash-lang-last-location len))]))
+             (set-hash-lang-comment-end+last-location (+ hash-lang-last-location len)
+                                                      hash-lang-comment-end-position)]))
         (modification-at start))
       (define/augment (after-delete start len)
         (inner (void) after-delete start len)
@@ -362,15 +381,15 @@
              ;; a deletion entirely inside the comment region, so we optimistically
              ;; update `hash-lang-comment-end-position` and `hash-lang-last-location`
              ;; and the comment check in `modification-at` will confirm
-             (set! hash-lang-comment-end-position (- hash-lang-comment-end-position len))
-             (set! hash-lang-last-location (- hash-lang-last-location len))]
+             (set-hash-lang-comment-end+last-location (- hash-lang-last-location len)
+                                                      (- hash-lang-comment-end-position len))]
             [(> start hash-lang-last-location)
              ;; here the deletion is entirely after and so we don't need to update anything
              (void)]
             [else
              ;; here the deletion spans the end of the comment region and possibly
              ;; the lang line. Just give up and reload #lang extensions
-             (set! hash-lang-comment-end-position #f)]))
+             (set-hash-lang-comment-end+last-location #f #f)]))
         (modification-at start))
 
       (define/augment (after-save-file success?)
@@ -434,8 +453,7 @@
              (move-to-new-language)]
             [else
              (set! hash-lang-language #f)
-             (set! hash-lang-comment-end-position #f)
-             (set! hash-lang-last-location #f)
+             (set-hash-lang-comment-end+last-location #f #f)
              (clear-things-out)])))
 
       (define/public (move-to-new-language [flush-irl-cache? #f])
@@ -443,17 +461,15 @@
         (send (get-tab) set-hash-lang-error-state #f)
         (define port (open-input-text-editor this))
         (reset-irl! the-irl port (get-irl-directory) flush-irl-cache?)
-        (define-values (lang-name-start lang-name-end)
-          (get-read-language-port-start+end the-irl))
-        (set! hash-lang-language (and lang-name-end (get-text lang-name-start lang-name-end)))
+        (set!-values (hash-lang-comment-end-position hash-lang-last-location)
+                     (get-read-language-port-start+end the-irl))
+        (set! hash-lang-language (and hash-lang-last-location
+                                      (get-text hash-lang-comment-end-position hash-lang-last-location)))
         (when hash-lang-language
           (preferences:set 'drracket:most-recent-lang-line (string-append hash-lang-language
                                                                           "\n")))
-        (set!-values (hash-lang-comment-end-position hash-lang-last-location)
-                     (get-read-language-port-start+end the-irl))
         (unless hash-lang-last-location
-          (set! hash-lang-comment-end-position #f)
-          (set! hash-lang-last-location (get-read-language-last-position the-irl)))
+          (set-hash-lang-comment-end+last-location (get-read-language-last-position the-irl) 0))
         
         (clear-things-out)
 
