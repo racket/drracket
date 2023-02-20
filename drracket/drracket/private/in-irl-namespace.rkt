@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require racket/match
-         racket/math
+(require racket/math
          racket/class
          racket/contract/option
          racket/contract
@@ -100,15 +99,27 @@
              (- after-pos 1))]
     [else
      (define restarted-port (peeking-input-port port))
-     (define first-line-after-comments (read-line restarted-port))
-     (define-values (_5 _6 peeking-pos) (port-next-location peeking-port))
-     (cond
-       [(and (not (eof-object? first-line-after-comments))
-             (or (regexp-match? #rx#"^#lang " first-line-after-comments)
-                 (regexp-match? #rx#"^#![a-zA-Z0-9+-_]" first-line-after-comments)))
-        (values #f #f #f #f (+ before-pos (string-length first-line-after-comments)))]
-       [else
-        (values #f #f #f #f before-pos)])]))
+     (port-count-lines! restarted-port)
+     (let/ec escape
+       (define (done)
+         (define-values (_1 _2 grammar-matching-end-position)
+           (port-next-location restarted-port))
+         (escape #f #f #f #f (+ (- before-pos 1) (- grammar-matching-end-position 1))))
+       (define (check-next-char rx-allowed)
+         (define got (read-char restarted-port))
+         (when (eof-object? got) (done))
+         (unless (regexp-match? rx-allowed (string got)) (done))
+         got)
+       (check-next-char #rx"#")
+       (define bang-or-l (check-next-char #rx"[!l]"))
+       (when (equal? bang-or-l #\l)
+         (check-next-char #rx"a")
+         (check-next-char #rx"n")
+         (check-next-char #rx"g")
+         (check-next-char #rx" "))
+       (let loop ()
+         (check-next-char #rx"[-+_/0-9a-zA-Z]")
+         (loop)))]))
     
 (define (reset-irl!/inside port)
   (set!-values (language-get-info
@@ -248,4 +259,8 @@
   (check-equal? (compute-lang-info/wrap ";; abc\n#lang rackket\nabc")
                 (list #f #f #f 21))
   (check-equal? (compute-lang-info/wrap ";; abc\n(whatevs)")
-                (list #f #f #f 8)))
+                (list #f #f #f 8))
+  (check-equal? (compute-lang-info/wrap "#lan g racket")
+                (list #f #f #f 5))
+  (check-equal? (compute-lang-info/wrap "#!r acket")
+                (list #f #f #f 4)))
