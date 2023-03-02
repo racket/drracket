@@ -7,7 +7,7 @@
   ("CFBundleTypeOSTypes"
    (array "TEXT" "WXME"))
   ("CFBundleTypeExtensions"
-   (array "rkt" "rktd" "rktl" "scrbl" "scm" "ss")))
+   (array "rhm" "rkt" "rktd" "rktl" "scrbl" "scm" "ss")))
  (("CFBundleTypeName"
    "Package")
   ("CFBundleTypeIconFile"
