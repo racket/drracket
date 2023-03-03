@@ -112,10 +112,12 @@
       (cond
         [the-splash-bitmap
          (set-splash-bitmap
-          (if (eq? special-state match)
-              (begin (set! special-state #f) the-splash-bitmap)
-              (begin (set! special-state match)
-                     (magic-image-bitmap match))))]
+          (cond
+            [(eq? special-state match)
+             (set! special-state #f) the-splash-bitmap]
+            [else
+             (set! special-state match)
+             (magic-image-bitmap match)]))]
         [else
          (set! magic-to-draw
                (if magic-to-draw
@@ -217,16 +219,16 @@
     [(or (prince-kuhio-day? startup-date)
          (kamehameha-day? startup-date))
      (set-splash-progress-bar?! #f)
-     (let ([size ((dynamic-require 'drracket/private/palaka 'palaka-pattern-size) 4)])
-       (vector (dynamic-require 'drracket/private/honu-logo 'draw-honu) 
-               size 
-               size))]
+     (define size ((dynamic-require 'drracket/private/palaka 'palaka-pattern-size) 4))
+     (vector (dynamic-require 'drracket/private/honu-logo 'draw-honu) 
+             size 
+             size)]
     [(ada-lovelace-bday? startup-date)
      (set-splash-progress-bar?! #f)
-     (let ([size (dynamic-require 'drracket/private/ada 'ada-size)])
-       (vector (dynamic-require 'drracket/private/ada 'draw-splash-ada) 
-               size 
-               size))]
+     (define size (dynamic-require 'drracket/private/ada 'ada-size))
+     (vector (dynamic-require 'drracket/private/ada 'draw-splash-ada) 
+             size 
+             size)]
     [(texas-independence-day? startup-date)
      (collection-file-path texas-plt-bw.gif "icons")]
     [(halloween? startup-date)
@@ -298,23 +300,24 @@
                                 (get-todays-icon)))
 
 (when (getenv "PLTDRBREAK")
-  (printf "PLTDRBREAK: creating break frame\n") (flush-output)
-  (let ([to-break (eventspace-handler-thread (current-eventspace))])
-    (parameterize ([current-eventspace (make-eventspace)])
-      (let* ([f (new frame% (label "Break DrRacket"))]
-             [b (new button% 
-                     (label "Break Main Thread")
-                     (callback
-                      (λ (x y)
-                        (break-thread to-break)))
-                     (parent f))]
-             [b (new button% 
-                     (label "Break All Threads")
-                     (callback
-                      (λ (x y)
-                        ((dynamic-require 'drracket/private/key 'break-threads))))
-                     (parent f))])
-        (send f show #t)))))
+  (printf "PLTDRBREAK: creating break frame\n")
+  (flush-output)
+  (define to-break (eventspace-handler-thread (current-eventspace)))
+  (parameterize ([current-eventspace (make-eventspace)])
+    (let* ([f (new frame% (label "Break DrRacket"))]
+           [b (new button% 
+                   (label "Break Main Thread")
+                   (callback
+                    (λ (x y)
+                      (break-thread to-break)))
+                   (parent f))]
+           [b (new button% 
+                   (label "Break All Threads")
+                   (callback
+                    (λ (x y)
+                      ((dynamic-require 'drracket/private/key 'break-threads))))
+                   (parent f))])
+      (send f show #t))))
 
 (dynamic-require 'drracket/tool-lib #f)
 (shutdown-splash)

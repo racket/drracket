@@ -200,9 +200,9 @@
       (set! after-initialized void)
       
       (define/public (initialize-module-language)
-        (let ([defs (get-definitions-text)])
-          (when (send defs get-in-module-language?)
-            (send defs move-to-new-language))))))
+        (define defs (get-definitions-text))
+        (when (send defs get-in-module-language?)
+          (send defs move-to-new-language)))))
   
   (struct hash-lang-error-state (display-msg more-info-msg) #:transparent)
 
@@ -331,8 +331,7 @@
       (define hash-lang-comment-end-position #f)
       (define/private (set-hash-lang-comment-end+last-location _hash-lang-last-location
                                                                _hash-lang-comment-end-position)
-        (unless (or (and (not _hash-lang-last-location)
-                         (not _hash-lang-comment-end-position))
+        (unless (or (not (or _hash-lang-last-location _hash-lang-comment-end-position))
                     (and (natural? _hash-lang-last-location)
                          (natural? _hash-lang-comment-end-position)
                          (<= _hash-lang-comment-end-position _hash-lang-last-location)))
@@ -625,10 +624,10 @@
         (cond
           [(zero? pos) '<<unknown>>]
           [else
-           (let ([str (get-text 0 pos)])
-             (if (char-whitespace? (string-ref str (- (string-length str) 1)))
-                 (substring str 0 (- (string-length str) 1))
-                 str))]))
+           (define str (get-text 0 pos))
+           (if (char-whitespace? (string-ref str (- (string-length str) 1)))
+               (substring str 0 (- (string-length str) 1))
+               str)]))
       
       
       ;; online-expansion-monitor-table : hash[(cons mod-path id) -o> (cons/c local-pc remote-pc)]
@@ -662,9 +661,9 @@
       
       (define extra-default-filters '())
       (define default-extension "")
-      (define indentation-function (λ (x y) #f))
+      (define (indentation-function x y) #f)
       (define/public (get-indentation-function) indentation-function)
-      (define range-indentation-function (λ (x y z) #f))
+      (define (range-indentation-function x y z) #f)
       (define/public (get-range-indentation-function) range-indentation-function)
       (define grouping-position default-grouping-position)
       (define lang-keymap #f)
@@ -757,7 +756,7 @@
   (preferences:add-callback 'framework:alt-as-meta
                             (λ (p v) (adjust-alt-as-meta v)))
 
-  (define default-grouping-position (λ (text start limit dir) #t))
+  (define (default-grouping-position text start limit dir) #t)
   
   (define no-more-online-expansion-handlers? #f)
   (define (no-more-online-expansion-handlers) (set! no-more-online-expansion-handlers? #t))

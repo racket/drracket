@@ -36,10 +36,10 @@
                   [_make-module-overview-pasteboard make-module-overview-pasteboard]))
   
   (define (module-overview parent)
-    (let ([filename (get-file #f parent)])
-      (when filename
-        (module-overview/file filename parent fill-pasteboard
-                              overview-frame% canvas:basic% pasteboard:basic%))))
+    (define filename (get-file #f parent))
+    (when filename
+      (module-overview/file filename parent fill-pasteboard
+                            overview-frame% canvas:basic% pasteboard:basic%)))
   
 
   (define (_module-overview/file filename parent) 
@@ -74,14 +74,15 @@
   (define (fill-pasteboard pasteboard filename-or-text/pos show-status send-user-thread/eventspace)
     
     (define text/pos 
-      (if (drracket:language:text/pos? filename-or-text/pos)
-          filename-or-text/pos
-          (let ([t (make-object text:basic%)])
-            (send t load-file filename-or-text/pos)
-            (drracket:language:text/pos
-             t
-             0
-             (send t last-position)))))
+      (cond
+        [(drracket:language:text/pos? filename-or-text/pos) filename-or-text/pos]
+        [else
+         (define t (make-object text:basic%))
+         (send t load-file filename-or-text/pos)
+         (drracket:language:text/pos
+          t
+          0
+          (send t last-position))]))
     
     (define progress-channel (make-async-channel))
     (define connection-channel (make-async-channel))
@@ -115,16 +116,17 @@
       (set! user-thread (current-thread))
       (moddep-current-open-input-file
        (λ (filename)
-         (let* ([p (open-input-file filename)]
-                [wxme? (regexp-match-peek #rx#"^WXME" p)])
-           (if wxme?
-               (let ([t (new text%)])
-                 (close-input-port p)
-                 (send t load-file filename)
-                 (let ([prt (open-input-text-editor t)])
-                   (port-count-lines! prt)
-                   prt))
-               p))))
+         (define p (open-input-file filename))
+         (define wxme? (regexp-match-peek #rx#"^WXME" p))
+         (cond
+           [wxme?
+            (define t (new text%))
+            (close-input-port p)
+            (send t load-file filename)
+            (define prt (open-input-text-editor t))
+            (port-count-lines! prt)
+            prt]
+           [else p])))
       (current-output-port (swallow-specials original-output-port))
       (current-error-port (swallow-specials original-error-port))
       (current-load-relative-directory #f)
@@ -199,20 +201,20 @@
             (handle-evt progress-channel (λ (x) (cons 'progress x)))
             (handle-evt connection-channel (λ (x) (cons 'connect x))))])
       (let loop ()
-        (let* ([evt-value (yield evt)]
-               [key (car evt-value)]
-               [val (cdr evt-value)])
-          (case key
-            [(progress) 
-             (show-status val)
-             (loop)]
-            [(connect)
-             (unless (eq? val 'done)
-               (let ([name-original (list-ref val 0)]
-                     [name-require (list-ref val 1)]
-                     [require-depth (list-ref val 2)])
-                 (send pasteboard add-connection name-original name-require require-depth))
-               (loop))]))))
+        (define evt-value (yield evt))
+        (define key (car evt-value))
+        (define val (cdr evt-value))
+        (case key
+          [(progress) 
+           (show-status val)
+           (loop)]
+          [(connect)
+           (unless (eq? val 'done)
+             (let ([name-original (list-ref val 0)]
+                   [name-require (list-ref val 1)]
+                   [require-depth (list-ref val 2)])
+               (send pasteboard add-connection name-original name-require require-depth))
+             (loop))])))
     (send pasteboard end-adding-connections)
     
     (custodian-shutdown-all user-custodian)

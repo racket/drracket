@@ -317,7 +317,7 @@
       (set! to-invalidate (currently-drawn-bluebox-region))
       (maybe-invalidate))
     
-    (define pref-changed-callback (λ (x y) (invalidate-blue-box-region)))
+    (define (pref-changed-callback x y) (invalidate-blue-box-region))
     (preferences:add-callback
      'drracket:syncheck:show-blueboxes?
      pref-changed-callback
@@ -524,9 +524,10 @@
                                       [i (in-naturals)])
                              (define bbs
                                (fetch-blueboxes-strs meth-tag #:blueboxes-cache the-blueboxes-cache))
-                             (if (zero? i)
-                                 (or bbs '())
-                                 (if bbs (cdr bbs) '()))))
+                             (cond
+                               [(zero? i) (or bbs '())]
+                               [bbs (cdr bbs)]
+                               [else '()])))
                           path url-tag))])]
            [else #f])]
         [#f #f]))

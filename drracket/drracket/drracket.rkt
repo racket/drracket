@@ -24,17 +24,17 @@
   (flush-output))
 
 (define (run-trace-thread)
-  (let ([evt (make-log-receiver (current-logger) 'info)])
-    (void
-     (thread
-      (λ ()
-        (let loop ()
-          (define vec (sync evt))
-          (define str (vector-ref vec 1))
-          (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
-            (display str)
-            (newline))
-          (loop)))))))
+  (define evt (make-log-receiver (current-logger) 'info))
+  (void
+   (thread
+    (λ ()
+      (let loop ()
+        (define vec (sync evt))
+        (define str (vector-ref vec 1))
+        (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
+          (display str)
+          (newline))
+        (loop))))))
 
 (cond
   [debugging?

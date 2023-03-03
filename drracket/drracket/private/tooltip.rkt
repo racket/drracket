@@ -87,7 +87,7 @@
       (send parent reflow-container))
 
     ;; private field for gc reasons
-    (define font-size-callback (λ (p v) (set! tooltip-font #f) (update-size)))
+    (define (font-size-callback p v) (set! tooltip-font #f) (update-size))
     (preferences:add-callback 'framework:standard-style-list:font-size
                               font-size-callback
                               #t)

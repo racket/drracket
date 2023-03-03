@@ -37,8 +37,8 @@
 (define (get-init-dir path/f)
   (cond
     [path/f
-     (let-values ([(base name dir?) (split-path path/f)])
-       base)]
+     (define-values (base name dir?) (split-path path/f))
+     base]
     [else
      (find-system-path 'home-dir)]))
 

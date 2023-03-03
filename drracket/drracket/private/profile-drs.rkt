@@ -51,10 +51,10 @@ itself.
                     [callback (λ (x y) (send t copy))]))
   
   (define (font-size)
-    (let ([n (send choice get-string-selection)])
-      (when n
-        (send sd set-delta 'change-size (string->number n))
-        (update-profile-report))))
+    (define n (send choice get-string-selection))
+    (when n
+      (send sd set-delta 'change-size (string->number n))
+      (update-profile-report)))
   
   (define (update-buttons)
     (send resume-b enable (and current-sampler (not running?)))
@@ -64,10 +64,11 @@ itself.
   (define running? #f)
   (define current-sampler #f)
   (define (start-sampler)
-    (let ([s (create-sampler (list drs-custodian drs-main-thread) 
-                             #e0.05
-                             super-custodian)])
-      (set! current-sampler s)))
+    (define s
+      (create-sampler (list drs-custodian drs-main-thread) 
+                      #e0.05
+                      super-custodian))
+    (set! current-sampler s))
   (define (stop-sampler)
     (current-sampler 'stop)
     (set! current-sampler #f)

@@ -121,16 +121,16 @@
   (define test-suite-filename (syntax-source #'here))
 
   (let ()
-    (define (a x) (+ (f x)))
+    (define (a x) (f x))
     (set! a a)
 
-    (define (f x) (+ (g x)))
+    (define (f x) (g x))
     (set! f f)
 
-    (define (g x) (with-stack-checkpoint (+ (h x))))
+    (define (g x) (with-stack-checkpoint (h x)))
     (set! g g)
 
-    (define (h x) (+ (i x)))
+    (define (h x) (i x))
     (set! h h)
 
     (define (i x)

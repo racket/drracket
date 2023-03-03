@@ -140,14 +140,15 @@
          [para-start (send text paragraph-start-position para #t)])
     (let loop ([c-pos para-start]
                [offset 0])
-      (if (< c-pos pos)
-          (let ([char (send text get-character c-pos)])
-            (cond
-              [(char=? char #\tab)
-               (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
-              [else
-               (loop (+ c-pos 1) (+ offset 1))]))
-          offset))))
+      (cond
+        [(< c-pos pos)
+         (define char (send text get-character c-pos))
+         (cond
+           [(char=? char #\tab)
+            (loop (+ c-pos 1) (+ offset (- 8 (modulo offset 8))))]
+           [else
+            (loop (+ c-pos 1) (+ offset 1))])]
+        [else offset]))))
 
 ;; whitespace-or-paren?
 (define (whitespace-or-paren? char)
@@ -161,13 +162,14 @@
 ;; Skips characters recognized by `skip?'
 (define (skip text pos skip?)
   (let loop ([pos pos])
-    (if (>= pos (send text last-position))
-        (send text last-position)
-        (let ([char (send text get-character pos)])
-          (cond
-            [(skip? char)
-             (loop (+ pos 1))]
-            [else pos])))))
+    (cond
+      [(>= pos (send text last-position)) (send text last-position)]
+      [else
+       (define char (send text get-character pos))
+       (cond
+         [(skip? char)
+          (loop (+ pos 1))]
+         [else pos])])))
 
 ;; skip-to-whitespace/paren : text number -> number
 ;; skips to the next parenthesis or whitespace after `pos', returns that position.
@@ -199,12 +201,12 @@
   (define end-header-pos
     (cond [(regexp-match #rx"^-metafunction(/extension)?$" suffix)
            => (λ (m)
-                (let ([extension? (second m)])
-                  (skip-past-non-whitespace
-                   text
-                   (if extension?
-                       (skip-past-non-whitespace text end-suffix-pos)
-                       end-suffix-pos))))]
+                (define extension? (second m))
+                (skip-past-non-whitespace
+                 text
+                 (if extension?
+                     (skip-past-non-whitespace text end-suffix-pos)
+                     end-suffix-pos)))]
           [else end-suffix-pos]))
   (define start-name-pos (skip-whitespace/paren text end-header-pos))
   (define end-name-pos (forward-to-next-token text start-name-pos))

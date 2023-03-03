@@ -178,16 +178,17 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
           (state state)))
       
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
-        (let ([bitmap (case state
-                        [(up) up-bitmap]
-                        [(down) down-bitmap]
-                        [(up-click) up-click-bitmap]
-                        [(down-click) down-click-bitmap])])
-          (cond
-            [(send bitmap ok?)
-             (send dc draw-bitmap bitmap x y)]
-            [(send dc draw-rectangle x y 10 10)
-             (send dc drawline x y 10 10)])))
+        (define bitmap
+          (case state
+            [(up) up-bitmap]
+            [(down) down-bitmap]
+            [(up-click) up-click-bitmap]
+            [(down-click) down-click-bitmap]))
+        (cond
+          [(send bitmap ok?)
+           (send dc draw-bitmap bitmap x y)]
+          [(send dc draw-rectangle x y 10 10)
+           (send dc drawline x y 10 10)]))
              
 
       (define/override (get-extent dc x y w h descent space lspace rspace)
@@ -199,54 +200,54 @@ Marshalling (and hence the 'read' method of the snipclass omitted for fast proto
         (set-box/f! h arrow-snip-height))
       
       (define/override (on-event dc x y editorx editory evt)
-        (let ([snip-evt-x (- (send evt get-x) x)]
-              [snip-evt-y (- (send evt get-y) y)])
-          (cond
-            [(send evt button-down? 'left)
-             (set-state (case state
-                          [(up) 'up-click]
-                          [(down) 'down-click]
-                          [else 'down-click]))]
-            [(and (send evt button-up? 'left)
-                  (<= 0 snip-evt-x arrow-snip-width)
-                  (<= 0 snip-evt-y arrow-snip-height))
-             (set-state (case state
-                          [(up up-click) 
-                           (on-down)
-                           'down]
-                          [(down down-click)
-                           (on-up)
-                           'up]
-                          [else 'down]))]
-            [(send evt button-up? 'left)
-             (set-state (case state
-                          [(up up-click) 'up]
-                          [(down down-click) 'down]
-                          [else 'up]))]
-            [(and (send evt get-left-down)
-                  (send evt dragging?)
-                  (<= 0 snip-evt-x arrow-snip-width)
-                  (<= 0 snip-evt-y arrow-snip-height))
-             (set-state (case state
-                          [(up up-click) 'up-click]
-                          [(down down-click) 'down-click]
-                          [else 'up-click]))]
-            [(and (send evt get-left-down)
-                  (send evt dragging?))
-             (set-state (case state
-                          [(up up-click) 'up]
-                          [(down down-click) 'down]
-                          [else 'up-click]))]
-            [else
-             (super on-event dc x y editorx editory evt)])))
+        (define snip-evt-x (- (send evt get-x) x))
+        (define snip-evt-y (- (send evt get-y) y))
+        (cond
+          [(send evt button-down? 'left)
+           (set-state (case state
+                        [(up) 'up-click]
+                        [(down) 'down-click]
+                        [else 'down-click]))]
+          [(and (send evt button-up? 'left)
+                (<= 0 snip-evt-x arrow-snip-width)
+                (<= 0 snip-evt-y arrow-snip-height))
+           (set-state (case state
+                        [(up up-click) 
+                         (on-down)
+                         'down]
+                        [(down down-click)
+                         (on-up)
+                         'up]
+                        [else 'down]))]
+          [(send evt button-up? 'left)
+           (set-state (case state
+                        [(up up-click) 'up]
+                        [(down down-click) 'down]
+                        [else 'up]))]
+          [(and (send evt get-left-down)
+                (send evt dragging?)
+                (<= 0 snip-evt-x arrow-snip-width)
+                (<= 0 snip-evt-y arrow-snip-height))
+           (set-state (case state
+                        [(up up-click) 'up-click]
+                        [(down down-click) 'down-click]
+                        [else 'up-click]))]
+          [(and (send evt get-left-down)
+                (send evt dragging?))
+           (set-state (case state
+                        [(up up-click) 'up]
+                        [(down down-click) 'down]
+                        [else 'up-click]))]
+          [else
+           (super on-event dc x y editorx editory evt)]))
 
       (inherit get-admin)
       (define/private (set-state new-state)
         (unless (eq? state new-state)
           (set! state new-state)
-          (let ([admin (get-admin)])
-            (when admin
-              (send admin needs-update this 0 0 arrow-snip-width arrow-snip-height)))))
+          (define admin (get-admin))
+          (when admin
+            (send admin needs-update this 0 0 arrow-snip-width arrow-snip-height))))
       
       (define/override (adjust-cursor dc x y editorx editory event) arrow-snip-cursor)
       
