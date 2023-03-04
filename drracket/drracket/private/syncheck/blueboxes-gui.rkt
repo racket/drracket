@@ -514,20 +514,26 @@
                (define id-strs
                  (and tag
                       (fetch-blueboxes-strs tag #:blueboxes-cache the-blueboxes-cache)))
-               (and id-strs
-                    (list start
-                          end
-                          (apply
-                           append
-                           id-strs
-                           (for/list ([meth-tag (in-list meth-tags)]
-                                      [i (in-naturals)])
-                             (define bbs
-                               (fetch-blueboxes-strs meth-tag #:blueboxes-cache the-blueboxes-cache))
-                             (if (zero? i)
-                                 (or bbs '())
-                                 (if bbs (cdr bbs) '()))))
-                          path url-tag))])]
+               (cond
+                 [id-strs
+                  (define bbss
+                    (for/list ([meth-tag (in-list meth-tags)])
+                      (fetch-blueboxes-strs meth-tag #:blueboxes-cache the-blueboxes-cache)))
+                  (define first-of-first-bbs
+                    (for/or ([bbs (in-list bbss)])
+                      (and (pair? bbs) (car bbs))))
+                  (define without-first-bbss
+                    (for/list ([bbs (in-list bbss)])
+                      (if bbs (cdr bbs) '())))
+                  (list start
+                        end
+                        (apply append
+                               id-strs
+                               (if first-of-first-bbs (list first-of-first-bbs) '())
+                               without-first-bbss)
+                        path
+                        url-tag)]
+                 [else #f])])]
            [else #f])]
         [#f #f]))
     
