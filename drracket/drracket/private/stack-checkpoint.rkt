@@ -121,16 +121,17 @@
   (define test-suite-filename (syntax-source #'here))
 
   (let ()
-    (define (a x) (+ (f x)))
+    (define (non-tail-context x) x)
+    (define (a x) (non-tail-context (f x)))
     (set! a a)
 
-    (define (f x) (+ (g x)))
+    (define (f x) (non-tail-context (g x)))
     (set! f f)
 
     (define (g x) (with-stack-checkpoint (+ (h x))))
     (set! g g)
 
-    (define (h x) (+ (i x)))
+    (define (h x) (non-tail-context (i x)))
     (set! h h)
 
     (define (i x)
