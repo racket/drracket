@@ -87,6 +87,9 @@
     (drracket:syncheck:template-arrow ,burnt-orange)
     (drracket:syncheck:tail-arrow ,light-green)))
 
+(define |Tol's Color-blind-safe| "Tol's Color-blind-safe")
+(define |Tol's White on Black| "Tol's White on Black")
+
 (define framework:color-schemes 
   (list 
    (hash 
@@ -97,9 +100,11 @@
       (framework:syntax-color:scheme:comment #(194 158 31))
       (framework:syntax-color:scheme:parenthesis #(0 150 255))))
    (hash
-    'name "Tol's Color-blind-safe"
+    'name |Tol's Color-blind-safe|
+    'inverted-base-name |Tol's White on Black|
     'colors tol-black-on-white-colors)
    (hash
-    'name "Tol's White on Black"
+    'name |Tol's White on Black|
+    'inverted-base-name |Tol's Color-blind-safe|
     'white-on-black-base? #t
     'colors tol-white-on-black-colors)))
