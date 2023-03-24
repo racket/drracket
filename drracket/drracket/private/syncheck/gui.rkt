@@ -1597,7 +1597,12 @@ If the namespace does not, they are colored the unbound color.
                   (unless (= start end)
                     (if highlight?
                         (send txt highlight-range start end clr #f 'low style)
-                        (send txt unhighlight-range start end clr #f style)))))
+                        (send txt unhighlight-ranges
+                              (λ (r-start r-end r-color r-caret-space? r-style r-adjust-on-insert/delete? r-key)
+                                (and (equal? start r-start)
+                                     (equal? end r-end)
+                                     (equal? #f r-caret-space?)
+                                     (equal? style r-style))))))))
               
               (un/highlight #f)
               
