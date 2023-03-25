@@ -21,7 +21,7 @@
 
 (define about-frame%
   (class (drracket:frame:basics-mixin (frame:standard-menus-mixin frame:basic%))
-    (init-field main-text)
+    (init-field main-text got-closed)
     (inherit close)
     (define/override (on-subwindow-char receiver event)
       (cond
@@ -29,6 +29,9 @@
          (close)]
         [else
          (super on-subwindow-char receiver event)]))
+    (define/augment (on-close)
+      (inner (void) on-close)
+      (got-closed))
     (define/private (edit-menu:do const)
       (send main-text do-edit-operation const))
     [define/override file-menu:create-revert? (λ () #f)]
@@ -52,8 +55,9 @@
   (let ([max-height (apply max (map (λ (x) (send x get-height)) items))])
     (for-each (λ (x) (send x min-height max-height)) items)))
 
-(define wrap-edit% 
-  (class text:hide-caret/selection%
+(define wrap-edit%
+  (class (editor:standard-style-list-mixin
+          text:hide-caret/selection%)
     (inherit begin-edit-sequence end-edit-sequence
              get-max-width find-snip position-location)
     (define/augment (on-set-size-constraint)
@@ -116,148 +120,184 @@
    mb-flat-width mb-flat-height))
 
 (define (about-drscheme)
-  (let* ([e (make-object wrap-edit%)]
-         [main-text (make-object wrap-edit%)]
-         [plt-pict (get-plt-pict)]
-         [plt-snip (new pict-snip% [pict plt-pict])]
-         [editor-snip (make-object editor-snip% e #f)]
-         [f (make-object about-frame% main-text)]
-         [main-panel (send f get-area-container)]
-         [editor-canvas (make-object canvas:color% main-panel)]
-         [button-panel (make-object horizontal-panel% main-panel)]
-         [top (make-object style-delta% 'change-alignment 'top)]
-         [d-usual (make-object style-delta% 'change-family 'decorative)]
-         [d-dr (make-object style-delta%)]
-         
-         [insert/clickback
-          (λ (str clickback)
-            (send e change-style (gui-utils:get-clickback-delta
-                                  (preferences:get 'framework:white-on-black?)))
-            (let* ([before (send e get-start-position)]
-                   [_ (send e insert str)]
-                   [after (send e get-start-position)])
-              (send e set-clickback before after 
-                    (λ (a b c) (clickback))
-                    (gui-utils:get-clickback-delta
-                     (preferences:get 'framework:white-on-black?))))
-            (send e change-style d-usual))]
-         
-         [insert-url/external-browser
-          (λ (str url)
-            (insert/clickback str (λ () (send-url url))))])
-    
-    (send* d-usual 
-      (set-delta-foreground (if (preferences:get 'framework:white-on-black?) "white" "black"))
-      (set-delta 'change-underline #f))
-    
-    (send* d-dr (copy d-usual) (set-delta 'change-bold))
-    (send d-usual set-weight-on 'normal)
-    (send* editor-canvas
-      (set-editor main-text)
-      (stretchable-width #t)
-      (stretchable-height #t))
-    
-    (send* editor-canvas
-      (min-width (inexact->exact (floor (+ (* 5/2 (pict-width plt-pict)) 50))))
-      (min-height (inexact->exact (round (+ (pict-height plt-pict) 50)))))
-    
-    (send* e 
-      (change-style d-dr)
-      (insert (format (string-constant welcome-to-drscheme-version/language) 
-                      (version:version)
-                      (this-language)))
-      (change-style d-usual))
-    
-    (send e insert " by ")
-    
-    (insert-url/external-browser "PLT" "http://racket-lang.org/")
-    
-    (send* e
-      (insert ".\n\n")
-      (insert (get-authors))
-      (insert "\n\nFor licensing information see "))
-    
-    (insert/clickback "our software license"
-                      (λ () (help-desk:goto-plt-license)))
-    
-    (send* e
-      (insert ".\n\nBased on:\n  ")
-      (insert (banner)))
-    
-    (let ([tools (sort (drracket:tools:get-successful-tools)
-                       (lambda (a b)
-                         (string<? (path->string (drracket:tools:successful-tool-spec a))
-                                   (path->string (drracket:tools:successful-tool-spec b)))))])
-      (unless (null? tools)
-        (let loop ([actions1 '()] [actions2 '()] [tools tools])
-          (if (pair? tools)
-              (let* ([successful-tool (car tools)]
-                     [name (drracket:tools:successful-tool-name successful-tool)]
-                     [spec (drracket:tools:successful-tool-spec successful-tool)]
-                     [bm   (drracket:tools:successful-tool-bitmap successful-tool)]
-                     [url  (drracket:tools:successful-tool-url successful-tool)])
-                (define (action)
-                  (send e insert "  ")
-                  (when bm
-                    (send* e
-                      (insert (make-object image-snip% bm))
-                      (insert #\space)))
-                  (let ([name (or name (format "~a" spec))])
-                    (cond [url  (insert-url/external-browser name url)]
-                          [else (send* e
-                                  (change-style d-usual)
-                                  (insert name)
-                                  (change-style d-usual))]))
-                  (send e insert #\newline))
-                (if name
-                    (loop (cons action actions1) actions2 (cdr tools))
-                    (loop actions1 (cons action actions2) (cdr tools))))
-              (begin (send e insert "\nInstalled tools:\n")
-                     (for-each (λ (act) (act)) (reverse actions1))
-                     ;; (send e insert "Installed anonymous tools:\n")
-                     (for-each (λ (act) (act)) (reverse actions2)))))))
-    
-    (send e insert "\n")
-    (send e insert (get-translating-acks))
-    
-    (let* ([docs-button (new button% 
-                             [label (string-constant help-desk)]
-                             [parent button-panel]
-                             [callback (λ (x y) (help-desk:help-desk))])])
-      (send docs-button focus))
-    (send button-panel stretchable-height #f)
-    (send button-panel set-alignment 'center 'center)
-    
-    (send* e
-      (auto-wrap #t)
-      (set-autowrap-bitmap #f))
-    (send* main-text 
-      (set-autowrap-bitmap #f)
-      (auto-wrap #t)
-      (insert plt-snip)
-      (insert editor-snip)
-      (change-style top 0 2)
-      (hide-caret #t))
-    (send editor-snip use-style-background #t)
-    (send f reflow-container)
-    
-    (send* main-text
-      (set-position 1)
-      (scroll-to-position 0)
-      (lock #t))
-    
-    (send* e
-      (set-position 0)
-      (scroll-to-position 0)
-      (lock #t))
-    
-    (when (eq? (system-type) 'macosx)
-      ;; otherwise, the focus is the tour button, as above
-      (send editor-canvas focus))
-    
-    (send f show #t)
-    f))
+  (define e (make-object wrap-edit%))
+  (define main-text (make-object wrap-edit%))
+  (define plt-pict (get-plt-pict))
+  (define plt-snip (new pict-snip% [pict plt-pict]))
+  (define editor-snip (make-object editor-snip% e #f))
+  (define remove-callback-defined? #f)
+  (define f
+    (new about-frame%
+         [main-text main-text]
+         [got-closed
+          (λ () (when remove-callback-defined? (remove-callback)))]))
+  (define main-panel (send f get-area-container))
+  (define editor-canvas (make-object canvas:color% main-panel))
+  (define button-panel (make-object horizontal-panel% main-panel))
+  (define top (make-object style-delta% 'change-alignment 'top))
+  (define sl (send e get-style-list))
+  (define usual-style
+    (send sl new-named-style "drracket:about base style"
+          (send sl find-named-style
+                (editor:get-default-color-style-name))))
 
+  (define d-usual (make-object style-delta% 'change-family 'decorative))
+  (send d-usual set-weight-on 'normal)
+  (send d-usual set-delta 'change-underline #f)
+  (send usual-style set-delta d-usual)
+
+  (define dr-style
+    (send sl new-named-style "drracket:about dr style"
+          usual-style))
+  (define d-dr (make-object style-delta%))
+  (send d-dr set-delta 'change-bold)
+  (send dr-style set-delta d-dr)
+
+  (define clickback-style
+    (send sl new-named-style "drracket:about clickback"
+          usual-style))
+  (send clickback-style set-delta
+        (gui-utils:get-clickback-delta
+         (preferences:get 'framework:white-on-black?)))
+
+  (define (insert/clickback str clickback)
+    (send e change-style clickback-style)
+    (define before (send e get-start-position))
+    (send e insert str)
+    (define after (send e get-start-position))
+    (send e set-clickback before after
+          (λ (a b c) (clickback)))
+    (send e change-style usual-style))
+
+  (define (insert-url/external-browser str url)
+    (insert/clickback str (λ () (send-url url))))
+
+
+  (send* editor-canvas
+    (set-editor main-text)
+    (stretchable-width #t)
+    (stretchable-height #t))
+
+  (send* editor-canvas
+    (min-width (inexact->exact (floor (+ (* 5/2 (pict-width plt-pict)) 50))))
+    (min-height (inexact->exact (round (+ (pict-height plt-pict) 50)))))
+
+  (send* e
+    (change-style dr-style)
+    (insert (format (string-constant welcome-to-drscheme-version/language)
+                    (version:version)
+                    (this-language)))
+    (change-style usual-style))
+
+  (send e insert " by ")
+
+  (insert-url/external-browser "PLT" "http://racket-lang.org/")
+
+  (send* e
+    (insert ".\n\n")
+    (insert (get-authors))
+    (insert "\n\nFor licensing information see "))
+
+  (insert/clickback "our software license"
+                    (λ () (help-desk:goto-plt-license)))
+
+  (send* e
+    (insert ".\n\nBased on:\n  ")
+    (insert (banner)))
+
+  (let ([tools (sort (drracket:tools:get-successful-tools)
+                     (lambda (a b)
+                       (string<? (path->string (drracket:tools:successful-tool-spec a))
+                                 (path->string (drracket:tools:successful-tool-spec b)))))])
+    (unless (null? tools)
+      (let loop ([actions1 '()] [actions2 '()] [tools tools])
+        (if (pair? tools)
+            (let* ([successful-tool (car tools)]
+                   [name (drracket:tools:successful-tool-name successful-tool)]
+                   [spec (drracket:tools:successful-tool-spec successful-tool)]
+                   [bm   (drracket:tools:successful-tool-bitmap successful-tool)]
+                   [url  (drracket:tools:successful-tool-url successful-tool)])
+              (define (action)
+                (send e insert "  ")
+                (when bm
+                  (send* e
+                    (insert (make-object image-snip% bm))
+                    (insert #\space)))
+                (let ([name (or name (format "~a" spec))])
+                  (cond [url  (insert-url/external-browser name url)]
+                        [else (send* e
+                                (change-style usual-style)
+                                (insert name)
+                                (change-style usual-style))]))
+                (send e insert #\newline))
+              (if name
+                  (loop (cons action actions1) actions2 (cdr tools))
+                  (loop actions1 (cons action actions2) (cdr tools))))
+            (begin (send e insert "\nInstalled tools:\n")
+                   (for-each (λ (act) (act)) (reverse actions1))
+                   ;; (send e insert "Installed anonymous tools:\n")
+                   (for-each (λ (act) (act)) (reverse actions2)))))))
+
+  (send e insert "\n")
+  (send e insert (get-translating-acks))
+
+  (let* ([docs-button (new button%
+                           [label (string-constant help-desk)]
+                           [parent button-panel]
+                           [callback (λ (x y) (help-desk:help-desk))])])
+    (send docs-button focus))
+  (send button-panel stretchable-height #f)
+  (send button-panel set-alignment 'center 'center)
+
+  (define (update-wob v)
+    (define sl (editor:get-standard-style-list))
+    (send sl begin-style-change-sequence)
+    (define color (if v "white" "black"))
+    (send usual-style get-delta d-usual)
+    (send d-usual set-delta-foreground color)
+    (send usual-style set-delta d-usual)
+    (send dr-style get-delta d-dr)
+    (send d-dr set-delta-foreground color)
+    (send dr-style set-delta d-dr)
+    (send clickback-style set-delta (gui-utils:get-clickback-delta v))
+    (send sl end-style-change-sequence))
+  (define remove-callback
+    (preferences:add-callback
+     'framework:white-on-black?
+     (λ (p v)
+       (update-wob v))))
+  (update-wob (preferences:get 'framework:white-on-black?))
+  (set! remove-callback-defined? #t)
+
+  (send* e
+    (auto-wrap #t)
+    (set-autowrap-bitmap #f))
+  (send* main-text
+    (set-autowrap-bitmap #f)
+    (auto-wrap #t)
+    (insert plt-snip)
+    (insert editor-snip)
+    (change-style top 0 2)
+    (hide-caret #t))
+  (send editor-snip use-style-background #t)
+  (send f reflow-container)
+
+  (send* main-text
+    (set-position 1)
+    (scroll-to-position 0)
+    (lock #t))
+
+  (send* e
+    (set-position 0)
+    (scroll-to-position 0)
+    (lock #t))
+
+  (when (eq? (system-type) 'macosx)
+    ;; otherwise, the focus is the tour button, as above
+    (send editor-canvas focus))
+
+  (send f show #t)
+  f)
 
 
 ;                                       
@@ -324,22 +364,22 @@
     (send text insert are-you-sure)
     (send text set-position 0 0))
   (define cancelled? #t)
-  
+
   (make-section other-are-you-sure
                 other-cancel
                 other-accept-and-quit)
-  
+
   (make-section (string-constant are-you-sure-you-want-to-switch-languages)
                 (string-constant cancel)
                 (if (eq? (system-type) 'windows)
                     (string-constant accept-and-exit)
                     (string-constant accept-and-quit)))
-  
+
   (send dialog show #t)
-  
+
   (unless cancelled?
     (let ([set-language? #t])
-      (exit:insert-on-callback 
+      (exit:insert-on-callback
        (λ ()
          (when set-language?
            (set-language-pref other-language))))
@@ -368,12 +408,12 @@
     (add |How to Design Programs| "http://htdp.org/")
 
     (for-each (λ (tool)
-                (cond [(drracket:tools:successful-tool-url tool) 
+                (cond [(drracket:tools:successful-tool-url tool)
                        =>
                        (λ (url)
                          (add (drracket:tools:successful-tool-name tool) url tool-urls-menu))]))
               (drracket:tools:get-successful-tools))
-    
+
     (let loop ([additional additional])
       (cond
         [(pair? additional)
@@ -398,7 +438,7 @@
                     (label native-lang-string)
                     (parent help-menu)
                     (callback (λ (x1 x2) (switch-language-to #f language))))))
-              good-interact-strings 
+              good-interact-strings
               languages-with-good-labels)))
 
 (define-values (languages-with-good-labels good-interact-strings)
@@ -413,7 +453,7 @@
                   [lang (car langs)])
               (if (andmap (λ (char) (send normal-control-font screen-glyph-exists? char #t))
                           (string->list str))
-                  (loop (cdr langs) 
+                  (loop (cdr langs)
                         (cdr strs)
                         (cons lang good-langs)
                         (cons str good-strs))
