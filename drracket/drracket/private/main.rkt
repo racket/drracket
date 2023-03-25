@@ -676,6 +676,7 @@
    (preferences:set 'framework:exit-when-no-frames #t)]) 
 
 (color-prefs:add-color-scheme-entry 'drracket:language-name-and-memory-use-at-top-of-interactions
+                                    #:style "drracket:language name and memory use at top of interactions"
                                     "dark green"
                                     "pale green")
 

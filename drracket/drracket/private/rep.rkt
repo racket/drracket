@@ -344,13 +344,11 @@ TODO
     warning-style-delta)
   (define (get-welcome-delta) (make-object style-delta% 'change-family 'decorative))
   (define (get-dark-green-delta)
-    (define dark-green-delta (make-object style-delta%))
-    (send* dark-green-delta
-      (copy (get-welcome-delta))
-      (set-delta-foreground
-       (color-prefs:lookup-in-color-scheme
-        'drracket:language-name-and-memory-use-at-top-of-interactions)))
-    dark-green-delta)
+    (send (color-prefs:lookup-in-color-scheme
+           'drracket:language-name-and-memory-use-at-top-of-interactions)
+          set-delta
+          'change-family
+          'decorative))
   
   ;; is-default-settings? : language-settings -> boolean
   ;; determines if the settings in `language-settings'
@@ -424,7 +422,8 @@ TODO
     (send text insert s before before #f)
     (define after (send text last-position))
     (for ([delta (in-list deltas)])
-      (when (is-a? delta style-delta%)
+      (when (or (is-a? delta style-delta%)
+                (is-a? delta style<%>))
         (send text change-style delta before after)))
     (values before after))
   
@@ -1775,27 +1774,34 @@ TODO
         
         (set! setting-up-repl? #t)
         (define welcome-delta (get-welcome-delta))
-        (define dark-green-delta (get-dark-green-delta))
+        (define dark-green-delta
+          (send (editor:get-standard-style-list) find-named-style
+                "drracket:language name and memory use at top of interactions"))
         (insert/delta this (string-append (string-constant language) ": ") welcome-delta)
         (let-values (((before after)
                       (insert/delta
                        this
                        (extract-language-name user-language-settings definitions-text)
                        dark-green-delta
+                       welcome-delta
                        (extract-language-style-delta user-language-settings)))
                      ((url) (extract-language-url user-language-settings)))
           (when url
             (set-clickback before after (λ args (send-url url))
                            (click-delta))))
+
         (unless (is-default-settings? user-language-settings)
-          (insert/delta this (string-append " [" (string-constant custom) "]") dark-green-delta))
+          (insert/delta this (string-append " [" (string-constant custom) "]")
+                        dark-green-delta
+                        welcome-delta))
         (when custodian-limit
           (insert/delta this 
                         (format "~a " (string-constant memory-limit))
                         welcome-delta)
           (insert/delta this
                         (format "~a MB" (floor (/ custodian-limit 1024 1024)))
-                        dark-green-delta))
+                        dark-green-delta
+                        welcome-delta))
         (insert/delta this ".\n" welcome-delta)
         
         (let ([osf (get-styles-fixed)])
