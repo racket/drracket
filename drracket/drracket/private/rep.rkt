@@ -651,7 +651,7 @@ TODO
               (define start (- (srcloc-position loc) 1))
               (define span (srcloc-span loc))
               (define finish (+ start span))
-              (send file highlight-range start finish (drracket:debug:get-error-color) #f 'high)))
+              (send file highlight-range start finish 'drracket:error-background-highlighting #f 'high)))
           (when (and definitions-text error-arrows)
             (let ([filtered-arrows
                    (remove-duplicate-error-arrows
