@@ -82,6 +82,7 @@
    add-prefs-panel
    
    get-error-color
+   get-error-color-name
    
    hide-backtrace-window
    show-backtrace-window

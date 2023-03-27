@@ -83,7 +83,9 @@
   ;; get-error-color : -> (instanceof color%)
   (define (get-error-color)
     (color-prefs:lookup-in-color-scheme
-     'drracket:error-background-highlighting))
+     (get-error-color-name)))
+  (define (get-error-color-name)
+    'drracket:error-background-highlighting)
   
   (define arrow-cursor (make-object cursor% 'arrow))
   (define (clickable-snip-mixin snip%)
@@ -1033,7 +1035,7 @@
                    (< (send from-text get-snip-position snip) para-end-pos))
           (send to-text insert (send snip copy))
           (loop (send snip next))))
-      (send to-text highlight-range (max 0 (- from-start 1)) from-end 'drracket:error-background-highlighting #f 'high)
+      (send to-text highlight-range (max 0 (- from-start 1)) from-end (get-error-color-name) #f 'high)
       to-text))
   
   ;; get-filename : debug-source -> string

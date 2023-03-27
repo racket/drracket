@@ -262,7 +262,7 @@ If the namespace does not, they are colored the unbound color.
     ;; name-dup? : symbol? -> boolean?
     (define-struct identifier-location-set (set name-dup?) #:transparent)
         
-    ;; color : (or/c (is-a?/c color%) string)
+    ;; color : (or/c (is-a?/c color%) string? color-prefs:color-scheme-color-name?)
     ;; text: text:basic<%>
     ;; start, fin: number
     ;; used to represent regions to highlight when passing the mouse over the syncheck window
@@ -1042,8 +1042,7 @@ If the namespace does not, they are colored the unbound color.
                 (when (is-a? text text:basic<%>)
                   (when (hash-has-key? cs-check-syntax-background-colors text-type)
                     (define color
-                      (color-prefs:lookup-in-color-scheme
-                       (hash-ref cs-check-syntax-background-colors text-type)))
+                      (hash-ref cs-check-syntax-background-colors text-type))
                     (add-to-range/key text start fin
                                       (make-colored-region color text start fin)
                                       #f #f)))))
@@ -1580,9 +1579,8 @@ If the namespace does not, they are colored the unbound color.
             (define current-matching-identifiers (make-hash))
             
             (define/private (update-matching-identifiers refreshing?)
-              (define clr (color-prefs:lookup-in-color-scheme
-                           (hash-ref cs-check-syntax-background-colors
-                                     'matching-identifiers)))
+              (define clr (hash-ref cs-check-syntax-background-colors
+                                    'matching-identifiers))
               (define style 'ellipse) 
               (define in-edit-sequence '())
               (define (un/highlight highlight?)

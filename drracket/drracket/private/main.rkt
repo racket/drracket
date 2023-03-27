@@ -714,7 +714,9 @@
 (color-prefs:add-color-scheme-entry 'drracket:error-background-highlighting
                                     "pink"
                                     (make-object color% 117 0 0))
-
+(color-prefs:add-color-scheme-entry 'drracket:gold-error-background-highlighting
+                                    "gold"
+                                    (make-object color% 145 107 0))
 
 (define test-coverage-on-style-pref (string->symbol drracket:debug:test-coverage-on-style-name))
 (define test-coverage-off-style-pref (string->symbol drracket:debug:test-coverage-off-style-name))
@@ -728,6 +730,7 @@
                                     "orange"
                                     "indianred"
                                     #:background "black")
+
 (color-prefs:add-to-preferences-panel 
  "Module Language"
  (λ (parent)

@@ -869,10 +869,17 @@ all of the names in the tools library, for use defining keybindings
   drracket:debug:get-error-color
   (-> (is-a?/c color%))
   @{Returns the background color used to highlight errors in the definitions window
-    (and other places, possibly).
+    (and other places, possibly). See also @racket[drracket:debug:get-error-color-name].
     
     The result depends on the @racket['framework:white-on-black?] preference
     setting.})
+
+ (proc-doc
+  drracket:debug:get-error-color-name
+  (-> color-prefs:color-scheme-color-name?)
+  @{Returns the name of the background color used to
+    highlight errors in the definitions window
+    (and other places, possibly).})
  
  (proc-doc/names
   drracket:debug:show-backtrace-window

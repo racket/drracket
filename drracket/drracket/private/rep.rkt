@@ -708,7 +708,7 @@ TODO
           (define finish (+ start span))
 
           (let ([reset (send source highlight-range start finish
-                             (drracket:debug:get-error-color)
+                             (drracket:debug:get-error-color-name)
                              #f 'high)])
             (set! clear-error-highlighting
                   (λ ()
