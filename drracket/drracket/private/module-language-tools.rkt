@@ -200,9 +200,9 @@
       (set! after-initialized void)
       
       (define/public (initialize-module-language)
-        (let ([defs (get-definitions-text)])
-          (when (send defs get-in-module-language?)
-            (send defs move-to-new-language))))))
+        (define defs (get-definitions-text))
+        (when (send defs get-in-module-language?)
+          (send defs move-to-new-language)))))
   
   (struct hash-lang-error-state (display-msg more-info-msg) #:transparent)
 
@@ -625,10 +625,10 @@
         (cond
           [(zero? pos) '<<unknown>>]
           [else
-           (let ([str (get-text 0 pos)])
-             (if (char-whitespace? (string-ref str (- (string-length str) 1)))
-                 (substring str 0 (- (string-length str) 1))
-                 str))]))
+           (define str (get-text 0 pos))
+           (if (char-whitespace? (string-ref str (- (string-length str) 1)))
+               (substring str 0 (- (string-length str) 1))
+               str)]))
       
       
       ;; online-expansion-monitor-table : hash[(cons mod-path id) -o> (cons/c local-pc remote-pc)]
@@ -757,7 +757,7 @@
   (preferences:add-callback 'framework:alt-as-meta
                             (λ (p v) (adjust-alt-as-meta v)))
 
-  (define default-grouping-position (λ (text start limit dir) #t))
+  (define (default-grouping-position text start limit dir) #t)
   
   (define no-more-online-expansion-handlers? #f)
   (define (no-more-online-expansion-handlers) (set! no-more-online-expansion-handlers? #t))

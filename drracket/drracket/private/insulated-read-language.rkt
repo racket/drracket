@@ -321,20 +321,21 @@ Will not work with the definitions text surrogate interposition that
     (for ([lang (in-list all-languages)])
       (define lang-spec (send lang get-reader-module))
       (when lang-spec
-        (let* ([lines (send lang get-metadata-lines)]
-               [str (send text get-text
-                          0
-                          (send text paragraph-end-position (- lines 1)))]
-               [sp (open-input-string str)])
-          (when (regexp-match #rx"#reader" sp)
-            (define spec-in-file (read sp))
-            (when (equal? lang-spec spec-in-file)
-              (set! found-language? lang)
-              (set! settings (send lang metadata->settings str))
-              (send text while-unlocked
-                    (λ () 
-                      (send text delete 0
-                            (send text paragraph-start-position lines)))))))))
+        (define lines (send lang get-metadata-lines))
+        (define str
+          (send text get-text
+                0
+                (send text paragraph-end-position (- lines 1))))
+        (define sp (open-input-string str))
+        (when (regexp-match #rx"#reader" sp)
+          (define spec-in-file (read sp))
+          (when (equal? lang-spec spec-in-file)
+            (set! found-language? lang)
+            (set! settings (send lang metadata->settings str))
+            (send text while-unlocked
+                  (λ () 
+                    (send text delete 0
+                          (send text paragraph-start-position lines))))))))
       
     ;; check to see if it looks like the module language.
     (unless found-language?

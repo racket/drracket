@@ -83,13 +83,12 @@
                                 "\n\n" output))]
                  [else
                   (message-box (string-constant drracket)
-                               (string-append
-                                (format (string-constant adding-racket/bin-to-path-failed)
-                                        (if (equal? output "")
-                                            ""
-                                            (string-append "\n\n" output "\n\n"))
-                                        paths.d/racket
-                                        bin-dir)))])
+                               (format (string-constant adding-racket/bin-to-path-failed)
+                                       (if (equal? output "")
+                                           ""
+                                           (string-append "\n\n" output "\n\n"))
+                                       paths.d/racket
+                                       bin-dir))])
                (void))
              (new menu-item%
                   [label (string-constant add-racket/bin-to-path)]
@@ -234,7 +233,7 @@
 
   (define (bound-by-menu? binding menu-table)
     (ormap (λ (constituent)
-             (hash-ref menu-table (string->symbol constituent) (λ () #f)))
+             (hash-ref menu-table (string->symbol constituent) #f))
            (regexp-split #rx";" (symbol->string (car binding)))))
   
   (define (get-menu-bindings frame)
@@ -459,14 +458,15 @@
                       (λ (x y)
                         (with-handlers ([exn? (λ (x)
                                                 (printf "~a\n" (exn-message x)))])
-                          (let ([filename (finder:get-file
-                                           #f
-                                           (string-constant keybindings-choose-user-defined-file)
-                                           #f
-                                           ""
-                                           this)])
-                            (when filename
-                              (add-keybindings-item/update-prefs filename)))))))
+                          (define filename
+                            (finder:get-file
+                             #f
+                             (string-constant keybindings-choose-user-defined-file)
+                             #f
+                             ""
+                             this))
+                          (when filename
+                            (add-keybindings-item/update-prefs filename))))))
                 (define ud (preferences:get 'drracket:user-defined-keybindings))
                 (unless (null? ud)
                   (new separator-menu-item% (parent keybindings-menu))
@@ -491,12 +491,12 @@
                              (preferences:get 'drracket:user-defined-keybindings)))))
   
   (define (planet-string-spec? p)
-    (let ([sexp
-           (with-handlers ([exn:fail:read? (λ (x) #f)])
-             (read (open-input-string p)))])
-      (and sexp
-           (planet-spec? sexp)
-           sexp)))
+    (define sexp
+      (with-handlers ([exn:fail:read? (λ (x) #f)])
+        (read (open-input-string p))))
+    (and sexp
+         (planet-spec? sexp)
+         sexp))
   
   (define (planet-spec? p)
     (match p
@@ -650,9 +650,8 @@
        (define tmp-filename (make-temporary-file "tmp~a.plt"))
        (define d (make-object dialog% (string-constant downloading) parent))
        (define message (make-object message% (string-constant downloading-file...) d))
-       (define gauge (if size 
-                         (make-object gauge% #f 100 d) 
-                         #f))
+       (define gauge (and size 
+                          (make-object gauge% #f 100 d)))
        (define exn #f)
        ; Semaphores to avoid race conditions: 
        (define wait-to-start (make-semaphore 0))
@@ -670,15 +669,15 @@
               (semaphore-post wait-to-break) 
               (with-output-to-file tmp-filename 
                 (λ () 
-                  (let loop ([total 0]) 
+                  (let loop ([total 0])
                     (when gauge 
                       (send gauge set-value  
                             (inexact->exact 
-                             (floor (* 100 (/ total size)))))) 
-                    (let ([s (read-string 1024 port)]) 
-                      (unless (eof-object? s) 
-                        (display s)
-                        (loop (+ total (string-length s)))))))
+                             (floor (* 100 (/ total size))))))
+                    (define s (read-string 1024 port))
+                    (unless (eof-object? s) 
+                      (display s)
+                      (loop (+ total (string-length s))))))
                 #:mode 'binary #:exists 'truncate))
             (send d show #f))))
        (send d center) 
@@ -768,28 +767,28 @@
                        bp2 (λ x (send this show #f))))
 
       (define/private (update-bindings)
-        (let ([format-binding/name
-               (λ (b) (format "~a (~a)" (cadr b) (car b)))]
-              [format-binding/key
-               (λ (b) (format "~a (~a)" (car b) (cadr b)))]
-              [predicate/key
-               (λ (a b) (string-ci<=? (format "~a" (car a))
-                                      (format "~a" (car b))))]
-              [predicate/name
-               (λ (a b) (string-ci<=? (cadr a) (cadr b)))])
-          (send lb set
-                (if by-key?
-                    (map format-binding/key (sort (filter-search bindings) predicate/key))
-                    (map format-binding/name (sort (filter-search bindings) predicate/name))))))
+        (define (format-binding/name b)
+          (format "~a (~a)" (cadr b) (car b)))
+        (define (format-binding/key b)
+          (format "~a (~a)" (car b) (cadr b)))
+        (define (predicate/key a b)
+          (string-ci<=? (format "~a" (car a))
+                        (format "~a" (car b))))
+        (define (predicate/name a b)
+          (string-ci<=? (cadr a) (cadr b)))
+        (send lb set
+              (if by-key?
+                  (map format-binding/key (sort (filter-search bindings) predicate/key))
+                  (map format-binding/name (sort (filter-search bindings) predicate/name)))))
       
       (define/private (filter-search bindings)
-        (let ([str (send search-field get-value)])
-          (if (equal? str "")
-              bindings
-              (let ([reg (regexp (regexp-quote str #f))])
-                (filter (λ (x) (or (regexp-match reg (cadr x))
-                                   (regexp-match reg (format "~a" (car x)))))
-                        bindings)))))
+        (define str (send search-field get-value))
+        (if (equal? str "")
+            bindings
+            (let ([reg (regexp (regexp-quote str #f))])
+              (filter (λ (x) (or (regexp-match reg (cadr x))
+                                 (regexp-match reg (format "~a" (car x)))))
+                      bindings))))
       (send search-field focus)
       (send bp stretchable-height #f)
       (send bp set-alignment 'center 'center)

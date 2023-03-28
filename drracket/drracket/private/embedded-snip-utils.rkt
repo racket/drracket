@@ -10,18 +10,18 @@
   (define (topwin)
     (let ([canvas (send an-editor get-canvas)])
       (and canvas (send canvas get-top-level-window))))
-  (let ([admin (send an-editor get-admin)])
-    (if (and admin (is-a? admin editor-snip-editor-admin<%>))
-        (let ([enclosing-editor-snip (send admin get-snip)])
-          (if (get-snip-outer-editor enclosing-editor-snip)
-              (get-enclosing-editor-frame (get-snip-outer-editor
-                                           enclosing-editor-snip))
-              (topwin)))
-        (topwin))))
+  (define admin (send an-editor get-admin))
+  (if (and admin (is-a? admin editor-snip-editor-admin<%>))
+      (let ([enclosing-editor-snip (send admin get-snip)])
+        (if (get-snip-outer-editor enclosing-editor-snip)
+            (get-enclosing-editor-frame (get-snip-outer-editor
+                                         enclosing-editor-snip))
+            (topwin)))
+      (topwin)))
 
 ;; get-snip-outer-editor: snip% -> (or/c editor<%> #f)
 ;; Returns the immediate outer editor enclosing the snip, or false if we
 ;; can't find it.
 (define (get-snip-outer-editor a-snip)
-  (let ([admin (send a-snip get-admin)])
-    (and admin (send admin get-editor))))
+  (define admin (send a-snip get-admin))
+  (and admin (send admin get-editor)))

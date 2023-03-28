@@ -420,20 +420,21 @@
                      [info (list info)]
                      [else '()])]
                   [else '()])
-                (if (exn? an-exn)
-                    (let ([ctxt 
-                           (continuation-mark-set->context
-                            (exn-continuation-marks an-exn))])
-                      (for/list ([ctxt-elem (if (< (length ctxt) 100)
-                                                ctxt
-                                                (take ctxt 100))])
-                        (define name (car ctxt-elem))
-                        (define loc (cdr ctxt-elem))
-                        (cond
-                          [(not name) (format-srcloc loc)]
-                          [(not loc) (format "~a" name)]
-                          [else (format "~a:~a" (format-srcloc loc) name)])))
-                    '())
+                (cond
+                  [(exn? an-exn)
+                   (define ctxt 
+                     (continuation-mark-set->context
+                      (exn-continuation-marks an-exn)))
+                   (for/list ([ctxt-elem (if (< (length ctxt) 100)
+                                             ctxt
+                                             (take ctxt 100))])
+                     (define name (car ctxt-elem))
+                     (define loc (cdr ctxt-elem))
+                     (cond
+                       [(not name) (format-srcloc loc)]
+                       [(not loc) (format "~a" name)]
+                       [else (format "~a:~a" (format-srcloc loc) name)]))]
+                  [else '()])
                 (and (exn:missing-module? an-exn)
                      ((exn:missing-module-accessor an-exn) an-exn)))))
            (place-channel-put 
