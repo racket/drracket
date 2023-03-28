@@ -8,7 +8,7 @@
   (define (lookup-frame-name frame)
     (semaphore-wait label-sema)
     (begin0
-      (hash-ref label-ht frame (λ () #f))
+      (hash-ref label-ht frame #f)
       (semaphore-post label-sema)))
   
   (define label-sema (make-semaphore 1))

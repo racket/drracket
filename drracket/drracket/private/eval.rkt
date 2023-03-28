@@ -32,66 +32,67 @@
                                        init
                                        kill-termination
                                        #:gui-modules? [gui-modules? #t])
-      (let-values ([(eventspace custodian) 
-                    (build-user-eventspace/custodian
-                     language-settings
-                     init
-                     kill-termination
-                     #:gui-modules? gui-modules?)])
-        (let ([language (drracket:language-configuration:language-settings-language
-                         language-settings)]
-              [settings (drracket:language-configuration:language-settings-settings
-                         language-settings)])
-          (λ (input iter complete-program?)
-            (define port
-              (cond
-                [(input-port? input) input]
-                [else (let* ([text (drracket:language:text/pos-text input)]
-                             [start (drracket:language:text/pos-start input)]
-                             [end (drracket:language:text/pos-end input)]
-                             [text-port (open-input-text-editor text start end values
-                                                                (send text get-port-name))])
-                        (port-count-lines! text-port)
-                        (let* ([line (send text position-paragraph start)]
-                               [column (- start (send text paragraph-start-position line))]
-                               [relocated-port (relocate-input-port text-port 
-                                                                    (+ line 1)
-                                                                    column
-                                                                    (+ start 1))])
-                          (port-count-lines! relocated-port)
-                          relocated-port))]))
-            (parameterize ([current-eventspace eventspace])
-              (queue-callback
-               (λ ()
-                 (let ([read-thnk 
-                        (if complete-program?
+      (define-values (eventspace custodian) 
+        (build-user-eventspace/custodian
+         language-settings
+         init
+         kill-termination
+         #:gui-modules? gui-modules?))
+      (let ([language (drracket:language-configuration:language-settings-language
+                       language-settings)]
+            [settings (drracket:language-configuration:language-settings-settings
+                       language-settings)])
+        (λ (input iter complete-program?)
+          (define port
+            (cond
+              [(input-port? input) input]
+              [else (let* ([text (drracket:language:text/pos-text input)]
+                           [start (drracket:language:text/pos-start input)]
+                           [end (drracket:language:text/pos-end input)]
+                           [text-port (open-input-text-editor text start end values
+                                                              (send text get-port-name))])
+                      (port-count-lines! text-port)
+                      (let* ([line (send text position-paragraph start)]
+                             [column (- start (send text paragraph-start-position line))]
+                             [relocated-port (relocate-input-port text-port 
+                                                                  (+ line 1)
+                                                                  column
+                                                                  (+ start 1))])
+                        (port-count-lines! relocated-port)
+                        relocated-port))]))
+          (parameterize ([current-eventspace eventspace])
+            (queue-callback
+             (λ ()
+               (let ([read-thnk 
+                      (if complete-program?
                           (send language front-end/complete-program port settings)
                           (send language front-end/interaction port settings))])
-                   (let loop ()
-                     (let ([in (read-thnk)])
-                       (cond
-                         [(eof-object? in)
-                          (iter in (λ () (void)))]
-                         [else
-                          (iter in (λ () (loop)))])))))))))))
+                 (let loop ()
+                   (let ([in (read-thnk)])
+                     (cond
+                       [(eof-object? in)
+                        (iter in (λ () (void)))]
+                       [else
+                        (iter in (λ () (loop)))]))))))))))
     
     (define (expand-program/multiple language-settings
                                      eval-compile-time-part? 
                                      init
                                      kill-termination
                                      #:gui-modules? [gui-modules? #t])
-      (let ([res (traverse-program/multiple language-settings init kill-termination #:gui-modules? gui-modules?)])
-        (λ (input iter complete-program?)
-          (let ([expanding-iter
-                 (λ (rd cont)
-                   (cond
-                     [(eof-object? rd) (iter rd cont)]
-                     [eval-compile-time-part? 
-                      (iter (expand-top-level-with-compile-time-evals rd) cont)]
-                     [else (iter (expand rd) cont)]))])
-            (res input 
-                 expanding-iter
-                 complete-program?)))))
+      (define res
+        (traverse-program/multiple language-settings init kill-termination #:gui-modules? gui-modules?))
+      (λ (input iter complete-program?)
+        (let ([expanding-iter
+               (λ (rd cont)
+                 (cond
+                   [(eof-object? rd) (iter rd cont)]
+                   [eval-compile-time-part? 
+                    (iter (expand-top-level-with-compile-time-evals rd) cont)]
+                   [else (iter (expand rd) cont)]))])
+          (res input 
+               expanding-iter
+               complete-program?))))
     
     (define (expand-program input
                             language-settings
@@ -112,47 +113,49 @@
     
     
     (define (build-user-eventspace/custodian language-settings init kill-termination #:gui-modules? [gui-modules? #t])
-      (let* ([user-custodian (make-custodian)]
-             [eventspace (parameterize ([current-custodian user-custodian])
-                           (make-eventspace))]
-             [language (drracket:language-configuration:language-settings-language
-                        language-settings)]
-             [settings (drracket:language-configuration:language-settings-settings
-                        language-settings)]
-             [eventspace-main-thread #f]
-             [run-in-eventspace
-              (λ (thnk)
-                (parameterize ([current-eventspace eventspace])
-                  (let ([sema (make-semaphore 0)]
-                        [ans #f])
-                    (queue-callback
-                     (λ ()
-                       (let/ec k
-                         (parameterize ([error-escape-handler
-                                         (let ([drscheme-expand-program-error-escape-handler
-                                                (λ () (k (void)))])
-                                           drscheme-expand-program-error-escape-handler)])
-                           (set! ans (thnk))))
-                       (semaphore-post sema)))
-                    (semaphore-wait sema)
-                    ans)))]
-             [drs-snip-classes (get-snip-classes)])
-        (run-in-eventspace
-         (λ ()
-           (current-custodian user-custodian)
-           (set-basic-parameters drs-snip-classes #:gui-modules? gui-modules?)
-           (drracket:rep:current-language-settings language-settings)))
-        (send language on-execute settings run-in-eventspace)
-        (run-in-eventspace
-         (λ ()
-           (set! eventspace-main-thread (current-thread))
-           (init)
-           (break-enabled #t)))
-        (thread
-         (λ ()
-           (thread-wait eventspace-main-thread)
-           (kill-termination)))
-        (values eventspace user-custodian)))
+      (define user-custodian (make-custodian))
+      (define eventspace
+        (parameterize ([current-custodian user-custodian])
+          (make-eventspace)))
+      (define language
+        (drracket:language-configuration:language-settings-language
+         language-settings))
+      (define settings
+        (drracket:language-configuration:language-settings-settings
+         language-settings))
+      (define eventspace-main-thread #f)
+      (define (run-in-eventspace thnk)
+        (parameterize ([current-eventspace eventspace])
+          (let ([sema (make-semaphore 0)]
+                [ans #f])
+            (queue-callback
+             (λ ()
+               (let/ec k
+                 (parameterize ([error-escape-handler
+                                 (let ([drscheme-expand-program-error-escape-handler
+                                        (λ () (k (void)))])
+                                   drscheme-expand-program-error-escape-handler)])
+                   (set! ans (thnk))))
+               (semaphore-post sema)))
+            (semaphore-wait sema)
+            ans)))
+      (define drs-snip-classes (get-snip-classes))
+      (run-in-eventspace
+       (λ ()
+         (current-custodian user-custodian)
+         (set-basic-parameters drs-snip-classes #:gui-modules? gui-modules?)
+         (drracket:rep:current-language-settings language-settings)))
+      (send language on-execute settings run-in-eventspace)
+      (run-in-eventspace
+       (λ ()
+         (set! eventspace-main-thread (current-thread))
+         (init)
+         (break-enabled #t)))
+      (thread
+       (λ ()
+         (thread-wait eventspace-main-thread)
+         (kill-termination)))
+      (values eventspace user-custodian))
     
     ;; get-snip-classes : -> (listof snipclass)
     ;; returns a list of the snip classes in the current eventspace
@@ -228,6 +231,6 @@
                (port-count-lines! port)
                (values port text)))]
           [else
-           (let ([port (open-input-file filename)])
-             (port-count-lines! port)
-             (values port filename))]))))
+           (define port (open-input-file filename))
+           (port-count-lines! port)
+           (values port filename)]))))

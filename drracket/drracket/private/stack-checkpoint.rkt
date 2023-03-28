@@ -128,7 +128,7 @@
     (define (f x) (non-tail-context (g x)))
     (set! f f)
 
-    (define (g x) (with-stack-checkpoint (+ (h x))))
+    (define (g x) (with-stack-checkpoint (h x)))
     (set! g g)
 
     (define (h x) (non-tail-context (i x)))
