@@ -219,10 +219,10 @@
     [(or (prince-kuhio-day? startup-date)
          (kamehameha-day? startup-date))
      (set-splash-progress-bar?! #f)
-     (let ([size ((dynamic-require 'drracket/private/palaka 'palaka-pattern-size) 4)])
-       (vector (dynamic-require 'drracket/private/honu-logo 'draw-honu) 
-               size 
-               size))]
+     (define size ((dynamic-require 'drracket/private/palaka 'palaka-pattern-size) 4))
+     (vector (dynamic-require 'drracket/private/honu-logo 'draw-honu) 
+             size 
+             size)]
     [(ada-lovelace-bday? startup-date)
      (set-splash-progress-bar?! #f)
      (define size (dynamic-require 'drracket/private/ada 'ada-size))

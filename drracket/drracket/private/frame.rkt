@@ -783,12 +783,13 @@
       
       (define/private (filter-search bindings)
         (define str (send search-field get-value))
-        (if (equal? str "")
-            bindings
-            (let ([reg (regexp (regexp-quote str #f))])
-              (filter (λ (x) (or (regexp-match reg (cadr x))
-                                 (regexp-match reg (format "~a" (car x)))))
-                      bindings))))
+        (cond
+          [(equal? str "") bindings]
+          [else
+           (define reg (regexp (regexp-quote str #f)))
+           (filter (λ (x) (or (regexp-match reg (cadr x))
+                              (regexp-match reg (format "~a" (car x)))))
+                   bindings)]))
       (send search-field focus)
       (send bp stretchable-height #f)
       (send bp set-alignment 'center 'center)

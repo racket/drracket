@@ -118,14 +118,15 @@
        (λ (filename)
          (define p (open-input-file filename))
          (define wxme? (regexp-match-peek #rx#"^WXME" p))
-         (if wxme?
-             (let ([t (new text%)])
-               (close-input-port p)
-               (send t load-file filename)
-               (let ([prt (open-input-text-editor t)])
-                 (port-count-lines! prt)
-                 prt))
-             p)))
+         (cond
+           [wxme?
+            (define t (new text%))
+            (close-input-port p)
+            (send t load-file filename)
+            (let ([prt (open-input-text-editor t)])
+              (port-count-lines! prt)
+              prt)]
+           [else p])))
       (current-output-port (swallow-specials original-output-port))
       (current-error-port (swallow-specials original-error-port))
       (current-load-relative-directory #f)
