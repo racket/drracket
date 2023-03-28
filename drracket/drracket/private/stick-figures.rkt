@@ -245,9 +245,9 @@
                (set! clicked-x x)
                (set! clicked-y y)
                (set! clicked-point point)
-               (let ([orig-point (assoc point points)])
-                 (set! orig-x (list-ref orig-point 1))
-                 (set! orig-y (list-ref orig-point 2))))]
+               (define orig-point (assoc point points))
+               (set! orig-x (list-ref orig-point 1))
+               (set! orig-y (list-ref orig-point 2)))]
             [(and clicked-point (send evt moving?))
              (set! points 
                    (map (λ (x)

@@ -56,14 +56,15 @@
                (open-input-text-editor text start end values
                                        (send text get-port-name)))
              (port-count-lines! text-port)
-             (let* ([line (send text position-paragraph start)]
-                    [column (- start (send text paragraph-start-position line))]
-                    [relocated-port (relocate-input-port text-port 
-                                                         (+ line 1)
-                                                         column
-                                                         (+ start 1))])
-               (port-count-lines! relocated-port)
-               relocated-port)]))
+             (define line (send text position-paragraph start))
+             (define column (- start (send text paragraph-start-position line)))
+             (define relocated-port
+               (relocate-input-port text-port 
+                                    (+ line 1)
+                                    column
+                                    (+ start 1)))
+             (port-count-lines! relocated-port)
+             relocated-port]))
         (parameterize ([current-eventspace eventspace])
           (queue-callback
            (λ ()
@@ -72,12 +73,12 @@
                    (send language front-end/complete-program port settings)
                    (send language front-end/interaction port settings)))
              (let loop ()
-               (let ([in (read-thnk)])
-                 (cond
-                   [(eof-object? in)
-                    (iter in (λ () (void)))]
-                   [else
-                    (iter in (λ () (loop)))]))))))))
+               (define in (read-thnk))
+               (cond
+                 [(eof-object? in)
+                  (iter in (λ () (void)))]
+                 [else
+                  (iter in (λ () (loop)))])))))))
     
     (define (expand-program/multiple language-settings
                                      eval-compile-time-part? 
