@@ -105,53 +105,49 @@
   (define-values (max-rx max-ry) (get-max/min-x/y max running-points))
   (define-values (min-wx min-wy) (get-max/min-x/y min waiting-points))
   (define-values (max-wx max-wy) (get-max/min-x/y max waiting-points))
-  (let* ([running-w (* small-factor (- max-rx min-rx))]
-         [waiting-w (* small-factor (- max-wx min-wx))]
-         [running-h (* small-factor (- max-ry min-ry))]
-         [waiting-h (* small-factor (- max-wy min-wy))]
-         [w (+ 2 (ceiling (max running-w waiting-w)))]
-         [h (+ 2 (ceiling (max running-h waiting-h)))]
-         [running-dx (+ 1 (- (/ w 2) (/ running-w 2)))]
-         [running-dy (+ 1 (- (/ h 2) (/ running-h 2)))]
-         [waiting-dx (+ 1 (- (/ w 2) (/ waiting-w 2)))]
-         [waiting-dy (+ 1 (- (/ h 2) (/ waiting-h 2)))])
-    (values w h running-dx running-dy waiting-dx waiting-dy)))
+  (define running-w (* small-factor (- max-rx min-rx)))
+  (define waiting-w (* small-factor (- max-wx min-wx)))
+  (define running-h (* small-factor (- max-ry min-ry)))
+  (define waiting-h (* small-factor (- max-wy min-wy)))
+  (define w (+ 2 (ceiling (max running-w waiting-w))))
+  (define h (+ 2 (ceiling (max running-h waiting-h))))
+  (define running-dx (+ 1 (- (/ w 2) (/ running-w 2))))
+  (define running-dy (+ 1 (- (/ h 2) (/ running-h 2))))
+  (define waiting-dx (+ 1 (- (/ w 2) (/ waiting-w 2))))
+  (define waiting-dy (+ 1 (- (/ h 2) (/ waiting-h 2))))
+  (values w h running-dx running-dy waiting-dx waiting-dy))
   
   (define (get-bitmap points green)
   (define-values (min-rx min-ry) (get-max/min-x/y min points))
   (define-values (max-rx max-ry) (get-max/min-x/y max points))
-  (let* ([margin 2]
-         [bw (+ margin margin (ceiling (* small-factor (- max-rx min-rx))))]
-         [bh (+ margin margin (ceiling (* small-factor (- max-ry min-ry))))]
-         [w (ceiling (* bw small-bitmap-factor))] 
-         [h (ceiling (* bh small-bitmap-factor))]
-         [bm-big (make-object bitmap% bw bh)]
-         [bm-solid (make-object bitmap% w h)]
-         [bm-small (make-object bitmap% w h)]
-         [bdc-big (make-object bitmap-dc% bm-big)]
-         [bdc-solid (make-object bitmap-dc% bm-solid)]
-         [bdc-small (make-object bitmap-dc% bm-small)])
-    (send bdc-big clear)
-    (draw-callback bdc-big small-factor #f points
-                   (+ margin (- (* small-factor min-rx)))
-                   (+ margin #;(- (* small-factor min-ry)))
-                   3)
-        
-    (send bdc-small clear)
-    (send bdc-small set-scale small-bitmap-factor small-bitmap-factor)
-    (send bdc-small draw-bitmap bm-big 0 0)
-    (send bdc-small set-scale 1 1)
-        
-    (send bdc-solid set-brush green 'solid)
-    (send bdc-solid set-pen green 1 'solid)
-    (send bdc-solid draw-rectangle 0 0 w h)
-        
-    (send bdc-solid set-bitmap #f)
-    (send bdc-small set-bitmap #f)
-    (send bdc-big set-bitmap #f)
-        
-    (send bm-solid set-loaded-mask bm-small)
-    bm-solid))
+  (define margin 2)
+  (define bw (+ margin margin (ceiling (* small-factor (- max-rx min-rx)))))
+  (define bh (+ margin margin (ceiling (* small-factor (- max-ry min-ry)))))
+  (define w (ceiling (* bw small-bitmap-factor)))
+  (define h (ceiling (* bh small-bitmap-factor)))
+  (define bm-big (make-object bitmap% bw bh))
+  (define bm-solid (make-object bitmap% w h))
+  (define bm-small (make-object bitmap% w h))
+  (define bdc-big (make-object bitmap-dc% bm-big))
+  (define bdc-solid (make-object bitmap-dc% bm-solid))
+  (define bdc-small (make-object bitmap-dc% bm-small))
+  (send bdc-big clear)
+  (draw-callback bdc-big small-factor #f points
+                 (+ margin (- (* small-factor min-rx)))
+                 (+ margin #;(- (* small-factor min-ry)))
+                 3)
+  (send bdc-small clear)
+  (send bdc-small set-scale small-bitmap-factor small-bitmap-factor)
+  (send bdc-small draw-bitmap bm-big 0 0)
+  (send bdc-small set-scale 1 1)
+  (send bdc-solid set-brush green 'solid)
+  (send bdc-solid set-pen green 1 'solid)
+  (send bdc-solid draw-rectangle 0 0 w h)
+  (send bdc-solid set-bitmap #f)
+  (send bdc-small set-bitmap #f)
+  (send bdc-big set-bitmap #f)
+  (send bm-solid set-loaded-mask bm-small)
+  bm-solid)
   
   (define (get-running-bitmap) (get-bitmap running-points (make-object color% 30 100 30)))
   (define (get-waiting-bitmap) (get-bitmap waiting-points (make-object color% 30 100 30)))
@@ -159,8 +155,8 @@
   (define (normalize points)
   (define-values (min-x min-y) (get-max/min-x/y min points))
   (map (λ (x) (list (car x) 
-                    (+ (- (list-ref x 1) min-x))
-                    (+ (- (list-ref x 2) min-y))))
+                    (- (list-ref x 1) min-x)
+                    (- (list-ref x 2) min-y)))
        points))
   
   (define (get-max/min-x/y choose points)
@@ -242,16 +238,16 @@
           (cond
             [(send evt button-down? 'left)
              (define-values (w h) (get-client-size))
-             (let ([x (send evt get-x)]
-                   [y (send evt get-y)])
-               (let ([point (find-point this x y)])
-                 (when point
-                   (set! clicked-x x)
-                   (set! clicked-y y)
-                   (set! clicked-point point)
-                   (let ([orig-point (assoc point points)])
-                     (set! orig-x (list-ref orig-point 1))
-                     (set! orig-y (list-ref orig-point 2))))))]
+             (define x (send evt get-x))
+             (define y (send evt get-y))
+             (let ([point (find-point this x y)])
+               (when point
+                 (set! clicked-x x)
+                 (set! clicked-y y)
+                 (set! clicked-point point)
+                 (let ([orig-point (assoc point points)])
+                   (set! orig-x (list-ref orig-point 1))
+                   (set! orig-y (list-ref orig-point 2)))))]
             [(and clicked-point (send evt moving?))
              (set! points 
                    (map (λ (x)
