@@ -301,20 +301,20 @@
   (printf "PLTDRBREAK: creating break frame\n") (flush-output)
   (let ([to-break (eventspace-handler-thread (current-eventspace))])
     (parameterize ([current-eventspace (make-eventspace)])
-      (let* ([f (new frame% (label "Break DrRacket"))]
-             [b (new button% 
-                     (label "Break Main Thread")
-                     (callback
-                      (λ (x y)
-                        (break-thread to-break)))
-                     (parent f))]
-             [b (new button% 
-                     (label "Break All Threads")
-                     (callback
-                      (λ (x y)
-                        ((dynamic-require 'drracket/private/key 'break-threads))))
-                     (parent f))])
-        (send f show #t)))))
+      (define f (new frame% (label "Break DrRacket")))
+      (new button%
+           (label "Break Main Thread")
+           (callback
+            (λ (x y)
+              (break-thread to-break)))
+           (parent f))
+      (new button%
+           (label "Break All Threads")
+           (callback
+            (λ (x y)
+              ((dynamic-require 'drracket/private/key 'break-threads))))
+           (parent f))
+      (send f show #t))))
 
 (dynamic-require 'drracket/tool-lib #f)
 (shutdown-splash)
