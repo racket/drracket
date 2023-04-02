@@ -1,4 +1,16 @@
 ------------------------------
+       Version 8.9
+------------------------------
+
+   . switching into and out of dark mode is handled better
+     on Mac OS and Linux
+
+   . improved the interaction between submodules and
+     require arrows in Check Syntax
+
+   . misc bug fixes
+
+------------------------------
        Version 8.8
 ------------------------------
 
