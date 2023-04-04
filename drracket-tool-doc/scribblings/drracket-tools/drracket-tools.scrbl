@@ -140,9 +140,13 @@ in order to make the results be platform independent.
     annotations are those in the original file and this is a syntax object
     introduced by a macro and thus has a source location from some other file).
     
-    Otherwise, it should return some (non-@racket[#f])
-    value that will then be passed to one of the other methods below as 
-    a @racket[_source-obj] argument.
+  Otherwise, it should return some (non-@racket[#f]) value
+  that will then be passed to one of the other methods below
+  as a @racket[_source-obj] argument. Also, the result of this
+  method is used as a key in an @racket[equal?]-based
+  @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{hash},
+  so two source objects should refer to the same original source
+  if and only if they are @racket[equal?].
   }
   
  @defmethod[(syncheck:add-text-type [source-obj (not/c #f)]
