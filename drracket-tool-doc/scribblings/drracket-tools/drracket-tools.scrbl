@@ -168,6 +168,9 @@ in order to make the results be platform independent.
    in color scheme specifications, respectively.
    See @secref["color-scheme" #:doc '(lib "scribblings/drracket/drracket.scrbl")].
 
+   See @method[syncheck-annotations<%> syncheck:add-require-open-menu] for information
+   about the @racket[start] and @racket[end] arguments.
+
    @history[#:added "1.8"]
  }
  @defmethod[(syncheck:add-background-color [source-obj (not/c #f)] 
