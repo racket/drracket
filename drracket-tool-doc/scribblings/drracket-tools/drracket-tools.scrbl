@@ -472,6 +472,25 @@ in order to make the results be platform independent.
     This method is listed only for backwards compatibility. It is not called
     by Check Syntax anymore.
   }
+
+
+ @defmethod[(syncheck:import-or-export-prefix-ranges
+             [id identifier?]
+             [ranges (listof (vector/c natural?
+                                       natural?
+                                       identifier?
+                                       #:immutable #t))])
+            void?]{
+  This method is called to indicate the locations of prefixes of
+  identifiers when provide or rename macros like @racket[prefix-out]
+  or @racket[prefix-in] are used. It is called once for each identifier
+  that was constructed by some number (at least one) prefixing operation.
+  The first argument is the identifier and the second argument gives
+  the source locations of the actual prefixes in the prefix declarations.
+
+  @history[#:added "1.4"]
+ }
+                  
 }
 
 @defmixin[annotations-mixin () (syncheck-annotations<%>)]{
@@ -561,7 +580,8 @@ in order to make the results be platform independent.
                     syncheck:add-id-set 
                     syncheck:color-range
                     syncheck:add-prefixed-require-reference
-                    syncheck:add-unused-require]
+                    syncheck:add-unused-require
+                    syncheck:import-or-export-prefix-ranges]
 
 @section{Module Browser}
 

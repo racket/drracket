@@ -21,4 +21,5 @@
   syncheck:add-definition-target
   syncheck:add-definition-target/phase-level+space
   syncheck:add-prefixed-require-reference
-  syncheck:add-unused-require)
+  syncheck:add-unused-require
+  syncheck:import-or-export-prefix-ranges)

@@ -2028,6 +2028,8 @@ If the namespace does not, they are colored the unbound color.
             (define/private (invalidate-bitmap-cache/padding)
               (define-values (l t r b) (get-padding))
               (invalidate-bitmap-cache l))
+
+            (define/public (syncheck:import-or-export-prefix-ranges id ranges) (void))
             
             (super-new)))))
     

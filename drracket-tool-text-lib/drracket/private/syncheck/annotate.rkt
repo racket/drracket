@@ -62,4 +62,3 @@
 ;; find-source-editor : stx text -> editor or false
 (define (find-source-editor/defs stx defs-text)
   (send defs-text syncheck:find-source-object stx))
-

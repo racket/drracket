@@ -15,6 +15,7 @@
          racket/pretty
          racket/path
          racket/dict
+         racket/math
          syntax/id-table
          scribble/manual-struct
          (for-syntax racket/base))
@@ -274,7 +275,8 @@
                                      sub-identifier-binding-directives
                                      level
                                      level-of-enclosing-module
-                                     mods))])
+                                     mods)
+              (collect-import-or-export-prefix-ranges stx))])
 
       (define (collect-nested-general-info stx)
         (let loop ([stx stx])
@@ -686,6 +688,26 @@
        (log-check-syntax-debug
         "found a vector in a 'sub-range-binders property that is ill-formed ~s"
         prop)])))
+
+(define import-or-export-prefix-ranges-prop?
+  (vector/c
+   identifier?
+   (listof (vector/c natural? natural? identifier?
+                     #:immutable #t))
+   #:immutable #t))
+
+(define (collect-import-or-export-prefix-ranges stx)
+  (define defs (current-annotations))
+  (when defs
+    (let loop ([prop (syntax-property stx 'import-or-export-prefix-ranges)])
+      (cond
+        [(pair? prop)
+         (loop (car prop))
+         (loop (cdr prop))]
+        [(import-or-export-prefix-ranges-prop? prop)
+         (send defs syncheck:import-or-export-prefix-ranges
+               (vector-ref prop 0)
+               (vector-ref prop 1))]))))
 
 (define mouse-over-tooltip-prop?
   (vector/c #:flat? #t syntax? exact-nonnegative-integer? exact-nonnegative-integer?

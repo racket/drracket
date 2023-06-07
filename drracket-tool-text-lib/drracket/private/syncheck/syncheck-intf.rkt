@@ -22,8 +22,8 @@
     syncheck:add-prefixed-require-reference
     syncheck:add-unused-require
     syncheck:color-range
-    
-    syncheck:add-rename-menu))
+    syncheck:add-rename-menu
+    syncheck:import-or-export-prefix-ranges))
 
 ;; use this to communicate the frame being
 ;; syntax checked w/out having to add new
@@ -80,6 +80,7 @@
                     prefix prefix-src prefix-pos-left prefix-pos-right)
       (void))
     (define/public (syncheck:add-unused-require req-src req-pos-left req-pos-right) (void))
+    (define/public (syncheck:import-or-export-prefix-ranges identifier ranges) (void))
     (super-new)))
 
 (provide syncheck-annotations<%>
