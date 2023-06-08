@@ -1,6 +1,6 @@
 # drracket
 
-This the source for the Racket packages: "drracket", "drracket-plugin-lib", "drracket-test", "drracket-tool", "drracket-tool-doc", "drracket-tool-lib", "drracket-tool-test".
+This is the source for the Racket packages: "drracket", "drracket-plugin-lib", "drracket-test", "drracket-tool", "drracket-tool-doc", "drracket-tool-lib", "drracket-tool-test".
 
 ### Contributing
 
