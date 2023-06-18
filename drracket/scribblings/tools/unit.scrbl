@@ -629,8 +629,13 @@ Returns the currently active tab.
   with them.
 }
 
-@defmethod[(create-new-tab) void?]{
+@defmethod[(create-new-tab [filename (or/c path-string? #f) #f]
+                           [#:start-pos start-pos exact-nonnegative-integer? 0]
+                           [#:end-pos end-pos (or/c exact-nonnegative-integer? 'same) 'same])
+           void?]{
   Creates a new tab.
+  If @racket[filename] is not @racket[#f], behaves like
+  @method[drracket:unit:frame<%> open-in-new-tab].
 }
 
 @defmethod[(reopen-closed-tab) void?]{
