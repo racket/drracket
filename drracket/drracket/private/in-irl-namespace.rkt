@@ -215,6 +215,9 @@
      (or/c #f (listof symbol?))]
     [(drracket:paren-matches) (or/c #f (listof (list/c symbol? symbol?)))]
     [(drracket:quote-matches) (or/c #f (listof char?))]
+    [(drracket:define-popup) (or/c #f
+                                   (non-empty-listof (list/c string? string? string?))
+                                   (non-empty-listof (list/c string? string? string? (listof (or/c 'case-sensitive 'delimited)))))]
     [else
      (error 'key->contract "unknown key")]))
 

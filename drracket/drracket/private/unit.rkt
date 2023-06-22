@@ -1068,12 +1068,19 @@
       (define define-popup-capability-info
         (get-define-popup-info
          (drracket:language:get-capability-default 'drscheme:define-popup)))
+
+      (define/public (set-define-menu spec vertical?)
+        (set! define-popup-capability-info (get-define-popup-info spec))
+        (set-message-at-orientation vertical?))
       
       (inherit set-message set-hidden?)
-      (define/public (language-changed new-language vertical?)
+      (define/public (language-changed new-language current-define-popup-info vertical?)
         (set! define-popup-capability-info
               (get-define-popup-info
-               (send new-language capability-value 'drscheme:define-popup)))
+               (or current-define-popup-info
+                   (send new-language capability-value 'drscheme:define-popup))))
+        (set-message-at-orientation vertical?))
+      (define/public (set-message-at-orientation vertical?)
         (define define-name
           (get-define-popup-name define-popup-capability-info
                                  vertical?))
@@ -1083,6 +1090,7 @@
             (set-hidden? #f)]
           [else
            (set-hidden? #t)]))
+
       (define/override (fill-popup menu reset)
         (when define-popup-capability-info
           (define text (send frame get-definitions-text))
@@ -2052,15 +2060,8 @@
                       (append (remq top-outer-panel l) (list top-outer-panel)))))
           (send top-outer-panel change-children (λ (l) (list top-panel)))
           (send transcript-parent-panel change-children (λ (l) (list transcript-panel)))
-          
-          (let* ([settings (send definitions-text get-next-settings)]
-                 [language (drracket:language-configuration:language-settings-language settings)]
-                 [name (get-define-popup-name
-                        (get-define-popup-info
-                         (send language capability-value 'drscheme:define-popup))
-                        vertical?)])
-            (when name
-              (send func-defs-canvas set-message #f name)))
+
+          (send func-defs-canvas set-message-at-orientation vertical?)
           (send name-message set-short-title vertical?)
           (send name-panel set-orientation (not vertical?))
           (if vertical?
@@ -2202,7 +2203,7 @@
       [define allow-split? #f]
       [define forced-quit? #f]
       [define search-canvas #f]
-      
+
       (define/public (make-searchable canvas)
         (update-info)
         (set! search-canvas canvas))
@@ -2243,8 +2244,9 @@
       (define/public (language-changed)
         (define settings (send definitions-text get-next-settings))
         (define language (drracket:language-configuration:language-settings-language settings))
-        (send func-defs-canvas language-changed language (or (toolbar-is-left?)
-                                                             (toolbar-is-right?)))
+        (define define-popup-info (send definitions-text get-define-menu))
+        (send func-defs-canvas language-changed language define-popup-info (or (toolbar-is-left?)
+                                                                               (toolbar-is-right?)))
         (send language-message set-yellow/lang
               (not (send definitions-text this-and-next-language-the-same?))
               (string-append (send language get-language-name)
@@ -2262,6 +2264,10 @@
             (send language-specific-menu set-label new-label))))
       
       (define/public (get-language-menu) language-specific-menu)
+
+      (define/public (set-define-menu spec)
+        (send func-defs-canvas set-define-menu spec (or (toolbar-is-left?)
+                                                        (toolbar-is-right?))))
       
       ;; update-save-message : -> void
       ;; sets the save message. If input is #f, uses the frame's

@@ -1723,19 +1723,26 @@ all of the names in the tools library, for use defining keybindings
              (or/c #f
                    (list/c string? string? string?)
                    (non-empty-listof (list/c string? string? string?))
+                   (non-empty-listof (list/c string? string? string?
+                                             (listof (or/c 'case-insensitive 'delimited))))
                    (cons/c string? string?))
              (list "(define" "(define ...)" "δ")]{
           specifies the prefix that the define popup should look for and what
           label it should have, or @racket[#f] if it should not appear at all.
+          Text is found only when it is not in a comment or string literal.
           
           If the list of three strings alternative is used, the first string is
           the prefix that is looked for when finding definitions. The second
           and third strings are used as the label of the control, in horizontal
           and vertical mode, respectively.
 
-          If it is a list of lists of three strings, then multiple prefixes are used
+          If it is a list of lists, then multiple prefixes are used
           for the definition pop-up. The name of the popup menu is based only on the
-          first element of the list.
+          first element of the list. When a nested list contains a list of symbols,
+          the symbols refine the matching strategy: @scheme['case-insensitive] for
+          case-insensitive matching, and @scheme['delimited] to indicate that the
+          matched text's edges must coincide with forward and backward expression
+          nagivation.
           
           The pair of strings alternative is deprecated. If it is used, 
           the pair @racket[(cons a-str b-str)] is the same as @racket[(list a-str b-str "δ")].
