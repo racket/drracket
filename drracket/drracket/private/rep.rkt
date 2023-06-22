@@ -59,6 +59,7 @@ TODO
           [prefix drracket:debug: drracket:debug/int^]
           [prefix drracket:eval: drracket:eval^]
           [prefix drracket:module-language: drracket:module-language/int^]
+          [prefix drracket:module-language-tools: drracket:module-language-tools/int^]
           [prefix drracket: drracket:interface^])
   (export (rename drracket:rep/int^
                   [-text% text%]
@@ -197,10 +198,14 @@ TODO
             [else
              (let* ([l (send obj get-canvas)]
                     [l (and l (send l get-top-level-window))]
-                    [l (and l (is-a? l drracket:unit:frame<%>) (send l get-definitions-text))]
-                    [l (and l (send l get-next-settings))]
+                    [defs (and l (is-a? l drracket:unit:frame<%>) (send l get-definitions-text))]
+                    [l (and defs (send defs get-next-settings))]
                     [l (and l (drracket:language-configuration:language-settings-language l))]
-                    [ctxt (and l (send l capability-value 'drscheme:help-context-term))]
+                    [ctxt (and l
+                               (drracket:module-language-tools:call-capability-value
+                                l
+                                defs
+                                'drscheme:help-context-term))]
                     [name (and l (send l get-language-name))])
                (drracket:help-desk:help-desk
                 str (and ctxt (list ctxt name)) frame))])]
@@ -2310,7 +2315,10 @@ TODO
           (let* ([definitions-text (get-defs this)]
                  [settings (send definitions-text get-next-settings)]
                  [language (drracket:language-configuration:language-settings-language settings)])
-            (send language capability-value 'drscheme:autocomplete-words)))
+            (drracket:module-language-tools:call-capability-value
+             language
+             definitions-text
+             'drscheme:autocomplete-words)))
         (super-new))))
   
   (define -text% 

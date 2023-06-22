@@ -537,7 +537,13 @@
            (and drracket-opt-out drscheme-opt-out
                 (append drracket-opt-out drscheme-opt-out)))
 
-         (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '())))
+         (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '()))
+
+        (define frame (send (get-tab) get-frame))
+        (when (eq? (send frame get-current-tab) this)
+          (send frame when-initialized
+                (λ ()
+                  (send frame update-func-defs)))))
 
       ;; removes language-specific customizations
       (define/private (clear-things-out)
@@ -724,6 +730,15 @@
       (set! in-module-language? 
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))
+
+  ;; all calls to `capability-value` should go through
+  ;; `call-capability-value` so that the module language
+  ;; can have access to the irl so that customizations
+  ;; that are #lang-line specific can be done
+  (define capability-value-irl (make-parameter #f))
+  (define (call-capability-value lang defs key)
+    (parameterize ([capability-value-irl (send defs get-irl)])
+      (send lang capability-value key)))
 
   (define paren-matches-keymaps (make-hash))
   (define (make-paren-matches-keymap paren-matches quote-matches)

@@ -43,7 +43,8 @@ Will not work with the definitions text surrogate interposition that
         'color-lexer
         'definitions-text-surrogate
         'drracket:paren-matches
-        'drracket:quote-matches))
+        'drracket:quote-matches
+        'drracket:define-popup))
 
 (provide
  (contract-out

@@ -52,6 +52,7 @@ DrRacket calls the language's @racket[read-language]'s
          @item{@language-info-ref[drracket:opt-in-toolbar-buttons]}
          @item{@language-info-ref[drracket:submit-predicate]}
          @item{@language-info-ref[drracket:toolbar-buttons]}
+         @item{@language-info-ref[drracket:define-popup]}
          @item{@language-info-ref[color-lexer]}
          @item{@language-info-ref[definitions-text-surrogate]}]
 
@@ -357,6 +358,43 @@ pass @indexed-racket['drscheme:toolbar-buttons]; this is for backwards
 compatibility and new code should not use it.
 Similarly, if the fourth element from the list (the argument to @racket[#:number])
 is not present, then it is treated as @racket[#f].
+
+@section{Definition Popup-Menu Navigation}
+
+@language-info-def[drracket:define-popup]{
+ A popup menu in the DrRacket button bar jumps to definitions based on a
+ heuristic search of the program text.
+ DrRacket will invoke the @racket[_get-info] proc returned by @racket[read-language] with
+ @racket['drracket:define-popup] to obtain a configuration for the menu.
+
+ The value must satisfy the contract
+
+ @racketblock[
+   (non-empty-listof (or/c (list/c string? string? string?)
+                           (list/c string? string? string?
+                                   (listof (or/c 'case-sensitive 'delimited)))))
+  ]
+
+ where the first string in each nested list is literal text to search
+ for (outside of comments and literal strings), the second string is a
+ label to describe the category of matches, and the third string is a
+ short form of the label. The labels from the first nested list are
+ used for the definition-popup button itself, while all labels are
+ used for the user to select which categories are enabled.
+
+ If a list of symbols is provided, it refines the matching strategy.
+ By default, the literal text to find for a definition is found
+ case-insensitively, but @racket['case-sensitive] enables a
+ case-sensitive match. If @racket['delimited] is specified, then the
+ text must match a token completely in the sense that
+ expression-navigating forward or backward from one end will find the
+ other end of the text.
+
+ Plugins can provide a default popup-menu configuration via
+ @racket[drracket:language:register-capability] using @racket['drscheme:define-popup].
+
+ @history[#:added "1.14"]
+}
 
 @section[#:tag "sec:definitions-text-surrogate"]{Definitions Text Surrogate}
 

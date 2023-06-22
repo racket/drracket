@@ -15,7 +15,7 @@
 (define-struct defn (indent name start-pos end-pos)
   #:mutable #:transparent)
 
-(struct define-popup-info (prefix long-name short-name) #:transparent)
+(struct define-popup-info (prefix long-name short-name case-sensitive? delimited?) #:transparent)
 
 ;; get-define-popup-info :
 ;; valid-configurations-as-specified-in-the-drscheme:defined-popup-docs
@@ -24,12 +24,18 @@
   (cond
     [(not cap) #f]
     [((cons/c string? string?) cap)
-     (list (define-popup-info (car cap) (cdr cap) "δ"))]
+     (list (define-popup-info (car cap) (cdr cap) "δ" #f #f))]
     [((list/c string? string? string?) cap)
-     (list (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)))]
+     (list (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2) #f #f))]
     [((listof (list/c string? string? string?)) cap)
      (for/list ([cap (in-list cap)])
-       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)))]
+       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2) #f #f))]
+    [((listof (list/c string? string? string? (listof (or/c 'case-sensitive 'delimited))))
+      cap)
+     (for/list ([cap (in-list cap)])
+       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)
+         (and (memq 'case-sensitive (list-ref cap 3)) #t)
+         (and (memq 'delimited (list-ref cap 3)) #t)))]
     [else #f]))
   
 
@@ -52,10 +58,13 @@
           [else
            (define tag-string (define-popup-info-prefix a-define-popup-info))
            (let loop ([pos pos])
-             (define search-pos-result (send text find-string tag-string 'forward pos 'eof #t #f))
+             (define search-pos-result (send text find-string tag-string 'forward pos 'eof #t
+                                             (define-popup-info-case-sensitive? a-define-popup-info)))
              (cond
                [(and search-pos-result
-                     (in-semicolon-comment? text search-pos-result))
+                     (or (in-comment-or-text? text search-pos-result)
+                         (and (define-popup-info-delimited? a-define-popup-info)
+                              (not (delimited-text? text search-pos-result (+ search-pos-result (string-length tag-string)))))))
                 (if (< search-pos-result (send text last-position))
                     (loop (+ search-pos-result 1))
                     +inf.0)]
@@ -122,16 +131,19 @@
                        (defn-name defn)))))
   defs)
 
-;; in-semicolon-comment: text number -> boolean
-;; returns #t if `define-start-pos' is in a semicolon comment and #f otherwise
-(define (in-semicolon-comment? text define-start-pos)
-  (let* ([para (send text position-paragraph define-start-pos)]
-         [start (send text paragraph-start-position para)])
-    (let loop ([pos start])
-      (cond
-        [(pos . >= . define-start-pos) #f]
-        [(char=? #\; (send text get-character pos)) #t]
-        [else (loop (+ pos 1))]))))
+;; in-comment-or-text?: text number -> boolean
+;; returns #t if `define-start-pos' is in a comment or text according
+;; to coloring information, #f otherwise
+(define (in-comment-or-text? text define-start-pos)
+  (case (send text classify-position define-start-pos)
+    [(comment text string) #t]
+    [else #f]))
+
+(define (delimited-text? text start-pos end-pos)
+  (and (equal? end-pos
+               (send text forward-match start-pos (send text last-position)))
+       (equal? start-pos
+               (send text backward-match end-pos 0))))
 
 ;; get-defn-indent : text number -> number
 ;; returns the amount to indent a particular definition
@@ -227,19 +239,52 @@
     (send t insert "(module m racket/base)\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ")
-            (define-popup-info "(module" "(module ...)" "ρ"))
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f)
+            (define-popup-info "(module" "(module ...)" "ρ" #f #f))
       #t
       t)
+     ;; the 18 in the first element of this list
+     ;; might actually supposed to be 17
+     ;; (and other test cases similarly)
      (list (defn 0 "f" 0 18)
            (defn 2 "  g" 19 35)
            (defn 0 "m" 36 59)))
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(module" "(module ...)" "ρ"))
+      (list (define-popup-info "(module" "(module ...)" "ρ" #f #f))
       #t
       t)
      (list (defn 0 "m" 36 59))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(dEfInE (f x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ" #t #f))
+      #t
+      t)
+     (list)))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(dEfInE (f x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
+      #t
+      t)
+     (list (defn 0 "f" 0 17))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define (f x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #t))
+      #t
+      t)
+     (list)))
 
   (let ()
     (define t (new racket:text%))
@@ -248,7 +293,7 @@
     (send t insert "  [(M any_1) any_1])\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ"))
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
       #t
       t)
      (list (defn 0 "M" 0 61))))
@@ -259,7 +304,7 @@
     (send t insert "  [(M any_1) any_1])\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ"))
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
       #t
       t)
      (list (defn 0 "M" 0 44))))
@@ -269,7 +314,7 @@
     (send t insert "(define (|(| x) x)\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ"))
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
       #t
       t)
      (list (defn 0 "|(|" 0 19))))
@@ -279,7 +324,17 @@
     (send t insert "(define)\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ"))
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
+      #t
+      t)
+     (list (defn 0 "<< end of buffer >>" 0 9))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
       #t
       t)
      (list (defn 0 "<< end of buffer >>" 0 9))))

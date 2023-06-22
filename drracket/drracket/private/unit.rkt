@@ -117,7 +117,7 @@
           [prefix drracket:tools: drracket:tools^]
           [prefix drracket:init: drracket:init/int^]
           [prefix drracket:module-language: drracket:module-language/int^]
-          [prefix drracket:module-language-tools: drracket:module-language-tools^]
+          [prefix drracket:module-language-tools: drracket:module-language-tools/int^]
           [prefix drracket:modes: drracket:modes^]
           [prefix drracket:debug: drracket:debug^]
           [prefix drracket: drracket:interface^])
@@ -207,7 +207,13 @@
                [l (and l (is-a? l drracket:unit:frame<%>) (send l get-definitions-text))]
                [l (and l (send l get-next-settings))]
                [l (and l (drracket:language-configuration:language-settings-language l))]
-               [ctxt (and l (send l capability-value 'drscheme:help-context-term))]
+               [ctxt (and l
+                          (drracket:module-language-tools:call-capability-value
+                           l
+                           (if (is-a? text drracket:rep:text%)
+                               (send text get-definitions-text)
+                               text)
+                           'drscheme:help-context-term))]
                [name (and l (send l get-language-name))])
           (unless (string=? str "")
             (add-sep)
@@ -1009,7 +1015,10 @@
                                    language-settings)]
                     [capability-info
                      (get-define-popup-info
-                      (send new-language capability-value 'drscheme:define-popup))])
+                      (drracket:module-language-tools:call-capability-value
+                       new-language
+                       (send frame get-definitions-text)
+                       'drscheme:define-popup))])
                (when capability-info
                  (let* ([current-pos (get-pos editor event)]
                         [current-word (and current-pos (get-current-word editor current-pos))]
@@ -1073,7 +1082,12 @@
       (define/public (language-changed new-language vertical?)
         (set! define-popup-capability-info
               (get-define-popup-info
-               (send new-language capability-value 'drscheme:define-popup)))
+               (drracket:module-language-tools:call-capability-value
+                new-language
+                (send frame get-definitions-text)
+                'drscheme:define-popup)))
+        (set-message-at-orientation vertical?))
+      (define/public (set-message-at-orientation vertical?)
         (define define-name
           (get-define-popup-name define-popup-capability-info
                                  vertical?))
@@ -2052,15 +2066,8 @@
                       (append (remq top-outer-panel l) (list top-outer-panel)))))
           (send top-outer-panel change-children (λ (l) (list top-panel)))
           (send transcript-parent-panel change-children (λ (l) (list transcript-panel)))
-          
-          (let* ([settings (send definitions-text get-next-settings)]
-                 [language (drracket:language-configuration:language-settings-language settings)]
-                 [name (get-define-popup-name
-                        (get-define-popup-info
-                         (send language capability-value 'drscheme:define-popup))
-                        vertical?)])
-            (when name
-              (send func-defs-canvas set-message #f name)))
+
+          (send func-defs-canvas set-message-at-orientation vertical?)
           (send name-message set-short-title vertical?)
           (send name-panel set-orientation (not vertical?))
           (if vertical?
@@ -2243,8 +2250,7 @@
       (define/public (language-changed)
         (define settings (send definitions-text get-next-settings))
         (define language (drracket:language-configuration:language-settings-language settings))
-        (send func-defs-canvas language-changed language (or (toolbar-is-left?)
-                                                             (toolbar-is-right?)))
+        (update-func-defs)
         (send language-message set-yellow/lang
               (not (send definitions-text this-and-next-language-the-same?))
               (string-append (send language get-language-name)
@@ -2257,11 +2263,19 @@
         (update-teachpack-menu)
         (when (is-a? language-specific-menu menu%)
           (define label (send language-specific-menu get-label))
-          (define new-label (send language capability-value 'drscheme:language-menu-title))
+          (define new-label
+            (drracket:module-language-tools:call-capability-value
+             language (get-definitions-text) 'drscheme:language-menu-title))
           (unless (equal? label new-label)
             (send language-specific-menu set-label new-label))))
       
       (define/public (get-language-menu) language-specific-menu)
+
+      (define/public (update-func-defs)
+        (define settings (send definitions-text get-next-settings))
+        (define language (drracket:language-configuration:language-settings-language settings))
+        (send func-defs-canvas language-changed language (or (toolbar-is-left?)
+                                                             (toolbar-is-right?))))
       
       ;; update-save-message : -> void
       ;; sets the save message. If input is #f, uses the frame's
@@ -4332,7 +4346,8 @@
         (define language-settings (send (get-definitions-text) get-next-settings))
         (define new-language
           (drracket:language-configuration:language-settings-language language-settings))
-        (send new-language capability-value key))
+        (drracket:module-language-tools:call-capability-value
+         new-language (get-definitions-text) key))
       
       (define language-menu 'uninited-language-menu)
       (define language-specific-menu 'language-specific-menu-not-yet-init)
@@ -4416,8 +4431,11 @@
                                 (filter
                                  values
                                  (map (λ (l) 
-                                        (and 
-                                         (send l capability-value 'drscheme:teachpack-menu-items)
+                                        (and
+                                         (drracket:module-language-tools:call-capability-value
+                                          l
+                                          (get-definitions-text)
+                                          'drscheme:teachpack-menu-items)
                                          (format "\n  ~a" (send l get-language-name))))
                                       (drracket:language-configuration:get-languages))))))
                              this
@@ -4566,7 +4584,8 @@
                  (define settings (send defs get-next-settings))
                  (define language 
                    (drracket:language-configuration:language-settings-language settings))
-                 (send language capability-value 'drscheme:tabify-menu-callback))])
+                 (drracket:module-language-tools:call-capability-value
+                  language defs 'drscheme:tabify-menu-callback))])
           (new menu:can-restore-menu-item%
                [label (string-constant reindent-menu-item-label)]
                [parent language-specific-menu]
