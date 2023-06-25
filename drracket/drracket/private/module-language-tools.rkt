@@ -318,7 +318,6 @@
                get-keymap)
       (define in-module-language? #f)      ;; true when we are in the module language
       (define hash-lang-language #f)       ;; non-false is the string that was parsed for the language
-      (define define-popup-info #f)
 
       ;; non-false means that an edit before this location
       ;; means that the language might have changed
@@ -540,17 +539,11 @@
 
          (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '()))
 
-        (let ([spec (call-read-language the-irl 'drracket:define-popup #f)])
-          (set! define-popup-info spec)
-          (when spec
-            (define frame (send (get-tab) get-frame))
-            (send frame when-initialized
-                  (λ ()
-                    (send frame set-define-menu spec))))))
-
-      (define/public (get-define-menu)
-        define-popup-info)
-
+        (define frame (send (get-tab) get-frame))
+        (send frame when-initialized
+              (λ ()
+                (send frame update-func-defs))))
+    
       ;; removes language-specific customizations
       (define/private (clear-things-out)
         (define tab (get-tab))
@@ -736,6 +729,15 @@
       (set! in-module-language? 
             (is-a? (drracket:language-configuration:language-settings-language (get-next-settings))
                    drracket:module-language:module-language<%>))))
+
+  ;; all calls to `capability-value` should go through
+  ;; `call-capability-value` so that the module language
+  ;; can have access to the irl so that customizations
+  ;; that are #lang-line specific can be done
+  (define capability-value-irl (make-parameter #f))
+  (define (call-capability-value lang defs key)
+    (parameterize ([capability-value-irl (send defs get-irl)])
+      (send lang capability-value key)))
 
   (define paren-matches-keymaps (make-hash))
   (define (make-paren-matches-keymap paren-matches quote-matches)

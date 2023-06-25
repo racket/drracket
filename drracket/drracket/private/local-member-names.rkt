@@ -57,7 +57,7 @@
   fetch-data-to-send
   clear-old-error
   set-bottom-bar-status
-  set-define-menu
+  update-func-defs
   
   get-oc-status
   set-oc-status
