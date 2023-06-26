@@ -8,7 +8,7 @@
          string
          #:define-prefix
          [define-prefix
-           (list (define-popup-info "(define" "(define ...)" "δ"))])
+           (list (define-popup-info "(define" "(define ...)" "δ" #f #f))])
   (define text (new racket:text%))
   (send text insert string)
   (get-definitions define-prefix #f text))
@@ -83,8 +83,8 @@ END
 (define-metafunction
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ")
-       (define-popup-info "(module" "(module ...)" "M"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f)
+       (define-popup-info "(module" "(module ...)" "M" #f #f))
  (("f" 0 48)
   ("g" 49 84)
   ("h" 85 145)
@@ -99,8 +99,8 @@ END
 (define b 1)
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ")
-       (define-popup-info "(module" "(module ...)" "M"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f)
+       (define-popup-info "(module" "(module ...)" "M" #f #f))
  (("m" 0 24) ("test" 25 41) ("a" 42 54) ("b" 55 67)))
 
 (test-definitions
@@ -114,8 +114,8 @@ END
 (define g 1)
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ")
-       (define-popup-info "(module" "(module ...)" "M"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f)
+       (define-popup-info "(module" "(module ...)" "M" #f #f))
  (("a" 0 24) ("b" 25 37) ("c" 38 51) ("d" 52 64) ("e" 65 77) ("f" 78 90) ("g" 91 103)))
 
 
@@ -125,7 +125,7 @@ END
 ;;(define b 2)
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
  (("a" 0 27)))
 
 (test-definitions
@@ -135,7 +135,7 @@ END
 (define c 3)
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f))
  (("a" 0 27) ("c" 28 40)))
 
 (test-definitions
@@ -149,8 +149,8 @@ END
 (define g 1)
 END
  #:define-prefix
- (list (define-popup-info "(define" "(define ...)" "δ")
-       (define-popup-info "(module" "(module ...)" "M"))
+ (list (define-popup-info "(define" "(define ...)" "δ" #f #f)
+       (define-popup-info "(module" "(module ...)" "M" #f #f))
  (("a" 0 24) ("b" 25 86) ("f" 87 99) ("g" 100 112)))
 
 (test-definitions
