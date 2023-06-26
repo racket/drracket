@@ -540,7 +540,7 @@
          (call-read-language the-irl 'drracket:opt-in-toolbar-buttons '()))
 
         (define frame (send (get-tab) get-frame))
-        (when (eq? (send frame get-current-tab) this)
+        (when (eq? (send (send frame get-current-tab) get-defs) this)
           (send frame when-initialized
                 (λ ()
                   (send frame update-func-defs)))))
