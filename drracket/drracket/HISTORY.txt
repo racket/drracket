@@ -1,4 +1,12 @@
 ------------------------------
+       Version 8.10
+------------------------------
+
+   . The define-popdown in the upper left corner of the DrRacket
+     window is customizable via `drracket:define-popup` for each
+     #lang language
+
+------------------------------
        Version 8.9
 ------------------------------
 
