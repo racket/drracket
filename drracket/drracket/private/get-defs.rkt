@@ -15,7 +15,7 @@
 (define-struct defn (indent name start-pos end-pos)
   #:mutable #:transparent)
 
-(struct define-popup-info (prefix long-name short-name case-sensitive? delimited?) #:transparent)
+(struct define-popup-info (prefix long-name short-name find-next get-name) #:transparent)
 
 ;; get-define-popup-info :
 ;; valid-configurations-as-specified-in-the-drscheme:defined-popup-docs
@@ -30,12 +30,12 @@
     [((listof (list/c string? string? string?)) cap)
      (for/list ([cap (in-list cap)])
        (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2) #f #f))]
-    [((listof (list/c string? string? string? (listof (or/c 'case-sensitive 'delimited))))
+    [((listof (list/c string? string? string?
+                      (or/c #f (procedure-arity-includes/c 4))
+                      (or/c #f (procedure-arity-includes/c 3))))
       cap)
      (for/list ([cap (in-list cap)])
-       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2)
-         (and (memq 'case-sensitive (list-ref cap 3)) #t)
-         (and (memq 'delimited (list-ref cap 3)) #t)))]
+       (define-popup-info (list-ref cap 0) (list-ref cap 1) (list-ref cap 2) (list-ref cap 3) (list-ref cap 4)))]
     [else #f]))
   
 
@@ -57,20 +57,24 @@
           [latest-position latest-position]
           [else
            (define tag-string (define-popup-info-prefix a-define-popup-info))
-           (let loop ([pos pos])
-             (define search-pos-result (send text find-string tag-string 'forward pos 'eof #t
-                                             (define-popup-info-case-sensitive? a-define-popup-info)))
-             (cond
-               [(and search-pos-result
-                     (or (in-comment-or-text? text search-pos-result)
-                         (and (define-popup-info-delimited? a-define-popup-info)
-                              (not (delimited-text? text search-pos-result (+ search-pos-result (string-length tag-string)))))))
-                (if (< search-pos-result (send text last-position))
-                    (loop (+ search-pos-result 1))
-                    +inf.0)]
-               [search-pos-result search-pos-result]
-               [else +inf.0]))])))
-    
+           (define (search text tag-string pos
+                           #:case-sensitive? [case-sensitive? #f]
+                           #:delimited? [delimited? #f])
+             (let loop ([pos pos])
+                (define search-pos-result (send text find-string tag-string 'forward pos 'eof #t case-sensitive?))
+                (cond
+                  [(and search-pos-result
+                        (or (in-comment-or-text? text search-pos-result)
+                            (and delimited?
+                                 (not (delimited-text? text search-pos-result (+ search-pos-result (string-length tag-string)))))))
+                   (and (< search-pos-result (send text last-position))
+                        (loop (+ search-pos-result 1)))]
+                  [else search-pos-result])))
+           (or ((or (define-popup-info-find-next a-define-popup-info)
+                    (lambda (text tag-string pos default) (default text tag-string pos)))
+                text tag-string pos search)
+               +inf.0)])))
+
     (define-values (smallest-i smallest-pos)
       (for/fold ([smallest-i #f] [smallest-pos #f])
                 ([pos (in-list filled-in-positions)]
@@ -92,16 +96,22 @@
             (and smallest-i
                  (string-length (define-popup-info-prefix
                                   (list-ref the-define-popup-infos smallest-i))))
+            (and smallest-i
+                 (let ([proc (define-popup-info-get-name
+                               (list-ref the-define-popup-infos smallest-i))])
+                   (if proc
+                       (lambda (text pos) (proc text pos get-defn-name))
+                       get-defn-name)))
             final-positions))
   
   (define defs
-    (let loop ([pos 0][find-state (map (λ (x) #f) the-define-popup-infos)])
-      (define-values (defn-pos tag-length new-find-state) (find-next pos find-state))
+    (let loop ([pos 0] [find-state (map (λ (x) #f) the-define-popup-infos)])
+      (define-values (defn-pos tag-length defn-get-name new-find-state) (find-next pos find-state))
       (cond
         [(not defn-pos) null]
         [else
          (define indent (get-defn-indent text defn-pos))
-         (define name (get-defn-name text (+ defn-pos tag-length)))
+         (define name (defn-get-name text (+ defn-pos tag-length)))
          (set! min-indent (min indent min-indent))
          (define next-defn (make-defn indent (or name (string-constant end-of-buffer-define))
                                       defn-pos defn-pos))
@@ -261,7 +271,9 @@
     (send t insert "(dEfInE (f x) x)\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ" #t #f))
+      (list (define-popup-info "(define" "(define ...)" "δ"
+              (lambda (text prefix pos default) (default text prefix pos #:case-sensitive? #t))
+              #f))
       #t
       t)
      (list)))
@@ -281,10 +293,35 @@
     (send t insert "(define (f x) x)\n")
     (check-equal?
      (get-definitions
-      (list (define-popup-info "(define" "(define ...)" "δ" #f #t))
+      (list (define-popup-info "(define" "(define ...)" "δ"
+              (lambda (text prefix pos default) (default text prefix pos #:delimited? #t))
+              #f))
       #t
       t)
      (list)))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define (f x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ" #f
+              (lambda (text pos default) (string-append "found " (default text pos)))))
+      #t
+      t)
+     (list (defn 0 "found f" 0 17))))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "(define (f x) x)\n")
+    (check-equal?
+     (get-definitions
+      (list (define-popup-info "(define" "(define ...)" "δ"
+              (lambda (text prefix pos default) (and (zero? pos) 11))
+              (lambda (text pos default) "found")))
+      #t
+      t)
+     (list (defn 11 "           found" 11 17))))
 
   (let ()
     (define t (new racket:text%))

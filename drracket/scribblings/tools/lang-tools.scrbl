@@ -359,7 +359,7 @@ compatibility and new code should not use it.
 Similarly, if the fourth element from the list (the argument to @racket[#:number])
 is not present, then it is treated as @racket[#f].
 
-@section{Definition Popup-Menu Navigation}
+@section[#:tag "sec:define-popup"]{Definition Popup-Menu Navigation}
 
 @language-info-def[drracket:define-popup]{
  A popup menu in the DrRacket button bar jumps to definitions based on a
@@ -372,8 +372,25 @@ is not present, then it is treated as @racket[#f].
  @racketblock[
    (non-empty-listof (or/c (list/c string? string? string?)
                            (list/c string? string? string?
-                                   (listof (or/c 'case-sensitive 'delimited)))))
-  ]
+                                   (or/c #f
+                                         (-> (is-a/c text%)
+                                             string?
+                                             exact-integer?
+                                             (->* ((is-a/c text%)
+                                                   string?
+                                                   exact-integer?)
+                                                  (#:case-sensitive? any/c
+                                                   #:delimited? any/c)
+                                                  (or/c exact-integer? #f))
+                                             (or/c exact-integer? #f)))
+                                   (or/c #f
+                                         (-> (is-a/c text%)
+                                             exact-integer?
+                                             (-> (is-a/c text%)
+                                                 exact-integer?
+                                                 string?)
+                                             string?)))))
+ ]
 
  where the first string in each nested list is literal text to search
  for (outside of comments and literal strings), the second string is a
@@ -382,13 +399,32 @@ is not present, then it is treated as @racket[#f].
  used for the definition-popup button itself, while all labels are
  used for the user to select which categories are enabled.
 
- If a list of symbols is provided, it refines the matching strategy.
- By default, the literal text to find for a definition is found
- case-insensitively, but @racket['case-sensitive] enables a
- case-sensitive match. If @racket['delimited] is specified, then the
- text must match a token completely in the sense that
- expression-navigating forward or backward from one end will find the
- other end of the text.
+ When a nested list contains fourth and fifth elements, they can
+ supply replacements (when not @racket[#f]) for the default functions
+ that find a prefix and extract the subsequent name:
+
+ @itemlist[
+
+  @item{The prefix-finding function receives a text-editor object
+        for the content to search, the prefix string to find, a
+        position to start the search, and a default prefix-finding
+        function. The result is a position in the text editor for the
+        start of a found prefix, or @racket[#f] if the prefix is not
+        found.
+
+        The provided default finding function accepts two optional
+        keyword arguments: a true value for @racket[#:case-sensitive?]
+        requires case-insensitive matching, and a true value for
+        @racket[#:delimited?] indicates that the matched text's edges
+        must coincide with forward and backward expression
+        navigation.}
+
+ @item{The name-extracting function receives a text-editor object for
+       the content to extract, a position after a found prefix string,
+       and a default name-extracting function. The result must be a
+       string for the extracted defined name.}
+
+ ]
 
  Plugins can provide a default popup-menu configuration via
  @racket[drracket:language:register-capability] using @racket['drscheme:define-popup].
