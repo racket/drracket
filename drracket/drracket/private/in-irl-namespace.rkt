@@ -217,7 +217,19 @@
     [(drracket:quote-matches) (or/c #f (listof char?))]
     [(drracket:define-popup) (or/c #f
                                    (non-empty-listof (list/c string? string? string?))
-                                   (non-empty-listof (list/c string? string? string? (listof (or/c 'case-sensitive 'delimited)))))]
+                                   (non-empty-listof (list/c string? string? string?
+                                                             (or/c #f
+                                                                   (-> read-only-text/c string? exact-integer?
+                                                                       (->* (read-only-text/c string? exact-integer?)
+                                                                            (#:case-sensitive? any/c
+                                                                             #:delimited? any/c)
+                                                                            (or/c exact-integer? #f))
+                                                                       (or/c exact-integer? #f)))
+                                                             (or/c #f
+                                                                   (-> read-only-text/c exact-integer?
+                                                                       (-> read-only-text/c exact-integer?
+                                                                           string?)
+                                                                       string?)))))]
     [else
      (error 'key->contract "unknown key")]))
 

@@ -1724,7 +1724,24 @@ all of the names in the tools library, for use defining keybindings
                    (list/c string? string? string?)
                    (non-empty-listof (list/c string? string? string?))
                    (non-empty-listof (list/c string? string? string?
-                                             (listof (or/c 'case-insensitive 'delimited))))
+                                             (or/c #f
+                                                   (-> (is-a/c text%)
+                                                       string?
+                                                       exact-integer?
+                                                       (->* ((is-a/c text%)
+                                                             string?
+                                                             exact-integer?)
+                                                            (#:case-sensitive? any/c
+                                                             #:delimited? any/c)
+                                                            (or/c exact-integer? #f))
+                                                       (or/c exact-integer? #f)))
+                                             (or/c #f
+                                                   (-> (is-a/c text%)
+                                                       exact-integer?
+                                                       (-> (is-a/c text%)
+                                                           exact-integer?
+                                                           string?)
+                                                       string?))))
                    (cons/c string? string?))
              (list "(define" "(define ...)" "δ")]{
           specifies the prefix that the define popup should look for and what
@@ -1738,11 +1755,10 @@ all of the names in the tools library, for use defining keybindings
 
           If it is a list of lists, then multiple prefixes are used
           for the definition pop-up. The name of the popup menu is based only on the
-          first element of the list. When a nested list contains a list of symbols,
-          the symbols refine the matching strategy: @scheme['case-insensitive] for
-          case-insensitive matching, and @scheme['delimited] to indicate that the
-          matched text's edges must coincide with forward and backward expression
-          nagivation.
+          first element of the list. When a nested list contains fourth and fifth
+          elements, they can supply replacements (when not @racket[#f]) for the default functions that
+          find a prefix and extract the subsequent name. See @secref["sec:define-popup"]
+          for information about the protocols for the finding and extraction procedures.
           
           The pair of strings alternative is deprecated. If it is used, 
           the pair @racket[(cons a-str b-str)] is the same as @racket[(list a-str b-str "δ")].
