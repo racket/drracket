@@ -268,6 +268,27 @@ Will not work with the definitions text surrogate interposition that
      (or val racket:default-paren-matches)]
     [(drracket:quote-matches)
      (or val (list #\" #\|))]
+    [(drracket:define-popup)
+     (and val
+          (for/list ([val (in-list val)])
+            (match val
+              [(list n1 n2 n3) val]
+              [(list n1 n2 n3 p1 p2)
+               (list n1 n2 n3
+                     (and p1
+                          (λ (a b c f)
+                            (call-in-irl-context/abort
+                             an-irl
+                             #f
+                             (λ () (p1 a b c f)))))
+                     (and p2
+                          (λ (a b f)
+                            (call-in-irl-context/abort
+                             an-irl
+                             "<<no name>>" ;; we shouldn't
+                             ;; ever see this string because
+                             ;; the procedure above always returns #f
+                             (λ () (p2 a b f))))))])))]
     [else
      val]))
   
