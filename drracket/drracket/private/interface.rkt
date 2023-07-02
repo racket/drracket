@@ -36,7 +36,9 @@ remain the same for tools that use them.
     get-definitions-canvas
     get-button-panel
     execute-callback
+    after-create-new-drracket-frame
     get-current-tab
+    after-create-new-tab
     open-in-new-tab
     create-new-tab
     close-current-tab

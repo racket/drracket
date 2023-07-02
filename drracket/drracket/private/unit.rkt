@@ -3069,6 +3069,8 @@
           (send defs change-mode-to-match)
           (send defs insert-auto-text)))
       
+      (define/pubment (after-create-new-drracket-frame show?)
+        (inner (void) after-create-new-drracket-frame show?))
       
       ;                              
       ;                              
@@ -3086,6 +3088,9 @@
       ;                              
       
       (define/public (get-current-tab) current-tab)
+
+      (define/pubment (after-create-new-tab tab)
+        (inner (void) after-create-new-tab tab))
       
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
@@ -3116,7 +3121,8 @@
             (send ints initialize-console)
             (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
             (set! newest-frame this)
-            (update-menu-bindings))))
+            (update-menu-bindings)
+            (unless filename (after-create-new-tab new-tab)))))
       
       ;; change-to-tab : tab -> void
       ;; updates current-tab, definitions-text, and interactactions-text
@@ -3281,7 +3287,7 @@
            (send tab on-close)
            #t]
           [else #f]))
-      
+
       (define/public (open-in-new-tab filename #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
         (create-new-tab filename #:start-pos start-pos #:end-pos end-pos))
       
@@ -5702,7 +5708,7 @@
           (create-new-drscheme-frame name #:show? show?)])]
       [else
        (create-new-drscheme-frame name #:show? show?)]))
-  
+
   (define (create-new-drscheme-frame filename #:show? [show? #t])
     (let* ([drs-frame% (drracket:get/extend:get-unit-frame)]
            [frame (new drs-frame% (filename filename))])
@@ -5710,6 +5716,7 @@
       (send frame initialize-module-language)
       (when show? (send frame show #t))
       (send (send frame get-interactions-text) initialize-console)
+      (send frame after-create-new-drracket-frame show?)
       frame)))
 
 (define/contract (compute-label-string fn)
