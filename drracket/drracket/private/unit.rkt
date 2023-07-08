@@ -3089,8 +3089,8 @@
       
       (define/public (get-current-tab) current-tab)
 
-      (define/pubment (after-create-new-tab tab)
-        (inner (void) after-create-new-tab tab))
+      (define/pubment (after-create-new-tab tab filename start-pos end-pos)
+        (inner (void) after-create-new-tab tab filename start-pos end-pos))
       
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
@@ -3122,7 +3122,7 @@
             (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
             (set! newest-frame this)
             (update-menu-bindings)
-            (unless filename (after-create-new-tab new-tab)))))
+            (after-create-new-tab new-tab filename start-pos end-pos))))
       
       ;; change-to-tab : tab -> void
       ;; updates current-tab, definitions-text, and interactactions-text

@@ -638,6 +638,24 @@ Returns the currently active tab.
   @method[drracket:unit:frame<%> open-in-new-tab].
 }
 
+ @defmethod[#:mode pubment
+            (after-create-new-tab [tab (is-a?/c drracket:unit:tab<%>)]
+                                  [filename (or/c path-string? #f)]
+                                  [start-pos exact-nonnegative-integer?]
+                                  [end-pos (or/c exact-nonnegative-integer? 'same)])
+            void?]{
+  @methspec{
+
+   Called after a tab is created, possibly with a file loaded.
+
+  }
+
+  @methimpl{
+
+   Does nothing.
+
+ }}
+
 @defmethod[(reopen-closed-tab) void?]{
   Opens the most recently closed tabs. 
 }
