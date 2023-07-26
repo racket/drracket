@@ -20,5 +20,6 @@
   syncheck:add-jump-to-definition/phase-level+space
   syncheck:add-definition-target
   syncheck:add-definition-target/phase-level+space
+  syncheck:unused-binder
   syncheck:add-prefixed-require-reference
   syncheck:add-unused-require)

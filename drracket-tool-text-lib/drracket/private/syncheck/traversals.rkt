@@ -1129,6 +1129,11 @@
       (define end (second val))
       (define color? (third val))
       (define (show-starts)
+        (when (zero? start)
+          (define defs-text (current-annotations))
+          (when defs-text
+            (send defs-text syncheck:unused-binder
+                  (list-ref key 0) (list-ref key 1) (list-ref key 2))))
         (add-mouse-over/loc (list-ref key 0) (list-ref key 1) (list-ref key 2)
                             (cond
                               [(zero? start)
@@ -1624,6 +1629,7 @@
     (log syncheck:add-prefixed-require-reference
          _req-src req-pos-left req-pos-right
          prefix _prefix-src prefix-start prefix-end)
+    (log syncheck:unused-binder _src left right)
     (log syncheck:add-unused-require _req-src req-pos-left req-pos-right)
 
     (define/public (get-trace) (reverse trace))

@@ -19,6 +19,7 @@
     syncheck:add-jump-to-definition/phase-level+space
     syncheck:add-definition-target
     syncheck:add-definition-target/phase-level+space
+    syncheck:unused-binder
     syncheck:add-prefixed-require-reference
     syncheck:add-unused-require
     syncheck:color-range
@@ -74,6 +75,7 @@
     (define/public (syncheck:add-definition-target source pos-left pos-right id mods) (void))
     (define/public (syncheck:add-definition-target/phase-level+space source pos-left pos-right id mods phase-level+space)
       (syncheck:add-definition-target source pos-left pos-right id mods))
+    (define/public (syncheck:unused-binder source pos-left pos-right) (void))
     (define/public (syncheck:color-range source start finish style-name) (void))
     (define/public (syncheck:add-prefixed-require-reference
                     req-src req-pos-left req-pos-right

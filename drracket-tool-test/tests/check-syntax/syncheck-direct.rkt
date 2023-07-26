@@ -767,6 +767,10 @@
   (and (equal? type 'unused-identifier)
        (list start end)))
 
+(define-get-arrows unused-binder
+  (syncheck:unused-binder _ start end)
+  (list start end))
+
 (check-equal?
  (get-text-type
   (string-append
@@ -794,7 +798,24 @@
               (set '(69 74)           ;racket/match from multi-in
                    '(77 87)))         ;racket/set
 
+(check-equal?
+ (unused-binder
+  (string-append
+   "#lang racket/base\n"
+   "(define unused 1)\n"))
+ (set '(26 32)))
 
+(check-equal?
+ (unused-binder
+  (string-append
+   "#lang racket/base\n"
+   "(define-syntax-rule (m f)\n"
+   "  (void\n"
+   "   (let ([f 1]) f)\n"
+   "   (let ([f 2]) f)))\n"
+   "\n"
+   "(m ffff)"))
+ (set '(96 100)))
 
 
 ;                                                                                                             

@@ -450,7 +450,18 @@ in order to make the results be platform independent.
 
   @history[#:added "1.2"]
   }
-                                                      
+
+ @defmethod[(syncheck:unused-binder [source-obj (not/c #f)]
+                                    [left exact-nonnegative-integer?]
+                                    [right exact-nonnegative-integer?])
+            void?]{
+  Called to indicate that there is a binder with no
+  references in @racket[source-obj] at the location spanned by
+  @racket[left] and @racket[right].
+
+  @history[#:added "1.4"]
+}
+
  @defmethod[(syncheck:color-range [source-obj (not/c #f)]
                                   [start exact-nonnegative-integer?]
                                   [end exact-nonnegative-integer?]
@@ -558,6 +569,7 @@ in order to make the results be platform independent.
                     syncheck:add-jump-to-definition/phase-level+space
                     syncheck:add-definition-target
                     syncheck:add-definition-target/phase-level+space
+                    syncheck:unused-binder
                     syncheck:add-id-set 
                     syncheck:color-range
                     syncheck:add-prefixed-require-reference

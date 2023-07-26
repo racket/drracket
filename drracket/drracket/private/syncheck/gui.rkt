@@ -272,6 +272,8 @@ If the namespace does not, they are colored the unbound color.
     ;; filename : path
     (define-struct def-link (id filename submods) #:transparent)
 
+    (struct unused-binder (text pos-left pos-right) #:transparent)
+
     (define-struct prefixable-reference (id-text id-start id-end))
     
     (define (get-tacked-var-brush)
@@ -455,8 +457,7 @@ If the namespace does not, they are colored the unbound color.
             ;; definition-targets : hash-table[(list symbol[id-name] (listof symbol[submodname])) 
             ;;                                 -o> (list text number number)]
             (define definition-targets (make-hash))
-            
-            
+
             ;; bindings-table : hash-table[(list text number number)
             ;;                             -o> (setof (list text number number))]
             ;; this is a private field
@@ -734,6 +735,9 @@ If the namespace does not, they are colored the unbound color.
             
             (define/public (syncheck:add-definition-target/phase-level+space source start-pos end-pos id mods phase-level)
               (syncheck:add-definition-target source start-pos end-pos id mods))
+            (define/public (syncheck:unused-binder source start-pos end-pos)
+              (when arrow-records
+                (add-to-range/key source start-pos end-pos (unused-binder source start-pos end-pos) #f #f)))
             (define/public (syncheck:add-definition-target source start-pos end-pos id mods)
               (hash-set! definition-targets (list id mods) (list source start-pos end-pos)))
             ;; syncheck:find-definition-target 
@@ -885,7 +889,9 @@ If the namespace does not, they are colored the unbound color.
                                                   binding-identifiers parent)
               (define (name-dup? x) 
                 (for/or ([var-arrow (in-list binding-identifiers)])
-                  ((var-arrow-name-dup? var-arrow) x)))
+                  (cond
+                    [(unused-binder? var-arrow) #f]
+                    [else ((var-arrow-name-dup? var-arrow) x)])))
               (define new-str
                 (fw:keymap:call/text-keymap-initializer
                  (λ ()
@@ -914,7 +920,6 @@ If the namespace does not, they are colored the unbound color.
                         '(stop default=2)
                         #:dialog-mixin frame:focus-table-mixin)
                        1)))
-                
                 (when do-renaming?
                   (for-each-variable-in-order
                    make-identifiers-hash
@@ -983,14 +988,25 @@ If the namespace does not, they are colored the unbound color.
                     ;; matches the special case in `position-range->binding-arrows`
                     (and (= start-sel end-sel) (not (zero? start-sel))
                          (<= (max a (- start-sel 1)) (min b* (- start-sel 1))))))
+
+              ;; -> (listof (list/c text position position))
+              (define (arrow->range-candidates arrow)
+                (cond
+                  [(unused-binder? arrow)
+                   (list (list (unused-binder-text arrow)
+                               (unused-binder-pos-left arrow)
+                               (unused-binder-pos-right arrow)))]
+                  [else
+                   (list (list (var-arrow-start-text arrow)
+                               (var-arrow-start-pos-left arrow)
+                               (var-arrow-start-pos-right arrow))
+                         (list (var-arrow-end-text arrow)
+                               (var-arrow-end-pos-left arrow)
+                               (var-arrow-end-pos-right arrow)))]))
+
               (define id-set
                 (for*/set ([arrow (in-list binding-var-arrows)]
-                           [id (in-list (list (list (var-arrow-start-text arrow)
-                                                    (var-arrow-start-pos-left arrow)
-                                                    (var-arrow-start-pos-right arrow))
-                                              (list (var-arrow-end-text arrow)
-                                                    (var-arrow-end-pos-left arrow)
-                                                    (var-arrow-end-pos-right arrow))))]
+                           [id (in-list (arrow->range-candidates arrow))]
                            #:when (apply intersect? id))
                   (send (list-ref id 0) get-text (list-ref id 1) (list-ref id 2))))
               (define ids (sort (set->list id-set) string<?))
@@ -1476,6 +1492,7 @@ If the namespace does not, they are colored the unbound color.
                   (define arrows (filter arrow? vec-ents))
                   (define def-links (filter def-link? vec-ents))
                   (define var-arrows (filter var-arrow? arrows))
+                  (define unused-binders (filter unused-binder? arrows))
                   (define add-menus (append (map cdr (filter pair? vec-ents))
                                             (filter procedure? vec-ents)))
                   (unless (null? arrows)
@@ -1495,7 +1512,7 @@ If the namespace does not, they are colored the unbound color.
                            [callback
                             (λ (item evt)
                               (jump-to-definition-callback def-link))])))
-                  (unless (null? var-arrows)
+                  (unless (and (null? var-arrows) (null? unused-binders))
                     (add-sep)
                     (make-object menu-item%
                       jump-to-next-bound-occurrence
@@ -1607,7 +1624,7 @@ If the namespace does not, they are colored the unbound color.
               (set! current-matching-identifiers
                     (cond
                       [(and cursor-text cursor-pos)
-                       (define-values (binders make-identifiers-hash)
+                       (define-values (_binders make-identifiers-hash)
                          (position->matching-identifiers-hash cursor-text cursor-pos cursor-pos
                                                               #:also-look-backward-one? #f))
                        (make-identifiers-hash)]
@@ -1624,7 +1641,9 @@ If the namespace does not, they are colored the unbound color.
             (define/private (position->matching-identifiers-hash the-text the-start-pos the-end-pos
                                                                  #:also-look-backward-one? [also-look-backward-one? #t])
               (define binding-arrows (position-range->binding-arrows the-text the-start-pos the-end-pos #f
+                                                                     #:include-unused-binders? #t
                                                                      #:also-look-backward-one? also-look-backward-one?))
+
               (values binding-arrows
                       (binding-arrows->identifiers-hash #f binding-arrows)))
 
@@ -1638,52 +1657,61 @@ If the namespace does not, they are colored the unbound color.
             ;; is always the one bfeore.
             (define/private (position-range->binding-arrows the-text the-start-pos the-end-pos
                                                             include-require-arrows?
+                                                            #:include-unused-binders? [include-unused-binders? #f]
                                                             #:also-look-backward-one? [also-look-backward-one? #t])
               (cond
                 [(and (= the-start-pos the-end-pos) also-look-backward-one?)
-                 (define forward (position->binding-arrows the-text the-start-pos include-require-arrows?))
+                 (define forward (position->binding-arrows the-text the-start-pos include-require-arrows?
+                                                           #:include-unused-binders? include-unused-binders?))
                  (cond
                    [(and (null? forward)
                          (not (zero? the-start-pos)))
                     ;; if we don't find anything here, check behind us.
                     ;; (but only when there isn't a selection)
-                    (position->binding-arrows the-text (- the-start-pos 1) include-require-arrows?)]
+                    (position->binding-arrows the-text (- the-start-pos 1) include-require-arrows?
+                                              #:include-unused-binders? include-unused-binders?)]
                    [else forward])]
                 [else
                  (apply
                   append
                   (for/list ([the-pos (in-range the-start-pos (+ the-end-pos 1))])
-                    (position->binding-arrows the-text the-pos include-require-arrows?)))]))
+                    (position->binding-arrows the-text the-pos include-require-arrows?
+                                              #:include-unused-binders? include-unused-binders?)))]))
 
-            (define/private (position->binding-arrows the-text the-pos include-require-arrows?)
+            (define/private (position->binding-arrows the-text the-pos include-require-arrows?
+                                                      #:include-unused-binders? include-unused-binders?)
               (define binding-arrows '())
-              (define (add-binding-arrow arr)
+              (define (add-var-binding-arrow arr)
                 (when (or include-require-arrows?
                           (not (var-arrow-require-arrow? arr)))
                   (set! binding-arrows (cons arr binding-arrows))))
               (define arrs (fetch-arrow-records the-text the-pos))
               (when arrs
                 (for ([arrow (in-list arrs)])
-                  (when (var-arrow? arrow)
-                    (cond
-                      [(and (equal? (var-arrow-start-text arrow) the-text)
-                            (<= (var-arrow-start-pos-left arrow) the-pos)
-                            (< the-pos (var-arrow-start-pos-right arrow)))
-                       ;; a binding occurrence => keep it
-                       (add-binding-arrow arrow)]
-                      [else
-                       ;; a bound occurrence => find binders
-                       (for ([candidate-binder
-                              (in-list (fetch-arrow-records (var-arrow-start-text arrow)
-                                                            (var-arrow-start-pos-left arrow)))])
-                         (when (var-arrow? candidate-binder)
-                           (when (and (equal? (var-arrow-start-text arrow)
-                                              (var-arrow-start-text candidate-binder))
-                                      (equal? (var-arrow-start-pos-left arrow)
-                                              (var-arrow-start-pos-left candidate-binder))
-                                      (equal? (var-arrow-start-pos-right arrow)
-                                              (var-arrow-start-pos-right candidate-binder)))
-                             (add-binding-arrow candidate-binder))))]))))
+                  (cond
+                    [(unused-binder? arrow)
+                     (when include-unused-binders?
+                       (set! binding-arrows (cons arrow binding-arrows)))]
+                    [(var-arrow? arrow)
+                     (cond
+                       [(and (equal? (var-arrow-start-text arrow) the-text)
+                             (<= (var-arrow-start-pos-left arrow) the-pos)
+                             (< the-pos (var-arrow-start-pos-right arrow)))
+                        ;; a binding occurrence => keep it
+                        (add-var-binding-arrow arrow)]
+                       [else
+                        ;; a bound occurrence => find binders
+                        (for ([candidate-binder
+                               (in-list (fetch-arrow-records (var-arrow-start-text arrow)
+                                                             (var-arrow-start-pos-left arrow)))])
+                          (when (var-arrow? candidate-binder)
+                            (when (and (equal? (var-arrow-start-text arrow)
+                                               (var-arrow-start-text candidate-binder))
+                                       (equal? (var-arrow-start-pos-left arrow)
+                                               (var-arrow-start-pos-left candidate-binder))
+                                       (equal? (var-arrow-start-pos-right arrow)
+                                               (var-arrow-start-pos-right candidate-binder)))
+                              (add-var-binding-arrow candidate-binder))))])])))
               binding-arrows)
 
             (define (binding-arrows->identifiers-hash include-require-arrows? binding-arrows)
@@ -1695,30 +1723,36 @@ If the namespace does not, they are colored the unbound color.
                   (set! identifiers-hash (make-hash))
                   (define already-considered (make-hash))
                   (for ([binding-arrow (in-list binding-arrows)])
-                    (add-one (var-arrow-start-text binding-arrow)
-                             (var-arrow-start-pos-left binding-arrow)
-                             (var-arrow-start-pos-right binding-arrow))
-                    (define range-to-consider
-                      (cons (var-arrow-start-pos-left binding-arrow)
-                            (var-arrow-start-pos-right binding-arrow)))
-                    (unless (hash-ref already-considered range-to-consider #f)
-                      (hash-set! already-considered range-to-consider #t)
-                      (for ([pos (in-range (car range-to-consider) (cdr range-to-consider))])
-                        (for ([arrow (in-list (fetch-arrow-records 
-                                               (var-arrow-start-text binding-arrow)
-                                               pos))])
-                          (when (var-arrow? arrow)
-                            (when (or include-require-arrows?
-                                      (not (var-arrow-require-arrow? arrow)))
-                              (when (and (equal? (var-arrow-start-text arrow)
-                                                 (var-arrow-start-text binding-arrow))
-                                         (equal? (var-arrow-start-pos-left arrow)
-                                                 (var-arrow-start-pos-left binding-arrow))
-                                         (equal? (var-arrow-start-pos-right arrow)
-                                                 (var-arrow-start-pos-right binding-arrow)))
-                                (add-one (var-arrow-end-text arrow)
-                                         (var-arrow-end-pos-left arrow)
-                                         (var-arrow-end-pos-right arrow))))))))))
+                    (cond
+                      [(unused-binder? binding-arrow)
+                       (add-one (unused-binder-text binding-arrow)
+                                (unused-binder-pos-left binding-arrow)
+                                (unused-binder-pos-right binding-arrow))]
+                      [else
+                       (add-one (var-arrow-start-text binding-arrow)
+                                (var-arrow-start-pos-left binding-arrow)
+                                (var-arrow-start-pos-right binding-arrow))
+                       (define range-to-consider
+                         (cons (var-arrow-start-pos-left binding-arrow)
+                               (var-arrow-start-pos-right binding-arrow)))
+                       (unless (hash-ref already-considered range-to-consider #f)
+                         (hash-set! already-considered range-to-consider #t)
+                         (for ([pos (in-range (car range-to-consider) (cdr range-to-consider))])
+                           (for ([arrow (in-list (fetch-arrow-records
+                                                  (var-arrow-start-text binding-arrow)
+                                                  pos))])
+                             (when (var-arrow? arrow)
+                               (when (or include-require-arrows?
+                                         (not (var-arrow-require-arrow? arrow)))
+                                 (when (and (equal? (var-arrow-start-text arrow)
+                                                    (var-arrow-start-text binding-arrow))
+                                            (equal? (var-arrow-start-pos-left arrow)
+                                                    (var-arrow-start-pos-left binding-arrow))
+                                            (equal? (var-arrow-start-pos-right arrow)
+                                                    (var-arrow-start-pos-right binding-arrow)))
+                                   (add-one (var-arrow-end-text arrow)
+                                            (var-arrow-end-pos-left arrow)
+                                            (var-arrow-end-pos-right arrow))))))))])))
                 identifiers-hash)
               get-identifiers-hash)
             
@@ -2275,6 +2309,8 @@ If the namespace does not, they are colored the unbound color.
                    key the-label path definition-tag tag)]
             [`#(syncheck:add-definition-target/phase-level+space ,start-pos ,end-pos ,id ,mods ,phase-level)
              (send defs-text syncheck:add-definition-target/phase-level+space defs-text start-pos end-pos id mods phase-level)]
+            [`#(syncheck:unused-binder ,start-pos ,end-pos)
+             (send defs-text syncheck:unused-binder defs-text start-pos end-pos)]
             [`#(syncheck:add-id-set ,to-be-renamed/poss ,name-dup-pc ,name-dup-id)
              (define to-be-renamed/poss/fixed
                (for/list ([lst (in-list to-be-renamed/poss)])
