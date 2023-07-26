@@ -45,9 +45,12 @@
   ;; to process the syntax objects so it is set there too
   (log-message online-check-syntax-logger 'info  ""
                (instructions-to-monitor-thread
-                (let ([clcp (current-library-collection-paths)])
+                (let ()
+                  (define clcp (current-library-collection-paths))
+                  (define ucfp (use-compiled-file-paths))
                   (λ ()
-                    (current-library-collection-paths clcp)))))
+                    (current-library-collection-paths clcp)
+                    (use-compiled-file-paths ucfp)))))
   (define c (make-channel))
   (unless (exn? expanded)
     (log-message online-check-syntax-logger 'info  "" (list expanded)))
