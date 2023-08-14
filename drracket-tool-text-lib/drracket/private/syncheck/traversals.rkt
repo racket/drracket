@@ -860,7 +860,8 @@
                             #:to-start to-start #:to-width to-span
                             #:to-dx to-dx #:to-dy to-dy)))))
 
-  (annotate-counts connections))
+  (annotate-counts connections)
+  (flush-index-entry-cache))
 
 ;; color-unused : hash-table[sexp -o> syntax] hash-table[sexp -o> #f] hash-table[syntax -o> #t]
 ;;             -> void
