@@ -161,6 +161,31 @@ The default value is @racket[(list #\" #\|)].
  @history[#:added "1.10"]
 }
 
+@section{Comments}
+
+@language-info-def[drracket:comment-delimiters]{
+
+ When a language's @racket[_get-info] procedure responds to
+@racket['drracket:comment-delimiters], it is expected to return a list
+of comment styles. Each comment style is expressed as a list of three
+strings:
+
+ @itemlist[
+
+  @item{The characters used to start/open a comment.}
+
+  @item{The characters used to end/close a comment. May be @litchar[""] to mean newline.}
+
+  @item{Padding to add after the start and before the close.}
+ ]
+
+ These values are used by comment and un-comment commands.
+
+ The default value is @racket[(list (list ";;" "" " ") (list "#|" "|#" " "))].
+
+ @history[#:added "1.15"]
+}
+
 @section{Keystrokes}
 
 @language-info-def[drracket:keystrokes]{
