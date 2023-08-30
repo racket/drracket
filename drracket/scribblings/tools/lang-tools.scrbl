@@ -161,6 +161,75 @@ The default value is @racket[(list #\" #\|)].
  @history[#:added "1.10"]
 }
 
+@section{Comments}
+
+@language-info-def[drracket:comment-delimiters]{
+
+ When a language's @racket[_get-info] procedure responds to
+@racket['drracket:comment-delimiters], it is expected to return a
+value with this contract:
+
+ @racketblock[(listof
+               (or/c (list/c 'line string? string?)
+                     (list/c 'region string? string? string? string?)))]
+
+ The value is a list of comment styles. Each comment style is
+expressed as one of:
+
+ @itemlist[
+
+  @item{@racket[(list 'line start padding)], where @racket[_start]
+plus @racket[_padding] starts a comment that is teriminated by the end
+of a line.
+
+   Lisp example: @racket['(line ";;" " ")].
+
+   C++ example: @racket['(line "//" " ")].}
+
+ @item{@racket[(list 'region start continue end padding)], where:
+
+   @itemlist[
+
+    @item{@racket[_start] then @racket[_padding] opens a comment}
+
+    @item{@racket[_continue] then @racket[padding] is added to the
+beginning of each line except the first one when a comment spans
+multiple lines}
+
+    @item{@racket[_padding] then @racket[_end] closes a comment}]
+
+   Racket example: @racket['(region "#|" "|#" "  " " ")].
+
+   C++ example: @racket['(region "/*" " *" "*/" " ")].}
+
+ ]
+
+ When not specified by a lang, the default value is suitable for
+Racket s-expression langs:
+
+ @racketblock['((line ";;" " ")
+                (region "#|" "|#" "  " " "))]
+
+ An intended use for these values is by (un)comment commands, which
+vary among tools. Some tools (un)comment entire lines, whereas others
+may handle portions of a line. Generally this is orthogonal to using a
+lang's line vs. region style: A tool can wrap entire lines using
+region comments. A tool can insert line breaks to make it possible to
+use line comments on a portion of a line. The point of
+@racket['drracket:comment-delimiters] is to enable a lang to tell a
+tool about its comment delimiters --- not to say exactly how
+the (un)comment commands could or should work, exactly.
+
+ When the list has multiple styles: Some tools may present the styles
+for the user to pick one. Other tools may default to using the first
+style in the list (allowing the user to configure another preference
+by other means). Therefore when a language supports multiple comment
+styles, it should @emph{list the most popular or preferred style
+first}.
+
+ @history[#:added "1.15"]
+}
+
 @section{Keystrokes}
 
 @language-info-def[drracket:keystrokes]{
