@@ -183,6 +183,12 @@ strings:
 
  The default value is @racket[(list (list ";;" "" " ") (list "#|" "|#" " "))].
 
+ When the list has multiple styles, some tools may present them for
+the user to pick one. Other tools may default to using the first style
+in the list (the user will configure a preference by others means).
+Therefore when a language supports multiple comment styles, it should
+list the most popular or preferred style first.
+
  @history[#:added "1.15"]
 }
 
