@@ -167,21 +167,36 @@ The default value is @racket[(list #\" #\|)].
 
  When a language's @racket[_get-info] procedure responds to
 @racket['drracket:comment-delimiters], it is expected to return a list
-of comment styles. Each comment style is expressed as a list of three
-strings:
+of comment styles. Each comment style is expressed as one of:
 
  @itemlist[
 
-  @item{The characters used to start/open a comment.}
+  @item{@racket[(list 'line start padding)], where @racket[_start]
+   is a string used to start a comment that is teriminated by the
+   end of a line, and @racket[_padding] goes after that.
+   Lisp example: @racket['(line ";;" " ")].
+   C++ example: @racket['(line "//" " ")].}
 
-  @item{The characters used to end/close a comment. May be @litchar[""] to mean newline.}
+  @item{@racket[(list 'region start end padding)], where @racket[_start]
+   is a string used to start/open a comment, @racket[_end] is a string
+   used to end/close a comment, and @racket[_padding] goes after/before.
+   Racket example: @racket['(region "#|" "|#" " ")].
+   C++ example: @racket['(region "/*" "*/" " ")].}
 
-  @item{Padding to add after the start and before the close.}
  ]
 
- These values are used by comment and un-comment commands.
+ When not specified by a lang, the default value is
+ @racket[(list (list 'line ";;" " ") (list 'region "#|" "|#" " "))].
 
- The default value is @racket[(list (list ";;" "" " ") (list "#|" "|#" " "))].
+ An intended use for these values is for comment and un-comment
+commands, which may vary among tools. Some tools (un)comment entire
+lines, whereas others may handle portions of a line. Generally this is
+orthogonal to using a lang's line vs. region style: A tool can wrap
+entire lines using region comments, and a tool can insert line breaks
+to make it possible to use line comments. The point of
+@racket['drracket:comment-delimiters] is to enable a lang to tell a
+tool about its comment delimiters -- not to say exactly how
+the (un)comment commands could or should work, exactly.
 
  When the list has multiple styles, some tools may present them for
 the user to pick one. Other tools may default to using the first style
