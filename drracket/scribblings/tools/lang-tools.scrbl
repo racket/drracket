@@ -171,22 +171,27 @@ of comment styles. Each comment style is expressed as one of:
 
  @itemlist[
 
-  @item{@racket[(list 'line start padding)], where @racket[_start]
-   is a string used to start a comment that is teriminated by the
-   end of a line, and @racket[_padding] goes after that.
+  @item{@racket[(list 'line start padding)], where @racket[_start] is
+a string used to start a comment that is teriminated by the end of a
+line, and @racket[_padding] goes after that.
+
    Lisp example: @racket['(line ";;" " ")].
    C++ example: @racket['(line "//" " ")].}
 
-  @item{@racket[(list 'region start end padding)], where @racket[_start]
-   is a string used to start/open a comment, @racket[_end] is a string
-   used to end/close a comment, and @racket[_padding] goes after/before.
-   Racket example: @racket['(region "#|" "|#" " ")].
-   C++ example: @racket['(region "/*" "*/" " ")].}
+  @item{@racket[(list 'region start continue end padding)], where
+@racket[_start] is a string used to start/open a comment,
+@racket[_continue] is added to the beginning of each line except the
+first one when a comment spans multiple lines, @racket[_end] is a
+string used to end/close a comment, and @racket[_padding] goes
+after/before.
+
+   Racket example: @racket['(region "#|" "|#" "  " " ")].
+   C++ example: @racket['(region "/*" "*/" " *" " ")].}
 
  ]
 
- When not specified by a lang, the default value is
- @racket[(list (list 'line ";;" " ") (list 'region "#|" "|#" " "))].
+ When not specified by a lang, the default value is suitable for
+Racket s-expression langs: @racket['((line ";;" " ") (region "#|" "|#" " " " "))].
 
  An intended use for these values is for comment and un-comment
 commands, which may vary among tools. Some tools (un)comment entire
