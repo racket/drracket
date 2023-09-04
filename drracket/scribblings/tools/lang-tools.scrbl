@@ -186,7 +186,7 @@ string used to end/close a comment, and @racket[_padding] goes
 after/before.
 
    Racket example: @racket['(region "#|" "|#" "  " " ")].
-   C++ example: @racket['(region "/*" "*/" " *" " ")].}
+   C++ example: @racket['(region "/*" " *" "*/" " ")].}
 
  ]
 
