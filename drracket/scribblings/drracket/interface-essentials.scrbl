@@ -271,8 +271,8 @@ parenthesis. For example, when typing
 @racketblock[
 (define (length l)
   (cond
-   [(empty? l) 0]
-   [else (+ 1 (length (rest l)))]))
+    [(empty? l) 0]
+    [else (+ 1 (length (rest l)))]))
 ]
 
 If you always type @litchar{[} and @litchar{]} where any of the square
