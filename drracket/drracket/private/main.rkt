@@ -145,6 +145,7 @@
 
 (drr:set-default 'drracket:defns-popup-sort-by-name? #f boolean?)
 (drr:set-default 'drracket:show-line-numbers? #t boolean?)
+(drr:set-default 'drracket:show-indent-guides? #f boolean?)
 
 (drr:set-default 'drracket:toolbar-state 
                  '(#f . top)
@@ -403,6 +404,9 @@
    (λ (editor-panel)
      (make-check-box 'drracket:show-line-numbers?
                      (string-constant show-line-numbers)
+                     editor-panel)
+     (make-check-box 'drracket:show-indent-guides?
+                     (string-constant show-indent-guides)
                      editor-panel)
      
      (make-check-box 'drracket:defs/ints-labels

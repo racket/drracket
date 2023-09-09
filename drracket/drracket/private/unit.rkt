@@ -557,7 +557,8 @@
                         (text:all-string-snips-mixin
                          (text:ascii-art-enlarge-boxes-mixin
                           (number-snip:remove-decimal-looking-number-snips-on-insertion-mixin
-                           text:info%)))))))))))))))])
+                           (text:indent-guides-mixin
+                            text:info%))))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
           (inherit is-locked? lock while-unlocked
@@ -945,6 +946,9 @@
 
           (inherit set-inline-overview-enabled?)
           (set-inline-overview-enabled? (preferences:get 'drracket:inline-overview-shown?))
+
+          (inherit show-indent-guides!)
+          (show-indent-guides! (preferences:get 'drracket:show-indent-guides?))
 
           (inherit set-file-creator-and-type)
           (set-file-creator-and-type #"DrSc" #f)))))
@@ -3669,6 +3673,26 @@
                                (preferences:set 'drracket:show-line-numbers? (not value))
                                (show-line-numbers! (not value)))]))
         (set-show-menu-sort-key show-line-numbers-menu-item 302)
+
+        (define indent-guides-menu-item
+          (new menu:can-restore-menu-item%
+               [label (if (send (get-definitions-text) show-indent-guides?)
+                          (string-constant hide-indent-guides/menu)
+                          (string-constant show-indent-guides/menu))]
+               [parent (get-show-menu)]
+               [shortcut #\i]
+               [shortcut-prefix (cons 'shift (get-default-shortcut-prefix))]
+               [demand-callback
+                (λ (item)
+                  (send item set-label
+                        (if (send (get-definitions-text) show-indent-guides?)
+                            (string-constant hide-indent-guides/menu)
+                            (string-constant show-indent-guides/menu))))]
+               [callback (λ (self event)
+                           (define value (preferences:get 'drracket:show-indent-guides?))
+                           (preferences:set 'drracket:show-indent-guides? (not value))
+                           (send (get-definitions-text) show-indent-guides! (not value)))]))
+        (set-show-menu-sort-key indent-guides-menu-item 303)
         
         (define show-column-guide-menu-item
           (new menu:can-restore-menu-item%
@@ -3685,7 +3709,7 @@
                            (define ov (preferences:get 'framework:column-guide-width))
                            (preferences:set 'framework:column-guide-width
                                             (list (not (car ov)) (cadr ov))))]))
-        (set-show-menu-sort-key show-column-guide-menu-item 303)
+        (set-show-menu-sort-key show-column-guide-menu-item 304)
         
         (let ()
           (define (font-adjust adj label key shortcut)
