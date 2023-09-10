@@ -405,9 +405,6 @@
      (make-check-box 'drracket:show-line-numbers?
                      (string-constant show-line-numbers)
                      editor-panel)
-     (make-check-box 'drracket:show-indent-guides?
-                     (string-constant show-indent-guides)
-                     editor-panel)
      
      (make-check-box 'drracket:defs/ints-labels
                      (string-constant show-defs/ints-label)
