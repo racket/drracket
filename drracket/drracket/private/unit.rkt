@@ -2265,6 +2265,7 @@
                                  (string-append " " (string-constant custom)))
                              " "))
         (update-teachpack-menu)
+        (update-comment-out-menu-items)
         (when (is-a? language-specific-menu menu%)
           (define label (send language-specific-menu get-label))
           (define new-label
@@ -3177,6 +3178,8 @@
             (for-each (λ (ints-canvas) (send ints-canvas refresh))
                       interactions-canvases)
             (set-color-status! (send definitions-text is-lexer-valid?))
+
+            (update-comment-out-menu-items)
             
             (when (preferences:get 'drracket:save-files-on-tab-switch?)
               (save-all-unsaved-files))
@@ -4639,34 +4642,8 @@
                        (f x 0 (send x last-position))))))]
                [shortcut #\i]
                [demand-callback (λ (m) (send m enable (cap-val)))]))
-        
-        (make-object menu:can-restore-menu-item%
-          (string-constant box-comment-out-menu-item-label)
-          language-specific-menu
-          (send-method (λ (x) (send x box-comment-out-selection))))
-        (make-object menu:can-restore-menu-item%
-          (string-constant semicolon-comment-out-menu-item-label)
-          language-specific-menu
-          (send-method (λ (x) (send x comment-out-selection))))
-        (make-object menu:can-restore-menu-item%
-          (string-constant uncomment-menu-item-label)
-          language-specific-menu
-          (λ (x y)
-            (let ([text (get-focus-object)])
-              (when (is-a? text text%)
-                (let ([admin (send text get-admin)])
-                  (cond
-                    [(is-a? admin editor-snip-editor-admin<%>)
-                     (let ([es (send admin get-snip)])
-                       (cond
-                         [(is-a? es comment-box:snip%)
-                          (let ([es-admin (send es get-admin)])
-                            (when es-admin
-                              (let ([ed (send es-admin get-editor)])
-                                (when (is-a? ed racket:text<%>)
-                                  (send ed uncomment-box/selection)))))]
-                         [else (send text uncomment-selection)]))]
-                    [else (send text uncomment-selection)]))))))
+
+        (update-comment-out-menu-items)
         
         (set! insert-menu
               (new (get-menu%)
@@ -4746,6 +4723,151 @@
           (register-capability-menu-item 'drscheme:special:insert-lambda insert-menu))
         
         (frame:reorder-menus this))
+
+      (define/public (update-comment-out-menu-items)
+        ;; 1. clear out comment-related and following menu items,
+        ;; saving the ones that follow
+        (define items-to-restore '())
+        (let loop ([items (send language-specific-menu get-items)]
+                   [state 'found-nothing])
+          (cond
+            [(empty? items) (void)]
+            [else
+             (define item (car items))
+             (match state
+               ['found-nothing
+                (cond
+                  [(and (is-a? item labelled-menu-item<%>)
+                        (equal? (string-constant box-comment-out-menu-item-label)
+                                (send item get-label)))
+                   (send item delete)
+                   (loop (cdr items) 'found-comment-out-items)]
+                  [else
+                   (loop (cdr items) 'found-nothing)])]
+               ['found-comment-out-items
+                (send item delete)
+                (loop (cdr items) (if (is-a? item separator-menu-item%)
+                                      'found-end-of-comment-out-items
+                                      'found-comment-out-items))]
+               ['found-end-of-comment-out-items
+                (send item delete)
+                (set! items-to-restore (cons item items-to-restore))
+                (loop (cdr items) 'found-end-of-comment-out-items)])]))
+
+        ;; 2. add box comment out
+        (make-object menu:can-restore-menu-item%
+          (string-constant box-comment-out-menu-item-label)
+          language-specific-menu
+          (λ (_1 _2)
+            (define text (get-edit-target-object))
+            (when (is-a? text racket:text<%>)
+              (send text box-comment-out-selection))))
+
+        ;; 3. add comment-out directive menus from the language
+        (define line-comment-directives-found '())
+        (define (make-a-comment-out-menu-item comment-directive)
+          (define-values (menu-item-label callback comment-directive-key)
+            (match comment-directive
+              [(list 'line start padding)
+               (define lab (string-append start padding))
+               (values (format (string-constant comment-out-with-line-start)
+                               lab)
+                       (λ (text)
+                         (send text comment-out-selection
+                               #:start start
+                               #:padding padding))
+                       lab)]
+              [(list 'region start continue end padding)
+               (values (format (string-constant comment-out-with-region)
+                               start end)
+                       (λ (text)
+                         (send text region-comment-out-selection
+                               #:start start
+                               #:continue continue
+                               #:end end
+                               #:padding padding))
+                       (cons start end))]))
+          (unless (member comment-directive-key (map car line-comment-directives-found))
+            (set! line-comment-directives-found
+                  (cons (cons comment-directive-key comment-directive)
+                        line-comment-directives-found))
+            (new menu:can-restore-menu-item%
+              [label menu-item-label]
+              [parent language-specific-menu]
+              [callback
+              (λ (_1 _2)
+                (define text (get-edit-target-object))
+                (when (is-a? text racket:text<%>)
+                  (callback text)))])))
+        (define all-comment-directives
+          (let* ([lang/config (send (get-definitions-text) get-next-settings)]
+                 [lang (drracket:language-configuration:language-settings-language lang/config)])
+            (if (is-a? lang drracket:module-language:module-language<%>)
+                (call-read-language (send (get-definitions-text) get-irl)
+                                    'drracket:comment-delimiters
+                                    #f)
+                ;; if we're not in the module language do what the old code used to do
+                (list (list 'line ";" "")))))
+        (for ([comment-directives (in-list all-comment-directives)]
+              #:when (< (length line-comment-directives-found) 5))
+          (make-a-comment-out-menu-item comment-directives))
+        (when (null? line-comment-directives-found)
+          ;; would be better if this used the defaults
+          (make-a-comment-out-menu-item (list 'line ";" "")))
+        (set! line-comment-directives-found (reverse line-comment-directives-found))
+
+        ;; 4. add uncomment menu item
+        (define (do-uncomment-selection text)
+          (when (is-a? text racket:text<%>)
+            (let/ec escape
+              (when (send text uncomment-selection/box)
+                (escape (void)))
+              (for ([comment-directive (in-list (map cdr line-comment-directives-found))])
+                (match comment-directive
+                  [(list 'line start padding)
+                   (when (send text commented-out/line?
+                               #:start start
+                               #:padding padding)
+                     (send text uncomment-selection/line
+                           #:start start
+                           #:padding padding)
+                     (escape (void)))]
+                [(list 'region start continue end padding)
+                 (when (send text commented-out/region?
+                             #:start start
+                             #:end end
+                             #:continue continue)
+                   (send text uncomment-selection/region
+                         #:start start
+                         #:end end
+                         #:continue continue
+                         #:padding padding)
+                   (escape (void)))])))))
+        (make-object menu:can-restore-menu-item%
+          (string-constant uncomment-menu-item-label)
+          language-specific-menu
+          (λ (x y)
+            (let ([text (get-focus-object)])
+              (when (is-a? text text%)
+                (let ([admin (send text get-admin)])
+                  (cond
+                    [(is-a? admin editor-snip-editor-admin<%>)
+                     (let ([es (send admin get-snip)])
+                       (cond
+                         [(is-a? es comment-box:snip%)
+                          (let ([es-admin (send es get-admin)])
+                            (when es-admin
+                              (let ([ed (send es-admin get-editor)])
+                                (when (is-a? ed racket:text<%>)
+                                  (send ed uncomment-box/selection)))))]
+                         [else (do-uncomment-selection text)]))]
+                    [else (do-uncomment-selection text)]))))))
+        (new separator-menu-item% [parent language-specific-menu])
+
+        ;; 5. restore removed menu items
+        (for ([item (in-list (reverse items-to-restore))])
+          (send item restore))
+        (void))
       
       (define/public (jump-to-previous-error-loc)
         (define-values (before after sorted) (find-before-and-after))

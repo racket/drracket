@@ -63,7 +63,9 @@
   set-oc-status
   
   set-dep-paths
-  set-dirty-if-dep)
+  set-dirty-if-dep
+
+  update-comment-out-menu-items)
 
 ;; mode changing definitions text mixin
 (define/provide-local-member-name

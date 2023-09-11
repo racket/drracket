@@ -18,10 +18,10 @@
                "sandbox-lib"
                ("scribble-lib" #:version "1.11")
                ("snip-lib" #:version "1.2")
-               ["string-constants-lib" #:version "1.44"]
+               ["string-constants-lib" #:version "1.45"]
                "typed-racket-lib"
                "wxme-lib"
-               ["gui-lib" #:version "1.69"]
+               ["gui-lib" #:version "1.70"]
                ("racket-index" #:version "1.2")
                ["racket-doc" #:version "1.1"]
                "html-lib"

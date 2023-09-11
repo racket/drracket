@@ -541,6 +541,7 @@
 
         (define frame (send (get-tab) get-frame))
         (when (eq? (send (send frame get-current-tab) get-defs) this)
+          (send frame update-comment-out-menu-items)
           (send frame when-initialized
                 (λ ()
                   (send frame update-func-defs)))))

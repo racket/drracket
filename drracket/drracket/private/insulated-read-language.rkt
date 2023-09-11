@@ -44,6 +44,7 @@ Will not work with the definitions text surrogate interposition that
         'definitions-text-surrogate
         'drracket:paren-matches
         'drracket:quote-matches
+        'drracket:comment-delimiters
         'drracket:define-popup))
 
 (provide
@@ -268,6 +269,9 @@ Will not work with the definitions text surrogate interposition that
      (or val racket:default-paren-matches)]
     [(drracket:quote-matches)
      (or val (list #\" #\|))]
+    [(drracket:comment-delimiters)
+     (or val '((line ";;" " ")
+               (region "#|" "  " "|#" " ")))]
     [(drracket:define-popup)
      (and val
           (for/list ([val (in-list val)])

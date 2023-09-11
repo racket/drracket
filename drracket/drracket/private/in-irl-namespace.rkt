@@ -211,27 +211,39 @@
                                     (-> object? any)
                                     (or/c real? #f)))))]
 
-    [(drracket:opt-out-toolbar-buttons drscheme:opt-out-toolbar-buttons drracket:opt-in-toolbar-buttons)
+    [(drracket:opt-out-toolbar-buttons
+      drscheme:opt-out-toolbar-buttons
+      drracket:opt-in-toolbar-buttons)
      (or/c #f (listof symbol?))]
     [(drracket:paren-matches) (or/c #f (listof (list/c symbol? symbol?)))]
     [(drracket:quote-matches) (or/c #f (listof char?))]
-    [(drracket:define-popup) (or/c #f
-                                   (non-empty-listof (list/c string? string? string?))
-                                   (non-empty-listof (list/c string? string? string?
-                                                             (or/c #f
-                                                                   (-> read-only-text/c string? exact-integer?
-                                                                       (->* (read-only-text/c string? exact-integer?)
-                                                                            (#:case-sensitive? any/c
-                                                                             #:delimited? any/c)
-                                                                            (or/c exact-integer? #f))
-                                                                       (or/c exact-integer? #f)))
-                                                             (or/c #f
-                                                                   (-> read-only-text/c exact-integer?
-                                                                       (-> read-only-text/c exact-integer?
-                                                                           string?)
-                                                                       string?)))))]
+    [(drracket:comment-delimiters)
+     (listof
+      (or/c (list/c 'line no-newline-string/c no-newline-string/c)
+            (list/c 'region
+                    no-newline-string/c no-newline-string/c
+                    no-newline-string/c no-newline-string/c)))]
+    [(drracket:define-popup)
+     (or/c #f
+           (non-empty-listof (list/c string? string? string?))
+           (non-empty-listof (list/c string? string? string?
+                                     (or/c #f
+                                           (-> read-only-text/c string? exact-integer?
+                                               (->* (read-only-text/c string? exact-integer?)
+                                                    (#:case-sensitive? any/c
+                                                     #:delimited? any/c)
+                                                    (or/c exact-integer? #f))
+                                               (or/c exact-integer? #f)))
+                                     (or/c #f
+                                           (-> read-only-text/c exact-integer?
+                                               (-> read-only-text/c exact-integer?
+                                                   string?)
+                                               string?)))))]
     [else
      (error 'key->contract "unknown key")]))
+
+(define no-newline-string/c
+  (and/c string? (not/c #rx"[\r\n]")))
 
 (define (get-read-language-last-position/inside) read-language-last-position)
 
