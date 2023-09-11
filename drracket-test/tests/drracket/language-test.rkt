@@ -1535,7 +1535,7 @@ the settings above should match r5rs
     (eprintf "expected lines: \n  ~a\n  ~a\ngot lines:\n  ~a\n  ~a\n" 
              line0-expect line1-expect
              line0-got line1-got)
-    (eprintf "defs: ~s"
+    (eprintf "defs: ~s\n"
              (queue-callback/res (λ () (send (send drs get-definitions-text) get-text))))
     (error 'language-test.rkt "failed get top of repl test")))
 
