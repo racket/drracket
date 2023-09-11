@@ -405,12 +405,13 @@ portions of the program.}
   the definitions or interactions window, depending on the location of
   the selection or blinking caret.}
   
- @item{@defmenuitem{Comment Out with Semicolons} Puts @litchar{;}
-  characters at each of the beginning of each selected line of text.}
-
  @item{@defmenuitem{Comment Out with a Box} Boxes the selected
   text with a comment box.}
   
+ @item{@defmenuitem{Comment Out with ...} Uses the characters shown
+ in the menu item to comment out the selected region of text. This menu
+ item changes based on the @tt{#lang} line.}
+
  @item{@defmenuitem{Uncomment} Removes all @litchar{;} characters at
   the start of each selected line of text or removes a comment box
   around the text. Uncommenting only removes a @litchar{;} if it
