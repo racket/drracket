@@ -170,8 +170,14 @@ The default value is @racket[(list #\" #\|)].
 value with this contract:
 
  @racketblock[(listof
-               (or/c (list/c 'line string? string?)
-                     (list/c 'region string? string? string? string?)))]
+               (or/c (list/c 'line
+                             (and/c string? (not/c #rx"[\r\n]"))
+                             (and/c string? (not/c #rx"[\r\n]")))
+                     (list/c 'region
+                             (and/c string? (not/c #rx"[\r\n]"))
+                             (and/c string? (not/c #rx"[\r\n]"))
+                             (and/c string? (not/c #rx"[\r\n]"))
+                             (and/c string? (not/c #rx"[\r\n]")))))]
 
  The value is a list of comment styles. Each comment style is
 expressed as one of:
@@ -198,7 +204,7 @@ multiple lines}
 
     @item{@racket[_padding] then @racket[_end] closes a comment}]
 
-   Racket example: @racket['(region "#|" "|#" "  " " ")].
+   Racket example: @racket['(region "#|" "  " "|#" " ")].
 
    C++ example: @racket['(region "/*" " *" "*/" " ")].}
 
@@ -208,7 +214,7 @@ multiple lines}
 Racket s-expression langs:
 
  @racketblock['((line ";;" " ")
-                (region "#|" "|#" "  " " "))]
+                (region "#|" "  " "|#" " "))]
 
  An intended use for these values is by (un)comment commands, which
 vary among tools. Some tools (un)comment entire lines, whereas others
