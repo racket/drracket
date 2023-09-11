@@ -269,9 +269,7 @@ Will not work with the definitions text surrogate interposition that
      (or val racket:default-paren-matches)]
     [(drracket:quote-matches)
      (or val (list #\" #\|))]
-    [(drracket:comment-delimiters)
-     (or val '((line ";;" " ")
-               (region "#|" "  " "|#" " ")))]
+    [(drracket:comment-delimiters) val]
     [(drracket:define-popup)
      (and val
           (for/list ([val (in-list val)])

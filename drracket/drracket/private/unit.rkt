@@ -4805,7 +4805,8 @@
             (if (is-a? lang drracket:module-language:module-language<%>)
                 (call-read-language (send (get-definitions-text) get-irl)
                                     'drracket:comment-delimiters
-                                    #f)
+                                    '((line ";;" " ")
+                                      (region "#|" "  " "|#" " ")))
                 ;; if we're not in the module language do what the old code used to do
                 (list (list 'line ";" "")))))
         (for ([comment-directives (in-list all-comment-directives)]
