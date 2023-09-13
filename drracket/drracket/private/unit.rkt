@@ -4863,12 +4863,14 @@
                                   (send ed uncomment-box/selection)))))]
                          [else (do-uncomment-selection text)]))]
                     [else (do-uncomment-selection text)]))))))
-        (new separator-menu-item% [parent language-specific-menu])
 
         ;; 5. restore removed menu items
-        (for ([item (in-list (reverse items-to-restore))])
-          (send item restore))
-        (void))
+        (when (pair? items-to-restore)
+          ;; only add a separator if there were some items following
+          ;; the comment out items before (oth. we get two separators)
+          (new separator-menu-item% [parent language-specific-menu])
+          (for ([item (in-list (reverse items-to-restore))])
+            (send item restore))))
       
       (define/public (jump-to-previous-error-loc)
         (define-values (before after sorted) (find-before-and-after))
