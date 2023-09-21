@@ -533,7 +533,7 @@ brings the corresponding window to the front.
 
   On Windows, it changes the @tt{HKEY_CURRENT_USER\Environment\Path}
   registry key to add the location of the @filepath{bin} directory.
-  Once it finishes, newly created @tt{command.com} shells should have
+  Once it finishes, newly created Command shells (@tt{cmd.exe}) should have
   Racket in their path.
  }
   
