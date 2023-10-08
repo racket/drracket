@@ -505,6 +505,21 @@ the settings above should match r5rs
     
     (test-expression "(error 'a \"~a\" 1)" "a: ~a1")
     (test-expression "(error \"a\" \"a\")" "aa")
+
+    (test-expression "(check-expect 1 1)"
+                     "The test passed!"
+                     "Both tests passed!")
+    (test-expression "(check-expect 1 1)\n(check-expect 2 2)\n(+ \"hello\" \"world\")\n(check-expect 3 3)\n"
+                     (λ (got)
+                       (define m (regexp-match #rx"(.*)Both tests passed(.*)" got))
+                       (cond
+                         [m
+                          (define before (list-ref m 1))
+                          (define after (list-ref m 2))
+                          (and (not (regexp-match? #rx"Both tests passed" before))
+                               (not (regexp-match? #rx"Both tests passed" after)))]
+                         [else #f]))
+                     (λ (got) #t)) ;; just skip the interactions test
     
     (test-undefined-fn "(time 1)" "time"))
     
