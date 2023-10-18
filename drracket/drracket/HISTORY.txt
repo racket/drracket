@@ -1,4 +1,18 @@
 ------------------------------
+       Version 8.11
+------------------------------
+
+   . add indentation guides (<menu-key>-shift-i)
+
+   . generalize comment-out functionality to be #lang-specific
+
+   . show tooltip on bound identifiers that have no binding occurrences
+
+   . documentation improvements
+
+   . bug fixes
+
+------------------------------
        Version 8.10
 ------------------------------
 
