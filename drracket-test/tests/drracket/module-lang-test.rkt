@@ -505,6 +505,28 @@
            (list (text:range-start range) (text:range-end range)))
          '((680 683)))))
 
+(test @t{
+#lang racket
+(define sp (open-output-string))
+(let/ec k
+  (parameterize ([error-escape-handler k])
+    (parameterize ([current-error-port sp])
+      (raise-argument-error 'f "string?" 1 0 1 2 3))))
+(display (get-output-string sp))
+}
+      #f
+      @t{
+f: contract violation
+  expected: string?
+  given: 1
+  argument position: 2nd
+  other arguments...:
+   0
+   2
+   3
+}
+      )
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:

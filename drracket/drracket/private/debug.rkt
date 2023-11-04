@@ -400,7 +400,8 @@
            (when (and ints (exn:fail:out-of-memory? exn))
              (define frame (send ints get-top-level-window))
              (send ints no-user-evaluation-dialog frame #f #t #f)))))))
-  
+
+  ;; pre: (port-writes-special? (current-error-port))
   (define (render-message lines)
     (define collected (collect-hidden-lines lines))
     (for ([x (in-list collected)]
@@ -418,7 +419,7 @@
   
   (define (display-error-message exn msg)
     (cond
-      [(exn:fail? exn)
+      [(and (port-writes-special? (current-error-port)) (exn:fail? exn))
        (define lines (regexp-split #rx"\n" msg))
        (cond
          [(ellipsis-candidate? lines)
