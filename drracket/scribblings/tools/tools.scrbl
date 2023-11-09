@@ -844,6 +844,14 @@ The fourth argument to @racket[log-message] should be a list
 of syntax objects; these are processed as if they were the result
 of expansion. 
 
+The syntax objects whose @racket[syntax-source] field does
+not match the source of the file that is currently being
+expanded are ignored. That is, sometimes a macro may log a
+syntax object to be used by DrRacket in this fashion, but
+the macro may not be from the file that DrRacket's
+expanding, but one from one that is required by it; hence
+this check is in place to skip them.
+
 Note: the identifiers in these objects should be @racket[syntax-original?]
 or else they will be ignored by check syntax.
 
