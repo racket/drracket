@@ -68,7 +68,8 @@
                       (get-init-dir path)))
     (parameterize ([current-annotations obj])
       (for ([stx (in-list stxes)])
-        (expanded-expression stx))
+        (when (equal? (syntax-source stx) the-source)
+          (expanded-expression stx)))
       (expansion-completed))
     (send obj get-trace)))
 
