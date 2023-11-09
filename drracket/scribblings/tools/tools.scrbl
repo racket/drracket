@@ -826,6 +826,7 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
           on binding identifiers (not just in expression positions).}]
 
 @section{Cooperating with Background Check Syntax}
+@section-index["online-check-syntax logger"]
 
 DrRacket's continuous, background check syntax runs each time 
 an edit to the definitions text happens. In some cases, that
