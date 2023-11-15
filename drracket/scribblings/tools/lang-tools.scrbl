@@ -1,5 +1,6 @@
 #lang scribble/doc
-@(require "common.rkt")
+@(require "common.rkt"
+          (for-label syntax-color/color-textoid))
 
 @title[#:tag "lang-languages-customization"]{
  Tool support for @tt{#lang}-based Languages
@@ -96,10 +97,10 @@ with this contract:
                  exact-nonnegative-integer?
                  (or/c #f exact-nonnegative-integer?))]
 
-@margin-note{Although DrRacket might supply a full
+@margin-note{Although DrRacket might supply an object that implements
 @racket[racket:text<%>], if your language can limit itself to the
-smaller number of methods in the @racket[color-textoid<%> interface
-then it will work with more tools.]}
+smaller number of methods in the @racket[color-textoid<%>] interface
+then it will work with more tools.}
 
 The function is used to indent lines. It is called with the position
 containing the line to be indented. It is expected to return the
@@ -121,10 +122,10 @@ function with this contract:
                   exact-nonnegative-integer?
                   (or/c #f (listof (list/c exact-nonnegative-integer? string?))))]
 
-@margin-note{Although DrRacket might supply a full
+@margin-note{Although DrRacket might supply an object that implements
 @racket[racket:text<%>], if your language can limit itself to the
-smaller number of methods in the @racket[color-textoid<%> interface
-then it will work with more tools.]}
+smaller number of methods in the @racket[color-textoid<%>] interface
+then it will work with more tools.}
 
 The function is used to indent a range that potentially spans multiple
 lines. It is called with the start and ending position of the range.
@@ -308,10 +309,10 @@ Specifically the result must be a function matching this contract:
                   (or/c 'up 'down 'backward 'forward)
                   (or/c #f #t natural?))]
 
-@margin-note{Although DrRacket might supply a full @racket[text%], if
-your language can limit itself to the smaller number of methods in the
-@racket[color-textoid<%> interface then it will work with more
-tools.]}
+@margin-note{Although DrRacket might supply an object that implements
+@racket[racket:text<%>], if your language can limit itself to the
+smaller number of methods in the @racket[color-textoid<%>] interface
+then it will work with more tools.}
 
 Consider first the first and third argument. The first argument
 indicates a position in the editor to start from and the third
