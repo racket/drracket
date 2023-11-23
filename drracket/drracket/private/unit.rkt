@@ -542,22 +542,22 @@
   (define (make-definitions-text%)
     (let ([definitions-super%
             (text:line-numbers-mixin
-             (text:first-line-mixin
-              (drracket:module-language:module-language-put-file-mixin
-               (racket:text-mixin
-                (color:text-mixin
-                 (drracket:rep:drs-bindings-keymap-mixin
-                  (mode:host-text-mixin
-                   (text:foreground-color-mixin
-                    (drracket:rep:drs-autocomplete-mixin
-                     (λ (x) x)
-                     (text:normalize-paste-mixin
-                      (text:column-guide-mixin
-                       (text:inline-overview-mixin
-                        (text:all-string-snips-mixin
-                         (text:ascii-art-enlarge-boxes-mixin
-                          (number-snip:remove-decimal-looking-number-snips-on-insertion-mixin
-                           (text:indent-guides-mixin
+             (text:indent-guides-mixin
+              (text:first-line-mixin
+               (drracket:module-language:module-language-put-file-mixin
+                (racket:text-mixin
+                 (color:text-mixin
+                  (drracket:rep:drs-bindings-keymap-mixin
+                   (mode:host-text-mixin
+                    (text:foreground-color-mixin
+                     (drracket:rep:drs-autocomplete-mixin
+                      (λ (x) x)
+                      (text:normalize-paste-mixin
+                       (text:column-guide-mixin
+                        (text:inline-overview-mixin
+                         (text:all-string-snips-mixin
+                          (text:ascii-art-enlarge-boxes-mixin
+                           (number-snip:remove-decimal-looking-number-snips-on-insertion-mixin
                             text:info%))))))))))))))))])
        ((get-program-editor-mixin)
         (class* definitions-super% (drracket:unit:definitions-text<%>)
