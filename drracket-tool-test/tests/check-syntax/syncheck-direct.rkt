@@ -873,7 +873,6 @@
 --
   )
 
-
 (check-equal? (add-definition-target example-module-defining-x-in-multiple-phases)
               (set (list 'x '(m))))
 
@@ -920,6 +919,34 @@
                 x)
               (set (list 'first '() (cons 0 'qq))))
 
+
+(define no-require-visible-but-can-jump-to-definition #<<--
+#lang racket/base
+
+(module m racket
+  (define-syntax math (syntax-rules ()))
+  (require racket/math)
+  (define-syntax (scope stx)
+    (syntax-case stx ()
+      [(_ mth id)
+       (free-identifier=? #'mth #'math)
+       (syntax-property #'(void)
+                        'disappeared-use
+                        (datum->syntax #'here
+                                       (syntax-e #'id)
+                                       #'id
+                                       #'id))]))
+  (provide scope math))
+
+(require (submod "." m))
+(scope math sqr)
+(scope math pi)
+--
+  )
+(check-true (set-member? (add-jump-to-definition no-require-visible-but-can-jump-to-definition)
+                         (list 'sqr '())))
+(check-true (set-member? (add-jump-to-definition no-require-visible-but-can-jump-to-definition)
+                         (list 'pi '())))
 
 ;                                                                                           
 ;                                                                                           

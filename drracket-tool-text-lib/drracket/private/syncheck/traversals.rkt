@@ -968,6 +968,16 @@
   (define req-phase+space-shift (list-ref req-path/pr 4))
   (define require-hash-key (list req-phase-level mods))
   (define require-ht (hash-ref phase-to-requires require-hash-key #f))
+  (when id
+    (define-values (filename submods)
+      (get-require-filename source-req-path user-namespace user-directory))
+    (when filename
+      (add-jump-to-definition
+       var
+       source-id
+       filename
+       submods
+       req-phase+space-shift)))
   (when require-ht
     (define req-binder+modss (hash-ref require-ht req-path #f))
     (when req-binder+modss
@@ -979,16 +989,6 @@
         (define match/prefix
           (id/require-match (syntax->datum var) id require-context))
         (when match/prefix
-          (when id
-            (define-values (filename submods)
-              (get-require-filename source-req-path user-namespace user-directory))
-            (when filename
-              (add-jump-to-definition
-               var
-               source-id
-               filename
-               submods
-               req-phase+space-shift)))
           (define prefix-length
             (cond
               [(and (identifier? match/prefix)
