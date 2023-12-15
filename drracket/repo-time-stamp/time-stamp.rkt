@@ -7,4 +7,4 @@
     (define (phase1) (void))
     (define (phase2) (void))
     (when stamp
-      (version:add-spec '-- stamp))))
+      (version:add-spec '- stamp))))
