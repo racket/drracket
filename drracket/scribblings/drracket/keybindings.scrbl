@@ -301,19 +301,30 @@ prefix (unless there is only one such name, in which case it behaves as if
 @math{p} were a complete macro name).
 
 These are the currently supported macro names and the keys they map into:
-@(make-table
-  '()
-  (for/list ([line (in-list tex-shortcut-table)]
-             #:unless (regexp-match? #rx"^b.$" (list-ref line 0)))
-    (define macro (list-ref line 0))
-    (define char (list-ref line 1))
-    (when (equal? char "\f")
-      (set! char "^L"))
-    (unless (equal? (regexp-replace* #px"[[:cntrl:]]" char " ") char)
-      (error 'keybindings.scrbl "cannot render a non-printing character"))
-    (list (make-flow (list (make-paragraph (list (index (format "\\~a keyboard shortcut" macro))
-                                                 (tt (format " \\~a" macro))))))
-          (make-flow (list (make-paragraph (list (hspace 1) char)))))))
+@(let ()
+   (define pairs
+     (for/list ([line (in-list tex-shortcut-table)]
+                #:unless (regexp-match? #rx"^b.$" (list-ref line 0)))
+       (define macro (list-ref line 0))
+       (define char (list-ref line 1))
+       (when (equal? char "\f")
+         (set! char "^L"))
+       (unless (equal? (regexp-replace* #px"[[:cntrl:]]" char " ") char)
+         (error 'keybindings.scrbl "cannot render a non-printing character"))
+       (list (make-paragraph (list (index (format "\\~a keyboard shortcut" macro))
+                                   (tt (format " \\~a" macro))))
+             (make-paragraph (list (hspace 1) char)))))
+   (define middle-columns (list (hspace 2) (hspace 1)))
+   (tabular
+    #:column-properties '(left left right-border left left left)
+    (let loop ([pairs pairs])
+      (cond
+        [(null? pairs) '()]
+        [(null? (cdr pairs))
+         (list (append (car pairs) middle-columns (list (make-flow '()) (make-flow '()))))]
+        [else
+         (cons (append (car pairs) middle-columns (cadr pairs))
+               (loop (cddr pairs)))]))))
 
   Additionally, all of the digits, lowercase letters, and uppercase
   letters can be turned into blackboard bold characters with
