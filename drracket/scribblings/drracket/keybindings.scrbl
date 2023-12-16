@@ -303,7 +303,8 @@ prefix (unless there is only one such name, in which case it behaves as if
 These are the currently supported macro names and the keys they map into:
 @(make-table
   '()
-  (for/list ([line (in-list tex-shortcut-table)])
+  (for/list ([line (in-list tex-shortcut-table)]
+             #:unless (regexp-match? #rx"^b.$" (list-ref line 0)))
     (define macro (list-ref line 0))
     (define char (list-ref line 1))
     (when (equal? char "\f")
@@ -313,6 +314,11 @@ These are the currently supported macro names and the keys they map into:
     (list (make-flow (list (make-paragraph (list (index (format "\\~a keyboard shortcut" macro))
                                                  (tt (format " \\~a" macro))))))
           (make-flow (list (make-paragraph (list (hspace 1) char)))))))
+
+  Additionally, all of the digits, lowercase letters, and uppercase
+  letters can be turned into blackboard bold characters with
+  the shortcut @tt{\b} followed by the character. For example, @tt{\bN}
+  turns into ℕ and @tt{\bZ} turns into ℤ.
 }
 ]
 
