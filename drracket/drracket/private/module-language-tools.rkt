@@ -20,6 +20,7 @@
          "insulated-read-language.rkt"
          "eval-helpers-and-pref-init.rkt"
          string-constants)
+(module+ test (require rackunit))
 
 (define op (current-output-port))
 (define (oprintf . args) (apply fprintf op args))
@@ -676,29 +677,6 @@
       (define grouping-position default-grouping-position)
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
-        ;; If "rhm" is the default extension, move "*.rhm" to the start of
-        ;; a pattern that matches that extension so that it's the default for
-        ;; saving a file in Windows
-        (define (move-extension-first ext filters)
-          (define rx (regexp (string-append "(?:^|;)[*][.]" ext "(?:$|;)")))
-          (map (lambda (p)
-                 (define exts (cadr p))
-                 (define m (regexp-match-positions rx exts))
-                 (if m
-                     (list (car p)
-                           (string-append (string-append "*." ext)
-                                          (if (or ((caar m) . > . 0)
-                                                  ((cdar m) . < . (string-length exts)))
-                                              ";"
-                                              "")
-                                          (substring exts 0 (caar m))
-                                          (if (and ((caar m) . > . 0)
-                                                   ((cdar m) . < . (string-length exts)))
-                                              ";"
-                                              "")
-                                          (substring exts (cdar m))))
-                     p))
-               filters))
         (parameterize ([finder:default-extension default-extension]
                        [finder:default-filters 
                         (append extra-default-filters
@@ -856,3 +834,59 @@
     (define online-expansion-prefs '())
   (define (register-online-expansion-pref func)
     (set! online-expansion-pref-funcs (cons func online-expansion-pref-funcs))))
+
+
+;; If "rhm" is the default extension, move "*.rhm" to the start of
+;; a pattern that matches that extension so that it's the default for
+;; saving a file in Windows
+(define (move-extension-first ext filters)
+  (define rx (regexp (string-append "(?:^|;)[*][.]" ext "(?:$|;)")))
+  (map (lambda (p)
+         (define exts (cadr p))
+         (define m (regexp-match-positions rx exts))
+         (if m
+             (list (car p)
+                   (string-append (string-append "*." ext)
+                                  (if (or ((caar m) . > . 0)
+                                          ((cdar m) . < . (string-length exts)))
+                                      ";"
+                                      "")
+                                  (substring exts 0 (caar m))
+                                  (if (and ((caar m) . > . 0)
+                                           ((cdar m) . < . (string-length exts)))
+                                      ";"
+                                      "")
+                                  (substring exts (cdar m))))
+             p))
+       filters))
+(module+ test
+  (check-equal?
+   (move-extension-first
+    "rhm"
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.rhm;*.rkt;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+  (check-equal?
+   (move-extension-first
+    ""
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+  (check-equal?
+   (move-extension-first
+    "rkt"
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+  (check-equal?
+   (move-extension-first
+    "ss"
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.ss;*.rkt;*.rhm;*.scm;*.scrbl;*.rktd;*.rktl") ("Any" "*.*")))
+  (check-equal?
+   (move-extension-first
+    "rktd"
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.rktd;*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktl") ("Any" "*.*")))
+  (check-equal?
+   (move-extension-first
+    "rktl"
+    '(("Racket Sources" "*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd;*.rktl") ("Any" "*.*")))
+   '(("Racket Sources" "*.rktl;*.rkt;*.rhm;*.scm;*.scrbl;*.ss;*.rktd") ("Any" "*.*"))))
