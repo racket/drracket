@@ -676,9 +676,35 @@
       (define grouping-position default-grouping-position)
       (define lang-keymap #f)
       (define/public (with-language-specific-default-extensions-and-filters t)
+        ;; If "rhm" is the default extension, move "*.rhm" to the start of
+        ;; a pattern that matches that extension so that it's the default for
+        ;; saving a file in Windows
+        (define (move-extension-first ext filters)
+          (define rx (regexp (string-append "(?:^|;)[*][.]" ext "(?:$|;)")))
+          (map (lambda (p)
+                 (define exts (cadr p))
+                 (define m (regexp-match-positions rx exts))
+                 (if m
+                     (list (car p)
+                           (string-append (string-append "*." ext)
+                                          (if (or ((caar m) . > . 0)
+                                                  ((cdar m) . < . (string-length exts)))
+                                              ";"
+                                              "")
+                                          (substring exts 0 (caar m))
+                                          (if (and ((caar m) . > . 0)
+                                                   ((cdar m) . < . (string-length exts)))
+                                              ";"
+                                              "")
+                                          (substring exts (cdar m))))
+                     p))
+               filters))
         (parameterize ([finder:default-extension default-extension]
                        [finder:default-filters 
-                        (append extra-default-filters (finder:default-filters))])
+                        (append extra-default-filters
+                                (move-extension-first
+                                 default-extension
+                                 (finder:default-filters)))])
           (t)))
 
       (inherit compute-racket-amount-to-indent)
