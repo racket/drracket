@@ -130,7 +130,7 @@
       (current-output-port (swallow-specials original-output-port))
       (current-error-port (swallow-specials original-error-port))
       (current-load-relative-directory #f)
-      (current-directory init-dir)
+      (when init-dir (current-directory init-dir))
       (error-display-handler (λ (str exn) 
                                (set! error-str str)
                                (when (exn? exn)

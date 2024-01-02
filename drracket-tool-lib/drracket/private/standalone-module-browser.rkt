@@ -1237,6 +1237,7 @@
 
 (define (path->pkg-as-string filename path->pkg-cache)
   (cond
+    [(not filename) sc-unknown-pkg]
     [(path->pkg filename #:cache path->pkg-cache)
      => values]
     [(is-in-main-collects? filename)
