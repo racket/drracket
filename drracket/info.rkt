@@ -56,7 +56,8 @@
                      "r5rs-doc"
                      "at-exp-lib"
                      "rackunit-lib"
-                     "scheme-doc"))
+                     "scheme-doc"
+                     "syntax-color-doc"))
 
 ;; implies drracket-tool-lib so that others dependencies don't break
 ;; (redex, in particular, used to depend on drracket but it really
