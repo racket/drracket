@@ -3001,7 +3001,16 @@
         (let/ec k
           (for ([tab (in-list (get-unsaved-candidate-tabs #f))])
             (parameterize ([editor:silent-cancel-on-save-file-out-of-date? #t])
-              (unless (send (send tab get-defs) save-file #f 'same #f)
+              (define defs (send tab get-defs))
+              (define save-result
+                (with-handlers ([exn:fail? (λ (x) #t)])
+                  ;; catch errors during saving and discard them so
+                  ;; that we don't end up in an infinite loop of errors.
+                  ;; when this happens, the autosave will probably also
+                  ;; error, which will give the user some information
+                  ;; about what's going on here.
+                  (send defs save-file #f 'same #f)))
+              (unless save-result
                 (k (void))))))
         (update-tabs-labels))
 
