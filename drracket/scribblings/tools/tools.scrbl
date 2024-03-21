@@ -573,11 +573,14 @@ Check Syntax collects the values of the
 @indexed-racket['disappeared-use],
 @indexed-racket['disappeared-binding],
 @indexed-racket['identifiers-as-disappeared-uses?],
+@indexed-racket['identifer-as-keyword],
 @indexed-racket['sub-range-binders], and
 @indexed-racket['mouse-over-tooltips] and uses them to add
-additional arrows to the program text. These properties are
+control which arrows are added to the program text. These properties are
 intended for use when a macro discards or manufactures identifiers that,
-from the programmers perspective, should be binding each other.
+from the programmers perspective, should be binding each other, or when
+there are identifiers that are intended to be used more in the spirit of keywords,
+and thus should be ignored.
 
 For example, here is program with a macro that discards its arguments, but
 adds properties to the result syntax object so that the two occurrences of @racket[_a]
@@ -821,9 +824,15 @@ For example, here's a macro that shows the span of itself in a tooltip on mouseo
 
 (char-span (+ 1 2))}
 
+If the syntax property @racket['identifier-as-keyword] is any value
+except @racket[#f] and appears on an identifier, then Check Syntax
+ignores the identifier, not drawing any arrows to it.
+
 @history[#:changed "1.3" @list{
           Looks for @racket['sub-range-binders]
-          on binding identifiers (not just in expression positions).}]
+          on binding identifiers (not just in expression positions).}
+         #:changed "1.5" @list{
+          Looks for @racket['identifier-as-keyword] on identifiers.}]
 
 @section{Cooperating with Background Check Syntax}
 @section-index["online-check-syntax logger"]

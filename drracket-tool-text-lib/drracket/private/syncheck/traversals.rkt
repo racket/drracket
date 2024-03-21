@@ -1563,24 +1563,25 @@
 ;; add-id : id-set identifier -> void
 (define (add-id mapping id level-of-enclosing-module #:mods [mods dont-add-binder+mods])
   (when (original-enough? id)
-    (define shifted-id (syntax-shift-phase-level id level-of-enclosing-module))
-    (define old (free-id-table-ref mapping shifted-id '()))
-    (define no-span-id
-      (if (syntax-property shifted-id 'implicit-made-explicit)
-          (datum->syntax shifted-id
-                         (syntax-e shifted-id)
-                         (vector (syntax-source shifted-id)
-                                 (syntax-line shifted-id)
-                                 (syntax-column shifted-id)
-                                 (syntax-position shifted-id)
-                                 0)
-                         shifted-id)
-          shifted-id))
-    (define with-binder+mods
-      (if (equal? mods dont-add-binder+mods)
-          no-span-id
-          (binder+mods no-span-id mods)))
-    (free-id-table-set! mapping shifted-id (cons with-binder+mods old))))
+    (unless (syntax-property id 'identifier-as-keyword)
+      (define shifted-id (syntax-shift-phase-level id level-of-enclosing-module))
+      (define old (free-id-table-ref mapping shifted-id '()))
+      (define no-span-id
+        (if (syntax-property shifted-id 'implicit-made-explicit)
+            (datum->syntax shifted-id
+                           (syntax-e shifted-id)
+                           (vector (syntax-source shifted-id)
+                                   (syntax-line shifted-id)
+                                   (syntax-column shifted-id)
+                                   (syntax-position shifted-id)
+                                   0)
+                           shifted-id)
+            shifted-id))
+      (define with-binder+mods
+        (if (equal? mods dont-add-binder+mods)
+            no-span-id
+            (binder+mods no-span-id mods)))
+      (free-id-table-set! mapping shifted-id (cons with-binder+mods old)))))
 
 (define (original-enough? x)
   (or (syntax-original? x)
