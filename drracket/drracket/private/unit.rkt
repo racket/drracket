@@ -2262,7 +2262,7 @@
                                        (drracket:language-configuration:language-settings-settings
                                         settings))
                                  ""
-                                 (string-append " " (string-constant custom)))
+                                 (string-append " [" (string-constant custom) "]"))
                              " "))
         (update-teachpack-menu)
         (update-comment-out-menu-items)
