@@ -743,6 +743,28 @@
       ;; this arrow is sketchy. Can we get rid of it?
       '(66 92)))
 
+(check-equal?
+ (get-require-arrows
+  #<<--
+#lang racket
+(module m racket
+  (provide (for-space outer x))
+  (define-syntax (def stx)
+    (syntax-case stx ()
+      [(_ x e)
+       #`(define #,((make-interned-syntax-introducer 'outer) #'x 'add) e)]))
+  (def x 1))
+
+(define-syntax (use stx)
+  (syntax-case stx ()
+    [(_ x)
+     ((make-interned-syntax-introducer 'outer) #'x 'add)]))
+
+(require (for-space outer 'm))
+(use x)
+--
+  )
+ (set '(364 374)))
 
 ;                                                 
 ;                                                 

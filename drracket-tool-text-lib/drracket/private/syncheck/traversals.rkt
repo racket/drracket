@@ -178,7 +178,7 @@
 ;; in? : boolean? -- indicates if `ids` are the only ones included (#t) or if they are excluded (#f)
 ;; prefix : (or/c #f syntax?)
 ;; b+m : binder+mods?
-;;   -- INVARIANT: if prefix? is syntax?, then in? must be #f
+;;   -- INVARIANT: if prefix is syntax?, then in? must be #f
 (struct require-context (ids in? prefix b+m) #:transparent)
 
 ;; annotate-basic :
@@ -505,10 +505,10 @@
                  [(just-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
-                 [(for-space #f specs ...)
+                 [(for-space ignored specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
-                 [(just-space #f specs ...)
+                 [(just-space ignored specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
                     (loop spec level))]
                  [(portal id content)
