@@ -962,10 +962,10 @@
                                          req-path/pr source-req-path/pr)
   (define req-path (list-ref req-path/pr 0))
   (define id (list-ref req-path/pr 1))
-  (define source-req-path (list-ref source-req-path/pr 3))
+  (define source-req-path (list-ref source-req-path/pr 2))
   (define source-id (list-ref source-req-path/pr 1))
-  (define req-phase-level (list-ref req-path/pr 2))
-  (define req-phase+space-shift (list-ref req-path/pr 4))
+  (define req-phase+space-shift (list-ref req-path/pr 3))
+  (define req-phase-level (if (pair? req-phase+space-shift) (car req-phase+space-shift) req-phase+space-shift))
   (define require-hash-key (list req-phase-level mods))
   (define require-ht (hash-ref phase-to-requires require-hash-key #f))
   (when id
@@ -1068,6 +1068,7 @@
     (define phase-shift (if (pair? phase+space-shift) (car phase+space-shift) phase+space-shift))
     (define phase+space (list-ref binding 6))
     (define phase (if (pair? phase+space) (car phase+space) phase+space))
+    (define space (if (pair? phase+space) (cdr phase+space) #f))
     (when (and (number? phase-level)
                (not (= phase-level
                        (+ phase-shift
@@ -1079,13 +1080,11 @@
        (define-values (base offset) (module-path-index-split mod-path))
        (list base
              (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
-             phase-shift
              mod-path
              phase+space-shift)]
       [(symbol? mod-path)
        (list mod-path
              (if nominal-source-path? (list-ref binding 3) (list-ref binding 1))
-             phase-shift
              mod-path
              phase+space-shift)]
       [else #f])))
