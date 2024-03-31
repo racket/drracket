@@ -995,16 +995,12 @@
                     (syntax-span match/prefix))
                (syntax-span match/prefix)]
               [else 0]))
-          (define require-context (phaseless-spec->require-context mods req-stx))
-          (define raw-module-path (binder+mods-binder (require-context-b+m require-context)))
           (add-mouse-over var
                           (format
                            (string-constant cs-mouse-over-import/library-only)
                            req-path))
           ;; connect the require to the identifier
-          (connect-syntaxes (if (syntax-source raw-module-path)
-                                raw-module-path
-                                req-stx)
+          (connect-syntaxes req-stx
                             var actual? all-binders
                             #:to-start prefix-length
                             #:to-width (if (syntax-span var)
