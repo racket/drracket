@@ -766,6 +766,41 @@
   )
  (set '(364 374)))
 
+(check-equal?
+ (get-require-arrows
+  #<<--
+#lang racket
+(module m racket
+  (provide abcdef)
+  (define abcdef 1))
+
+(define-syntax (use stx)
+  (syntax-case stx ()
+    [(_ x)
+     ((make-interned-syntax-introducer 'outer) #'x 'add)]))
+
+(require (for-space outer 'm)
+         'm)
+(use abcdef)
+--
+  )
+ (set '(216 238)))
+
+(check-equal?
+ (get-require-arrows
+  #<<--
+#lang racket
+(module m racket
+  (provide abcdef)
+  (define abcdef 1))
+
+(require (for-space outer 'm)
+         'm)
+abcdef
+--
+  )
+ (set '(110 114)))
+
 ;                                                 
 ;                                                 
 ;                                                 

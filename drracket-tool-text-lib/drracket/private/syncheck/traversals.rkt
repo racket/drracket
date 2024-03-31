@@ -177,9 +177,10 @@
 ;; ids : (listof syntax?)
 ;; in? : boolean? -- indicates if `ids` are the only ones included (#t) or if they are excluded (#f)
 ;; prefix : (or/c #f syntax?)
+;; space : (or/c #f symbol)
 ;; b+m : binder+mods?
 ;;   -- INVARIANT: if prefix is syntax?, then in? must be #f
-(struct require-context (ids in? prefix b+m) #:transparent)
+(struct require-context (ids in? prefix space b+m) #:transparent)
 
 ;; annotate-basic :
 ;;   stx-obj: syntax?
@@ -456,7 +457,7 @@
                         (list (+ level level-of-enclosing-module) next-level-mods)
                         (λ () (make-hash))))
            (hash-cons! sub-requires (syntax->datum #'lang)
-                       (require-context '() #f #f (binder+mods #'lang this-submodule)))
+                       (require-context '() #f #f #f (binder+mods #'lang this-submodule)))
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (mod-loop body this-submodule)))]
         [(module* m-name lang (mb bodies ...))
@@ -472,7 +473,7 @@
                           (list (+ level level-of-enclosing-module) next-level-mods)
                           (λ () (make-hash))))
              (hash-cons! sub-requires (syntax->datum #'lang)
-                         (require-context '() #f #f (binder+mods #'lang this-submodule))))
+                         (require-context '() #f #f #f (binder+mods #'lang this-submodule))))
 
            (for ([body (in-list (syntax->list (syntax (bodies ...))))])
              (if (syntax-e #'lang)
@@ -486,31 +487,32 @@
            (collect-nested-general-info #'(raw-require-specs ...))
            (define (handle-raw-require-spec spec)
              (let loop ([spec spec]
-                        [level level])
+                        [level level]
+                        [space #f])
                (define (add-to-level n) (and n level (+ n level)))
                (syntax-case* spec (for-meta for-syntax for-template for-label just-meta for-space just-space portal)
                    symbolic-compare?
                  [(for-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec (add-to-level (syntax-e #'phase))))]
+                    (loop spec (add-to-level (syntax-e #'phase)) space))]
                  [(for-syntax specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec (add-to-level 1)))]
+                    (loop spec (add-to-level 1) space))]
                  [(for-template specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec (add-to-level -1)))]
+                    (loop spec (add-to-level -1) space))]
                  [(for-label specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec #f))]
+                    (loop spec #f space))]
                  [(just-meta phase specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec level))]
-                 [(for-space ignored specs ...)
+                    (loop spec level space))]
+                 [(for-space the-space specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec level))]
+                    (loop spec level (syntax-e #'the-space)))]
                  [(just-space ignored specs ...)
                   (for ([spec (in-list (syntax->list #'(specs ...)))])
-                    (loop spec level))]
+                    (loop spec level space))]
                  [(portal id content)
                   (begin
                     (handle-quoted-syntax #'content)
@@ -519,8 +521,8 @@
                                  level level-of-enclosing-module
                                  sub-identifier-binding-directives mods))]
                  [_
-                  (handle-phaseless-spec spec level)])))
-           (define (handle-phaseless-spec stx level)
+                  (handle-phaseless-spec spec level space)])))
+           (define (handle-phaseless-spec stx level space)
              (define adjusted-level (and level (+ level level-of-enclosing-module)))
              (define require-ht (hash-ref! phase-to-requires
                                            (list adjusted-level mods)
@@ -529,6 +531,7 @@
                (phaseless-spec->require-context
                 mods
                 stx
+                space
                 (λ (local-id)
                   (add-binders (list local-id) binders binding-inits #'b
                                level level-of-enclosing-module
@@ -966,6 +969,7 @@
   (define source-id (list-ref source-req-path/pr 1))
   (define req-phase+space-shift (list-ref req-path/pr 3))
   (define req-phase-level (if (pair? req-phase+space-shift) (car req-phase+space-shift) req-phase+space-shift))
+  (define req-space (if (pair? req-phase+space-shift) (cdr req-phase+space-shift) #f))
   (define require-hash-key (list req-phase-level mods))
   (define require-ht (hash-ref phase-to-requires require-hash-key #f))
   (when id
@@ -987,7 +991,7 @@
         (define binder+mods (require-context-b+m require-context))
         (define req-stx (binder+mods-binder binder+mods))
         (define match/prefix
-          (id/require-match (syntax->datum var) id require-context))
+          (id/require-match (syntax->datum var) id req-space require-context))
         (when match/prefix
           (define prefix-length
             (cond
@@ -1025,9 +1029,12 @@
                                   'module-lang
                                   #t))))))))
 
-(define (id/require-match var id require-context)
+(define (id/require-match var id req-space require-context)
   (define prefix (require-context-prefix require-context))
   (cond
+    [(not (equal? (require-context-space require-context)
+                  req-space))
+     #f]
     [prefix
      (and (equal? (format "~a~a" (syntax->datum prefix) id) (symbol->string var))
           (not (member var (map syntax-e (require-context-ids require-context))))
@@ -1038,21 +1045,21 @@
      (and (not (member var (map syntax-e (require-context-ids require-context))))
           (equal? var id))]))
 
-(define (phaseless-spec->require-context mods stx [found-local-id void])
+(define (phaseless-spec->require-context mods stx space [found-local-id void])
   (syntax-case* stx (only prefix all-except prefix-all-except rename) symbolic-compare?
     [(only raw-module-path id ...)
-     (require-context (syntax->list #'(id ...)) #t #f (binder+mods #'raw-module-path mods))]
+     (require-context (syntax->list #'(id ...)) #t #f space (binder+mods #'raw-module-path mods))]
     [(prefix prefix-id raw-module-path)
-     (require-context '() #f #'prefix-id (binder+mods #'raw-module-path mods))]
+     (require-context '() #f #'prefix-id space (binder+mods #'raw-module-path mods))]
     [(all-except raw-module-path id ...)
-     (require-context (syntax->list #'(id ...)) #f #f (binder+mods #'raw-module-path mods))]
+     (require-context (syntax->list #'(id ...)) #f #f space (binder+mods #'raw-module-path mods))]
     [(prefix-all-except prefix-id raw-module-path id ...)
-     (require-context (syntax->list #'(id ...)) #t #'prefix-id (binder+mods #'raw-module-path mods))]
+     (require-context (syntax->list #'(id ...)) #t #'prefix-id space (binder+mods #'raw-module-path mods))]
     [(rename raw-module-path local-id exported-id)
      (found-local-id #'local-id)
-     (require-context (list #'local-id) #t #f (binder+mods #'raw-module-path mods))]
+     (require-context (list #'local-id) #t #f space (binder+mods #'raw-module-path mods))]
     [_
-     (require-context '() #f #f (binder+mods stx mods))]))
+     (require-context '() #f #f space (binder+mods stx mods))]))
 
 ;; get-module-req-path : identifier number [#:nominal? boolean]
 ;;                    -> (union #f (list require-sexp sym ?? module-path-index? phase+space?))
