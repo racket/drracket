@@ -768,37 +768,6 @@
     (for ([(k v) (in-hash requires)])
       (hash-set! new-hash k #t)))
 
-  (for ([(level binders) (in-hash phase-to-binders)])
-    (for ([(_ binder+modss) (in-dict binders)])
-      (for ([binder+mods (in-list binder+modss)])
-        (define var (binder+mods-binder binder+mods))
-        (define varset (lookup-phase-to-mapping phase-to-varsets level))
-        (color-variable var level varset)
-        (document-variable var level))))
-
-  (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
-    (define level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
-    (define binders (lookup-phase-to-mapping phase-to-binders level))
-    (define varsets (lookup-phase-to-mapping phase-to-varsets level))
-    (initialize-binder-connections binders connections)
-    (for ([vars (in-list (get-idss varrefs))])
-      (for ([var (in-list vars)])
-        (color-variable var level varsets)
-        (document-variable var level)
-        (connect-identifier var
-                            mods
-                            binders
-                            unused/phases
-                            phase-to-requires
-                            level
-                            user-namespace
-                            user-directory
-                            #t
-                            connections
-                            module-lang-requires))))
-
-
   ;; build a set of all of the known phases
   (define phases (set))
   (define all-mods (set))
@@ -810,61 +779,108 @@
     (set! phases (set-add phases phase))
     (set! all-mods (set-add all-mods mod)))
 
-  (for ([vars (in-list (get-idss templrefs))])
-    (for ([var (in-list vars)])
+  ;; prepare to build a set of all the known spaces
+  (define all-spaces-ht (make-hash))
+  (hash-set! all-spaces-ht #f #t)
+  (parameterize ([all-spaces-parameter all-spaces-ht])
 
-      ;; connect every identifier inside a quote-syntax to
-      ;; each binder, at any phase, in any submodule
-      (for* ([phase (in-set phases)]
-             [mod (in-set all-mods)])
-        (document-variable var phase)
-        (connect-identifier var
-                            mod
-                            (lookup-phase-to-mapping phase-to-binders phase)
-                            unused/phases
-                            phase-to-requires
-                            phase
-                            user-namespace
-                            user-directory
-                            #f
-                            connections
-                            module-lang-requires))))
+    (for ([(level binders) (in-hash phase-to-binders)])
+      (for ([(_ binder+modss) (in-dict binders)])
+        (for ([binder+mods (in-list binder+modss)])
+          (define var (binder+mods-binder binder+mods))
+          (define varset (lookup-phase-to-mapping phase-to-varsets level))
+          (color-variable var level varset)
+          (document-variable var level))))
 
-  (for ([(level tops) (in-hash phase-to-tops)])
-    (define binders (lookup-phase-to-mapping phase-to-binders level))
-    (for ([vars (in-list (get-idss tops))])
-      (for ([var (in-list vars)])
-        (color/connect-top user-namespace user-directory binders var connections
-                           module-lang-requires))))
+    (for ([(level+mods varrefs) (in-hash phase-to-varrefs)])
+      (define level (list-ref level+mods 0))
+      (define mods (list-ref level+mods 1))
+      (define binders (lookup-phase-to-mapping phase-to-binders level))
+      (define varsets (lookup-phase-to-mapping phase-to-varsets level))
+      (initialize-binder-connections binders connections)
+      (for ([vars (in-list (get-idss varrefs))])
+        (for ([var (in-list vars)])
+          (color-variable var level varsets)
+          (document-variable var level)
+          (connect-identifier var
+                              mods
+                              binders
+                              unused/phases
+                              phase-to-requires
+                              level
+                              user-namespace
+                              user-directory
+                              #t
+                              connections
+                              module-lang-requires))))
 
-  (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
-    ;; don't mark for-label requires as unused until we can properly handle them
-    (when (car phase+mods)
-      (define unused-hash (hash-ref unused/phases phase+mods))
-      (color-unused require-hash unused-hash module-lang-requires)))
+    (for ([(level tops) (in-hash phase-to-tops)])
+      (define binders (lookup-phase-to-mapping phase-to-binders level))
+      (for ([vars (in-list (get-idss tops))])
+        (for ([var (in-list vars)])
+          (color/connect-top user-namespace user-directory binders var connections
+                             module-lang-requires))))
 
-  (for ([(level+mods directives) (in-hash sub-identifier-binding-directives)])
-    (define phase-level (list-ref level+mods 0))
-    (define mods (list-ref level+mods 1))
-    (for ([directive (in-list directives)])
-      (match-define (vector binding-id to-start to-span to-dx to-dy
-                            new-binding-id from-start from-span from-dx from-dy)
-        directive)
-      (define all-varrefs (lookup-phase-to-mapping phase-to-varrefs (list phase-level mods) phase-level))
-      (define all-binders (lookup-phase-to-mapping phase-to-binders phase-level))
-      (define varrefs (get-ids all-varrefs binding-id))
-      (when varrefs
-        (for ([varref (in-list varrefs)])
-          (connect-syntaxes new-binding-id varref #t all-binders
-                            phase-level
-                            connections #f
-                            #:from-start from-start #:from-width from-span
-                            #:from-dx from-dx #:from-dy from-dy
-                            #:to-start to-start #:to-width to-span
-                            #:to-dx to-dx #:to-dy to-dy)))))
+    (for ([(level+mods directives) (in-hash sub-identifier-binding-directives)])
+      (define phase-level (list-ref level+mods 0))
+      (define mods (list-ref level+mods 1))
+      (for ([directive (in-list directives)])
+        (match-define (vector binding-id to-start to-span to-dx to-dy
+                              new-binding-id from-start from-span from-dx from-dy)
+          directive)
+        (define all-varrefs (lookup-phase-to-mapping phase-to-varrefs (list phase-level mods) phase-level))
+        (define all-binders (lookup-phase-to-mapping phase-to-binders phase-level))
+        (define varrefs (get-ids all-varrefs binding-id))
+        (when varrefs
+          (for ([varref (in-list varrefs)])
+            (connect-syntaxes new-binding-id varref #t all-binders
+                              phase-level
+                              connections #f
+                              #:from-start from-start #:from-width from-span
+                              #:from-dx from-dx #:from-dy from-dy
+                              #:to-start to-start #:to-width to-span
+                              #:to-dx to-dx #:to-dy to-dy)))))
+
+    ;; note that this code will keep adding to `all-spaces-ht`
+    ;; but there shouldn't be any new spaces at this point
+    (define all-spaces (hash-keys all-spaces-ht))
+    (for ([vars (in-list (get-idss templrefs))])
+      (for* ([spaceless-var (in-list vars)]
+             [space (in-list all-spaces)])
+        (define var (if space
+                        ((make-interned-syntax-introducer space) spaceless-var)
+                        spaceless-var))
+        ;; connect every identifier inside a quote-syntax to
+        ;; each binder, at any phase, in any submodule
+        (for* ([phase (in-set phases)]
+               [mod (in-set all-mods)])
+          (document-variable var phase)
+          (connect-identifier var
+                              mod
+                              (lookup-phase-to-mapping phase-to-binders phase)
+                              unused/phases
+                              phase-to-requires
+                              phase
+                              user-namespace
+                              user-directory
+                              #f
+                              connections
+                              module-lang-requires))))
+
+    (for ([(phase+mods require-hash) (in-hash phase-to-requires)])
+      ;; don't mark for-label requires as unused until we can properly handle them
+      (when (car phase+mods)
+        (define unused-hash (hash-ref unused/phases phase+mods))
+        (color-unused require-hash unused-hash module-lang-requires))))
 
   (annotate-counts connections)
   (flush-index-entry-cache))
+
+(define all-spaces-parameter (make-parameter #f))
+(define (add-to-all-spaces space)
+  (define ht (all-spaces-parameter))
+  (unless ht (error 'add-to-all-spaces "all-spaces-parameter is not set"))
+  (hash-set! ht space #t))
 
 ;; color-unused : hash-table[sexp -o> syntax] hash-table[sexp -o> #f] hash-table[syntax -o> #t]
 ;;             -> void
@@ -1072,6 +1088,7 @@
     (define phase+space (list-ref binding 6))
     (define phase (if (pair? phase+space) (car phase+space) phase+space))
     (define space (if (pair? phase+space) (cdr phase+space) #f))
+    (add-to-all-spaces space)
     (when (and (number? phase-level)
                (not (= phase-level
                        (+ phase-shift
@@ -1169,15 +1186,19 @@
      (add-mouse-over var (string-constant cs-set!d-variable))
      (color var set!d-variable-style-name)]
     [lexical? (color var lexically-bound-variable-style-name)]
-    [(pair? b) (color var imported-variable-style-name)]))
+    [(pair? b)
+     (define phase+space (list-ref b 6))
+     (define space (if (pair? phase+space) (cdr phase+space) #f))
+     (add-to-all-spaces space)
+     (color var imported-variable-style-name)]))
 
-    (define (is-lexical? b)
-      (or (not b)
-          (eq? b 'lexical)
-          (and (pair? b)
-               (let ([path (caddr b)])
-                 (and (module-path-index? path)
-                      (self-module? path))))))
+(define (is-lexical? b)
+  (or (not b)
+      (eq? b 'lexical)
+      (and (pair? b)
+           (let ([path (caddr b)])
+             (and (module-path-index? path)
+                  (self-module? path))))))
 
 ;; initialize-binder-connections : id-set connections -> void
 (define (initialize-binder-connections binders connections)
