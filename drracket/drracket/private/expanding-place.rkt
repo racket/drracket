@@ -284,7 +284,14 @@
                    ;; which part is to be replayed and which
                    ;; isn't; just re-run the expansion on the
                    ;; user's side so they see the IO directly
-                   no-io-happened?)
+                   no-io-happened?
+
+                   ;; we don't try to reuse the compiled bytes if
+                   ;; we had WXME data coming over, as that will
+                   ;; probably lead to a 3d value in the compiled
+                   ;; output that can't be marshalled back to the
+                   ;; original place.
+                   (not (bytes? program-as-string)))
               (define compiled (compile expanded))
               (define bp (open-output-bytes))
               (parameterize ([current-write-relative-directory (current-directory)])
