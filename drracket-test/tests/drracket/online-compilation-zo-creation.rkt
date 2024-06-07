@@ -5,6 +5,7 @@
          racket/class
          racket/path
          racket/pretty
+         framework
          (submod drracket/private/module-language oc-status-structs))
 
 (define (wait-for-compilation-to-finish drr-frame #:expected-error-regexp [expected-error-regexp #f])
@@ -97,5 +98,36 @@
       (send defs insert " " (send defs last-position) (send defs last-position))))
    
    (wait-for-compilation-to-finish drr-frame #:expected-error-regexp #rx"^x.rkt[^ ]* cannot open module file module path")
+
+
+   ;; 6. use a 3d value and make sure online compilation still works in the default mode
+
+   (call-with-output-file x.rkt
+     (λ (port)
+       (fprintf port "#lang racket\n")
+       (fprintf port "~s\n" `(define-syntax (m stx)
+                               (define (f x) x)
+                               #`(#,f 1)))
+       (fprintf port "~s\n" `m))
+     #:exists 'truncate)
+   (queue-callback/res
+    (λ ()
+      (send (send drr-frame get-definitions-text) load-file x.rkt)))
+
+   (wait-for-compilation-to-finish drr-frame)
+
+   ;; 7. use a 3d value and make sure online compilation still works in debug mode
+
+   (set-module-language! #f)
+   (test:set-radio-box-item! "No debugging or profiling")
+   (let ([f (test:get-active-top-level-window)])
+     (test:button-push "OK")
+     (wait-for-new-frame f))
+
+   (queue-callback/res
+    (λ ()
+      (send (send drr-frame get-definitions-text) load-file x.rkt)))
+
+   (wait-for-compilation-to-finish drr-frame)
 
    (delete-directory/files tmp-dir)))

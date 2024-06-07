@@ -284,19 +284,18 @@
                    ;; which part is to be replayed and which
                    ;; isn't; just re-run the expansion on the
                    ;; user's side so they see the IO directly
-                   no-io-happened?
-
-                   ;; we don't try to reuse the compiled bytes if
-                   ;; we had WXME data coming over, as that will
-                   ;; probably lead to a 3d value in the compiled
-                   ;; output that can't be marshalled back to the
-                   ;; original place.
-                   (not (bytes? program-as-string)))
+                   no-io-happened?)
               (define compiled (compile expanded))
               (define bp (open-output-bytes))
-              (parameterize ([current-write-relative-directory (current-directory)])
-                (write compiled bp))
-              (get-output-bytes bp)]
+              (define write-succeeded?
+                (parameterize ([current-write-relative-directory (current-directory)])
+                  (with-handlers ([(λ (x) (and (exn:fail? x)
+                                               (regexp-match? #rx"write: cannot marshal value that is embedded in compiled code"
+                                                              (exn-message x))))
+                                   (λ (x) #f)])
+                    (write compiled bp)
+                    #t)))
+              (and write-succeeded? (get-output-bytes bp))]
              [else #f]))
          (ep-log-info "expanding-place.rkt: 13 compile finished")
          
