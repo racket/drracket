@@ -20,6 +20,7 @@
          lang/debugger-language-interface
          images/compile-time
          framework
+         "debug-tool-button.rkt"
          (for-syntax racket/base
                      racket/class
                      racket/draw
@@ -35,8 +36,6 @@
 ; QUESTIONS/IDEAS
 ; what is the right way to deal with macros?
 ; how can the three tool classes communicate with each other safely
-
-(define-local-member-name debug-callback)
 
 (preferences:set-default 'plt:debug-tool:stack/variable-area
                          9/10 
@@ -1146,8 +1145,6 @@
         (super-new)))
 
     ;; define icons for the tool and debug panel
-    (define debug-bitmap (compiled-bitmap (debugger-icon)))
-    (define small-debug-bitmap (compiled-bitmap (small-debugger-icon)))
     (define over-bitmap
       (compiled-bitmap
         (pict->bitmap
