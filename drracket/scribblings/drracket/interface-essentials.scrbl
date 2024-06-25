@@ -745,7 +745,8 @@ The module browser shows you the structure of all of the files in your program.
 It can be opened via the @onscreen{Show} menu, or via the 
 @onscreen{Module Browser} 
 menu items in the @onscreen{Racket} menu. It is also available
-from the command-line via @index["raco dependencies-graph"]{@tt{raco dependencies-graph}}.
+from the command-line via @index["raco dependencies-graph"]{@tt{raco}
+ @tt{dependencies-graph}}.
 
 A module browser window contains a square for each
   module. The squares are colored based on the number of
@@ -753,33 +754,42 @@ A module browser window contains a square for each
   code, it gets a darker color. If a module is red, it means
   that DrRacket did not find a source file for it.
   
-  In addition, for each normal import, a blue line drawn is
-  from the module to the importing module. Similarly, purple
-  lines are drawn for each for-syntax, for-template or for-meta import. In the initial
-  module layout, modules to the left import modules to the
-  right, but since modules can be moved around
-  interactively, that property might not be preserved.
+In addition, for each normal import, a blue line drawn is
+from the module to the importing module. Similarly, purple
+lines are drawn for each for-syntax, for-template or
+for-meta import. In the initial module layout in the
+standalone module browser window, modules to the left import
+modules to the right. When the winow is embedded in the
+DrRacket window, module above import those below. (Since
+modules can be moved around interactively, that property
+might not be preserved.)
 
-  To open the file corresponding to the module, double click
-  on the box for that module.
+To open the file corresponding to the module, double click
+on the box for that module.
   
-  The module browser will also show you the phases that each
-  module is loaded in; choose the @onscreen{Long, with phases} menu item
-  in the @onscreen{Names} pop-up menu. The integers indicate the phases and
-  if @racket[#f] is present, it means the module is loaded @racket[for-label].
+The module browser will also show you the phases that each
+module is loaded in; choose the @onscreen{Long, with phases}
+menu item in the @onscreen{Names} pop-up menu. The integers
+indicate the phases and if @racket[#f] is present, it means
+the module is loaded @racket[for-label].
   
-  The bar along the bottom helps you find your way in a module graph. Specifically,
-  if you type something there, then all of the modules whose filenames match
-  what you type will turn green in the module window. This bar is only visible
-  in the stand alone module browser window (via the @onscreen{Racket} menu).
+In the standalone window view, there is a bar along the
+bottom that helps you find your way in a module graph.
+Specifically, if you type something there, then all of the
+modules whose filenames match what you type will turn green
+in the module window. This bar is only visible in the stand
+alone module browser window (via the @onscreen{Racket}
+menu or @tt{raco} @tt{depedencies-graph}).
 
-  The @onscreen{Visible Packages} menu controls which subset of the files
-  are visible. To start, all of the files in the same package as the
-  package that the initial file are shown.
+The @onscreen{Visible Packages} menu controls which subset
+of the modules are visible. To start, all of the modules in
+the same package as the package of the initial file are
+shown.
 
-  The @onscreen{Visible Submodules} menu also controls which subset of the files
-  are visible. To start, all of the modules that are not submodules are shown. Use
-  this menu to add in additional submodules.
+The @onscreen{Visible Submodules} menu also controls which
+subset of the modules are visible. To start, all of the
+modules that are not submodules are shown. Use this menu to
+add in additional submodules.
 
 @section[#:tag "color-scheme"]{Color Schemes}
 
