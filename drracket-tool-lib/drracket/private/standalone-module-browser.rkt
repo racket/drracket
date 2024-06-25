@@ -30,13 +30,18 @@
 (provide standalone-module-overview/file
          module-overview/file
          make-module-overview-pasteboard
-         module-browser-pkg-set-choice%)
+         module-browser-pkg-set-choice%
+         module-browser-submod-set-choice%)
 
 (preferences:set-default 'drracket:module-overview:label-font-size 12 number?)
 (preferences:set-default 'drracket:module-overview:window-height 500 number?)
 (preferences:set-default 'drracket:module-overview:window-width 500 number?)
 (preferences:set-default 'drracket:module-browser:name-length 1 
                          (λ (x) (memq x '(0 1 2 3))))
+
+(preferences:set-default 'drracket:module-browser:visible-submodules
+                         '(())
+                         (listof (listof symbol?)))
 
 (define-struct req (r-mpi))
 ;; type req = (make-req [result from resolve-module-path-index]
@@ -52,15 +57,12 @@
 (define adding-file (string-constant module-browser-adding-file))
 (define unknown-module-name "? unknown module name")
 
-;; probably, at some point, the module browser should get its
-;; own output ports or something instead of wrapping these ones
-(define original-output-port (current-output-port))
-(define original-error-port (current-error-port))
-
 (define pkg-constant "pkg: ~a")
 (define sc-main-collects (string-constant module-browser-main-collects))
 (define sc-unknown-pkg (string-constant module-browser-unknown-pkg))
 (define sc-visible-pkgs (string-constant module-browser-visible-pkgs))
+(define sc-visible-submodules (string-constant module-browser-visible-submodules))
+(define sc-top-level-module (string-constant module-browser-top-level-module))
 (define filename-constant (string-constant module-browser-filename-format))
 (define font-size-gauge-label (string-constant module-browser-font-size-gauge-label))
 (define progress-label (string-constant module-browser-progress-label))
@@ -79,7 +81,11 @@
     get-name-length
     get-pkgs
     get-main-file-pkg
-    restrict-files-to-pkgs))
+    restrict-files-to-pkgs
+    get-pkg-restriction
+    get-submods
+    restrict-files-to-submods
+    get-submod-restriction))
 
 (define boxed-word-snip<%>
   (interface ()
@@ -395,6 +401,10 @@
           (new module-browser-pkg-set-choice%
                [parent font/label-panel]
                [pasteboard pasteboard]))
+        (define submod-choice
+          (new module-browser-submod-set-choice%
+               [parent font/label-panel]
+               [pasteboard pasteboard]))
         (define font-size-gauge
           (instantiate slider% ()
             (label font-size-gauge-label)
@@ -493,9 +503,16 @@
         
         (send frame show #t)))))
 
-(define module-browser-pkg-set-choice%
+(define module-browser-choice%
   (class canvas%
     (init-field pasteboard)
+    (init-field label get-choices get-selected-choices update-selected-choices
+                choice->string choice-comparison-for-sorting)
+    (define/private (choice->label-string choice)
+      (define str (choice->string choice))
+      (cond
+        [(<= (string-length str) 200) str]
+        [else (string-append (substring str 0 197) "...")]))
     (define choices '())
     (define selected (make-hash))
     (define in? #f)
@@ -507,7 +524,7 @@
     (let ()
       (send (get-dc) set-font normal-control-font)
       (send (get-dc) set-smoothing 'smoothed)
-      (define-values (tw th _1 _2) (send (get-dc) get-text-extent sc-visible-pkgs))
+      (define-values (tw th _1 _2) (send (get-dc) get-text-extent label))
       (min-width (+ menu-based-set-choice-inset (inexact->exact (ceiling tw)) menu-based-set-choice-inset))
       (min-height (+ menu-based-set-choice-inset (inexact->exact (ceiling th)) menu-based-set-choice-inset))
       (stretchable-width #f)
@@ -519,21 +536,21 @@
     (define/public (choices-refreshed)
       (unless pasteboard (error 'choices-refreshed "pasteboard hasn't been set yet"))
       (set! selected (make-hash))
-      (set! choices (sort (set->list (send pasteboard get-pkgs)) string<?))
+      (set! choices (sort (set->list (get-choices pasteboard)) choice-comparison-for-sorting))
       (for ([choice (in-list choices)])
         (hash-set! selected choice #f))
-      (for ([choice (in-set (send pasteboard get-pkg-restriction))])
+      (for ([choice (in-set (get-selected-choices pasteboard))])
         (hash-set! selected choice #t)))
     (define/private (update-the-pasteboard)
-      (define pkgs
+      (define new-choices
         (for/set ([selection (in-list (get-selections))])
           (list-ref choices selection)))
-      (send pasteboard restrict-files-to-pkgs pkgs))
+      (update-selected-choices pasteboard new-choices))
 
     (define/override (on-paint)
       (define dc (get-dc))
       (define-values (cw ch) (get-client-size))
-      (define-values (tw th _1 _2) (send dc get-text-extent sc-visible-pkgs))
+      (define-values (tw th _1 _2) (send dc get-text-extent label))
       (when in?
         (define color (if (white-on-black-panel-scheme?) 0.5 0.2))
         (send dc set-pen "black" 1 'transparent)
@@ -543,7 +560,7 @@
         (send dc draw-rounded-rectangle 0 0 cw ch)
         (send dc set-alpha alpha))
       (send dc draw-text
-            sc-visible-pkgs
+            label
             (- (/ cw 2) (/ tw 2))
             (- (/ ch 2) (/ th 2))))
     (define/override (on-event evt)
@@ -555,7 +572,7 @@
          (set-in? #f)]
         [(send evt button-down?)
          (unless pasteboard
-           (error 'module-browser-pkg-set-choice%
+           (error 'module-browser-choice%
                   "pasteboard hasn't been set yet but we got a button down event"))
          (define-values (cw ch) (get-client-size))
          (define menu (new popup-menu%))
@@ -563,7 +580,7 @@
            (define item
              (new checkable-menu-item%
                   [parent menu]
-                  [label choice]
+                  [label (choice->label-string choice)]
                   [callback (λ (item evt)
                               (hash-set! selected choice (not (hash-ref selected choice)))
                               (update-the-pasteboard))]))
@@ -584,6 +601,42 @@
        (for/list ([choice (in-list choices)]
                   [i (in-naturals)])
          (and (hash-ref selected choice) i))))))
+
+(define module-browser-pkg-set-choice%
+  (class module-browser-choice%
+    (super-new [label sc-visible-pkgs]
+               [get-choices (λ (pasteboard) (send pasteboard get-pkgs))]
+               [get-selected-choices (λ (pasteboard) (send pasteboard get-pkg-restriction))]
+               [update-selected-choices
+                (λ (pasteboard pkgs)
+                  (send pasteboard restrict-files-to-pkgs pkgs))]
+               [choice->string (λ (x) x)]
+               [choice-comparison-for-sorting string<?])))
+
+(define module-browser-submod-set-choice%
+  (class module-browser-choice%
+    (super-new [label sc-visible-submodules]
+               [get-choices (λ (pasteboard) (send pasteboard get-submods))]
+               [get-selected-choices (λ (pasteboard) (send pasteboard get-submod-restriction))]
+               [update-selected-choices
+                (λ (pasteboard submods)
+                  (send pasteboard restrict-files-to-submods submods))]
+               [choice->string
+                (λ (l)
+                  (match l
+                    ['() sc-top-level-module]
+                    [(cons x xs)
+                     (string-append
+                      "(submod ... "
+                      (apply string-append (add-between (map symbol->string l) " "))
+                      ")")]))]
+               [choice-comparison-for-sorting
+                (λ (x y)
+                  (cond
+                    [(= (length x) (length y))
+                     (string<? (format "~s" x) (format "~s" y))]
+                    [else
+                     (< (length x) (length y))]))])))
 
 (define menu-based-set-choice-inset 4)
 ;; make-module-overview-pasteboard : boolean
@@ -649,11 +702,26 @@
       (define/public (restrict-files-to-pkgs pkgs)
         (unless (equal? pkgs pkg-restriction)
           (set! pkg-restriction pkgs)
-          (begin-edit-sequence)
-          (remove-currrently-inserted)
-          (add-all)
-          (end-edit-sequence)
-          (render-snips)))
+          (remove-and-re-add-all)))
+
+      ;; (set/c (listof symbol?))
+      (define submod-restriction (apply set (preferences:get 'drracket:module-browser:visible-submodules)))
+      (define/public (get-submod-restriction) submod-restriction)
+      (define/public (restrict-files-to-submods submods)
+        (preferences:set 'drracket:module-browser:visible-submodules
+                         (sort (set->list submods)
+                               string<?
+                               #:key (λ (x) (format "~s" x))))
+        (unless (equal? submods submod-restriction)
+          (set! submod-restriction submods)
+          (remove-and-re-add-all)))
+
+      (define/private (remove-and-re-add-all)
+        (begin-edit-sequence)
+        (remove-currrently-inserted)
+        (add-all)
+        (end-edit-sequence)
+        (render-snips))
 
       (define path->pkg-cache (make-hash))
       (define all-pkgs #f)
@@ -664,6 +732,11 @@
       (define/public (get-main-file-pkg)
         (unless main-file-pkg (error 'get-main-file-pkg "not yet computed"))
         main-file-pkg)
+
+      (define all-submods #f)
+      (define/public (get-submods)
+        (unless all-submods (error 'get-submods "not yet computed"))
+        all-submods)
       
       (define name-length 'long)
       (define/public (set-name-length nl)
@@ -744,20 +817,24 @@
                  "not in begin-adding-connections/end-adding-connections sequence"))
         
         (unless (zero? max-lines)
-          (define all-the-pkgs
+          (define-values (all-the-pkgs all-the-submods)
             (let loop ([snip (find-first-snip)]
-                       [all-pkgs (set main-file-pkg)])
+                       [all-pkgs (set main-file-pkg)]
+                       [all-submods (set)])
               (cond
-                [(not snip) all-pkgs]
+                [(not snip) (values all-pkgs all-submods)]
                 [(is-a? snip word-snip/lines%)
                  (send snip normalize-lines max-lines)
                  (define pkg (send snip get-pkg))
                  (loop (send snip next)
-                       (set-add all-pkgs pkg))]
+                       (set-add all-pkgs pkg)
+                       (set-add all-submods (send snip get-submods)))]
                 [else
                  (loop (send snip next)
-                       all-pkgs)])))
-          (set! all-pkgs all-the-pkgs))
+                       all-pkgs
+                       all-submods)])))
+          (set! all-pkgs all-the-pkgs)
+          (set! all-submods all-the-submods))
         
         (set! max-lines #f)
         (compute-snip-require-phases)
@@ -840,11 +917,13 @@
          snip-table
          name
          (λ ()
-           (define filename
+           (define-values (filename submods)
              (match name
-               [(? path-string?) (and (file-exists? name) name)]
-               [`(submod ,p ,_ ...) (and (file-exists? p) p)]
-               [else #f]))
+               [(? path-string?) (values (and (file-exists? name) name) '())]
+               [`(submod ,p ,submods ...)
+                (values (and (file-exists? p) p)
+                        submods)]
+               [else (values #f '())]))
            (define snip
              (new word-snip/lines%
                   [lines (if filename (count-lines filename) #f)]
@@ -864,7 +943,8 @@
                           => values]
                          [(and filename (is-in-main-collects? filename))
                           sc-main-collects]
-                         [else sc-unknown-pkg])]))
+                         [else sc-unknown-pkg])]
+                  [submods submods]))
            (insert snip)
            (hash-set! snip-table name snip)
            (set! roots (cons snip roots))
@@ -921,17 +1001,17 @@
         (define visited (make-hash))
         (reset-levels)
         (for ([root (in-list roots)])
-          (when (set-member? pkg-restriction (send root get-pkg))
+          (when (show-this-one? root)
             (insert root)
             (send root set-level 0))
-          (let loop ([parent-to-link (if (set-member? pkg-restriction (send root get-pkg)) root #f)]
+          (let loop ([parent-to-link (if (show-this-one? root) root #f)]
                      [parent root]
                      [through-for-syntax? #f])
             (unless (hash-ref visited parent #f)
               (hash-set! visited parent #t)
               (define (continue child for-syntax-child?)
                 (cond
-                  [(set-member? pkg-restriction (send child get-pkg))
+                  [(show-this-one? child)
                    (insert child)
                    (cond
                      [parent-to-link
@@ -947,6 +1027,10 @@
                 (continue child #f))
               (for ([child (in-list (hash-ref original-for-syntax-links parent '()))])
                 (continue child #t))))))
+
+      (define/private (show-this-one? word-ship/lines)
+        (and (set-member? submod-restriction (send word-ship/lines get-submods))
+             (set-member? pkg-restriction (send word-ship/lines get-pkg))))
 
       (define/private (reset-levels)
         (for ([(level snips) (in-hash level-ht)])
@@ -1103,7 +1187,8 @@
                   filename
                   lines
                   pb
-                  pkg) ;; string; might be a pkg but might be some other descriptive string
+                  pkg      ;; string?; might be a pkg but might be some other descriptive string
+                  submods) ;; (listof symbol?); the empty list if it isn't a submodule
 
       (unless (string? pkg) (error 'pkg "is not a string"))
       
@@ -1122,6 +1207,7 @@
       (define/public (get-lines) lines)
 
       (define/public (get-pkg) pkg)
+      (define/public (get-submods) submods)
       
       (field (lines-brush #f))
       (define/public (normalize-lines n)

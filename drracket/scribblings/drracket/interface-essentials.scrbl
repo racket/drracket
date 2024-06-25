@@ -777,6 +777,10 @@ A module browser window contains a square for each
   are visible. To start, all of the files in the same package as the
   package that the initial file are shown.
 
+  The @onscreen{Visible Submodules} menu also controls which subset of the files
+  are visible. To start, all of the modules that are not submodules are shown. Use
+  this menu to add in additional submodules.
+
 @section[#:tag "color-scheme"]{Color Schemes}
 
 DrRacket comes with a selection of color schemes, available in the preferences dialog's

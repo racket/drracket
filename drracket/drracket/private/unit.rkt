@@ -3813,12 +3813,14 @@
       (field [module-browser-shown? #f]
              [module-browser-parent-panel #f]
              [module-browser-panel #f]
+             [module-browser-options-pane #f]
              [module-browser-ec #f]
              [module-browser-button #f]
              [module-browser-name-length-choice #f]
              [module-browser-pb #f]
              [module-browser-menu-item 'module-browser-menu-item-unset])
       (define module-browser-pkg-set-choice #f)
+      (define module-browser-submod-set-choice #f)
       
       (inherit open-status-line close-status-line update-status-line)
       
@@ -3884,11 +3886,19 @@
           (update-module-browser-name-length 
            (preferences:get 'drracket:module-browser:name-length))
 
+          (set! module-browser-options-pane
+                (new horizontal-pane% [parent module-browser-panel]
+                     [stretchable-height #f]))
           (set! module-browser-pkg-set-choice
                 (new module-browser-pkg-set-choice%
-                     [parent module-browser-panel]
+                     [parent module-browser-options-pane]
+                     [pasteboard #f]))
+          (set! module-browser-submod-set-choice
+                (new module-browser-submod-set-choice%
+                     [parent module-browser-options-pane]
                      [pasteboard #f]))
           (send module-browser-pkg-set-choice stretchable-width #t)
+          (send module-browser-submod-set-choice stretchable-width #t)
           
           (set! module-browser-button
                 (new button%
@@ -3953,6 +3963,7 @@
              (λ (user-thread user-custodian)
                (send mod-tab set-breakables user-thread user-custodian)))
             (send module-browser-pkg-set-choice set-pasteboard module-browser-pb)
+            (send module-browser-submod-set-choice set-pasteboard module-browser-pb)
             (send mod-tab set-breakables old-break-thread old-custodian)
             (send mod-tab enable-evaluation)
             (send module-browser-button enable #t)
