@@ -1,4 +1,12 @@
 ------------------------------
+       Version 8.14
+------------------------------
+
+   . add submodule-based filtering to the module browser
+
+   . bug fixes and doc improvements
+
+------------------------------
        Version 8.13
 ------------------------------
 
