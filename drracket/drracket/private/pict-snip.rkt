@@ -54,13 +54,18 @@
     (inherit set-snipclass)
     (set-snipclass snip-class)
 
+    (define/public (get-bitmap)
+      (define bm (make-bitmap (inexact->exact (ceiling w))
+                              (inexact->exact (ceiling h))))
+      (define dc (send bm make-dc))
+      (draw dc 0 0 0 0 w h 0 0 #f)
+      (send dc set-bitmap #f)
+      bm)
+
     (define/public (convert r d)
       (case r
         [(png-bytes)
-         (define bm (make-bitmap (inexact->exact (ceiling w))
-                                 (inexact->exact (ceiling h))))
-         (define dc (send bm make-dc))
-         (draw dc 0 0 0 0 w h 0 0 #f)
+         (define bm (get-bitmap))
          (define b (open-output-bytes))
          (send bm save-file b 'png)
          (get-output-bytes b)]

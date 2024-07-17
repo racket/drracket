@@ -30,6 +30,7 @@
          "parse-logger-args.rkt"
          drracket/get-module-path
          "named-undefined.rkt"
+         (prefix-in pict-snip: "pict-snip.rkt")
          (prefix-in drracket:arrow: "../arrow.rkt")
          (prefix-in icons: images/compile-time)
          mred
@@ -165,7 +166,8 @@
                  (let ([snip (send text find-snip pos 'after-or-none)])
                    (when (or (is-a? snip image-snip%)
                              (is-a? snip image-core:image%)
-                             (is-a? snip cache-image-snip%))
+                             (is-a? snip cache-image-snip%)
+                             (is-a? snip pict-snip:pict-snip%))
                      (add-sep)
                      (define (save-image-callback _1 _2)
                        (define fn
@@ -178,7 +180,8 @@
                            [kind
                             (cond
                               [(or (is-a? snip image-snip%)
-                                   (is-a? snip cache-image-snip%))
+                                   (is-a? snip cache-image-snip%)
+                                   (is-a? snip pict-snip:pict-snip%))
                                (send (send snip get-bitmap) save-file fn kind)]
                               [else
                                (image-core:save-image-as-bitmap snip fn kind)])]
