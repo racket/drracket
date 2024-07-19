@@ -6,7 +6,8 @@
 
 (define test-timeouts '(("easter-egg.rkt" 300)
                         ("teaching-lang-sharing-modules.rkt" 600)
-                        ("no-write-and-frame-leak.rkt" 300)))
+                        ("no-write-and-frame-leak.rkt" 300)
+                        ("test-engine-test.rkt" 300)))
 
 (define test-responsibles '(("test-engine-test.rkt" sperber)
                             ("teachpack.rkt" (robby matthias))
