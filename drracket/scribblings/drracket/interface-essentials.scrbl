@@ -214,16 +214,19 @@ on the languages that DrRacket supports.
 @section[#:tag "editor"]{Editing with Parentheses}
 
 @index['("flashing parenthesis matches")]{@index['("gray highlight
-regions")]{In}} Racket mode, especially, DrRacket's editor provides
+regions")]{DrRacket's editor provides}}
 special support for managing parentheses in a program. When the
 blinking caret is next to a parenthesis, DrRacket shades the region
 between the parenthesis and its matching parenthesis. This feature is
 especially helpful when balancing parentheses to complete an
-expression.
+expression. DrRacket also has a highlighting mode that uses
+shading for nested parentheses, described in
+@secref["sec:colors"].
+
 
 @index['("formatting Racket code")]{@index['("indenting Racket
-code")]{Although}} whitespace is not significant in Racket, DrRacket
-encourages a particular format for Racket code. When you type Enter or
+code")]{DrRacket}} also
+encourages a particular format for code in a language-specific manner. When you type Enter or
 Return, the editor inserts a new line and automatically indents it. To
 make DrRacket re-indent an existing line, move the blinking caret to
 the line and hit the Tab key. (The caret can be anywhere in the line.)

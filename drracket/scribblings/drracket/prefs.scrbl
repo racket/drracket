@@ -13,20 +13,31 @@ The preferences dialog consists of several panels.
 
 This panel controls the main font used by DrRacket.
 
-
-@section{@onscreen{Colors}}
+@section[#:tag "sec:colors"]{@onscreen{Colors}}
 
 The @onscreen{Colors} panel has several sub-panels that let you
-configure the colors that DrRacket uses for the editor background, for
-highlighting matching parentheses, for the syntax coloring for Racket
-and Java modes, for @onscreen{Check Syntax}, and for the colors of the
-text in the @tech{interactions window}.
+configure the colors that DrRacket uses.
+@itemize[
+ @item{@onscreen{Color Schemes}
 
-It also has two buttons, @onscreen{White on Black} and @onscreen{Black
-on White}, which set a number of defaults for the color preferences and
-change a few other aspects of DrRacket's behavior to make DrRacket's
-colors look nicer for those two modes.
+  DrRacket comes with a number of different color schemes
+  that you can choose from. The @onscreen{Classic} and
+  @onscreen{White on Black} schemes are actually a matched
+  pair that, under Mac OS and Linux will be chosen based on
+  the operating system's dark-mode configuration. Similarly
+  for the two Tol's color-blind safe modes.}
 
+ @item{@onscreen{Background}
+
+  This section of the preferences configures the default
+  background color and the colors used behind matching
+  parentheses. The @onscreen{Parenthesis color scheme} menu
+  also includes options that shade nested parentheses darker
+  and lighter, based on the nesting depth.}]
+
+The remaining panels inside the @onscreen{Colors} panel
+allow the configuration of many different colors that
+DrRacket uses for specific parts of its interface.
 
 @section{@onscreen{Editing}}
 
