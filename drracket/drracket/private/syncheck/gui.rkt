@@ -1738,9 +1738,10 @@ If the namespace does not, they are colored the unbound color.
                        (unless (hash-ref already-considered range-to-consider #f)
                          (hash-set! already-considered range-to-consider #t)
                          (for ([pos (in-range (car range-to-consider) (cdr range-to-consider))])
-                           (for ([arrow (in-list (fetch-arrow-records
-                                                  (var-arrow-start-text binding-arrow)
-                                                  pos))])
+                           (for ([arrow (in-list (or (fetch-arrow-records
+                                                      (var-arrow-start-text binding-arrow)
+                                                      pos)
+                                                     '()))])
                              (when (var-arrow? arrow)
                                (when (or include-require-arrows?
                                          (not (var-arrow-require-arrow? arrow)))
