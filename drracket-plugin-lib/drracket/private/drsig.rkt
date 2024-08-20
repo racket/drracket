@@ -242,6 +242,7 @@
    interactions-canvas%))
 (define-signature drracket:unit^ extends drracket:unit-cm^
   (open-drscheme-window
+   create-new-drscheme-frame
    find-symbol
    get-program-editor-mixin
    add-to-program-editor-mixin

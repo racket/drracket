@@ -170,7 +170,14 @@ The @onscreen{Editing} panel consists of several sub-panels:
       @item{@PrefItem{Show definitions/interactions labels} --- If checked,
              then the teaching languages show big friendly labels indicating
              which window is the definitions window and which is the interactions
-             window.]}]}
+             window.]}
+ @item{@PrefItem{Startup Open Files} --- If the @PrefItem{Restore files from previous session} is selected,
+    DrRacket will reopen the files that were open when DrRacket last exited, as it starts up.
+    When @PrefItem{Open a blank window} is selected, DrRacket starts with a new, fresh window each time.
+    When @PrefItem{Ask me each time} is selected and some files were open in the previous session,
+    DrRacket will open a dialog box asking if you would like to open the same files as last time.
+    If DrRacket is started from the command-line (or via Mac OS's @tt{open} command) and files are
+    supplied, then this preference is ignored, and only those files are opened.}]}
 
 @item{@onscreen{Racket}
 

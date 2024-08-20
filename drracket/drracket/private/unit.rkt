@@ -3439,6 +3439,14 @@
                    (and fn
                         (pathname-equal? fn filename))))
                tabs))
+
+      (define/override (get-all-open-files)
+        (filter
+         values
+         (for/list ([tab (in-list tabs)])
+           (define fn (send (send tab get-defs) get-filename))
+           (and fn (with-handlers ([exn:fail? (λ (x) #f)])
+                     (normalize-path fn))))))
       
       (define/override (get-menu-item%)
         (class (super get-menu-item%)
