@@ -3111,35 +3111,35 @@
       
       ;; create-new-tab : -> void
       ;; creates a new tab and updates the GUI for that new tab
-      (define/public create-new-tab
-        (lambda ([filename #f] #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
-          (let* ([defs (new (drracket:get/extend:get-definitions-text))]
-                 [tab-count (length tabs)]
-                 [new-tab (new (drracket:get/extend:get-tab)
-                               (defs defs)
-                               (i tab-count)
-                               (frame this)
-                               (defs-shown? #t)
-                               (ints-shown? (not filename)))]
-                 [ints (make-object (drracket:get/extend:get-interactions-text) new-tab)])
-            (send new-tab set-ints ints)
-            (send (send new-tab get-defs) set-position start-pos end-pos)
-            (set! tabs (append tabs (list new-tab)))
-            (send tabs-panel append 
-                  (gui-utils:trim-string
-                   (if filename
-                       (get-tab-label-from-filename filename)
-                       (get-defs-tab-label defs #f))
-                   200))
-            (init-definitions-text new-tab)
-            (when filename (send defs load-file filename))
-            (send defs enable-top-level-window-connection)
-            (change-to-nth-tab (- (send tabs-panel get-number) 1))
-            (send ints initialize-console)
-            (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
-            (set! newest-frame this)
-            (update-menu-bindings)
-            (after-create-new-tab new-tab filename start-pos end-pos))))
+      (define/public (create-new-tab [filename #f] #:start-pos [start-pos 0] #:end-pos [end-pos 'same])
+        (define defs (new (drracket:get/extend:get-definitions-text)))
+        (when (start-new-tab-in-edit-sequence?) (send defs begin-edit-sequence))
+        (define tab-count (length tabs))
+        (define new-tab (new (drracket:get/extend:get-tab)
+                             (defs defs)
+                             (i tab-count)
+                             (frame this)
+                             (defs-shown? #t)
+                             (ints-shown? (not filename))))
+        (define ints (make-object (drracket:get/extend:get-interactions-text) new-tab))
+        (send new-tab set-ints ints)
+        (send (send new-tab get-defs) set-position start-pos end-pos)
+        (set! tabs (append tabs (list new-tab)))
+        (send tabs-panel append
+              (gui-utils:trim-string
+               (if filename
+                   (get-tab-label-from-filename filename)
+                   (get-defs-tab-label defs #f))
+               200))
+        (init-definitions-text new-tab)
+        (when filename (send defs load-file filename))
+        (send defs enable-top-level-window-connection)
+        (change-to-nth-tab (- (send tabs-panel get-number) 1))
+        (send ints initialize-console)
+        (send tabs-panel set-selection (- (send tabs-panel get-number) 1))
+        (set! newest-frame this)
+        (update-menu-bindings)
+        (after-create-new-tab new-tab filename start-pos end-pos))
       
       ;; change-to-tab : tab -> void
       ;; updates current-tab, definitions-text, and interactactions-text

@@ -99,3 +99,6 @@
 
 (provide (struct-out drracket:modes:mode))
 (struct drracket:modes:mode (name surrogate repl-submit matches-language intended-to-edit-programs?))
+
+(provide start-new-tab-in-edit-sequence?)
+(define start-new-tab-in-edit-sequence? (make-parameter #f))

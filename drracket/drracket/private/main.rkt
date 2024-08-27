@@ -1028,8 +1028,15 @@
      [else
       (for ([files-in-frame (in-list no-empties)])
         (define fr (drracket:unit:create-new-drscheme-frame (car files-in-frame)))
-        (for ([file (in-list (cdr files-in-frame))])
-          (handler:edit-file file (λ () fr))))
+        (send fr begin-container-sequence)
+        (parameterize ([start-new-tab-in-edit-sequence? #t])
+          (for ([file (in-list (cdr files-in-frame))])
+            (handler:edit-file file (λ () fr))))
+        (for ([tab (in-list (send fr get-tabs))])
+          (define defs (send tab get-defs))
+          (when (send defs in-edit-sequence?)
+            (send defs end-edit-sequence)))
+        (send fr end-container-sequence))
 
       (when (preferences:get 'drracket:open-in-tabs)
         ;; usually first-one will be (car no-dups) but sometimes
