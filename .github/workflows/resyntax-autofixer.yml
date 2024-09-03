@@ -32,8 +32,8 @@ jobs:
         run: raco setup --pkgs drracket drracket-test drracket-tool drracket-tool-test drracket-tool-lib drracket-tool-doc drracket-plugin-lib
       - name: Create a new branch
         run: git checkout -b autofix-${{ github.run_number }}-${{ github.run_attempt }}
-      - name: Fix a random Racket file
-        run: xvfb-run racket -l- resyntax/cli fix --file "$(find . -name "*.rkt" -type f | shuf -n 1)" >> /tmp/resyntax-output.txt
+      - name: Run Resyntax
+        run: racket -l- resyntax/cli fix --directory . --max-fixes 10 >> /tmp/resyntax-output.txt
       - name: Create pull request
         uses: actions/github-script@v6.4.1
         with:
