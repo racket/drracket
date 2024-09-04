@@ -12,6 +12,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       pull-requests: write
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.6.0
