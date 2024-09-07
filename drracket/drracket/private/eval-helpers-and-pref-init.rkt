@@ -215,7 +215,9 @@
      (define line (or (syntax-line src-stx) 0))
      (define column (or (syntax-column src-stx) 0))
      (with-syntax ([expr expr]
-                   [mark (vector source line column position span)]
+                   ; errortrace/stacktrace puts the shrunken source expression at the car
+                   ; this needs to be alligned with errortrace-stack-item->srcloc
+                   [mark (list #f source line column position span)]
                    [et-key (syntax-shift-phase-level #'errortrace-key phase)]
                    [wcm (syntax-shift-phase-level #'with-continuation-mark phase)]
                    [qte (syntax-shift-phase-level #'quote phase)])
