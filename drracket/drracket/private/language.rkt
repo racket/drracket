@@ -132,12 +132,10 @@
                   (language-url #f)
                   (documentation-reference #f)
                   (reader (λ (src port)
-                            (let ([v (parameterize ([read-accept-reader #t])
-                                        (with-stack-checkpoint
-                                         (read-syntax src port)))])
-                              (if (eof-object? v)
-                                  v
-                                  (namespace-syntax-introduce v)))))
+                            (define v
+                              (parameterize ([read-accept-reader #t])
+                                (with-stack-checkpoint (read-syntax src port))))
+                            (if (eof-object? v) v (namespace-syntax-introduce v))))
                   (language-id (if (pair? language-position)
                                    (car (last-pair language-position))
                                    (error 'simple-module-based-language<%>
@@ -286,8 +284,8 @@
                              '(horizontal vertical-label))]
              [enable-fraction-style 
               (lambda ()
-                (let ([on? (member (send output-style get-selection) '(0 1))])
-                  (send fraction-style enable on?)))]
+                (define on? (member (send output-style get-selection) '(0 1)))
+                (send fraction-style enable on?))]
              [show-sharing (make-object check-box%
                              (string-constant sharing-printing-label)
                              output-panel
@@ -350,27 +348,25 @@
   ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
   (define (simple-module-based-language-render-value/format value settings port width)
     (let-values ([(converted-value write?)
-                  (call-with-values
-                      (lambda ()
-                        (simple-module-based-language-convert-value value settings))
-                    (case-lambda
-                     [(converted-value) (values converted-value #t)]
-                     [(converted-value write?) (values converted-value write?)]))])
-      (let ([pretty-out (if write? pretty-write pretty-print)])
-        (setup-printing-parameters
-         (λ ()
-            (cond
-             [(simple-settings-insert-newlines settings)
-              (if (number? width)
-                  (parameterize ([pretty-print-columns width])
-                    (pretty-out converted-value port))
-                  (pretty-out converted-value port))]
-             [else
-              (parameterize ([pretty-print-columns 'infinity])
-                (pretty-out converted-value port))
-              (newline port)]))
-         settings
-         width))))
+                  (call-with-values (lambda ()
+                                      (simple-module-based-language-convert-value value settings))
+                                    (case-lambda
+                                      [(converted-value) (values converted-value #t)]
+                                      [(converted-value write?) (values converted-value write?)]))])
+      (define pretty-out (if write? pretty-write pretty-print))
+      (setup-printing-parameters (λ ()
+                                   (cond
+                                     [(simple-settings-insert-newlines settings)
+                                      (if (number? width)
+                                          (parameterize ([pretty-print-columns width])
+                                            (pretty-out converted-value port))
+                                          (pretty-out converted-value port))]
+                                     [else
+                                      (parameterize ([pretty-print-columns 'infinity])
+                                        (pretty-out converted-value port))
+                                      (newline port)]))
+                                 settings
+                                 width)))
   
   (define default-pretty-print-current-style-table (pretty-print-current-style-table))
   
@@ -712,10 +708,8 @@
       
       (inherit get-language-position)
       (define/public (get-language-name)
-        (let ([pos (get-language-position)])
-          (if (null? pos)
-              "<<unknown>>"
-              (car (last-pair pos)))))
+        (define pos (get-language-position))
+        (if (null? pos) "<<unknown>>" (car (last-pair pos))))
       (define/public (get-style-delta) #f)
       (define/override (on-execute setting run-in-user-thread)
         (super on-execute setting run-in-user-thread)
@@ -746,47 +740,37 @@
                                                    init-code
                                                    mred-launcher
                                                    use-copy?)
-    (let ([executable-specs (create-executable-gui parent
-                                                   program-filename
-                                                   #t 
-                                                   (if (boolean? mred-launcher)
-                                                       (if mred-launcher
-                                                           'mred
-                                                           'mzscheme)
-                                                       #t))])
-      (when executable-specs
-        (let* ([type (car executable-specs)]
-               [base (cadr executable-specs)]
-               [executable-filename (caddr executable-specs)]
-               [aux (cadddr executable-specs)]
-               [create-executable
-                (case type
-                  [(launcher) create-module-based-launcher]
-                  [(stand-alone) create-module-based-stand-alone-executable]
-                  [(distribution) create-module-based-distribution])])
-          (with-handlers ((exn:fail? (λ (msg)
-                                       (define sp (open-output-string))
-                                       (parameterize ([current-error-port sp])
-                                         (drracket:init:original-error-display-handler
-                                          (exn-message exn)
-                                          exn))
-                                       (message-box 
-                                        (string-constant drscheme)
-                                        (string-append
-                                         (string-constant error-creating-executable)
-                                         "\n\n"
-                                         (get-output-string sp))))))
-            (create-executable
-             program-filename
-             executable-filename
-             module-language-spec
-             transformer-module-language-spec
-             init-code
-             (if (boolean? mred-launcher)
-                 mred-launcher
-                 (eq? base 'mred))
-             use-copy?
-             #:aux aux))))))
+    (define executable-specs
+      (create-executable-gui parent
+                             program-filename
+                             #t
+                             (if (boolean? mred-launcher) (if mred-launcher 'mred 'mzscheme) #t)))
+    (when executable-specs
+      (let* ([type (car executable-specs)]
+             [base (cadr executable-specs)]
+             [executable-filename (caddr executable-specs)]
+             [aux (cadddr executable-specs)]
+             [create-executable (case type
+                                  [(launcher) create-module-based-launcher]
+                                  [(stand-alone) create-module-based-stand-alone-executable]
+                                  [(distribution) create-module-based-distribution])])
+        (with-handlers ([exn:fail?
+                         (λ (msg)
+                           (define sp (open-output-string))
+                           (parameterize ([current-error-port sp])
+                             (drracket:init:original-error-display-handler (exn-message exn) exn))
+                           (message-box (string-constant drscheme)
+                                        (string-append (string-constant error-creating-executable)
+                                                       "\n\n"
+                                                       (get-output-string sp))))])
+          (create-executable program-filename
+                             executable-filename
+                             module-language-spec
+                             transformer-module-language-spec
+                             init-code
+                             (if (boolean? mred-launcher) mred-launcher (eq? base 'mred))
+                             use-copy?
+                             #:aux aux)))))
   
   
   ;; create-executable-gui : (union #f (is-a?/c top-level-area-container<%>))
@@ -908,13 +892,12 @@
                 [value (preferences:get 'drracket:create-executable-gui-embed-dlls?)])))
     
     (define (reset-filename-suffix)
-      (let ([s (send filename-text-field get-value)])
-        (unless (string=? s "")
-          (let ([new-s (default-executable-filename 
-                         (string->path s)
-                         (current-mode)
-                         (not (currently-mzscheme-binary?)))])
-            (send filename-text-field set-value (path->string new-s))))))
+      (define s (send filename-text-field get-value))
+      (unless (string=? s "")
+        (let ([new-s (default-executable-filename (string->path s)
+                                                  (current-mode)
+                                                  (not (currently-mzscheme-binary?)))])
+          (send filename-text-field set-value (path->string new-s)))))
     
     (define button-panel (instantiate horizontal-panel% ()
                            (parent dlg)
@@ -932,35 +915,32 @@
        (string-constant cancel)))
     
     (define (browse-callback)
-      (let ([ftf (send filename-text-field get-value)])
-        (let-values ([(base name _)
-                      (if (path-string? ftf)
-                          (split-path ftf)
-                          (values (current-directory) "" #f))])
-          (let* ([mzscheme? (currently-mzscheme-binary?)]
-                 [mode (current-mode)]
-                 [filename 
-                  (put-executable/defaults
-                   dlg
-                   base
-                   name
-                   mode
-                   (not mzscheme?)
-                   (case mode
-                     [(launcher)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-launcher)
-                          (string-constant save-a-mred-launcher))]
-                     [(stand-alone)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-stand-alone-executable)
-                          (string-constant save-a-mred-stand-alone-executable))]
-                     [(distribution)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-distribution)
-                          (string-constant save-a-mred-distribution))]))])
-            (when filename
-              (send filename-text-field set-value (path->string filename)))))))
+      (define ftf (send filename-text-field get-value))
+      (let-values ([(base name _)
+                    (if (path-string? ftf) (split-path ftf) (values (current-directory) "" #f))])
+        (let* ([mzscheme? (currently-mzscheme-binary?)]
+               [mode (current-mode)]
+               [filename (put-executable/defaults
+                          dlg
+                          base
+                          name
+                          mode
+                          (not mzscheme?)
+                          (case mode
+                            [(launcher)
+                             (if mzscheme?
+                                 (string-constant save-a-mzscheme-launcher)
+                                 (string-constant save-a-mred-launcher))]
+                            [(stand-alone)
+                             (if mzscheme?
+                                 (string-constant save-a-mzscheme-stand-alone-executable)
+                                 (string-constant save-a-mred-stand-alone-executable))]
+                            [(distribution)
+                             (if mzscheme?
+                                 (string-constant save-a-mzscheme-distribution)
+                                 (string-constant save-a-mred-distribution))]))])
+          (when filename
+            (send filename-text-field set-value (path->string filename))))))
     
     (define (currently-mzscheme-binary?)
       (cond
@@ -971,32 +951,29 @@
     (define (current-mode)
       (cond
         [type-rb
-         (let ([s (send type-rb get-item-label (send type-rb get-selection))])
-           (cond
-             [(equal? s (string-constant launcher-explanatory-label)) 'launcher]
-             [(equal? s (string-constant stand-alone-explanatory-label)) 'stand-alone]
-             [(equal? s (string-constant distribution-explanatory-label)) 'distribution]))]
+         (define s (send type-rb get-item-label (send type-rb get-selection)))
+         (cond
+           [(equal? s (string-constant launcher-explanatory-label)) 'launcher]
+           [(equal? s (string-constant stand-alone-explanatory-label)) 'stand-alone]
+           [(equal? s (string-constant distribution-explanatory-label)) 'distribution])]
         [else show-type]))
     
     (define (check-filename)
-      (let ([filename-str (send filename-text-field get-value)]
-            [mred? (not (currently-mzscheme-binary?))]
-            [mode (current-mode)])
-        (let-values ([(extension style filters)
-                      (mode->put-file-extension+style+filters mode mred?)])
-          (cond
-            [(string=? "" filename-str)
-             (message-box (string-constant drscheme)
-                          (string-constant please-specify-a-filename)
-                          dlg
-                          #:dialog-mixin frame:focus-table-mixin)
-             #f]
-            [(not (users-name-ok? mode extension dlg (string->path filename-str)))
-             #f]
-            [(or (directory-exists? filename-str)
-                 (file-exists? filename-str))
-             (ask-user-can-clobber? filename-str)]
-            [else #t]))))
+      (define filename-str (send filename-text-field get-value))
+      (define mred? (not (currently-mzscheme-binary?)))
+      (define mode (current-mode))
+      (let-values ([(extension style filters) (mode->put-file-extension+style+filters mode mred?)])
+        (cond
+          [(string=? "" filename-str)
+           (message-box (string-constant drscheme)
+                        (string-constant please-specify-a-filename)
+                        dlg
+                        #:dialog-mixin frame:focus-table-mixin)
+           #f]
+          [(not (users-name-ok? mode extension dlg (string->path filename-str))) #f]
+          [(or (directory-exists? filename-str) (file-exists? filename-str))
+           (ask-user-can-clobber? filename-str)]
+          [else #t])))
     
     ;; ask-user-can-clobber-directory? : (is-a?/c top-level-window<%>) string -> boolean
     (define (ask-user-can-clobber? filename)
@@ -1052,16 +1029,10 @@
   ;; put-executable : parent string (union boolean 'launcher 'stand-alone 'distribution) boolean -> (union false? string)
   ;; invokes the put-file dialog with arguments specific to building executables
   (define (put-executable parent program-filename mode mred? title)
-    (let-values ([(base name dir) (split-path program-filename)])
-      (let ([mode (normalize-mode mode)])
-        (let ([default-name (default-executable-filename name mode mred?)])
-          (put-executable/defaults
-           parent
-           base
-           default-name
-           mode
-           mred? 
-           title)))))
+    (define-values (base name dir) (split-path program-filename))
+    (let ([mode (normalize-mode mode)])
+      (let ([default-name (default-executable-filename name mode mred?)])
+        (put-executable/defaults parent base default-name mode mred? title))))
   
   ;; put-executable/defaults : parent string string symbol boolean -> (union false? string)
   (define (put-executable/defaults parent default-dir default-name mode mred? title)
