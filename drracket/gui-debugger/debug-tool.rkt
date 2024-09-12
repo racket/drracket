@@ -1571,10 +1571,8 @@
             (define debug-button-currently-visible? (member debug-button (send debug-parent get-children)))
             (if visible?
                 (unless debug-button-currently-visible?
-                  (printf "changing to add button\n")
                   (send debug-parent add-child debug-button))
                 (when debug-button-currently-visible?
-                  (printf "changing to remove button\n")
                   (send debug-parent delete-child debug-button)))))
         
         (send (get-button-panel) change-children
