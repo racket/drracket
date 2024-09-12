@@ -1567,11 +1567,15 @@
                                 (not (is-a? lang drscheme:module-language:module-language<%>)) ;; the opt-out button handles this language
                                 (not (debugger-does-not-work-for?
                                       (extract-language-level settings))))])
+            (define debug-parent (send debug-button get-parent))
+            (define debug-button-currently-visible? (member debug-button (send debug-parent get-children)))
             (if visible?
-                (unless (send debug-button is-shown?)
-                  (send (send debug-button get-parent) add-child debug-button))
-                (when (send debug-button is-shown?)
-                  (send (send debug-button get-parent) delete-child debug-button)))))
+                (unless debug-button-currently-visible?
+                  (printf "changing to add button\n")
+                  (send debug-parent add-child debug-button))
+                (when debug-button-currently-visible?
+                  (printf "changing to remove button\n")
+                  (send debug-parent delete-child debug-button)))))
         
         (send (get-button-panel) change-children
               (lambda (children)
