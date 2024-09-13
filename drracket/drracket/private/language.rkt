@@ -348,25 +348,27 @@
   ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
   (define (simple-module-based-language-render-value/format value settings port width)
     (let-values ([(converted-value write?)
-                  (call-with-values (lambda ()
-                                      (simple-module-based-language-convert-value value settings))
-                                    (case-lambda
-                                      [(converted-value) (values converted-value #t)]
-                                      [(converted-value write?) (values converted-value write?)]))])
+                  (call-with-values
+                      (lambda ()
+                        (simple-module-based-language-convert-value value settings))
+                    (case-lambda
+                     [(converted-value) (values converted-value #t)]
+                     [(converted-value write?) (values converted-value write?)]))])
       (define pretty-out (if write? pretty-write pretty-print))
-      (setup-printing-parameters (λ ()
-                                   (cond
-                                     [(simple-settings-insert-newlines settings)
-                                      (if (number? width)
-                                          (parameterize ([pretty-print-columns width])
-                                            (pretty-out converted-value port))
-                                          (pretty-out converted-value port))]
-                                     [else
-                                      (parameterize ([pretty-print-columns 'infinity])
-                                        (pretty-out converted-value port))
-                                      (newline port)]))
-                                 settings
-                                 width)))
+      (setup-printing-parameters
+       (λ ()
+         (cond
+           [(simple-settings-insert-newlines settings)
+            (if (number? width)
+                (parameterize ([pretty-print-columns width])
+                  (pretty-out converted-value port))
+                (pretty-out converted-value port))]
+           [else
+            (parameterize ([pretty-print-columns 'infinity])
+              (pretty-out converted-value port))
+            (newline port)]))
+       settings
+       width)))
   
   (define default-pretty-print-current-style-table (pretty-print-current-style-table))
   
@@ -744,7 +746,9 @@
       (create-executable-gui parent
                              program-filename
                              #t
-                             (if (boolean? mred-launcher) (if mred-launcher 'mred 'mzscheme) #t)))
+                             (if (boolean? mred-launcher)
+                                 (if mred-launcher 'mred 'mzscheme)
+                                 #t)))
     (when executable-specs
       (let* ([type (car executable-specs)]
              [base (cadr executable-specs)]
