@@ -1,8 +1,8 @@
 #lang racket/base
-(require racket/class 
-         string-constants/string-constant
+(require (for-syntax images/icons/style images/icons/tool racket/base)
          images/compile-time
-         (for-syntax racket/base images/icons/tool images/icons/style))
+         racket/class
+         string-constants/string-constant)
 (provide syncheck-drracket-button
          syncheck-bitmap
          syncheck-small-bitmap
