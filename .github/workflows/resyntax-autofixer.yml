@@ -14,6 +14,17 @@ jobs:
       pull-requests: write
       contents: write
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.RESYNTAX_APP_ID }}
+          private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.generate-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Checkout code
         uses: actions/checkout@v3.6.0
         # See https://github.com/actions/checkout/issues/118.
@@ -40,15 +51,15 @@ jobs:
       - name: Create pull request
         uses: actions/github-script@v6.4.1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const { readFile, writeFile } = require('fs/promises');
             const commitMessageBody = await readFile('/tmp/resyntax-output.txt', { encoding: 'utf8' });
             const commitMessageTitle = "Automated Resyntax fixes";
             const commitMessage = commitMessageTitle + "\n\n" + commitMessageBody;
             await writeFile('/tmp/resyntax-commit-message.txt', commitMessage);
-            await exec.exec('git config user.name "GitHub Actions"');
-            await exec.exec('git config user.email "actions@github.com"');
+            await exec.exec('git config user.name "${{ steps.generate-token.outputs.app-slug }}[bot]"');
+            await exec.exec('git config user.email "${{ steps.get-user-id.outputs.user-id }}+${{ steps.generate-token.outputs.app-slug }}[bot]@users.noreply.github.com"');
             await exec.exec('git commit --all --file=/tmp/resyntax-commit-message.txt');
             await exec.exec('git push --set-upstream origin autofix-${{ github.run_number }}-${{ github.run_attempt }}');
             await github.rest.pulls.create({
