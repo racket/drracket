@@ -1,16 +1,16 @@
 #lang racket/base
 
-(require racket/contract
-         racket/unit
+(require drracket/private/drsig
+         framework
          racket/class
+         racket/contract
+         racket/gui/base
+         racket/list
          racket/path
          racket/port
-         racket/list
-         racket/gui/base
+         racket/unit
          string-constants
-         framework
-         (prefix-in tr: trace/stacktrace)
-         drracket/private/drsig)
+         (prefix-in tr: trace/stacktrace))
 
 (provide tracing@)
 

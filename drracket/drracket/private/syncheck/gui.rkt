@@ -18,39 +18,39 @@ If the namespace does not, they are colored the unbound color.
 
 (module+ test (require rackunit))
 
-(require string-constants
-         racket/unit
-         racket/match
-         racket/contract
-         racket/class
-         racket/dict
-         racket/set
-         racket/runtime-path
-         racket/place
-         data/interval-map
-         drracket/tool
-         syntax/toplevel
-         mrlib/switchable-button
-         (prefix-in drracket:arrow: drracket/arrow)
-         (prefix-in fw: framework/framework)
-         mred
-         framework
-         framework/private/srcloc-panel
-         net/url
+(require (for-syntax racket/base)
          browser/external
-         (for-syntax racket/base)
-         (only-in ffi/unsafe register-finalizer)
-         "../../syncheck-drracket-button.rkt"
+         data/interval-map
+         drracket/private/syncheck/annotate
+         drracket/private/syncheck/colors
+         drracket/private/syncheck/syncheck-intf
+         drracket/private/syncheck/traversals
+         drracket/tool
+         framework
+         framework/private/logging-timer
+         framework/private/srcloc-panel
+         mred
+         mrlib/switchable-button
+         net/url
+         racket/class
+         racket/contract
+         racket/dict
+         racket/match
+         racket/place
+         racket/runtime-path
+         racket/set
+         racket/unit
+         string-constants
+         syntax/toplevel
          "../../private/eval-helpers-and-pref-init.rkt"
-         "intf.rkt"
-         "local-member-names.rkt"
+         "../../syncheck-drracket-button.rkt"
          "../tooltip.rkt"
          "blueboxes-gui.rkt"
-         drracket/private/syncheck/syncheck-intf
-         drracket/private/syncheck/colors
-         drracket/private/syncheck/traversals
-         drracket/private/syncheck/annotate
-         framework/private/logging-timer)
+         "intf.rkt"
+         "local-member-names.rkt"
+         (prefix-in drracket:arrow: drracket/arrow)
+         (prefix-in fw: framework/framework)
+         (only-in ffi/unsafe register-finalizer))
 (provide tool@)
 
 (define orig-output-port (current-output-port))

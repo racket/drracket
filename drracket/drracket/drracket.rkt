@@ -1,5 +1,7 @@
 #lang racket/base
-(require racket/gui/base "private/key.rkt" "private/compiled-dir.rkt")
+(require racket/gui/base
+         "private/compiled-dir.rkt"
+         "private/key.rkt")
 
 (module test racket/base)
 
@@ -24,17 +26,15 @@
   (flush-output))
 
 (define (run-trace-thread)
-  (let ([evt (make-log-receiver (current-logger) 'info)])
-    (void
-     (thread
-      (λ ()
-        (let loop ()
-          (define vec (sync evt))
-          (define str (vector-ref vec 1))
-          (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
-            (display str)
-            (newline))
-          (loop)))))))
+  (define evt (make-log-receiver (current-logger) 'info))
+  (void (thread (λ ()
+                  (let loop ()
+                    (define vec (sync evt))
+                    (define str (vector-ref vec 1))
+                    (when (regexp-match #rx"^cm: *compil(ing|ed)" str)
+                      (display str)
+                      (newline))
+                    (loop))))))
 
 (cond
   [debugging?
@@ -90,19 +90,12 @@
    (define (tool-files id)
      (apply 
       append
-      (map
-       (λ (x)
-         (define proc (get-info/full x))
-         (if proc
-             (map (λ (dirs)
-                    (apply build-path 
-                           x
-                           (if (list? dirs)
-                               dirs
-                               (list dirs))))
-                  (proc id (λ () '())))
-             '()))
-       (find-relevant-directories (list id)))))
+      (for/list ([x (in-list (find-relevant-directories (list id)))])
+        (define proc (get-info/full x))
+        (if proc
+            (map (λ (dirs) (apply build-path x (if (list? dirs) dirs (list dirs))))
+                 (proc id (λ () '())))
+            '()))))
    
    (define make-compilation-manager-load/use-compiled-handler
      (parameterize ([current-namespace (make-base-empty-namespace)])
@@ -146,11 +139,11 @@
   ;; it creates a new custodian and installs it, but the
   ;; original eventspace was created on the original custodian
   ;; and this code does not create a new eventspace. 
-  (let ([orig-cust (current-custodian)]
-        [orig-eventspace (current-eventspace)]
-        [new-cust (make-custodian)])
-    (current-custodian new-cust)
-    ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust)))
+  (define orig-cust (current-custodian))
+  (define orig-eventspace (current-eventspace))
+  (define new-cust (make-custodian))
+  (current-custodian new-cust)
+  ((dynamic-require 'drracket/private/profile-drs 'start-profile) orig-cust))
 
 (dynamic-require 'drracket/private/drracket-normal #f)
 
