@@ -30,6 +30,6 @@ jobs:
       - name: Install local packages
         run: raco setup --pkgs drracket drracket-test drracket-tool drracket-tool-test drracket-tool-lib drracket-tool-doc drracket-plugin-lib
       - name: Create a Resyntax pull request
-        uses: jackfirth/create-resyntax-pull-request@v0.2.0
+        uses: jackfirth/create-resyntax-pull-request@v0.3.0
         with:
           private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
