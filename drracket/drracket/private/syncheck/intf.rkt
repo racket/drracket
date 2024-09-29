@@ -1,7 +1,7 @@
 #lang racket/base
 (provide syncheck-text<%>) 
-(require racket/class 
-         drracket/private/syncheck/syncheck-intf
+(require drracket/private/syncheck/syncheck-intf
+         racket/class
          "local-member-names.rkt")
 
 (define syncheck-text<%>
