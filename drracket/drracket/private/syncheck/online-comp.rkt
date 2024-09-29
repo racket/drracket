@@ -1,12 +1,12 @@
 #lang racket/base
-(require racket/class
-         racket/place
-         racket/match
-         racket/contract
-         (for-syntax racket/base)
-         drracket/private/syncheck/traversals
+(require (for-syntax racket/base)
          drracket/private/syncheck/syncheck-intf
+         drracket/private/syncheck/traversals
          drracket/private/syncheck/xref
+         racket/class
+         racket/contract
+         racket/match
+         racket/place
          "../../private/eval-helpers-and-pref-init.rkt"
          "intf.rkt"
          "local-member-names.rkt")
@@ -67,9 +67,9 @@
       (make-traversal (current-namespace)
                       (get-init-dir path)))
     (parameterize ([current-annotations obj])
-      (for ([stx (in-list stxes)])
-        (when (equal? (syntax-source stx) the-source)
-          (expanded-expression stx)))
+      (for ([stx (in-list stxes)]
+            #:when (equal? (syntax-source stx) the-source))
+        (expanded-expression stx))
       (expansion-completed))
     (send obj get-trace)))
 

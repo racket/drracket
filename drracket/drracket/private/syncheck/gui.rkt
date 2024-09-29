@@ -18,39 +18,39 @@ If the namespace does not, they are colored the unbound color.
 
 (module+ test (require rackunit))
 
-(require string-constants
-         racket/unit
-         racket/match
-         racket/contract
-         racket/class
-         racket/dict
-         racket/set
-         racket/runtime-path
-         racket/place
+(require (for-syntax racket/base)
+         browser/external
          data/interval-map
+         drracket/private/syncheck/annotate
+         drracket/private/syncheck/colors
+         drracket/private/syncheck/syncheck-intf
+         drracket/private/syncheck/traversals
          drracket/tool
-         syntax/toplevel
+         framework
+         framework/private/logging-timer
+         framework/private/srcloc-panel
+         mred
          mrlib/switchable-button
+         net/url
+         racket/class
+         racket/contract
+         racket/dict
+         racket/match
+         racket/place
+         racket/runtime-path
+         racket/set
+         racket/unit
+         string-constants
+         syntax/toplevel
          (prefix-in drracket:arrow: drracket/arrow)
          (prefix-in fw: framework/framework)
-         mred
-         framework
-         framework/private/srcloc-panel
-         net/url
-         browser/external
-         (for-syntax racket/base)
          (only-in ffi/unsafe register-finalizer)
-         "../../syncheck-drracket-button.rkt"
          "../../private/eval-helpers-and-pref-init.rkt"
-         "intf.rkt"
-         "local-member-names.rkt"
+         "../../syncheck-drracket-button.rkt"
          "../tooltip.rkt"
          "blueboxes-gui.rkt"
-         drracket/private/syncheck/syncheck-intf
-         drracket/private/syncheck/colors
-         drracket/private/syncheck/traversals
-         drracket/private/syncheck/annotate
-         framework/private/logging-timer)
+         "intf.rkt"
+         "local-member-names.rkt")
 (provide tool@)
 
 (define orig-output-port (current-output-port))
@@ -382,13 +382,12 @@ If the namespace does not, they are colored the unbound color.
           
           (define/private (clean-up)
             (when do-cleanup
-              (let ([st (find-syncheck-text this)])
-                (when (and st
-                           (is-a? st drracket:unit:definitions-text<%>))
-                  (let ([tab (send st get-tab)])
-                    (send (send tab get-frame) set-syncheck-running-mode #f)
-                    (send tab syncheck:clear-error-message)
-                    (send tab syncheck:clear-highlighting))))))
+              (define st (find-syncheck-text this))
+              (when (and st (is-a? st drracket:unit:definitions-text<%>))
+                (define tab (send st get-tab))
+                (send (send tab get-frame) set-syncheck-running-mode #f)
+                (send tab syncheck:clear-error-message)
+                (send tab syncheck:clear-highlighting))))
           
           (super-new)))
       
@@ -2138,14 +2137,14 @@ If the namespace does not, they are colored the unbound color.
               (send (get-frame) hide-error-report))))
         
         (define/public (syncheck:clear-highlighting)
-          (let ([definitions (get-defs)])
-            (when (send definitions syncheck:arrows-visible?)
-              (let ([locked? (send definitions is-locked?)])
-                (send definitions begin-edit-sequence #f #f)
-                (send definitions lock #f)
-                (send definitions syncheck:clear-arrows)
-                (send definitions lock locked?)
-                (send definitions end-edit-sequence)))))
+          (define definitions (get-defs))
+          (when (send definitions syncheck:arrows-visible?)
+            (define locked? (send definitions is-locked?))
+            (send definitions begin-edit-sequence #f #f)
+            (send definitions lock #f)
+            (send definitions syncheck:clear-arrows)
+            (send definitions lock locked?)
+            (send definitions end-edit-sequence)))
         
         (define/augment (can-close?)
           (and (send report-error-text can-close?)
@@ -2189,15 +2188,17 @@ If the namespace does not, they are colored the unbound color.
           (update-button-visibility/settings (send (send tab get-defs) get-next-settings)))
         (inherit sort-toolbar-buttons-panel)
         (define/public (update-button-visibility/settings settings)
-          (let* ([lang (drracket:language-configuration:language-settings-language settings)]
-                 [visible? (and (not (is-a? lang drracket:module-language:module-language<%>))
-                                (send lang capability-value 'drscheme:check-syntax-button))])
-            (send (get-button-panel) change-children
-                  (λ (l)
-                    (if visible?
-                        (cons check-syntax-button (remq check-syntax-button l))
-                        (remq check-syntax-button l))))
-            (sort-toolbar-buttons-panel)))
+          (define lang (drracket:language-configuration:language-settings-language settings))
+          (define visible?
+            (and (not (is-a? lang drracket:module-language:module-language<%>))
+                 (send lang capability-value 'drscheme:check-syntax-button)))
+          (send (get-button-panel)
+                change-children
+                (λ (l)
+                  (if visible?
+                      (cons check-syntax-button (remq check-syntax-button l))
+                      (remq check-syntax-button l))))
+          (sort-toolbar-buttons-panel))
         
         ;; set-syncheck-running-mode : (or/c (box boolean?) 'button #f) -> boolean
         ;; records how a particular check syntax is being played out in the editor right now.
@@ -2368,31 +2369,30 @@ If the namespace does not, they are colored the unbound color.
                          (inner (void) after-percentage-change))
                        (super-new))
                      [parent (super get-definitions/interactions-panel-parent)]))
-          (set! report-error-panel (new-horizontal-panel%
-                                        [parent report-error-parent-panel]
-                                        [stretchable-height #f]
-                                        [alignment '(center center)]
-                                        [style '(border)]))
+          (set! report-error-panel
+                (new-horizontal-panel% [parent report-error-parent-panel]
+                                       [stretchable-height #f]
+                                       [alignment '(center center)]
+                                       [style '(border)]))
           (send report-error-parent-panel change-children (λ (l) null))
-          (let ([message-panel (new-vertical-panel%
-                                    [parent report-error-panel]
-                                    [stretchable-width #f]
-                                    [stretchable-height #f]
-                                    [alignment '(left center)])])
+          (let ([message-panel (new-vertical-panel% [parent report-error-panel]
+                                                    [stretchable-width #f]
+                                                    [stretchable-height #f]
+                                                    [alignment '(left center)])])
             (make-object message% (string-constant check-syntax) message-panel)
             (make-object message% (string-constant cs-error-message) message-panel))
-          (set! report-error-canvas (new editor-canvas% 
-                                         (parent report-error-panel)
-                                         (editor (send (get-current-tab) get-error-report-text))
-                                         (line-count 3)
-                                         (style '(no-hscroll))))
-          (new button% 
+          (set! report-error-canvas
+                (new editor-canvas%
+                     (parent report-error-panel)
+                     (editor (send (get-current-tab) get-error-report-text))
+                     (line-count 3)
+                     (style '(no-hscroll))))
+          (new button%
                [label (string-constant hide)]
                [parent report-error-panel]
                [callback (λ (x y) (hide-error-report))]
                [stretchable-height #t])
-          (define res (make-object vertical-panel% report-error-parent-panel))
-          res)
+          (make-object vertical-panel% report-error-parent-panel))
         
         (define/public-final (syncheck:error-report-visible?)
           (and (is-a? report-error-parent-panel area-container<%>)
@@ -2461,15 +2461,13 @@ If the namespace does not, they are colored the unbound color.
                       (λ ()
                         (unless (= 0 (send (send the-tab get-error-report-text) last-position))
                           (show-error-report/tab)))))))))
-            (define kill-termination
-              (λ ()
-                (unless normal-termination?
-                  (parameterize ([current-eventspace drs-eventspace])
-                    (queue-callback
-                     (λ ()
-                       (send the-tab syncheck:clear-highlighting)
-                       (cleanup)
-                       (custodian-shutdown-all user-custodian)))))))
+            (define (kill-termination)
+              (unless normal-termination?
+                (parameterize ([current-eventspace drs-eventspace])
+                  (queue-callback (λ ()
+                                    (send the-tab syncheck:clear-highlighting)
+                                    (cleanup)
+                                    (custodian-shutdown-all user-custodian))))))
             (define error-display-semaphore (make-semaphore 0))
             (define uncaught-exception-raised
               (λ () ;; =user=
@@ -2609,12 +2607,12 @@ If the namespace does not, they are colored the unbound color.
         ;; sets and restores some state of the definitions text
         ;; so that edits to the definitions text work out.
         (define/private (with-lock/edit-sequence definitions-text thnk)
-          (let* ([locked? (send definitions-text is-locked?)])
-            (send definitions-text begin-edit-sequence #t #f)
-            (send definitions-text lock #f)
-            (thnk)
-            (send definitions-text end-edit-sequence)
-            (send definitions-text lock locked?)))
+          (define locked? (send definitions-text is-locked?))
+          (send definitions-text begin-edit-sequence #t #f)
+          (send definitions-text lock #f)
+          (thnk)
+          (send definitions-text end-edit-sequence)
+          (send definitions-text lock locked?))
                 
         (super-new)
         
@@ -2637,23 +2635,23 @@ If the namespace does not, they are colored the unbound color.
             "check syntax"
             (λ (obj evt)
               (when (is-a? obj editor<%>)
-                (let ([canvas (send obj get-canvas)])
-                  (when canvas
-                    (let ([frame (send canvas get-top-level-window)])
-                      (when (is-a? frame syncheck-frame<%>)
-                        (send frame syncheck:button-callback))))))))
+                (define canvas (send obj get-canvas))
+                (when canvas
+                  (define frame (send canvas get-top-level-window))
+                  (when (is-a? frame syncheck-frame<%>)
+                    (send frame syncheck:button-callback))))))
       
       (let ([cs-callback
              (λ (send-msg)
                (λ (obj evt)
                  (when (is-a? obj text%)
-                   (let ([canvas (send obj get-canvas)])
-                     (when canvas
-                       (let ([frame (send canvas get-top-level-window)])
-                         (when (is-a? frame syncheck-frame<%>)
-                           (let ([defs (send frame get-definitions-text)])
-                             (when (is-a? defs syncheck-text<%>)
-                               (send-msg defs obj))))))))))])
+                   (define canvas (send obj get-canvas))
+                   (when canvas
+                     (define frame (send canvas get-top-level-window))
+                     (when (is-a? frame syncheck-frame<%>)
+                       (let ([defs (send frame get-definitions-text)])
+                         (when (is-a? defs syncheck-text<%>)
+                           (send-msg defs obj))))))))])
         (send keymap add-function
               (string-constant cs-jump-to-binding)
               (cs-callback (λ (defs obj) (send defs syncheck:jump-to-binding-occurrence obj))))
@@ -2723,12 +2721,12 @@ If the namespace does not, they are colored the unbound color.
         (cond
           [(is-a? text syncheck-text<%>) text]
           [else 
-           (let ([admin (send text get-admin)])
-             (and (is-a? admin editor-snip-editor-admin<%>)
-                  (let* ([enclosing-editor-snip (send admin get-snip)]
-                         [editor-snip-admin (send enclosing-editor-snip get-admin)]
-                         [enclosing-editor (send editor-snip-admin get-editor)])
-                    (loop enclosing-editor))))])))
+           (define admin (send text get-admin))
+           (and (is-a? admin editor-snip-editor-admin<%>)
+                (let* ([enclosing-editor-snip (send admin get-snip)]
+                       [editor-snip-admin (send enclosing-editor-snip get-admin)]
+                       [enclosing-editor (send editor-snip-admin get-editor)])
+                  (loop enclosing-editor)))])))
     ;                                                 
     ;                                                 
     ;                                                 
@@ -2752,7 +2750,7 @@ If the namespace does not, they are colored the unbound color.
                                              syncheck-add-to-preferences-panel)
     (drracket:module-language-tools:register-online-expansion-pref 
      syncheck-add-to-online-expansion-prefs-panel)
-    (drracket:language:register-capability 'drscheme:check-syntax-button (flat-contract boolean?) #t)
+    (drracket:language:register-capability 'drscheme:check-syntax-button boolean? #t)
     (drracket:get/extend:extend-definitions-text make-syncheck-text%)
     (drracket:get/extend:extend-interactions-text docs-text-ints-mixin)
     (drracket:get/extend:extend-definitions-canvas docs-editor-canvas-mixin)
