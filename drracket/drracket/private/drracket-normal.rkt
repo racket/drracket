@@ -1,14 +1,14 @@
 #lang racket/base
 
-(require racket/gui/base
+(require (for-syntax racket/base)
+         framework/splash
+         mrlib/panel-wob
          racket/class
          racket/cmdline
-         framework/splash
+         racket/gui/base
          racket/runtime-path
-         (for-syntax racket/base)
-         mrlib/panel-wob
-         "frame-icon.rkt"
-         "dates.rkt")
+         "dates.rkt"
+         "frame-icon.rkt")
 
 (module test racket/base)
 
@@ -67,11 +67,9 @@
 
 (define (load-magic-images)
   (set! load-magic-images void) ; run only once
-  (for ([magic-image (in-list magic-images)])
-    (unless (magic-image-bitmap magic-image)
-      (set-magic-image-bitmap!
-       magic-image
-       (icons-bitmap (magic-image-filename magic-image))))))
+  (for ([magic-image (in-list magic-images)]
+        #:unless (magic-image-bitmap magic-image))
+    (set-magic-image-bitmap! magic-image (icons-bitmap (magic-image-filename magic-image)))))
 
 (define longest-magic-string
   (apply max (map (λ (s) (length (magic-image-chars s))) magic-images)))

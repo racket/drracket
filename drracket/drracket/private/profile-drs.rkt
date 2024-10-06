@@ -1,10 +1,10 @@
 #lang racket/base
-(require racket/gui/base
-         racket/class
-         profile/sampler
-         profile/render-text
+(require framework/preferences
          profile/analyzer
-         framework/preferences)
+         profile/render-text
+         profile/sampler
+         racket/class
+         racket/gui/base)
 
 #|
 
