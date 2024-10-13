@@ -1,23 +1,23 @@
 #lang racket/base
-(require framework
+(require browser/external
+         data/interval-map
+         drracket/private/rectangle-intersect
+         framework
          framework/private/coroutine
-         racket/gui/base
+         framework/private/logging-timer
+         images/icons/misc
+         net/url
          racket/class
-         racket/math
+         racket/gui/base
          racket/match
+         racket/math
          racket/runtime-path
          racket/set
-         data/interval-map
-         images/icons/misc
-         drracket/private/rectangle-intersect
-         string-constants
-         framework/private/logging-timer
          scribble/blueboxes
-         net/url
-         browser/external
-         setup/xref
          scribble/xref
-         setup/collects)
+         setup/collects
+         setup/xref
+         string-constants)
 (provide docs-text-defs-mixin
          docs-text-ints-mixin
          docs-editor-canvas-mixin
