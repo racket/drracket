@@ -1,4 +1,14 @@
 ------------------------------
+       Version 8.15
+------------------------------
+
+   . drracket remembers the previously opened files when starting a new session
+
+   . right-clicking on an image to save the file works with picts
+
+   . bug fixes and resyntax improvements to the codebase
+
+------------------------------
        Version 8.14
 ------------------------------
 
