@@ -14,6 +14,11 @@
 
    . add submodule-based filtering to the module browser
 
+   . added a notion of invisible parentheses to the paren matcher,
+     motivated by Rhombus. Invisible parens are a property of the
+     colorer tokens and don't require a token that actually takes up
+     space that's notated as a parenthesis.
+
    . bug fixes and doc improvements
 
 ------------------------------
