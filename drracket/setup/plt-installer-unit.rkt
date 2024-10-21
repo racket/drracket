@@ -1,11 +1,11 @@
 #lang racket/base
-(require racket/unit
-         mred/mred-sig
-         racket/class
-         "plt-installer-sig.rkt"
-         (prefix-in single: setup/plt-single-installer)
+(require mred/mred-sig
          mrlib/terminal
-         string-constants)
+         racket/class
+         racket/unit
+         string-constants
+         (prefix-in single: setup/plt-single-installer)
+         "plt-installer-sig.rkt")
 
 (provide plt-installer@)
 (define-unit plt-installer@
@@ -41,12 +41,10 @@
           (sleep 0.2) ; kludge to allow f to appear first
           (end-busy-cursor)
           ;; do these strings ever appear? (should move to string-constants, if so)
-          (let ([d (get-directory 
-                    "Select the destination for unpacking"
-                    frame)])
-            (unless d
-              (printf ">>> Cancelled <<<\n"))
-            (begin-busy-cursor)
-            d))
+          (define d (get-directory "Select the destination for unpacking" frame))
+          (unless d
+            (printf ">>> Cancelled <<<\n"))
+          (begin-busy-cursor)
+          d)
         #:show-beginning-of-file? #t))
      cleanup-thunk)))
