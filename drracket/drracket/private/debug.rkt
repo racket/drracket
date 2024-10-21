@@ -1,9 +1,9 @@
 #lang racket/base
 
-(require "drracket-errortrace-key.rkt"
-         racket/unit
+(require racket/unit
          racket/contract
          errortrace/stacktrace
+         errortrace/errortrace-key
          racket/class
          racket/path
          racket/bool
@@ -68,7 +68,7 @@
   (define (cms->srclocs cms)
     (map 
      errortrace-stack-item->srcloc
-     (continuation-mark-set->list cms drracket-errortrace-key)))
+     (continuation-mark-set->list cms errortrace-key)))
   
   ;; type debug-source = (union symbol (instanceof editor<%>))
   
@@ -718,7 +718,7 @@
       [else #f]))
   (define with-mark (make-with-mark special-source-handling-for-drr))
 
-  (define key-module-name 'drracket/private/drracket-errortrace-key)
+  (define key-module-name 'errortrace/errortrace-key)
   
   ;; current-backtrace-window : (union #f (instanceof frame:basic<%>))
   ;; the currently visible backtrace window, or #f, if none
