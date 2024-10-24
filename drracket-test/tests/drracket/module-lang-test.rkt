@@ -2,6 +2,8 @@
 (require "private/module-lang-test-utils.rkt"
          "private/drracket-test-util.rkt"
          framework
+         drracket/private/stack-checkpoint
+         racket/list
          racket/class)
 (provide run-test)
 
@@ -526,6 +528,142 @@ f: contract violation
    3
 }
       )
+
+(test @t{
+ #lang htdp/isl+
+
+ (check-expect (+ 123 45 6) even?)
+
+}
+      #f
+      #rx"check-expect.*function"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:3:0"
+                              (srcloc->string loc)))
+             ;; ^ check-expect is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-expect.*[?][)]"
+                                      (test-definitions test)))
+             ;; ^ check-expect is highlighted
+             )))
+
+(test @t{
+ #lang htdp/isl+
+
+ (check-expect (sqrt 2) (sqrt 2))
+
+}
+      #f
+      #rx"check-expect.*inexact"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:3:0"
+                              (srcloc->string loc)))
+             ;; ^ check-expect is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-expect.*sqrt 2[)][)]"
+                                      (test-definitions test)))
+             ;; ^ check-expect is highlighted
+             )))
+
+(test @t{
+ #lang htdp/isl+
+ (define p (make-posn 7 3))
+ (check-expect posn-x 7)
+
+}
+      #f
+      #rx"Ran 1 test.\n0 tests passed."
+      #|
+      check-expect encountered the following error instead of the expected value, 7. 
+         ::  at line 3, column 0 first argument of equality cannot be a function, given (lambda (a1) ...)
+      at line 3, column 0
+      |#
+      #:extra-assert
+      (λ (defs ints #:test test)
+        (define re
+          (pregexp
+           (string-append
+            "check-expect[ a-z]+error.*[^\n]+\n"
+            ".*::.*at line 3, column 0 first argument.*function[^\n]*\n"
+            "at line 3, column 0")))
+        ;; Includes the flattened test result snips.
+        (define full-ints-text
+          (send ints get-text (send ints paragraph-start-position 2) 'eof #t))
+        (define passed?
+          (regexp-match? re full-ints-text))
+        (unless passed?
+          (eprintf "FAILED line ~a: ~a\n  expected: ~s\n\n  got: ~a\n"
+                   (test-line test)
+                   (test-definitions test)
+                   re
+                   full-ints-text))
+        passed?))
+
+(test @t{
+ #lang htdp/isl+
+
+
+ (check-random (+ (random 5) (sqrt 2))
+               (+ (random 5) (sqrt 2)))
+
+}
+      #f
+      #rx"check-random.*inexact"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:4:0"
+                              (srcloc->string loc)))
+             ;; ^ check-random is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-random.*sqrt 2[)][)][)]"
+                                      (test-definitions test)))
+             ;; ^ check-random is highlighted
+             )))
+
+(test @t{
+ #lang htdp/isl+
+
+  (check-within (sqrt 2) 3/2 "0.1")
+
+}
+      #f
+      #rx"check-within.*\"0[.]1\".*not inexact"
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? #rx"unsaved-editor:3:1"
+                              (srcloc->string loc)))
+             ;; ^ check-within is in the backtrace, not some internal test-engine modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]check-within.*0[.]1\"[)]"
+                                      (test-definitions test)))
+             ;; ^ check-within is highlighted
+             )))
 
 (fire-up-drracket-and-run-tests run-test)
 

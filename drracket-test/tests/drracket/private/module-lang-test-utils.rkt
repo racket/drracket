@@ -6,7 +6,8 @@
          (for-syntax racket/base)
          racket/class)
 
-(provide test t rx run-test 
+(provide test t rx run-test
+         (struct-out test-struct)
          in-here in-here/path write-test-modules)
 
 ;; utilities to use with scribble/reader
@@ -14,15 +15,15 @@
 (define (rx . strs)
   (regexp (regexp-replace* #rx" *\n *" (string-append* strs) ".*")))
 
-(define-struct test
+(struct test
   (definitions    ; Rec X = (or/c string 'xml-box (listof X))
     interactions  ; (union #f string)
     result        ; (or/c string regexp)
     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
     extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
     line)         ; number or #f: the line number of the test case
-
-  #:omit-define-syntaxes)
+  #:name test-struct
+  #:constructor-name make-test)
 
 (define (in-here/path file) (path->string (build-path (find-system-path 'temp-dir) file)))
 (define (in-here file) (format "~s" (in-here/path file)))
@@ -176,7 +177,17 @@
                 (when has-next?
                   (loop))))
             (eprintf "----\n")))))
-    (unless ((test-extra-assert test) definitions-text interactions-text)
+    (define the-assert (test-extra-assert test))
+    (define-values (kws-req kws-acc) (procedure-keywords the-assert))
+    (define-values (kws kw-vals)
+      (for/lists (kws kw-vals)
+                 ;; the keywords must be sorted
+                 ([kw-val (in-list `((#:stacks . ,stacks)
+                                     (#:test . ,test)
+                                     (#:text . ,text)))]
+                  #:when (or (not kws-acc) (memq (car kw-val) kws-acc)))
+        (values (car kw-val) (cdr kw-val))))
+    (unless (keyword-apply the-assert kws kw-vals definitions-text interactions-text '())
       (eprintf "FAILED line ~a; extra assertion returned #f\n"
                (test-line test)))))
 
