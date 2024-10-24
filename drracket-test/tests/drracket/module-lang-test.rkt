@@ -589,7 +589,7 @@ f: contract violation
       #rx"Ran 1 test.\n0 tests passed."
       #|
       check-expect encountered the following error instead of the expected value, 7. 
-         ::  at line 3, column 0 first argument of equality cannot be a function, given (lambda (a1) ...)
+         ::  at line 3, column 0 first argument of equality cannot be a function, given posn-x
       at line 3, column 0
       |#
       #:extra-assert
@@ -598,7 +598,7 @@ f: contract violation
           (pregexp
            (string-append
             "check-expect[ a-z]+error.*[^\n]+\n"
-            ".*::.*at line 3, column 0 first argument.*function[^\n]*\n"
+            ".*::.*at line 3, column 0 first argument.*function.*given posn-x[^\n]*\n"
             "at line 3, column 0")))
         ;; Includes the flattened test result snips.
         (define full-ints-text
@@ -606,7 +606,7 @@ f: contract violation
         (define passed?
           (regexp-match? re full-ints-text))
         (unless passed?
-          (eprintf "FAILED line ~a: ~a\n  expected: ~s\n\n  got: ~a\n"
+          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~a\n"
                    (test-line test)
                    (test-definitions test)
                    re
@@ -664,6 +664,20 @@ f: contract violation
                                       (test-definitions test)))
              ;; ^ check-within is highlighted
              )))
+
+(test @t{
+ #lang htdp/isl+
+ (define (my-add1 n) (+ n 1))
+ my-add1
+ (check-expect my-add1 2)
+}
+      #f
+      #rx"^my-add1\nRan 1 test[.]\n0 tests passed[.]"
+      #:extra-assert
+      (λ (defs ints)
+        (regexp-match? #px"::\\s+at line 4, column 0[^\n]+function[^\n]+given my-add1"
+                       ;; Includes the flattened test result snips.
+                       (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
 
 (fire-up-drracket-and-run-tests run-test)
 
