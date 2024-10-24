@@ -1,6 +1,7 @@
 #lang racket/base
 (require "drracket-test-util.rkt"
          framework
+         drracket/private/stack-checkpoint
          racket/string
          (for-syntax racket/base)
          racket/class)
@@ -161,8 +162,19 @@
         (for ([stack (in-list stacks)])
           (when stack
             (eprintf "\n----\n")
-            (for ([frame (in-list stack)])
-              (eprintf "  ~s\n" frame))
+            (unless (empty-viewable-stack? stack)
+              (define stack-iterator (copy-viewable-stack stack))
+              (let loop ()
+                (define-values (list-of-srcloc-count has-next?)
+                  (viewable-stack-get-next-items! stack-iterator))
+                (for ([srcloc-count (in-list list-of-srcloc-count)])
+                  (define frame (srcloc->string (car srcloc-count)))
+                  (define count (+ 1 (cdr srcloc-count)))
+                  (if (> count 1)
+                      (eprintf "  ~a [repeated ~a times]\n" frame count)
+                      (eprintf "  ~a\n" frame)))
+                (when has-next?
+                  (loop))))
             (eprintf "----\n")))))
     (unless ((test-extra-assert test) definitions-text interactions-text)
       (eprintf "FAILED line ~a; extra assertion returned #f\n"
