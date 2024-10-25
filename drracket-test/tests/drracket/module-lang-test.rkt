@@ -683,9 +683,27 @@ f: contract violation
 
 ;; Test mode:
 (module test racket/base
-  (require syntax/location)
+  (require racket/port syntax/location)
+  (define-values (inp outp) (make-pipe))
+  (define tee-error-port (open-output-bytes 'tee-stderr))
+  (define stderr (current-error-port))
+  (void
+   (thread
+    (λ () (copy-port inp tee-error-port stderr))))
+  (exit-handler
+   (let ([old-exit-hdlr (exit-handler)])
+     (λ (code)
+       (define stderr-content-length
+         (bytes-length (get-output-bytes tee-error-port #t)))
+       (cond
+         [(and (zero? code) (> stderr-content-length 0))
+          (write-string "non-empty stderr\n" stderr)
+          (old-exit-hdlr 1)]
+         [else
+          (old-exit-hdlr code)]))))
   (putenv "PLTDRTEST" "yes")
   (eval-jit-enabled #f)
-  (dynamic-require (quote-module-path "..") #f)
+  (parameterize ([current-error-port outp])
+    (dynamic-require (quote-module-path "..") #f))
   (module config info
     (define timeout 800)))
