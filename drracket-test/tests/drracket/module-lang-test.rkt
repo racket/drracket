@@ -679,6 +679,36 @@ f: contract violation
                        ;; Includes the flattened test result snips.
                        (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
 
+(test @t{#lang htdp/isl
+         (check-expect (* 2 3) 6)
+         (check-expect (+ 2 3) 5)}
+      #f
+      #rx"^Both tests passed!$")
+
+(test @t{#lang htdp/isl}
+      ;; REPL
+      @t{(check-expect (* 2 3) 6)
+         (check-expect (+ 2 3) 5)}
+      #rx"^The test passed!\nThe test passed!$")
+
+(test @t{#lang htdp/isl
+         (check-expect (* 2 3) 6)
+         (check-expect (* 2 3) 5)}
+      #f
+      #rx"^Ran 2 tests[.]\n1 of the 2 tests failed[.].*Check failures:")
+
+(test @t{#lang htdp/isl}
+      ;; REPL
+      @t{(check-expect (* 2 3) 6)
+         (check-expect (* 2 3) 5)}
+      #rx"^The test passed!\nRan 1 test[.]\n0 tests passed[.].*Check failures:")
+
+(test @t{#lang htdp/isl}
+      ;; REPL
+      @t{(check-expect (* 2 3) 5)
+         (check-expect (* 2 3) 6)}
+      #rx"^Ran 1 test[.]\n0 tests passed[.].*Check failures:.*\nThe test passed!$")
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:
