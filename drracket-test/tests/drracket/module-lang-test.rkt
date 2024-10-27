@@ -709,6 +709,57 @@ f: contract violation
          (check-expect (* 2 3) 6)}
       #rx"^Ran 1 test[.]\n0 tests passed[.].*Check failures:.*\nThe test passed!$")
 
+(test @t{#lang htdp/isl
+         (check-expect (* 2 3) 6)
+         (check-expect (* 2 3) 5)
+         (check-expect (+ 2 3) 5)}
+      ;; REPL
+      @t{(check-expect (+ 4 5) 9)
+         (check-expect (+ 6 7) 42)
+         (check-expect (* 8 9) 72)
+         (check-expect (error 'oops) 111)}
+      #px"^Ran 3 tests[.]\\s+1 of the 3 tests failed[.]"
+      #t
+      #:extra-assert
+      (λ (defs ints #:test test)
+        (define re
+          (pregexp
+           @t{^Ran 3 tests[.]
+              1 of the 3 tests failed[.]
+
+              Check failures:\s*
+                +Actual value 6 differs from 5, the expected value[.]\s*
+              at line 3, column 0
+              > @(regexp-quote (test-interactions test))
+              The test passed!
+              Ran 1 test[.]
+              0 tests passed[.]
+
+              Check failures:\s*
+                +Actual value 13 differs from 42, the expected value[.]\s*
+              at line 10, column 0
+              The test passed!
+              Ran 1 test[.]
+              0 tests passed[.]
+
+              Check failures:\s*
+                +check-expect encountered the following error instead of the expected value, 111[.]\s*
+                +:: +at line 12, column 14 oops:\s*
+              at line 12, column 0
+              > }))
+        ;; Includes the flattened test result snips.
+        (define full-ints-text
+          (send ints get-text (send ints paragraph-start-position 2) 'eof #t))
+        (define passed?
+          (regexp-match? re full-ints-text))
+        (unless passed?
+          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~a\n"
+                   (test-line test)
+                   (test-definitions test)
+                   re
+                   full-ints-text))
+        passed?))
+
 (fire-up-drracket-and-run-tests run-test)
 
 ;; Test mode:
