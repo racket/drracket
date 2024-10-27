@@ -1,10 +1,10 @@
 #lang racket/base
 
-(require racket/match
+(require framework/preferences
          racket/contract
-         racket/serialize
          racket/list
-         framework/preferences)
+         racket/match
+         racket/serialize)
 
 (define bug-classes '(("software bug" "sw-bug")
                       ("documentation bug" "doc-bug")
@@ -182,18 +182,18 @@
          saved-report?
          default-severity
          default-class)
-(provide/contract
- [register-new-bug-id (-> saved-report?)]
- [lookup-bug-report (-> number? saved-report?)]
- [saved-report-lookup (-> saved-report? (apply or/c valid-keys) string?)]
- [saved-report-id (-> saved-report? number?)]
- [save-bug-report (-> number?
-                      #:severity (apply or/c bug-severities)
-                      #:class (apply or/c (map car bug-classes))
-                      #:subject string?
-                      #:description string?
-                      #:how-to-repeat string?
-                      void?)]
- [unsave-bug-report (-> number? void?)]
- [saved-bug-report-titles/ids (-> (listof brinfo?))]
- [discard-all-except (-> (-> number? boolean?) void?)])
+(provide (contract-out [register-new-bug-id (-> saved-report?)]
+                       [lookup-bug-report (-> number? saved-report?)]
+                       [saved-report-lookup (-> saved-report? (apply or/c valid-keys) string?)]
+                       [saved-report-id (-> saved-report? number?)]
+                       [save-bug-report
+                        (-> number?
+                            #:severity (apply or/c bug-severities)
+                            #:class (apply or/c (map car bug-classes))
+                            #:subject string?
+                            #:description string?
+                            #:how-to-repeat string?
+                            void?)]
+                       [unsave-bug-report (-> number? void?)]
+                       [saved-bug-report-titles/ids (-> (listof brinfo?))]
+                       [discard-all-except (-> (-> number? boolean?) void?)]))

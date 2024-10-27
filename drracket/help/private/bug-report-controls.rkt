@@ -1,26 +1,21 @@
 #lang racket/base
-(require racket/gui/base
-         racket/class
-         racket/contract
-         racket/pretty
-         string-constants/string-constant
-         setup/dirs
-         setup/link
+(require (for-syntax racket/base
+                     racket/list)
          framework
          pkg
-         (for-syntax racket/base
-                     racket/list)
+         racket/class
+         racket/contract
+         racket/gui/base
+         racket/pretty
+         setup/dirs
+         setup/link
+         string-constants/string-constant
          "buginfo.rkt"
          "save-bug-report.rkt")
 
-(provide/contract
- [add-bug-report-controls
-  (-> (is-a?/c area-container<%>) 
-      saved-report?
-      (-> any)
-      (-> any)
-      (-> any)
-      any)])
+(provide (contract-out
+          [add-bug-report-controls
+           (-> (is-a?/c area-container<%>) saved-report? (-> any) (-> any) (-> any) any)]))
 
 (define (add-bug-report-controls compose-panel init-bug-report ok cancel close-and-save)
   (define top-panel (make-object vertical-panel% compose-panel))
@@ -61,10 +56,9 @@
   (define (align-labels)
     (send synthesized-dialog reflow-container)
     (send compose-panel reflow-container)
-    (let ([width (apply max (map (lambda (x) (send (car (send x get-children)) get-width))
-                                 lps))])
-      (for ([x (in-list lps)])
-        (send x min-width width)))) 
+    (define width (apply max (map (lambda (x) (send (car (send x get-children)) get-width)) lps)))
+    (for ([x (in-list lps)])
+      (send x min-width width))) 
   
   (define name
     (build/label 
@@ -151,24 +145,19 @@
            (build/label 
             label 
             (lambda (panel)
-              (let* ([text (new (editor:standard-style-list-mixin
-                                 (editor:keymap-mixin
-                                  (if key
-                                      save-text%
-                                      text:basic%))))]
-                     [canvas (new canvas:basic% 
-                                  (style '(hide-hscroll))
-                                  (parent panel) 
-                                  (editor text))])
-                (send text set-paste-text-only #t)
-                (send text auto-wrap #t)
-                (send text set-max-undo-history 'forever)
-                (send text set-styles-fixed #t)
-                (when key 
-                  (send text insert (saved-report-lookup init-bug-report key))
-                  (send text set-position 0 0)
-                  (send text initialized))
-                canvas))
+              (define text
+                (new (editor:standard-style-list-mixin
+                      (editor:keymap-mixin (if key save-text% text:basic%)))))
+              (define canvas (new canvas:basic% (style '(hide-hscroll)) (parent panel) (editor text)))
+              (send text set-paste-text-only #t)
+              (send text auto-wrap #t)
+              (send text set-max-undo-history 'forever)
+              (send text set-styles-fixed #t)
+              (when key
+                (send text insert (saved-report-lookup init-bug-report key))
+                (send text set-position 0 0)
+                (send text initialized))
+              canvas)
             #t
             #:stretch? stretch?
             #:top-panel top-panel
@@ -253,28 +242,24 @@
   (send synthesized-dialog reflow-container) ;; help out the editor by resizing the container to a reasonable width (and thus make word-wrapping easier)
   
   (define extras
-    (map (lambda (bri)
-           (let ([label (bri-label bri)])
-             (cons
-              label
-              (build/label
-               label
-               (lambda (panel)
-                 (let ([field
-                        (keymap:call/text-keymap-initializer
-                         (lambda ()
-                           (new text-field%
-                                [label #f]
-                                [parent panel]
-                                [callback void]
-                                [init-value ""]
-                                [min-height (bri-min-height bri)])))])
-                   (send field set-value (bri-value bri))
-                   (send (send field get-editor) set-position 0)
-                   field))
-               #f
-               #:top-panel synthesized-panel))))
-         (get-bug-report-infos)))
+    (for/list ([bri (in-list (get-bug-report-infos))])
+      (define label (bri-label bri))
+      (cons label
+            (build/label label
+                         (lambda (panel)
+                           (let ([field (keymap:call/text-keymap-initializer
+                                         (lambda ()
+                                           (new text-field%
+                                                [label #f]
+                                                [parent panel]
+                                                [callback void]
+                                                [init-value ""]
+                                                [min-height (bri-min-height bri)])))])
+                             (send field set-value (bri-value bri))
+                             (send (send field get-editor) set-position 0)
+                             field))
+                         #f
+                         #:top-panel synthesized-panel))))
   
   (define still-save? #t)
   (define (no-more-saving) (set! still-save? #f))
@@ -308,9 +293,8 @@
                   (cons 'description (get-content description))
                   (cons 'how-to-repeat (get-content reproduce))
                   (cons 'platform (get-environment)))
-            (map (λ (bri) (cons (string->symbol (format "~a" (bri-label bri)))
-                                (bri-value bri)))
-                 (get-bug-report-infos))))
+            (for/list ([bri (in-list (get-bug-report-infos))])
+              (cons (string->symbol (format "~a" (bri-label bri))) (bri-value bri)))))
   
   (define (get-environment)
     (string-append (send environment get-value)
@@ -324,28 +308,15 @@
                    "\n"
                    (apply 
                     string-append
-                    (map (lambda (extra)
-                           (format "~a: ~a\n"
-                                   (car extra)
-                                   (send (cdr extra) get-value)))
-                         extras))))
+                    (for/list ([extra (in-list extras)])
+                      (format "~a: ~a\n" (car extra) (send (cdr extra) get-value))))))
   
   (define (get-content canvas) 
     (define t (send canvas get-editor))
     (send t get-text 0 (send t last-position)))
   
-  (define (set-content canvas str)
-    (define t (send canvas get-editor))
-    (send t begin-edit-sequence)
-    (send t erase)
-    (send t insert str)
-    (send t end-edit-sequence))
-  
   (define (compose-view-focus)
-    (send (if (string=? "" (preferences:get 'drracket:full-name))
-              name
-              summary)
-          focus))
+    (send (if (string=? "" (preferences:get 'drracket:full-name)) name summary) focus))
   
   (define button-panel
     (new horizontal-panel% [parent compose-panel]
@@ -368,34 +339,28 @@
   
   
   (define (sanity-checking)
-    (let ([no-value?
-           (lambda (f)
-             (cond
-               [(is-a? f editor-canvas%)
-                (= 0 (send (send f get-editor) last-position))]
-               [else (string=? "" (send f get-value))]))])
-      (let/ec done-checking
-        (for-each
-         (lambda (field field-name)
-           (when (no-value? field)
-             (message-box (string-constant illegal-bug-report)
-                          (format (string-constant pls-fill-in-field) field-name))
-             (done-checking #f)))
-         (list name summary)
-         (list (string-constant bug-report-field-name)
-               (string-constant bug-report-field-summary)))
-        
-        (when (and (no-value? description)
-                   (no-value? reproduce))
-          (message-box (string-constant illegal-bug-report)
-                       (string-constant pls-fill-in-either-description-or-reproduce))
-          (done-checking #f))
-        
-        (unless (regexp-match #rx"@" (or (preferences:get 'drracket:email) ""))
-          (message-box (string-constant illegal-bug-report)
-                       (string-constant malformed-email-address))
-          (done-checking #f))
-        (done-checking #t))))
+    (define (no-value? f)
+      (cond
+        [(is-a? f editor-canvas%) (= 0 (send (send f get-editor) last-position))]
+        [else (string=? "" (send f get-value))]))
+    (let/ec done-checking
+            (for-each (lambda (field field-name)
+                        (when (no-value? field)
+                          (message-box (string-constant illegal-bug-report)
+                                       (format (string-constant pls-fill-in-field) field-name))
+                          (done-checking #f)))
+                      (list name summary)
+                      (list (string-constant bug-report-field-name)
+                            (string-constant bug-report-field-summary)))
+            (when (and (no-value? description) (no-value? reproduce))
+              (message-box (string-constant illegal-bug-report)
+                           (string-constant pls-fill-in-either-description-or-reproduce))
+              (done-checking #f))
+            (unless (regexp-match #rx"@" (or (preferences:get 'drracket:email) ""))
+              (message-box (string-constant illegal-bug-report)
+                           (string-constant malformed-email-address))
+              (done-checking #f))
+            (done-checking #t)))
   
   (send version-tf set-value (format "~a" (version:version)))
   
