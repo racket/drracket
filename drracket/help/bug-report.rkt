@@ -1,13 +1,13 @@
 #lang racket/base
-(require string-constants
-         net/head
-         racket/gui/base
+(require browser/htmltext
          framework
-         racket/class
-         racket/port
-         net/url
+         net/head
          net/uri-codec
-         browser/htmltext
+         net/url
+         racket/class
+         racket/gui/base
+         racket/port
+         string-constants
          "private/bug-report-controls.rkt"
          "private/buginfo.rkt"
          "private/save-bug-report.rkt")
@@ -49,10 +49,10 @@
          [(null? open-frames)
           (report-bug/new-frame this-bug-id frame-mixin)]
          [else
-          (let ([open-frame (car open-frames)])
-            (if (= (send open-frame get-bug-id) this-bug-id)
-                (send open-frame show #t)
-                (loop (cdr open-frames))))]))]
+          (define open-frame (car open-frames))
+          (if (= (send open-frame get-bug-id) this-bug-id)
+              (send open-frame show #t)
+              (loop (cdr open-frames)))]))]
     [else
      (report-bug/new-frame this-bug-id frame-mixin)]))
 
@@ -259,24 +259,25 @@
                         [else #f]))
                 ;; skip HTTP headers
                 (regexp-match-positions #rx"\r?\n\r?\n" port)
-                (if error?
-                  ;; error status => show as error
-                  (begin (with-pending-text
-                          (λ ()
-                            (send pending-text erase)
-                            (render-html-to-text port pending-text #t #f)))
-                         (channel-put exn-chan #f)) ; #f = "already rendered"
+                (cond
+                  [error?
+                   ;; error status => show as error
+                   (with-pending-text (λ ()
+                                        (send pending-text erase)
+                                        (render-html-to-text port pending-text #t #f)))
+                   (channel-put exn-chan #f)] ; #f = "already rendered"
                   ;; (hopefully) a good result
-                  (let ([response-text (new html-text%)])
-                    (render-html-to-text port response-text #t #f)
-                    (send response-text auto-wrap #t)
-                    (send response-text lock #t)
-                    (channel-put response-chan response-text))))))))))
+                  [else
+                   (define response-text (new html-text%))
+                   (render-html-to-text port response-text #t #f)
+                   (send response-text auto-wrap #t)
+                   (send response-text lock #t)
+                   (channel-put response-chan response-text)]))))))))
     (define (render-error to-render)
       (cond
         [(string? to-render)
-         (let ([str (string-append "<pre>\n\nERROR:\n"to-render"\n</pre>\n")])
-           (render-error (open-input-string str)))]
+         (define str (string-append "<pre>\n\nERROR:\n" to-render "\n</pre>\n"))
+         (render-error (open-input-string str))]
         [(exn? to-render)
          (define sp (open-output-string))
          (fprintf sp "~a\n" (exn-message to-render))
