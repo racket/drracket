@@ -3418,10 +3418,18 @@
           (string=? (path->string (normal-case-path (normalize-path p1)))
                     (path->string (normal-case-path (normalize-path p2))))))
 
-      (define/override (make-visible filename)
+      (define/override (make-visible filename #:start-pos [start-pos #f] #:end-pos [end-pos start-pos])
         (let ([tab (find-matching-tab filename)])
           (when tab
-            (change-to-tab tab))))
+            (change-to-tab tab)
+            (when (and start-pos end-pos)
+              (define (set-the-position ed)
+                (when (send ed port-name-matches? filename)
+                  (send (send ed get-canvas) focus)
+                  (send ed set-caret-owner #f)
+                  (send ed set-position start-pos end-pos)))
+              (set-the-position (send tab get-defs))
+              (set-the-position (send tab get-ints))))))
       
       (define/public (find-matching-tab filename)
         (define fn-path (if (string? filename)
@@ -3435,9 +3443,8 @@
       
       (define/override (editing-this-file? filename)
         (ormap (λ (tab)
-                 (let ([fn (send (send tab get-defs) get-filename)])
-                   (and fn
-                        (pathname-equal? fn filename))))
+                 (or (send (send tab get-defs) port-name-matches? filename)
+                     (send (send tab get-ints) port-name-matches? filename)))
                tabs))
 
       (define/override (get-all-open-files)
