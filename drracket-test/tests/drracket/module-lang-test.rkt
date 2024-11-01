@@ -667,15 +667,62 @@ f: contract violation
 
 (test @t{
  #lang htdp/isl+
+
  (define (my-add1 n) (+ n 1))
  my-add1
  (check-expect my-add1 2)
+
+ (let ([keep-parity (lambda (m)
+                      (+ m 2))])
+   keep-parity)
+
+ (local [(define alt-parity (lambda (m)
+                              (- 1 m)))]
+   alt-parity)
+
+ (let ()
+   (lambda (m)
+     (+ m 2)))
+
 }
       #f
-      #rx"^my-add1\nRan 1 test[.]\n0 tests passed[.]"
+      @rx{^my-add1
+          keep-parity
+          alt-parity
+          [(]lambda [(]a1[)] [.][.][.][)]
+          Ran 1 test[.]
+          0 tests passed[.]}
       #:extra-assert
       (λ (defs ints)
-        (regexp-match? #px"::\\s+at line 4, column 0[^\n]+function[^\n]+given my-add1"
+        (regexp-match? #px"::\\s+at line 5, column 0[^\n]+function[^\n]+given my-add1"
+                       ;; Includes the flattened test result snips.
+                       (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
+
+(test @t{
+ #lang htdp/isl
+
+ (define (my-add1 n) (+ n 1))
+ my-add1
+ (check-expect my-add1 2)
+
+ (let ([keep-parity (lambda (m)
+                      (+ m 2))])
+   keep-parity)
+
+ (local [(define alt-parity (lambda (m)
+                              (- 1 m)))]
+   alt-parity)
+
+}
+      #f
+      @rx{^function:my-add1
+          function:keep-parity
+          function:alt-parity
+          Ran 1 test[.]
+          0 tests passed[.]}
+      #:extra-assert
+      (λ (defs ints)
+        (regexp-match? #px"::\\s+at line 5, column 0[^\n]+function[^\n]+given function:my-add1"
                        ;; Includes the flattened test result snips.
                        (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
 
