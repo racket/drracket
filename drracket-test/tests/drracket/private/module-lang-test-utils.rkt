@@ -20,6 +20,9 @@
     interactions  ; (union #f string)
     result        ; (or/c string regexp)
     all?          ; boolean (#t => compare all of the text between the 3rd and n-1-st line)
+    before-exec   ; (-> any)
+    after-test    ; (-> any)
+    wait-for-drracket-frame-after-test? ; boolean
     extra-assert  ; (-> (is-a?/c text) (is-a?/c text) boolean)
     line)         ; number or #f: the line number of the test case
   #:name test-struct
@@ -35,11 +38,17 @@
      (with-syntax ([line (syntax-line stx)])
        #'(test/proc line args ...))]))
 (define (test/proc line definitions interactions results [all? #f]
-                   #:extra-assert [extra-assert (λ (x y) #t)])
+                   #:extra-assert [extra-assert (λ (x y) #t)]
+                   #:before-execute [before-exec (λ () (void))]
+                   #:after-test [after-test (λ () (void))]
+                   #:wait-for-drracket-frame-after-test? [wait-for-drs? #f])
   (set! tests (cons (make-test definitions
                                interactions 
                                results 
-                               all? 
+                               all?
+                               before-exec
+                               after-test
+                               wait-for-drs?
                                extra-assert
                                line)
                     tests)))
@@ -82,6 +91,7 @@
          (error 'module-lang-test-utils.rkt
                 "unknown thing in test-definitions field ~s"
                 to-handle)]))
+    ((test-before-exec test))
     (do-execute drs)
     
     (define ints (test-interactions test))
@@ -189,16 +199,22 @@
         (values (car kw-val) (cdr kw-val))))
     (unless (keyword-apply the-assert kws kw-vals definitions-text interactions-text '())
       (eprintf "FAILED line ~a; extra assertion returned #f\n"
-               (test-line test)))))
+               (test-line test)))
+    ((test-after-test test))
+    (when (test-wait-for-drracket-frame-after-test? test)
+      (retrieve-drracket-frames!))))
 
 (define drs 'not-yet-drs-frame)
 (define interactions-text 'not-yet-interactions-text)
 (define definitions-text 'not-yet-definitions-text)
 
-(define (run-test)
+(define (retrieve-drracket-frames!)
   (set! drs (wait-for-drracket-frame))
   (set! interactions-text  (send drs get-interactions-text))
-  (set! definitions-text (send drs get-definitions-text))
+  (set! definitions-text (send drs get-definitions-text)))
+
+(define (run-test)
+  (retrieve-drracket-frames!)
   (init-temp-files)
   (run-use-compiled-file-paths-tests)
   (set-module-language! #f)

@@ -2,6 +2,7 @@
 (require "private/module-lang-test-utils.rkt"
          "private/drracket-test-util.rkt"
          framework
+         (only-in racket/gui/base sleep/yield)
          drracket/private/stack-checkpoint
          racket/list
          racket/class)
@@ -665,6 +666,82 @@ f: contract violation
              ;; ^ check-within is highlighted
              )))
 
+(let ()
+(define filename @t{gh208-pr229-islplus.rkt})
+(define path (string->path (in-here/path filename)))
+(test #:before-execute
+      (λ ()
+        (save-drracket-window-as path))
+      #:after-test
+      (λ ()
+        (define drs (wait-for-drracket-frame))
+        (test:menu-select "File" "New Tab")
+        (case (system-type 'os)
+          [(macosx windows)
+           (test:menu-select "Windows" (format "Tab 1: ~a" filename))
+           (test:menu-select "File" "Close Tab")]
+          [(unix)
+           (test:menu-select "Tabs" (format "Tab 1: ~a" filename))
+           (test:menu-select "File" "Close")])
+        (when (file-exists? path)
+          (delete-file path)))
+      #:wait-for-drracket-frame-after-test? #t
+      @t{
+ #lang htdp/isl+
+
+ (define (my-add1 n) (+ n 1))
+ my-add1
+ (check-expect my-add1 2)
+
+ (let ([keep-parity (lambda (m)
+                      (+ m 2))])
+   keep-parity)
+
+ (local [(define alt-parity (lambda (m)
+                              (- 1 m)))]
+   alt-parity)
+
+ (let ()
+   (lambda (m)
+     (+ m 2)))
+
+ (local [(define lam-in-if
+          (if (> (random 10) 5)
+              (lambda (x) (+ x 5))
+              (lambda (y) (* y 2))))]
+  lam-in-if)
+
+}
+      #f
+      @rx{^my-add1
+          keep-parity
+          alt-parity
+          [(]lambda [(]a1[)] [.][.][.][)]
+          lam-in-if
+          Ran 1 test[.]
+          0 tests passed[.]}
+      #:extra-assert
+      (λ (defs ints #:test test)
+        (define ^\n "[^\n]+")
+        (define re
+          (pregexp
+           @t{::\s+in @(regexp-quote filename), line 5, column 0@|^\n|function@|^\n|given my-add1}))
+        ;; Includes the flattened test result snips.
+        (define full-ints-text
+          (send ints get-text (send ints paragraph-start-position 2) 'eof #t))
+        (define passed?
+          (regexp-match? re full-ints-text))
+        (unless passed?
+          (eprintf "FAILED line ~a: ~a\n  extra assertion expected: ~s\n\n  got: ~a\n"
+                   (test-line test)
+                   (test-definitions test)
+                   re
+                   full-ints-text)
+          (flush-output (current-error-port))
+          (sleep/yield 0.1))
+        passed?)))
+
+;; Run the same test, but in an unsaved buffer.
 (test @t{
  #lang htdp/isl+
 
@@ -684,12 +761,19 @@ f: contract violation
    (lambda (m)
      (+ m 2)))
 
+ (local [(define lam-in-if
+          (if (> (random 10) 5)
+              (lambda (x) (+ x 5))
+              (lambda (y) (* y 2))))]
+  lam-in-if)
+
 }
       #f
       @rx{^my-add1
           keep-parity
           alt-parity
           [(]lambda [(]a1[)] [.][.][.][)]
+          lam-in-if
           Ran 1 test[.]
           0 tests passed[.]}
       #:extra-assert
@@ -698,6 +782,58 @@ f: contract violation
                        ;; Includes the flattened test result snips.
                        (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
 
+(let ()
+(define filename @t{gh208-pr229-isl.rkt})
+(define path (string->path (in-here/path filename)))
+(test #:before-execute
+      (λ ()
+        (save-drracket-window-as path))
+      #:after-test
+      (λ ()
+        (define drs (wait-for-drracket-frame))
+        (test:menu-select "File" "New Tab")
+        (case (system-type 'os)
+          [(macosx windows)
+           (test:menu-select "Windows" (format "Tab 1: ~a" filename))
+           (test:menu-select "File" "Close Tab")]
+          [(unix)
+           (test:menu-select "Tabs" (format "Tab 1: ~a" filename))
+           (test:menu-select "File" "Close")])
+        (when (file-exists? path)
+          (delete-file path)))
+      #:wait-for-drracket-frame-after-test? #t
+      @t{
+ #lang htdp/isl
+
+ (define (my-add1 n) (+ n 1))
+ my-add1
+ (check-expect my-add1 2)
+
+ (let ([keep-parity (lambda (m)
+                      (+ m 2))])
+   keep-parity)
+
+ (local [(define alt-parity (lambda (m)
+                              (- 1 m)))]
+   alt-parity)
+
+}
+      #f
+      @rx{^function:my-add1
+          function:keep-parity
+          function:alt-parity
+          Ran 1 test[.]
+          0 tests passed[.]}
+      #:extra-assert
+      (λ (defs ints)
+        (define ^\n "[^\n]+")
+        (regexp-match?
+         (pregexp
+          @t{::\s+in @(regexp-quote filename), line 5, column 0@|^\n|function@|^\n|given function:my-add1})
+         ;; Includes the flattened test result snips.
+         (send ints get-text (send ints paragraph-start-position 2) 'eof #t)))))
+
+;; Run the same test, but in an unsaved buffer.
 (test @t{
  #lang htdp/isl
 
@@ -804,7 +940,9 @@ f: contract violation
                    (test-line test)
                    (test-definitions test)
                    re
-                   full-ints-text))
+                   full-ints-text)
+          (flush-output (current-error-port))
+          (sleep/yield 0.1))
         passed?))
 
 (fire-up-drracket-and-run-tests run-test)
