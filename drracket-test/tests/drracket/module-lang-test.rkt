@@ -666,25 +666,24 @@ f: contract violation
              ;; ^ check-within is highlighted
              )))
 
-(let ()
-(define filename @t{gh208-pr229-islplus.rkt})
-(define path (string->path (in-here/path filename)))
-(test #:before-execute
-      (λ ()
-        (save-drracket-window-as path))
-      #:after-test
-      (λ ()
-        (define drs (wait-for-drracket-frame))
-        (test:menu-select "File" "New Tab")
-        (case (system-type 'os)
-          [(macosx windows)
-           (test:menu-select "Windows" (format "Tab 1: ~a" filename))
-           (test:menu-select "File" "Close Tab")]
-          [(unix)
-           (test:menu-select "Tabs" (format "Tab 1: ~a" filename))
-           (test:menu-select "File" "Close")])
-        (when (file-exists? path)
-          (delete-file path)))
+(define (close-current-tab-and-open-new-tab filename)
+  (define path (in-here/path filename))
+  (define drs (wait-for-drracket-frame))
+  (test:menu-select "File" "New Tab")
+  (case (system-type 'os)
+    [(macosx windows)
+     (test:menu-select "Windows" (format "Tab 1: ~a" filename))
+     (test:menu-select "File" "Close Tab")]
+    [(unix)
+     (test:menu-select "Tabs" (format "Tab 1: ~a" filename))
+     (test:menu-select "File" "Close")])
+  (when (file-exists? path)
+    (delete-file path)))
+
+(let ([filename @t{gh208-pr229-islplus.rkt}])
+(test #:before-execute (λ () (save-drracket-window-as
+                              (string->path (in-here/path filename))))
+      #:after-test (λ () (close-current-tab-and-open-new-tab filename))
       #:wait-for-drracket-frame-after-test? #t
       @t{
  #lang htdp/isl+
@@ -782,25 +781,10 @@ f: contract violation
                        ;; Includes the flattened test result snips.
                        (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
 
-(let ()
-(define filename @t{gh208-pr229-isl.rkt})
-(define path (string->path (in-here/path filename)))
-(test #:before-execute
-      (λ ()
-        (save-drracket-window-as path))
-      #:after-test
-      (λ ()
-        (define drs (wait-for-drracket-frame))
-        (test:menu-select "File" "New Tab")
-        (case (system-type 'os)
-          [(macosx windows)
-           (test:menu-select "Windows" (format "Tab 1: ~a" filename))
-           (test:menu-select "File" "Close Tab")]
-          [(unix)
-           (test:menu-select "Tabs" (format "Tab 1: ~a" filename))
-           (test:menu-select "File" "Close")])
-        (when (file-exists? path)
-          (delete-file path)))
+(let ([filename @t{gh208-pr229-isl.rkt}])
+(test #:before-execute (λ () (save-drracket-window-as
+                              (string->path (in-here/path filename))))
+      #:after-test (λ () (close-current-tab-and-open-new-tab filename))
       #:wait-for-drracket-frame-after-test? #t
       @t{
  #lang htdp/isl
@@ -861,6 +845,93 @@ f: contract violation
         (regexp-match? #px"::\\s+at line 5, column 0[^\n]+function[^\n]+given function:my-add1"
                        ;; Includes the flattened test result snips.
                        (send ints get-text (send ints paragraph-start-position 2) 'eof #t))))
+
+(let ([filename @t{htdp-tests-intm-lam-map.rkt}])
+(test #:before-execute (λ () (save-drracket-window-as
+                              (string->path (in-here/path filename))))
+      #:after-test (λ () (close-current-tab-and-open-new-tab filename))
+      #:wait-for-drracket-frame-after-test? #t
+      @t{
+#lang htdp/isl+
+   (map (lambda (x y) (+ x y)) (list 2 3 4))
+}
+      #f
+      @rx{map: first argument must be a function that expects one argument,
+          given @regexp-quote{(lambda (a1 a2) ...)}}
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? @rx{@(regexp-quote filename):2:3}
+                              (srcloc->string loc)))
+             ;; ^ foldr is in the backtrace, not some internal HtDP modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]map.*3 4[)][)]"
+                                      (test-definitions test)))
+             ;; ^ foldr is highlighted
+             ))))
+
+(let ([filename @t{htdp-tests-intm-lam-foldr2.rkt}])
+(test #:before-execute (λ () (save-drracket-window-as
+                              (string->path (in-here/path filename))))
+      #:after-test (λ () (close-current-tab-and-open-new-tab filename))
+      #:wait-for-drracket-frame-after-test? #t
+      @t{
+#lang htdp/isl+
+   (foldr (lambda (x y) (+ x y)) 0 (list 2 3 4) (list 2 3 4))
+}
+      #f
+      @rx{foldr: first argument must be a function that expects three arguments,
+          given @regexp-quote{(lambda (a1 a2) ...)}}
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? @rx{@(regexp-quote filename):2:3}
+                              (srcloc->string loc)))
+             ;; ^ foldr is in the backtrace, not some internal HtDP modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]foldr.*3 4[)][)]"
+                                      (test-definitions test)))
+             ;; ^ foldr is highlighted
+             ))))
+
+(let ([filename @t{htdp-tests-intm-lam-foldr3.rkt}])
+(test #:before-execute (λ () (save-drracket-window-as
+                              (string->path (in-here/path filename))))
+      #:after-test (λ () (close-current-tab-and-open-new-tab filename))
+      #:wait-for-drracket-frame-after-test? #t
+      @t{
+#lang htdp/isl+
+   (foldr (lambda (x y z) (+ x y z)) 0 (list 2 3 4))
+}
+      #f
+      @rx{foldr: first argument must be a function that expects two arguments,
+          given @regexp-quote{(lambda (a1 a2 a3) ...)}}
+      #:extra-assert
+      (λ (defs ints #:stacks stacks #:test test)
+        (and (for*/or ([stack (in-list stacks)]
+                       #:when stack
+                       [loc (in-list (viewable-stack->red-arrows-backtrace-srclocs stack))])
+               (regexp-match? @rx{@(regexp-quote filename):2:3}
+                              (srcloc->string loc)))
+             ;; ^ foldr is in the backtrace, not some internal HtDP modules
+             (equal?
+              (remove-duplicates
+               (for/list ([range (send defs get-highlighted-ranges)])
+                 (cons (text:range-start range) (text:range-end range))))
+              (regexp-match-positions #rx"[(]foldr.*3 4[)][)]"
+                                      (test-definitions test)))
+             ;; ^ foldr is highlighted
+             ))))
 
 (test @t{#lang htdp/isl
          (check-expect (* 2 3) 6)
