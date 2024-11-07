@@ -543,3 +543,47 @@ brings the corresponding window to the front.
    DrRacket to other languages.}
 
 ]
+
+
+@; ----------------------------------------
+
+@section{@onscreen{Context menu}}
+
+The following additional menu items may be available when activating the context menu in an 
+editing panel. 
+
+@itemize[
+
+ @item{@defmenuitem{Tack/Untack Arrow(s)} Tack binding relationship arrows so
+  they do not disappear. Repeat to untack arrows.}
+ 
+ @item{@defmenuitem{Open Defining File} Opens the file with the currently 
+  selected identifier was defined.}
+
+ @item{@defmenuitem{Jump to Next Bound Occurence} Selects the next occurence of the variable.}
+ 
+ @item{@defmenuitem{Jump to Binding Occurence} Selects where the identifier was bound in the text. 
+If imported the name of the imported library is selected.}
+
+ @item{@defmenuitem{Add Require Prefix} Adds prefix-in, prompts for prefix, and renames
+instances of imported identifier to include the prefix.}
+
+ @item{@defmenuitem{Remove Unused Requires} Refactoring tool to remove unused 
+   requires in module.}
+ 
+ @item{@defmenuitem{Rename} Renames all occurences of selected variable.}
+ 
+ @item{@defmenuitem{Collapse S-expression} Caused the current S-expression to 
+  be renderied as (...)}
+
+ @item{@defmenuitem{Collapse S-expression} Expands S-expression displayed as 
+  (...) back to origninal text.}
+  
+ @item{@defmenuitem{Search in Help Desk for ...} Opens browser and triggers 
+  search of documentation for selected term.}
+
+ @item{@defmenuitem{Save Image...} Save currently selected image to file.}
+]
+
+Standard editng functions are also available via the context menu: Undo, 
+Redo, copy, cut, paste, Select All, and Select All.
