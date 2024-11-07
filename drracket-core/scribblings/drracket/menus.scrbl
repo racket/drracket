@@ -542,3 +542,46 @@ brings the corresponding window to the front.
    DrRacket to other languages.}
 
 ]
+
+
+@; ----------------------------------------
+
+@section{Popup menu}
+
+The following additional menu items may be available when activating the popup (context) menu in either the definitions or interactions window.
+
+@itemize[
+
+ @item{@defmenuitem{Tack/Untack Arrow(s)} Tack binding relationship arrows so
+  they do not disappear. Repeat to untack arrows.}
+ 
+ @item{@defmenuitem{Open Defining File} Opens the file with the currently 
+  selected identifier was defined.}
+
+ @item{@defmenuitem{Jump to Next Bound Occurrence} Selects the next occurence of the variable.}
+ 
+ @item{@defmenuitem{Jump to Binding Occurrence} Selects where the identifier was bound in the text. 
+If imported the name of the imported library is selected.}
+
+ @item{@defmenuitem{Add Require Prefix} Adds prefix-in, prompts for prefix, and renames
+instances of imported identifier to include the prefix.}
+
+ @item{@defmenuitem{Remove Unused Requires} Refactoring tool to remove unused 
+   requires in module.}
+ 
+ @item{@defmenuitem{Rename} Renames all occurrences of selected variable.}
+ 
+ @item{@defmenuitem{Collapse S-expression} Caused the current S-expression to 
+  be rendered as (⋯)}
+
+ @item{@defmenuitem{Expand S-expression} Expands a collapsed S-expression
+  (displayed as centered ellipses) back to original text.}
+  
+ @item{@defmenuitem{Search in Help Desk for ...} Opens browser and triggers 
+  search of documentation for selected term.}
+
+ @item{@defmenuitem{Save Image...} Save the clicked-on image to file.}
+]
+
+Standard editing functions are also available via the context menu: Undo, 
+Redo, copy, cut, paste, Select All, and Select All.
