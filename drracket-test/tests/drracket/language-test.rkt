@@ -1326,8 +1326,8 @@ the settings above should match r5rs
     (test-undefined-fn "(print (floor (sqrt 2)))" "print")
     
     (test-expression "(let ([f (lambda (x) x)]) f)" 
-                     "(lambda (a1) ...)"
-                     "(lambda (a1) ...)")
+                     "f"
+                     "f")
     (test-expression ",1"
                        "unquote: misuse of a comma or unquote, not under a quasiquoting backquote")
     
@@ -1503,8 +1503,8 @@ the settings above should match r5rs
     (test-expression "(print (floor (sqrt 2)))" "#i1.0")
     
     (test-expression "(let ([f (lambda (x) x)]) f)" 
-                     "(lambda (a1) ...)"
-                     "(lambda (a1) ...)")
+                     "f"
+                     "f")
     (test-expression ",1"
                      "unquote: misuse of a comma or unquote, not under a quasiquoting backquote")
     

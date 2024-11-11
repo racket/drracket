@@ -649,6 +649,7 @@
                      (if (exn? x)
                          (orig-display-handler (exn-message x) x)
                          (eprintf "uncaught exception ~s\n" x))
+                     (sleep/yield 0.1)
                      (exit 1))))
                 (run-test)
                 (test-log #:display? #t #:exit? #t)
