@@ -1,16 +1,15 @@
 #lang racket/base
 
 (require drracket/check-syntax
-         (only-in drracket/private/syncheck/traversals
-                  [build-trace% basic-build-trace%])
          racket/class
+         racket/file
+         racket/format
          racket/match
+         racket/runtime-path
          racket/set
          rackunit
          syntax/modread
-         racket/file
-         racket/format
-         racket/runtime-path)
+         (only-in drracket/private/syncheck/traversals [build-trace% basic-build-trace%]))
 
 (define-syntax-rule
   (define-get-arrows get-what-arrows method-header arrow-info)
@@ -36,9 +35,7 @@
                     (when x
                       (set! results (cons x results))))
                   (define/override (syncheck:find-source-object stx)
-                    (if (eq? 'the-source (syntax-source stx))
-                        'yep
-                        #f))))))
+                    (and (eq? 'the-source (syntax-source stx)) 'yep))))))
 
   (define-values (add-syntax done)
     (make-traversal (make-base-namespace) #f))
@@ -1109,7 +1106,7 @@ abcdef
 ;; ensure that the submodules argument gets correctly sent along
 ;; in a syncheck:add-jump-to-definition/phase-level+space call
 (let ()
-  (define root-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (define root-dir (make-temporary-directory "test-from-syncheck-direct-rkt~a"))
   (define src (build-path root-dir "a.rkt"))
   (call-with-output-file src
     (λ (port)
@@ -1136,7 +1133,7 @@ abcdef
 ;; make sure that `make-traversal` is called with
 ;; the containing directory by `show-content`
 (let ()
-  (define root-dir (make-temporary-file "test-from-syncheck-direct-rkt~a" 'directory))
+  (define root-dir (make-temporary-directory "test-from-syncheck-direct-rkt~a"))
   (parameterize ([current-directory root-dir])
     (make-directory "test"))
   (define tmp-dir (build-path root-dir "test"))
@@ -1213,9 +1210,9 @@ abcdef
                    [p2-ele (in-list p2-eles)])
            (equal? p1-ele p2-ele))))
 
-  (for ([path (in-set paths)])
-    (when (path-extension-of? tmp-dir path)
-      (check-pred file-exists? path)))
+  (for ([path (in-set paths)]
+        #:when (path-extension-of? tmp-dir path))
+    (check-pred file-exists? path))
 
   (delete-directory/files root-dir))
 

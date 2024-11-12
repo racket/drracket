@@ -184,7 +184,6 @@
   (define synthesized-ok-button (make-object button% (string-constant ok) synthesized-button-panel
                                   (lambda (x y)
                                     (send synthesized-dialog show #f))))
-  (define synthesized-info-shown? #t)
   (define (show-synthesized-info)
     (send synthesized-dialog show #t))
   
