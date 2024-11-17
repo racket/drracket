@@ -1,20 +1,20 @@
 #lang racket/base
 
-(require racket/gui/base
-         racket/class
-         racket/set
-         racket/contract
-         syntax/moddep
-         framework
-         string-constants
-         mrlib/graph
-         drracket/private/drsig
-         "eval-helpers-and-pref-init.rkt"
-         racket/unit
-         racket/async-channel
-         racket/port
+(require drracket/private/drsig
          drracket/private/rectangle-intersect
-         drracket/private/standalone-module-browser)
+         drracket/private/standalone-module-browser
+         framework
+         mrlib/graph
+         racket/async-channel
+         racket/class
+         racket/contract
+         racket/gui/base
+         racket/port
+         racket/set
+         racket/unit
+         string-constants
+         syntax/moddep
+         "eval-helpers-and-pref-init.rkt")
 
 (provide module-overview@)
 

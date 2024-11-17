@@ -1,21 +1,21 @@
 #lang racket/unit
 
-(require racket/class
-         racket/list
-         racket/runtime-path
-         racket/contract
-         racket/struct-info
-         setup/getinfo
-         mred
+(require drracket/private/drsig
          framework
-         framework/splash
          framework/private/srcloc-panel
-         drracket/private/drsig
-         "language-object-contract.rkt"
-         "wrap-tool-inputs.rkt"
+         framework/splash
+         mred
          mrlib/switchable-button
          net/url
-         string-constants)
+         racket/class
+         racket/contract
+         racket/list
+         racket/runtime-path
+         racket/struct-info
+         setup/getinfo
+         string-constants
+         "language-object-contract.rkt"
+         "wrap-tool-inputs.rkt")
 
 (import [prefix drracket:frame: drracket:frame^]
         [prefix drracket:unit: drracket:unit^]
@@ -109,52 +109,52 @@
                                             tool-names-key
                                             tool-urls-key
                                             drracket-tool?)
-  (let ([table (with-handlers ((exn:fail? values))
-                 (get-info/full (directory-record-path coll-dir)))])
-    (cond
-      [(not table)
-       null]
-      [(exn? table)
-       (message-box
-        (string-constant drscheme)
-        (format (string-constant error-loading-tool-title)
-                (directory-record-path coll-dir)
-                (let ([sp (open-output-string)])
-                  (parameterize ([current-error-port sp]
-                                 [current-error-port sp])
-                    (drracket:init:original-error-display-handler (exn-message table) table))
-                  (get-output-string sp)))
-        #f
-        '(ok stop))
-       null]
-      [else
-       (let* ([tools (table tools-key (λ () null))]
-              [tool-icons (table tool-icons-key (λ () (map (λ (x) #f) tools)))]
-              [tool-names (table tool-names-key (λ () (map (λ (x) #f) tools)))]
-              [tool-urls (table tool-urls-key (λ () (map (λ (x) #f) tools)))])
-         (unless (= (length tools) (length tool-icons))
-           (message-box (string-constant drscheme)
-                        (format (string-constant tool-tool-icons-same-length)
-                                coll-dir tools tool-icons)
-                        #f
-                        '(ok stop))
-           (set! tool-icons (map (λ (x) #f) tools)))
-         (unless (= (length tools) (length tool-names))
-           (message-box (string-constant drscheme)
-                        (format (string-constant tool-tool-names-same-length)
-                                coll-dir tools tool-names)
-                        #f
-                        '(ok stop))
-           (set! tool-names (map (λ (x) #f) tools)))
-         (unless (= (length tools) (length tool-urls))
-           (message-box (string-constant drscheme)
-                        (format (string-constant tool-tool-urls-same-length)
-                                coll-dir tools tool-urls)
-                        #f
-                        '(ok stop))
-           (set! tool-urls (map (λ (x) #f) tools)))
-         (map (λ (t i n u) (make-installed-tool coll-dir t i n u drracket-tool?))
-              tools tool-icons tool-names tool-urls))])))
+  (define table
+    (with-handlers ([exn:fail? values])
+      (get-info/full (directory-record-path coll-dir))))
+  (cond
+    [(not table) null]
+    [(exn? table)
+     (message-box (string-constant drscheme)
+                  (format (string-constant error-loading-tool-title)
+                          (directory-record-path coll-dir)
+                          (let ([sp (open-output-string)])
+                            (parameterize ([current-error-port sp]
+                                           [current-error-port sp])
+                              (drracket:init:original-error-display-handler (exn-message table)
+                                                                            table))
+                            (get-output-string sp)))
+                  #f
+                  '(ok stop))
+     null]
+    [else
+     (define tools (table tools-key (λ () null)))
+     (define tool-icons (table tool-icons-key (λ () (map (λ (x) #f) tools))))
+     (define tool-names (table tool-names-key (λ () (map (λ (x) #f) tools))))
+     (define tool-urls (table tool-urls-key (λ () (map (λ (x) #f) tools))))
+     (unless (= (length tools) (length tool-icons))
+       (message-box (string-constant drscheme)
+                    (format (string-constant tool-tool-icons-same-length) coll-dir tools tool-icons)
+                    #f
+                    '(ok stop))
+       (set! tool-icons (map (λ (x) #f) tools)))
+     (unless (= (length tools) (length tool-names))
+       (message-box (string-constant drscheme)
+                    (format (string-constant tool-tool-names-same-length) coll-dir tools tool-names)
+                    #f
+                    '(ok stop))
+       (set! tool-names (map (λ (x) #f) tools)))
+     (unless (= (length tools) (length tool-urls))
+       (message-box (string-constant drscheme)
+                    (format (string-constant tool-tool-urls-same-length) coll-dir tools tool-urls)
+                    #f
+                    '(ok stop))
+       (set! tool-urls (map (λ (x) #f) tools)))
+     (map (λ (t i n u) (make-installed-tool coll-dir t i n u drracket-tool?))
+          tools
+          tool-icons
+          tool-names
+          tool-urls)]))
 
 ;; candidate-tool? : installed-tool -> boolean
 ;; Predicate for tools selected for execution in this
@@ -166,11 +166,12 @@
      (λ (it) #f)]
     [(getenv "PLTONLYTOOL")
      => (λ (onlys)
-          (define allowed (let ([exp (read (open-input-string onlys))])
-                            (cond
-                              [(symbol? exp) (list exp)]
-                              [(pair? exp) exp]
-                              [else '()])))
+          (define exp (read (open-input-string onlys)))
+          (define allowed
+            (cond
+              [(symbol? exp) (list exp)]
+              [(pair? exp) exp]
+              [else '()]))
           (define (directory-ok? x)
             (define-values (base name dir) (split-path x))
             (memq (string->symbol (path->string name))
@@ -189,8 +190,8 @@
 ;; get-tool-configuration : installed-tool -> symbol/#f
 ;; Get tool configuration preference or #f if no preference set.
 (define (get-tool-configuration it)
-  (let ([p (assoc (installed-tool->key it) (toolspref))])
-    (and p (cadr p))))
+  (define p (assoc (installed-tool->key it) (toolspref)))
+  (and p (cadr p)))
 
 ;; default-tool-configuration : installed-tool -> (union 'load 'skip)
 (define (default-tool-configuration it)
@@ -236,9 +237,8 @@
 
 ;; installed-tool-is-loaded : installed-tool -> boolean
 (define (installed-tool-is-loaded? it)
-  (let ([path (installed-tool-full-path it)])
-    (ormap (λ (st) (equal? path (successful-tool-spec st)))
-           (get-successful-tools))))
+  (define path (installed-tool-full-path it))
+  (ormap (λ (st) (equal? path (successful-tool-spec st))) (get-successful-tools)))
 
 
 ;                                                                                        
@@ -383,28 +383,25 @@
         (parameterize ([current-eventspace splash-eventspace])
           (queue-callback
            (λ ()
-             (let ([bdc (make-object bitmap-dc%)]
-                   [translated-tool-bitmap-y
-                    (max 0 (- splash-height tool-bitmap-y tool-bitmap-size))])
-               
-               ;; add the bitmap, but centered at its position
-               ;; (used to truncate the bitmap
-               ;; if it was too large, but no longer)
-               (add-splash-icon
-                bitmap
-                (floor (+ tool-bitmap-x
-                          (- (/ tool-bitmap-size 2)
-                             (/ (send bitmap get-width) 2))))
-                (floor (+ translated-tool-bitmap-y
-                          (- (/ tool-bitmap-size 2)
-                             (/ (send bitmap get-height) 2)))))
-               
-               (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap))
-               (when ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . splash-width)
-                 (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
-                 (set! tool-bitmap-x tool-bitmap-gap))
-               (when ((+ tool-bitmap-y tool-bitmap-gap tool-bitmap-size) . > . splash-width)
-                 (set! tool-bitmap-y tool-bitmap-gap)))))))
+             (make-object bitmap-dc%)
+             (define translated-tool-bitmap-y
+               (max 0 (- splash-height tool-bitmap-y tool-bitmap-size)))
+             
+             ;; add the bitmap, but centered at its position
+             ;; (used to truncate the bitmap
+             ;; if it was too large, but no longer)
+             (add-splash-icon bitmap
+                              (floor (+ tool-bitmap-x
+                                        (- (/ tool-bitmap-size 2) (/ (send bitmap get-width) 2))))
+                              (floor (+ translated-tool-bitmap-y
+                                        (- (/ tool-bitmap-size 2) (/ (send bitmap get-height) 2)))))
+             
+             (set! tool-bitmap-x (+ tool-bitmap-x tool-bitmap-size tool-bitmap-gap))
+             (when ((+ tool-bitmap-x tool-bitmap-gap tool-bitmap-size) . > . splash-width)
+               (set! tool-bitmap-y (+ tool-bitmap-y tool-bitmap-size tool-bitmap-gap))
+               (set! tool-bitmap-x tool-bitmap-gap))
+             (when ((+ tool-bitmap-y tool-bitmap-gap tool-bitmap-size) . > . splash-width)
+               (set! tool-bitmap-y tool-bitmap-gap))))))
       bitmap)))
 
 (define tool-bitmap-gap 3)
@@ -431,24 +428,25 @@
 ;; run-phases : -> void
 (define (run-phases phase1-extras phase2-extras)
   (drracket:module-language-tools:no-more-online-expansion-handlers)
-  (let* ([after-phase1 (run-one-phase 'phase1
-                                      (string-constant tool-error-phase1)
-                                      successfully-loaded-tool-phase1
-                                      successfully-loaded-tools
-                                      phase1-extras)]
-         [after-phase2 (run-one-phase 'phase2
-                                      (string-constant tool-error-phase2)
-                                      successfully-loaded-tool-phase2
-                                      after-phase1
-                                      phase2-extras)])
-    (set! current-phase 'init-complete)
-    (set! successful-tools
-          (map (λ (x) (make-successful-tool
-                       (successfully-loaded-tool-spec x)
-                       (successfully-loaded-tool-bitmap x)
-                       (successfully-loaded-tool-name x)
-                       (successfully-loaded-tool-url x)))
-               after-phase2))))
+  (define after-phase1
+    (run-one-phase 'phase1
+                   (string-constant tool-error-phase1)
+                   successfully-loaded-tool-phase1
+                   successfully-loaded-tools
+                   phase1-extras))
+  (define after-phase2
+    (run-one-phase 'phase2
+                   (string-constant tool-error-phase2)
+                   successfully-loaded-tool-phase2
+                   after-phase1
+                   phase2-extras))
+  (set! current-phase 'init-complete)
+  (set! successful-tools
+        (for/list ([x (in-list after-phase2)])
+          (make-successful-tool (successfully-loaded-tool-spec x)
+                                (successfully-loaded-tool-bitmap x)
+                                (successfully-loaded-tool-name x)
+                                (successfully-loaded-tool-url x)))))
 
 ;; run-one-phase : string
 ;;                 (successfully-loaded-tool -> (-> void))
@@ -529,44 +527,38 @@
 
      (define (populate-listing!)
        (send listing clear)
-       (for-each
-        (lambda (entry+it)
-          (send listing append
-                (car entry+it)
-                (cdr entry+it)))
-        (sort (map (lambda (it) (cons (tool-list-entry it) it))
-                   installed-tools)
-              (lambda (a b)
-                (string<? (car a) (car b))))))
+       (for ([entry+it (in-list (sort (map (lambda (it) (cons (tool-list-entry it) it))
+                                           installed-tools)
+                                      (lambda (a b) (string<? (car a) (car b)))))])
+         (send listing append (car entry+it) (cdr entry+it))))
      (define (tool-list-entry it)
-       (let ([name (or (installed-tool-name it)
-                       (format (string-constant unnamed-tool)
-                               (installed-tool->module-spec it)))])
-         (cond [(installed-tool-is-loaded? it)
-                (string-append name (string-constant note-that-tool-loaded))]
-               [(not (memq it candidate-tools))
-                (string-append name (string-constant note-that-tool-was-skipped))]
-               [else
-                (string-append name (string-constant note-that-tool-failed-to-load))])))
+       (define name
+         (or (installed-tool-name it)
+             (format (string-constant unnamed-tool) (installed-tool->module-spec it))))
+       (cond
+         [(installed-tool-is-loaded? it) (string-append name (string-constant note-that-tool-loaded))]
+         [(not (memq it candidate-tools))
+          (string-append name (string-constant note-that-tool-was-skipped))]
+         [else (string-append name (string-constant note-that-tool-failed-to-load))]))
      (define (on-select-tool)
-       (let ([it (get-selected-tool)])
-         (send* location-editor
-           (begin-edit-sequence)
-           (lock #f)
-           (erase)
-           (insert
-            (if it
-                (format "~s" (installed-tool->module-spec it))
-                ""))
-           (lock #t)
-           (end-edit-sequence))
-         (send configuration set-selection
-               (case (and it (get-tool-configuration it))
-                 ((load) 0)
-                 ((skip) 1)
-                 ((#f) 0))) ;; XXX (or 2, if default is an option)
-         (send configuration enable (and it #t))
-         (void)))
+       (define it (get-selected-tool))
+       (send* location-editor
+              (begin-edit-sequence)
+              (lock #f)
+              (erase)
+              (insert (if it
+                          (format "~s" (installed-tool->module-spec it))
+                          ""))
+              (lock #t)
+              (end-edit-sequence))
+       (send configuration
+             set-selection
+             (case (and it (get-tool-configuration it))
+               [(load) 0]
+               [(skip) 1]
+               [(#f) 0])) ;; XXX (or 2, if default is an option)
+       (send configuration enable (and it #t))
+       (void))
      (define (on-select-policy)
        (let ([it (get-selected-tool)]
              [policy
@@ -574,23 +566,17 @@
                 ((0) 'load)
                 ((1) 'skip))])
          (when it
-           (let ([key (installed-tool->key it)])
-             (case policy
-               ((load)
-                (toolspref (cons (list key 'load)
-                                 (let ([ts (toolspref)])
-                                   (remove (assoc key ts) ts)))))
-               ((skip)
-                (toolspref (cons (list key 'skip)
-                                 (let ([ts (toolspref)])
-                                   (remove (assoc key ts) ts)))))
-               ((#f)
-                (toolspref (let ([ts (toolspref)])
-                             (remove (assoc key ts) ts))))))))
+           (define key (installed-tool->key it))
+           (case policy
+             [(load)
+              (toolspref (cons (list key 'load) (let ([ts (toolspref)]) (remove (assoc key ts) ts))))]
+             [(skip)
+              (toolspref (cons (list key 'skip) (let ([ts (toolspref)]) (remove (assoc key ts) ts))))]
+             [(#f) (toolspref (let ([ts (toolspref)]) (remove (assoc key ts) ts)))])))
        (void))
      (define (get-selected-tool)
-       (let ([index (send listing get-selection)])
-         (and index (send listing get-data index))))
+       (define index (send listing get-selection))
+       (and index (send listing get-data index)))
      (populate-listing!)
      (send location-editor lock #t)
      main)))
