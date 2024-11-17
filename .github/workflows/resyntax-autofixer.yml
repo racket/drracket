@@ -8,6 +8,7 @@ on:
 jobs:
   autofix:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'racket'
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
