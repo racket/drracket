@@ -383,7 +383,6 @@
         (parameterize ([current-eventspace splash-eventspace])
           (queue-callback
            (λ ()
-             (make-object bitmap-dc%)
              (define translated-tool-bitmap-y
                (max 0 (- splash-height tool-bitmap-y tool-bitmap-size)))
              
