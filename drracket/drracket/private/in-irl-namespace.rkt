@@ -253,7 +253,8 @@
 (define (get-read-language-name/inside) lang-name)
 
 (module+ test
-  (require rackunit racket/gui/base)
+  (require racket/gui/base
+           rackunit)
 
     (define (compute-lang-info/wrap str)
     (define sp (open-input-string str))
