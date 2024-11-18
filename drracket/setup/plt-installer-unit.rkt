@@ -41,12 +41,10 @@
           (sleep 0.2) ; kludge to allow f to appear first
           (end-busy-cursor)
           ;; do these strings ever appear? (should move to string-constants, if so)
-          (let ([d (get-directory 
-                    "Select the destination for unpacking"
-                    frame)])
-            (unless d
-              (printf ">>> Cancelled <<<\n"))
-            (begin-busy-cursor)
-            d))
+          (define d (get-directory "Select the destination for unpacking" frame))
+          (unless d
+            (printf ">>> Cancelled <<<\n"))
+          (begin-busy-cursor)
+          d)
         #:show-beginning-of-file? #t))
      cleanup-thunk)))

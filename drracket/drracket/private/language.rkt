@@ -285,8 +285,8 @@
                              '(horizontal vertical-label))]
              [enable-fraction-style 
               (lambda ()
-                (let ([on? (member (send output-style get-selection) '(0 1))])
-                  (send fraction-style enable on?)))]
+                (define on? (member (send output-style get-selection) '(0 1)))
+                (send fraction-style enable on?))]
              [show-sharing (make-object check-box%
                              (string-constant sharing-printing-label)
                              output-panel
@@ -348,28 +348,25 @@
   
   ;; simple-module-based-language-render-value/format : TST settings port (union #f (snip% -> void)) (union 'infinity number) -> void
   (define (simple-module-based-language-render-value/format value settings port width)
-    (let-values ([(converted-value write?)
-                  (call-with-values
-                      (lambda ()
-                        (simple-module-based-language-convert-value value settings))
-                    (case-lambda
-                     [(converted-value) (values converted-value #t)]
-                     [(converted-value write?) (values converted-value write?)]))])
-      (let ([pretty-out (if write? pretty-write pretty-print)])
-        (setup-printing-parameters
-         (λ ()
-            (cond
-             [(simple-settings-insert-newlines settings)
-              (if (number? width)
-                  (parameterize ([pretty-print-columns width])
-                    (pretty-out converted-value port))
-                  (pretty-out converted-value port))]
-             [else
-              (parameterize ([pretty-print-columns 'infinity])
-                (pretty-out converted-value port))
-              (newline port)]))
-         settings
-         width))))
+    (define-values (converted-value write?)
+      (call-with-values (lambda () (simple-module-based-language-convert-value value settings))
+                        (case-lambda
+                          [(converted-value) (values converted-value #t)]
+                          [(converted-value write?) (values converted-value write?)])))
+    (define pretty-out (if write? pretty-write pretty-print))
+    (setup-printing-parameters (λ ()
+                                 (cond
+                                   [(simple-settings-insert-newlines settings)
+                                    (if (number? width)
+                                        (parameterize ([pretty-print-columns width])
+                                          (pretty-out converted-value port))
+                                        (pretty-out converted-value port))]
+                                   [else
+                                    (parameterize ([pretty-print-columns 'infinity])
+                                      (pretty-out converted-value port))
+                                    (newline port)]))
+                               settings
+                               width))
   
   (define default-pretty-print-current-style-table (pretty-print-current-style-table))
   
@@ -605,49 +602,44 @@
        (define first-time? (make-parameter #t))
        (global-port-print-handler
         (λ (value port [depth 0])
-          (let-values ([(converted-value write?)
-                        (call-with-values 
-                            (lambda () (simple-module-based-language-convert-value value setting))
-                          (case-lambda
-                           [(converted-value) (values converted-value #t)]
-                           [(converted-value write?) (values converted-value write?)]))])
-            (define cols
-              (cond
-                [(not (simple-settings-insert-newlines setting))
-                 'infinity]
-                [(exact-integer? (print-value-columns))
-                 (print-value-columns)]
-                [else
-                 (drracket:module-language:drracket-determined-width)]))
-
-            (my-setup-printing-parameters
-             (λ ()
-               (define (do-print)
-                 (if write?
-                     (pretty-write converted-value port)
-                     (pretty-print converted-value port depth)))
-               (cond
-                 [(first-time?)
-                  (define orig-pretty-print-print-line (pretty-print-print-line))
-                  (define pppl
-                    (if (simple-settings-insert-newlines setting)
-                        ;; when drracket:module-language:drracket-determined-width
-                        ;; is set, we need to compensate for the newline
-                        ;; difference, so we do this to avoid that last newline
-                        (if (equal? (drracket:module-language:drracket-determined-width)
-                                    'infinity)
-                            orig-pretty-print-print-line
-                            (λ (new-line-number port len cols)
-                              (when new-line-number
-                                (orig-pretty-print-print-line new-line-number port len cols))))
-                        orig-pretty-print-print-line))
-                  (parameterize ([pretty-print-columns cols]
-                                 [pretty-print-print-line pppl]
-                                 [first-time? #f])
-                    (do-print))]
-                 [else (do-print)]))
-             setting
-             'infinity))))
+          (define-values (converted-value write?)
+            (call-with-values (lambda () (simple-module-based-language-convert-value value setting))
+                              (case-lambda
+                                [(converted-value) (values converted-value #t)]
+                                [(converted-value write?) (values converted-value write?)])))
+          (define cols
+            (cond
+              [(not (simple-settings-insert-newlines setting)) 'infinity]
+              [(exact-integer? (print-value-columns)) (print-value-columns)]
+              [else (drracket:module-language:drracket-determined-width)]))
+          
+          (my-setup-printing-parameters
+           (λ ()
+             (define (do-print)
+               (if write?
+                   (pretty-write converted-value port)
+                   (pretty-print converted-value port depth)))
+             (cond
+               [(first-time?)
+                (define orig-pretty-print-print-line (pretty-print-print-line))
+                (define pppl
+                  (if (simple-settings-insert-newlines setting)
+                      ;; when drracket:module-language:drracket-determined-width
+                      ;; is set, we need to compensate for the newline
+                      ;; difference, so we do this to avoid that last newline
+                      (if (equal? (drracket:module-language:drracket-determined-width) 'infinity)
+                          orig-pretty-print-print-line
+                          (λ (new-line-number port len cols)
+                            (when new-line-number
+                              (orig-pretty-print-print-line new-line-number port len cols))))
+                      orig-pretty-print-print-line))
+                (parameterize ([pretty-print-columns cols]
+                               [pretty-print-print-line pppl]
+                               [first-time? #f])
+                  (do-print))]
+               [else (do-print)]))
+           setting
+           'infinity)))
        (current-inspector (make-inspector))
        (read-case-sensitive (simple-settings-case-sensitive setting)))))
   
@@ -711,10 +703,10 @@
       
       (inherit get-language-position)
       (define/public (get-language-name)
-        (let ([pos (get-language-position)])
-          (if (null? pos)
-              "<<unknown>>"
-              (car (last-pair pos)))))
+        (define pos (get-language-position))
+        (if (null? pos)
+            "<<unknown>>"
+            (car (last-pair pos))))
       (define/public (get-style-delta) #f)
       (define/override (on-execute setting run-in-user-thread)
         (super on-execute setting run-in-user-thread)
@@ -745,47 +737,41 @@
                                                    init-code
                                                    mred-launcher
                                                    use-copy?)
-    (let ([executable-specs (create-executable-gui parent
-                                                   program-filename
-                                                   #t 
-                                                   (if (boolean? mred-launcher)
-                                                       (if mred-launcher
-                                                           'mred
-                                                           'mzscheme)
-                                                       #t))])
-      (when executable-specs
-        (let* ([type (car executable-specs)]
-               [base (cadr executable-specs)]
-               [executable-filename (caddr executable-specs)]
-               [aux (cadddr executable-specs)]
-               [create-executable
-                (case type
-                  [(launcher) create-module-based-launcher]
-                  [(stand-alone) create-module-based-stand-alone-executable]
-                  [(distribution) create-module-based-distribution])])
-          (with-handlers ((exn:fail? (λ (msg)
-                                       (define sp (open-output-string))
-                                       (parameterize ([current-error-port sp])
-                                         (drracket:init:original-error-display-handler
-                                          (exn-message exn)
-                                          exn))
-                                       (message-box 
-                                        (string-constant drscheme)
-                                        (string-append
-                                         (string-constant error-creating-executable)
-                                         "\n\n"
-                                         (get-output-string sp))))))
-            (create-executable
-             program-filename
-             executable-filename
-             module-language-spec
-             transformer-module-language-spec
-             init-code
-             (if (boolean? mred-launcher)
-                 mred-launcher
-                 (eq? base 'mred))
-             use-copy?
-             #:aux aux))))))
+    (define executable-specs
+      (create-executable-gui parent
+                             program-filename
+                             #t
+                             (if (boolean? mred-launcher)
+                                 (if mred-launcher 'mred 'mzscheme)
+                                 #t)))
+    (when executable-specs
+      (let* ([type (car executable-specs)]
+             [base (cadr executable-specs)]
+             [executable-filename (caddr executable-specs)]
+             [aux (cadddr executable-specs)]
+             [create-executable (case type
+                                  [(launcher) create-module-based-launcher]
+                                  [(stand-alone) create-module-based-stand-alone-executable]
+                                  [(distribution) create-module-based-distribution])])
+        (with-handlers ([exn:fail?
+                         (λ (msg)
+                           (define sp (open-output-string))
+                           (parameterize ([current-error-port sp])
+                             (drracket:init:original-error-display-handler (exn-message exn) exn))
+                           (message-box (string-constant drscheme)
+                                        (string-append (string-constant error-creating-executable)
+                                                       "\n\n"
+                                                       (get-output-string sp))))])
+          (create-executable program-filename
+                             executable-filename
+                             module-language-spec
+                             transformer-module-language-spec
+                             init-code
+                             (if (boolean? mred-launcher)
+                                 mred-launcher
+                                 (eq? base 'mred))
+                             use-copy?
+                             #:aux aux)))))
   
   
   ;; create-executable-gui : (union #f (is-a?/c top-level-area-container<%>))
@@ -907,13 +893,12 @@
                 [value (preferences:get 'drracket:create-executable-gui-embed-dlls?)])))
     
     (define (reset-filename-suffix)
-      (let ([s (send filename-text-field get-value)])
-        (unless (string=? s "")
-          (let ([new-s (default-executable-filename 
-                         (string->path s)
-                         (current-mode)
-                         (not (currently-mzscheme-binary?)))])
-            (send filename-text-field set-value (path->string new-s))))))
+      (define s (send filename-text-field get-value))
+      (unless (string=? s "")
+        (let ([new-s (default-executable-filename (string->path s)
+                                                  (current-mode)
+                                                  (not (currently-mzscheme-binary?)))])
+          (send filename-text-field set-value (path->string new-s)))))
     
     (define button-panel (instantiate horizontal-panel% ()
                            (parent dlg)
@@ -931,35 +916,34 @@
        (string-constant cancel)))
     
     (define (browse-callback)
-      (let ([ftf (send filename-text-field get-value)])
-        (let-values ([(base name _)
-                      (if (path-string? ftf)
-                          (split-path ftf)
-                          (values (current-directory) "" #f))])
-          (let* ([mzscheme? (currently-mzscheme-binary?)]
-                 [mode (current-mode)]
-                 [filename 
-                  (put-executable/defaults
-                   dlg
-                   base
-                   name
-                   mode
-                   (not mzscheme?)
-                   (case mode
-                     [(launcher)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-launcher)
-                          (string-constant save-a-mred-launcher))]
-                     [(stand-alone)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-stand-alone-executable)
-                          (string-constant save-a-mred-stand-alone-executable))]
-                     [(distribution)
-                      (if mzscheme?
-                          (string-constant save-a-mzscheme-distribution)
-                          (string-constant save-a-mred-distribution))]))])
-            (when filename
-              (send filename-text-field set-value (path->string filename)))))))
+      (define ftf (send filename-text-field get-value))
+      (define-values (base name _)
+        (if (path-string? ftf)
+            (split-path ftf)
+            (values (current-directory) "" #f)))
+      (define mzscheme? (currently-mzscheme-binary?))
+      (define mode (current-mode))
+      (define filename
+        (put-executable/defaults dlg
+                                 base
+                                 name
+                                 mode
+                                 (not mzscheme?)
+                                 (case mode
+                                   [(launcher)
+                                    (if mzscheme?
+                                        (string-constant save-a-mzscheme-launcher)
+                                        (string-constant save-a-mred-launcher))]
+                                   [(stand-alone)
+                                    (if mzscheme?
+                                        (string-constant save-a-mzscheme-stand-alone-executable)
+                                        (string-constant save-a-mred-stand-alone-executable))]
+                                   [(distribution)
+                                    (if mzscheme?
+                                        (string-constant save-a-mzscheme-distribution)
+                                        (string-constant save-a-mred-distribution))])))
+      (when filename
+        (send filename-text-field set-value (path->string filename))))
     
     (define (currently-mzscheme-binary?)
       (cond
@@ -978,24 +962,21 @@
         [else show-type]))
     
     (define (check-filename)
-      (let ([filename-str (send filename-text-field get-value)]
-            [mred? (not (currently-mzscheme-binary?))]
-            [mode (current-mode)])
-        (let-values ([(extension style filters)
-                      (mode->put-file-extension+style+filters mode mred?)])
-          (cond
-            [(string=? "" filename-str)
-             (message-box (string-constant drscheme)
-                          (string-constant please-specify-a-filename)
-                          dlg
-                          #:dialog-mixin frame:focus-table-mixin)
-             #f]
-            [(not (users-name-ok? mode extension dlg (string->path filename-str)))
-             #f]
-            [(or (directory-exists? filename-str)
-                 (file-exists? filename-str))
-             (ask-user-can-clobber? filename-str)]
-            [else #t]))))
+      (define filename-str (send filename-text-field get-value))
+      (define mred? (not (currently-mzscheme-binary?)))
+      (define mode (current-mode))
+      (define-values (extension style filters) (mode->put-file-extension+style+filters mode mred?))
+      (cond
+        [(string=? "" filename-str)
+         (message-box (string-constant drscheme)
+                      (string-constant please-specify-a-filename)
+                      dlg
+                      #:dialog-mixin frame:focus-table-mixin)
+         #f]
+        [(not (users-name-ok? mode extension dlg (string->path filename-str))) #f]
+        [(or (directory-exists? filename-str) (file-exists? filename-str))
+         (ask-user-can-clobber? filename-str)]
+        [else #t]))
     
     ;; ask-user-can-clobber-directory? : (is-a?/c top-level-window<%>) string -> boolean
     (define (ask-user-can-clobber? filename)
@@ -1051,54 +1032,37 @@
   ;; put-executable : parent string (union boolean 'launcher 'stand-alone 'distribution) boolean -> (union false? string)
   ;; invokes the put-file dialog with arguments specific to building executables
   (define (put-executable parent program-filename mode mred? title)
-    (let-values ([(base name dir) (split-path program-filename)])
-      (let ([mode (normalize-mode mode)])
-        (let ([default-name (default-executable-filename name mode mred?)])
-          (put-executable/defaults
-           parent
-           base
-           default-name
-           mode
-           mred? 
-           title)))))
+    (define-values (base name dir) (split-path program-filename))
+    (let ([mode (normalize-mode mode)])
+      (let ([default-name (default-executable-filename name mode mred?)])
+        (put-executable/defaults parent base default-name mode mred? title))))
   
   ;; put-executable/defaults : parent string string symbol boolean -> (union false? string)
   (define (put-executable/defaults parent default-dir default-name mode mred? title)
-    (let-values ([(extension style filters)
-                  (mode->put-file-extension+style+filters mode mred?)])
-      (let* ([dir? (case mode
-                     [(launcher)
-                      (if mred?
-                          (mred-launcher-is-directory?)
-                          (mzscheme-launcher-is-directory?))]
-                     [(stand-alone)
-                      (embedding-executable-is-directory? mred?)]
-                     [(distribution) #f])]
-             [users-name
-              (if dir?
-                  (get-directory title
-                                 parent
-                                 default-dir
-                                 style)
-                  (put-file title
-                            parent
-                            default-dir
-                            default-name
-                            extension
-                            style
-                            filters))])
-        (and users-name
-             (users-name-ok? mode extension parent users-name)
-             (or (not dir?)
-                 (gui-utils:get-choice
-                  (format (string-constant warning-directory-will-be-replaced)
-                          users-name)
-                  (string-constant yes)
-                  (string-constant no)
-                  (string-constant drscheme)
-                  #f
-                  parent))
-             users-name))))
+    (define-values (extension style filters) (mode->put-file-extension+style+filters mode mred?))
+    (define dir?
+      (case mode
+        [(launcher)
+         (if mred?
+             (mred-launcher-is-directory?)
+             (mzscheme-launcher-is-directory?))]
+        [(stand-alone) (embedding-executable-is-directory? mred?)]
+        [(distribution) #f]))
+    (define users-name
+      (if dir?
+          (get-directory title parent default-dir style)
+          (put-file title parent default-dir default-name extension style filters)))
+    (and users-name
+         (users-name-ok? mode extension parent users-name)
+         (or (not dir?)
+             (gui-utils:get-choice (format (string-constant warning-directory-will-be-replaced)
+                                           users-name)
+                                   (string-constant yes)
+                                   (string-constant no)
+                                   (string-constant drscheme)
+                                   #f
+                                   parent))
+         users-name))
   
   ;; users-name-ok? : symbol string (union #f frame% dialog%) path? -> boolean
   ;; returns #t if the string is an acceptable name for
