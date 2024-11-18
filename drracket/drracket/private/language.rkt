@@ -954,11 +954,11 @@
     (define (current-mode)
       (cond
         [type-rb
-         (let ([s (send type-rb get-item-label (send type-rb get-selection))])
-           (cond
-             [(equal? s (string-constant launcher-explanatory-label)) 'launcher]
-             [(equal? s (string-constant stand-alone-explanatory-label)) 'stand-alone]
-             [(equal? s (string-constant distribution-explanatory-label)) 'distribution]))]
+         (define s (send type-rb get-item-label (send type-rb get-selection)))
+         (cond
+           [(equal? s (string-constant launcher-explanatory-label)) 'launcher]
+           [(equal? s (string-constant stand-alone-explanatory-label)) 'stand-alone]
+           [(equal? s (string-constant distribution-explanatory-label)) 'distribution])]
         [else show-type]))
     
     (define (check-filename)
